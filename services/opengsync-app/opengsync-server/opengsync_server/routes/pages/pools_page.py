@@ -19,6 +19,7 @@ pools_page_bp = Blueprint("pools_page", __name__)
 
 
 @pools_page_bp.route("/pools")
+@db_session(db)
 @login_required
 def pools_page():
     return render_template("pools_page.html")

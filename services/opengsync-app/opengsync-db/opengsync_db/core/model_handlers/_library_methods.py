@@ -1,8 +1,9 @@
 import math
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_  # noqa F401
+from sqlalchemy.orm.query import Query
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
@@ -32,7 +33,7 @@ def create_library(
     lab_prep_id: Optional[int] = None,
     seq_depth_requested: Optional[float] = None,
     status: Optional[LibraryStatusEnum] = None,
-    commit: bool = True
+    flush: bool = True
 ) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -85,9 +86,8 @@ def create_library(
 
     self.session.add(library)
 
-    if commit:
-        self.session.commit()
-        self.session.refresh(library)
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -106,8 +106,8 @@ def get_library(self: "DBHandler", library_id: int) -> models.Library | None:
     return library
 
 
-def get_libraries(
-    self: "DBHandler",
+def where(
+    query: Query,
     user_id: Optional[int] = None, sample_id: Optional[int] = None,
     experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
     assay_type: Optional[AssayTypeEnum] = None,
@@ -116,14 +116,8 @@ def get_libraries(
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
-    count_pages: bool = False
-) -> tuple[list[models.Library], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.Library)
+    custom_query: Callable[[Query], Query] | None = None,
+) -> Query:
     if user_id is not None:
         query = query.where(
             models.Library.owner_id == user_id
@@ -154,11 +148,11 @@ def get_libraries(
     if pooled is not None:
         if pooled:
             query = query.where(
-                models.Library.pool_id != None # noqa
+                models.Library.pool_id.is_not(None)
             )
         else:
             query = query.where(
-                models.Library.pool_id == None # noqa
+                models.Library.pool_id.is_(None)
             )
 
     if status is not None:
@@ -193,6 +187,44 @@ def get_libraries(
             models.Library.status_id.in_([s.id for s in status_in])
         )
 
+    if custom_query is not None:
+        query = custom_query(query)
+
+    return query
+    
+
+def get_libraries(
+    self: "DBHandler",
+    user_id: Optional[int] = None,
+    sample_id: Optional[int] = None,
+    experiment_id: Optional[int] = None,
+    seq_request_id: Optional[int] = None,
+    assay_type: Optional[AssayTypeEnum] = None,
+    pool_id: Optional[int] = None,
+    lab_prep_id: Optional[int] = None,
+    in_lab_prep: Optional[bool] = None,
+    type_in: Optional[list[LibraryTypeEnum]] = None,
+    status_in: Optional[list[LibraryStatusEnum]] = None,
+    pooled: Optional[bool] = None,
+    status: Optional[LibraryStatusEnum] = None,
+    custom_query: Callable[[Query], Query] | None = None,
+    sort_by: Optional[str] = None, descending: bool = False,
+    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    count_pages: bool = False
+) -> tuple[list[models.Library], int | None]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    query = self.session.query(models.Library)
+    query = where(
+        query,
+        user_id=user_id, sample_id=sample_id, experiment_id=experiment_id,
+        seq_request_id=seq_request_id, assay_type=assay_type,
+        pool_id=pool_id, lab_prep_id=lab_prep_id, in_lab_prep=in_lab_prep,
+        type_in=type_in, status_in=status_in, pooled=pooled, status=status,
+        custom_query=custom_query
+    )
+
     n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
     if sort_by is not None:
@@ -215,7 +247,10 @@ def get_libraries(
     return libraries, n_pages
 
 
-def delete_library(self: "DBHandler", library_id: int, delete_orphan_samples: bool = True):
+def delete_library(
+    self: "DBHandler", library_id: int, delete_orphan_samples: bool = True,
+    flush: bool = True
+):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -224,29 +259,16 @@ def delete_library(self: "DBHandler", library_id: int, delete_orphan_samples: bo
 
     for link in library.sample_links:
         link.sample.num_libraries -= 1
-            
         if link.sample.num_libraries == 0 and delete_orphan_samples:
             self.delete_sample(link.sample_id)
 
-    if library.pool_id is not None and library.pool is not None:
-        library.pool.num_libraries -= 1
-        if library.pool.num_libraries == 0:
-            self.delete_pool(library.pool_id)
-
-    orphan_features = set()
-    for feature in library.features:
-        if feature.feature_kit_id is None:
-            if self.session.query(models.links.LibraryFeatureLink).where(
-                models.links.LibraryFeatureLink.feature_id == feature.id
-            ).count() == 1:
-                orphan_features.add(feature)
-
     library.seq_request.num_libraries -= 1
     self.session.delete(library)
-    self.session.commit()
 
-    for feature in orphan_features:
-        self.session.delete(feature)
+    if flush:
+        self.session.flush()
+        
+    self.delete_orphan_features(flush=flush)
 
     if not persist_session:
         self.close_session()
@@ -257,8 +279,6 @@ def update_library(self: "DBHandler", library: models.Library) -> models.Library
         self.open_session()
     
     self.session.add(library)
-    self.session.commit()
-    self.session.refresh(library)
 
     if not persist_session:
         self.close_session()
@@ -280,13 +300,21 @@ def get_number_of_cloned_libraries(self: "DBHandler", original_library_id: int) 
 
 
 def query_libraries(
-    self: "DBHandler", name: Optional[str] = None, owner: Optional[str] = None,
-    user_id: Optional[int] = None, sample_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None, experiment_id: Optional[int] = None,
+    self: "DBHandler",
+    name: Optional[str] = None, owner: Optional[str] = None,
+    user_id: Optional[int] = None,
+    sample_id: Optional[int] = None,
+    experiment_id: Optional[int] = None,
+    seq_request_id: Optional[int] = None,
+    assay_type: Optional[AssayTypeEnum] = None,
+    pool_id: Optional[int] = None,
+    lab_prep_id: Optional[int] = None,
+    in_lab_prep: Optional[bool] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None,
-    status: Optional[LibraryStatusEnum] = None, pool_id: Optional[int] = None,
+    status: Optional[LibraryStatusEnum] = None,
+    custom_query: Callable[[Query], Query] | None = None,
     limit: Optional[int] = PAGE_LIMIT,
 ) -> list[models.Library]:
 
@@ -295,64 +323,14 @@ def query_libraries(
 
     query = self.session.query(models.Library)
 
-    if user_id is not None:
-        if self.session.get(models.User, user_id) is None:
-            raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-        query = query.where(
-            models.Library.owner_id == user_id
-        )
-
-    if seq_request_id is not None:
-        query = query.where(
-            models.Library.seq_request_id == seq_request_id
-        )
-
-    if sample_id is not None:
-        query = query.join(
-            models.links.SampleLibraryLink,
-            and_(
-                models.links.SampleLibraryLink.library_id == models.Library.id,
-                models.links.SampleLibraryLink.sample_id == sample_id
-            )
-        )
-
-    if type_in is not None:
-        query = query.where(
-            models.Library.type_id.in_([t.id for t in type_in])
-        )
-
-    if status_in is not None:
-        query = query.where(
-            models.Library.status_id.in_([s.id for s in status_in])
-        )
-
-    if pool_id is not None:
-        query = query.where(
-            models.Library.pool_id == pool_id
-        )
-
-    if status is not None:
-        query = query.where(
-            models.Library.status_id == status.id
-        )
-
-    if pooled is not None:
-        if pooled:
-            query = query.where(
-                models.Library.pool_id != None # noqa
-            )
-        else:
-            query = query.where(
-                models.Library.pool_id == None # noqa
-            )
-
-    if experiment_id is not None:
-        query = query.join(
-            models.Pool,
-            models.Pool.id == models.Library.pool_id,
-        ).where(
-            models.Pool.experiment_id == experiment_id
-        )
+    query = where(
+        query,
+        user_id=user_id, sample_id=sample_id, experiment_id=experiment_id,
+        seq_request_id=seq_request_id, assay_type=assay_type,
+        pool_id=pool_id, lab_prep_id=lab_prep_id, in_lab_prep=in_lab_prep,
+        type_in=type_in, status_in=status_in, pooled=pooled, status=status,
+        custom_query=custom_query
+    )
 
     if name is not None:
         query = query.order_by(
@@ -380,7 +358,10 @@ def query_libraries(
     return libraries
 
 
-def add_library_to_pool(self: "DBHandler", library_id: int, pool_id: int) -> models.Library:
+def add_library_to_pool(
+    self: "DBHandler", library_id: int, pool_id: int,
+    flush: bool = True
+) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -403,7 +384,8 @@ def add_library_to_pool(self: "DBHandler", library_id: int, pool_id: int) -> mod
     pool.num_libraries += 1
     self.session.add(pool)
 
-    self.session.commit()
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -458,8 +440,6 @@ def set_library_seq_quality(
         )
 
     self.session.add(quality)
-    self.session.commit()
-    self.session.refresh(quality)
 
     if not persist_session:
         self.close_session()
@@ -497,8 +477,6 @@ def add_library_index(
     ))
 
     self.session.add(library)
-    self.session.commit()
-    self.session.refresh(library)
 
     if not persist_session:
         self.close_session()
@@ -515,9 +493,6 @@ def remove_library_indices(self: "DBHandler", library_id: int) -> models.Library
 
     for index in library.indices:
         self.session.delete(index)
-
-    self.session.commit()
-    self.session.refresh(library)
 
     if not persist_session:
         self.close_session()

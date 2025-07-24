@@ -32,10 +32,10 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
     def is_applicable(current_step: MultiStepForm) -> bool:
         return current_step.metadata["mux_type_id"] is not None
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=DefineMultiplexedSamplesForm._workflow_name,
-            step_name=DefineMultiplexedSamplesForm._step_name, previous_form=previous_form,
+            step_name=DefineMultiplexedSamplesForm._step_name,
             step_args={}
         )
         self.seq_request = seq_request
@@ -51,7 +51,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         )
 
         self.assay_type = AssayType.get(int(self.metadata["assay_type_id"]))
-        self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata["mux_type_id"] else None
+        self.mux_type = MUXType.get(self.metadata["mux_type_id"])
         self.antibody_capture = self.metadata["antibody_capture"]
         self.vdj_b = self.metadata["vdj_b"]
         self.vdj_t = self.metadata["vdj_t"]
@@ -252,7 +252,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
 
         sample_pooling_table = pd.DataFrame(sample_pooling_table)
-        sample_pooling_table["mux_type_id"] = None
+        sample_pooling_table["mux_type_id"] = self.mux_type
 
         self.add_table("library_table", library_table)
         self.add_table("sample_table", sample_table)
@@ -260,11 +260,11 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         self.update_data()
 
         if FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

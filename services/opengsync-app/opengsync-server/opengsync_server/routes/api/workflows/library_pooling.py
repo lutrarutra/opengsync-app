@@ -28,7 +28,7 @@ def begin(lab_prep_id: int) -> Response:
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    form = forms.BarcodeInputForm(lab_prep=lab_prep)
+    form = forms.BarcodeInputForm(lab_prep=lab_prep, uuid=None, formdata=None)
     return form.make_response()
 
 
@@ -49,15 +49,15 @@ def previous(lab_prep_id: int, uuid: str):
     step_name, step = response
 
     prev_step_cls = forms.steps[step_name]
-    prev_step = prev_step_cls(uuid=uuid, lab_prep=lab_prep, **step.args)  # type: ignore
+    prev_step = prev_step_cls(uuid=uuid, lab_prep=lab_prep, formdata=None, **step.args)  # type: ignore
     prev_step.fill_previous_form(step)
     return prev_step.make_response()
 
 
-@library_pooling_workflow.route("<int:lab_prep_id>/parse_barcodes/<string:uuid>", methods=["POST"])
+@library_pooling_workflow.route("<int:lab_prep_id>/upload_barcode_form/<string:uuid>", methods=["POST"])
 @db_session(db)
 @login_required
-def parse_barcodes(lab_prep_id: int, uuid: str) -> Response:
+def upload_barcode_form(lab_prep_id: int, uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

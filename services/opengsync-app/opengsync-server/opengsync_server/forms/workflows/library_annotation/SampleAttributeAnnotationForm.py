@@ -25,10 +25,10 @@ class SampleAttributeAnnotationForm(MultiStepForm):
         DropdownColumn("sample_name", "Sample Name", 170, required=True, choices=[])
     ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for t in AttributeType.as_list()[1:]]
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=SampleAttributeAnnotationForm._workflow_name,
-            step_name=SampleAttributeAnnotationForm._step_name, previous_form=previous_form, step_args={}
+            step_name=SampleAttributeAnnotationForm._step_name, step_args={}
         )
 
         self.seq_request = seq_request
@@ -152,5 +152,5 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         self.update_table("sample_table", self.sample_table)
         
-        next_form = CompleteSASForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

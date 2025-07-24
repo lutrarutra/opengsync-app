@@ -311,39 +311,45 @@
     </div>
     <script>
         init_tooltips();
+        (function () {
 
-        let selected_samples = {{ selected_samples_ids | tojson if selected_samples_ids else [] }};
-        let num_selected_samples = selected_samples.length;
-        let selected_libraries = {{ selected_libraries_ids | tojson if selected_libraries_ids else [] }};
-        let num_selected_libraries = selected_libraries.length;
-        let selected_pools = {{ selected_pools_ids | tojson if selected_pools_ids else [] }};
-        let num_selected_pools = selected_pools.length;
-        let selected_lanes = {{ selected_lanes_ids | tojson if selected_lanes_ids else [] }};
-        let num_selected_lanes = selected_lanes.length;
+            window.selected_samples = window.selected_samples || {{ selected_samples_ids | tojson if selected_samples_ids else [] }};
+            window.num_selected_samples = window.selected_samples.length;
+            window.selected_libraries = window.selected_libraries || {{ selected_libraries_ids | tojson if selected_libraries_ids else [] }};
+            window.num_selected_libraries = window.selected_libraries.length;
+            window.selected_pools = window.selected_pools || {{ selected_pools_ids | tojson if selected_pools_ids else [] }};
+            window.num_selected_pools = window.selected_pools.length;
+            window.selected_lanes = window.selected_lanes || {{ selected_lanes_ids | tojson if selected_lanes_ids else [] }};
+            window.num_selected_lanes = window.selected_lanes.length;
 
-        $("#submit-select_samples-form-btn").click(function() {
-            if (num_selected_samples + num_selected_libraries + num_selected_pools + num_selected_lanes == 0) {
-                $(".invalid-feedback-container").html("<p>Select at least one sample.</p>");
-                return false;
-            }
+            $("#submit-select_samples-form-btn").off("click").on("click", function() {
+                if (
+                    window.num_selected_samples +
+                    window.num_selected_libraries +
+                    window.num_selected_pools +
+                    window.num_selected_lanes === 0
+                ) {
+                    $(".invalid-feedback-container").html("<p>Select at least one sample.</p>");
+                    return false;
+                }
 
-            htmx.ajax("POST", "{{ post_url | safe }}", {
-                target: "#select_samples-form-container",
-                swap: "outerHTML",
-                values: {
-                    csrf_token: "{{ select_samples_form.csrf_token._value() }}",
-                    selected_sample_ids: JSON.stringify(selected_samples),
-                    selected_library_ids: JSON.stringify(selected_libraries),
-                    selected_pool_ids: JSON.stringify(selected_pools),
-                    selected_lanes_ids: JSON.stringify(selected_lanes),
-                    workflow: "{{ workflow }}",
-                    {% if seq_request %}seq_request_id: "{{ seq_request.id }}",{% endif %}
-                    {% if pool %}pool_id: "{{ pool.id }}",{% endif %}
-                    {% if experiment %}experiment_id: "{{ experiment.id }}",{% endif %}
-                    {% if lab_prep %}lab_prep_id: "{{ lab_prep.id }}",{% endif %}
-                },
+                htmx.ajax("POST", "{{ post_url | safe }}", {
+                    target: "#select_samples-form-container",
+                    swap: "outerHTML",
+                    values: {
+                        csrf_token: "{{ select_samples_form.csrf_token._value() }}",
+                        selected_sample_ids: JSON.stringify(window.selected_samples),
+                        selected_library_ids: JSON.stringify(window.selected_libraries),
+                        selected_pool_ids: JSON.stringify(window.selected_pools),
+                        selected_lanes_ids: JSON.stringify(window.selected_lanes),
+                        workflow: "{{ workflow }}",
+                        {% if seq_request %}seq_request_id: "{{ seq_request.id }}",{% endif %}
+                        {% if pool %}pool_id: "{{ pool.id }}",{% endif %}
+                        {% if experiment %}experiment_id: "{{ experiment.id }}",{% endif %}
+                        {% if lab_prep %}lab_prep_id: "{{ lab_prep.id }}",{% endif %}
+                    },
+                });
             });
-
-        });
+        })();
     </script>
 </div>

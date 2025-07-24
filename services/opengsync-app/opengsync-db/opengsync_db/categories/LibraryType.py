@@ -49,7 +49,7 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     QUANT_SEQ = LibraryTypeEnum(105, "Transcriptome Fingerprinting 3' RNA-seq", "QUANT-seq", "QUANT", "Gene Expression")
 
     WGS = LibraryTypeEnum(106, "Whole Genome Sequencing", "WGS", "WGS", "Gene Expression")
-    WES = LibraryTypeEnum(107, "Whole Exome Sequencing", "WES", "EXOME", "Gene Expression")
+    WES = LibraryTypeEnum(107, "Whole Exome Sequencing", "WES", "WES", "Gene Expression")
     ATAC_SEQ = LibraryTypeEnum(108, "ATAC-Seq", "ATAC-Seq", "ATAC", "Chromatin Accessibility")
     
     # EM

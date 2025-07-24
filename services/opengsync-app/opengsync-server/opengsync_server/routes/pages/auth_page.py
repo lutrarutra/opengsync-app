@@ -1,13 +1,14 @@
 from flask import Blueprint, render_template, redirect, request, url_for, flash
 from flask_login import current_user
 
-from opengsync_db import models
+from opengsync_db import models, db_session
 from ... import forms, db, logger, serializer  # noqa
 
 auth_page_bp = Blueprint("auth_page", __name__)
 
 
 @auth_page_bp.route("/reset_password/<token>", methods=["GET"])
+@db_session(db)
 def reset_password_page(token: str):
     if (data := models.User.verify_reset_token(token=token, serializer=serializer)) is None:
         flash("Token expired or invalid.", "error")
@@ -33,6 +34,7 @@ def reset_password_page(token: str):
 
 
 @auth_page_bp.route("/auth")
+@db_session(db)
 def auth_page():
     dest = request.args.get("next", "/")
     if current_user.is_authenticated:
@@ -42,6 +44,7 @@ def auth_page():
 
 
 @auth_page_bp.route("/register/<token>")
+@db_session(db)
 def register_page(token):
     complete_registration_form = forms.auth.CompleteRegistrationForm()
 

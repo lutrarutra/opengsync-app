@@ -11,7 +11,7 @@ from ...categories import FeatureTypeEnum, KitType
 
 def create_feature_kit(
     self: "DBHandler", identifier: str, name: str,
-    type: FeatureTypeEnum,
+    type: FeatureTypeEnum, flush: bool = True
 ) -> models.FeatureKit:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -26,8 +26,9 @@ def create_feature_kit(
         kit_type_id=KitType.FEATURE_KIT.id,
     )
     self.session.add(feature_kit)
-    self.session.commit()
-    self.session.refresh(feature_kit)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -95,8 +96,6 @@ def update_feature_kit(self: "DBHandler", feature_kit: models.FeatureKit) -> mod
         self.open_session()
 
     self.session.add(feature_kit)
-    self.session.commit()
-    self.session.refresh(feature_kit)
 
     if not persist_session:
         self.close_session()
@@ -104,18 +103,18 @@ def update_feature_kit(self: "DBHandler", feature_kit: models.FeatureKit) -> mod
     return feature_kit
 
 
-def delete_feature_kit(self: "DBHandler", feature_kit_id: int):
+def delete_feature_kit(self: "DBHandler", feature_kit_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
     if (feature_kit := self.session.get(models.FeatureKit, feature_kit_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Feature kit with id '{feature_kit_id}', not found.")
     
-    for feature in feature_kit.features:
-        self.session.delete(feature)
-
     self.session.delete(feature_kit)
-    self.session.commit()
+    self.delete_orphan_features()
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -130,9 +129,6 @@ def remove_all_features_from_kit(self: "DBHandler", feature_kit_id: int) -> mode
     
     for feature in feature_kit.features:
         self.session.delete(feature)
-
-    self.session.commit()
-    self.session.refresh(feature_kit)
 
     if not persist_session:
         self.close_session()

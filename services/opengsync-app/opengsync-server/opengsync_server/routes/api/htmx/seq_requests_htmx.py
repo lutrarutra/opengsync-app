@@ -25,6 +25,7 @@ seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/hm
 
 @seq_requests_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @seq_requests_htmx.route("get/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
@@ -163,6 +164,7 @@ def export(seq_request_id: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/export_libraries", methods=["GET"])
+@db_session(db)
 @login_required
 def export_libraries(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -201,6 +203,7 @@ def edit(seq_request_id: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/delete", methods=["DELETE"])
+@db_session(db)
 @login_required
 def delete(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -220,6 +223,7 @@ def delete(seq_request_id: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/archive", methods=["POST"])
+@db_session(db)
 @login_required
 def archive(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -240,6 +244,7 @@ def archive(seq_request_id: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/unarchive", methods=["POST"])
+@db_session(db)
 @login_required
 def unarchive(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -284,12 +289,14 @@ def submit_request(seq_request_id: int):
 
 
 @seq_requests_htmx.route("create", methods=["POST"])
+@db_session(db)
 @login_required
 def create():
     return forms.models.SeqRequestForm(form_type="create", formdata=request.form).process_request(user=current_user, seq_request=None)
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/upload_auth_form", methods=["POST"])
+@db_session(db)
 @login_required
 def upload_auth_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -380,6 +387,7 @@ def delete_file(seq_request_id: int, file_id: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/remove_auth_form", methods=["DELETE"])
+@db_session(db)
 @login_required
 def remove_auth_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -520,6 +528,7 @@ def remove_all_libraries(seq_request_id: int):
 
 
 @seq_requests_htmx.route("table_query", methods=["GET"])
+@db_session(db)
 @login_required
 def table_query():
     if (word := request.args.get("name")) is not None:
@@ -573,6 +582,7 @@ def table_query():
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/process_request", methods=["POST"])
+@db_session(db)
 @login_required
 def process_request(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -589,6 +599,7 @@ def process_request(seq_request_id: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/add_share_email", methods=["POST"])
+@db_session(db)
 @login_required
 def add_share_email(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -763,6 +774,7 @@ def overview(seq_request_id: int):
 
 @seq_requests_htmx.route("<int:seq_request_id>/get_libraries/<int:page>", methods=["GET"])
 @seq_requests_htmx.route("<int:seq_request_id>/get_libraries", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
 def get_libraries(seq_request_id: int, page: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
@@ -814,6 +826,7 @@ def get_libraries(seq_request_id: int, page: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/query_libraries", methods=["GET"])
+@db_session(db)
 @login_required
 def query_libraries(seq_request_id: int):
     if (word := request.args.get("name")) is not None:
@@ -908,6 +921,7 @@ def get_samples(seq_request_id: int, page: int):
 
 @seq_requests_htmx.route("<int:seq_request_id>/get_pools/<int:page>", methods=["GET"])
 @seq_requests_htmx.route("<int:seq_request_id>/get_pools", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
 def get_pools(seq_request_id: int, page: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:

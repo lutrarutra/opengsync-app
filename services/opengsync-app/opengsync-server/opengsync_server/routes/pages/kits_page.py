@@ -10,12 +10,14 @@ kits_page_bp = Blueprint("kits_page", __name__)
 
 
 @kits_page_bp.route("/kits")
+@db_session(db)
 @login_required
 def kits_page():
     return render_template("kits_page.html")
 
 
 @kits_page_bp.route("/kit/<int:kit_id>")
+@db_session(db)
 @login_required
 def kit_page(kit_id: int):
     if (kit := db.get_kit(kit_id)) is None:
@@ -32,12 +34,14 @@ def kit_page(kit_id: int):
 
 
 @kits_page_bp.route("/index_kits")
+@db_session(db)
 @login_required
 def index_kits_page():
     return render_template("index_kits_page.html")
 
 
 @kits_page_bp.route("/index_kits/<int:index_kit_id>")
+@db_session(db)
 @login_required
 def index_kit_page(index_kit_id: int):
     index_kit = db.get_index_kit(index_kit_id)
@@ -62,6 +66,7 @@ def index_kit_page(index_kit_id: int):
 
 
 @kits_page_bp.route("/feature_kits")
+@db_session(db)
 @login_required
 def feature_kits_page():
     return render_template("feature_kits_page.html")
@@ -95,6 +100,7 @@ def feature_kit_page(feature_kit_id: int):
 
 
 @kits_page_bp.route("/<int:feature_kit_id>/export_features", methods=["GET"])
+@db_session(db)
 @login_required
 def export_features(feature_kit_id: int):
     feature_kit = db.get_feature_kit(feature_kit_id)

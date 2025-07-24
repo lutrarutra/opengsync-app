@@ -1,8 +1,11 @@
-from typing import Optional, Union, TypeVar
+from typing import Optional, Union, TypeVar, Sequence
 import difflib
 import string
 
 import pandas as pd
+
+from opengsync_db import models, exceptions, DBHandler
+from .. import logger
 
 from .WeekTimeWindow import WeekTimeWindow
 
@@ -219,3 +222,77 @@ def connect_similar_strings(
             else:
                 res[key] = None
     return res
+
+
+def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.DataFrame:
+    library_data = {
+        "library_id": [],
+        "library_name": [],
+        "library_type_id": [],
+        "index_well": [],
+        "kit_i7": [],
+        "name_i7": [],
+        "sequence_i7": [],
+        "kit_i5": [],
+        "name_i5": [],
+        "sequence_i5": [],
+    }
+    
+    for library in libraries:
+        if len(library.indices) == 0:
+            library_data["library_id"].append(library.id)
+            library_data["index_well"].append(None)
+            library_data["library_type_id"].append(library.type.id if library.type else None)
+            library_data["library_name"].append(library.name)
+            library_data["kit_i7"].append(None)
+            library_data["name_i7"].append(None)
+            library_data["sequence_i7"].append(None)
+            library_data["kit_i5"].append(None)
+            library_data["name_i5"].append(None)
+            library_data["sequence_i5"].append(None)
+
+        else:
+            kit_i7s = []
+            names_i7 = []
+            sequences_i7 = []
+
+            for (kit_i7_id, name_i7), seqs_i7 in library.adapters_i7().items():
+                if kit_i7_id is not None:
+                    if (kit_i7 := db.get_index_kit(kit_i7_id)) is None:
+                        logger.error(f"Index kit {kit_i7_id} not found in database")
+                        raise exceptions.ElementDoesNotExist("Index kit not found in database")
+                    kit_i7 = kit_i7.identifier
+                else:
+                    kit_i7 = None
+                kit_i7s.append(kit_i7)
+                names_i7.append(name_i7)
+                sequences_i7.append(";".join(seqs_i7))
+
+            kit_i5s = []
+            names_i5 = []
+            sequences_i5 = []
+            for (kit_i5_id, name_i5), seqs_i5 in library.adapters_i5().items():
+                if kit_i5_id is not None:
+                    if (kit_i5 := db.get_index_kit(kit_i5_id)) is None:
+                        logger.error(f"Index kit {kit_i5_id} not found in database")
+                        raise exceptions.ElementDoesNotExist("Index kit not found in database")
+                    kit_i5 = kit_i5.identifier
+                else:
+                    kit_i5 = None
+                kit_i5s.append(kit_i5)
+                names_i5.append(name_i5)
+                sequences_i5.append(";".join(seqs_i5))
+
+            library_data["library_id"].append(library.id)
+            library_data["library_name"].append(library.name)
+            library_data["index_well"].append(None)
+            library_data["library_type_id"].append(library.type.id if library.type else None)
+            library_data["kit_i7"].append(";".join(kit_i7s) if len(kit_i7s) else None)
+            library_data["name_i7"].append(";".join(names_i7) if len(names_i7) else None)
+            library_data["sequence_i7"].append(";".join(sequences_i7) if len(sequences_i7) else None)
+            library_data["kit_i5"].append(";".join(kit_i5s) if len(kit_i5s) else None)
+            library_data["name_i5"].append(";".join(names_i5) if len(names_i5) else None)
+            library_data["sequence_i5"].append(";".join(sequences_i5) if len(sequences_i5) else None)
+
+    df = pd.DataFrame(library_data)
+    return df

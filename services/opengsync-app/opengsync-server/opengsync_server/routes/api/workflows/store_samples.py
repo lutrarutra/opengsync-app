@@ -20,6 +20,7 @@ store_samples_workflow = Blueprint("store_samples_workflow", __name__, url_prefi
 
 
 @store_samples_workflow.route("begin", methods=["GET"])
+@db_session(db)
 @login_required
 def begin() -> Response:
     if not current_user.is_insider():

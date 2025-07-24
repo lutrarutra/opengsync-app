@@ -13,6 +13,7 @@ def create_index_kit(
     self: "DBHandler", identifier: str, name: str,
     supported_protocols: list[LabProtocolEnum],
     type: IndexTypeEnum,
+    flush: bool = True
 ) -> models.IndexKit:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -28,8 +29,9 @@ def create_index_kit(
         supported_protocol_ids=[p.id for p in supported_protocols]
     )
     self.session.add(seq_kit)
-    self.session.commit()
-    self.session.refresh(seq_kit)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -73,7 +75,7 @@ def get_index_kit_by_identifier(
 
 
 def remove_all_barcodes_from_kit(
-    self: "DBHandler", index_kit_id: int
+    self: "DBHandler", index_kit_id: int, flush: bool = True
 ) -> models.IndexKit:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -90,8 +92,8 @@ def remove_all_barcodes_from_kit(
 
         self.session.delete(adapter)
 
-    self.session.commit()
-    self.session.refresh(index_kit)
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -134,15 +136,11 @@ def get_index_kits(
     return res, n_pages
 
 
-def update_index_kit(
-    self: "DBHandler", index_kit: models.IndexKit
-) -> models.IndexKit:
+def update_index_kit(self: "DBHandler", index_kit: models.IndexKit) -> models.IndexKit:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     self.session.add(index_kit)
-    self.session.commit()
-    self.session.refresh(index_kit)
 
     if not persist_session:
         self.close_session()

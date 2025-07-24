@@ -56,7 +56,6 @@ experiment
  - r2_cycles
  - i1_cycles
  - i2_cycles
- - num_lanes
  - workflow_id
  - status_id
  - operator_id
@@ -67,6 +66,8 @@ pool
  - status_id
  - type_id
  - timestamp_stored_utc
+ - clone_number
+ - original_pool_id
  - num_m_reads_requested
  - avg_fragment_size
  - qubit_concentration
@@ -86,7 +87,6 @@ lims_user
  - password
  - role_id
  - num_projects
- - num_pools
  - num_samples
  - num_seq_requests
 seq_request
@@ -115,11 +115,14 @@ library
  - id
  - name
  - sample_name
+ - clone_number
+ - original_library_id
  - type_id
  - status_id
  - genome_ref_id
  - assay_type_id
  - mux_type_id
+ - index_type_id
  - timestamp_stored_utc
  - nuclei_isolation
  - seq_depth_requested
@@ -262,6 +265,7 @@ plate
  - num_cols
  - num_rows
  - owner_id
+ - lab_prep_id
 barcode
  - id
  - sequence
@@ -287,7 +291,6 @@ lab_prep
  - status_id
  - assay_type_id
  - creator_id
- - plate_id
 event
  - id
  - title

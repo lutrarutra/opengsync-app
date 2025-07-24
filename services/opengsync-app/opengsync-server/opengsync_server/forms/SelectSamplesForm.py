@@ -14,6 +14,7 @@ from opengsync_db.categories import (
 
 from .. import db, logger
 from ..forms.MultiStepForm import MultiStepForm
+from ..tools import exceptions
 
 
 workflow_settings = {
@@ -310,23 +311,67 @@ class SelectSamplesForm(MultiStepForm):
     @property
     def sample_table(self) -> pd.DataFrame:
         if self.__sample_table is None:
-            raise ValueError("For not validated, call .validate() first..")
+            logger.error("Form not validated, call .validate() first..")
+            raise exceptions.InternalServerErrorException("Form not validated, call .validate() first..")
         return self.__sample_table
     
     @property
     def library_table(self) -> pd.DataFrame:
         if self.__library_table is None:
-            raise ValueError("For not validated, call .validate() first..")
+            logger.error("Form not validated, call .validate() first..")
+            raise exceptions.InternalServerErrorException("Form not validated, call .validate() first..")
         return self.__library_table
     
     @property
     def pool_table(self) -> pd.DataFrame:
         if self.__pool_table is None:
-            raise ValueError("For not validated, call .validate() first..")
+            logger.error("Form not validated, call .validate() first..")
+            raise exceptions.InternalServerErrorException("Form not validated, call .validate() first..")
         return self.__pool_table
     
     @property
     def lane_table(self) -> pd.DataFrame:
         if self.__lane_table is None:
-            raise ValueError("For not validated, call .validate() first..")
+            logger.error("Form not validated, call .validate() first..")
+            raise exceptions.InternalServerErrorException("Form not validated, call .validate() first..")
         return self.__lane_table
+    
+    def get_libraries(self) -> list[models.Library]:
+        libraries = []
+        for _, row in self.library_table.iterrows():
+            if (library := db.get_library(int(row["id"]))) is None:
+                logger.error(f"Library {library} not found in database")
+                raise Exception("Library not found in database")
+            libraries.append(library)
+
+        return libraries
+    
+    def get_samples(self) -> list[models.Sample]:
+        samples = []
+        for _, row in self.sample_table.iterrows():
+            if (sample := db.get_sample(int(row["id"]))) is None:
+                logger.error(f"Sample {sample} not found in database")
+                raise Exception("Sample not found in database")
+            samples.append(sample)
+
+        return samples
+    
+    def get_pools(self) -> list[models.Pool]:
+        pools = []
+        for _, row in self.pool_table.iterrows():
+            if (pool := db.get_pool(int(row["id"]))) is None:
+                logger.error(f"Pool {pool} not found in database")
+                raise Exception("Pool not found in database")
+            pools.append(pool)
+
+        return pools
+    
+    def get_lanes(self) -> list[models.Lane]:
+        lanes = []
+        for _, row in self.lane_table.iterrows():
+            if (lane := db.get_lane(int(row["id"]))) is None:
+                logger.error(f"Lane {lane} not found in database")
+                raise Exception("Lane not found in database")
+            lanes.append(lane)
+
+        return lanes

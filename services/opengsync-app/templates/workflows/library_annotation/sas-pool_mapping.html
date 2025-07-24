@@ -8,7 +8,7 @@
         <h1 class="modal-title fs-5">1.2 Specify Pools</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
-    <div class="modal-body tab-body" id="pool-definition-form">
+    <div class="modal-body" id="pool-definition-form">
         {{ form.csrf_token() }}
         <h4>Contact Info</h4>
         <p>Who pooled the libraries?</p>
@@ -17,29 +17,19 @@
             {{ form_group(form.contact_email, class="col-4") }}
             {{ form_group(form.contact_phone, class="col-4") }}
         </div>
-        <ul class="nav nav-tabs" id="auth-tab" role="tablist">
-            {% for sub_form in form.pool_forms %}
+        <hr>
+        <h4>How many reads per pool is required?</h4>
+        {% for sub_form in form.pool_forms %}
+        <div>
             {{ sub_form.csrf_token() }}
-            <li class="nav-item" role="presentation">
-                <button class="nav-link {% if loop.index0 == 0 %}active{% endif %} {% if sub_form.errors | length > 0 %}text-danger{% endif %}" data-bs-toggle="tab" data-bs-target="#pool-{{ loop.index0 }}-tab"
-                    type="button" role="tab" aria-controls="pool-{{ loop.index0 }}-tab" aria-selected="true">
-                    {{ sub_form.raw_label.data }}
-                </button>
-            </li>
-            {% endfor %}
-        </ul>
-
-        <div class="tab-content">
-            {% for sub_form in form.pool_forms %}
-            <div class="tab-pane fade {% if loop.index0 == 0 %} show active{% endif %}" id="pool-{{ loop.index0 }}-tab" role="tabpanel" tabindex="{{ loop.index0 }}">
-                <div class="row">
-                    {{ readonly_field(sub_form.raw_label, class="col-2") }}
-                    {{ form_group(sub_form.new_pool_name, class="col-5") }}
-                    {{ form_group(sub_form.num_m_reads_requested, class="col-5") }}
-                </div>
+            <div class="row">
+                {{ readonly_field(sub_form.raw_label, class="col-2") }}
+                {{ form_group(sub_form.new_pool_name, class="col-5") }}
+                {{ form_group(sub_form.num_m_reads_requested, class="col-5") }}
             </div>
-            {% endfor %}
+            <hr>
         </div>
+        {% endfor %}
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">

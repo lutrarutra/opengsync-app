@@ -129,6 +129,8 @@ class DropdownColumn(SpreadSheetColumn):
         super().validate(value)
 
         if value not in self.source:
+            if pd.isna(value) and not self.required:
+                return
             if self.source is None:
                 raise ValueError(f"Dropdown column '{self.label}' must have a source list of choices.")
             raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'. Must be one of: {', '.join(self.source)}")

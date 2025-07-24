@@ -17,6 +17,7 @@ experiments_page_bp = Blueprint("experiments_page", __name__)
 
 
 @experiments_page_bp.route("/experiments")
+@db_session(db)
 @login_required
 def experiments_page():
     if not current_user.is_insider():

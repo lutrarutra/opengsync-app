@@ -24,7 +24,7 @@ class FeatureAnnotationForm(MultiStepForm):
     _step_name = "feature_annotation"
 
     columns = [
-        DropdownColumn("sample_name", "Sample Name", 170, choices=[]),
+        DropdownColumn("sample_name", "Sample Name", 170, choices=[], required=False),
         TextColumn("kit", "Kit", 170, max_length=64),
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length),
         TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
@@ -36,11 +36,11 @@ class FeatureAnnotationForm(MultiStepForm):
     def is_applicable(previous_form: MultiStepForm) -> bool:
         return previous_form.tables["library_table"]["library_type_id"].isin([LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id]).any()
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, workflow=FeatureAnnotationForm._workflow_name,
             step_name=FeatureAnnotationForm._step_name, uuid=uuid,
-            formdata=formdata, previous_form=previous_form, step_args={}
+            formdata=formdata, step_args={}
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
@@ -228,15 +228,15 @@ class FeatureAnnotationForm(MultiStepForm):
         self.update_data()
 
         if KitMappingForm.is_applicable(self):
-            next_form = KitMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = KitMappingForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         
         return next_form.make_response()
         

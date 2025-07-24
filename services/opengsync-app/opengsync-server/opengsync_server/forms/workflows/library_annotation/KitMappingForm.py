@@ -7,7 +7,7 @@ from wtforms import StringField, FieldList, FormField
 from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, FeatureType, KitType
+from opengsync_db.categories import LibraryType, FeatureType, KitType, MUXType
 
 from .... import db, logger
 from ...MultiStepForm import MultiStepForm
@@ -36,10 +36,10 @@ class KitMappingForm(MultiStepForm):
             return False
         return current_step.tables["kit_table"]["kit_id"].isna().any()
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, workflow=KitMappingForm._workflow_name, step_name=KitMappingForm._step_name,
-            uuid=uuid, previous_form=previous_form, formdata=formdata, step_args={}
+            uuid=uuid, formdata=formdata, step_args={}
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
@@ -98,7 +98,7 @@ class KitMappingForm(MultiStepForm):
                     return False
 
             self.kit_table.loc[self.kit_table["name"] == raw_kit_label, "kit_id"] = kit_id
-
+        
         return validated
     
     def get_features(self, library_table: pd.DataFrame, feature_table: pd.DataFrame) -> pd.DataFrame:
@@ -212,7 +212,7 @@ class KitMappingForm(MultiStepForm):
             "feature_id": [],
         }
 
-        def add_cmo(
+        def add_oligo(
             demux_name: str, sample_name: str,
             feature_name: str, sequence: str, pattern: str, read: str,
             kit_name: Optional[str] = None,
@@ -230,9 +230,8 @@ class KitMappingForm(MultiStepForm):
             mux_data["feature_id"].append(feature_id)
 
         for i, row in sample_pooling_table.iterrows():
-            # Custom CMO
             if pd.isna(kit_id := row["kit_id"]):
-                add_cmo(
+                add_oligo(
                     demux_name=row["demux_name"],
                     sample_name=row["sample_name"],
                     feature_name=row["feature"],
@@ -246,7 +245,7 @@ class KitMappingForm(MultiStepForm):
                     raise Exception(f"Feature kit with ID {kit_id} not found.")
                 
                 for feature in db.get_features_from_kit_by_feature_name(row["feature"], kit_id):
-                    add_cmo(
+                    add_oligo(
                         demux_name=row["demux_name"],
                         sample_name=row["sample_name"],
                         kit_id=kit.id,
@@ -266,7 +265,7 @@ class KitMappingForm(MultiStepForm):
             return self.make_response()
         
         library_table = self.tables["library_table"]
-        sample_pooling_table = self.tables.get("sample_pooling_table")
+        sample_pooling_table = self.tables["sample_pooling_table"]
         feature_table = self.tables.get("feature_table")
 
         for _, row in self.kit_table.iterrows():
@@ -281,7 +280,13 @@ class KitMappingForm(MultiStepForm):
                     raise Exception("Feature table should not be None")
                 feature_table.loc[feature_table["kit"] == row["name"], "kit_id"] = row["kit_id"]
 
-        if sample_pooling_table is not None:
+        if (
+            "kit" in sample_pooling_table.columns and
+            (sample_pooling_table["mux_type_id"] == MUXType.TENX_OLIGO.id).any() and
+            sample_pooling_table["kit"].notna().any()
+        ):
+            kit_mapping = self.kit_table.set_index("kit_name")["kit_id"].to_dict()
+            sample_pooling_table.loc[sample_pooling_table["kit"].notna(), "kit_id"] = sample_pooling_table.loc[sample_pooling_table["kit"].notna(), "kit"].map(kit_mapping)
             sample_pooling_table = self.get_sample_pooling_table(sample_pooling_table)
             self.update_table("sample_pooling_table", sample_pooling_table, False)
 
@@ -293,12 +298,12 @@ class KitMappingForm(MultiStepForm):
         self.update_data()
 
         if OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
             
         return next_form.make_response()

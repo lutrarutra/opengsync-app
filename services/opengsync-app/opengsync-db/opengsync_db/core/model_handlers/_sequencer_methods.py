@@ -13,7 +13,8 @@ from .. import exceptions
 def create_sequencer(
     self: "DBHandler", name: str,
     model: SequencerModelEnum,
-    ip: Optional[str] = None
+    ip: Optional[str] = None,
+    flush: bool = True
 ) -> models.Sequencer:
     
     if not (persist_session := self._session is not None):
@@ -31,8 +32,9 @@ def create_sequencer(
     )
 
     self.session.add(sequencer)
-    self.session.commit()
-    self.session.refresh(sequencer)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -95,8 +97,6 @@ def update_sequencer(self: "DBHandler", sequencer: models.Sequencer) -> models.S
         self.open_session()
     
     self.session.add(sequencer)
-    self.session.commit()
-    self.session.refresh(sequencer)
 
     if not persist_session:
         self.close_session()
@@ -118,10 +118,7 @@ def get_sequencer_by_name(self: "DBHandler", name: str) -> models.Sequencer | No
     return sequencer
 
 
-def delete_sequencer(
-    self: "DBHandler", sequencer_id: int,
-    commit: bool = True
-):
+def delete_sequencer(self: "DBHandler", sequencer_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -135,8 +132,9 @@ def delete_sequencer(
         raise exceptions.ElementIsReferenced(f"Sequencer with id {sequencer_id} is referenced by an experiment.")
     
     self.session.delete(sequencer)
-    if commit:
-        self.session.commit()
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()

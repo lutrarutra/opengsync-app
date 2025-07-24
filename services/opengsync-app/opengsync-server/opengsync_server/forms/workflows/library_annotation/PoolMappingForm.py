@@ -36,10 +36,10 @@ class PoolMappingForm(MultiStepForm):
     contact_email = StringField("Contact Email", validators=[DataRequired(), Length(max=models.Contact.email.type.length)])
     contact_phone = StringField("Contact Phone", validators=[DataRequired(), Length(max=models.Contact.phone.type.length)])
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, uuid=uuid, workflow=PoolMappingForm._workflow_name,
-            step_name=PoolMappingForm._step_name, previous_form=previous_form,
+            step_name=PoolMappingForm._step_name,
             formdata=formdata, step_args={}
         )
         self.seq_request = seq_request
@@ -141,6 +141,7 @@ class PoolMappingForm(MultiStepForm):
 
     def process_request(self, user: models.User) -> Response:
         if not self.validate(user=user):
+            logger.debug(self.errors)
             return self.make_response()
 
         self.metadata["pool_contact_name"] = self.contact_name.data
@@ -152,6 +153,5 @@ class PoolMappingForm(MultiStepForm):
         next_form = BarcodeInputForm(
             seq_request=self.seq_request,
             uuid=self.uuid,
-            previous_form=self,
         )
         return next_form.make_response()

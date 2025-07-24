@@ -53,6 +53,7 @@ def get(page: int):
 
 
 @kits_htmx.route("table_query", methods=["GET"])
+@db_session(db)
 @login_required
 def table_query():
     if (word := request.args.get("name")) is not None:

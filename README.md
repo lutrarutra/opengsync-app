@@ -99,8 +99,11 @@ pg_basebackup \
 ```bash
 pip install -e services/opengsync-app/opengsync-db
 pip install -e services/opengsync-app/opengsync-server
-mkdir db/dev_pgadmin
-sudo chown -R 5050:5050 db/dev_pgadmin
+mkdir -p db
+mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
+mkdir -p db/postgres && sudo chown -R 999:999 db/postgres
+mkdir -p data/db_backup/wal && sudo chown -R 999:999 data/db_backup/wal
+mkdir -p data/db_backup/base && sudo chown -R 999:999 data/db_backup/base
 ```
 
 ## Run with flask debug server

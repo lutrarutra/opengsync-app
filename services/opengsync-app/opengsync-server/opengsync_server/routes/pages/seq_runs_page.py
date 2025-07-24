@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, render_template, url_for, abort, request
 from flask_login import login_required
 
-from opengsync_db import models
+from opengsync_db import models, db_session
 from opengsync_db.categories import HTTPResponse
 
 from ... import db, logger  # noqa
@@ -17,6 +17,7 @@ seq_runs_page_bp = Blueprint("seq_runs_page", __name__)
 
 
 @seq_runs_page_bp.route("/seq_runs")
+@db_session(db)
 @login_required
 def seq_runs_page():
     if not current_user.is_insider():
@@ -26,6 +27,7 @@ def seq_runs_page():
 
 
 @seq_runs_page_bp.route("/seq_runs/<int:seq_run_id>")
+@db_session(db)
 @login_required
 def seq_run_page(seq_run_id: int):
     if not current_user.is_insider():

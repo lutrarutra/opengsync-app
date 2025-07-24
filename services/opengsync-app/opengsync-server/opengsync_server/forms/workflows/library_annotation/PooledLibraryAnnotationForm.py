@@ -6,10 +6,10 @@ from flask import Response, url_for
 from wtforms import SelectField, BooleanField
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, GenomeRef, AssayType, MUXType
+from opengsync_db.categories import LibraryType, GenomeRef, AssayType, MUXType, LibraryTypeEnum, GenomeRefEnum
 
 from .... import logger, db
-from ....tools import tools
+from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
@@ -26,10 +26,10 @@ class PooledLibraryAnnotationForm(MultiStepForm):
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False, description="I have isolated nuclei from my samples.")
 
     columns = [
-        TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: utils.make_alpha_numeric(x)),
         DropdownColumn("genome", "Genome", 200, choices=GenomeRef.names(), required=True),
         DropdownColumn("library_type", "Library Type", 300, choices=LibraryType.names(), required=True),
-        TextColumn("pool", "Pool", 200, required=True, max_length=models.Pool.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        TextColumn("pool", "Pool", 200, required=True, max_length=models.Pool.name.type.length, min_length=4, clean_up_fnc=lambda x: utils.make_alpha_numeric(x)),
     ]
 
     @staticmethod
@@ -38,11 +38,11 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
     def __init__(
         self, seq_request: models.SeqRequest, uuid: str,
-        formdata: dict = {}, previous_form: Optional[MultiStepForm] = None
+        formdata: dict = {}
     ):
         MultiStepForm.__init__(
             self, uuid=uuid, workflow=PooledLibraryAnnotationForm._workflow_name,
-            step_name=PooledLibraryAnnotationForm._step_name, previous_form=previous_form,
+            step_name=PooledLibraryAnnotationForm._step_name,
             formdata=formdata, step_args={}
         )
         self.seq_request = seq_request
@@ -57,8 +57,10 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         )
 
     def fill_previous_form(self, previous_form: StepFile):
-        self.spreadsheet.set_data(previous_form.tables["library_table"])
+        df = previous_form.tables["library_table"]
+        self.spreadsheet.set_data(df)
         assay_type_id = previous_form.metadata.get("assay_type_id")
+        self.nuclei_isolation.data = previous_form.metadata.get("nuclei_isolation", False)
         self.assay_type.data = assay_type_id
 
     def validate(self) -> bool:
@@ -106,6 +108,9 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         
         df = self.__map_library_types(df)
 
+        if self.ocm_multiplexing.data and LibraryType.TENX_MUX_OLIGO.id in df["library_type_id"].values:
+            self.spreadsheet.add_general_error("It is not possible to use '10X On-Chip Multiplexing' with '10X Multiplexing Oligo' library type.")
+
         if assay_type != AssayType.CUSTOM:
             required_type_ids = [library_type.id for library_type in assay_type.library_types]
             optional_library_type_ids = [library_type.id for library_type in assay_type.optional_library_types]
@@ -131,6 +136,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         
         df = self.__map_genome_ref(df)
         self.df = self.__map_existing_samples(df)
+
         return True
     
     def __map_library_types(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -167,12 +173,14 @@ class PooledLibraryAnnotationForm(MultiStepForm):
             return self.make_response()
 
         self.metadata["assay_type_id"] = AssayType.get(self.assay_type.data).id
-        self.metadata["mux_type_id"] = MUXType.TENX_ON_CHIP.id if self.ocm_multiplexing.data else None
+        self.metadata["mux_type_id"] = None
+        if self.ocm_multiplexing.data:
+            self.metadata["mux_type_id"] = MUXType.TENX_ON_CHIP.id
+        elif LibraryType.TENX_MUX_OLIGO.id in self.df["library_type_id"].values:
+            self.metadata["mux_type_id"] = MUXType.TENX_OLIGO.id
+        elif self.assay_type.data in {AssayType.TENX_SC_16_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX}:
+            self.metadata["mux_type_id"] = MUXType.TENX_FLEX_PROBE.id
         self.metadata["nuclei_isolation"] = self.nuclei_isolation.data
-
-        sample_table_data = {
-            "sample_name": [],
-        }
 
         library_table_data = {
             "library_name": [],
@@ -189,23 +197,20 @@ class PooledLibraryAnnotationForm(MultiStepForm):
             "library_name": [],
         }
 
-        for (sample_name), _df in self.df.groupby("sample_name"):
-            sample_table_data["sample_name"].append(sample_name)
-
+        for (library_type_id,), _df in self.df.groupby(["library_type_id"], sort=False):
+            library_type = LibraryType.get(int(library_type_id))  # type: ignore
             for _, row in _df.iterrows():
                 genome = GenomeRef.get(int(row["genome_id"]))
-                library_type = LibraryType.get(int(row["library_type_id"]))
-                library_name = f"{sample_name}_{library_type.identifier}"
-
+                library_name = f"{row['sample_name']}_{library_type.identifier}"
                 library_table_data["library_name"].append(library_name)
-                library_table_data["sample_name"].append(sample_name)
+                library_table_data["sample_name"].append(row['sample_name'])
                 library_table_data["genome"].append(genome.display_name)
                 library_table_data["genome_id"].append(genome.id)
-                library_table_data["library_type"].append(row["library_type"])
-                library_table_data["library_type_id"].append(row["library_type_id"])
+                library_table_data["library_type"].append(library_type.display_name)
+                library_table_data["library_type_id"].append(library_type.id)
                 library_table_data["pool"].append(row["pool"])
 
-                sample_pooling_table["sample_name"].append(sample_name)
+                sample_pooling_table["sample_name"].append(row['sample_name'])
                 sample_pooling_table["library_name"].append(library_name)
 
         sample_pooling_table = pd.DataFrame(sample_pooling_table)
@@ -216,8 +221,9 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         library_table["seq_depth"] = None
         self.add_table("library_table", library_table)
 
-        sample_table = pd.DataFrame(sample_table_data)
+        sample_table = self.df[["sample_name"]].drop_duplicates(keep="first").reset_index(drop=True)
         sample_table["sample_id"] = None
+
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.get_project(project_id)) is None:
                 logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
@@ -229,7 +235,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         self.add_table("sample_table", sample_table)
         self.update_data()
         
-        next_form = PoolMappingForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+        next_form = PoolMappingForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()
 
         

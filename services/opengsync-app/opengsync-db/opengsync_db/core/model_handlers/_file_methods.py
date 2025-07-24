@@ -1,7 +1,7 @@
 from uuid import uuid4
 from typing import Optional, TYPE_CHECKING
 
-from werkzeug.utils import secure_filename
+from werkzeug.utils import secure_filename  # type: ignore[import-untyped]
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
@@ -11,11 +11,13 @@ from .. import exceptions
 
 
 def create_file(
-    self: "DBHandler", name: str, type: FileTypeEnum, uploader_id: int, extension: str, size_bytes: int,
+    self: "DBHandler", name: str, type: FileTypeEnum,
+    uploader_id: int, extension: str, size_bytes: int,
     uuid: Optional[str] = None,
     seq_request_id: Optional[int] = None,
     experiment_id: Optional[int] = None,
     lab_prep_id: Optional[int] = None,
+    flush: bool = True
 ) -> models.File:
     
     if not (persist_session := self._session is not None):
@@ -60,8 +62,9 @@ def create_file(
     )
 
     self.session.add(file)
-    self.session.commit()
-    self.session.refresh(file)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -80,7 +83,7 @@ def get_file(self: "DBHandler", file_id: int) -> models.File | None:
     return res
 
 
-def delete_file(self: "DBHandler", file_id: int):
+def delete_file(self: "DBHandler", file_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -88,7 +91,8 @@ def delete_file(self: "DBHandler", file_id: int):
         raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
 
     self.session.delete(file)
-    self.session.commit()
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()

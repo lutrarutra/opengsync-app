@@ -14,7 +14,7 @@ from .. import exceptions
 
 def create_sample(
     self: "DBHandler", name: str, owner_id: int, project_id: int,
-    status: SampleStatusEnum | None
+    status: SampleStatusEnum | None, flush: bool = True
 ) -> models.Sample:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -32,12 +32,12 @@ def create_sample(
         status_id=status.id if status is not None else None
     )
 
-    self.session.add(sample)
-    project.num_samples += 1
     user.num_samples += 1
-    
-    self.session.commit()
-    self.session.refresh(sample)
+    project.num_samples += 1
+    self.session.add(sample)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -165,15 +165,13 @@ def update_sample(self: "DBHandler", sample: models.Sample) -> models.Sample:
         self.open_session()
 
     self.session.add(sample)
-    self.session.commit()
-    self.session.refresh(sample)
 
     if not persist_session:
         self.close_session()
     return sample
 
 
-def delete_sample(self: "DBHandler", sample_id: int):
+def delete_sample(self: "DBHandler", sample_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -183,7 +181,9 @@ def delete_sample(self: "DBHandler", sample_id: int):
     sample.owner.num_samples -= 1
     sample.project.num_samples -= 1
     self.session.delete(sample)
-    self.session.commit()
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -244,8 +244,6 @@ def set_sample_attribute(
     sample.set_attribute(key=name, value=value, type=type)
 
     self.session.add(sample)
-    self.session.commit()
-    self.session.refresh(sample)
 
     if not persist_session:
         self.close_session()
@@ -285,8 +283,6 @@ def delete_sample_attribute(
     sample.delete_sample_attribute(key=name)
 
     self.session.add(sample)
-    self.session.commit()
-    self.session.refresh(sample)
 
     if not persist_session:
         self.close_session()

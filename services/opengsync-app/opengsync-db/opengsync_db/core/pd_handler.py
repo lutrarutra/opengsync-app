@@ -277,7 +277,7 @@ def get_experiment_laned_pools_df(self: "DBHandler", experiment_id: int) -> pd.D
     return df
 
 
-def get_pool_libraries_df(self: "DBHandler", pool_id: int) -> pd.DataFrame:
+def get_pool_libraries_df(self: "DBHandler", pool_id: int, per_index: bool = True) -> pd.DataFrame:
     columns = [
         models.Pool.id.label("pool_id"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
@@ -298,8 +298,9 @@ def get_pool_libraries_df(self: "DBHandler", pool_id: int) -> pd.DataFrame:
     query = query.order_by(models.Library.id)
 
     df = pd.read_sql(query, self._engine).drop(columns=["pool_id"])
-
-    df = df.groupby(df.columns.difference(["name_i7", "sequence_i7", "name_i5", "sequence_i5"]).tolist(), as_index=False, dropna=False).agg({"name_i7": list, "sequence_i7": list, "name_i5": list, "sequence_i5": list}).rename(columns={"name_i7": "names_i7", "sequence_i7": "sequences_i7", "name_i5": "names_i5", "sequence_i5": "sequences_i5"})
+    
+    if not per_index:
+        df = df.groupby(df.columns.difference(["name_i7", "sequence_i7", "name_i5", "sequence_i5"]).tolist(), as_index=False, dropna=False).agg({"name_i7": list, "sequence_i7": list, "name_i5": list, "sequence_i5": list}).rename(columns={"name_i7": "names_i7", "sequence_i7": "sequences_i7", "name_i5": "names_i5", "sequence_i5": "sequences_i5"})
 
     return df
 
@@ -594,6 +595,8 @@ def get_index_kit_barcodes_df(self: "DBHandler", index_kit_id: int, per_adapter:
                 barcode_data["well"].append(row["well"])
                 barcode_data["name"].append(row["names"][0])
                 barcode_data["sequence_i7"].append(row["sequences"][0])
+        else:
+            raise ValueError(f"Unsupported index kit type: {index_kit.type}")
 
         df = pd.DataFrame(barcode_data)
 
@@ -733,20 +736,29 @@ def get_project_libraries_df(self: "DBHandler", project_id: int, collapse_lanes:
 
 def get_lab_prep_libraries_df(self: "DBHandler", lab_prep_id: int) -> pd.DataFrame:
     query = sa.select(
-        models.Library.id.label("id"),
-        models.Library.name.label("name"),
+        models.Library.id.label("library_id"),
+        models.Library.name.label("library_name"),
         models.Library.status_id.label("status_id"),
-        models.Library.type_id.label("type_id"),
+        models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
-        models.Library.sample_name.label("sample_name"),
+        models.Pool.id.label("pool_id"), models.Pool.name.label("pool"),
+        models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
+        models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
+    ).outerjoin(
+        models.Pool,
+        models.Pool.id == models.Library.pool_id
+    ).outerjoin(
+        models.LibraryIndex,
+        models.LibraryIndex.library_id == models.Library.id,
     ).where(
         models.Library.lab_prep_id == lab_prep_id
     )
 
     df = pd.read_sql(query, self._engine)
     df["status"] = df["status_id"].map(categories.LibraryStatus.get)  # type: ignore
-    df["type"] = df["type_id"].map(categories.LibraryType.get)  # type: ignore
+    df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
     df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
+
     return df
 
 

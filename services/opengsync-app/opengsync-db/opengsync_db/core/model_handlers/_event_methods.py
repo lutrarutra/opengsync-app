@@ -11,7 +11,7 @@ from .. import exceptions
 
 def create_event(
     self: "DBHandler", title: str, timestamp_utc: datetime, type: EventTypeEnum,
-    user_id: int, note: Optional[str] = None,
+    user_id: int, note: Optional[str] = None, flush: bool = True
 ) -> models.Event:
     
     if not (persist_session := self._session is not None):
@@ -29,8 +29,9 @@ def create_event(
     )
     
     self.session.add(event)
-    self.session.commit()
-    self.session.refresh(event)
+
+    if flush:
+        self.session.flush()
     
     if not persist_session:
         self.close_session()
@@ -97,15 +98,13 @@ def update_event(self: "DBHandler", event: models.Event) -> models.Event:
         self.open_session()
     
     self.session.add(event)
-    self.session.commit()
-    self.session.refresh(event)
     
     if not persist_session:
         self.close_session()
     return event
 
 
-def delete_event(self: "DBHandler", event_id: int):
+def delete_event(self: "DBHandler", event_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
     
@@ -113,7 +112,9 @@ def delete_event(self: "DBHandler", event_id: int):
         raise exceptions.ElementDoesNotExist(f"Event with id {event_id} does not exist")
     
     self.session.delete(event)
-    self.session.commit()
+
+    if flush:
+        self.session.flush()
     
     if not persist_session:
         self.close_session()

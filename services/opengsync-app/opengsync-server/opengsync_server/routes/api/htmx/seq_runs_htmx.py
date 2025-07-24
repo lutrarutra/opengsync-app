@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 from flask_login import login_required
 
-from opengsync_db import models, PAGE_LIMIT
+from opengsync_db import models, PAGE_LIMIT, db_session
 from opengsync_db.categories import HTTPResponse, RunStatus
 from .... import db, logger, cache  # noqa F401
 
@@ -19,6 +19,7 @@ seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/api/hmtx/seq_r
 
 @seq_runs_htmx.route("get", methods=["GET"], defaults={"page": 0})
 @seq_runs_htmx.route("get/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 @cache.cached(timeout=60, query_string=True)
 def get(page: int):
@@ -46,6 +47,7 @@ def get(page: int):
 
 
 @seq_runs_htmx.route("table_query", methods=["GET"])
+@db_session(db)
 @login_required
 def table_query():
     if not current_user.is_insider():

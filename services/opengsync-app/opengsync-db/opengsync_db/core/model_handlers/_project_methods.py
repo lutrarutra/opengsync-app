@@ -16,6 +16,7 @@ def create_project(
     self: "DBHandler", name: str, description: str, owner_id: int,
     group_id: Optional[int] = None,
     status: ProjectStatusEnum = ProjectStatus.DRAFT,
+    flush: bool = True
 ) -> models.Project:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -35,11 +36,11 @@ def create_project(
         status_id=status.id,
     )
 
-    self.session.add(project)
     owner.num_projects += 1
-
-    self.session.commit()
-    self.session.refresh(project)
+    self.session.add(project)
+    
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -149,10 +150,7 @@ def get_projects(
     return projects, n_pages
 
 
-def delete_project(
-    self: "DBHandler", project_id: int,
-    commit: bool = True
-) -> None:
+def delete_project(self: "DBHandler", project_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -161,22 +159,19 @@ def delete_project(
 
     project.owner.num_projects -= 1
     self.session.delete(project)
-    if commit:
-        self.session.commit()
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
 
 
-def update_project(
-    self: "DBHandler", project: models.Project
-) -> models.Project:
+def update_project(self: "DBHandler", project: models.Project) -> models.Project:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     self.session.add(project)
-    self.session.commit()
-    self.session.refresh(project)
 
     if not persist_session:
         self.close_session()

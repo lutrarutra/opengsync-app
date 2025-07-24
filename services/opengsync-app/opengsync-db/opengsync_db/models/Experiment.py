@@ -33,7 +33,6 @@ class Experiment(Base):
     r2_cycles: Mapped[Optional[int]] = mapped_column(nullable=True)
     i1_cycles: Mapped[int] = mapped_column(nullable=False)
     i2_cycles: Mapped[Optional[int]] = mapped_column(nullable=True)
-    num_lanes: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     workflow_id: Mapped[int] = mapped_column(sa.SmallInteger)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
@@ -106,6 +105,10 @@ class Experiment(Base):
         if (ts := self.timestamp_finished) is None:
             return ""
         return ts.strftime(fmt)
+    
+    @property
+    def num_lanes(self) -> int:
+        return self.flowcell_type.num_lanes
     
     def __str__(self) -> str:
         return f"Experiment(id={self.id}, name={self.name}, num_lanes={self.num_lanes})"

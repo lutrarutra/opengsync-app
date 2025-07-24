@@ -21,6 +21,7 @@ pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/api/hmtx/pools/")
 
 @pools_htmx.route("get/<int:page>", methods=["GET"])
 @pools_htmx.route("get", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
 def get(page: int):
     if not current_user.is_insider():
@@ -65,6 +66,7 @@ def get(page: int):
 
 
 @pools_htmx.route("create", methods=["POST"])
+@db_session(db)
 @login_required
 def create():
     if not current_user.is_insider():
@@ -107,7 +109,8 @@ def remove_libraries(pool_id: int):
 
     for library in pool.libraries:
         library.pool_id = None
-        library.status = LibraryStatus.PREPARING
+        if library.status == LibraryStatus.POOLED:
+            library.status = LibraryStatus.STORED
 
     pool.num_libraries = 0
     db.update_pool(pool)
@@ -148,7 +151,6 @@ def get_form(form_type: Literal["create", "edit"]):
             return abort(HTTPResponse.FORBIDDEN.id)
         
         form = forms.models.PoolForm("edit", pool=pool)
-        form.prepare()
         return form.make_response()
     
 
@@ -176,7 +178,6 @@ def clone(pool_id: int):
     
     if request.method == "GET":
         form = forms.models.PoolForm("clone", pool=pool)
-        form.prepare()
         return form.make_response()
     else:
         form = forms.models.PoolForm("clone", formdata=request.form, pool=pool)
@@ -208,7 +209,8 @@ def remove_library(pool_id: int):
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     library.pool_id = None
-    library.status = LibraryStatus.PREPARING
+    if library.status == LibraryStatus.POOLED:
+        library.status = LibraryStatus.STORED
     library = db.update_library(library)
 
     flash("Library removed from pool", "success")
@@ -236,6 +238,8 @@ def table_query():
             pools = [db.get_pool(int(word))]
         except ValueError:
             pools = []
+    else:
+        return abort(HTTPResponse.BAD_REQUEST.id)
 
     return make_response(
         render_template(
@@ -310,6 +314,7 @@ def get_libraries(pool_id: int, page: int):
 
 
 @pools_htmx.route("<int:pool_id>/query_libraries", methods=["GET"])
+@db_session(db)
 @login_required
 def query_libraries(pool_id: int):
     if (word := request.args.get("name")) is not None:
@@ -347,6 +352,7 @@ def query_libraries(pool_id: int):
 
 
 @pools_htmx.route("<int:pool_id>/plate_pool/<string:form_type>", methods=["GET", "POST"])
+@db_session(db)
 @login_required
 def plate_pool(pool_id: int, form_type: Literal["create", "edit"]):
     if form_type not in ["create", "edit"]:
@@ -360,7 +366,6 @@ def plate_pool(pool_id: int, form_type: Literal["create", "edit"]):
     form = forms.models.PlateForm(form_type=form_type, pool=pool, formdata=request.form)
     
     if request.method == "GET":
-        form.prepare()
         return form.make_response()
     
     return form.process_request(user=current_user)
@@ -368,6 +373,7 @@ def plate_pool(pool_id: int, form_type: Literal["create", "edit"]):
 
 @pools_htmx.route("<int:pool_id>/get_dilutions/<int:page>", methods=["GET"])
 @pools_htmx.route("<int:pool_id>/get_dilutions", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
 def get_dilutions(pool_id: int, page: int):
     if (pool := db.get_pool(pool_id)) is None:
@@ -394,6 +400,7 @@ def get_dilutions(pool_id: int, page: int):
 
 @pools_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
 @pools_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
+@db_session(db)
 @login_required
 def browse(workflow: str, page: int):
     if not current_user.is_insider():
@@ -452,6 +459,7 @@ def browse(workflow: str, page: int):
 
 
 @pools_htmx.route("<string:workflow>/browse_query", methods=["GET"])
+@db_session(db)
 @login_required
 def browse_query(workflow: str):
     if not current_user.is_insider():

@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Literal
 
 from flask import Response, url_for, flash
 from wtforms import StringField, SelectField, FloatField, FormField
@@ -168,6 +168,9 @@ class PoolForm(HTMXFlaskForm):
         elif self.form_type == "clone":
             pool = self.__clone_pool(user)
             flash(f"Cloned pool {pool.name}", "success")
+        else:
+            logger.error(f"Unknown form type {self.form_type}")
+            raise ValueError(f"Unknown form type {self.form_type}")
         
         return make_response(redirect=url_for("pools_page.pool_page", pool_id=pool.id))
         

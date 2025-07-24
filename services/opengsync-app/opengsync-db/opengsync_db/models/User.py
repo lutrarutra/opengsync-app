@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from itsdangerous import SignatureExpired, BadSignature, URLSafeTimedSerializer
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from .Base import Base
 from . import links
@@ -77,7 +77,6 @@ class User(Base, UserMixin):
     role_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     num_projects: Mapped[int] = mapped_column(nullable=False, default=0)
-    num_pools: Mapped[int] = mapped_column(nullable=False, default=0)
     num_samples: Mapped[int] = mapped_column(nullable=False, default=0)
     num_seq_requests: Mapped[int] = mapped_column(nullable=False, default=0)
 

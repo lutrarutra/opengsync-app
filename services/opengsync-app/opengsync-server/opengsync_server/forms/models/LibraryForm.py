@@ -29,7 +29,7 @@ class LibraryForm(HTMXFlaskForm):
             self.__fill_form(library)
 
     def __fill_form(self, library: models.Library):
-        self.name.data = library.name
+        self.name.data = library.sample_name
         self.library_type.data = library.type_id
         self.genome.data = library.genome_ref_id
         self.status.data = library.status_id
@@ -40,8 +40,9 @@ class LibraryForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
 
-        self.library.name = self.name.data   # type: ignore
+        self.library.sample_name = self.name.data   # type: ignore
         self.library.type = LibraryType.get(int(self.library_type.data))
+        self.library.name = f"{self.library.sample_name}_{self.library.type.identifier}"
         self.library.genome_ref = GenomeRef.get(self.genome.data)
         self.library.status = LibraryStatus.get(self.status.data)
         self.library.mux_type = MUXType.get(self.mux_type.data) if self.mux_type.data != -1 else None

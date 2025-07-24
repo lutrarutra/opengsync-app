@@ -100,6 +100,7 @@ def get_form(form_type: Literal["create", "edit"]):
 
 
 @experiments_htmx.route("create", methods=["POST"])
+@db_session(db)
 @login_required
 def create():
     if not current_user.is_insider():
@@ -124,6 +125,7 @@ def edit(experiment_id: int):
 
 
 @experiments_htmx.route("delete/<int:experiment_id>", methods=["DELETE"])
+@db_session(db)
 @login_required
 def delete(experiment_id: int):
     if not current_user.is_insider():
@@ -146,6 +148,7 @@ def delete(experiment_id: int):
 
 
 @experiments_htmx.route("query", methods=["POST"])
+@db_session(db)
 @login_required
 def query():
     if not current_user.is_insider():
@@ -166,6 +169,7 @@ def query():
 
 
 @experiments_htmx.route("<int:experiment_id>/render_lane_sample_pooling_tables/<int:file_id>", methods=["GET"])
+@db_session(db)
 @login_required
 def render_lane_sample_pooling_tables(experiment_id: int, file_id: int):
     if not current_user.is_insider():
@@ -201,6 +205,7 @@ def render_lane_sample_pooling_tables(experiment_id: int, file_id: int):
 
 
 @experiments_htmx.route("table_query", methods=["GET"])
+@db_session(db)
 @login_required
 def table_query():
     if not current_user.is_insider():
@@ -248,6 +253,7 @@ def table_query():
                      
 
 @experiments_htmx.route("<int:experiment_id>/lane_pool/<int:pool_id>/<int:lane_num>", methods=["POST"])
+@db_session(db)
 @login_required
 def lane_pool(experiment_id: int, pool_id: int, lane_num: int):
     if not current_user.is_insider():
@@ -281,6 +287,7 @@ def lane_pool(experiment_id: int, pool_id: int, lane_num: int):
 
 
 @experiments_htmx.route("<int:experiment_id>/unlane_pool/<int:pool_id>/<int:lane_num>", methods=["DELETE"])
+@db_session(db)
 @login_required
 def unlane_pool(experiment_id: int, pool_id: int, lane_num: int):
     if not current_user.is_insider():
@@ -380,6 +387,7 @@ def delete_file(experiment_id: int, file_id: int):
 
 
 @experiments_htmx.route("<int:experiment_id>/add_comment", methods=["POST"])
+@db_session(db)
 @login_required
 def add_comment(experiment_id: int):
     if not current_user.is_insider():
@@ -423,6 +431,7 @@ def remove_pool(experiment_id: int):
     
 
 @experiments_htmx.route("<int:experiment_id>/overview", methods=["GET"])
+@db_session(db)
 @login_required
 def overview(experiment_id: int):
     if not current_user.is_insider():
@@ -667,6 +676,7 @@ def get_files(experiment_id: int):
 
 @experiments_htmx.route("<int:experiment_id>/get_dilutions/<int:page>", methods=["GET"])
 @experiments_htmx.route("<int:experiment_id>/get_dilutions", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
 def get_pool_dilutions(experiment_id: int, page: int):
     if not current_user.is_insider():

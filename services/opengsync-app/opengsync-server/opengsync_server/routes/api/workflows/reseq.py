@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING
 
-import pandas as pd
-
 from flask import Blueprint, request, abort, Response
 from flask_login import login_required
 
@@ -96,7 +94,7 @@ def select() -> Response:
     form.metadata["workflow"] = "reseq"
     form.update_data()
 
-    next_form = forms.ReseqLibrariesForm(form.uuid, previous_form=form)
+    next_form = forms.ReseqLibrariesForm(form.uuid)
     return next_form.make_response()
 
 

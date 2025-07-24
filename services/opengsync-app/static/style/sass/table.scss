@@ -227,10 +227,6 @@ table input.table-query-input{
         background-color: $cemm-blue;
     }
 
-    td sup {
-        color: $gray-500 !important;
-    }
-
     tr:hover {
         td, th {
             background-color: $gray-200 !important;

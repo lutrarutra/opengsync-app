@@ -18,7 +18,8 @@ def create_seq_run(
     error_rate: Optional[float] = None, first_cycle_intensity: Optional[float] = None,
     percent_aligned: Optional[float] = None, percent_q30: Optional[float] = None,
     percent_occupied: Optional[float] = None, projected_yield: Optional[float] = None,
-    reads_m: Optional[float] = None, reads_m_pf: Optional[float] = None, yield_g: Optional[float] = None
+    reads_m: Optional[float] = None, reads_m_pf: Optional[float] = None, yield_g: Optional[float] = None,
+    flush: bool = True
 ) -> models.SeqRun:
     
     if not (persist_session := self._session is not None):
@@ -54,8 +55,8 @@ def create_seq_run(
 
     self.session.add(seq_run)
 
-    self.session.commit()
-    self.session.refresh(seq_run)
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -139,8 +140,6 @@ def update_seq_run(
         self.open_session()
 
     self.session.add(seq_run)
-    self.session.commit()
-    self.session.refresh(seq_run)
 
     if not persist_session:
         self.close_session()

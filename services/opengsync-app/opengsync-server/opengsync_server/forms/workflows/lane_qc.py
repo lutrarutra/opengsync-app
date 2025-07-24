@@ -29,8 +29,6 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
         self._context["error_max"] = models.Lane.error_max_molarity
         self._context["experiment"] = experiment
         self._context["enumerate"] = enumerate
-        if len(formdata) == 0:
-            self.prepare()
 
     def prepare(self):
         df = db.get_experiment_lanes_df(self.experiment.id)
@@ -81,8 +79,6 @@ class QCLanesForm(HTMXFlaskForm):
         self._context["error_min"] = models.Lane.error_min_molarity
         self._context["error_max"] = models.Lane.error_max_molarity
         self._context["enumerate"] = enumerate
-        if len(formdata) == 0:
-            self.prepare()
 
     def prepare(self):
         df = db.get_experiment_lanes_df(self.experiment.id)

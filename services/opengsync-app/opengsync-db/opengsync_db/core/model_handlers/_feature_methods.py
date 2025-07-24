@@ -1,6 +1,8 @@
 import math
 from typing import Optional, TYPE_CHECKING
 
+import sqlalchemy as sa
+
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
@@ -18,6 +20,7 @@ def create_feature(
     feature_kit_id: Optional[int] = None,
     target_name: Optional[str] = None,
     target_id: Optional[str] = None,
+    flush: bool = True
 ) -> models.Feature:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -51,8 +54,9 @@ def create_feature(
         feature_kit_id=feature_kit_id
     )
     self.session.add(feature)
-    self.session.commit()
-    self.session.refresh(feature)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -119,32 +123,29 @@ def get_features(
     return features, n_pages
 
 
-def delete_feature(
-    self: "DBHandler", feature_id: int, commit: bool = True
-):
+def delete_feature(self: "DBHandler", feature_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    feature = self.session.get(models.Feature, feature_id)
+    if (feature := self.session.get(models.Feature, feature_id)) is None:
+        raise exceptions.ElementDoesNotExist(f"Feature with id {feature_id} does not exist")
+    
     self.session.delete(feature)
 
-    if commit:
-        self.session.commit()
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
 
 
 def update_feature(
-    self: "DBHandler", feature: models.Feature, commit: bool = True
+    self: "DBHandler", feature: models.Feature
 ) -> models.Feature:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     self.session.add(feature)
-    if commit:
-        self.session.commit()
-        self.session.refresh(feature)
 
     if not persist_session:
         self.close_session()
@@ -167,3 +168,24 @@ def get_features_from_kit_by_feature_name(
         self.close_session()
 
     return feature
+
+
+def delete_orphan_features(
+    self: "DBHandler", flush: bool = True
+) -> None:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    features = self.session.query(models.Feature).where(
+        models.Feature.feature_kit_id.is_(None),
+        ~sa.exists().where(models.links.LibraryFeatureLink.feature_id == models.Feature.id)
+    ).all()
+
+    for feature in features:
+        self.session.delete(feature)
+
+    if flush:
+        self.session.flush()
+
+    if not persist_session:
+        self.close_session()

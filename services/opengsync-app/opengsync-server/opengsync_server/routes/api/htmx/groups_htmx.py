@@ -19,6 +19,7 @@ groups_htmx = Blueprint("groups_htmx", __name__, url_prefix="/api/hmtx/groups/")
 
 @groups_htmx.route("get/<int:page>", methods=["GET"])
 @groups_htmx.route("get", methods=["GET"], defaults={"page": 0})
+@db_session(db)
 @login_required
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
@@ -73,6 +74,7 @@ def query():
 
 
 @groups_htmx.route("create", methods=["POST"])
+@db_session(db)
 @login_required
 def create():
     return forms.models.GroupForm(request.form).process_request(user=current_user)

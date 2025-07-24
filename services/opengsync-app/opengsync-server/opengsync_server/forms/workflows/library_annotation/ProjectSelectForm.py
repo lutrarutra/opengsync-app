@@ -35,7 +35,7 @@ class ProjectSelectForm(MultiStepForm):
         self._context["workflow_type"] = workflow_type
 
     def fill_previous_form(self, previous_form: StepFile):
-        self.new_project.data = previous_form.metadata.get("project_description")
+        self.new_project.data = previous_form.metadata.get("project_name")
         if (project_id := previous_form.metadata.get("project_id")) is not None:
             self.existing_project.selected.data = project_id
             self.existing_project.search_bar.data = project.name if (project := db.get_project(project_id)) is not None else None
@@ -94,10 +94,10 @@ class ProjectSelectForm(MultiStepForm):
         self.update_data()
 
         if SelectAssayForm.is_applicable(self):
-            next_form = SelectAssayForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            next_form = SelectAssayForm(seq_request=self.seq_request, uuid=self.uuid)
         elif PooledLibraryAnnotationForm.is_applicable(self):
-            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid, previous_form=self)
+            next_form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         
         return next_form.make_response()

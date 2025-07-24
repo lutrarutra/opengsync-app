@@ -13,21 +13,25 @@ from .. import models
 class DBHandler():
     Session: orm.scoped_session
 
-    def __init__(self, logger: Optional["loguru.Logger"] = None) -> None:
+    def __init__(self, logger: Optional["loguru.Logger"] = None, expire_on_commit: bool = False) -> None:
         self._logger = logger
+        self._session: orm.Session | None = None
+        self._connection: sa.engine.Connection | None = None
+        self.expire_on_commit = expire_on_commit
         
-    def connect(self, user: str, password: str, host: str, db: str = "opengsync_db", port: Union[str, int] = 5432) -> None:
+    def connect(
+        self, user: str, password: str, host: str, db: str = "opengsync_db", port: Union[str, int] = 5432
+    ) -> None:
         self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
         self.public_url = f"{self._url.split(':')[0]}://{host}:{port}/{db}"
         self._engine = sa.create_engine(self._url)
         try:
-            self._engine.connect()
+            self._connection = self._engine.connect()
         except Exception as e:
             raise Exception(f"Could not connect to DB '{self.public_url}':\n{e}")
         self.log(f"Connected to DB '{self.public_url}'")
 
-        self._session: orm.Session | None = None
-        self.session_factory = orm.sessionmaker(bind=self._engine)
+        self.session_factory = orm.sessionmaker(bind=self._engine, expire_on_commit=self.expire_on_commit)
         DBHandler.Session = orm.scoped_session(self.session_factory)
 
     def log(self, *values: object) -> None:
@@ -62,11 +66,35 @@ class DBHandler():
     def session(self) -> orm.Session:
         if self._session is None:
             raise Exception("Session is not open.")
-        return self._session  # type: ignore
+        return self._session
+
+    @property
+    def connection(self) -> sa.engine.Connection:
+        if self._connection is None:
+            raise Exception("Connection is not open.")
+        return self._connection
 
     def timestamp(self) -> datetime:
         return datetime.now()
+    
+    def commit(self) -> None:
+        if self._session is not None:
+            self._session.commit()
+        else:
+            raise Exception("Session is not open, cannot commit changes.")
 
+    def flush(self) -> None:
+        if self._session is not None:
+            self._session.flush()
+        else:
+            raise Exception("Session is not open, cannot flush changes.")
+
+    def refresh(self, obj: object) -> None:
+        if self._session is not None:
+            self._session.refresh(obj)
+        else:
+            raise Exception("Session is not open, cannot refresh session state.")
+        
     def create_tables(self) -> None:
         if not sa.inspect(self._engine).has_table(models.User.__tablename__):
             self.log("Creating tables...")
@@ -75,16 +103,40 @@ class DBHandler():
             self.warn("Tables already exist, skipping creation...")
 
     def open_session(self, autoflush: bool = False) -> None:
-        if self._session is None:
-            self._session = DBHandler.Session(autoflush=autoflush)
-
-    def close_session(self) -> None:
         if self._session is not None:
-            DBHandler.Session.remove()
-            self._session = None
+            self.error("Session is already open.")
+            raise Exception("Session is already open.")
+        self._session = DBHandler.Session(autoflush=autoflush)
+
+    def close_session(self, commit: bool = True, rollback: bool = False) -> None:
+        if self._session is None:
+            self.error("Session is already closed or was never opened.")
+            raise Exception("Session is already closed or was never opened.")
+       
+        if commit and not rollback:
+            self.session.commit()
+        if rollback:
+            self.log("Rolling back transaction...")
+            self._session.rollback()
+
+        self._session = DBHandler.Session.remove()
+
+    def rollback(self) -> None:
+        if self._session is None:
+            self.error("Session is not open, cannot rollback.")
+            raise Exception("Session is not open, cannot rollback.")
+        self.log("Rolling back transaction...")
+        self._session.rollback()
+
+    def close_connection(self) -> None:
+        if self._connection is not None:
+            self._connection = self._connection.close()
+            self.log("Connection closed.")
 
     def __del__(self):
-        self.close_session()
+        if self._session is not None:
+            self.close_session()
+        self.close_connection()
         self._engine.dispose()
 
     from .model_handlers._project_methods import (
@@ -111,7 +163,7 @@ class DBHandler():
         create_pool, get_pool, get_pools,
         delete_pool, update_pool, query_pools, dilute_pool,
         get_pool_dilution, get_pool_dilutions, get_user_pool_access_type,
-        clone_pool, get_number_of_cloned_pools
+        clone_pool, get_number_of_cloned_pools, merge_pools
     )
 
     from .model_handlers._library_methods import (
@@ -156,6 +208,7 @@ class DBHandler():
     from .model_handlers._feature_methods import (
         create_feature, get_feature, get_features,
         delete_feature, update_feature, get_features_from_kit_by_feature_name,
+        delete_orphan_features
     )
 
     from .model_handlers._feature_kit_methods import (
@@ -206,13 +259,14 @@ class DBHandler():
 
         update_laned_pool_link,
 
+        link_features_library,
         link_feature_library,
         link_sample_library,
-        unlink_sample_library,
         link_pool_experiment,
 
         is_sample_in_seq_request,
 
+        unlink_sample_library,
         unlink_feature_library,
         unlink_pool_experiment,
     )

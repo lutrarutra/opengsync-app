@@ -54,9 +54,9 @@
             {% for library in libraries %}
             <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td class="library-name-cell" id="library-name-cell-{{library.id}}">
+                <td class="library-name-cell" data-library-id="{{ library.id }}" data-library-name="{{ library.name }}">
                     <a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='pool@' + pool.id | string) }}">
-                        {{ library.name }}{% if library.clone_number > 0 %}<sup>(re:{{ library.clone_number }})</sup>{% endif %}
+                        {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
                     </a>
                 </td>
                 <td>
@@ -77,9 +77,12 @@
     <script>
         init_tooltips();
 
+        var selected_library_id = null;
+        var selected_library_name = null;
+
         function remove_library() {
             Swal.fire({
-                title: `Remove library id='${selected_library_id}' from '{{pool.name}}'-request ?`,
+                title: `Remove library id='${selected_library_name}' from '{{pool.name}}'-request ?`,
                 showDenyButton: true,
                 text: 'Are you sure?',
                 confirmButtonText: 'Yes',
@@ -88,7 +91,7 @@
             }).then(function(e) {
                 if (e.isConfirmed) {
                     htmx.ajax(
-                        "DELETE", "{{ url_for('pools_htmx.remove_library', pool_id=pool.id) }}?library_id=" + selected_library_id, null,
+                        "DELETE", `{{ url_for('pools_htmx.remove_library', pool_id=pool.id) }}?library_id=${selected_library_id}`, null,
                         { target: "#seq_request-seq_request-library-table", swapStyle: "outerHTML" }
                     );
                 }
@@ -99,7 +102,8 @@
             e.preventDefault();
             const x = e.pageX;
             const y = e.pageY;
-            selected_library_id = e.target.id.split("-")[3];
+            selected_library_id = parseInt($(this).data("library-id"));
+            selected_library_name = $(this).data("library-name");
             $("#copy-edit-menu").css({
                 display: "block",
                 left: x + 8, top: y + 8

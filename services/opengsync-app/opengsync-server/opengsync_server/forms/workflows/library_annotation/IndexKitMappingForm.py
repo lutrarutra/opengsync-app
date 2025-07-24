@@ -38,10 +38,10 @@ class IndexKitMappingForm(MultiStepForm):
     def is_applicable(current_step: MultiStepForm) -> bool:
         return current_step.tables["barcode_table"]["kit_i7"].notna().any()
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}, previous_form: Optional[MultiStepForm] = None):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=IndexKitMappingForm._workflow_name,
-            step_name=IndexKitMappingForm._step_name, previous_form=previous_form, step_args={}
+            step_name=IndexKitMappingForm._step_name, step_args={}
         )
 
         self.seq_request = seq_request
@@ -242,17 +242,17 @@ class IndexKitMappingForm(MultiStepForm):
         self.update_table("barcode_table", self.barcode_table)
         self.update_data()
         if OCMAnnotationForm.is_applicable(self):
-            next_form = OCMAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OligoMuxAnnotationForm.is_applicable(self):
-            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, previous_form=self, uuid=self.uuid)
+            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

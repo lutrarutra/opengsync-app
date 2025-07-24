@@ -60,7 +60,7 @@
                 </a></td>
                 <td>
                     <span {{ tooltip(library.type.name) }}>
-                        {{ library.type.abbreviation }}{% if library.mux_type %}<sup>[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup>[ncl]</sup>{% endif %}
+                        {{ library.type.abbreviation }}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
                     </span>
                 </td>
                 <td><a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=library.seq_request_id, from='sample@' + sample.id | string) }}">{{ library.seq_request.name }}</a></td>

@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 
 import pandas as pd
 import openpyxl
@@ -20,17 +19,20 @@ class CompleteLibraryPoolingForm(MultiStepForm):
     _workflow_name = "library_pooling"
     _step_name = "complete_library_pooling"
 
-    def __init__(self, lab_prep: models.LabPrep, uuid: str | None, previous_form: Optional[MultiStepForm] = None, formdata: dict = {}):
+    def __init__(self, lab_prep: models.LabPrep, uuid: str | None, formdata: dict = {}):
         MultiStepForm.__init__(
             self, workflow=CompleteLibraryPoolingForm._workflow_name,
             step_name=CompleteLibraryPoolingForm._step_name, uuid=uuid,
-            formdata=formdata, previous_form=previous_form, step_args={}
+            formdata=formdata, step_args={}
         )
         self.lab_prep = lab_prep
         self._context["lab_prep"] = lab_prep
 
     def prepare(self):
         barcode_table = self.tables["barcode_table"]
+        library_table = self.tables["library_table"].set_index("library_id")
+        barcode_table["pool"] = library_table.loc[barcode_table["library_id"], "pool"].values
+        barcode_table["library_name"] = library_table.loc[barcode_table["library_id"], "library_name"].values
         barcode_table = tools.check_indices(barcode_table, groupby="pool")
         self._context["df"] = barcode_table
         self._context["groupby"] = "pool"
@@ -104,14 +106,6 @@ class CompleteLibraryPoolingForm(MultiStepForm):
             else:
                 df = barcode_table[barcode_table["library_id"] == row["library_id"]].copy()
 
-                seq_i7s = df["sequence_i7"].values
-                seq_i5s = df["sequence_i5"].values
-                name_i7s = df["name_i7"].values
-                name_i5s = df["name_i5"].values
-
-                kit_i7_id = row["kit_i7_id"] if pd.notna(row["kit_i7_id"]) else None
-                kit_i5_id = row["kit_i5_id"] if pd.notna(row["kit_i5_id"]) else None
-
                 if library.type == LibraryType.TENX_SC_ATAC:
                     if len(df) != 4:
                         logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for TENX_SC_ATAC library, found {len(df)}.")
@@ -125,20 +119,18 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                     else:
                         index_type = IndexType.DUAL_INDEX
 
-                library.index_type = index_type
-                library = db.update_library(library)
-
-                for j in range(max(len(seq_i7s), len(seq_i5s))):
+                for _, barcode_row in df.iterrows():
                     library = db.add_library_index(
-                        library_id=library.id, index_kit_i7_id=kit_i7_id, index_kit_i5_id=kit_i5_id,
-                        name_i7=name_i7s[j] if len(name_i7s) > j and pd.notna(name_i7s[j]) else None,
-                        name_i5=name_i5s[j] if len(name_i5s) > j and pd.notna(name_i5s[j]) else None,
-                        sequence_i7=seq_i7s[j] if len(seq_i7s) > j and pd.notna(seq_i7s[j]) else None,
-                        sequence_i5=seq_i5s[j] if len(seq_i5s) > j and pd.notna(seq_i5s[j]) else None,
+                        library_id=library.id,
+                        index_kit_i7_id=barcode_row["kit_i7_id"] if pd.notna(barcode_row["kit_i7_id"]) else None,
+                        index_kit_i5_id=barcode_row["kit_i5_id"] if pd.notna(barcode_row["kit_i5_id"]) else None,
+                        name_i7=barcode_row["name_i7"] if pd.notna(barcode_row["name_i7"]) else None,
+                        name_i5=barcode_row["name_i5"] if pd.notna(barcode_row["name_i5"]) else None,
+                        sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,
+                        sequence_i5=barcode_row["sequence_i5"] if pd.notna(barcode_row["sequence_i5"]) else None,
                     )
-                # library_table.at[idx, "name_i7"] = row["name_i7"] if pd.notna(row["name_i7"]) else None
-                # library_table.at[idx, "name_i5"] = row["name_i5"] if pd.notna(row["name_i5"]) else None
 
+                library.index_type = index_type
                 library.pool_id = None
                 library = db.update_library(library)
                 library = db.add_library_to_pool(library_id=library.id, pool_id=pools[row["pool"]].id)

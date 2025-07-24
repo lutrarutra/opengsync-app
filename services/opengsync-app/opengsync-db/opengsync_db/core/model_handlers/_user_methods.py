@@ -18,7 +18,7 @@ def create_user(
     last_name: str,
     hashed_password: str,
     role: UserRoleEnum,
-    commit: bool = True
+    flush: bool = True
 ) -> models.User:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -35,11 +35,10 @@ def create_user(
         password=hashed_password,
         role_id=role.id,
     )
-
     self.session.add(user)
-    if commit:
-        self.session.commit()
-        self.session.refresh(user)
+    
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
@@ -144,15 +143,13 @@ def update_user(
         self.open_session()
 
     self.session.add(user)
-    self.session.commit()
-    self.session.refresh(user)
 
     if not persist_session:
         self.close_session()
     return user
 
 
-def delete_user(self: "DBHandler", user_id: int) -> None:
+def delete_user(self: "DBHandler", user_id: int, flush: bool = True) -> None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -160,7 +157,8 @@ def delete_user(self: "DBHandler", user_id: int) -> None:
         raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
 
     self.session.delete(user)
-    self.session.commit()
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
