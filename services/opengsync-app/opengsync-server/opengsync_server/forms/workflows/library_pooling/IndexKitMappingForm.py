@@ -36,12 +36,14 @@ class IndexKitMappingForm(CommonIndexKitMappingForm):
         )
 
     def fill_previous_form(self, previous_form: StepFile):
-        library_table = previous_form.tables["library_table"]
+        barcode_table = previous_form.tables["barcode_table"]
 
         kits = set()
 
         counter = 0
-        for (label, kit_id), _ in library_table.groupby(["kit_i7", "kit_i7_id"]):
+        logger.debug(barcode_table[["kit_i7", "kit_i7_id"]])
+        logger.debug(barcode_table.columns)
+        for (label, kit_id,), _ in barcode_table.groupby(["kit_i7", "kit_i7_id"]):
             if label in kits:
                 continue
             kits.add(label)
@@ -54,7 +56,7 @@ class IndexKitMappingForm(CommonIndexKitMappingForm):
             entry.index_kit.search_bar.data = label
             counter += 1
 
-        for (label, kit_id), _ in library_table.groupby(["kit_i5", "kit_i5_id"]):
+        for (label, kit_id), _ in barcode_table.groupby(["kit_i5", "kit_i5_id"]):
             if label in kits:
                 continue
             kits.add(label)

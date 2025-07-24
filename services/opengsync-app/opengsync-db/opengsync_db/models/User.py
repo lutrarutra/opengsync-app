@@ -89,7 +89,7 @@ class User(Base, UserMixin):
     files: Mapped[list["File"]] = relationship("File", back_populates="uploader", lazy="select")
     preps: Mapped[list["LabPrep"]] = relationship("LabPrep", back_populates="creator", lazy="select")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_pool", "num_samples", "num_seq_requests"]
+    sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_samples", "num_seq_requests"]
 
     def is_insider(self) -> bool:
         return self.role.is_insider()
