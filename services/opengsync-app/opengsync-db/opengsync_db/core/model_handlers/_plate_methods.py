@@ -18,9 +18,8 @@ def create_plate(
     if (owner := self.get_user(owner_id)) is None:
         raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
 
-    plate = models.Plate(
-        name=name, num_cols=num_cols, num_rows=num_rows, owner=owner
-    )
+    plate = models.Plate(name=name, num_cols=num_cols, num_rows=num_rows, owner=owner)
+    self.session.add(plate)
 
     if flush:
         self.session.flush()
@@ -76,7 +75,7 @@ def get_plates(
     return plates, n_pages
 
 
-def delete_plate(self: "DBHandler", plate_id: int):
+def delete_plate(self: "DBHandler", plate_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
     
@@ -87,6 +86,9 @@ def delete_plate(self: "DBHandler", plate_id: int):
         self.session.delete(sample_link)
 
     self.session.delete(plate)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
