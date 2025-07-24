@@ -45,7 +45,6 @@ def update_sample_library_link(
 def link_sample_library(
     self: "DBHandler", sample_id: int, library_id: int,
     mux: Optional[dict] = None,
-    mux_type: Optional[MUXTypeEnum] = None,
     flush: bool = True
 ) -> models.links.SampleLibraryLink:
     
@@ -67,7 +66,6 @@ def link_sample_library(
     sample_library_link = models.links.SampleLibraryLink(
         sample_id=sample_id,
         library_id=library_id,
-        mux_type_id=mux_type.id if mux_type else None,
         mux=mux,
     )
 

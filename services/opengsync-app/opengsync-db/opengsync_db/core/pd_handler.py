@@ -25,6 +25,7 @@ def get_experiment_libraries_df(
         models.Lane.number.label("lane"), models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("reference_id"), models.Library.sample_name.label("sample_name"),
+        models.Library.mux_type_id.label("mux_type_id"),
     ]
 
     if include_indices:
@@ -47,7 +48,6 @@ def get_experiment_libraries_df(
     if include_sample:
         columns.extend([
             models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-            models.links.SampleLibraryLink.mux.label("mux"), models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
         ])
 
     query = sa.select(*columns).where(
@@ -95,8 +95,7 @@ def get_experiment_libraries_df(
 
     df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
     df["reference"] = df["reference_id"].map(categories.GenomeRef.get)  # type: ignore
-    if "mux_type_id" in df.columns:
-        df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
+    df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
 
     order = [
         "lane", "library_id", "sample_name", "library_name", "library_type", "reference", "pool_name",
@@ -385,7 +384,7 @@ def get_library_samples_df(self: "DBHandler", library_id: int, expand_attributes
 def get_library_mux_table_df(self: "DBHandler", library_id: int) -> pd.DataFrame:
     query = sa.select(
         models.links.SampleLibraryLink.sample_id.label("sample_id"), models.Sample.name.label("sample_name"),
-        models.links.SampleLibraryLink.mux.label("mux"), models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
+        models.links.SampleLibraryLink.mux.label("mux"),
     ).join(
         models.Sample,
         models.Sample.id == models.links.SampleLibraryLink.sample_id
@@ -394,7 +393,6 @@ def get_library_mux_table_df(self: "DBHandler", library_id: int) -> pd.DataFrame
     )
 
     df = pd.read_sql(query, self._engine)
-    df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
 
     expanded = df["mux"].apply(pd.Series)
     for col in expanded.columns:
@@ -461,8 +459,9 @@ def get_seq_request_samples_df(
     query = sa.select(
         models.SeqRequest.id.label("seq_request_id"),
         models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
-        models.links.SampleLibraryLink.mux.label("mux"), models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
+        models.links.SampleLibraryLink.mux.label("mux"),
         models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.type_id.label("library_type_id"),
+        models.Library.mux_type_id.label("mux_type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
     ).where(
@@ -674,7 +673,7 @@ def get_project_libraries_df(self: "DBHandler", project_id: int, collapse_lanes:
         models.Sample.name.label("sample_name"),
 
         models.links.SampleLibraryLink.mux.label("mux"),
-        models.links.SampleLibraryLink.mux_type_id.label("mux_type_id"),
+        models.Library.mux_type_id.label("mux_type_id"),
     ).where(
         models.Sample.project_id == project_id
     ).join(

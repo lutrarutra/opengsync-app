@@ -323,7 +323,6 @@ class CompleteSASForm(MultiStepForm):
                         logger.error(f"{self.uuid}: Mux barcode is required for TENX_FLEX_PROBE mux type.")
                         raise ValueError("Mux barcode is required for TENX_FLEX_PROBE mux type.")
                     mux = {"barcode": pooling_row["mux_barcode"]}
-                    mux_type = MUXType.TENX_FLEX_PROBE
                 elif pooling_row["mux_type_id"] in [MUXType.TENX_OLIGO.id]:
                     if self.workflow == "pooled" and pd.isna(pooling_row["mux_barcode"]):
                         logger.error(f"{self.uuid}: Mux barcode is required for TENX_OLIGO mux type.")
@@ -339,19 +338,16 @@ class CompleteSASForm(MultiStepForm):
                         "pattern": pooling_row["mux_pattern"],
                         "read": pooling_row["mux_read"]
                     }
-                    mux_type = MUXType.get(pooling_row["mux_type_id"])
                 elif pooling_row["mux_type_id"] == MUXType.TENX_ON_CHIP.id:
                     mux = {"barcode": pooling_row["mux_barcode"]}
-                    mux_type = MUXType.TENX_ON_CHIP
                 else:
                     mux = None
-                    mux_type = None
                 
                 sample_ids = self.sample_table[self.sample_table["sample_name"] == pooling_row["sample_name"]]["sample_id"].values
                 if len(sample_ids) != 1:
                     logger.error(f"{self.uuid}: Expected exactly one sample for name {pooling_row['sample_name']}, found {len(sample_ids)}.")
                     raise ValueError(f"Expected exactly one sample for name {pooling_row['sample_name']}, found {len(sample_ids)}.")
-                db.link_sample_library(sample_id=sample_ids[0], library_id=library.id, mux=mux, mux_type=mux_type)
+                db.link_sample_library(sample_id=sample_ids[0], library_id=library.id, mux=mux)
 
         self.library_table["library_id"] = self.library_table["library_id"].astype(int)
 

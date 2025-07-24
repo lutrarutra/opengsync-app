@@ -58,7 +58,6 @@ class SampleLibraryLink(Base):
     __mapper_args__ = {"confirm_deleted_rows": False}
 
     mux: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True, default=None)
-    mux_type_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
 
     sample_id: Mapped[int] = mapped_column(sa.ForeignKey("sample.id"), primary_key=True)
     library_id: Mapped[int] = mapped_column(sa.ForeignKey("library.id"), primary_key=True)
@@ -71,22 +70,9 @@ class SampleLibraryLink(Base):
         "Library", back_populates="sample_links", lazy="joined",
         cascade="save-update, merge"
     )
-
-    @property
-    def mux_type(self) -> MUXTypeEnum | None:
-        if self.mux_type_id is None:
-            return None
-        return MUXType.get(self.mux_type_id)
     
-    @mux_type.setter
-    def mux_type(self, value: MUXTypeEnum | None):
-        if value is None:
-            self.mux_type_id = None
-        else:
-            self.mux_type_id = value.id
-
     def __str__(self) -> str:
-        return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id}, is_multiplexed: {self.mux_type_id is not None})"
+        return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id})"
     
 
 class LanePoolLink(Base):

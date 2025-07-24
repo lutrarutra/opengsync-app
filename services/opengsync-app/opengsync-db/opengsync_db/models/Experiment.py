@@ -53,7 +53,7 @@ class Experiment(Base):
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
     laned_pool_links: Mapped[list[links.LanePoolLink]] = relationship("LanePoolLink", lazy="select", cascade="delete, delete-orphan")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp_created_utc", "timestamp_finished_utc", "status_id", "sequencer_id", "num_lanes", "flowcell_type_id", "workflow_id"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp_created_utc", "timestamp_finished_utc", "status_id", "sequencer_id", "flowcell_type_id", "workflow_id"]
 
     @property
     def status(self) -> ExperimentStatusEnum:
@@ -111,7 +111,7 @@ class Experiment(Base):
         return self.flowcell_type.num_lanes
     
     def __str__(self) -> str:
-        return f"Experiment(id={self.id}, name={self.name}, num_lanes={self.num_lanes})"
+        return f"Experiment(id={self.id}, name={self.name}, flowcell={self.flowcell_type.name}, workflow={self.workflow.name}, status={self.status.name})"
     
     def __repr__(self) -> str:
         return str(self)
