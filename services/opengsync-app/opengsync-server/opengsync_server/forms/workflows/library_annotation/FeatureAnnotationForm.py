@@ -130,9 +130,9 @@ class FeatureAnnotationForm(MultiStepForm):
                     idx = idx & idx_sample_name
 
                 if df[idx].shape[0] > 1:
-                    self.spreadsheet.add_error(idx, "sequence", DuplicateCellValue(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library."))
-                    self.spreadsheet.add_error(idx, "pattern", DuplicateCellValue(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library."))
-                    self.spreadsheet.add_error(idx, "read", DuplicateCellValue(f"Row {i+1} has duplicate 'Sequence + Pattern + Read' combination in same library."))
+                    self.spreadsheet.add_error(idx, "sequence", DuplicateCellValue(f"Row {i + 1} has duplicate 'Sequence + Pattern + Read' combination in same library."))
+                    self.spreadsheet.add_error(idx, "pattern", DuplicateCellValue(f"Row {i + 1} has duplicate 'Sequence + Pattern + Read' combination in same library."))
+                    self.spreadsheet.add_error(idx, "read", DuplicateCellValue(f"Row {i + 1} has duplicate 'Sequence + Pattern + Read' combination in same library."))
 
             elif kit_feature.at[idx]:
                 idx_sample_name = df["sample_name"] == row["sample_name"]
@@ -147,7 +147,7 @@ class FeatureAnnotationForm(MultiStepForm):
                     idx = idx & idx_feature
                 
                 if df[idx].shape[0] > 1:
-                    self.spreadsheet.add_error(idx, "feature", DuplicateCellValue(f"Row {i+1} has duplicate 'Kit' + 'Feature' specified for same library."))
+                    self.spreadsheet.add_error(idx, "feature", DuplicateCellValue(f"Row {i + 1} has duplicate 'Kit' + 'Feature' specified for same library."))
 
         if len(self.spreadsheet._errors) > 0:
             return False

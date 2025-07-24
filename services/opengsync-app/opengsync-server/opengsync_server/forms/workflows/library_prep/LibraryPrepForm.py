@@ -130,12 +130,13 @@ class LibraryPrepForm(HTMXFlaskForm):
                     continue
 
                 library_id = int(library_id)
+                if (library := db.get_library(library_id)) is None:
+                    logger.error(f"Library {library_id} not found")
+                    raise ValueError(f"Library {library_id} not found")
+                
+                db.refresh(library)
                 
                 if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
-                    if (library := db.get_library(library_id)) is None:
-                        logger.error(f"Library {library_id} not found")
-                        raise ValueError(f"Library {library_id} not found")
-                    
                     library.status = LibraryStatus.FAILED
                     library = db.update_library(library)
                     continue
@@ -147,6 +148,7 @@ class LibraryPrepForm(HTMXFlaskForm):
                     
                     library.qubit_concentration = float(row["lib_conc_ng_ul"])
                     library = db.update_library(library)
+                    db.flush()
 
                 well_idx = plate.get_well_idx(row["plate_well"].strip())
                 plate = db.add_library_to_plate(plate_id=plate.id, library_id=library_id, well_idx=well_idx)
