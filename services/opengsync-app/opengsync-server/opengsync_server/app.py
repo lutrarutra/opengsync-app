@@ -10,7 +10,7 @@ from flask_login import login_required
 
 from opengsync_db import categories, models, db_session, TIMEZONE, to_utc
 
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools, page_route
 from .routes import api, pages
 from .tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue
 
@@ -99,7 +99,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @login_required
     def dashboard():
         if not current_user.is_authenticated:
-            return redirect(url_for("auth_page.auth_page", next=url_for("dashboard")))
+            return redirect(url_for("auth_page.auth", next=url_for("dashboard")))
         
         if current_user.is_insider():
             return render_template("dashboard-insider.html")
@@ -189,7 +189,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     @login_manager.unauthorized_handler
     def unauthorized():
         next = url_for(request.endpoint, **request.view_args)   # type: ignore
-        return redirect(url_for("auth_page.auth_page", next=next))
+        return redirect(url_for("auth_page.auth", next=next))
     
     @app.context_processor
     def inject_debug():

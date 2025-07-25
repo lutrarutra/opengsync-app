@@ -7,7 +7,7 @@ from flask_login import login_required
 
 from opengsync_db import models, PAGE_LIMIT, db_session
 from opengsync_db.categories import HTTPResponse, UserRole, SeqRequestStatus
-from .... import db, logger  # noqa F401
+from .... import db, logger, htmx_route  # noqa F401
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -54,9 +54,7 @@ def get(page: int):
     )
 
 
-@users_htmx.route("query", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(users_htmx, db=db, methods=["POST"])
 def query():
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
@@ -85,9 +83,7 @@ def query():
     )
 
 
-@users_htmx.route("table_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(users_htmx, db=db)
 def table_query():
     if (word := request.args.get("last_name")) is not None:
         field_name = "last_name"
@@ -196,9 +192,7 @@ def get_seq_requests(user_id: int, page: int):
     )
 
 
-@users_htmx.route("<int:user_id>/query_seq_requests", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(users_htmx, db=db)
 def query_seq_requests(user_id: int):
     if (word := request.args.get("name")) is not None:
         field_name = "name"

@@ -27,7 +27,7 @@
             {% for project in projects %}
             <tr>
                 <th scope="row">{{ project.id }}</th>
-                <td><a href="{{ url_for('projects_page.project_page', project_id=project.id, from='user@' + user.id | string) }}">{{ project.name }}</a></td>
+                <td><a href="{{ url_for('projects_page.project', project_id=project.id, from='user@' + user.id | string) }}">{{ project.name }}</a></td>
                 <td>{{ project.num_samples }}</td>
             </tr>
             {% endfor %}

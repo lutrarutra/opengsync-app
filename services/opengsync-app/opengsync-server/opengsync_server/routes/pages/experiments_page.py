@@ -1,12 +1,11 @@
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, url_for, abort, request
-from flask_login import login_required
 
-from opengsync_db import models, db_session
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, FileType
 
-from ... import forms, db, logger  # noqa
+from ... import db, logger, page_route  # noqa
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -16,20 +15,16 @@ else:
 experiments_page_bp = Blueprint("experiments_page", __name__)
 
 
-@experiments_page_bp.route("/experiments")
-@db_session(db)
-@login_required
-def experiments_page():
+@page_route(experiments_page_bp, db=db)
+def experiments():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
     return render_template("experiments_page.html")
 
 
-@experiments_page_bp.route("/experiments/<int:experiment_id>")
-@db_session(db)
-@login_required
-def experiment_page(experiment_id: int):
+@page_route(experiments_page_bp, db=db)
+def experiment(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -74,21 +69,21 @@ def experiment_page(experiment_id: int):
     can_be_loaded = all_pools_laned and qubit_concentration_measured and avg_framgnet_size_measured
 
     path_list = [
-        ("Experiments", url_for("experiments_page.experiments_page")),
+        ("Experiments", url_for("experiments_page.experiments")),
         (f"Experiment {experiment_id}", ""),
     ]
     if (_from := request.args.get("from", None)) is not None:
         page, id = _from.split("@")
         if page == "seq_run":
             path_list = [
-                ("Runs", url_for("seq_runs_page.seq_runs_page")),
-                (f"Run {id}", url_for("seq_runs_page.seq_run_page", seq_run_id=id)),
+                ("Runs", url_for("seq_runs_page.seq_runs")),
+                (f"Run {id}", url_for("seq_runs_page.seq_run", seq_run_id=id)),
                 (f"Experiment {experiment_id}", ""),
             ]
         elif page == "library":
             path_list = [
-                ("Libraries", url_for("libraries_page.libraries_page")),
-                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                ("Libraries", url_for("libraries_page.libraries")),
+                (f"Library {id}", url_for("libraries_page.library", library_id=id)),
                 (f"Experiment {experiment_id}", ""),
             ]
 

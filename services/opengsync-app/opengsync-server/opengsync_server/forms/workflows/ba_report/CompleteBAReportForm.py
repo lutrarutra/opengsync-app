@@ -209,9 +209,9 @@ class CompleteBAReportForm(MultiStepForm):
         self.complete()
         flash("Bio Analyzer report saved!", "success")
         if (experiment_id := metadata.get("experiment_id")) is not None:
-            return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment_id))
+            return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment_id))
         
         if lab_prep_id is not None:
-            return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
+            return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
         
         return make_response(redirect=url_for("dashboard"))

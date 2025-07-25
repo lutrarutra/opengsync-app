@@ -55,7 +55,7 @@
             <tr class="pool-row" data-id="{{ pool.id }}" data-name="{{ pool.name }}">
                 <th scope="row">{{ pool.id }}</th>
                 <td>
-                    <a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">
+                    <a href="{{ url_for('pools_page.pool', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">
                         {{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}
                     </a>
                 </td>
@@ -93,7 +93,7 @@
                     {% endif %}
                 </td>
                 <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=pool.owner_id, from='experiment@' + experiment.id | string) }}">{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></a></td>
+                <td><a href="{{ url_for('users_page.user', user_id=pool.owner_id, from='experiment@' + experiment.id | string) }}">{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></a></td>
                 <td>{{ pool.num_libraries }}</td>
                 <td class="avg_fragment_size-col">
                     <div class="quantity-container">

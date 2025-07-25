@@ -1,14 +1,12 @@
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, abort, url_for, request
-from flask_login import login_required
 
-from opengsync_db import db_session
 from opengsync_db.categories import PoolStatus
 from opengsync_db.models import User
 from opengsync_db.categories import HTTPResponse
 
-from ... import db
+from ... import db, page_route
 
 if TYPE_CHECKING:
     current_user: User = None  # type: ignore
@@ -18,17 +16,13 @@ else:
 pools_page_bp = Blueprint("pools_page", __name__)
 
 
-@pools_page_bp.route("/pools")
-@db_session(db)
-@login_required
-def pools_page():
+@page_route(pools_page_bp, db=db)
+def pools():
     return render_template("pools_page.html")
 
 
-@pools_page_bp.route("/pools/<int:pool_id>")
-@db_session(db)
-@login_required
-def pool_page(pool_id: int):
+@page_route(pools_page_bp, db=db)
+def pool(pool_id: int):
     if (pool := db.get_pool(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -36,33 +30,33 @@ def pool_page(pool_id: int):
         return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
-        ("Pools", url_for("pools_page.pools_page")),
+        ("Pools", url_for("pools_page.pools")),
         (f"Pool {pool.id}", ""),
     ]
     if (_from := request.args.get("from", None)) is not None:
         page, id = _from.split("@")
         if page == "experiment":
             path_list = [
-                ("Experiments", url_for("experiments_page.experiments_page")),
-                (f"Experiment {id}", url_for("experiments_page.experiment_page", experiment_id=id)),
+                ("Experiments", url_for("experiments_page.experiments")),
+                (f"Experiment {id}", url_for("experiments_page.experiment", experiment_id=id)),
                 (f"Pool {pool_id}", ""),
             ]
         elif page == "library":
             path_list = [
-                ("Libraries", url_for("libraries_page.libraries_page")),
-                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                ("Libraries", url_for("libraries_page.libraries")),
+                (f"Library {id}", url_for("libraries_page.library", library_id=id)),
                 (f"Pool {pool_id}", ""),
             ]
         elif page == "seq_request":
             path_list = [
-                ("Requests", url_for("seq_requests_page.seq_requests_page")),
-                (f"Request {id}", url_for("seq_requests_page.seq_request_page", seq_request_id=id)),
+                ("Requests", url_for("seq_requests_page.seq_requests")),
+                (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
                 (f"Pool {pool_id}", ""),
             ]
         elif page == "lab_prep":
             path_list = [
-                ("Lab Preps", url_for("lab_preps_page.lab_preps_page")),
-                (f"Lab Prep {id}", url_for("lab_preps_page.lab_prep_page", lab_prep_id=id)),
+                ("Lab Preps", url_for("lab_preps_page.lab_preps")),
+                (f"Lab Prep {id}", url_for("lab_preps_page.lab_prep", lab_prep_id=id)),
                 (f"Pool {pool_id}", ""),
             ]
 

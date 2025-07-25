@@ -59,7 +59,7 @@
             {% for seq_request in seq_requests %}
             <tr>
                 <th scope="row">{{ seq_request.id }}</th>
-                <td><a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id, from='user@' + user.id | string) }}">{{ seq_request.name }}</a></td>
+                <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, from='user@' + user.id | string) }}">{{ seq_request.name }}</a></td>
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
                 <td>{{ seq_request.timestamp_submitted_str() }}</td>
                 <td>{{ seq_request.timestamp_finished_str() }}</td>

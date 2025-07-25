@@ -39,7 +39,7 @@
             <tr>
                 <th scope="row">{{ affiliation.user.id }}</th>
                 <td class="user-cell" id="user-cell-{{ affiliation.user.id }}">
-                    <a href="{{ url_for('users_page.user_page', user_id=affiliation.user.id, from='group@' + group.id | string) }}">{{ affiliation.user.name }}</a>{% if affiliation.user_id == current_user.id %} <span class="desc">me</span>{% endif %}
+                    <a href="{{ url_for('users_page.user', user_id=affiliation.user.id, from='group@' + group.id | string) }}">{{ affiliation.user.name }}</a>{% if affiliation.user_id == current_user.id %} <span class="desc">me</span>{% endif %}
                 </td>
                 <td>{{ affiliation.user.email }}</td>
                 <td>{{ affiliation.affiliation_type.name }} {{ affiliation.affiliation_type.icon }}</td>

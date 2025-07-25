@@ -19,7 +19,7 @@
             <div class="col-10">
                 <div class="row">
                     {{ metadata_group("Filename", file.name + file.extension, class="col-4") }}
-                    {{ metadata_group_link("Uploader", file.uploader.name, url_for('users_page.user_page', user_id=file.uploader_id), class="col-2") }}
+                    {{ metadata_group_link("Uploader", file.uploader.name, url_for('users_page.user', user_id=file.uploader_id), class="col-2") }}
                     {{ metadata_group("Size", file.size_str(), class="col-2") }}
                     {{ metadata_group("Time", file.timestamp_str(), class="col-4") }}
                 </div>

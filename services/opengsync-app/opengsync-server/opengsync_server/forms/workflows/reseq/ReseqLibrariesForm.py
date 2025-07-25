@@ -69,12 +69,12 @@ class ReseqLibrariesForm(MultiStepForm):
             if (seq_request := db.get_seq_request(seq_request_id)) is None:
                 logger.error(f"{self.uuid}: SeqRequest not found")
                 raise ValueError(f"{self.uuid}: SeqRequest not found")
-            return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))
+            return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
             
         if (lab_prep_id := self.metadata.get("lab_prep_id")) is not None:
             if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
                 logger.error(f"{self.uuid}: LabPrep not found")
                 raise ValueError(f"{self.uuid}: LabPrep not found")
-            return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep.id))
+            return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep.id))
         
         return make_response(redirect=url_for("dashboard"))

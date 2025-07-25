@@ -1,12 +1,11 @@
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, abort, url_for, request
-from flask_login import login_required
 
-from opengsync_db import db_session, models
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, UserRole, AffiliationType
 
-from ... import db, forms, logger  # noqa
+from ... import db, forms, logger, page_route  # noqa
 
 if TYPE_CHECKING:
     current_user: models.User = None  # type: ignore
@@ -16,43 +15,39 @@ else:
 groups_page_bp = Blueprint("groups_page", __name__)
 
 
-@groups_page_bp.route("/groups")
-@db_session(db)
-@login_required
-def groups_page():
+@page_route(groups_page_bp, db=db)
+def groups():
     group_form = forms.models.GroupForm()
     return render_template("groups_page.html", group_form=group_form)
 
 
-@groups_page_bp.route("/groups/<int:group_id>")
-@db_session(db)
-@login_required
-def group_page(group_id: int):
+@page_route(groups_page_bp, db=db)
+def group(group_id: int):
     if (group := db.get_group(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     path_list = [
-        ("Groups", url_for("groups_page.groups_page")),
+        ("Groups", url_for("groups_page.groups")),
         (f"Group {group.id}", ""),
     ]
     if (_from := request.args.get("from", None)) is not None:
         page, id = _from.split("@")
         if page == "user":
             path_list = [
-                ("Users", url_for("users_page.users_page")),
-                (f"User {id}", url_for("users_page.user_page", user_id=id)),
+                ("Users", url_for("users_page.users")),
+                (f"User {id}", url_for("users_page.user", user_id=id)),
                 (f"Group {group.id}", ""),
             ]
         elif page == "seq_request":
             path_list = [
-                ("Requests", url_for("seq_requests_page.seq_requests_page")),
-                (f"Request {id}", url_for("seq_requests_page.seq_request_page", seq_request_id=id)),
+                ("Requests", url_for("seq_requests_page.seq_requests")),
+                (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
                 (f"Group {group.id}", ""),
             ]
         elif page == "project":
             path_list = [
-                ("Projects", url_for("projects_page.projects_page")),
-                (f"Project {id}", url_for("projects_page.project_page", project_id=id)),
+                ("Projects", url_for("projects_page.projects")),
+                (f"Project {id}", url_for("projects_page.project", project_id=id)),
                 (f"Group {group.id}", ""),
             ]
 

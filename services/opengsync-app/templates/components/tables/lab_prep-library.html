@@ -64,7 +64,7 @@
             {% for library in libraries %}
             <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td class="library-name-cell" id="library-name-cell-{{library.id}}"><a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='lab_prep@' + lab_prep.id | string) }}">
+                <td class="library-name-cell" id="library-name-cell-{{library.id}}"><a href="{{ url_for('libraries_page.library', library_id=library.id, from='lab_prep@' + lab_prep.id | string) }}">
                     {{ library.name }}
                 </a></td>
                 <td>
@@ -73,8 +73,8 @@
                     </span>
                 </td>
                 <td>{{ library.status.icon }} {{ library.status.name }}</td>
-                <td>{% if library.pool_id %}<a href="{{ url_for('pools_page.pool_page', pool_id=library.pool_id, from='lab_prep@' + lab_prep.id | string)}}">{{ library.pool.name }}</a>{% endif %}</td>
-                <td><a href="{{ url_for('users_page.user_page', library_id=library.owner_id, from='lab_prep@' + lab_prep.id | string) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
+                <td>{% if library.pool_id %}<a href="{{ url_for('pools_page.pool', pool_id=library.pool_id, from='lab_prep@' + lab_prep.id | string)}}">{{ library.pool.name }}</a>{% endif %}</td>
+                <td><a href="{{ url_for('users_page.user', library_id=library.owner_id, from='lab_prep@' + lab_prep.id | string) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
                 <td class="barcode-cell">
                     {{ library_index_cell(library) }}
                 </td>

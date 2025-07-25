@@ -176,7 +176,7 @@ class LibraryPrepForm(HTMXFlaskForm):
         self.lab_prep = db.update_lab_prep(self.lab_prep)
 
         flash("Table saved!", "success")
-        return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=self.lab_prep.id))
+        return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))
 
 
         

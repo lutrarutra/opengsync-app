@@ -1,12 +1,11 @@
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, request, abort
-from flask_login import login_required
 
-from opengsync_db import models, db_session
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger  # noqa
+from .... import db, logger, htmx_route  # noqa
 from ....forms.workflows import dilute_pools as wff
 
 if TYPE_CHECKING:
@@ -17,9 +16,7 @@ else:
 dilute_pools_workflow = Blueprint("dilute_pools_workflow", __name__, url_prefix="/api/workflows/dilute_pools/")
 
 
-@dilute_pools_workflow.route("<int:experiment_id>/begin", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(dilute_pools_workflow, db=db)
 def begin(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -32,9 +29,7 @@ def begin(experiment_id: int):
     return form.make_response(experiment=experiment, **context)
 
 
-@dilute_pools_workflow.route("<int:experiment_id>/dilute", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(dilute_pools_workflow, db=db, methods=["POST"])
 def dilute(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

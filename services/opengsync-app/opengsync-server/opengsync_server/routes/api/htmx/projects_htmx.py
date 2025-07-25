@@ -10,7 +10,7 @@ from flask_login import login_required
 from opengsync_db import models, DBHandler, PAGE_LIMIT, db_session
 from opengsync_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus
 
-from .... import db, forms, logger  # noqa: E402
+from .... import db, forms, logger, htmx_route  # noqa
 from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
@@ -81,9 +81,7 @@ def get(page: int):
     )
 
 
-@projects_htmx.route("query", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(projects_htmx, db=db, methods=["POST"])
 def query():
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name)) is None:
@@ -119,16 +117,12 @@ def query():
     )
 
 
-@projects_htmx.route("create", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(projects_htmx, db=db, methods=["POST"])
 def create():
     return forms.models.ProjectForm(formdata=request.form).process_request(user=current_user)
 
 
-@projects_htmx.route("<int:project_id>/edit", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(projects_htmx, db=db, methods=["POST"])
 def edit(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -143,9 +137,7 @@ def edit(project_id: int):
     )
 
 
-@projects_htmx.route("<int:project_id>/delete", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(projects_htmx, db=db, methods=["DELETE"])
 def delete(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -158,12 +150,10 @@ def delete(project_id: int):
     
     db.delete_project(project_id)
     flash(f"Deleted project {project.name}.", "success")
-    return make_response(redirect=url_for("projects_page.projects_page"))
+    return make_response(redirect=url_for("projects_page.projects"))
 
 
-@projects_htmx.route("<int:project_id>/complete", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(projects_htmx, db=db, methods=["POST"])
 def complete(project_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -175,16 +165,14 @@ def complete(project_id: int):
         for link in sample.library_links:
             if link.library.status not in {LibraryStatus.SHARED, LibraryStatus.FAILED, LibraryStatus.REJECTED, LibraryStatus.ARCHIVED}:
                 flash(f"Cannot complete project {project.name} because some libraries are not shared/failed/rejected/archived.",)
-                return make_response(redirect=url_for("projects_page.project_page", project_id=project_id))
+                return make_response(redirect=url_for("projects_page.project", project_id=project_id))
             
     project.status = ProjectStatus.DELIVERED
     project = db.update_project(project)
-    return make_response(redirect=url_for("projects_page.project_page", project_id=project.id))
+    return make_response(redirect=url_for("projects_page.project", project_id=project.id))
 
 
-@projects_htmx.route("table_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(projects_htmx, db=db)
 def table_query():
     if (word := request.args.get("name", None)) is not None:
         field_name = "name"
@@ -290,9 +278,7 @@ def get_samples(project_id: int, page: int):
     )
 
 
-@projects_htmx.route("<int:project_id>/query_samples/<string:field_name>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(projects_htmx, db=db, methods=["POST"])
 def query_samples(project_id: int, field_name: str):
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -326,9 +312,7 @@ def query_samples(project_id: int, field_name: str):
     )
 
 
-@projects_htmx.route("<int:project_id>/get_sample_attributes", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(projects_htmx, db=db)
 def get_sample_attributes(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -360,9 +344,7 @@ def get_sample_attributes(project_id: int):
     )
 
 
-@projects_htmx.route("<int:project_id>/edit_sample_attributes", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def edit_sample_attributes(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -381,9 +363,7 @@ def edit_sample_attributes(project_id: int):
     return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@projects_htmx.route("get_recent_projects", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(projects_htmx, db=db)
 def get_recent_projects():
     status_in = None
     if current_user.is_insider():

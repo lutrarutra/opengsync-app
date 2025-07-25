@@ -47,7 +47,7 @@
             <tr>
                 <th scope="row">{{ feature_kit.id }}</th>
                 <td>{{ feature_kit.identifier }}</td>
-                <td><a href="{{ url_for('kits_page.feature_kit_page', feature_kit_id=feature_kit.id) }}">{{ feature_kit.name }}</a></td>
+                <td><a href="{{ url_for('kits_page.feature_kit', feature_kit_id=feature_kit.id) }}">{{ feature_kit.name }}</a></td>
                 <td>{{ feature_kit.type.name }}</td>
             </tr>
             {% endfor %}

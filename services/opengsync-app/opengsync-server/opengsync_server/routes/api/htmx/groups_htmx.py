@@ -7,7 +7,8 @@ from flask_login import login_required
 
 from opengsync_db import models, db_session, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, AffiliationType, UserRole, ProjectStatus
-from .... import db, forms
+
+from .... import db, forms, htmx_route
 
 if TYPE_CHECKING:
     current_user: models.User = None   # type: ignore
@@ -47,9 +48,7 @@ def get(page: int):
     )
 
 
-@groups_htmx.route("query", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(groups_htmx, db=db, methods=["POST"])
 def query():
     if (field_name := next(iter(request.form.keys()))) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -73,16 +72,12 @@ def query():
     )
 
 
-@groups_htmx.route("create", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(groups_htmx, db=db, methods=["POST"])
 def create():
     return forms.models.GroupForm(request.form).process_request(user=current_user)
 
 
-@groups_htmx.route("<int:group_id>/edit", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(groups_htmx, db=db, methods=["POST"])
 def edit(group_id: int):
     if (group := db.get_group(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -126,9 +121,7 @@ def get_users(group_id: int, page: int):
     )
 
 
-@groups_htmx.route("<int:group_id>/remove_user", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(groups_htmx, db=db, methods=["DELETE"])
 def remove_user(group_id: int):
     if (_ := db.get_group(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -152,16 +145,14 @@ def remove_user(group_id: int):
     
     if affiliation.affiliation_type == AffiliationType.OWNER:
         flash("Owner cannot be removed", "warning")
-        return make_response(redirect=url_for("groups_page.group_page", group_id=group_id))
+        return make_response(redirect=url_for("groups_page.group", group_id=group_id))
     
     db.remove_user_from_group(user_id=user_id, group_id=group_id)
     flash("User removed from group", "success")
-    return make_response(redirect=url_for("groups_page.group_page", group_id=group_id))
+    return make_response(redirect=url_for("groups_page.group", group_id=group_id))
 
 
-@groups_htmx.route("<int:group_id>/add_user", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(groups_htmx, db=db, methods=["GET", "POST"])
 def add_user(group_id: int):
     if (group := db.get_group(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

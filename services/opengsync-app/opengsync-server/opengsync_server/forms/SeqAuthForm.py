@@ -64,5 +64,5 @@ class SeqAuthForm(HTMXFlaskForm):
         logger.debug(f"Uploaded sequencing authorization form for sequencing request '{self.seq_request.name}': {filepath}")
 
         return make_response(
-            redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id),
+            redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),
         )

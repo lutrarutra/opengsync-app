@@ -109,7 +109,7 @@ class ProjectForm(HTMXFlaskForm):
         flash(f"Created project {project.name}.", "success")
 
         return make_response(
-            redirect=url_for("projects_page.project_page", project_id=project.id),
+            redirect=url_for("projects_page.project", project_id=project.id),
         )
     
     def __update_existing_project(self) -> Response:
@@ -127,7 +127,7 @@ class ProjectForm(HTMXFlaskForm):
         flash(f"Updated project {self.project.name}.", "success")
 
         return make_response(
-            redirect=url_for("projects_page.project_page", project_id=self.project.id),
+            redirect=url_for("projects_page.project", project_id=self.project.id),
         )
     
     def process_request(self, user: models.User) -> Response:

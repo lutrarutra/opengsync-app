@@ -50,7 +50,7 @@
             <tr>
                 <th scope="row">{{ pool.id }}</th>
                 <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}">
-                    <a href="{{ url_for('pools_page.pool_page', pool_id=pool.id, from='lab_prep@' + lab_prep.id | string) }}">
+                    <a href="{{ url_for('pools_page.pool', pool_id=pool.id, from='lab_prep@' + lab_prep.id | string) }}">
                         {{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}
                     </a>
                 </td>

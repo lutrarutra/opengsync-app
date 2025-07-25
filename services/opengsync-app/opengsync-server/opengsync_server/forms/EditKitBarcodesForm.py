@@ -133,7 +133,7 @@ class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
 
         update_index_kits(db, current_app.config["APP_DATA_FOLDER"], types=[IndexType.DUAL_INDEX])
         flash("Changes saved!", "success")
-        return make_response(redirect=(url_for("kits_page.index_kit_page", index_kit_id=self.index_kit.id)))
+        return make_response(redirect=(url_for("kits_page.index_kit", index_kit_id=self.index_kit.id)))
     
 
 class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
@@ -226,7 +226,7 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
         
         update_index_kits(db, current_app.config["APP_DATA_FOLDER"], types=[IndexType.SINGLE_INDEX])
         flash("Changes saved!", "success")
-        return make_response(redirect=(url_for("kits_page.index_kit_page", index_kit_id=self.index_kit.id)))
+        return make_response(redirect=(url_for("kits_page.index_kit", index_kit_id=self.index_kit.id)))
     
 
 class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
@@ -326,5 +326,5 @@ class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
         
         update_index_kits(db, current_app.config["APP_DATA_FOLDER"], types=[IndexType.TENX_ATAC_INDEX])
         flash("Changes saved!", "success")
-        return make_response(redirect=(url_for("kits_page.index_kit_page", index_kit_id=self.index_kit.id)))
+        return make_response(redirect=(url_for("kits_page.index_kit", index_kit_id=self.index_kit.id)))
         

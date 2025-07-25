@@ -1,11 +1,11 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, url_for, abort, request
-from flask_login import login_required
 
-from opengsync_db import models, db_session
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
-from ... import db
+
+from ... import db, page_route, logger
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -15,21 +15,16 @@ else:
 users_page_bp = Blueprint("users_page", __name__)
 
 
-@users_page_bp.route("/users")
-@db_session(db)
-@login_required
-def users_page():
+@page_route(users_page_bp, db=db)
+def users():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
     return render_template("users_page.html")
 
 
-@users_page_bp.route("/user", defaults={"user_id": None})
-@users_page_bp.route("/user/<int:user_id>")
-@db_session(db)
-@login_required
-def user_page(user_id: Optional[int]):
+@page_route(users_page_bp, db=db)
+def user(user_id: int | None = None):
     if user_id is None:
         user_id = current_user.id
 
@@ -41,7 +36,7 @@ def user_page(user_id: Optional[int]):
         return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
-        ("Users", url_for("users_page.users_page")),
+        ("Users", url_for("users_page.users")),
         (f"User {user_id}", ""),
     ]
 
@@ -49,44 +44,44 @@ def user_page(user_id: Optional[int]):
         page, id = _from.split("@")
         if page == "library":
             path_list = [
-                ("Libraries", url_for("libraries_page.libraries_page")),
-                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                ("Libraries", url_for("libraries_page.libraries")),
+                (f"Library {id}", url_for("libraries_page.library", library_id=id)),
                 (f"User {user_id}", ""),
             ]
         elif page == "project":
             path_list = [
-                ("Projects", url_for("projects_page.projects_page")),
-                (f"Project {id}", url_for("projects_page.project_page", project_id=id)),
+                ("Projects", url_for("projects_page.projects")),
+                (f"Project {id}", url_for("projects_page.project", project_id=id)),
                 (f"User {user_id}", ""),
             ]
         elif page == "sample":
             path_list = [
-                ("Samples", url_for("samples_page.samples_page")),
-                (f"Sample {id}", url_for("samples_page.sample_page", sample_id=id)),
+                ("Samples", url_for("samples_page.samples")),
+                (f"Sample {id}", url_for("samples_page.sample", sample_id=id)),
                 (f"User {user_id}", ""),
             ]
         elif page == "pool":
             path_list = [
-                ("Pools", url_for("pools_page.pools_page")),
-                (f"Pool {id}", url_for("pools_page.pool_page", pool_id=id)),
+                ("Pools", url_for("pools_page.pools")),
+                (f"Pool {id}", url_for("pools_page.pool", pool_id=id)),
                 (f"User {user_id}", ""),
             ]
         elif page == "group":
             path_list = [
-                ("Groups", url_for("groups_page.groups_page")),
-                (f"Group {id}", url_for("groups_page.group_page", group_id=id)),
+                ("Groups", url_for("groups_page.groups")),
+                (f"Group {id}", url_for("groups_page.group", group_id=id)),
                 (f"User {user_id}", ""),
             ]
         elif page == "lab_prep":
             path_list = [
-                ("Lab Preps", url_for("lab_preps_page.lab_preps_page")),
-                (f"Lab Prep {id}", url_for("lab_preps_page.lab_prep_page", lab_prep_id=id)),
+                ("Lab Preps", url_for("lab_preps_page.lab_preps")),
+                (f"Lab Prep {id}", url_for("lab_preps_page.lab_prep", lab_prep_id=id)),
                 (f"User {user_id}", ""),
             ]
         elif page == "experiment":
             path_list = [
-                ("Experiments", url_for("experiments_page.experiments_page")),
-                (f"Experiment {id}", url_for("experiments_page.experiment_page", experiment_id=id)),
+                ("Experiments", url_for("experiments_page.experiments")),
+                (f"Experiment {id}", url_for("experiments_page.experiment", experiment_id=id)),
                 (f"User {user_id}", ""),
             ]
             

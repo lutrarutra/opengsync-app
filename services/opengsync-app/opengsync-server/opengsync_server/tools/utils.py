@@ -1,8 +1,8 @@
-from typing import Optional, Union, TypeVar, Sequence
+from typing import Optional, Union, TypeVar, Sequence, Callable, get_type_hints, Literal, get_origin, get_args
 import difflib
 import string
+import inspect
 
-import numpy as np
 import pandas as pd
 
 from opengsync_db import models, exceptions, DBHandler
@@ -315,3 +315,38 @@ def map_columns(dst: pd.DataFrame, src: pd.DataFrame, idx_columns: list[str] | s
     if isinstance(idx_columns, str):
         return pd.Series(dst[idx_columns].apply(lambda x: mapping.get(x, None) if pd.notna(x) else None))
     return pd.Series(dst[idx_columns].apply(lambda row: mapping.get(tuple(row), None) if isinstance(row, pd.Series) else mapping.get(row), axis=1))
+
+
+def infer_route(func: Callable) -> str:
+    sig = inspect.signature(func)
+    hints = get_type_hints(func)
+
+    parts = []
+    for name, param in sig.parameters.items():
+        if param.default != inspect.Parameter.empty:
+            continue
+        
+        type_hint = hints.get(name, str)
+        origin = get_origin(type_hint)
+        args = get_args(type_hint)
+        
+        logger.debug(f"{name=} {type_hint=} {origin=} {args=}")
+        
+        if type_hint == int:
+            converter = "int"
+        elif type_hint == str:
+            converter = "string"
+        elif origin is Literal:
+            # You can enforce a type or treat it as string for route
+            if all(isinstance(a, str) for a in args):
+                converter = "string"
+            elif all(isinstance(a, int) for a in args):
+                converter = "int"
+            else:
+                raise ValueError(f"Unsupported Literal types: {args}")
+        else:
+            raise ValueError(f"Unsupported type hint: {type_hint}")
+        
+        parts.append(f"<{converter}:{name}>")
+
+    return f"/{func.__name__}/" + "/".join(parts)

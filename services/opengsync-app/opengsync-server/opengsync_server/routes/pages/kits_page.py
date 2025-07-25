@@ -4,27 +4,23 @@ from flask_login import login_required
 from opengsync_db import db_session
 from opengsync_db.categories import HTTPResponse
 
-from ... import db
+from ... import db, page_route
 
 kits_page_bp = Blueprint("kits_page", __name__)
 
 
-@kits_page_bp.route("/kits")
-@db_session(db)
-@login_required
-def kits_page():
+@page_route(kits_page_bp, db=db)
+def kits():
     return render_template("kits_page.html")
 
 
-@kits_page_bp.route("/kit/<int:kit_id>")
-@db_session(db)
-@login_required
-def kit_page(kit_id: int):
+@page_route(kits_page_bp, db=db)
+def kit(kit_id: int):
     if (kit := db.get_kit(kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     path_list = [
-        ("Kits", url_for("kits_page.kits_page")),
+        ("Kits", url_for("kits_page.kits")),
         (f"Kit {kit_id}", ""),
     ]
 
@@ -33,21 +29,17 @@ def kit_page(kit_id: int):
     )
 
 
-@kits_page_bp.route("/index_kits")
-@db_session(db)
-@login_required
-def index_kits_page():
+@page_route(kits_page_bp, db=db)
+def index_kits():
     return render_template("index_kits_page.html")
 
 
-@kits_page_bp.route("/index_kits/<int:index_kit_id>")
-@db_session(db)
-@login_required
-def index_kit_page(index_kit_id: int):
+@page_route(kits_page_bp, db=db)
+def index_kit(index_kit_id: int):
     index_kit = db.get_index_kit(index_kit_id)
 
     path_list = [
-        ("Index Kits", url_for("kits_page.index_kits_page")),
+        ("Index Kits", url_for("kits_page.index_kits")),
         (f"Kit {index_kit_id}", ""),
     ]
 
@@ -55,8 +47,8 @@ def index_kit_page(index_kit_id: int):
         page, id = _from.split("@")
         if page == "library":
             path_list = [
-                ("Libraries", url_for("libraries_page.libraries_page")),
-                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                ("Libraries", url_for("libraries_page.libraries")),
+                (f"Library {id}", url_for("libraries_page.library", library_id=id)),
                 (f"Kit {index_kit_id}", ""),
             ]
 
@@ -65,21 +57,17 @@ def index_kit_page(index_kit_id: int):
     )
 
 
-@kits_page_bp.route("/feature_kits")
-@db_session(db)
-@login_required
-def feature_kits_page():
+@page_route(kits_page_bp, db=db)
+def feature_kits():
     return render_template("feature_kits_page.html")
 
 
-@kits_page_bp.route("/feature_kits/<int:feature_kit_id>")
-@db_session(db)
-@login_required
-def feature_kit_page(feature_kit_id: int):
+@page_route(kits_page_bp, db=db)
+def feature_kit(feature_kit_id: int):
     feature_kit = db.get_feature_kit(feature_kit_id)
 
     path_list = [
-        ("Feature Kits", url_for("kits_page.feature_kits_page")),
+        ("Feature Kits", url_for("kits_page.feature_kits")),
         (f"Kit {feature_kit_id}", ""),
     ]
 
@@ -87,8 +75,8 @@ def feature_kit_page(feature_kit_id: int):
         page, id = _from.split("@")
         if page == "library":
             path_list = [
-                ("Libraries", url_for("libraries_page.libraries_page")),
-                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                ("Libraries", url_for("libraries_page.libraries")),
+                (f"Library {id}", url_for("libraries_page.library", library_id=id)),
                 (f"Kit {feature_kit_id}", ""),
             ]
 
@@ -99,9 +87,7 @@ def feature_kit_page(feature_kit_id: int):
     )
 
 
-@kits_page_bp.route("/<int:feature_kit_id>/export_features", methods=["GET"])
-@db_session(db)
-@login_required
+@page_route(kits_page_bp, db=db)
 def export_features(feature_kit_id: int):
     feature_kit = db.get_feature_kit(feature_kit_id)
     if feature_kit is None:

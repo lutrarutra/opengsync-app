@@ -98,5 +98,5 @@ class LabPrepForm(HTMXFlaskForm):
         else:
             lab_prep = self.__create_lab_prep(user=user)
         
-        return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep.id))
+        return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep.id))
         

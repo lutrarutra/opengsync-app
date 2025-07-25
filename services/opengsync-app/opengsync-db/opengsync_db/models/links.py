@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from .Base import Base
 
-from opengsync_db.categories import DeliveryStatus, DeliveryStatusEnum, AffiliationType, AffiliationTypeEnum, MUXType, MUXTypeEnum
+from opengsync_db.categories import DeliveryStatus, DeliveryStatusEnum, AffiliationType, AffiliationTypeEnum
 
 if TYPE_CHECKING:
     from .Sample import Sample

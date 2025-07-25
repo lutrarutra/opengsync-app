@@ -7,7 +7,7 @@ from flask_login import login_required
 
 from opengsync_db import models, db_session, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, IndexType, KitType
-from .... import db, logger, cache, forms  # noqa F401
+from .... import db, logger, cache, forms, htmx_route  # noqa F401
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -52,9 +52,7 @@ def get(page: int):
     )
 
 
-@kits_htmx.route("table_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(kits_htmx, db=db)
 def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"
@@ -96,9 +94,7 @@ def table_query():
     )
 
 
-@kits_htmx.route("edit/<int:kit_id>", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(kits_htmx, db=db, methods=["GET", "POST"])
 def edit(kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -114,9 +110,7 @@ def edit(kit_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@kits_htmx.route("delete/<int:kit_id>", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(kits_htmx, db=db, methods=["DELETE"])
 def delete(kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -126,4 +120,4 @@ def delete(kit_id: int):
     
     db.delete_kit(id=kit_id)
     flash("Index kit deleted successfully.", "success")
-    return make_response(redirect=url_for("kits_page.kits_page"))
+    return make_response(redirect=url_for("kits_page.kits"))

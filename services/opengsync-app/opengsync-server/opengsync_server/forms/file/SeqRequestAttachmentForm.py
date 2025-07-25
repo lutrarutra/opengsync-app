@@ -63,5 +63,5 @@ class SeqRequestAttachmentForm(FileInputForm):
 
         flash("File uploaded successfully.", "success")
         logger.info(f"File '{db_file.uuid}' uploaded by user '{user.id}'.")
-        return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id))
+        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id))
         

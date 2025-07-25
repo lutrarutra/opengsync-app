@@ -53,5 +53,5 @@ class LibraryForm(HTMXFlaskForm):
         flash(f"Updated library '{self.library.name}'.", "success")
 
         return make_response(
-            redirect=url_for("libraries_page.library_page", library_id=self.library.id),
+            redirect=url_for("libraries_page.library", library_id=self.library.id),
         )

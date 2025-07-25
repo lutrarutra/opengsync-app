@@ -2,11 +2,10 @@ from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, KitType
-from .... import db, logger, forms  # noqa
+from .... import db, logger, forms, htmx_route  # noqa
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -16,9 +15,7 @@ else:
 barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/api/hmtx/barcodes/")
 
 
-@barcodes_htmx.route("get/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(barcodes_htmx, "get/<int:page>", db=db)
 def get(page: int):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -35,9 +32,7 @@ def get(page: int):
     )
 
 
-@barcodes_htmx.route("query_index_kits", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(barcodes_htmx, "query_index_kits", db=db, methods=["POST"])
 def query_index_kits():
     field_name = next(iter(request.form.keys()))
     
@@ -55,9 +50,7 @@ def query_index_kits():
     )
 
 
-@barcodes_htmx.route("query_barcode_sequences", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(barcodes_htmx, "query_barcode_sequences", db=db, methods=["GET", "POST"])
 def query_barcode_sequences():
     if request.method == "GET":
         form = forms.QueryBarcodeSequencesForm()

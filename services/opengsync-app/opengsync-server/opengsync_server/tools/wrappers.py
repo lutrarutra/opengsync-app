@@ -11,17 +11,21 @@ from opengsync_db.categories import HTTPResponse
 from opengsync_db import exceptions as db_exceptions
 
 from .. import logger
+from ..tools import utils
 from . import exceptions as serv_exceptions
 
 
 def page_route(
     blueprint: Blueprint,
-    route: str,
+    route: str | None = None,
     methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
     db: DBHandler | None = None,
     login_required: bool = True
 ):
     def decorator(fnc: Callable):
+        effective_route = route or utils.infer_route(fnc)
+        effective_route = "/" + effective_route.lstrip("/")
+
         if login_required and db is None:
             raise ValueError("db must be provided if login_required is True")
                 
@@ -44,18 +48,21 @@ def page_route(
                 if db is not None and db._session:
                     db.close_session(commit=False)
 
-        return blueprint.route(route, methods=methods)(wrapper)
+        return blueprint.route(effective_route, methods=methods)(wrapper)
     return decorator
 
 
 def htmx_route(
     blueprint: Blueprint,
-    route: str,
+    route: str | None = None,
     methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
     db: DBHandler | None = None,
     login_required: bool = True
 ):
     def decorator(fnc: Callable):
+        effective_route = route or utils.infer_route(fnc)
+        effective_route = "/" + effective_route.lstrip("/")
+
         if login_required and db is None:
             raise ValueError("db must be provided if login_required is True")
 
@@ -85,5 +92,5 @@ def htmx_route(
                 if db is not None and db._session:
                     db.close_session(commit=False)
 
-        return blueprint.route(route, methods=methods)(wrapper)
+        return blueprint.route(effective_route, methods=methods)(wrapper)
     return decorator

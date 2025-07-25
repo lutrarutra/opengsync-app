@@ -59,11 +59,11 @@
             {% for seq_request in seq_requests %}
             <tr>
                 <th scope="row">{{ seq_request.id }}</th>
-                <td><a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">{{ seq_request.name }}</a></td>
+                <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}">{{ seq_request.name }}</a></td>
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
                 <td>{{ seq_request.submission_type.abbreviation }} {{ seq_request.submission_type.icon | safe }}</td>
-                <td>{% if seq_request.group_id %}<a href="{{ url_for('groups_page.group_page', group_id=seq_request.group_id) }}">{{ seq_request.group.name }} {{ seq_request.group.type.icon }}</a>{% endif %}</td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=seq_request.requestor_id) }}">{{ seq_request.requestor.name }} <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></a></td>
+                <td>{% if seq_request.group_id %}<a href="{{ url_for('groups_page.group', group_id=seq_request.group_id) }}">{{ seq_request.group.name }} {{ seq_request.group.type.icon }}</a>{% endif %}</td>
+                <td><a href="{{ url_for('users_page.user', user_id=seq_request.requestor_id) }}">{{ seq_request.requestor.name }} <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></a></td>
             </tr>
             {% endfor %}
         </tbody>

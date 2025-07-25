@@ -16,7 +16,7 @@ from flask_login import login_required
 from opengsync_db import models, PAGE_LIMIT, db_session
 from opengsync_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus
 
-from .... import db, forms, logger  # noqa
+from .... import db, forms, logger, htmx_route  # noqa
 from ....tools.spread_sheet_components import TextColumn
 
 
@@ -72,9 +72,7 @@ def get(page: int):
     )
 
 
-@lab_preps_htmx.route("table_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db)
 def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"
@@ -127,9 +125,7 @@ def table_query():
     )
 
 
-@lab_preps_htmx.route("get_form/<string:form_type>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db)
 def get_form(form_type: Literal["create", "edit"]):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -158,9 +154,7 @@ def get_form(form_type: Literal["create", "edit"]):
     return forms.models.LabPrepForm(form_type=form_type).make_response()
 
 
-@lab_preps_htmx.route("create", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def create():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -169,9 +163,7 @@ def create():
     return form.process_request(current_user)
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/edit", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def edit(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -183,9 +175,7 @@ def edit(lab_prep_id: int):
     return form.process_request(current_user)
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/complete", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def complete(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -211,12 +201,10 @@ def complete(lab_prep_id: int):
     lab_prep = db.update_lab_prep(lab_prep)
 
     flash("Lab prep completed!", "success")
-    return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
+    return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/delete", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
 def delete(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -226,16 +214,14 @@ def delete(lab_prep_id: int):
     
     if lab_prep.status != PrepStatus.PREPARING:
         flash("Cannot delete completed prep.", "warning")
-        return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
+        return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
     
     db.delete_lab_prep(lab_prep_id=lab_prep.id)
     flash("Lab prep deleted!", "success")
-    return make_response(redirect=url_for("lab_preps_page.lab_preps_page"))
+    return make_response(redirect=url_for("lab_preps_page.lab_preps"))
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/uncomplete", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def uncomplete(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -251,12 +237,10 @@ def uncomplete(lab_prep_id: int):
     lab_prep = db.update_lab_prep(lab_prep)
 
     flash("Lab prep completed!", "success")
-    return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
+    return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/remove_library", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
 def remove_library(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -278,7 +262,7 @@ def remove_library(lab_prep_id: int):
     db.remove_library_from_prep(lab_prep_id=lab_prep.id, library_id=library_id)
 
     flash("Library removed!", "success")
-    return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
+    return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
 
 
 @lab_preps_htmx.route("<int:lab_prep_id>/get_libraries", methods=["GET"], defaults={"page": 0})
@@ -308,9 +292,7 @@ def get_libraries(lab_prep_id: int, page: int):
     )
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/download_template/<string:direction>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db, methods=["GET"])
 def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -> Response:
     if direction not in ("rows", "columns"):
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -394,9 +376,7 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
     )
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/prep_table_upload_form", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def prep_table_upload_form(lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -441,15 +421,13 @@ def get_pools(lab_prep_id: int, page: int):
     )
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/get_files", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db)
 def get_files(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)    
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     return make_response(
         render_template(
@@ -460,9 +438,7 @@ def get_files(lab_prep_id: int):
     )
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/delete_file/<int:file_id>", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
 def delete_file(lab_prep_id: int, file_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -483,12 +459,10 @@ def delete_file(lab_prep_id: int, file_id: int):
 
     logger.info(f"Deleted file '{file.name}' from prep (id='{lab_prep_id}')")
     flash(f"Deleted file '{file.name}' from prep.", "success")
-    return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
+    return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/file_form", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def file_form(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -506,9 +480,7 @@ def file_form(lab_prep_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
     
 
-@lab_preps_htmx.route("<int:lab_prep_id>/plates_tab", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db)
 def plates_tab(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -519,9 +491,7 @@ def plates_tab(lab_prep_id: int):
     return make_response(render_template("components/plates.html", plates=lab_prep.plates, from_page=f"lab_prep@{lab_prep.id}"))
     
 
-@lab_preps_htmx.route("<int:lab_prep_id>/comment_form", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def comment_form(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -539,9 +509,7 @@ def comment_form(lab_prep_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/get_comments", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db)
 def get_comments(lab_prep_id: int):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -557,9 +525,7 @@ def get_comments(lab_prep_id: int):
     )
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/get_sample_pooling_table", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(lab_preps_htmx, db=db)
 def get_sample_pooling_table(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

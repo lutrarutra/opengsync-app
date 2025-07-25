@@ -65,6 +65,6 @@ class LabPrepAttachmentForm(FileInputForm):
 
         flash("File uploaded successfully.", "success")
         logger.info(f"File '{db_file.uuid}' uploaded by user '{user.id}'.")
-        return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=self.lab_prep.id))
+        return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))
 
         

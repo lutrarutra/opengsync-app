@@ -5,7 +5,6 @@ from opengsync_db.models import User
 from opengsync_db.categories import HTTPResponse
 
 from ... import db, forms, page_route
-from ...tools import exceptions
 
 if TYPE_CHECKING:
     current_user: User = None   # type: ignore
@@ -15,14 +14,13 @@ else:
 libraries_page_bp = Blueprint("libraries_page", __name__)
 
 
-@page_route(libraries_page_bp, "/libraries", db=db)
-def libraries_page():
-    raise exceptions.InternalServerErrorException("The libraries page is not implemented yet.")
+@page_route(libraries_page_bp, db=db)
+def libraries():
     return render_template("libraries_page.html")
 
 
-@page_route(libraries_page_bp, "/libraries/<int:library_id>", methods=["GET"], db=db)
-def library_page(library_id):
+@page_route(libraries_page_bp, db=db)
+def library(library_id):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -32,39 +30,39 @@ def library_page(library_id):
             return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
-        ("Libraries", url_for("libraries_page.libraries_page")),
+        ("Libraries", url_for("libraries_page.libraries")),
         (f"Library {library.id}", ""),
     ]
     if (_from := request.args.get("from", None)) is not None:
         page, id = _from.split("@")
         if page == "seq_request":
             path_list = [
-                ("Requests", url_for("seq_requests_page.seq_requests_page")),
-                (f"Request {id}", url_for("seq_requests_page.seq_request_page", seq_request_id=id)),
+                ("Requests", url_for("seq_requests_page.seq_requests")),
+                (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
                 (f"Library {library.id}", ""),
             ]
         elif page == "experiment":
             path_list = [
-                ("Experiments", url_for("experiments_page.experiments_page")),
-                (f"Experiment {id}", url_for("experiments_page.experiment_page", experiment_id=id)),
+                ("Experiments", url_for("experiments_page.experiments")),
+                (f"Experiment {id}", url_for("experiments_page.experiment", experiment_id=id)),
                 (f"Library {library.id}", ""),
             ]
         elif page == "sample":
             path_list = [
-                ("Samples", url_for("samples_page.samples_page")),
-                (f"Sample {id}", url_for("samples_page.sample_page", sample_id=id)),
+                ("Samples", url_for("samples_page.samples")),
+                (f"Sample {id}", url_for("samples_page.sample", sample_id=id)),
                 (f"Library {library.id}", ""),
             ]
         elif page == "pool":
             path_list = [
-                ("Pools", url_for("pools_page.pools_page")),
-                (f"Pool {id}", url_for("pools_page.pool_page", pool_id=id)),
+                ("Pools", url_for("pools_page.pools")),
+                (f"Pool {id}", url_for("pools_page.pool", pool_id=id)),
                 (f"Library {library.id}", ""),
             ]
         elif page == "lab_prep":
             path_list = [
-                ("Lab Preps", url_for("lab_preps_page.lab_preps_page")),
-                (f"Lab Prep {id}", url_for("lab_preps_page.lab_prep_page", lab_prep_id=id)),
+                ("Lab Preps", url_for("lab_preps_page.lab_preps")),
+                (f"Lab Prep {id}", url_for("lab_preps_page.lab_prep", lab_prep_id=id)),
                 (f"Library {library.id}", ""),
             ]
 

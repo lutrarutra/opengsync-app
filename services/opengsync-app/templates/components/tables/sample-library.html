@@ -55,7 +55,7 @@
             {% for library in libraries %}
             <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td><a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='sample@' + sample.id | string) }}">
+                <td><a href="{{ url_for('libraries_page.library', library_id=library.id, from='sample@' + sample.id | string) }}">
                     {{ library.name }}
                 </a></td>
                 <td>
@@ -63,11 +63,11 @@
                         {{ library.type.abbreviation }}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
                     </span>
                 </td>
-                <td><a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=library.seq_request_id, from='sample@' + sample.id | string) }}">{{ library.seq_request.name }}</a></td>
+                <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=library.seq_request_id, from='sample@' + sample.id | string) }}">{{ library.seq_request.name }}</a></td>
                 <td class="barcode-cell">
                     {{ library_index_cell(library) }}
                 </td>
-                <td><a href="{{ url_for('users_page.user_page', library_id=library.owner_id, from='sample@' + sample.id | string) }}"> {{ library.owner.name }}<span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
+                <td><a href="{{ url_for('users_page.user', library_id=library.owner_id, from='sample@' + sample.id | string) }}"> {{ library.owner.name }}<span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
             </tr>
             {% endfor %}
         </tbody>

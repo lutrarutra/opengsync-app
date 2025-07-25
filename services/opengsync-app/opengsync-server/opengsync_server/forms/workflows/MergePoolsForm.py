@@ -111,4 +111,4 @@ class MergePoolsForm(MultiStepForm):
         )
         flash("Pools Merged!")
         logger.info(f"{self.uuid}: Pools merged successfully. New pool ID: {pool.id}")
-        return make_response(redirect=url_for("pools_page.pool_page", pool_id=pool.id))
+        return make_response(redirect=url_for("pools_page.pool", pool_id=pool.id))

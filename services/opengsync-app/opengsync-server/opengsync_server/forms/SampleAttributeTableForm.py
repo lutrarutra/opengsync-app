@@ -107,4 +107,4 @@ class SampleAttributeTableForm(HTMXFlaskForm):
                     db.set_sample_attribute(sample_id=sample_id, name=attribute_name, value=val, type=attribute_type)
 
         flash("Sample attributes updated", "success")
-        return make_response(redirect=url_for("projects_page.project_page", project_id=self.project.id, tab="project-attributes-tab"))
+        return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-attributes-tab"))

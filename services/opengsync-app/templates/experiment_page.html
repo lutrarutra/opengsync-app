@@ -351,7 +351,7 @@
                 {{
                     metadata_group_link(
                         "Operator", experiment.operator.name,
-                        url_for("users_page.user_page", user_id=experiment.operator.id),
+                        url_for("users_page.user", user_id=experiment.operator.id),
                         class="col"
                     )
                 }}
@@ -367,7 +367,7 @@
                 {{
                     metadata_group_link(
                         "Sequencer", experiment.sequencer.name,
-                        url_for("devices_page.sequencer_page", sequencer_id=experiment.sequencer.id),
+                        url_for("devices_page.sequencer", sequencer_id=experiment.sequencer.id),
                         class="col-3"
                     )
                 }}
@@ -415,7 +415,7 @@
                 {{
                     metadata_group_link(
                         "Run", experiment.seq_run.id,
-                        url_for("seq_runs_page.seq_run_page", seq_run_id=experiment.seq_run.id, from="experiment@" + experiment.id | string),
+                        url_for("seq_runs_page.seq_run", seq_run_id=experiment.seq_run.id, from="experiment@" + experiment.id | string),
                         class="col-3"
                     )
                 }}

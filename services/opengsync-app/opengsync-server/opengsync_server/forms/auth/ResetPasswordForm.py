@@ -50,4 +50,4 @@ class ResetPasswordForm(HTMXFlaskForm):
         user = db.update_user(user)
         logger.info(f"Password reset for {user.email}")
         flash("Password updated!", "success")
-        return make_response(redirect=url_for("auth_page.auth_page"))
+        return make_response(redirect=url_for("auth_page.auth"))

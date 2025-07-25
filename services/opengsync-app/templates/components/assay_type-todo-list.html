@@ -6,7 +6,7 @@
     <div class="modal-body">
         <div class="banner-container">
             {% for seq_request, _df in df.groupby("seq_request", sort=False) %}
-            <a class="element-banner" href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id) }}">
+            <a class="element-banner" href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}">
                 <div class="row title-row">
                     <div class="title col-4">{{ seq_request.name }}</div>
                     <div class="col-4">{{ seq_request.requestor.name }}</div>

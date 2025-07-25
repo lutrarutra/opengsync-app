@@ -120,7 +120,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
             if col not in self.spreadsheet.columns.keys():
                 self.spreadsheet.add_column(label=col, column=TextColumn(label=col, name=col.replace("_", " ").title(), width=100, max_length=models.SampleAttribute.MAX_NAME_LENGTH))
 
-        for i, (idx, row) in enumerate(df.iterrows()):
+        for idx, row in df.iterrows():
             for col in df.keys():
                 if col == "sample_name":
                     continue

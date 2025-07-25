@@ -46,6 +46,6 @@ class ChangePasswordForm(HTMXFlaskForm):
         logger.info(f"Password changed for user {self.user.email}")
         flash("Password Changed Successfully!", "success")
         logout_user()
-        return make_response(redirect=url_for("auth_page.auth_page"))
+        return make_response(redirect=url_for("auth_page.auth"))
 
     

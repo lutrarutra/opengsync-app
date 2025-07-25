@@ -95,7 +95,7 @@ class FeatureKitForm(HTMXFlaskForm):
         self.feature_kit.type_id = self.feature_type_id.data  # type: ignore
         self.feature_kit = db.update_feature_kit(self.feature_kit)
         flash("Index kit updated successfully.", "success")
-        return make_response(redirect=url_for("kits_page.feature_kit_page", feature_kit_id=self.feature_kit.id))
+        return make_response(redirect=url_for("kits_page.feature_kit", feature_kit_id=self.feature_kit.id))
         
     def __create_feature_kit(self) -> Response:
         feature_kit = db.create_feature_kit(
@@ -104,7 +104,7 @@ class FeatureKitForm(HTMXFlaskForm):
             type=FeatureType.get(self.feature_type_id.data),
         )
         flash("Index kit created successfully.", "success")
-        return make_response(redirect=url_for("kits_page.feature_kit_page", feature_kit_id=feature_kit.id))
+        return make_response(redirect=url_for("kits_page.feature_kit", feature_kit_id=feature_kit.id))
     
     def process_request(self) -> Response:
         if not self.validate():

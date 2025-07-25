@@ -30,7 +30,7 @@
             {% for group in groups %}
             <tr>
                 <th scope="row">{{ group.id }}</th>
-                <td><a href="{{ url_for('groups_page.group_page', group_id=group.id) }}">{{ group.name }}</a></td>
+                <td><a href="{{ url_for('groups_page.group', group_id=group.id) }}">{{ group.name }}</a></td>
                 <td>{{ group.type.name }} {{ group.type.icon }}</td>
             </tr>
             {% endfor %}

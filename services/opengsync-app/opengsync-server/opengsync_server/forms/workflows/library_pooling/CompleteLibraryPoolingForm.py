@@ -184,4 +184,4 @@ class CompleteLibraryPoolingForm(MultiStepForm):
         
         self.complete()
         flash("Library Indexing completed!", "success")
-        return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep.id))
+        return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep.id))

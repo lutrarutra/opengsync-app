@@ -3,12 +3,11 @@ from typing import TYPE_CHECKING
 
 from flask import Blueprint, request, abort, Response, flash, url_for
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, db_session
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, SampleStatus, LibraryStatus, PoolStatus, SeqRequestStatus, SubmissionType
 
-from .... import db, logger  # noqa
+from .... import db, logger, htmx_route  # noqa
 from ....forms import SelectSamplesForm
 
 if TYPE_CHECKING:
@@ -19,9 +18,7 @@ else:
 store_samples_workflow = Blueprint("store_samples_workflow", __name__, url_prefix="/api/workflows/store_samples/")
 
 
-@store_samples_workflow.route("begin", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(store_samples_workflow, db=db)
 def begin() -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -40,9 +37,7 @@ def begin() -> Response:
     return form.make_response()
 
 
-@store_samples_workflow.route("select", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(store_samples_workflow, db=db, methods=["POST"])
 def select():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -143,6 +138,6 @@ def select():
 
     flash("Samples Stored!", "success")
     if seq_request is not None:
-        return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))
+        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
     
     return make_response(redirect=url_for("dashboard"))

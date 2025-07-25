@@ -50,9 +50,9 @@
             {% for experiment in experiments %}
             <tr>
                 <th scope="row">{{ experiment.id }}</th>
-                <td><a href="{{ url_for('experiments_page.experiment_page', experiment_id=experiment.id) }}">{{ experiment.name }}</a></td>
+                <td><a href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}">{{ experiment.name }}</a></td>
                 <td>{{ experiment.status.name }} {{ experiment.status.icon | safe }}</td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=experiment.operator_id) }}">{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></a></td>
+                <td><a href="{{ url_for('users_page.user', user_id=experiment.operator_id) }}">{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></a></td>
                 <td>{{ experiment.timestamp_created_str("%Y-%m-%d") }}</td>
                 <td>{{ experiment.workflow.name }}</td>
             </tr>
