@@ -103,15 +103,14 @@ class DBHandler():
             self.warn("Tables already exist, skipping creation...")
 
     def open_session(self, autoflush: bool = False) -> None:
-        # if self._session is not None:
-        #     self.error("Session is already open.")
-        #     raise Exception("Session is already open.")
+        if self._session is not None:
+            self.warn("Session is already open")
+            return
         self._session = DBHandler.Session(autoflush=autoflush)
 
     def close_session(self, commit: bool = True, rollback: bool = False) -> None:
-        # if self._session is None:
-        #     self.error("Session is already closed or was never opened.")
-        #     raise Exception("Session is already closed or was never opened.")
+        if self._session is None:
+            self.warn("Session is already closed or was never opened.")
        
         if commit and not rollback:
             self.session.commit()

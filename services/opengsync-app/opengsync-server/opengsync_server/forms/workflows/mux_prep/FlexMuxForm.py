@@ -53,7 +53,7 @@ class FlexMuxForm(MultiStepForm):
 
     def prepare(self):
         df = self.gex_table.copy()
-        df["barcode_id"] = df["mux"].apply(lambda x: x.get("barcode"))
+        df["barcode_id"] = df["mux"].apply(lambda x: x.get("barcode") if pd.notna(x) and isinstance(x, dict) else None)
         self.spreadsheet.set_data(df)
 
     def validate(self) -> bool:

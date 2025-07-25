@@ -70,15 +70,15 @@ def htmx_route(
                 res = fnc(*args, **kwargs)
                 return res
             except serv_exceptions.OpeNGSyncServerException as e:
-                logger.error(f"\n-------- OpeNGSyncServerException --------\n\tRoute: {route}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}n\tMessage: {e}\n-------- END ERROR --------")
+                logger.error(f"\n-------- OpeNGSyncServerException --------\n\tBlueprint: {blueprint}\n\tRoute: {route}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}n\tMessage: {e}\n-------- END ERROR --------")
                 flash("An error occured while processing your request. Please notify us.", category="error")
                 return make_response(render_template("errors/htmx_alert.html"), 200, retarget="#alert-container")
             except db_exceptions.OpeNGSyncDBException as e:
-                logger.error(f"\n-------- OpeNGSyncDBException --------\n\tRoute:{route}\n\targs: {args}\n\tkwargs: {kwargs}]\n\tError: {e.__repr__()}n\tMessage: {e}\n-------- END ERROR --------")
+                logger.error(f"\n-------- OpeNGSyncDBException --------\n\tBlueprint: {blueprint}\n\tRoute:{route}\n\targs: {args}\n\tkwargs: {kwargs}]\n\tError: {e.__repr__()}n\tMessage: {e}\n-------- END ERROR --------")
                 flash("An error occured while processing your request. Please notify us.", category="error")
                 return make_response(render_template("errors/htmx_alert.html"), 200, retarget="#alert-container")
             except Exception as e:
-                logger.error(f"\n-------- Exception --------\n\tRoute: {route}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n-------- END ERROR --------")
+                logger.error(f"\n-------- Exception --------\n\tBlueprint: {blueprint}\n\tRoute: {route}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n-------- END ERROR --------")
                 flash("An error occured while processing your request. Please notify us.", category="error")
                 return make_response(render_template("errors/htmx_alert.html"), 200, retarget="#alert-container")
             finally:
