@@ -11,7 +11,7 @@ from wtforms.validators import DataRequired
 from flask_wtf import FlaskForm
 
 from .. import logger
-from ..tools.spread_sheet_components import SpreadSheetColumn, SpreadSheetException
+from ..tools.spread_sheet_components import SpreadSheetColumn, SpreadSheetException, DropdownColumn
 
 
 class SpreadsheetInput(FlaskForm):
@@ -92,11 +92,20 @@ class SpreadsheetInput(FlaskForm):
         if len(self.__df) == 0:
             self._errors = ["Spreadsheet is empty.",]
             return False
+        
+        for label, column in self.columns.items():
+            if isinstance(column, DropdownColumn):
+                if column.all_options_required:
+                    if column.source is None:
+                        raise ValueError(f"Column '{label}' has no choices defined.")
+                    for opt in column.source:
+                        if opt not in self.__df[label].unique():
+                            self.add_general_error(f"Column '{label}' has missing option '{opt}'. You must use all options atleast once.")
 
         for idx, row in self.__df.iterrows():
             for label, column in self.columns.items():
                 try:
-                    column.validate(row[label])
+                    column.validate(row[label], self.__df[label].tolist())
                 except SpreadSheetException as e:
                     if column.required and pd.isna(row[label]):
                         self.add_error(idx, label, e)

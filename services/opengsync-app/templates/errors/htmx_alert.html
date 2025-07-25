@@ -1,0 +1,16 @@
+<div id="alert-container">
+    {% with errors = get_flashed_messages(category_filter=["error", "danger"]) %}
+    {% if errors %}
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <div class="alert-content">
+        <div>
+            {% for error in errors %}
+            <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+</div>

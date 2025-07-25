@@ -231,7 +231,7 @@ def add_library_to_prep(
 
 
 def remove_library_from_prep(
-    self: "DBHandler", lab_prep_id: int, library_id: int
+    self: "DBHandler", lab_prep_id: int, library_id: int, flush: bool = True
 ) -> models.LabPrep:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -246,7 +246,6 @@ def remove_library_from_prep(
         library.status = LibraryStatus.ACCEPTED
     
     lab_prep.libraries.remove(library)
-
     self.session.add(lab_prep)
 
     if not persist_session:

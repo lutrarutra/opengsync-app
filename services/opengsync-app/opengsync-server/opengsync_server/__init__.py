@@ -15,6 +15,7 @@ from opengsync_db import DBHandler, categories
 
 from .tools import RedisMSFFileCache
 from .tools.WeekTimeWindow import WeekTimeWindow
+from .tools.wrappers import page_route, htmx_route  # noqa: F401
 
 logger.remove()
 

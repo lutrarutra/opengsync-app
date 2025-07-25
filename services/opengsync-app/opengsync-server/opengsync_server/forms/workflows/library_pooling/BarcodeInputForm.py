@@ -28,8 +28,8 @@ class BarcodeInputForm(CommonBarcodeInputForm):
             formdata=formdata,
             pool=None, lab_prep=lab_prep, seq_request=None,
             additional_columns=[
-                IntegerColumn("library_id", "Library ID", 100, required=True),
-                DropdownColumn("library_name", "Library Name", 250, choices=[], required=True),
+                IntegerColumn("library_id", "Library ID", 100, required=True, read_only=True),
+                DropdownColumn("library_name", "Library Name", 250, choices=[], required=True, read_only=True),
                 TextColumn("pool", "Pool", 100, required=False, max_length=models.Pool.name.type.length),
             ]
         )

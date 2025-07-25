@@ -1,35 +1,43 @@
-class InvalidValue(Exception):
+class OpeNGSyncDBException(Exception):
     pass
 
 
-class LinkDoesNotExist(Exception):
+class RollBackTriggered(OpeNGSyncDBException):
     pass
 
 
-class ElementDoesNotExist(Exception):
+class InvalidValue(OpeNGSyncDBException):
     pass
 
 
-class LinkAlreadyExists(Exception):
+class LinkDoesNotExist(OpeNGSyncDBException):
     pass
 
 
-class InvalidRole(Exception):
+class ElementDoesNotExist(OpeNGSyncDBException):
     pass
 
 
-class NotUniqueValue(Exception):
+class LinkAlreadyExists(OpeNGSyncDBException):
     pass
 
 
-class ElementIsReferenced(Exception):
+class InvalidRole(OpeNGSyncDBException):
     pass
 
 
-class InvalidOperation(Exception):
+class NotUniqueValue(OpeNGSyncDBException):
     pass
 
 
-class FileExistsException(Exception):
+class ElementIsReferenced(OpeNGSyncDBException):
+    pass
+
+
+class InvalidOperation(OpeNGSyncDBException):
+    pass
+
+
+class FileExistsException(OpeNGSyncDBException):
     def __init__(self, file_path):
         self.message = f"File '{file_path}' already exists..."

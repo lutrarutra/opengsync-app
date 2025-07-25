@@ -54,7 +54,7 @@ def begin() -> Response:
         context = get_context(request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpenGSyncException as e:
+    except exceptions.OpeNGSyncServerException as e:
         return abort(e.response.id)
         
     form = SelectSamplesForm(
@@ -74,7 +74,7 @@ def select() -> Response:
         context = get_context(request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpenGSyncException as e:
+    except exceptions.OpeNGSyncServerException as e:
         return abort(e.response.id)
 
     form = SelectSamplesForm(

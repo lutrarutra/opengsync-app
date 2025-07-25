@@ -2,6 +2,9 @@ import os
 from functools import wraps
 import pytz
 import datetime as dt
+from typing import Callable
+
+from sqlalchemy import exc
 
 PAGE_LIMIT = 15
 if (__timezone := os.environ.get("TIMEZONE")) is None:
@@ -39,10 +42,21 @@ from .core import exceptions    # noqa
 
 
 def db_session(db: DBHandler):
-    def decorator(func):
-        @wraps(func)
+    def decorator(f: Callable):
+        @wraps(f)
         def wrapper(*args, **kwargs):
-            with DBSession(db):
-                return func(*args, **kwargs)
+            try:
+                db.open_session()
+                res = f(*args, **kwargs)
+                db.close_session()
+                return res
+            except exc.PendingRollbackError as e:
+                db.error(e)
+                db.close_session(commit=False, rollback=True)
+                raise exceptions.RollBackTriggered("Database session failed due to pending rollback. Please try again.") from e
+            except exc.IntegrityError as e:
+                db.error(e)
+                db.close_session(commit=False, rollback=True)
+                raise exceptions.RollBackTriggered("Database integrity error occurred. Please check your data.") from e
         return wrapper
     return decorator

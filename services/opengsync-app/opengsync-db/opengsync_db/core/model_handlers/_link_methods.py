@@ -63,7 +63,7 @@ def link_sample_library(
     ).first():
         raise exceptions.LinkAlreadyExists(f"Sample with id {sample_id} and Library with id {library_id} are already linked")
     
-    sample_library_link = models.links.SampleLibraryLink(
+    link = models.links.SampleLibraryLink(
         sample_id=sample_id,
         library_id=library_id,
         mux=mux,
@@ -71,7 +71,7 @@ def link_sample_library(
 
     sample.num_libraries += 1
     library.num_samples += 1
-    self.session.add(sample_library_link)
+    self.session.add(link)
 
     if flush:
         self.session.flush()
@@ -79,10 +79,10 @@ def link_sample_library(
     if not persist_session:
         self.close_session()
 
-    return sample_library_link
+    return link
 
 
-def unlink_sample_library(self: "DBHandler", sample_id: int, library_id: int):
+def unlink_sample_library(self: "DBHandler", sample_id: int, library_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -104,6 +104,9 @@ def unlink_sample_library(self: "DBHandler", sample_id: int, library_id: int):
     self.session.add(sample)
     self.session.add(library)
     self.session.delete(link)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
