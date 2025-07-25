@@ -6,7 +6,7 @@ from flask_login import login_required
 from opengsync_db import models, db_session
 from opengsync_db.categories import HTTPResponse, PoolStatus, PoolType
 
-from .... import db, logger  # noqa
+from .... import db, logger, htmx_route  # noqa
 from ....forms import SelectSamplesForm
 from ....forms.workflows.MergePoolsForm import MergePoolsForm
 from ....tools import exceptions
@@ -44,9 +44,7 @@ def get_context(args: dict) -> dict:
     return context
 
 
-@merge_pools_workflow.route("begin", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(merge_pools_workflow, db=db)
 def begin() -> Response:
     try:
         context = get_context(request.args)
@@ -69,9 +67,7 @@ def begin() -> Response:
     return form.make_response()
 
 
-@merge_pools_workflow.route("select", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(merge_pools_workflow, db=db, methods=["POST"])
 def select() -> Response:
     try:
         context = get_context(request.args)
@@ -111,9 +107,7 @@ def select() -> Response:
     return next_form.make_response()
 
 
-@merge_pools_workflow.route("merge/<string:uuid>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(merge_pools_workflow, db=db, methods=["POST"])
 def merge(uuid: str) -> Response:
     form = MergePoolsForm(formdata=request.form, uuid=uuid)
     return form.process_request(current_user)

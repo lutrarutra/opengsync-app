@@ -381,7 +381,7 @@ class SeqRequestForm(HTMXFlaskForm):
         logger.info(f"Updated sequencing request '{seq_request.name}'")
 
         return make_response(
-            redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+            redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
         )
     
     def __create_new_request(self, user: models.User) -> Response:
@@ -437,7 +437,7 @@ class SeqRequestForm(HTMXFlaskForm):
         logger.info(f"Created new sequencing request '{seq_request.name}'")
 
         return make_response(
-            redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+            redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
         )
     
     def process_request(self, user: models.User, seq_request: Optional[models.SeqRequest]) -> Response:

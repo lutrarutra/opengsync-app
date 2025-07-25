@@ -7,7 +7,7 @@ from flask_htmx import make_response
 from opengsync_db import models, db_session
 from opengsync_db.categories import HTTPResponse, LibraryStatus, LibraryType, LabProtocol
 
-from .... import db, logger, forms  # noqa
+from .... import db, logger, htmx_route  # noqa
 from ....forms.SelectSamplesForm import SelectSamplesForm
 
 if TYPE_CHECKING:
@@ -26,9 +26,7 @@ args: dict = dict(
 )
 
 
-@library_prep_workflow.route("begin/<int:lab_prep_id>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(library_prep_workflow, db=db)
 def begin(lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -46,9 +44,7 @@ def begin(lab_prep_id: int) -> Response:
     return form.make_response()
 
 
-@library_prep_workflow.route("select/<int:lab_prep_id>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_prep_workflow, db=db, methods=["POST"])
 def select(lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -74,4 +70,4 @@ def select(lab_prep_id: int) -> Response:
         )
 
     flash("Libraries added!", "success")
-    return make_response(redirect=url_for("lab_preps_page.lab_prep_page", lab_prep_id=lab_prep_id))
+    return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))

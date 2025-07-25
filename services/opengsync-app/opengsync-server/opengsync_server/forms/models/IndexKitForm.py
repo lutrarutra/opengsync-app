@@ -95,7 +95,7 @@ class IndexKitForm(HTMXFlaskForm):
         self.index_kit.type_id = self.index_type_id.data  # type: ignore
         self.index_kit = db.update_index_kit(self.index_kit)
         flash("Index kit updated successfully.", "success")
-        return make_response(redirect=url_for("kits_page.index_kit_page", index_kit_id=self.index_kit.id))
+        return make_response(redirect=url_for("kits_page.index_kit", index_kit_id=self.index_kit.id))
         
     def __create_index_kit(self) -> Response:
         index_kit = db.create_index_kit(
@@ -105,7 +105,7 @@ class IndexKitForm(HTMXFlaskForm):
             supported_protocols=[]
         )
         flash("Index kit created successfully.", "success")
-        return make_response(redirect=url_for("kits_page.index_kit_page", index_kit_id=index_kit.id))
+        return make_response(redirect=url_for("kits_page.index_kit", index_kit_id=index_kit.id))
     
     def process_request(self) -> Response:
         if not self.validate():

@@ -48,4 +48,4 @@ class SeqRequestShareEmailForm(HTMXFlaskForm):
         db.add_seq_request_share_email(seq_request_id=seq_request.id, email=self.email.data.strip())  # type: ignore
 
         flash("Email added to the list.", "success")
-        return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))
+        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))

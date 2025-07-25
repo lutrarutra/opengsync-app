@@ -1,24 +1,19 @@
 from flask import Blueprint, render_template, abort, url_for, request
-from flask_login import login_required, current_user
+from flask_login import current_user
 
-from opengsync_db import db_session
 from opengsync_db.categories import HTTPResponse
-from ... import db, forms
+from ... import db, forms, page_route
 
 projects_page_bp = Blueprint("projects_page", __name__)
 
 
-@projects_page_bp.route("/projects")
-@db_session(db)
-@login_required
-def projects_page():
+@page_route(projects_page_bp, db=db)
+def projects():
     return render_template("projects_page.html", form=forms.models.ProjectForm())
 
 
-@projects_page_bp.route("/projects/<int:project_id>")
-@db_session(db)
-@login_required
-def project_page(project_id):
+@page_route(projects_page_bp, db=db)
+def project(project_id):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -28,7 +23,7 @@ def project_page(project_id):
             return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
-        ("Projects", url_for("projects_page.projects_page")),
+        ("Projects", url_for("projects_page.projects")),
         (f"Project {project_id}", ""),
     ]
 
@@ -36,14 +31,14 @@ def project_page(project_id):
         page, id = _from.split("@")
         if page == "user":
             path_list = [
-                ("Users", url_for("users_page.users_page")),
-                (f"User {id}", url_for("users_page.user_page", user_id=id)),
+                ("Users", url_for("users_page.users")),
+                (f"User {id}", url_for("users_page.user", user_id=id)),
                 (f"Project {project_id}", ""),
             ]
         elif page == "seq_request":
             path_list = [
-                ("Requests", url_for("seq_requests_page.seq_requests_page")),
-                (f"Request {id}", url_for("seq_requests_page.seq_request_page", seq_request_id=id)),
+                ("Requests", url_for("seq_requests_page.seq_requests")),
+                (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
                 (f"Project {project_id}", ""),
             ]
 

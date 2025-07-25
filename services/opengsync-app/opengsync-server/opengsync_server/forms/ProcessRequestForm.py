@@ -80,4 +80,4 @@ class ProcessRequestForm(HTMXFlaskForm):
                 author_id=user.id, seq_request_id=seq_request.id
             )
 
-        return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id))
+        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))

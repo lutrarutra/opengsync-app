@@ -6,7 +6,7 @@ from flask_login import login_required
 from opengsync_db import models, db_session
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger  # noqa
+from .... import db, logger, htmx_route  # noqa
 from ....forms.workflows import dist_reads as forms
 
 if TYPE_CHECKING:
@@ -17,9 +17,7 @@ else:
 dist_reads_workflow = Blueprint("dist_reads_workflow", __name__, url_prefix="/api/workflows/dist_reads/")
 
 
-@dist_reads_workflow.route("<int:experiment_id>/begin", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(dist_reads_workflow, db=db)
 def begin(experiment_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -35,9 +33,7 @@ def begin(experiment_id: int) -> Response:
     return form.make_response()
 
 
-@dist_reads_workflow.route("<int:experiment_id>/submit", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(dist_reads_workflow, db=db, methods=["POST"])
 def submit(experiment_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

@@ -15,7 +15,7 @@
             {% for sequencer in sequencers %}
             <tr>
                 <th scope="row">{{ sequencer.id }}</th>
-                <td><a href="{{ url_for('devices_page.sequencer_page', sequencer_id=sequencer.id) }}">{{ sequencer.name }}</a></td>
+                <td><a href="{{ url_for('devices_page.sequencer', sequencer_id=sequencer.id) }}">{{ sequencer.name }}</a></td>
                 <td>{{ sequencer.model.display_name }}</td>
                 <td>{{ sequencer.ip if sequencer.ip }}</td>
             </tr>

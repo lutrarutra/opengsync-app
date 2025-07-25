@@ -457,7 +457,7 @@
                 <div class="row">
                     {{ metadata_group("Request Name", seq_request.name, class="col-6") }}
                     {% if seq_request.group %}
-                    {{ metadata_group_link("Group", seq_request.group.name, url_for("groups_page.group_page", group_id=seq_request.group.id, from="seq_request@" + seq_request.id | string), class="col-6") }}
+                    {{ metadata_group_link("Group", seq_request.group.name, url_for("groups_page.group", group_id=seq_request.group.id, from="seq_request@" + seq_request.id | string), class="col-6") }}
                     {% else %}
                     {{ metadata_group("Group", "", class="col-6") }}
                     {% endif %}
@@ -478,7 +478,7 @@
                 <br>
                 <h4>Requestor</h4>
                 <div class="row">
-                    {{ metadata_group_link("Name", seq_request.requestor.first_name + " " + seq_request.requestor.last_name, url_for("users_page.user_page", user_id=seq_request.requestor.id), class="col") }}
+                    {{ metadata_group_link("Name", seq_request.requestor.first_name + " " + seq_request.requestor.last_name, url_for("users_page.user", user_id=seq_request.requestor.id), class="col") }}
                     {{ 
                         metadata_group_email_link(
                             "Email", seq_request.requestor.email, class="col",
@@ -586,7 +586,7 @@
                 <div class="row">
                     {% if seq_request.seq_auth_form_file %}
                     {{ metadata_group("Filename", seq_request.seq_auth_form_file.name + seq_request.seq_auth_form_file.extension, class="col-3") }}
-                    {{ metadata_group_link("Uploader", seq_request.seq_auth_form_file.uploader.name, url_for('users_page.user_page', user_id=seq_request.seq_auth_form_file.uploader_id), class="col-3") }}
+                    {{ metadata_group_link("Uploader", seq_request.seq_auth_form_file.uploader.name, url_for('users_page.user', user_id=seq_request.seq_auth_form_file.uploader_id), class="col-3") }}
                     {{ metadata_group("Size", seq_request.seq_auth_form_file.size_str(), class="col-3") }}
                     {{ metadata_group("Time", seq_request.seq_auth_form_file.timestamp_str(), class="col-3") }}
                     {% else %}

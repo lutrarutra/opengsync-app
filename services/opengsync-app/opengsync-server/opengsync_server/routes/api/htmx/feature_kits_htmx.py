@@ -9,7 +9,7 @@ from flask_login import login_required
 from opengsync_db import models, PAGE_LIMIT, db_session
 from opengsync_db.categories import HTTPResponse, KitType
 
-from .... import db, logger, cache  # noqa: F401
+from .... import db, logger, cache, htmx_route  # noqa: F401
 from .... import forms
 from ....tools.spread_sheet_components import TextColumn
 
@@ -48,9 +48,7 @@ def get(page: int):
     )
 
 
-@feature_kits_htmx.route("query", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(feature_kits_htmx, db=db, methods=["POST"])
 def query():
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name, default="")) is None:
@@ -70,9 +68,7 @@ def query():
     )
 
 
-@feature_kits_htmx.route("table_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(feature_kits_htmx, db=db)
 def table_query():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -135,9 +131,7 @@ def get_features(feature_kit_id: int, page: int):
     )
 
 
-@feature_kits_htmx.route("create", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def create():
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -151,9 +145,7 @@ def create():
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@feature_kits_htmx.route("edit/<int:feature_kit_id>", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def edit(feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -169,9 +161,7 @@ def edit(feature_kit_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
     
 
-@feature_kits_htmx.route("<int:feature_kit_id>/edit_features", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def edit_features(feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -191,9 +181,7 @@ def edit_features(feature_kit_id: int):
     return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@feature_kits_htmx.route("delete/<int:feature_kit_id>", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(feature_kits_htmx, db=db, methods=["DELETE"])
 def delete(feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -203,12 +191,10 @@ def delete(feature_kit_id: int):
     
     db.delete_kit(id=feature_kit_id)
     flash("Index kit deleted successfully.", "success")
-    return make_response(redirect=url_for("kits_page.feature_kits_page"))
+    return make_response(redirect=url_for("kits_page.feature_kits"))
 
 
-@feature_kits_htmx.route("<int:feature_kit_id>/render_table", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(feature_kits_htmx, db=db)
 def render_table(feature_kit_id: int):
     if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

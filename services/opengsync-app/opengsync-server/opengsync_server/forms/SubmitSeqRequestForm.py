@@ -76,4 +76,4 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
         self.seq_request = db.submit_seq_request(seq_request_id=self.seq_request.id)
 
         flash(f"Submitted sequencing request '{self.seq_request.name}'", "success")
-        return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id),)
+        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),)

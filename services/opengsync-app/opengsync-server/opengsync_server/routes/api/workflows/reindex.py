@@ -1,14 +1,12 @@
 from typing import TYPE_CHECKING
 
-import pandas as pd
-
 from flask import Blueprint, request, abort, Response
 from flask_login import login_required
 
 from opengsync_db import models, db_session
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger  # noqa
+from .... import db, logger, htmx_route  # noqa
 from ....forms.workflows import reindex as forms
 from ....forms import SelectSamplesForm
 from ....tools import exceptions, utils
@@ -52,9 +50,7 @@ def get_context(args: dict) -> dict:
     return context
 
 
-@reindex_workflow.route("begin", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(reindex_workflow, db=db)
 def begin() -> Response:
     try:
         context = get_context(request.args)
@@ -70,9 +66,7 @@ def begin() -> Response:
     return form.make_response()
 
 
-@reindex_workflow.route("select", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(reindex_workflow, db=db, methods=["POST"])
 def select():
     try:
         context = get_context(request.args)
@@ -103,10 +97,8 @@ def select():
     )
     return next_form.make_response()
 
-        
-@reindex_workflow.route("upload_barcode_form/<string:uuid>", methods=["POST"])
-@db_session(db)
-@login_required
+
+@htmx_route(reindex_workflow, db=db, methods=["POST"])
 def upload_barcode_form(uuid: str):
     try:
         context = get_context(request.args)
@@ -124,9 +116,7 @@ def upload_barcode_form(uuid: str):
     return form.process_request()
 
 
-@reindex_workflow.route("map_index_kits/<string:uuid>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(reindex_workflow, db=db, methods=["POST"])
 def map_index_kits(uuid: str):
     try:
         context = get_context(request.args)

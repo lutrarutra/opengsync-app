@@ -12,7 +12,7 @@ import pandas as pd
 from opengsync_db import models, PAGE_LIMIT, db_session
 from opengsync_db.categories import HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType, SampleStatus, SubmissionType, PoolStatus
 from opengsync_db.core import exceptions
-from .... import db, forms, logger
+from .... import db, forms, logger, htmx_route
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -76,9 +76,7 @@ def get(page: int):
     )
 
 
-@seq_requests_htmx.route("get_form/<string:form_type>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db)
 def get_form(form_type: Literal["create", "edit"]):
     if form_type not in ["create", "edit"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -109,9 +107,7 @@ def get_form(form_type: Literal["create", "edit"]):
     return forms.models.SeqRequestForm(form_type=form_type, current_user=current_user).make_response()
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/export", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db)
 def export(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -163,9 +159,7 @@ def export(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/export_libraries", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db)
 def export_libraries(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -185,9 +179,7 @@ def export_libraries(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/edit", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def edit(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -202,9 +194,7 @@ def edit(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/delete", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def delete(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -218,13 +208,11 @@ def delete(seq_request_id: int):
 
     flash(f"Deleted sequencing request '{seq_request.name}'", "success")
     return make_response(
-        redirect=url_for("seq_requests_page.seq_requests_page"),
+        redirect=url_for("seq_requests_page.seq_requests"),
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/archive", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def archive(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -239,13 +227,11 @@ def archive(seq_request_id: int):
     flash(f"Archived sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Archived sequencing request '{seq_request.name}'")
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/unarchive", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def unarchive(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -261,13 +247,11 @@ def unarchive(seq_request_id: int):
     logger.debug(f"Unarchived sequencing request '{seq_request.name}'")
 
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/submit_request", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def submit_request(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -288,16 +272,12 @@ def submit_request(seq_request_id: int):
         return form.process_request(user=current_user)
 
 
-@seq_requests_htmx.route("create", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def create():
     return forms.models.SeqRequestForm(form_type="create", formdata=request.form).process_request(user=current_user, seq_request=None)
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/upload_auth_form", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def upload_auth_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -314,9 +294,7 @@ def upload_auth_form(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/comment_form", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def comment_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -337,8 +315,6 @@ def comment_form(seq_request_id: int):
 
 
 @seq_requests_htmx.route("<int:seq_request_id>/file_form", methods=["GET", "POST"])
-@db_session(db)
-@login_required
 def file_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -358,9 +334,7 @@ def file_form(seq_request_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/delete_file/<int:file_id>", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def delete_file(seq_request_id: int, file_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -383,12 +357,10 @@ def delete_file(seq_request_id: int, file_id: int):
 
     logger.info(f"Deleted file '{file.name}' from request (id='{seq_request_id}')")
     flash(f"Deleted file '{file.name}' from request.", "success")
-    return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id))
+    return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request_id))
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/remove_auth_form", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_auth_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -416,13 +388,11 @@ def remove_auth_form(seq_request_id: int):
     logger.debug(f"Removed sequencing authorization form for sequencing request '{seq_request.name}'")
 
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/remove_library", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_library(seq_request_id: int):
     if (library_id := request.args.get("library_id")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -454,16 +424,14 @@ def remove_library(seq_request_id: int):
 
     return make_response(
         redirect=url_for(
-            "seq_requests_page.seq_request_page",
+            "seq_requests_page.seq_request",
             seq_request_id=seq_request_id,
             tab="request-libraries-tab"
         ),
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/remove_sample", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_sample(seq_request_id: int):
     if (sample_id := request.args.get("sample_id")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -497,13 +465,11 @@ def remove_sample(seq_request_id: int):
     flash(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'")
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
+        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request_id),
     )
         
 
-@seq_requests_htmx.route("<int:seq_request_id>/remove_all_libraries", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_all_libraries(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -523,13 +489,11 @@ def remove_all_libraries(seq_request_id: int):
     logger.debug(f"Removed all libraries from sequencing request '{seq_request.name}'")
 
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request_id),
+        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request_id),
     )
 
 
-@seq_requests_htmx.route("table_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db)
 def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"
@@ -581,9 +545,7 @@ def table_query():
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/process_request", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def process_request(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -598,9 +560,7 @@ def process_request(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/add_share_email", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def add_share_email(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -615,9 +575,7 @@ def add_share_email(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/remove_share_email/<string:email>", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_share_email(seq_request_id: int, email: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -637,13 +595,11 @@ def remove_share_email(seq_request_id: int, email: str):
 
     flash(f"Removed shared email '{email}' from sequencing request '{seq_request.name}'", "success")
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=seq_request.id),
+        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/overview", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db)
 def overview(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -825,9 +781,8 @@ def get_libraries(seq_request_id: int, page: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/query_libraries", methods=["GET"])
-@db_session(db)
-@login_required
+
+@htmx_route(seq_requests_htmx, db=db)
 def query_libraries(seq_request_id: int):
     if (word := request.args.get("name")) is not None:
         field_name = "name"
@@ -950,9 +905,7 @@ def get_pools(seq_request_id: int, page: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/get_comments", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db)
 def get_comments(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -970,9 +923,7 @@ def get_comments(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/get_files", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db)
 def get_files(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -991,9 +942,7 @@ def get_files(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/clone/<string:method>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def clone(seq_request_id: int, method: Literal["pooled", "indexed", "raw"]):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -1007,12 +956,10 @@ def clone(seq_request_id: int, method: Literal["pooled", "indexed", "raw"]):
     cloned_request = db.clone_seq_request(seq_request_id=seq_request.id, method=method)
 
     flash("Request cloned", "success")
-    return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=cloned_request.id))
+    return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=cloned_request.id))
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/store_samples", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db)
 def store_samples(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -1048,9 +995,7 @@ def store_samples(seq_request_id: int):
     return form.make_response()
 
 
-@seq_requests_htmx.route("get_recent_seq_requests", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(seq_requests_htmx, db=db)
 def get_recent_seq_requests():
     if (sort_by := request.args.get("sort_by")) is not None:
         if sort_by not in ["timestamp_submitted_utc", "id"]:

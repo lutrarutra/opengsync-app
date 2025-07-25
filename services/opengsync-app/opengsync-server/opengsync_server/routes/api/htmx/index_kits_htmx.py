@@ -8,9 +8,9 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from opengsync_db import models, db_session, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, IndexType, BarcodeType, KitType
+from opengsync_db.categories import HTTPResponse, IndexType, KitType
 
-from .... import db, logger, cache, forms  # noqa F401
+from .... import db, logger, cache, forms, htmx_route  # noqa F401
 from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
@@ -57,9 +57,7 @@ def get(page: int):
     )
 
 
-@index_kits_htmx.route("table_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(index_kits_htmx, db=db)
 def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"
@@ -127,9 +125,7 @@ def get_adapters(index_kit_id: int, page: int):
     )
 
 
-@index_kits_htmx.route("<int:index_kit_id>/render_table", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(index_kits_htmx, db=db)
 def render_table(index_kit_id: int):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -155,9 +151,7 @@ def render_table(index_kit_id: int):
     )
 
 
-@index_kits_htmx.route("get_form/<string:form_type>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(index_kits_htmx, db=db)
 def get_form(form_type: str):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -182,9 +176,7 @@ def get_form(form_type: str):
     ).make_response()
 
 
-@index_kits_htmx.route("create", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
 def create():
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -198,9 +190,7 @@ def create():
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@index_kits_htmx.route("edit/<int:index_kit_id>", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
 def edit(index_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -216,9 +206,7 @@ def edit(index_kit_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@index_kits_htmx.route("<int:index_kit_id>/edit_barcodes", methods=["GET", "POST"])
-@db_session(db)
-@login_required
+@htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
 def edit_barcodes(index_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)

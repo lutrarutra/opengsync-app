@@ -156,4 +156,4 @@ class OCMMuxForm(MultiStepForm):
             db.delete_library(old_library_id, delete_orphan_samples=False)
 
         flash("Changes saved!", "success")
-        return make_response(redirect=(url_for("lab_preps_page.lab_prep_page", lab_prep_id=self.lab_prep.id)))
+        return make_response(redirect=(url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id)))

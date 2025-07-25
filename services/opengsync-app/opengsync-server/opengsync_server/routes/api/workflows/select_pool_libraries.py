@@ -7,7 +7,7 @@ from flask_htmx import make_response
 from opengsync_db import models, db_session, exceptions
 from opengsync_db.categories import HTTPResponse, LibraryStatus
 
-from .... import db, logger  # noqa
+from .... import db, logger, htmx_route  # noqa
 from ....forms import SelectSamplesForm
 
 if TYPE_CHECKING:
@@ -18,9 +18,7 @@ else:
 select_pool_libraries_workflow = Blueprint("select_pool_libraries_workflow", __name__, url_prefix="/api/workflows/select_pool_libraries/")
 
 
-@select_pool_libraries_workflow.route("begin/<int:pool_id>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(select_pool_libraries_workflow, db=db)
 def begin(pool_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -43,9 +41,7 @@ def begin(pool_id: int) -> Response:
     return form.make_response()
 
 
-@select_pool_libraries_workflow.route("select/<int:pool_id>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(select_pool_libraries_workflow, db=db, methods=["POST"])
 def select(pool_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -82,5 +78,5 @@ def select(pool_id: int) -> Response:
 
     db.flush()
     flash("Libraries added to pool!", "success")
-    return make_response(redirect=url_for("pools_page.pool_page", pool_id=pool.id))
+    return make_response(redirect=url_for("pools_page.pool", pool_id=pool.id))
         

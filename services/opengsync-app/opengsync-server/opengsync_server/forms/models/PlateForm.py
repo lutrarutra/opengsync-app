@@ -64,6 +64,6 @@ class PlateForm(HTMXFlaskForm):
                 )
 
             flash(f"Plate {plate.name} created", "success")
-            return make_response(redirect=url_for("pools_page.pool_page", pool_id=self.pool.id))
+            return make_response(redirect=url_for("pools_page.pool", pool_id=self.pool.id))
         
         raise NotImplementedError("Creating plates without a pool is not yet supported")

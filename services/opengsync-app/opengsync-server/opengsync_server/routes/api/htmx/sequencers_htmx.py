@@ -6,7 +6,7 @@ from flask_login import login_required
 
 from opengsync_db import PAGE_LIMIT, exceptions, models, db_session
 from opengsync_db.categories import HTTPResponse, UserRole
-from .... import db, forms, cache
+from .... import db, forms, cache, htmx_route
 
 sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/hmtx/sequencers/")
 
@@ -37,9 +37,7 @@ def get(page: int):
     )
 
 
-@sequencers_htmx.route("create", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(sequencers_htmx, db=db, methods=["POST"])
 def create():
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -47,9 +45,7 @@ def create():
     return forms.models.SequencerForm(request.form).process_request()
 
 
-@sequencers_htmx.route("update/<int:sequencer_id>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(sequencers_htmx, db=db, methods=["POST"])
 def update(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -62,9 +58,7 @@ def update(sequencer_id: int):
     )
 
 
-@sequencers_htmx.route("delete/<int:sequencer_id>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(sequencers_htmx, db=db)
 def delete(sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -77,18 +71,16 @@ def delete(sequencer_id: int):
     except exceptions.ElementIsReferenced:
         flash("Sequencer is referenced by experiment(s) and cannot be deleted.", "error")
         return make_response(
-            redirect=url_for("devices_page.sequencer_page", sequencer_id=sequencer_id)
+            redirect=url_for("devices_page.sequencer", sequencer_id=sequencer_id)
         )
 
     flash("Sequencer deleted.", "success")
     return make_response(
-        redirect=url_for("devices_page.devices_page")
+        redirect=url_for("devices_page.devices")
     )
 
 
-@sequencers_htmx.route("query", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(sequencers_htmx, db=db, methods=["POST"])
 def query():
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)

@@ -45,20 +45,20 @@
                 <th scope="row">{{ kit.id }}</th>
                 <td><a 
                     {% if kit.kit_type == KitType.INDEX_KIT %}
-                    href="{{ url_for('kits_page.index_kit_page', index_kit_id=kit.id) }}"
+                    href="{{ url_for('kits_page.index_kit', index_kit_id=kit.id) }}"
                     {% elif kit.kit_type == KitType.FEATURE_KIT %}
-                    href="{{ url_for('kits_page.feature_kit_page', feature_kit_id=kit.id) }}"
+                    href="{{ url_for('kits_page.feature_kit', feature_kit_id=kit.id) }}"
                     {% else %}
-                    href="{{ url_for('kits_page.kit_page', kit_id=kit.id) }}"
+                    href="{{ url_for('kits_page.kit', kit_id=kit.id) }}"
                     {% endif %}>{{ kit.identifier }}</a>
                 </td>
                 <td><a 
                     {% if kit.kit_type == KitType.INDEX_KIT %}
-                    href="{{ url_for('kits_page.index_kit_page', index_kit_id=kit.id) }}"
+                    href="{{ url_for('kits_page.index_kit', index_kit_id=kit.id) }}"
                     {% elif kit.kit_type == KitType.FEATURE_KIT %}
-                    href="{{ url_for('kits_page.feature_kit_page', feature_kit_id=kit.id) }}"
+                    href="{{ url_for('kits_page.feature_kit', feature_kit_id=kit.id) }}"
                     {% else %}
-                    href="{{ url_for('kits_page.kit_page', kit_id=kit.id) }}"
+                    href="{{ url_for('kits_page.kit', kit_id=kit.id) }}"
                     {% endif %}>{{ kit.name }}</a>
                 </td>
                 <td>{{ kit.kit_type.name }}</td>

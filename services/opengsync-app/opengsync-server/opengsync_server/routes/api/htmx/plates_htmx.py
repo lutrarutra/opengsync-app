@@ -1,13 +1,12 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from flask import Blueprint, url_for, render_template, flash, request, abort
+from flask import Blueprint, render_template, abort
 from flask_htmx import make_response
-from flask_login import login_required
 
 
-from opengsync_db import models, db_session
-from opengsync_db.categories import HTTPResponse, UserRole
-from .... import db, logger, forms
+from opengsync_db import models
+from opengsync_db.categories import HTTPResponse
+from .... import db, htmx_route
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -17,9 +16,7 @@ else:
 plates_htmx = Blueprint("plates_htmx", __name__, url_prefix="/api/hmtx/plates/")
 
 
-@plates_htmx.route("<int:plate_id>/plate_tab", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(plates_htmx, db=db)
 def plate_tab(plate_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

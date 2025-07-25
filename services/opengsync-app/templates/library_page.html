@@ -108,7 +108,7 @@
                 {{ 
                     metadata_group_link(
                         "Prep", library.lab_prep.name,
-                        url_for("lab_preps_page.lab_prep_page", lab_prep_id=library.lab_prep_id, from="library@" + library.id | string),
+                        url_for("lab_preps_page.lab_prep", lab_prep_id=library.lab_prep_id, from="library@" + library.id | string),
                         class="col-4"
                     )
                 }}
@@ -135,7 +135,7 @@
                 {{ 
                     metadata_group_link(
                         "Request", library.seq_request.name,
-                        url_for("seq_requests_page.seq_request_page", seq_request_id=library.seq_request_id, from="library@" + library.id | string),
+                        url_for("seq_requests_page.seq_request", seq_request_id=library.seq_request_id, from="library@" + library.id | string),
                         class="col-4"
                     )
                 }}
@@ -146,7 +146,7 @@
                 {{ 
                     metadata_group_link(
                         "Pool", library.pool.name,
-                        url_for("pools_page.pool_page", pool_id=library.pool.id, from="library@" + library.id | string),
+                        url_for("pools_page.pool", pool_id=library.pool.id, from="library@" + library.id | string),
                         class="col-4"
                     )
                 }}
@@ -154,7 +154,7 @@
                 {{ metadata_group("Pool", "", class="col-4") }}
                 {% endif %}
                 {% if library.experiment_id %}
-                {{ metadata_group_link("Experiment", library.experiment.name, url_for("experiments_page.experiment_page", experiment_id=library.experiment_id, from="library@" + library.id | string), class="col-4") }}
+                {{ metadata_group_link("Experiment", library.experiment.name, url_for("experiments_page.experiment", experiment_id=library.experiment_id, from="library@" + library.id | string), class="col-4") }}
                 {% else %}
                 {{ metadata_group("Experiment", "", class="col-4") }}
                 {% endif %}
@@ -163,14 +163,14 @@
             {% for index in library.indices %}
             <div class="row">
                 {% if index.index_kit_i7_id %}
-                {{ metadata_group_link("Kit i7", index.index_kit_i7.name, url_for("kits_page.index_kit_page", index_kit_id=index.index_kit_i7_id, from="library@" + library.id | string), class="col-2") }}
+                {{ metadata_group_link("Kit i7", index.index_kit_i7.name, url_for("kits_page.index_kit", index_kit_id=index.index_kit_i7_id, from="library@" + library.id | string), class="col-2") }}
                 {% else %}
                 {{ metadata_group("Kit i7", "", class="col-2") }}
                 {% endif %}
                 {{ metadata_group("Name i7", index.name_i5, class="col-2") }}
                 {{ metadata_group("Sequence i7", index.sequence_i7, class="col-2") }}
                 {% if index.index_kit_i5_id %}
-                {{ metadata_group_link("Kit i5", index.index_kit_i5.name, url_for("kits_page.index_kit_page", index_kit_id=index.index_kit_i5_id, from="library@" + library.id | string), class="col-2") }}
+                {{ metadata_group_link("Kit i5", index.index_kit_i5.name, url_for("kits_page.index_kit", index_kit_id=index.index_kit_i5_id, from="library@" + library.id | string), class="col-2") }}
                 {% else %}
                 {{ metadata_group("Kit i5", "", class="col-2") }}
                 {% endif %}
@@ -202,7 +202,7 @@
                     metadata_group_link(
                         "Owner Name",
                         library.owner.name,
-                        url_for("users_page.user_page", user_id=library.owner.id),
+                        url_for("users_page.user", user_id=library.owner.id),
                         class="col"
                     )
                 }}
@@ -250,7 +250,7 @@
             <div class="d-flex justify-content-between align-items-center pt-3 pb-1">
                 <div class="row">
                     {{ metadata_group("Filename", library.ba_report.name + library.ba_report.extension, class="col-3") }}
-                    {{ metadata_group_link("Uploader", library.ba_report.uploader.name, url_for('users_page.user_page', user_id=library.ba_report.uploader_id), class="col-3") }}
+                    {{ metadata_group_link("Uploader", library.ba_report.uploader.name, url_for('users_page.user', user_id=library.ba_report.uploader_id), class="col-3") }}
                     {{ metadata_group("Size", library.ba_report.size_str(), class="col-3") }}
                     {{ metadata_group("Time", library.ba_report.timestamp_str(), class="col-3") }}
                 </div>

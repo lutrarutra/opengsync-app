@@ -5,11 +5,11 @@ from flask_htmx import make_response
 from flask_login import login_required
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, PoolStatus
+from opengsync_db.categories import HTTPResponse
 
 from opengsync_db import db_session
 
-from .... import db, logger  # noqa
+from .... import db, logger, htmx_route  # noqa
 from ....forms import SelectSamplesForm
 
 if TYPE_CHECKING:
@@ -20,9 +20,7 @@ else:
 select_experiment_pools_workflow = Blueprint("select_experiment_pools_workflow", __name__, url_prefix="/api/workflows/select_experiment_pools/")
 
 
-@select_experiment_pools_workflow.route("<int:experiment_id>/begin", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(select_experiment_pools_workflow, db=db)
 def begin(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -35,9 +33,7 @@ def begin(experiment_id: int):
     return form.make_response()
 
 
-@select_experiment_pools_workflow.route("select", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(select_experiment_pools_workflow, db=db, methods=["POST"])
 def select():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -76,4 +72,4 @@ def select():
             db.link_pool_experiment(experiment_id=experiment.id, pool_id=pool_id)
 
     flash("Pools linked to experiment", "success")
-    return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
+    return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment.id))

@@ -69,7 +69,7 @@ class SequencerForm(HTMXFlaskForm):
 
         flash(f"Sequencer '{sequencer.name}' created.", "success")
 
-        return make_response(redirect=url_for("devices_page.devices_page"))
+        return make_response(redirect=url_for("devices_page.devices"))
     
     def __update_existing_sequencer(self, sequencer: models.Sequencer) -> Response:
         sequencer.name = self.name.data  # type: ignore
@@ -78,7 +78,7 @@ class SequencerForm(HTMXFlaskForm):
         sequencer = db.update_sequencer(sequencer)
 
         flash("Sequencer updated.", "success")
-        return make_response(redirect=url_for("devices_page.sequencer_page", sequencer_id=sequencer.id))
+        return make_response(redirect=url_for("devices_page.sequencer", sequencer_id=sequencer.id))
     
     def process_request(self, **context) -> Response:
         sequencer: Optional[models.Sequencer] = context.get("sequencer")

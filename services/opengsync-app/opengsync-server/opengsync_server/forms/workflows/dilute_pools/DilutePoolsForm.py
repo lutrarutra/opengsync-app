@@ -64,4 +64,4 @@ class DilutePoolsForm(HTMXFlaskForm):
             db.dilute_pool(pool_id, entry.qubit_after_dilution.data, user.id)
 
         flash("Dilution successful!", "success")
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
+        return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment.id))

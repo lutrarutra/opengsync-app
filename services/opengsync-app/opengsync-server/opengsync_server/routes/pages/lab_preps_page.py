@@ -1,28 +1,23 @@
 from flask import Blueprint, render_template, abort, url_for, request
-from flask_login import login_required, current_user
+from flask_login import current_user
 
-from opengsync_db import db_session
 from opengsync_db.categories import HTTPResponse, LibraryStatus, LibraryType
 
-from ... import db, logger, forms  # noqa
+from ... import db, page_route  # noqa
 
 lab_preps_page_bp = Blueprint("lab_preps_page", __name__)
 
 
-@lab_preps_page_bp.route("/preps", methods=["GET"])
-@db_session(db)
-@login_required
-def lab_preps_page():
+@page_route(lab_preps_page_bp, db=db)
+def lab_preps():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     return render_template("lab_preps_page.html")
 
 
-@lab_preps_page_bp.route("/preps/<int:lab_prep_id>", methods=["GET"])
-@db_session(db)
-@login_required
-def lab_prep_page(lab_prep_id: int):
+@page_route(lab_preps_page_bp, db=db)
+def lab_prep(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -40,15 +35,15 @@ def lab_prep_page(lab_prep_id: int):
             break
         
     path_list = [
-        ("Preps", url_for("lab_preps_page.lab_preps_page")),
+        ("Preps", url_for("lab_preps_page.lab_preps")),
         (f"Prep {lab_prep.id}", ""),
     ]
     if (_from := request.args.get("from")) is not None:
         page, id = _from.split("@")
         if page == "library":
             path_list = [
-                ("Libraries", url_for("libraries_page.libraries_page")),
-                (f"Library {id}", url_for("libraries_page.library_page", library_id=id)),
+                ("Libraries", url_for("libraries_page.libraries")),
+                (f"Library {id}", url_for("libraries_page.library", library_id=id)),
                 (f"Prep {lab_prep.id}", ""),
             ]
 

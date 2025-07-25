@@ -63,12 +63,12 @@
             {% for library in libraries %}
             <tr class="library-row" data-id="{{ library.id }}" data-name="{{ library.name }}">
                 <th scope="row">{{ library.id }}</th>
-                <td><a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">
+                <td><a href="{{ url_for('libraries_page.library', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">
                     {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
                 </a></td>
                 <td>
                 {% if library.pool_id %}
-                    <a href="{{ url_for('pools_page.pool_page', pool_id=library.pool_id, from='seq_request@' + seq_request.id | string)}}">{{ library.pool.name }}</a>
+                    <a href="{{ url_for('pools_page.pool', pool_id=library.pool_id, from='seq_request@' + seq_request.id | string)}}">{{ library.pool.name }}</a>
                 {% endif %}
                 </td>
                 <td>

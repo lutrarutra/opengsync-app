@@ -47,16 +47,16 @@
             {% for sample in samples %}
             <tr class="sample-row" data-id="{{ sample.id }}" data-name="{{ sample.name }}">
                 <th scope="row">{{ sample.id }}</th>
-                <td><a href="{{ url_for('samples_page.sample_page', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}">{{ sample.name }}</a></td>
+                <td><a href="{{ url_for('samples_page.sample', sample_id=sample.id, from='seq_request@' + seq_request.id | string) }}">{{ sample.name }}</a></td>
                 {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
                 <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
                 {% endif %}
-                <td><a href="{{ url_for('projects_page.project_page', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}">{{ sample.project.name }}</a></td>
+                <td><a href="{{ url_for('projects_page.project', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}">{{ sample.project.name }}</a></td>
                 <td>
                     {% for library_link in sample.library_links %}
                     {% set library = library_link.library %}
                     {% if seq_request.id == library.seq_request_id %}
-                    <span class="badge"><a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">{{ library.type.abbreviation }}</a></span>
+                    <span class="badge"><a href="{{ url_for('libraries_page.library', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">{{ library.type.abbreviation }}</a></span>
                     {% endif %}
                     {% endfor %}
                 </td>

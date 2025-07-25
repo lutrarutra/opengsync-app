@@ -12,7 +12,7 @@
                 </div>
                 <div>
                     {% if event.type == EventType.SAMPLE_SUBMISSION %}
-                    <a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=event.seq_request.id) }}">{{ event.seq_request.name }}</a>
+                    <a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=event.seq_request.id) }}">{{ event.seq_request.name }}</a>
                     {% endif %}
                     {% if event.note %}
                     <p>{{ event.note }}</p>

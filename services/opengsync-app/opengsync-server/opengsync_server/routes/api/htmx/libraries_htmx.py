@@ -10,7 +10,7 @@ from flask_login import login_required
 from opengsync_db import models, PAGE_LIMIT, db_session
 from opengsync_db.categories import HTTPResponse, LibraryType, LibraryStatus, AssayType, MUXType
 
-from .... import db, forms, logger  # noqa
+from .... import db, forms, logger, htmx_route  # noqa
 from ....tools.spread_sheet_components import TextColumn
 
 if TYPE_CHECKING:
@@ -68,9 +68,7 @@ def get(page: int):
     )
 
 
-@libraries_htmx.route("edit/<int:library_id>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db, methods=["POST"])
 def edit(library_id):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -80,9 +78,7 @@ def edit(library_id):
     return forms.models.LibraryForm(library=library, formdata=request.form).process_request()
 
 
-@libraries_htmx.route("query", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db, methods=["POST"])
 def query():
     field_name = next(iter(request.args.keys()))
     if (word := request.form.get(field_name, default="")) is None:
@@ -128,9 +124,7 @@ def get_features(library_id: int, page: int):
     )
 
 
-@libraries_htmx.route("<int:library_id>/render_feature_table", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db)
 def render_feature_table(library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -165,9 +159,7 @@ def render_feature_table(library_id: int):
     )
 
 
-@libraries_htmx.route("<int:library_id>/get_spatial_annotation", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db)
 def get_spatial_annotation(library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -181,9 +173,7 @@ def get_spatial_annotation(library_id: int):
     return make_response(render_template("components/library-spatial-annotation.html", library=library))
 
 
-@libraries_htmx.route("table_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db)
 def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"
@@ -276,9 +266,7 @@ def get_samples(library_id: int, page: int):
     )
 
 
-@libraries_htmx.route("<int:library_id>/reads_tab", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db)
 def reads_tab(library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -385,9 +373,7 @@ def browse(workflow: str, page: int):
     )
 
 
-@libraries_htmx.route("<string:workflow>/browse_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db)
 def browse_query(workflow: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -487,9 +473,7 @@ def browse_query(workflow: str):
     )
 
 
-@libraries_htmx.route("<string:workflow>/select_all", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db)
 def select_all(workflow: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -560,9 +544,7 @@ def select_all(workflow: str):
     return form.make_response(libraries=libraries)
 
 
-@libraries_htmx.route("<int:library_id>/remove_sample", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db, methods=["DELETE"])
 def remove_sample(library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -585,12 +567,10 @@ def remove_sample(library_id: int):
     db.unlink_sample_library(sample_id=sample.id, library_id=library.id)
 
     flash("Sample removed from library successfully.", "success")
-    return make_response(redirect=url_for("libraries_page.library_page", library_id=library.id))
+    return make_response(redirect=url_for("libraries_page.library", library_id=library.id))
 
 
-@libraries_htmx.route("<int:library_id>/get_mux_table", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db)
 def get_mux_table(library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -662,9 +642,7 @@ def get_mux_table(library_id: int):
     )
 
 
-@libraries_htmx.route("get_todo_libraries", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db)
 def get_todo_libraries():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -694,9 +672,7 @@ def get_todo_libraries():
     )
 
 
-@libraries_htmx.route("get_assay_type_todo_libraries/<int:assay_type_id>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(libraries_htmx, db=db)
 def get_assay_type_todo_libraries(assay_type_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

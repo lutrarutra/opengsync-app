@@ -60,5 +60,5 @@ class SampleForm(HTMXFlaskForm):
 
         flash("Changes saved succesfully!", "success")
         return make_response(
-            redirect=url_for("samples_page.sample_page", sample_id=sample.id),
+            redirect=url_for("samples_page.sample", sample_id=sample.id),
         )

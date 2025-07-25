@@ -31,6 +31,10 @@
     thead td {
         font-weight: 600;
     }
+
+    td.readonly {
+        color: $cemm-blue-darker !important;
+    }
 }
 
 .htmx-indicator {

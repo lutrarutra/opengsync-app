@@ -7,7 +7,7 @@ from flask_login import login_required
 
 from opengsync_db import models, PAGE_LIMIT, DBHandler, db_session
 from opengsync_db.categories import HTTPResponse, UserRole, SampleStatus
-from .... import db, logger, forms
+from .... import db, logger, forms, htmx_route
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -58,9 +58,7 @@ def get(page: int):
     )
 
 
-@samples_htmx.route("<int:sample_id>/delete", methods=["DELETE"])
-@db_session(db)
-@login_required
+@htmx_route(samples_htmx, db=db, methods=["DELETE"])
 def delete(sample_id: int):
     if (sample := db.get_sample(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -80,14 +78,12 @@ def delete(sample_id: int):
 
     return make_response(
         redirect=url_for(
-            "samples_page.samples_page"
+            "samples_page.samples"
         ),
     )
 
 
-@samples_htmx.route("<int:sample_id>/edit", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(samples_htmx, db=db, methods=["POST"])
 def edit(sample_id):
     if (sample := db.get_sample(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -102,9 +98,7 @@ def edit(sample_id):
     )
 
 
-@samples_htmx.route("query", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(samples_htmx, db=db, methods=["POST"])
 def query():
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name)) is None:
@@ -126,9 +120,7 @@ def query():
     )
 
 
-@samples_htmx.route("table_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(samples_htmx, db=db)
 def table_query():
     if (word := request.args.get("name", None)) is not None:
         field_name = "name"
@@ -226,9 +218,7 @@ def table_query():
     )
     
 
-@samples_htmx.route("<int:sample_id>/get_libraries", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(samples_htmx, db=db)
 def get_libraries(sample_id: int):
     if (sample := db.get_sample(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -251,9 +241,7 @@ def get_libraries(sample_id: int):
     )
 
 
-@samples_htmx.route("<int:sample_id>/get_plate", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(samples_htmx, db=db)
 def get_plate(sample_id: int):
     raise NotImplementedError()
     if not current_user.is_insider():
@@ -326,9 +314,7 @@ def browse(workflow: str, page: int):
     )
 
 
-@samples_htmx.route("<string:workflow>/browse_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(samples_htmx, db=db)
 def browse_query(workflow: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -379,9 +365,7 @@ def browse_query(workflow: str):
     )
 
 
-@samples_htmx.route("<string:workflow>/select_all", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(samples_htmx, db=db)
 def select_all(workflow: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

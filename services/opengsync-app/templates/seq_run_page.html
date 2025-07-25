@@ -36,7 +36,7 @@
                 {{
                     metadata_group_link(
                         "Experiment", seq_run.experiment_name,
-                        url_for("experiments_page.experiment_page", experiment_id=experiment.id, from="seq_run@" + seq_run.id | string),
+                        url_for("experiments_page.experiment", experiment_id=experiment.id, from="seq_run@" + seq_run.id | string),
                         class="col-3"
                     )
                 }}

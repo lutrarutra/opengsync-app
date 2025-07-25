@@ -412,4 +412,4 @@ class CompleteSASForm(MultiStepForm):
         os.makedirs(newdir, exist_ok=True)
         self.complete(os.path.join(newdir, f"{self.uuid}.msf"))
 
-        return make_response(redirect=url_for("seq_requests_page.seq_request_page", seq_request_id=self.seq_request.id))
+        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id))

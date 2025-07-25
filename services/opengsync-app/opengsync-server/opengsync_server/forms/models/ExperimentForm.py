@@ -104,7 +104,7 @@ class ExperimentForm(HTMXFlaskForm):
 
         flash(f"Edited experiment '{experiment.name}'.", "success")
 
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id))
+        return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment.id))
 
     def __create_new_experiment(self) -> Response:
         workflow = ExperimentWorkFlow.get(self.workflow.data)
@@ -125,7 +125,7 @@ class ExperimentForm(HTMXFlaskForm):
         flash(f"Created experiment '{experiment.name}'.", "success")
 
         return make_response(
-            redirect=url_for("experiments_page.experiment_page", experiment_id=experiment.id),
+            redirect=url_for("experiments_page.experiment", experiment_id=experiment.id),
         )
 
     def process_request(self, **context) -> Response:

@@ -49,9 +49,9 @@
             {% for project in projects %}
             <tr>
                 <th scope="row">{{ project.id }}</th>
-                <td><a href="{{ url_for('projects_page.project_page', project_id=project.id, from='group@' + group.id | string) }}">{{ project.name }}</a></td>
+                <td><a href="{{ url_for('projects_page.project', project_id=project.id, from='group@' + group.id | string) }}">{{ project.name }}</a></td>
                 <td>{{ project.status.name }} {{ project.status.icon | safe }}</td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=project.owner_id, from='group@' + group.id | string) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.requestor_id }}</span></a></td>
+                <td><a href="{{ url_for('users_page.user', user_id=project.owner_id, from='group@' + group.id | string) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.requestor_id }}</span></a></td>
                 <td>{{ project.timestamp_created_str() }}</td>
                 <td>{{ project.num_samples }}</td>
             </tr>

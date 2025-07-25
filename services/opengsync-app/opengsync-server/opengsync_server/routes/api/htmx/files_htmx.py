@@ -7,12 +7,11 @@ import pandas as pd
 
 from flask import Blueprint, render_template, abort, current_app
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, db_session
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger  # noqa
+from .... import db, logger, htmx_route  # noqa
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -22,9 +21,7 @@ else:
 files_htmx = Blueprint("files_htmx", __name__, url_prefix="/api/hmtx/files/")
 
 
-@files_htmx.route("<int:file_id>/render_xlsx", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(files_htmx, db=db)
 def render_xlsx(file_id: int):
     if (file := db.get_file(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

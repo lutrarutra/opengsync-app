@@ -7,7 +7,7 @@ from flask_login import login_required
 
 from opengsync_db import models, PAGE_LIMIT, db_session
 from opengsync_db.categories import HTTPResponse, RunStatus
-from .... import db, logger, cache  # noqa F401
+from .... import db, logger, cache, htmx_route  # noqa F401
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -46,9 +46,7 @@ def get(page: int):
     ))
 
 
-@seq_runs_htmx.route("table_query", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(seq_runs_htmx, db=db)
 def table_query():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

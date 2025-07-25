@@ -92,5 +92,5 @@ class EditKitFeaturesForm(HTMXFlaskForm):
             )
         
         flash("Changes saved!", "success")
-        return make_response(redirect=(url_for("kits_page.feature_kit_page", feature_kit_id=self.feature_kit.id)))
+        return make_response(redirect=(url_for("kits_page.feature_kit", feature_kit_id=self.feature_kit.id)))
         

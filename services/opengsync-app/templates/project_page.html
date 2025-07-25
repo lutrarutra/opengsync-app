@@ -103,7 +103,7 @@
                     metadata_group_link(
                         "Owner Name",
                         project.owner.name,
-                        url_for("users_page.user_page", user_id=project.owner.id, from="project@" + project.id | string),
+                        url_for("users_page.user", user_id=project.owner.id, from="project@" + project.id | string),
                         class="col-4"
                     )
                 }}
@@ -112,7 +112,7 @@
                     metadata_group_link(
                         "Group",
                         project.group.name + " " + project.group.type.icon,
-                        url_for("groups_page.group_page", group_id=project.group_id, from="project@" + project.id | string),
+                        url_for("groups_page.group", group_id=project.group_id, from="project@" + project.id | string),
                         class="col-4"
                     )
                 }}

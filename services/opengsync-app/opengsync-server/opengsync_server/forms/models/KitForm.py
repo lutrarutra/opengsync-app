@@ -90,7 +90,7 @@ class KitForm(HTMXFlaskForm):
         self.kit.identifier = self.identifier.data  # type: ignore
         self.kit = db.update_kit(self.kit)
         flash("Kit updated successfully.", "success")
-        return make_response(redirect=url_for("kits_page.kit_page", kit_id=self.kit.id))
+        return make_response(redirect=url_for("kits_page.kit", kit_id=self.kit.id))
         
     def __create_kit(self) -> Response:
         kit = db.create_kit(
@@ -99,7 +99,7 @@ class KitForm(HTMXFlaskForm):
             kit_type=KitType.LIBRARY_KIT,
         )
         flash("Kit created successfully.", "success")
-        return make_response(redirect=url_for("kits_page.kit_page", kit_id=kit.id))
+        return make_response(redirect=url_for("kits_page.kit", kit_id=kit.id))
     
     def process_request(self) -> Response:
         if not self.validate():

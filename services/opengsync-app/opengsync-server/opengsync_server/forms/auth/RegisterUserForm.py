@@ -55,7 +55,7 @@ class RegisterUserForm(HTMXFlaskForm):
 
         token = models.User.generate_registration_token(email=email, role=user_role, serializer=serializer)
 
-        url = url_for("auth_page.register_page", token=token, _external=True)
+        url = url_for("auth_page.register", token=token, _external=True)
         msg = Message(
             "OpeNGSync Registration",
             sender=EMAIL_SENDER,

@@ -49,8 +49,8 @@
             {% for seq_request in seq_requests %}
             <tr>
                 <th scope="row">{{ seq_request.id }}</th>
-                <td><a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=seq_request.id, from='group@' + group.id | string) }}">{{ seq_request.name }}</a></td>
-                <td><a href="{{ url_for('users_page.user_page', user_id=seq_request.requestor_id, from='group@' + group.id | string) }}">{{ seq_request.requestor.name }} <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></a></td>
+                <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, from='group@' + group.id | string) }}">{{ seq_request.name }}</a></td>
+                <td><a href="{{ url_for('users_page.user', user_id=seq_request.requestor_id, from='group@' + group.id | string) }}">{{ seq_request.requestor.name }} <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></a></td>
                 <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
                 <td>{{ seq_request.timestamp_submitted_str() }}</td>
                 <td>{{ seq_request.num_libraries }}</td>

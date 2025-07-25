@@ -63,5 +63,5 @@ class ExperimentAttachmentForm(FileInputForm):
 
         flash("File uploaded successfully.", "success")
         logger.info(f"File '{db_file.uuid}' uploaded by user '{user.id}'.")
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=self.experiment.id))
+        return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
         

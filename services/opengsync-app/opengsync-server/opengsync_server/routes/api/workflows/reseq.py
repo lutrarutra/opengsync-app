@@ -6,7 +6,7 @@ from flask_login import login_required
 from opengsync_db import models, db_session
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger  # noqa
+from .... import db, logger, htmx_route  # noqa
 from ....forms.workflows import reseq as forms
 from ....forms import SelectSamplesForm
 from ....tools import exceptions
@@ -44,9 +44,7 @@ def get_context(args: dict) -> dict:
     return context
 
 
-@reseq_workflow.route("begin", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(reseq_workflow, db=db)
 def begin() -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -64,9 +62,7 @@ def begin() -> Response:
     return form.make_response()
 
 
-@reseq_workflow.route("select", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(reseq_workflow, db=db, methods=["POST"])
 def select() -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -98,9 +94,7 @@ def select() -> Response:
     return next_form.make_response()
 
 
-@reseq_workflow.route("reseq/<string:uuid>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(reseq_workflow, db=db, methods=["POST"])
 def reseq(uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

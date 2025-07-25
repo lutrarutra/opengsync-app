@@ -59,7 +59,7 @@
             <tr>
                 <th scope="row">{{ library.id }}</th>
                 <td>
-                    <a href="{{ url_for('libraries_page.library_page', library_id=library.id) }}">
+                    <a href="{{ url_for('libraries_page.library', library_id=library.id) }}">
                         {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
                     </a>
                 </td>
@@ -69,7 +69,7 @@
                     </span>
                 </td>
                 <td>{{ library.status.icon }} {{ library.status.name }}</td>
-                <td><a href="{{ url_for('seq_requests_page.seq_request_page', seq_request_id=library.seq_request_id) }}">{{ library.seq_request.name }}</a></td>
+                <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=library.seq_request_id) }}">{{ library.seq_request.name }}</a></td>
                 <td class="barcode-cell">
                     {{ library_index_cell(library) }}
                 </td>

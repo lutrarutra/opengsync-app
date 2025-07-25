@@ -139,6 +139,6 @@ class CompleteQubitMeasureForm(MultiStepForm):
         self.complete()
         flash("Qubit Measurements saved!", "success")
         if (experiment_id := metadata.get("experiment_id")) is not None:
-            return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=experiment_id))
+            return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment_id))
         
         return make_response(redirect=url_for("dashboard"))

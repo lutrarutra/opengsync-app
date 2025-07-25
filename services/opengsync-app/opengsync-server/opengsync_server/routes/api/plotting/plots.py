@@ -9,9 +9,9 @@ import plotly
 import plotly.express as px
 import plotly.graph_objects as go
 
-from opengsync_db import models, db_session
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
-from .... import db, logger
+from .... import db, htmx_route
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -28,9 +28,7 @@ def _add_traces(to_figure, from_figure):
     return to_figure
 
 
-@plots_api.route("<int:experiment_id>/experiment_library_reads", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(plots_api, db=db, methods=["POST"])
 def experiment_library_reads(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -51,7 +49,7 @@ def experiment_library_reads(experiment_id: int):
     df["num_total_library_reads"] = df["library_id"].map(mapping)
     df = df.sort_values(by=["lane", "num_total_library_reads"], ascending=[True, True])
 
-    df["y_ticks"] = df.apply(lambda row: f"<a href='{url_for('libraries_page.library_page', library_id=row['library_id'])}?from=experiment@{experiment.id}' target='_self'>{row['library_name']}</a>", axis=1)
+    df["y_ticks"] = df.apply(lambda row: f"<a href='{url_for('libraries_page.library', library_id=row['library_id'])}?from=experiment@{experiment.id}' target='_self'>{row['library_name']}</a>", axis=1)
     df.loc[df["library_id"] == -1, "y_ticks"] = "Undetermined"
 
     fig = go.Figure()

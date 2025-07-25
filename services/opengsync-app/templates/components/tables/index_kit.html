@@ -45,8 +45,8 @@
             {% for index_kit in index_kits %}
             <tr>
                 <th scope="row">{{ index_kit.id }}</th>
-                <td><a href="{{ url_for('kits_page.index_kit_page', index_kit_id=index_kit.id) }}">{{ index_kit.identifier }}</a></td>
-                <td><a href="{{ url_for('kits_page.index_kit_page', index_kit_id=index_kit.id) }}">{{ index_kit.name }}</a></td>
+                <td><a href="{{ url_for('kits_page.index_kit', index_kit_id=index_kit.id) }}">{{ index_kit.identifier }}</a></td>
+                <td><a href="{{ url_for('kits_page.index_kit', index_kit_id=index_kit.id) }}">{{ index_kit.name }}</a></td>
                 <td>{{ index_kit.type.name }}</td>
                 <td>
                     {% for protocol in index_kit.supported_protocols %}

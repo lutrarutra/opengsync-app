@@ -55,7 +55,7 @@
             <tr>
                 <th scope="row">{{ library.id }}</th>
                 <td class="library-name-cell" data-library-id="{{ library.id }}" data-library-name="{{ library.name }}">
-                    <a href="{{ url_for('libraries_page.library_page', library_id=library.id, from='pool@' + pool.id | string) }}">
+                    <a href="{{ url_for('libraries_page.library', library_id=library.id, from='pool@' + pool.id | string) }}">
                         {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
                     </a>
                 </td>
@@ -64,7 +64,7 @@
                         {{ library.type.abbreviation }}
                     </span>
                 </td>
-                <td><a href="{{ url_for('users_page.user_page', library_id=library.owner_id, from='pool@' + pool.id | string) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
+                <td><a href="{{ url_for('users_page.user', library_id=library.owner_id, from='pool@' + pool.id | string) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
                 <td class="barcode-cell">
                     {{ library_index_cell(library) }}
                 </td>

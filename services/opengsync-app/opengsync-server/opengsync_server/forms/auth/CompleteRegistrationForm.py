@@ -49,4 +49,4 @@ class CompleteRegistrationForm(HTMXFlaskForm):
 
         flash("Registration completed!", "success")
         logger.info(f"Registration completed for {user.email}")
-        return make_response(redirect=url_for("auth_page.auth_page"))
+        return make_response(redirect=url_for("auth_page.auth"))

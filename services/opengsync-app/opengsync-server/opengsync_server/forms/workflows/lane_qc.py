@@ -55,7 +55,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
             db.update_lane(lane)
 
         flash("Flow cell loaded successfully", "success")
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=self.experiment.id))
+        return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
 
 
 class QCLanesSubForm(FlaskForm):
@@ -119,4 +119,4 @@ class QCLanesForm(HTMXFlaskForm):
             lane = db.update_lane(lane)
 
         flash("Flow cell loaded successfully", "success")
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=self.experiment.id))
+        return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

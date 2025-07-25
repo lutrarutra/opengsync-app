@@ -8,7 +8,7 @@ from flask_login import login_required
 from opengsync_db import models, db_session
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger
+from .... import db, logger, htmx_route
 from ....forms.workflows import check_barcode_clashes as wff
 from ....forms import SelectSamplesForm
 
@@ -20,9 +20,7 @@ else:
 check_barcode_clashes_workflow = Blueprint("check_barcode_clashes_workflow", __name__, url_prefix="/api/workflows/check_barcode_clashes/")
 
 
-@check_barcode_clashes_workflow.route("begin", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(check_barcode_clashes_workflow, db=db)
 def begin():
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -37,9 +35,7 @@ def begin():
     return form.make_response()
 
 
-@check_barcode_clashes_workflow.route("select", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(check_barcode_clashes_workflow, db=db, methods=["POST"])
 def select():
     form: SelectSamplesForm = SelectSamplesForm("check_barcode_clashes", formdata=request.form)
 
@@ -93,9 +89,7 @@ def select():
     return wff.CheckBarcodeClashesForm(libraries_df).process_request()
 
 
-@check_barcode_clashes_workflow.route("check_experiment_barcode_clashes/<int:experiment_id>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(check_barcode_clashes_workflow, db=db)
 def check_experiment_barcode_clashes(experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -129,9 +123,7 @@ def check_experiment_barcode_clashes(experiment_id: int):
     return wff.CheckBarcodeClashesForm(library_df, groupby="lane").process_request()
 
 
-@check_barcode_clashes_workflow.route("check_seq_request_barcode_clashes/<int:seq_request_id>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(check_barcode_clashes_workflow, db=db)
 def check_seq_request_barcode_clashes(seq_request_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

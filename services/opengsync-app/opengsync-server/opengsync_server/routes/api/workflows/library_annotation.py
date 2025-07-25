@@ -7,7 +7,7 @@ from flask_login import login_required
 from opengsync_db import models, db_session
 from opengsync_db.categories import HTTPResponse, SubmissionType
 
-from .... import db, logger  # noqa
+from .... import db, logger, htmx_route  # noqa
 from ....forms.workflows import library_annotation as forms
 from ....forms.MultiStepForm import MultiStepForm
 
@@ -19,10 +19,7 @@ else:
 library_annotation_workflow = Blueprint("library_annotation_workflow", __name__, url_prefix="/api/workflows/library_annotation/")
 
 
-# Template sequencing authorization form
-@library_annotation_workflow.route("seq_auth_form/download", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db)
 def download_seq_auth_form():
     name = "seq_auth_form_v2.pdf"
 
@@ -36,10 +33,7 @@ def download_seq_auth_form():
     return send_file(path, mimetype="pdf", as_attachment=True, download_name=name)
 
 
-# 0. Restart form
-@library_annotation_workflow.route("<int:seq_request_id>/begin/<string:workflow_type>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db)
 def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     if workflow_type not in ["raw", "pooled", "tech"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -68,10 +62,7 @@ def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     return form.make_response()
         
 
-# 0. Step
-@library_annotation_workflow.route("<int:seq_request_id>/previous/<string:uuid>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db)
 def previous(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -93,10 +84,7 @@ def previous(seq_request_id: int, uuid: str):
     return prev_step.make_response()
 
 
-# 1.1 Select project
-@library_annotation_workflow.route("<int:seq_request_id>/project_select/<string:workflow_type>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def select_project(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     if workflow_type not in ["tech", "raw", "pooled"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -115,10 +103,7 @@ def select_project(seq_request_id: int, workflow_type: Literal["raw", "pooled", 
     return forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type, formdata=request.form).process_request(user=current_user)
     
 
-# 1.2 Pool Definition
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/define_pools", methods=["POST", "GET"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST", "GET"])
 def define_pools(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -134,10 +119,7 @@ def define_pools(seq_request_id: int, uuid: str):
     return forms.PoolMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request(user=current_user)
 
 
-# 1.2. Specify Barcodes
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_barcode_table", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_barcode_table(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -150,9 +132,7 @@ def parse_barcode_table(seq_request_id: int, uuid: str):
     return forms.BarcodeInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/barcode_match", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def barcode_match(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -165,10 +145,7 @@ def barcode_match(seq_request_id: int, uuid: str):
     return forms.BarcodeMatchForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-# 1.3 Index Kit Mapping
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/map_index_kits", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def map_index_kits(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -181,9 +158,7 @@ def map_index_kits(seq_request_id: int, uuid: str):
     return forms.IndexKitMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_assay_form", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_assay_form(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -196,10 +171,7 @@ def parse_assay_form(seq_request_id: int, uuid: str):
     return forms.SelectAssayForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-# 2. Input sample annotation sheet
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_table/<string:form_type>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_table(seq_request_id: int, uuid: str, form_type: Literal["pooled", "raw", "tech", "tech-multiplexed"]):
     if form_type not in ["pooled", "raw", "tech", "tech-multiplexed"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -224,10 +196,7 @@ def parse_table(seq_request_id: int, uuid: str, form_type: Literal["pooled", "ra
     return form.process_request()
 
 
-# 6. Specify OCM reference
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_ocm_reference", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_ocm_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -240,10 +209,7 @@ def parse_ocm_reference(seq_request_id: int, uuid: str):
     return forms.OCMAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-# 6. Specify CMO reference
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_cmo_reference", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_cmo_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -256,10 +222,7 @@ def parse_cmo_reference(seq_request_id: int, uuid: str):
     return forms.OligoMuxAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-# 7. Specify Features
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/annotate_features", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def annotate_features(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -272,10 +235,7 @@ def annotate_features(seq_request_id: int, uuid: str):
     return forms.FeatureAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-# 8. Map Feature Kits
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/map_feature_kits", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def map_feature_kits(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -288,10 +248,7 @@ def map_feature_kits(seq_request_id: int, uuid: str):
     return forms.KitMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-# 9. Visium Annotation
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_visium_reference", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_visium_reference(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -304,10 +261,7 @@ def parse_visium_reference(seq_request_id: int, uuid: str):
     return forms.VisiumAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-# 9. Visium Annotation
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_openst_annotation", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_openst_annotation(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -320,10 +274,7 @@ def parse_openst_annotation(seq_request_id: int, uuid: str):
     return forms.OpenSTAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-# 10. Flex Annotation
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_flex_annotation", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_flex_annotation(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -336,10 +287,7 @@ def parse_flex_annotation(seq_request_id: int, uuid: str):
     return forms.FlexAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
-# 11. Parse sample annotations
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/parse_sas_form", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_sas_form(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -351,11 +299,8 @@ def parse_sas_form(seq_request_id: int, uuid: str):
     
     return forms.SampleAttributeAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
-    
-# Complete SAS
-@library_annotation_workflow.route("<int:seq_request_id>/<string:uuid>/complete", methods=["POST"])
-@db_session(db)
-@login_required
+
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def complete(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

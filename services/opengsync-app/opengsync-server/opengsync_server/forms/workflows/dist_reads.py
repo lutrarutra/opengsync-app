@@ -95,7 +95,7 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
                 
         self.experiment = db.update_experiment(self.experiment)
         flash("Saved!", "success")
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=self.experiment.id))
+        return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
     
 
 class PoolReadsSubForm(FlaskForm):
@@ -151,4 +151,4 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
                 
         self.experiment = db.update_experiment(self.experiment)
         flash("Saved!", "success")
-        return make_response(redirect=url_for("experiments_page.experiment_page", experiment_id=self.experiment.id))
+        return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
