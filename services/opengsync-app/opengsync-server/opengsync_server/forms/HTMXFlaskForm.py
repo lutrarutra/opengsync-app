@@ -46,7 +46,8 @@ class HTMXFlaskForm(FlaskForm, metaclass=ABCHTMXFlaskForm):
         return context
 
     def make_response(self, **context) -> Response:
-        self.prepare()
+        if not self.formdata:
+            self.prepare()
         context = self.get_context(**context)
         return make_response(
             render_template(

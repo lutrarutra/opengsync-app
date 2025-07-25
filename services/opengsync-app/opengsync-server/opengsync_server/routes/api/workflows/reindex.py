@@ -60,7 +60,7 @@ def begin() -> Response:
         context = get_context(request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpenGSyncException as e:
+    except exceptions.OpeNGSyncServerException as e:
         return abort(e.response.id)
         
     form = SelectSamplesForm(
@@ -78,7 +78,7 @@ def select():
         context = get_context(request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpenGSyncException as e:
+    except exceptions.OpeNGSyncServerException as e:
         return abort(e.response.id)
     
     form: SelectSamplesForm = SelectSamplesForm(
@@ -112,7 +112,7 @@ def upload_barcode_form(uuid: str):
         context = get_context(request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpenGSyncException as e:
+    except exceptions.OpeNGSyncServerException as e:
         return abort(e.response.id)
     
     form = forms.BarcodeInputForm(
@@ -132,7 +132,7 @@ def map_index_kits(uuid: str):
         context = get_context(request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpenGSyncException as e:
+    except exceptions.OpeNGSyncServerException as e:
         return abort(e.response.id)
     
     form = forms.IndexKitMappingForm(

@@ -6,7 +6,7 @@ from flask_login import login_required
 from opengsync_db import models, db_session
 from opengsync_db.categories import HTTPResponse, MUXType
 
-from .... import db, logger  # noqa
+from .... import db, logger, htmx_route  # noqa
 from ....forms.workflows import mux_prep as forms
 
 if TYPE_CHECKING:
@@ -17,9 +17,7 @@ else:
 mux_prep_workflow = Blueprint("mux_prep_workflow", __name__, url_prefix="/api/workflows/multiplexing_prep/")
 
 
-@mux_prep_workflow.route("<int:lab_prep_id>/begin/<int:mux_type_id>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(mux_prep_workflow, "<int:lab_prep_id>/begin/<int:mux_type_id>", db=db)
 def begin(lab_prep_id: int, mux_type_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -42,9 +40,7 @@ def begin(lab_prep_id: int, mux_type_id: int):
     return form.make_response()
 
 
-@mux_prep_workflow.route("<int:lab_prep_id>/parse_oligo_mux_annotation/<string:uuid>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(mux_prep_workflow, "<int:lab_prep_id>/parse_oligo_mux_annotation/<string:uuid>", db=db, methods=["POST"])
 def parse_oligo_mux_annotation(lab_prep_id: int, uuid: str):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -52,9 +48,7 @@ def parse_oligo_mux_annotation(lab_prep_id: int, uuid: str):
     return forms.OligoMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
 
 
-@mux_prep_workflow.route("<int:lab_prep_id>/parse_flex_annotation/<string:uuid>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(mux_prep_workflow, "<int:lab_prep_id>/parse_flex_annotation/<string:uuid>", db=db, methods=["POST"])
 def parse_flex_annotation(lab_prep_id: int, uuid: str):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -62,9 +56,15 @@ def parse_flex_annotation(lab_prep_id: int, uuid: str):
     return forms.FlexMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
 
 
-@mux_prep_workflow.route("<int:lab_prep_id>/parse_ocm_annotation/<string:uuid>", methods=["POST"])
-@db_session(db)
-@login_required
+@htmx_route(mux_prep_workflow, "<int:lab_prep_id>/parse_flex_abc_annotation/<string:uuid>", db=db, methods=["POST"])
+def parse_flex_abc_annotation(lab_prep_id: int, uuid: str):
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    return forms.FlexABCForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
+
+
+@htmx_route(mux_prep_workflow, "<int:lab_prep_id>/parse_ocm_annotation/<string:uuid>", db=db, methods=["POST"])
 def parse_ocm_annotation(lab_prep_id: int, uuid: str):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

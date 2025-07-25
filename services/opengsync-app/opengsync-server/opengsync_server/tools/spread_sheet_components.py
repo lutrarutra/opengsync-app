@@ -1,6 +1,6 @@
 import pandas as pd
 
-from typing import Optional, Literal, Any, Type, Callable
+from typing import Optional, Literal, Any, Type, Callable, Sequence
 
 from dataclasses import dataclass
 
@@ -29,6 +29,11 @@ class DuplicateCellValue(SpreadSheetException):
         super().__init__(message, "#D7BDE2", "Duplicate Value")
 
 
+class NotUniqueCellValue(SpreadSheetException):
+    def __init__(self, message: str):
+        super().__init__(message, "#D5F5E3", "Not Unique Value")
+
+
 @dataclass
 class SpreadSheetColumn:
     label: str
@@ -41,6 +46,8 @@ class SpreadSheetColumn:
     letter: Optional[str] = None
     required: bool = False
     optional_col: bool = False
+    unique: bool = False
+    read_only: bool = False
 
     def clean_up(self, value: Any) -> Any:
         if pd.isna(value):
@@ -61,19 +68,30 @@ class SpreadSheetColumn:
             
         return value
     
-    def validate(self, value: Any):
+    def validate(self, value: Any, column_values: Sequence[Any]):
         if self.required and value is None:
             raise MissingCellValue(f"Missing value for '{self.label}'")
+        
+        if self.unique and value is not None:
+            if column_values.count(value) > 1:
+                raise DuplicateCellValue(f"Value '{value}' for '{self.label}' is not unique. It appears multiple times in the column.")
 
 
 class TextColumn(SpreadSheetColumn):
-    def __init__(self, label: str, name: str, width: float, max_length: int = 1024, min_length: int = 0, required: bool = False, optional_col: bool = False, clean_up_fnc: Optional[Callable] = None, letter: Optional[str] = None):
-        super().__init__(label=label, name=name, type="text", width=width, var_type=str, clean_up_fnc=clean_up_fnc, letter=letter, required=required, optional_col=optional_col)
+    def __init__(
+        self, label: str, name: str, width: float, max_length: int = 1024, min_length: int = 0,
+        required: bool = False, optional_col: bool = False, clean_up_fnc: Optional[Callable] = None,
+        letter: Optional[str] = None, unique: bool = False, read_only: bool = False
+    ):
+        super().__init__(
+            label=label, name=name, type="text", width=width, var_type=str, clean_up_fnc=clean_up_fnc,
+            letter=letter, required=required, optional_col=optional_col, unique=unique, read_only=read_only
+        )
         self.max_length = max_length
         self.min_length = min_length
 
-    def validate(self, value: Any):
-        super().validate(value)
+    def validate(self, value: Any, column_values: Sequence[Any]):
+        super().validate(value, column_values)
         value = self.clean_up(value)
         if value is None:
             return
@@ -85,11 +103,17 @@ class TextColumn(SpreadSheetColumn):
         
 
 class IntegerColumn(SpreadSheetColumn):
-    def __init__(self, label: str, name: str, width: float, required: bool = False, letter: Optional[str] = None, optional_col: bool = False):
-        super().__init__(label=label, name=name, type="numeric", width=width, var_type=int, letter=letter, required=required, optional_col=optional_col)
+    def __init__(
+        self, label: str, name: str, width: float, required: bool = False, letter: Optional[str] = None,
+        optional_col: bool = False, unique: bool = False, read_only: bool = False
+    ):
+        super().__init__(
+            label=label, name=name, type="numeric", width=width, var_type=int, letter=letter, required=required,
+            optional_col=optional_col, unique=unique, read_only=read_only
+        )
 
-    def validate(self, value: Any):
-        super().validate(value)
+    def validate(self, value: Any, column_values: Sequence[Any]):
+        super().validate(value, column_values)
         
         if isinstance(value, str):
             try:
@@ -104,11 +128,17 @@ class IntegerColumn(SpreadSheetColumn):
 
 
 class FloatColumn(SpreadSheetColumn):
-    def __init__(self, label: str, name: str, width: float, required: bool = False, letter: Optional[str] = None, optional_col: bool = False):
-        super().__init__(label=label, name=name, type="numeric", width=width, var_type=float, letter=letter, required=required, optional_col=optional_col)
+    def __init__(
+        self, label: str, name: str, width: float, required: bool = False, letter: Optional[str] = None,
+        optional_col: bool = False, unique: bool = False, read_only: bool = False
+    ):
+        super().__init__(
+            label=label, name=name, type="numeric", width=width, var_type=float, letter=letter,
+            required=required, optional_col=optional_col, unique=unique, read_only=read_only
+        )
 
-    def validate(self, value: Any):
-        super().validate(value)
+    def validate(self, value: Any, column_values: Sequence[Any]):
+        super().validate(value, column_values)
         if isinstance(value, str):
             try:
                 value = float(value.strip())
@@ -122,11 +152,20 @@ class FloatColumn(SpreadSheetColumn):
     
 
 class DropdownColumn(SpreadSheetColumn):
-    def __init__(self, label: str, name: str, width: float, choices: list[Any], required: bool = False, letter: Optional[str] = None, optional_col: bool = False):
-        super().__init__(label=label, name=name, type="dropdown", width=width, var_type=str, source=choices, letter=letter, required=required, optional_col=optional_col)
+    all_options_required: bool
 
-    def validate(self, value: Any):
-        super().validate(value)
+    def __init__(
+        self, label: str, name: str, width: float, choices: list[Any], required: bool = False,
+        letter: Optional[str] = None, optional_col: bool = False, unique: bool = False, all_options_required: bool = False, read_only: bool = False
+    ):
+        super().__init__(
+            label=label, name=name, type="dropdown", width=width, var_type=str, source=choices,
+            letter=letter, required=required, optional_col=optional_col, unique=unique, read_only=read_only
+        )
+        self.all_options_required = all_options_required
+
+    def validate(self, value: Any, column_values: Sequence[Any]):
+        super().validate(value, column_values)
 
         if value not in self.source:
             if pd.isna(value) and not self.required:

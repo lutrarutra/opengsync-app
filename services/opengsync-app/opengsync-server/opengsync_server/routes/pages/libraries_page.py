@@ -1,11 +1,11 @@
 from typing import TYPE_CHECKING
 from flask import Blueprint, render_template, abort, url_for, request
-from flask_login import login_required
 
-from opengsync_db import db_session
 from opengsync_db.models import User
 from opengsync_db.categories import HTTPResponse
-from ... import db, forms
+
+from ... import db, forms, page_route
+from ...tools import exceptions
 
 if TYPE_CHECKING:
     current_user: User = None   # type: ignore
@@ -15,16 +15,13 @@ else:
 libraries_page_bp = Blueprint("libraries_page", __name__)
 
 
-@libraries_page_bp.route("/libraries")
-@db_session(db)
-@login_required
+@page_route(libraries_page_bp, "/libraries", db=db)
 def libraries_page():
+    raise exceptions.InternalServerErrorException("The libraries page is not implemented yet.")
     return render_template("libraries_page.html")
 
 
-@libraries_page_bp.route("/libraries/<int:library_id>")
-@db_session(db)
-@login_required
+@page_route(libraries_page_bp, "/libraries/<int:library_id>", methods=["GET"], db=db)
 def library_page(library_id):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

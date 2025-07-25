@@ -2,6 +2,7 @@ from typing import Optional, Union, TypeVar, Sequence
 import difflib
 import string
 
+import numpy as np
 import pandas as pd
 
 from opengsync_db import models, exceptions, DBHandler
@@ -296,3 +297,21 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
 
     df = pd.DataFrame(library_data)
     return df
+
+
+def get_nameid_column(df: pd.DataFrame, name_col: str, id_col: str, sep: str = "@") -> list[str]:
+    return (df[name_col] + sep + df[id_col].astype(str)).tolist()
+
+
+def parse_nameid_column(df: pd.DataFrame, col: str, sep: str = "@") -> list[int | None]:
+    return df[col].apply(lambda x: int(x.split(sep)[-1]) if pd.notna(x) else None).tolist()
+
+
+def map_columns(dst: pd.DataFrame, src: pd.DataFrame, idx_columns: list[str] | str | None, col: str) -> pd.Series:
+    if idx_columns is not None:
+        src = src.set_index(idx_columns)
+
+    mapping = src[col].to_dict()
+    if isinstance(idx_columns, str):
+        return pd.Series(dst[idx_columns].apply(lambda x: mapping.get(x, None) if pd.notna(x) else None))
+    return pd.Series(dst[idx_columns].apply(lambda row: mapping.get(tuple(row), None) if isinstance(row, pd.Series) else mapping.get(row), axis=1))
