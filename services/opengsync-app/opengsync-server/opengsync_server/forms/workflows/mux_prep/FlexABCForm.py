@@ -59,7 +59,7 @@ class FlexABCForm(MultiStepForm):
     def prepare(self):
         df = self.abc_table
         df["gex_barcode"] = utils.map_columns(df, self.gex_table, "sample_name", "mux_barcode")
-        df["barcode_id"] = df["mux"].apply(lambda x: x.get("barcode"))
+        df["barcode_id"] = df["mux"].apply(lambda x: x.get("barcode") if pd.notna(x) and isinstance(x, dict) else None)
         df.loc[df["barcode_id"].isna(), "barcode_id"] = df.loc[df["barcode_id"].isna(), "gex_barcode"].apply(
             lambda x: x.replace("BC", "AB") if pd.notna(x) else None
         )
