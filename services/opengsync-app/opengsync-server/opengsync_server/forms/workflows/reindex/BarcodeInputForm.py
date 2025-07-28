@@ -67,6 +67,7 @@ class BarcodeInputForm(CommonBarcodeInputForm):
             return self.make_response()
         
         barcode_table = self.get_barcode_table()
+        self.update_table("library_table", self.df)
 
         if IndexKitMappingForm.is_applicable(self):
             self.add_table("barcode_table", barcode_table)
@@ -80,7 +81,7 @@ class BarcodeInputForm(CommonBarcodeInputForm):
                 raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
 
             library = db.remove_library_indices(library_id=library.id)
-            df = barcode_table[barcode_table["library_name"] == row["library_name"]].copy()
+            df = barcode_table[barcode_table[self.index_col] == row[self.index_col]].copy()
 
             seq_i7s = df["sequence_i7"].values
             seq_i5s = df["sequence_i5"].values

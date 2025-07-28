@@ -42,7 +42,7 @@ class IndexKitMappingForm(CommonIndexKitMappingForm):
                 raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
 
             library = db.remove_library_indices(library_id=library.id)
-            df = self.barcode_table[self.barcode_table["library_name"] == row["library_name"]].copy()
+            df = self.barcode_table[self.barcode_table[self.index_col] == row[self.index_col]].copy()
 
             seq_i7s = df["sequence_i7"].values
             seq_i5s = df["sequence_i5"].values
@@ -77,7 +77,6 @@ class IndexKitMappingForm(CommonIndexKitMappingForm):
                     sequence_i7=seq_i7s[j] if len(seq_i7s) > j and pd.notna(seq_i7s[j]) else None,
                     sequence_i5=seq_i5s[j] if len(seq_i5s) > j and pd.notna(seq_i5s[j]) else None,
                 )
-
         self.complete()
 
         flash("Libraries Re-Indexed!", "success")
