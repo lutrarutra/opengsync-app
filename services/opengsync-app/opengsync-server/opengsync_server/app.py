@@ -238,7 +238,9 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         return make_response("OK", 200)
     
     from . import update_index_kits
+    db.open_session()
     update_index_kits(db, app.config["APP_DATA_FOLDER"])
+    db.close_session()
     
     app.register_blueprint(api.htmx.samples_htmx)
     app.register_blueprint(api.htmx.projects_htmx)

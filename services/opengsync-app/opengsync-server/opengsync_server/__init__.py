@@ -87,7 +87,7 @@ def update_index_kits(
     types: list[categories.IndexTypeEnum] = categories.IndexType.as_list()
 ):
     import pandas as pd
-    db.open_session()
+
     if not os.path.exists(os.path.join(app_data_folder, "kits")):
         os.makedirs(os.path.join(app_data_folder, "kits"))
     for type in types:
@@ -104,4 +104,3 @@ def update_index_kits(
 
         pd.concat(res).to_pickle(os.path.join(app_data_folder, "kits", f"{type.id}.pkl"))
         logger.info(f"Updated index kit barcodes for type: {type.id} ({type.name})")
-    db.close_session()

@@ -1,17 +1,21 @@
-from typing import ClassVar, Optional, TYPE_CHECKING
+from typing import ClassVar, Optional, TYPE_CHECKING, Any
 
+import pint
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.ext.mutable import MutableDict
 
-from .Base import Base
 from ..categories import RunStatus, RunStatusEnum, ReadType, ReadTypeEnum
+from ..core import units
+from .Base import Base
 
 if TYPE_CHECKING:
     from .Experiment import Experiment
 
 
 class SeqRun(Base):
-    __tablename__ = "seqrun"
+    __tablename__ = "seq_run"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     
     experiment_name: Mapped[str] = mapped_column(sa.String(16), nullable=False, unique=True, index=True)
@@ -31,17 +35,7 @@ class SeqRun(Base):
     i1_cycles: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
     i2_cycles: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
 
-    cluster_count_m: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
-    cluster_count_m_pf: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
-    error_rate: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
-    first_cycle_intensity: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
-    percent_aligned: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
-    percent_q30: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
-    percent_occupied: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
-    projected_yield: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
-    reads_m: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
-    reads_m_pf: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
-    yield_g: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
+    _quantities: Mapped[Optional[dict[str, dict[str, Any]]]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="quantities")
 
     experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="joined", primaryjoin="SeqRun.experiment_name == Experiment.name", foreign_keys=experiment_name, cascade="save-update")
 
@@ -62,6 +56,25 @@ class SeqRun(Base):
     @read_type.setter
     def read_type(self, value: ReadTypeEnum):
         self.read_type_id = value.id
+
+    @property
+    def quantities(self) -> dict[str, pint.Quantity]:
+        if self._quantities is None:
+            return {}
+        return {key: value["value"] * units.registry(value["unit"]) for key, value in self._quantities.items() if value["value"] is not None}
+
+    def get_quantity(self, key: str) -> pint.Quantity | None:
+        if self._quantities is None or (data := self._quantities.get(key)) is None:
+            return None
+        if data["value"] is None:
+            return None
+        return data["value"] * units.registry(data["unit"])
+            
+    def set_quantity(self, key: str, value: pint.Quantity) -> None:
+        value = value.to_base_units()  # type: ignore
+        if self._quantities is None:
+            self._quantities = {}
+        self._quantities[key] = {"value": value.magnitude, "unit": str(value.units)}
 
     @property
     def cycles_str(self) -> str:

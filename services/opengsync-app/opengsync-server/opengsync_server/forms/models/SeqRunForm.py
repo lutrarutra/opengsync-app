@@ -32,18 +32,6 @@ class SeqRunForm(HTMXFlaskForm):
     i1_cycles = IntegerField("I1 Cycles", validators=[OptionalValidator()])
     i2_cycles = IntegerField("I2 Cycles", validators=[OptionalValidator()])
 
-    cluster_count_m = FloatField("Cluster Count M")
-    cluster_count_m_pf = FloatField("Cluster Count M PF")
-    error_rate = FloatField("Error Rate")
-    first_cycle_intensity = FloatField("First Cycle Intensity")
-    percent_aligned = FloatField("Percent Aligned")
-    percent_q30 = FloatField("Percent Q30")
-    percent_occupied = FloatField("Percent Occupied")
-    projected_yield = FloatField("Projected Yield")
-    reads_m = FloatField("Reads M")
-    reads_m_pf = FloatField("Reads M PF")
-    yield_g = FloatField("Yield G")
-
     def __init__(self, formdata: Optional[dict[str, Any]] = None, seq_run: Optional[models.SeqRun] = None, csrf_enabled: bool = True):
         super().__init__(formdata=formdata, meta={"csrf": csrf_enabled})
         if seq_run is not None:
@@ -96,17 +84,6 @@ class SeqRunForm(HTMXFlaskForm):
             r2_cycles=self.r2_cycles.data,
             i1_cycles=self.i1_cycles.data,
             i2_cycles=self.i2_cycles.data,
-            cluster_count_m=self.cluster_count_m.data,
-            cluster_count_m_pf=self.cluster_count_m_pf.data,
-            error_rate=self.error_rate.data,
-            first_cycle_intensity=self.first_cycle_intensity.data,
-            percent_aligned=self.percent_aligned.data,
-            percent_q30=self.percent_q30.data,
-            percent_occupied=self.percent_occupied.data,
-            projected_yield=self.projected_yield.data,
-            reads_m=self.reads_m.data,
-            reads_m_pf=self.reads_m_pf.data,
-            yield_g=self.yield_g.data
         )
 
         if (experiment := db.get_experiment(name=seq_run.experiment_name)) is not None:
@@ -139,17 +116,6 @@ class SeqRunForm(HTMXFlaskForm):
         seq_run.r2_cycles = self.r2_cycles.data
         seq_run.i1_cycles = self.i1_cycles.data
         seq_run.i2_cycles = self.i2_cycles.data
-        seq_run.cluster_count_m = self.cluster_count_m.data
-        seq_run.cluster_count_m_pf = self.cluster_count_m_pf.data
-        seq_run.error_rate = self.error_rate.data
-        seq_run.first_cycle_intensity = self.first_cycle_intensity.data
-        seq_run.percent_aligned = self.percent_aligned.data
-        seq_run.percent_q30 = self.percent_q30.data
-        seq_run.percent_occupied = self.percent_occupied.data
-        seq_run.projected_yield = self.projected_yield.data
-        seq_run.reads_m = self.reads_m.data
-        seq_run.reads_m_pf = self.reads_m_pf.data
-        seq_run.yield_g = self.yield_g.data
 
         return db.update_seq_run(seq_run)
     

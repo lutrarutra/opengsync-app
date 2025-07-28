@@ -330,8 +330,6 @@ def infer_route(func: Callable) -> str:
         origin = get_origin(type_hint)
         args = get_args(type_hint)
         
-        logger.debug(f"{name=} {type_hint=} {origin=} {args=}")
-        
         if type_hint == int:
             converter = "int"
         elif type_hint == str:
