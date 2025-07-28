@@ -11,10 +11,11 @@ from opengsync_db.core import DBHandler
 from scheduler.rf_scanner import process_run_folder
 from scheduler.status_updater import update_statuses
 from scheduler.file_cleaner import clean_upload_folder
+from scheduler import logger
 
 
 def connect() -> DBHandler:
-    db = DBHandler()
+    db = DBHandler(logger=logger)
     db.connect(
         user=os.environ["POSTGRES_USER"],
         password=os.environ["POSTGRES_PASSWORD"],
