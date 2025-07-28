@@ -265,7 +265,7 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
                     kit_i7 = kit_i7.identifier
                 else:
                     kit_i7 = None
-                kit_i7s.append(kit_i7)
+                kit_i7s.append(kit_i7 or "")
                 names_i7.append(name_i7)
                 sequences_i7.append(";".join(seqs_i7))
 
@@ -280,7 +280,7 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
                     kit_i5 = kit_i5.identifier
                 else:
                     kit_i5 = None
-                kit_i5s.append(kit_i5)
+                kit_i5s.append(kit_i5 or "")
                 names_i5.append(name_i5)
                 sequences_i5.append(";".join(seqs_i5))
 
