@@ -5,9 +5,13 @@ import glob
 import pandas as pd
 import interop  # type: ignore
 from xml.dom.minidom import parse
+from dataclasses import dataclass
+
+import pint
 
 from opengsync_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus, PoolStatus
 from opengsync_db.core import DBHandler
+from opengsync_db import units
 
 from . import logger
 
@@ -77,48 +81,65 @@ def parse_run_folder(run_folder: str) -> dict:
     }
 
 
-def parse_metrics(run_folder: str) -> dict:
-    try:
-        metrics = interop.read(run_folder)
-        metrics_df = pd.DataFrame(interop.summary(metrics))
-        cluster_count_m = float(metrics_df["Cluster Count"].values[0] / 1_000_000)
-        cluster_count_m_pf = float(metrics_df["Cluster Count Pf"].values[0] / 1_000_000)
-        error_rate = float(metrics_df["Error Rate"].values[0]) if "Error Rate" in metrics_df.columns else None
-        first_cycle_intensity = float(metrics_df["First Cycle Intensity"].values[0])
-        percent_aligned = float(metrics_df["% Aligned"].values[0])
-        percent_q30 = float(metrics_df["% >= Q30"].values[0])
-        percent_occupied = float(metrics_df["% Occupied"].values[0])
-        projected_yield = float(metrics_df["Projected Yield G"].values[0])
-        reads_m = float(metrics_df["Reads"].values[0] / 1_000_000)
-        reads_m_pf = float(metrics_df["Reads Pf"].values[0] / 1_000_000)
-        yield_g = float(metrics_df["Yield G"].values[0])
-    except Exception:
-        logger.error("Could not parse metrics...")
-        cluster_count_m = None
-        cluster_count_m_pf = None
-        error_rate = None
-        first_cycle_intensity = None
-        percent_aligned = None
-        percent_q30 = None
-        percent_occupied = None
-        projected_yield = None
-        reads_m = None
-        reads_m_pf = None
-        yield_g = None
+@dataclass
+class UnitParse:
+    label: str
+    unit: pint.Unit = units.registry.count
+    rename: str | None = None
 
-    return {
-        "cluster_count_m": cluster_count_m,
-        "cluster_count_m_pf": cluster_count_m_pf,
-        "error_rate": error_rate,
-        "first_cycle_intensity": first_cycle_intensity,
-        "percent_aligned": percent_aligned,
-        "percent_q30": percent_q30,
-        "percent_occupied": percent_occupied,
-        "projected_yield": projected_yield,
-        "reads_m": reads_m,
-        "reads_m_pf": reads_m_pf,
-        "yield_g": yield_g
-    }
+
+def parse_quantitities(df: pd.DataFrame, quantities: list[UnitParse]) -> dict[str, pint.Quantity]:
+    res = {}
+    variables = df.to_dict()
+
+    def parse_quantity(name: str, unit: pint.Unit, new_name: str):
+        if name in variables.keys():
+            res[new_name] = variables[name] * unit
+            variables.pop(name)
+
+    for conv in quantities:
+        parse_quantity(
+            name=conv.label,
+            unit=conv.unit,
+            new_name=conv.rename or conv.label
+        )
+
+    for name, value in variables.items():
+        res[name] = value * units.registry.unknown
+
+    return res
+
+
+def parse_metrics(run_folder: str) -> dict[str, pint.Quantity]:
+    metrics = interop.read(run_folder)
+    df = pd.DataFrame(interop.summary(metrics))
+    df.columns = [(
+        col
+        .replace(" >", ">")
+        .replace(" <", "<")
+        .replace(" =", "=")
+        .replace("= ", "=")
+        .replace(" ", "_")
+        .replace("%", "pct")
+        .lower()
+    ) for col in df.columns]
+
+    quantities = parse_quantitities(
+        df,
+        [
+            UnitParse("cluster_count", units.registry.count),
+            UnitParse("cluster_count_pf", units.registry.count),
+            UnitParse("pct_aligned", units.registry.percent),
+            UnitParse("pct>=q30", units.registry.percent),
+            UnitParse("pct_occupied", units.registry.percent),
+            UnitParse("projected_yield_g", units.registry.Gcount, "projected_yield"),
+            UnitParse("reads", units.registry.read),
+            UnitParse("reads_pf", units.registry.read),
+            UnitParse("yield_g", units.registry.Gcount, "yield"),
+        ]
+    )
+
+    return quantities
 
 
 def process_run_folder(illumina_run_folder: str, db: DBHandler):
@@ -187,17 +208,9 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             run.r2_cycles = parsed_data["r2_cycles"]
             run.i1_cycles = parsed_data["i1_cycles"]
             run.i2_cycles = parsed_data["i2_cycles"]
-            run.cluster_count_m = metrics["cluster_count_m"]
-            run.cluster_count_m_pf = metrics["cluster_count_m_pf"]
-            run.error_rate = metrics["error_rate"]
-            run.first_cycle_intensity = metrics["first_cycle_intensity"]
-            run.percent_aligned = metrics["percent_aligned"]
-            run.percent_q30 = metrics["percent_q30"]
-            run.percent_occupied = metrics["percent_occupied"]
-            run.projected_yield = metrics["projected_yield"]
-            run.reads_m = metrics["reads_m"]
-            run.reads_m_pf = metrics["reads_m_pf"]
-            run.yield_g = metrics["yield_g"]
+
+            for key, value in metrics.items():
+                run.set_quantity(key, value)
 
             run = db.update_seq_run(run)
             active_runs[experiment_name] = run
@@ -223,8 +236,11 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 r2_cycles=parsed_data.get("r2_cycles"),
                 i1_cycles=parsed_data.get("i1_cycles"),
                 i2_cycles=parsed_data.get("i2_cycles"),
-                **metrics
             )
+
+            for key, value in metrics.items():
+                run.set_quantity(key, value)
+
             if run.status == RunStatus.FINISHED:
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.FINISHED
@@ -232,12 +248,12 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                         pool.status = PoolStatus.SEQUENCED
                         for library in pool.libraries:
                             library.status = LibraryStatus.SEQUENCED
-                run = db.update_seq_run(run)
             elif run.status == RunStatus.RUNNING:
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.SEQUENCING
-                run = db.update_seq_run(run)
                     
+            run = db.update_seq_run(run)
+
             active_runs[experiment_name] = run
             logger.info("Added!")
 

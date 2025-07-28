@@ -14,11 +14,6 @@ def create_seq_run(
     run_folder: str, flowcell_id: str, read_type: ReadTypeEnum,
     r1_cycles: Optional[int], i1_cycles: Optional[int], r2_cycles: Optional[int], i2_cycles: Optional[int],
     rta_version: Optional[str] = None, recipe_version: Optional[str] = None, side: Optional[str] = None, flowcell_mode: Optional[str] = None,
-    cluster_count_m: Optional[float] = None, cluster_count_m_pf: Optional[float] = None,
-    error_rate: Optional[float] = None, first_cycle_intensity: Optional[float] = None,
-    percent_aligned: Optional[float] = None, percent_q30: Optional[float] = None,
-    percent_occupied: Optional[float] = None, projected_yield: Optional[float] = None,
-    reads_m: Optional[float] = None, reads_m_pf: Optional[float] = None, yield_g: Optional[float] = None,
     flush: bool = True
 ) -> models.SeqRun:
     
@@ -40,17 +35,6 @@ def create_seq_run(
         r2_cycles=r2_cycles,
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
-        cluster_count_m=cluster_count_m,
-        cluster_count_m_pf=cluster_count_m_pf,
-        error_rate=error_rate,
-        first_cycle_intensity=first_cycle_intensity,
-        percent_aligned=percent_aligned,
-        percent_q30=percent_q30,
-        percent_occupied=percent_occupied,
-        projected_yield=projected_yield,
-        reads_m=reads_m,
-        reads_m_pf=reads_m_pf,
-        yield_g=yield_g
     )
 
     self.session.add(seq_run)

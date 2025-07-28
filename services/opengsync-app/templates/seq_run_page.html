@@ -1,5 +1,5 @@
 {% from "components/spinner.jinja2" import spinner %}
-{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link %}
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link, metadata_quantity %}
 
 {% extends "base.html" %}
 {% set active_page = "seq_run-page" %}
@@ -62,23 +62,15 @@
             </div>
         </div>
         <div class="tab-pane fade" id="stats-tab" role="tabpanel" tabindex="1">
+            {% for key, quantity in seq_run.quantities.items() %}
+            {% if loop.index0 % 4 == 0 %}
             <div class="row">
-                {{ metadata_group("Cluster Count", "%0.1f" % seq_run.cluster_count_m if seq_run.cluster_count_m, class="col-3", unit="M") }}
-                {{ metadata_group("Cluster Count pf", "%0.1f" % seq_run.cluster_count_m_pf if seq_run.cluster_count_m_pf, class="col-3", unit="M") }}
-                {{ metadata_group("Error Rate", "%0.3f" % seq_run.error_rate if seq_run.error_rate, class="col-3", unit="%") }}
-                {{ metadata_group("1st Cycle Intensity", "%0.3f" % seq_run.first_cycle_intensity if seq_run.first_cycle_intensity, class="col-3", unit="%") }}
+            {% endif %}
+            {{ metadata_quantity(key.replace("_", " ").capitalize(), quantity, class="col-3") }}
+            {% if loop.index0 % 4 == 3 or loop.last %}
             </div>
-            <div class="row">
-                {{ metadata_group("Aligned", "%0.3f" % seq_run.percent_aligned if seq_run.percent_aligned, class="col-3", unit="%") }}
-                {{ metadata_group("Q30", "%0.3f" % seq_run.percent_q30 if seq_run.percent_q30, class="col-3", unit="%") }}
-                {{ metadata_group("Occupied", "%0.2f" % seq_run.percent_occupied if seq_run.percent_occupied, class="col-3", unit="%") }}
-                {{ metadata_group("Projected Yield", "%0.3f" % seq_run.projected_yield if seq_run.projected_yield, class="col-3") }}
-            </div>
-            <div class="row">
-                {{ metadata_group("Reads", seq_run.reads_m if seq_run.reads_m, class="col-4", unit="M") }}
-                {{ metadata_group("Reads PF", seq_run.reads_m_pf if seq_run.reads_m_pf, class="col-4", unit="M") }}
-                {{ metadata_group("Yield", "%0.1f" % seq_run.yield_g if seq_run.yield_g, class="col-4", unit="G") }}
-            </div>
+            {% endif %}
+            {% endfor %}
         </div>
     </div>
 </div>
