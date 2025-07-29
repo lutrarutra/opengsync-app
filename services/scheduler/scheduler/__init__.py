@@ -6,8 +6,7 @@ from loguru import logger
 
 logger.remove()
 
-fmt = """{level} @ {time:YYYY-MM-DD HH:mm:ss} ({file}:{line} in {function}):
->   {message}"""
+fmt = """{level} @ {time:YYYY-MM-DD HH:mm:ss} [{file}:{line} in {function}]:\n------------------------ [BEGIN LOG] ------------------------\n\n{message}\n\n------------------------ [ END LOG ] ------------------------\n"""
 
 
 if os.getenv("OPENGSYNC_DEBUG") == "1":

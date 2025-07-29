@@ -19,8 +19,9 @@ class OCMMuxForm(MultiStepForm):
     _workflow_name = "mux_prep"
     _step_name = "ocm_annotation"
     
+    # TODO: id
     columns: list[SpreadSheetColumn] = [
-        TextColumn("demux_name", "Demultiplexed Name", 300, required=True, min_length=4, max_length=models.Sample.name.type.length, clean_up_fnc=tools.make_alpha_numeric),
+        TextColumn("demux_name", "Demultiplexed Name", 300, required=True, min_length=4, max_length=models.Sample.name.type.length, read_only=True),
         TextColumn("sample_pool", "Sample Pool", 300, required=True, max_length=models.Sample.name.type.length, clean_up_fnc=tools.make_alpha_numeric),
         TextColumn("barcode_id", "Bardcode ID", 200, required=True, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, clean_up_fnc=lambda x: str(x).strip().upper()),
     ]
@@ -77,8 +78,8 @@ class OCMMuxForm(MultiStepForm):
         df = self.spreadsheet.df
 
         def padded_barcode_id(s: str) -> str:
-            number = ''.join(filter(str.isdigit, s))
-            return f"OB{number}"
+            s = ";".join([f"OB{''.join(filter(str.isdigit, _s))}" for _s in s.split(";")])
+            return s
         
         df["barcode_id"] = df["barcode_id"].apply(lambda s: padded_barcode_id(s) if pd.notna(s) else None)
 
@@ -89,7 +90,10 @@ class OCMMuxForm(MultiStepForm):
                 self.spreadsheet.add_error(idx, "demux_name", InvalidCellValue(f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}"))
 
             if row["barcode_id"] not in OCMMuxForm.allowed_barcodes:
-                self.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"'Barcode ID' must be one of: {', '.join(OCMMuxForm.allowed_barcodes)}"))
+                for barcode in row["barcode_id"].split(";"):
+                    if barcode not in OCMMuxForm.allowed_barcodes:
+                        self.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"'Barcode ID' must be one of: {', '.join(OCMMuxForm.allowed_barcodes)}, you can separate multiple barcodes with ';'. Invalid barcode: '{barcode}'"))
+                        break
             elif duplicate_barcode.at[idx]:
                 self.spreadsheet.add_error(idx, "barcode_id", DuplicateCellValue("'Barcode ID' is duplicated in library."))
 

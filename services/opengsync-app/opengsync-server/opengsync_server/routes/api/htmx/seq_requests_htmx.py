@@ -256,13 +256,16 @@ def submit_request(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if seq_request.status != SeqRequestStatus.DRAFT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
         affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    if not seq_request.is_submittable():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        if not seq_request.is_submittable():
+            return abort(HTTPResponse.FORBIDDEN.id)
 
     if request.method == "GET":
         form = forms.SubmitSeqRequestForm(seq_request=seq_request)

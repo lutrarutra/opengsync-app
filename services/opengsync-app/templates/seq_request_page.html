@@ -21,7 +21,7 @@
             {% endif %}
             {% if seq_request.status == SeqRequestStatus.DRAFT %}
             <span
-            {% if not seq_request.is_submittable() %}
+            {% if not seq_request.is_submittable() and not current_user.is_insider() %}
                 {% if not seq_request.is_authorized() %}
                     {{ tooltip('You must add a sequencing authorization form to submit the request.', category='success') }}
                 {% else %}
@@ -32,7 +32,7 @@
                     data-bs-toggle="modal" data-bs-target="#xl-modal" 
                     hx-target="#xl-modal-content"
                     hx-swap="innerHTML" hx-trigger="click"
-                    {% if not seq_request.is_submittable() %}disabled{% endif %}>
+                    {% if not seq_request.is_submittable() not current_user.is_insider() %}disabled{% endif %}>
                     Submit Request
                 </button>
             </span>
