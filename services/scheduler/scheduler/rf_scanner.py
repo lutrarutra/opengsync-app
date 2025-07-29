@@ -108,7 +108,7 @@ def parse_quantitities(df: pd.DataFrame, quantities: list[UnitParse]) -> dict[st
         )
 
     for name, value in variables.items():
-        res[name] = value * units.registry.unknown
+        res[name] = value * units.registry.count
 
     return res
 
