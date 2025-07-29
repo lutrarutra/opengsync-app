@@ -57,7 +57,7 @@ class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
             return False
         
         df = self.spreadsheet.df
-        df.loc[self.df["well"].notna(), "well"] = self.df.loc[self.df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
+        df.loc[self.df["well"].notna(), "well"] = df.loc[df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
         duplicate_well = df.duplicated(subset="well", keep=False)
 
@@ -179,7 +179,7 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
         
         df = self.spreadsheet.df
 
-        df.loc[self.df["well"].notna(), "well"] = self.df.loc[self.df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
+        df.loc[self.df["well"].notna(), "well"] = df.loc[df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
         duplicate_well = df.duplicated(subset="well", keep=False)
 
@@ -215,7 +215,7 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
         
         self.index_kit = db.remove_all_barcodes_from_kit(self.index_kit.id)
 
-        for idx, row in self.df.iterrows():
+        for _, row in self.df.iterrows():
             adapter = db.create_adapter(
                 index_kit_id=self.index_kit.id,
                 well=row["well"],
@@ -276,7 +276,7 @@ class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
             return False
         
         df = self.spreadsheet.df
-        df.loc[self.df["well"].notna(), "well"] = self.df.loc[self.df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
+        df.loc[self.df["well"].notna(), "well"] = df.loc[df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
         duplicate_well = df.duplicated(subset="well", keep=False)
 
