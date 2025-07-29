@@ -57,7 +57,7 @@ class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
             return False
         
         df = self.spreadsheet.df
-        df.loc[self.df["well"].notna(), "well"] = df.loc[df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
+        df.loc[df["well"].notna(), "well"] = df.loc[df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
         duplicate_well = df.duplicated(subset="well", keep=False)
 
@@ -179,7 +179,7 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
         
         df = self.spreadsheet.df
 
-        df.loc[self.df["well"].notna(), "well"] = df.loc[df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
+        df.loc[df["well"].notna(), "well"] = df.loc[df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
         duplicate_well = df.duplicated(subset="well", keep=False)
 
@@ -276,7 +276,7 @@ class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
             return False
         
         df = self.spreadsheet.df
-        df.loc[self.df["well"].notna(), "well"] = df.loc[df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
+        df.loc[df["well"].notna(), "well"] = df.loc[df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
         duplicate_well = df.duplicated(subset="well", keep=False)
 
