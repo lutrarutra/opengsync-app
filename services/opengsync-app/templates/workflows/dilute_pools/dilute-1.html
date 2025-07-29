@@ -25,8 +25,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for i, (_, row) in enumerate(df.iterrows()) %}
-                    {% set sub_form = dilute_pools_form.input_fields[i] %}
+                    {% for _, row in df.iterrows() %}
+                    {% set sub_form = dilute_pools_form.input_fields[loop.index0] %}
                     {{ sub_form.csrf_token() }}
                     <tr>
                         <th scope="row">{{ row["name"] }} {{ sub_form.pool_id(value=row["id"], hidden=True) }}</th>
