@@ -90,10 +90,11 @@ class UnitParse:
 
 def parse_quantitities(df: pd.DataFrame, quantities: list[UnitParse]) -> dict[str, pint.Quantity]:
     res = {}
-    variables = df.to_dict()
-    logger.info(df)
-    logger.info(variables)
-    return {}
+
+    if len(df) != 1:
+        logger.warning(f"Expected 1 row in metrics DataFrame, found {len(df)}. Using the first row.")
+
+    variables = df.iloc[0].to_dict()
 
     def parse_quantity(name: str, unit: pint.Unit, new_name: str):
         if name in variables.keys():
