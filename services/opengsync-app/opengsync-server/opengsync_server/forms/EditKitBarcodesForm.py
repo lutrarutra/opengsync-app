@@ -178,6 +178,8 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
         
         df = self.spreadsheet.df
 
+        df.loc[self.df["well"].notna(), "well"] = self.df.loc[self.df["well"].notna(), "well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
+
         duplicate_well = df.duplicated(subset="well", keep=False)
 
         if self.index_kit.type == IndexType.DUAL_INDEX:
