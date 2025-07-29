@@ -116,7 +116,7 @@ def parse_metrics(run_folder: str) -> dict[str, pint.Quantity]:
     metrics = interop.read(run_folder)
     df = pd.DataFrame(interop.summary(metrics))
     df.columns = [(
-        col
+        str(col)
         .replace(" >", ">")
         .replace(" <", "<")
         .replace(" =", "=")
