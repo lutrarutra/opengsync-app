@@ -107,7 +107,7 @@ class SpreadsheetFile(FlaskForm):
                         self.add_general_error(f"Column '{label}' is missing in the spreadsheet.")
                     continue
                 try:
-                    column.validate(row[label])
+                    column.validate(row[label], column_values=self.__df[label].tolist())
                 except SpreadSheetException as e:
                     if column.required and pd.isna(row[label]):
                         self.add_error(idx, label, e)

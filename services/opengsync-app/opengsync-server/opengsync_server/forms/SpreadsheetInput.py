@@ -105,7 +105,7 @@ class SpreadsheetInput(FlaskForm):
         for idx, row in self.__df.iterrows():
             for label, column in self.columns.items():
                 try:
-                    column.validate(row[label], self.__df[label].tolist())
+                    column.validate(row[label], column_values=self.__df[label].tolist())
                 except SpreadSheetException as e:
                     if column.required and pd.isna(row[label]):
                         self.add_error(idx, label, e)
