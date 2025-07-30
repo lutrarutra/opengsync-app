@@ -104,14 +104,14 @@
                                 {% for _, barcode_row in barcode_table[barcode_table["library_name"] == row["library_name"]].iterrows() %}
                                 {% if notna(barcode_row["name_i7"]) %}
                                     {% if barcode_row["name_i7"] == barcode_row["name_i5"] or isna(barcode_row["name_i5"]) %}
-                                    <span class="badge index-badge index-badges-sas-complete" >{{ barcode_row["name_i7"] }}</span>
+                                    <span class="badge index-badge">{{ barcode_row["name_i7"] }}</span>
                                     {% else %}
-                                    <span class="badge index-badge index-badges-sas-complete" >{{ barcode_row["name_i7"] }}+{{ barcode_row["name_i5"] }}</span>
+                                    <span class="badge index-badge">{{ barcode_row["name_i7"] }}+{{ barcode_row["name_i5"] }}</span>
                                     {% endif %}
                                 {% else %}
-                                <span class="badge index-badge index-badges-sas-complete">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
+                                <span class="badge index-badge">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
                                 {% endif %}
-                                <span class="badge index-badge index-badges-sas-complete" style="display: none;">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
+                                <span class="badge index-badge" style="display: none;">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
                                 {% endfor %}
                             </td>
                             {% endif %}

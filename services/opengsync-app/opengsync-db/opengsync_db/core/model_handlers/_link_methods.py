@@ -359,9 +359,13 @@ def remove_pool_from_lane(self: "DBHandler", experiment_id: int, pool_id: int, l
     
     self.session.delete(link)
     
-    for link in pool.lane_links:
-        link.num_m_reads = pool.num_m_reads_requested / len(pool.lane_links) if pool.num_m_reads_requested else None
-        self.session.add(link)
+    for _link in pool.lane_links:
+        if _link.lane_id == lane.id:
+            continue
+        _link.num_m_reads = pool.num_m_reads_requested / len(pool.lane_links) if pool.num_m_reads_requested else None
+        self.session.add(_link)
+
+    self.session.add(lane)
 
     if flush:
         self.session.flush()

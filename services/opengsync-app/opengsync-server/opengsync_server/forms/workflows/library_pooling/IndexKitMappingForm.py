@@ -22,6 +22,7 @@ class IndexKitSubForm(FlaskForm):
 class IndexKitMappingForm(CommonIndexKitMappingForm):
     _template_path = "workflows/library_pooling/index_kit-mapping.html"
     _workflow_name = "library_pooling"
+    lab_prep: models.LabPrep
         
     def __init__(
         self,
@@ -41,8 +42,6 @@ class IndexKitMappingForm(CommonIndexKitMappingForm):
         kits = set()
 
         counter = 0
-        logger.debug(barcode_table[["kit_i7", "kit_i7_id"]])
-        logger.debug(barcode_table.columns)
         for (label, kit_id,), _ in barcode_table.groupby(["kit_i7", "kit_i7_id"]):
             if label in kits:
                 continue
@@ -73,12 +72,11 @@ class IndexKitMappingForm(CommonIndexKitMappingForm):
         if not self.validate():
             return self.make_response()
 
-        self.add_table("barcode_table", self.barcode_table)
-        self.update_data()
+        self.barcode_table = self.fill_barcode_table()
+        self.update_table("barcode_table", self.barcode_table)
 
-        if self.lab_prep is None:
-            logger.error(f"{self.uuid}: Lab Prep not found")
-            raise ValueError(f"{self.uuid}: Lab Prep not found")
+        logger.debug(self.barcode_table)
+        logger.debug(self.tables["library_table"])
         
         complete_pool_indexing_form = CompleteLibraryPoolingForm(lab_prep=self.lab_prep, uuid=self.uuid)
         return complete_pool_indexing_form.make_response()

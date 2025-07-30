@@ -2,9 +2,8 @@ import os
 from typing import TYPE_CHECKING, Literal
 
 from flask import Blueprint, request, abort, send_file, current_app
-from flask_login import login_required
 
-from opengsync_db import models, db_session
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, SubmissionType
 
 from .... import db, logger, htmx_route  # noqa
@@ -50,9 +49,7 @@ def begin(seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
     elif workflow_type == "tech":
         if seq_request.submission_type != SubmissionType.RAW_SAMPLES:
             return abort(HTTPResponse.BAD_REQUEST.id)
-    else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    
+
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
         affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
@@ -120,7 +117,7 @@ def define_pools(seq_request_id: int, uuid: str):
 
 
 @htmx_route(library_annotation_workflow, db=db, methods=["POST"])
-def parse_barcode_table(seq_request_id: int, uuid: str):
+def upload_barcode_form(seq_request_id: int, uuid: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -130,6 +127,19 @@ def parse_barcode_table(seq_request_id: int, uuid: str):
             return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.BarcodeInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+
+
+@htmx_route(library_annotation_workflow, db=db, methods=["POST"])
+def upload_tenx_atac_barcode_form(seq_request_id: int, uuid: str):
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+
+    return forms.TENXATACBarcodeInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 @htmx_route(library_annotation_workflow, db=db, methods=["POST"])

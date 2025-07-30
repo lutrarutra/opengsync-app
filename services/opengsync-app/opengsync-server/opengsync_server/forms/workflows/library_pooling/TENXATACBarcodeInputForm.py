@@ -4,29 +4,27 @@ from opengsync_db import models
 
 from .... import logger, db  # noqa F401
 from ....tools.spread_sheet_components import InvalidCellValue, IntegerColumn
+from ..common import CommonTENXATACBarcodeInputForm
 from .IndexKitMappingForm import IndexKitMappingForm
-from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm
-from ..common import CommonBarcodeInputForm
-from .CompleteReindexForm import CompleteReindexForm
+from .CompleteLibraryPoolingForm import CompleteLibraryPoolingForm
 from .BarcodeMatchForm import BarcodeMatchForm
 
 
-class BarcodeInputForm(CommonBarcodeInputForm):
-    _template_path = "workflows/reindex/barcode-input.html"
+class TENXATACBarcodeInputForm(CommonTENXATACBarcodeInputForm):
+    _template_path = "workflows/library_pooling/barcode-input.html"
     _workflow_name = "reindex"
+    lab_prep: models.LabPrep
 
     def __init__(
         self,
-        seq_request: models.SeqRequest | None,
-        lab_prep: models.LabPrep | None,
-        pool: models.Pool | None,
+        lab_prep: models.LabPrep,
         formdata: dict | None,
         uuid: str | None
     ):
-        CommonBarcodeInputForm.__init__(
-            self, uuid=uuid, workflow=BarcodeInputForm._workflow_name,
+        CommonTENXATACBarcodeInputForm.__init__(
+            self, uuid=uuid, workflow=TENXATACBarcodeInputForm._workflow_name,
             formdata=formdata,
-            pool=pool, lab_prep=lab_prep, seq_request=seq_request,
+            pool=None, lab_prep=lab_prep, seq_request=None,
             additional_columns=[
                 IntegerColumn("library_id", "Library ID", 100, required=True, read_only=True),
             ]
@@ -58,24 +56,20 @@ class BarcodeInputForm(CommonBarcodeInputForm):
                     self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))
 
         return len(self.spreadsheet._errors) == 0
-
+    
     def process_request(self) -> Response:
         if not self.validate():
             return self.make_response()
         
-        barcode_table = self.get_barcode_table()
         self.metadata["index_col"] = self.index_col
-        self.add_table("library_table", self.library_table)
-        self.add_table("barcode_table", barcode_table)
+        barcode_table = self.get_barcode_table()
+        self.add_table("tenx_atac_barcode_table", barcode_table)
         self.update_data()
 
-        if TENXATACBarcodeInputForm.is_applicable(self):
-            form = TENXATACBarcodeInputForm(uuid=self.uuid, lab_prep=self.lab_prep, seq_request=self.seq_request, pool=self.pool, formdata=None)
-        elif IndexKitMappingForm.is_applicable(self):
-            form = IndexKitMappingForm(uuid=self.uuid, lab_prep=self.lab_prep, seq_request=self.seq_request, pool=self.pool, formdata=None)
+        if IndexKitMappingForm.is_applicable(self):
+            form = IndexKitMappingForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         elif BarcodeMatchForm.is_applicable(self):
-            form = BarcodeMatchForm(seq_request=self.seq_request, lab_prep=self.lab_prep, pool=self.pool, uuid=self.uuid, formdata=None)
+            form = BarcodeMatchForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         else:
-            form = CompleteReindexForm(seq_request=self.seq_request, lab_prep=self.lab_prep, pool=self.pool, uuid=self.uuid, formdata=None)
+            form = CompleteLibraryPoolingForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         return form.make_response()
-        

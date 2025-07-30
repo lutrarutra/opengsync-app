@@ -10,7 +10,7 @@ from opengsync_db.categories import LibraryType, AttributeType
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa F401
-from ....tools.spread_sheet_components import TextColumn, DropdownColumn, MissingCellValue, SpreadSheetColumn
+from ....tools.spread_sheet_components import TextColumn, MissingCellValue, SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm
 from .CompleteSASForm import CompleteSASForm
 from ...SpreadsheetInput import SpreadsheetInput
@@ -22,10 +22,10 @@ class SampleAttributeAnnotationForm(MultiStepForm):
     _step_name = "sample_attribute_annotation"
 
     predefined_columns = [
-        DropdownColumn("sample_name", "Sample Name", 170, required=True, choices=[])
+        TextColumn("sample_name", "Sample Name", 170, required=True, read_only=True)
     ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for t in AttributeType.as_list()[1:]]
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=SampleAttributeAnnotationForm._workflow_name,
             step_name=SampleAttributeAnnotationForm._step_name, step_args={}
@@ -35,9 +35,6 @@ class SampleAttributeAnnotationForm(MultiStepForm):
         self._context["seq_request"] = seq_request
         self.upload_path = os.path.join("uploads", "seq_request")
         self.columns: list[SpreadSheetColumn] = SampleAttributeAnnotationForm.predefined_columns.copy()  # type: ignore
-
-        if (csrf_token := formdata.get("csrf_token")) is None:
-            csrf_token = self.csrf_token._value()  # type: ignore
 
         library_table = self.tables["library_table"]
         sample_table = self.tables["sample_table"]
@@ -73,11 +70,10 @@ class SampleAttributeAnnotationForm(MultiStepForm):
                 self.columns.append(TextColumn(col, col.replace("_", " ").title(), 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH))
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=self.columns, csrf_token=csrf_token,
+            columns=self.columns, csrf_token=self._csrf_token,
             post_url=url_for('library_annotation_workflow.parse_sas_form', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_cols=True, allow_col_rename=True, df=df
         )
-        self.spreadsheet.columns["sample_name"].source = sample_table["sample_name"].unique().tolist()
 
     def fill_previous_form(self, previous_form: StepFile):
         df = previous_form.tables["sample_table"]
@@ -121,7 +117,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
                 self.spreadsheet.add_column(label=col, column=TextColumn(label=col, name=col.replace("_", " ").title(), width=100, max_length=models.SampleAttribute.MAX_NAME_LENGTH))
 
         for idx, row in df.iterrows():
-            for col in df.keys():
+            for col in df.columns:
                 if col == "sample_name":
                     continue
                 

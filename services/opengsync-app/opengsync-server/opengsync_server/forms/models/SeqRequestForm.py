@@ -255,7 +255,7 @@ class SeqRequestForm(HTMXFlaskForm):
     def __init__(
         self,
         form_type: Literal["create", "edit"],
-        formdata: dict = {},
+        formdata: dict | None = None,
         current_user: Optional[models.User] = None,
         seq_request: Optional[models.SeqRequest] = None,
     ):

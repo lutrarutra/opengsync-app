@@ -23,7 +23,7 @@ class DilutePoolsForm(HTMXFlaskForm):
     target_total_volume = FloatField(validators=[DataRequired()], default=50)
     target_molarity = FloatField("Target Molarity", validators=[DataRequired()], default=3.0)
 
-    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self._context["warning_min"] = models.Pool.warning_min_molarity
         self._context["warning_max"] = models.Pool.warning_max_molarity
@@ -31,6 +31,7 @@ class DilutePoolsForm(HTMXFlaskForm):
         self._context["error_max"] = models.Pool.error_max_molarity
         self._context["enumerate"] = enumerate
         self.experiment = experiment
+        self._context["experiment"] = experiment
         self.df = db.get_experiment_pools_df(experiment.id)
         
     def prepare(self):

@@ -21,7 +21,7 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
     target_molarity = FloatField(validators=[OptionalValidator()])
     total_volume_ul = FloatField(validators=[OptionalValidator()])
 
-    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
         self._context["warning_min"] = models.Lane.warning_min_molarity
@@ -109,7 +109,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
 
     input_fields = FieldList(FormField(SubForm), min_entries=1)
 
-    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
         self._context["warning_min"] = models.Lane.warning_min_molarity

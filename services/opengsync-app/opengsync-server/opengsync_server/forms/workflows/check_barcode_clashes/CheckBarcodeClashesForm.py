@@ -12,7 +12,7 @@ class CheckBarcodeClashesForm(HTMXFlaskForm):
     _template_path = "workflows/check_barcode_clashes/clashes-1.html"
     _form_label = "check_barcode_clashes_form"
 
-    def __init__(self, libraries_df: pd.DataFrame, groupby: Literal["lane", "pool"] | None = None, formdata: dict = {}):
+    def __init__(self, libraries_df: pd.DataFrame, groupby: Literal["lane", "pool"] | None = None, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.libraries_df = libraries_df
         self.groupby = groupby

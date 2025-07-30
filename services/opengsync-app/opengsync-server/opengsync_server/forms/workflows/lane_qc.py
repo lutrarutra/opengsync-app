@@ -20,7 +20,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
     avg_fragment_size = IntegerField("Average Library Size", validators=[DataRequired()])
     qubit_concentration = FloatField("Qubit Concentration", validators=[DataRequired()])
 
-    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
         self._context["warning_min"] = models.Lane.warning_min_molarity
@@ -71,7 +71,7 @@ class QCLanesForm(HTMXFlaskForm):
 
     input_fields = FieldList(FormField(QCLanesSubForm), min_entries=1)
 
-    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
         self._context["warning_min"] = models.Lane.warning_min_molarity

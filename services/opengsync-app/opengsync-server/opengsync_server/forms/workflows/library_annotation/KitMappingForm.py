@@ -36,7 +36,7 @@ class KitMappingForm(MultiStepForm):
             return False
         return current_step.tables["kit_table"]["kit_id"].isna().any()
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
             self, workflow=KitMappingForm._workflow_name, step_name=KitMappingForm._step_name,
             uuid=uuid, formdata=formdata, step_args={}

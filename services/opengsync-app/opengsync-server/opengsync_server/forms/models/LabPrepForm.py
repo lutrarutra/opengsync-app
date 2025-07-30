@@ -19,7 +19,7 @@ class LabPrepForm(HTMXFlaskForm):
     assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), coerce=int)
     name = StringField("Name")
 
-    def __init__(self, form_type: Literal["create", "edit"], lab_prep: Optional[models.LabPrep] = None, formdata: dict = {}):
+    def __init__(self, form_type: Literal["create", "edit"], lab_prep: Optional[models.LabPrep] = None, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.form_type = form_type
         self.lab_prep = lab_prep

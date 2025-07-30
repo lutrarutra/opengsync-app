@@ -33,7 +33,7 @@ class OligoMuxForm(MultiStepForm):
         DropdownColumn("read", "Read", 100, choices=["", "R2", "R1"]),
     ]
 
-    def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: Optional[str] = None):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=OligoMuxForm._workflow_name,
             step_name=OligoMuxForm._step_name, step_args={"mux_type_id": OligoMuxForm.mux_type.id}

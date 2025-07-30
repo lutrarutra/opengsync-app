@@ -1,9 +1,8 @@
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, request, abort, Response
-from flask_login import login_required
 
-from opengsync_db import models, db_session
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger, htmx_route  # noqa
@@ -57,7 +56,7 @@ def upload_barcode_form(lab_prep_id: int, uuid: str) -> Response:
     
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-    
+
     form = forms.BarcodeInputForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form)
     return form.process_request()
 
@@ -72,6 +71,17 @@ def map_index_kits(lab_prep_id: int, uuid: str) -> Response:
     
     form = forms.IndexKitMappingForm(lab_prep=lab_prep, uuid=uuid, formdata=request.form)
     return form.process_request()
+
+
+@htmx_route(library_pooling_workflow, db=db, methods=["POST"])
+def barcode_match(lab_prep_id: int, uuid: str):
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    return forms.BarcodeMatchForm(
+        uuid=uuid, formdata=request.form,
+        lab_prep=lab_prep,
+    ).process_request()
 
 
 @htmx_route(library_pooling_workflow, db=db, methods=["POST"])

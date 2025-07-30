@@ -58,28 +58,50 @@ def check_indices(df: pd.DataFrame, groupby: str | None = None) -> pd.DataFrame:
         indices.append("sequence_i5")
 
     df["combined_index"] = ""
+    df["min_hamming_bases"] = None
     if len(df) > 1:
-        for index in indices:
-            df[index] = df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
-            _max = int(df[index].str.len().max())
-            df["combined_index"] += df[index].str.ljust(_max, "N")
-        
-        if "sequence_i5" in df.columns:
-            same_barcode_in_different_indices = df["sequence_i7"] == df["sequence_i5"]
-            df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
-        
-        df["min_hamming_bases"] = None
         if groupby is None:
+            for index in indices:
+                df[index] = df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
+                _max = int(df[index].str.len().max())
+                df["combined_index"] += df[index].str.ljust(_max, "N")
+            
+            if "sequence_i5" in df.columns:
+                same_barcode_in_different_indices = df["sequence_i7"] == df["sequence_i5"]
+                df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
+
             df["min_hamming_bases"] = min_hamming_distances(df["combined_index"].tolist())
         else:
             for _, _df in df.groupby(groupby):
+                for index in indices:
+                    _df[index] = _df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
+                    _max = int(_df[index].str.len().max())
+                    _df["combined_index"] += _df[index].str.ljust(_max, "N")
+                if "sequence_i5" in _df.columns:
+                    same_barcode_in_different_indices = _df["sequence_i7"] == _df["sequence_i5"]
+                    _df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
+
                 if len(_df) < 2:
                     _df["min_hamming_bases"] = _df["combined_index"].apply(lambda x: len(x) - x.count("N"))
                 else:
                     _df["min_hamming_bases"] = min_hamming_distances(_df["combined_index"].tolist())
+                
+                df.loc[_df.index, "combined_index"] = _df["combined_index"]
                 df.loc[_df.index, "min_hamming_bases"] = _df["min_hamming_bases"]
-            
     else:
+        if groupby is None:
+            for index in indices:
+                df[index] = df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
+                _max = int(df[index].str.len().max())
+                df["combined_index"] += df[index].str.ljust(_max, "N")
+        else:
+            for _, _df in df.groupby(groupby):
+                for index in indices:
+                    _df[index] = _df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
+                    _max = int(_df[index].str.len().max())
+                    _df["combined_index"] += _df[index].str.ljust(_max, "N")
+                df.loc[_df.index, "combined_index"] = _df["combined_index"]
+                
         df["min_hamming_bases"] = df["combined_index"].apply(lambda x: len(x) - x.count("N"))
 
     df.loc[df["min_hamming_bases"] < 1, "error"] = "Hamming distance of 0 between barcode combination in two or more libraries."
@@ -230,6 +252,7 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
         "library_id": [],
         "library_name": [],
         "library_type_id": [],
+        "pool": [],
         "index_well": [],
         "kit_i7": [],
         "name_i7": [],
@@ -240,11 +263,13 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
     }
     
     for library in libraries:
+        library_data["library_id"].append(library.id)
+        library_data["library_name"].append(library.name)
+        library_data["library_type_id"].append(library.type.id)
+        library_data["pool"].append(library.pool.name if library.pool else None)
+
         if len(library.indices) == 0:
-            library_data["library_id"].append(library.id)
             library_data["index_well"].append(None)
-            library_data["library_type_id"].append(library.type.id if library.type else None)
-            library_data["library_name"].append(library.name)
             library_data["kit_i7"].append(None)
             library_data["name_i7"].append(None)
             library_data["sequence_i7"].append(None)
@@ -284,15 +309,12 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
                 names_i5.append(name_i5)
                 sequences_i5.append(";".join(seqs_i5))
 
-            library_data["library_id"].append(library.id)
-            library_data["library_name"].append(library.name)
             library_data["index_well"].append(None)
-            library_data["library_type_id"].append(library.type.id if library.type else None)
-            library_data["kit_i7"].append(";".join(kit_i7s) if len(kit_i7s) else None)
-            library_data["name_i7"].append(";".join(names_i7) if len(names_i7) else None)
+            library_data["kit_i7"].append(";".join(kit_i7s) if pd.notna(kit_i7s) and len(kit_i7s) else None)
+            library_data["name_i7"].append(";".join(names_i7) if pd.notna(names_i7) and len(names_i7) else None)
             library_data["sequence_i7"].append(";".join(sequences_i7) if len(sequences_i7) else None)
-            library_data["kit_i5"].append(";".join(kit_i5s) if len(kit_i5s) else None)
-            library_data["name_i5"].append(";".join(names_i5) if len(names_i5) else None)
+            library_data["kit_i5"].append(";".join(kit_i5s) if pd.notna(kit_i5s) and len(kit_i5s) else None)
+            library_data["name_i5"].append(";".join(names_i5) if pd.notna(names_i5) and len(names_i5) else None)
             library_data["sequence_i5"].append(";".join(sequences_i5) if len(sequences_i5) else None)
 
     df = pd.DataFrame(library_data)

@@ -29,7 +29,7 @@ class CompleteQubitMeasureForm(MultiStepForm):
     pool_fields = FieldList(FormField(SubForm), min_entries=0)
     lane_fields = FieldList(FormField(SubForm), min_entries=0)
 
-    def __init__(self, uuid: str | None, formdata: dict = {}):
+    def __init__(self, uuid: str | None, formdata: dict | None = None):
         MultiStepForm.__init__(
             self, workflow=CompleteQubitMeasureForm._workflow_name,
             step_name=CompleteQubitMeasureForm._step_name, uuid=uuid,

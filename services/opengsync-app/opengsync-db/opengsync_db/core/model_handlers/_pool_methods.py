@@ -18,6 +18,7 @@ def create_pool(
     contact_name: str,
     contact_email: str,
     pool_type: PoolTypeEnum,
+    experiment_id: Optional[int] = None,
     original_pool_id: Optional[int] = None,
     seq_request_id: Optional[int] = None,
     lab_prep_id: Optional[int] = None,
@@ -35,6 +36,14 @@ def create_pool(
     if seq_request_id is not None:
         if self.session.get(models.SeqRequest, seq_request_id) is None:
             raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
+        
+    if experiment_id is not None:
+        if self.session.get(models.Experiment, experiment_id) is None:
+            raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+        
+    if lab_prep_id is not None:
+        if self.session.get(models.LabPrep, lab_prep_id) is None:
+            raise exceptions.ElementDoesNotExist(f"LabPrep with id {lab_prep_id} does not exist")
         
     if original_pool_id is not None:
         if self.session.get(models.Pool, original_pool_id) is None:
@@ -59,6 +68,7 @@ def create_pool(
         timestamp_stored_utc=sa.func.now() if status == PoolStatus.STORED else None,
         clone_number=clone_number,
         original_pool_id=original_pool_id,
+        experiment_id=experiment_id
     )
     
     self.session.add(pool)
