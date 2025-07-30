@@ -27,6 +27,11 @@
             {{ spreadsheet_error_legend() }}
         </div>
         <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#reindex-form-container" hx-swap="outerHTML"
+            hx-get="{{ url_for('reindex_workflow.previous', uuid=form.uuid, **form.url_context) }}">
+                Back
+            </button>
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
                 Submit
             </button>

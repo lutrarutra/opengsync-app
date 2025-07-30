@@ -34,7 +34,7 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
     experiment_id = IntegerField(validators=[DataRequired()])
     pool_fields = FieldList(FormField(PoolSubForm), min_entries=1)
 
-    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
         self.experiment_id.data = self.experiment.id
@@ -66,7 +66,7 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
 
     def process_request(self) -> Response:
         if not self.validate():
-            return make_response()
+            return self.make_response()
 
         links: dict[tuple[int, int], models.links.LanePoolLink] = {}
         for link in self.experiment.laned_pool_links:
@@ -110,7 +110,7 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
     experiment_id = IntegerField(validators=[DataRequired()])
     pool_reads_fields = FieldList(FormField(PoolReadsSubForm), min_entries=1)
 
-    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
         self.experiment_id.data = self.experiment.id
@@ -135,7 +135,7 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
     def process_request(self) -> Response:
         if not self.validate():
             logger.debug(self.errors)  # FIXME: Erros not printed
-            return make_response()
+            return self.make_response()
 
         links: dict[tuple[int, int], models.links.LanePoolLink] = {}
         for link in self.experiment.laned_pool_links:

@@ -39,7 +39,7 @@ class CompleteBAReportForm(MultiStepForm):
 
     file = FileField("Bio Analyzer Report", validators=[DataRequired(), FileAllowed([ext for ext, _ in _allowed_extensions])], description="Report exported from the BioAnalyzer software (pdf).")
 
-    def __init__(self, uuid: str | None, formdata: dict = {}, max_size_mbytes: int = 5):
+    def __init__(self, uuid: str | None, formdata: dict | None = None, max_size_mbytes: int = 5):
         MultiStepForm.__init__(
             self, workflow=CompleteBAReportForm._workflow_name,
             step_name=CompleteBAReportForm._step_name, uuid=uuid, formdata=formdata,

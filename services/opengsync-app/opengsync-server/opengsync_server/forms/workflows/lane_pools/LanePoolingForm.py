@@ -40,7 +40,7 @@ class LanePoolingForm(HTMXFlaskForm):
     sample_sub_forms = FieldList(FormField(SampleSubForm), min_entries=1)
     lane_sub_forms = FieldList(FormField(LaneSubForm), min_entries=1)
 
-    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
         self._context["experiment"] = experiment

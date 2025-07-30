@@ -13,7 +13,7 @@ from opengsync_db.categories import FileType, LibraryStatus
 from .... import logger, db  # noqa F401
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ....forms.SpreadsheetFile import SpreadsheetFile
-from ....tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue, TextColumn, DropdownColumn, FloatColumn, IntegerColumn
+from ....tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue, TextColumn, FloatColumn, IntegerColumn
 
 
 class LibraryPrepForm(HTMXFlaskForm):
@@ -36,12 +36,12 @@ class LibraryPrepForm(HTMXFlaskForm):
         FloatColumn("lib_conc_ng_ul", "lib_conc_ng_ul", 100),
     ]
 
-    def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}):
+    def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.lab_prep = lab_prep
         self._context["lab_prep"] = lab_prep
 
-        if (csrf_token := formdata.get("csrf_token")) is None:
+        if (csrf_token := formdata.get("csrf_token") if formdata is not None else None) is None:
             csrf_token = self.csrf_token._value()  # type: ignore
 
         self.table: SpreadsheetFile = SpreadsheetFile(

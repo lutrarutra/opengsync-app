@@ -21,7 +21,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         DropdownColumn("sample_name", "Sample Name", 200, required=True, choices=[], all_options_required=True, unique=True, read_only=True)
     ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for _, t in enumerate(AttributeType.as_list()[1:])]
 
-    def __init__(self, project: models.Project, formdata: dict = {}):
+    def __init__(self, project: models.Project, formdata: dict | None = None):
         super().__init__(formdata=formdata)
         self.project = project
 

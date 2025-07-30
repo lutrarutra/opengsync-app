@@ -8,6 +8,7 @@ from .LibraryAnnotationForm import LibraryAnnotationForm  # noqa: F401
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm  # noqa: F401
 from .PoolMappingForm import PoolMappingForm    # noqa: F401
 from .BarcodeInputForm import BarcodeInputForm  # noqa: F401
+from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm  # noqa: F401
 from .IndexKitMappingForm import IndexKitMappingForm  # noqa: F401
 from .VisiumAnnotationForm import VisiumAnnotationForm  # noqa: F401
 from .OligoMuxAnnotationForm import OligoMuxAnnotationForm    # noqa: F401
@@ -35,6 +36,7 @@ _steps: list[type["MultiStepForm"]] = [
     PoolMappingForm,
     BarcodeInputForm,
     BarcodeMatchForm,
+    TENXATACBarcodeInputForm,
     IndexKitMappingForm,
     VisiumAnnotationForm,
     OligoMuxAnnotationForm,

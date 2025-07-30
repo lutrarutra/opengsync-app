@@ -1,6 +1,8 @@
 import math
 from typing import Optional, TYPE_CHECKING
 
+import sqlalchemy as sa
+
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 
@@ -68,6 +70,36 @@ def get_index_kit_by_identifier(
         self.open_session()
 
     res = self.session.query(models.IndexKit).where(models.IndexKit.identifier == identifier).first()
+
+    if not persist_session:
+        self.close_session()
+    return res
+
+
+def query_index_kits(
+    self: "DBHandler", word: str, limit: Optional[int] = PAGE_LIMIT, index_type: Optional[IndexTypeEnum] = None,
+    index_type_in: Optional[list[IndexTypeEnum]] = None
+) -> list[models.IndexKit]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    query = self.session.query(models.IndexKit)
+    query = query.where(models.IndexKit.kit_type_id == KitType.INDEX_KIT.id)
+
+    if index_type is not None:
+        query = query.where(models.IndexKit.type_id == index_type.id)
+
+    if index_type_in is not None:
+        query = query.where(models.IndexKit.type_id.in_([t.id for t in index_type_in]))
+
+    query = query.order_by(
+        sa.func.similarity(models.IndexKit.identifier + ' ' + models.IndexKit.name, word).desc()
+    )
+
+    if limit is not None:
+        query = query.limit(limit)
+
+    res = query.all()
 
     if not persist_session:
         self.close_session()

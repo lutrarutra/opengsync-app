@@ -36,7 +36,7 @@ class FeatureAnnotationForm(MultiStepForm):
     def is_applicable(previous_form: MultiStepForm) -> bool:
         return previous_form.tables["library_table"]["library_type_id"].isin([LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id]).any()
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
             self, workflow=FeatureAnnotationForm._workflow_name,
             step_name=FeatureAnnotationForm._step_name, uuid=uuid,
@@ -45,11 +45,8 @@ class FeatureAnnotationForm(MultiStepForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 
-        if (csrf_token := formdata.get("csrf_token")) is None:
-            csrf_token = self.csrf_token._value()  # type: ignore
-
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=FeatureAnnotationForm.columns, csrf_token=csrf_token,
+            columns=FeatureAnnotationForm.columns, csrf_token=self._csrf_token,
             post_url=url_for('library_annotation_workflow.annotate_features', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=True
         )

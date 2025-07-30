@@ -44,7 +44,7 @@ class SelectAssayForm(MultiStepForm):
     def is_applicable(current_step: MultiStepForm) -> bool:
         return current_step.metadata["workflow_type"] == "tech"
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=SelectAssayForm._workflow_name,
             step_name=SelectAssayForm._step_name,

@@ -1,0 +1,60 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/legends.jinja2" import icon_legend %}
+{% from "components/barcode_clashes_table.jinja2" import barcode_clashes_table with context %}
+
+<div id="barcode-check-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Check Barcode Clashes</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div> 
+    <div class="modal-body tab-body" id="barcode-check-form">
+        {{ form.csrf_token() }}
+        {% if groupby %}
+        <ul class="nav nav-tabs" role="tablist">
+            {% for group, _df in barcode_table.groupby(groupby) %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if loop.index0 == 0%}active{% endif %} {% if _df['error'].notna().any() %}cemm-red{% elif _df['warning'].notna().any() %}cemm-yellow{% else %}cemm-green{% endif %}" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#group-{{ group }}-tab" type="button" role="tab"
+                aria-controls="group-{{ group }}-tab" aria-selected="true">{{ groupby.capitalize() }}: {{ group }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="tab-content">
+            {% for group, _df in barcode_table.groupby(groupby) %}
+            <div class="tab-pane fade {% if loop.index0 == 0%}show active{% endif %}" id="group-{{ group }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
+                {{ barcode_clashes_table(_df) }}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        {{ barcode_clashes_table(barcode_table) }}
+        {% endif %}
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+            {{ icon_legend({ "OK": "✅", "warning": "⚠️", "error": "❌"}) }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#barcode-check-form-container" hx-swap="outerHTML"
+            hx-get="{{ url_for('reindex_workflow.previous', uuid=form.uuid, **form.url_context) }}">
+                Back
+            </button>
+            <button type="button" class="btn btn-primary"
+                hx-target="#barcode-check-form-container" hx-swap="outerHTML"
+                hx-include="#barcode-check-form"
+                hx-post="{{ form.post_url | safe }}">
+                Next
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        init_tooltips();
+    });
+</script>

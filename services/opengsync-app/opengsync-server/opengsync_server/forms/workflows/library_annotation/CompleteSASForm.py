@@ -21,7 +21,7 @@ class CompleteSASForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "complete_sas"
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
             self, workflow=CompleteSASForm._workflow_name, step_name=CompleteSASForm._step_name,
             uuid=uuid, formdata=formdata, step_args={}
@@ -307,6 +307,11 @@ class CompleteSASForm(MultiStepForm):
                 library = db.update_library(library)
 
                 for _, barcode_row in library_barcodes.iterrows():
+                    if int(barcode_row["index_type_id"]) != index_type.id:
+                        logger.error(f"{self.uuid}: Index type mismatch for library {library_row['library_name']}. Expected {index_type}, found {IndexType.get(barcode_row['index_type_id'])}.")
+                        logger.warning(self.barcode_table)
+                        logger.warning(self.library_table)
+                        
                     library = db.add_library_index(
                         library_id=library.id,
                         sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,

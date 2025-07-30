@@ -586,13 +586,13 @@ def get_index_kit_barcodes_df(self: "DBHandler", index_kit_id: int, per_adapter:
             barcode_data = {
                 "well": [],
                 "adapter_id": [],
-                "name": [],
+                "name_i7": [],
                 "sequence_i7": [],
             }
             for _, row in df.iterrows():
                 barcode_data["adapter_id"].append(row["adapter_id"])
                 barcode_data["well"].append(row["well"])
-                barcode_data["name"].append(row["names"][0])
+                barcode_data["name_i7"].append(row["names"][0])
                 barcode_data["sequence_i7"].append(row["sequences"][0])
         else:
             raise ValueError(f"Unsupported index kit type: {index_kit.type}")
@@ -741,14 +741,9 @@ def get_lab_prep_libraries_df(self: "DBHandler", lab_prep_id: int) -> pd.DataFra
         models.Library.type_id.label("library_type_id"),
         models.Library.genome_ref_id.label("genome_ref_id"),
         models.Pool.id.label("pool_id"), models.Pool.name.label("pool"),
-        models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
-        models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
     ).outerjoin(
         models.Pool,
         models.Pool.id == models.Library.pool_id
-    ).outerjoin(
-        models.LibraryIndex,
-        models.LibraryIndex.library_id == models.Library.id,
     ).where(
         models.Library.lab_prep_id == lab_prep_id
     )

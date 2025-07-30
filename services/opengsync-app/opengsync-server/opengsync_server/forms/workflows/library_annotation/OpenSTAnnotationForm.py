@@ -34,7 +34,7 @@ class OpenSTAnnotationForm(MultiStepForm):
     def is_applicable(current_step: MultiStepForm) -> bool:
         return current_step.tables["library_table"]["library_type_id"].isin([LibraryType.OPENST.id]).any()
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
             self, workflow=OpenSTAnnotationForm._workflow_name, step_name=OpenSTAnnotationForm._step_name,
             uuid=uuid, formdata=formdata, step_args={}
@@ -44,12 +44,9 @@ class OpenSTAnnotationForm(MultiStepForm):
         self.library_table = self.tables["library_table"]
         self.openst_libraries = self.library_table[self.library_table["library_type_id"].isin([LibraryType.OPENST.id])]
         self.openst_samples = self.openst_libraries["sample_name"].unique().tolist()
-
-        if (csrf_token := formdata.get("csrf_token")) is None:
-            csrf_token = self.csrf_token._value()  # type: ignore
         
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=OpenSTAnnotationForm.columns, csrf_token=csrf_token,
+            columns=OpenSTAnnotationForm.columns, csrf_token=self._csrf_token,
             post_url=url_for('library_annotation_workflow.parse_openst_annotation', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=False, df=self.get_template()
         )

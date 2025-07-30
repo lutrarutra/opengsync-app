@@ -38,7 +38,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
     def __init__(
         self, seq_request: models.SeqRequest, uuid: str,
-        formdata: dict = {}
+        formdata: dict | None = None
     ):
         MultiStepForm.__init__(
             self, uuid=uuid, workflow=PooledLibraryAnnotationForm._workflow_name,
@@ -48,10 +48,8 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         
-        if (csrf_token := formdata.get("csrf_token")) is None:
-            csrf_token = self.csrf_token._value()  # type: ignore
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=PooledLibraryAnnotationForm.columns, csrf_token=csrf_token,
+            columns=PooledLibraryAnnotationForm.columns, csrf_token=self._csrf_token,
             post_url=url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, form_type='pooled', uuid=self.uuid),
             formdata=formdata, allow_new_rows=True
         )

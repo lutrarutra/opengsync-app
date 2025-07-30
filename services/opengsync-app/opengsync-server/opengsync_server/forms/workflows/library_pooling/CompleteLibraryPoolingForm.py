@@ -19,21 +19,17 @@ class CompleteLibraryPoolingForm(MultiStepForm):
     _workflow_name = "library_pooling"
     _step_name = "complete_library_pooling"
 
-    def __init__(self, lab_prep: models.LabPrep, uuid: str | None, formdata: dict = {}):
+    def __init__(self, lab_prep: models.LabPrep, uuid: str | None, formdata: dict | None = None):
         MultiStepForm.__init__(
             self, workflow=CompleteLibraryPoolingForm._workflow_name,
             step_name=CompleteLibraryPoolingForm._step_name, uuid=uuid,
-            formdata=formdata, step_args={}
+            formdata=formdata, step_args={"lab_prep": lab_prep},
         )
         self.lab_prep = lab_prep
         self._context["lab_prep"] = lab_prep
 
     def prepare(self):
-        barcode_table = self.tables["barcode_table"]
-        library_table = self.tables["library_table"].set_index("library_id")
-        barcode_table["pool"] = library_table.loc[barcode_table["library_id"], "pool"].values
-        barcode_table["library_name"] = library_table.loc[barcode_table["library_id"], "library_name"].values
-        barcode_table = tools.check_indices(barcode_table, groupby="pool")
+        barcode_table = tools.check_indices(self.tables["barcode_table"], groupby="pool")
         self._context["df"] = barcode_table
         self._context["groupby"] = "pool"
 
@@ -45,12 +41,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
         if not self.validate():
             return self.make_response()
 
-        lab_prep_id = self.metadata["lab_prep_id"]
-        if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
-            logger.error(f"{self.uuid}: LabPrep not found")
-            raise ValueError(f"{self.uuid}: LabPrep not found")
-
-        for library in lab_prep.libraries:
+        for library in self.lab_prep.libraries:
             library.pool_id = None
             library.status = LibraryStatus.FAILED
             library = db.update_library(library)
@@ -60,35 +51,41 @@ class CompleteLibraryPoolingForm(MultiStepForm):
         barcode_table.loc[barcode_table["name_i7"].notna(), "name_i7"] = barcode_table.loc[barcode_table["name_i7"].notna(), "name_i7"].astype(str)
         barcode_table.loc[barcode_table["name_i5"].notna(), "name_i5"] = barcode_table.loc[barcode_table["name_i5"].notna(), "name_i5"].astype(str)
         library_table = self.tables["library_table"]
+        library_table["pool"] = barcode_table.set_index("library_id").loc[library_table["library_id"], "pool"].values
         
-        if (lab_prep_id := self.metadata.get("lab_prep_id")) is None:
-            logger.error(f"{self.uuid}: LabPrep id not found")
-            raise ValueError(f"{self.uuid}: LabPrep id not found")
-        
-        if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
-            logger.error(f"{self.uuid}: LabPrep not found")
-            raise ValueError(f"{self.uuid}: LabPrep not found")
-        
-        for pool in lab_prep.pools:
+        lab_prep_libraries = db.get_lab_prep_libraries_df(self.lab_prep.id)
+        library_table["old_pool_id"] = lab_prep_libraries.set_index("library_id").loc[library_table["library_id"], "pool_id"].values
+        library_table["experiment_id"] = None
+
+        for pool in self.lab_prep.pools:
+            library_table.loc[library_table["old_pool_id"] == pool.id, "experiment_id"] = pool.experiment_id
             db.delete_pool(pool.id)
 
         selected_libraries = library_table[~library_table["pool"].astype(str).str.strip().str.lower().isin(["x", "t"])].copy()
+
+        if len(selected_libraries["pool"].unique()) == 1:
+            selected_libraries["pool"] = "1"
+            library_table["pool"] = "1"
         
+        # if all the experiment_ids are the same in the pool we can link it with the experiment
+        experiment_mappings = {}
+        for pool_suffix, _df in selected_libraries.groupby("pool"):
+            if len(_df["experiment_id"].unique()) == 1 and pd.notna(_df["experiment_id"].iloc[0]):
+                experiment_mappings[pool_suffix] = _df["experiment_id"].iloc[0]
+                    
         pools = {}
         if len(selected_libraries["pool"].unique()) > 1:
             for pool_suffix, _df in selected_libraries.groupby("pool"):
                 pools[pool_suffix] = db.create_pool(
-                    name=f"{lab_prep.name}_{pool_suffix}", pool_type=PoolType.INTERNAL,
+                    name=f"{self.lab_prep.name}_{pool_suffix}", pool_type=PoolType.INTERNAL,
                     contact_email=user.email, contact_name=user.name, owner_id=user.id,
-                    lab_prep_id=lab_prep.id
+                    lab_prep_id=self.lab_prep.id, experiment_id=experiment_mappings.get(pool_suffix, None),
                 )
         elif len(selected_libraries) > 0:
-            selected_libraries["pool"] = "1"
-            library_table["pool"] = "1"
             pools["1"] = db.create_pool(
-                name=lab_prep.name, pool_type=PoolType.INTERNAL,
+                name=self.lab_prep.name, pool_type=PoolType.INTERNAL,
                 contact_email=user.email, contact_name=user.name, owner_id=user.id,
-                lab_prep_id=lab_prep.id
+                lab_prep_id=self.lab_prep.id, experiment_id=experiment_mappings.get("1", None)
             )
 
         request_ids = []
@@ -142,8 +139,8 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 if library.seq_request_id not in request_ids:
                     request_ids.append(library.seq_request_id)
         
-        if lab_prep.prep_file is not None:
-            wb = openpyxl.load_workbook(os.path.join(current_app.config["MEDIA_FOLDER"], lab_prep.prep_file.path))
+        if self.lab_prep.prep_file is not None:
+            wb = openpyxl.load_workbook(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path))
             active_sheet = wb["prep_table"]
             
             column_mapping: dict[str, str] = {}
@@ -166,8 +163,8 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = row["kit_i5"]
                 active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = row["index_well"]
 
-            logger.debug(f"Overwriting existing file: {os.path.join(current_app.config['MEDIA_FOLDER'], lab_prep.prep_file.path)}")
-            wb.save(os.path.join(current_app.config["MEDIA_FOLDER"], lab_prep.prep_file.path))
+            logger.debug(f"Overwriting existing file: {os.path.join(current_app.config['MEDIA_FOLDER'], self.lab_prep.prep_file.path)}")
+            wb.save(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path))
 
         for request_id in request_ids:
             if (seq_request := db.get_seq_request(request_id)) is None:
@@ -184,4 +181,4 @@ class CompleteLibraryPoolingForm(MultiStepForm):
         
         self.complete()
         flash("Library Indexing completed!", "success")
-        return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep.id))
+        return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))

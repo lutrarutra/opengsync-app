@@ -34,7 +34,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
     target_total_volume = FloatField(validators=[DataRequired()], default=DEFAULT_TOTAL_VOLUME_TARGET)
     target_molarity = FloatField(validators=[DataRequired()], default=DEFAULT_TARGET_NM)
 
-    def __init__(self, experiment: models.Experiment, formdata: dict = {}):
+    def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
         self._context["experiment"] = experiment

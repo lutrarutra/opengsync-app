@@ -34,7 +34,7 @@ class FlexABCForm(MultiStepForm):
         sample_table = current_step.tables["sample_table"]
         return LibraryType.TENX_SC_ABC_FLEX in sample_table["library_type"].values
 
-    def __init__(self, lab_prep: models.LabPrep, formdata: dict = {}, uuid: Optional[str] = None):
+    def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: Optional[str] = None):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=FlexABCForm._workflow_name,
             step_name=FlexABCForm._step_name, step_args={"mux_type_id": FlexABCForm.mux_type.id}

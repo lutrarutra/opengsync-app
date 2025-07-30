@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, KitType
+from opengsync_db.categories import HTTPResponse, KitType, IndexType
 from .... import db, logger, forms, htmx_route  # noqa
 
 if TYPE_CHECKING:
@@ -35,11 +35,19 @@ def get(page: int):
 @htmx_route(barcodes_htmx, "query_index_kits", db=db, methods=["POST"])
 def query_index_kits():
     field_name = next(iter(request.form.keys()))
+
+    if (index_type_id_in := request.args.get("index_type_id_in")) is not None:
+        try:
+            index_type_in = [IndexType.get(int(i)) for i in index_type_id_in.split(",")]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    else:
+        index_type_in = None
     
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    results = db.query_kits(word, kit_type=KitType.INDEX_KIT)
+    results = db.query_index_kits(word, index_type_in=index_type_in)
 
     return make_response(
         render_template(

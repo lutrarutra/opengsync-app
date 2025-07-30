@@ -53,7 +53,7 @@ class SelectSamplesForm(MultiStepForm):
 
     @staticmethod
     def create_workflow_form(
-        workflow: str, formdata: dict = {}, context: dict = {},
+        workflow: str, formdata: dict | None = None, context: dict = {},
         selected_samples: list[models.Sample] = [],
         selected_libraries: list[models.Library] = [],
         selected_pools: list[models.Pool] = [],
@@ -70,7 +70,7 @@ class SelectSamplesForm(MultiStepForm):
         )
 
     def __init__(
-        self, workflow: str, formdata: dict = {}, context: dict = {},
+        self, workflow: str, formdata: dict | None = None, context: dict = {},
         select_samples: bool = False,
         select_libraries: bool = False,
         select_pools: bool = False,
@@ -85,6 +85,7 @@ class SelectSamplesForm(MultiStepForm):
         selected_lanes: list[models.Lane] = [],
         select_all_samples: bool = False,
         select_all_libraries: bool = False,
+        uuid: str | None = None
     ):
         url_context = {"workflow": workflow}
         if "pool" in context.keys():
@@ -96,7 +97,7 @@ class SelectSamplesForm(MultiStepForm):
         if "lab_prep" in context.keys():
             url_context["lab_prep_id"] = context["lab_prep"].id
 
-        MultiStepForm.__init__(self, uuid=None, formdata=formdata, step_name=SelectSamplesForm._step_name, step_args=url_context, workflow=workflow)
+        MultiStepForm.__init__(self, uuid=uuid, formdata=formdata, step_name=SelectSamplesForm._step_name, step_args=url_context, workflow=workflow)
         self.select_samples = select_samples
         self.select_libraries = select_libraries
         self.select_pools = select_pools

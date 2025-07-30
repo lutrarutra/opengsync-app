@@ -36,7 +36,7 @@ class PoolMappingForm(MultiStepForm):
     contact_email = StringField("Contact Email", validators=[DataRequired(), Length(max=models.Contact.email.type.length)])
     contact_phone = StringField("Contact Phone", validators=[DataRequired(), Length(max=models.Contact.phone.type.length)])
 
-    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict = {}):
+    def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
             self, uuid=uuid, workflow=PoolMappingForm._workflow_name,
             step_name=PoolMappingForm._step_name,
