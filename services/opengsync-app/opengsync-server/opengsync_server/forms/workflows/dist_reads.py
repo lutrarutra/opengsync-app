@@ -2,7 +2,7 @@ from flask import Response, flash, url_for
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
 from wtforms import FloatField, IntegerField, FieldList, FormField, StringField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 from opengsync_db import models
 
@@ -13,7 +13,7 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 class LaneSubForm(FlaskForm):
     lane_id = IntegerField(validators=[DataRequired()])
     lane_num = IntegerField()
-    num_reads = FloatField(validators=[DataRequired()])
+    num_reads = FloatField(validators=[OptionalValidator()])
 
 
 class PoolSubForm(FlaskForm):
@@ -66,6 +66,7 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
 
     def process_request(self) -> Response:
         if not self.validate():
+            logger.debug(self.errors)
             return self.make_response()
 
         links: dict[tuple[int, int], models.links.LanePoolLink] = {}
@@ -80,9 +81,6 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
 
             lane_field: LaneSubForm
             for lane_field in pool_field.reads_fields:  # type: ignore
-                if lane_field.num_reads.data is None:
-                    continue
-
                 if (lane := db.get_lane(lane_field.lane_id.data)) is None:  # type: ignore
                     logger.error(f"Lane with id {lane_field.lane_id.data} does not exist")
                     raise ValueError(f"Lane with id {lane_field.lane_id.data} does not exist")
@@ -101,7 +99,7 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
 class PoolReadsSubForm(FlaskForm):
     pool_id = IntegerField(validators=[DataRequired()])
     pool_name = StringField()
-    num_reads = FloatField(validators=[DataRequired()])
+    num_reads = FloatField(validators=[OptionalValidator()])
 
 
 class DistributeReadsCombinedForm(HTMXFlaskForm):
