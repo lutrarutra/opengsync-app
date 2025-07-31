@@ -311,7 +311,12 @@ class CommonIndexKitMappingForm(MultiStepForm):
             if col not in barcode_table.columns:
                 barcode_table[col] = df.loc[barcode_table[self.index_col], col].values
         
-        if barcode_table["sequence_i7"].isna().any():
+        if self._workflow_name == "library_pooling":
+            missing = (barcode_table["sequence_i7"].isna() & ~barcode_table["pool"].astype(str).str.strip().str.lower().isin(["x", "t"])).any()
+        else:
+            missing = barcode_table["sequence_i7"].isna().any()
+        
+        if missing:
             logger.error("Missing i7 sequences in barcode table after index kit mapping")
             logger.error(barcode_table)
             raise exceptions.InternalServerErrorException("Missing i7 sequences in barcode table after index kit mapping")

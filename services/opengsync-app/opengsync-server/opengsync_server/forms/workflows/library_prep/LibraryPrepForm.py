@@ -11,6 +11,7 @@ from opengsync_db import models, to_utc
 from opengsync_db.categories import FileType, LibraryStatus
 
 from .... import logger, db  # noqa F401
+from ....tools import exceptions
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ....forms.SpreadsheetFile import SpreadsheetFile
 from ....tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue, TextColumn, FloatColumn, IntegerColumn
@@ -20,9 +21,9 @@ class LibraryPrepForm(HTMXFlaskForm):
     _template_path = "workflows/library_prep/prep_table.html"
 
     columns = [
-        IntegerColumn("library_id", "library_id", 100),
-        TextColumn("library_name", "library_name", 250),
-        TextColumn("requestor", "requestor", 200),
+        IntegerColumn("library_id", "library_id", 100, read_only=True),
+        TextColumn("library_name", "library_name", 250, read_only=True),
+        TextColumn("requestor", "requestor", 200, read_only=True),
         TextColumn("pool", "pool", 200),
         TextColumn("plate", "plate", 100, optional_col=True),
         TextColumn("plate_well", "plate_well", 150, clean_up_fnc=lambda x: x.strip().upper()),
@@ -82,9 +83,18 @@ class LibraryPrepForm(HTMXFlaskForm):
             if duplicate_plate_well.at[idx]:
                 self.table.add_error(idx, ["plate_well", "plate"], DuplicateCellValue(f"Plate Well '{row['plate_well']}' is duplicated."))
 
-            if int(row["library_id"]) not in libraries:
-                self.table.add_error(idx, "library_id", InvalidCellValue(f"Library ID '{row['library_id']}' is not part of this prep."))
-            elif pd.notna(row["library_id"]) and libraries[int(row["library_id"])] != row["library_name"]:
+            if pd.isna(row["library_id"]):
+                continue
+
+            try:
+                library_id = int(row["library_id"])
+            except ValueError:
+                logger.error(f"Invalid library_id '{row['library_id']}' at row {idx}.")
+                raise exceptions.InternalServerErrorException(f"Invalid library_id '{row['library_id']}' at row {idx}.")
+
+            if library_id not in libraries:
+                self.table.add_error(idx, "library_id", InvalidCellValue(f"Library ID '{library_id}' is not part of this prep."))
+            elif libraries[library_id] != row["library_name"]:
                 self.table.add_error(idx, ["library_name", "library_id"], InvalidCellValue(f"Library Name '{row['library_name']}' does not match the existing library name '{libraries[int(row['library_id'])]}'.. Did you move the rows?"))
 
         if self.table.errors:
@@ -105,6 +115,8 @@ class LibraryPrepForm(HTMXFlaskForm):
 
         for plate in self.lab_prep.plates:
             db.delete_plate(plate.id)
+
+        db.refresh(self.lab_prep)
 
         for plate, _df in self.df.groupby("plate", dropna=False):
             if pd.isna(plate):
@@ -139,7 +151,6 @@ class LibraryPrepForm(HTMXFlaskForm):
                 if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
                     library.status = LibraryStatus.FAILED
                     library = db.update_library(library)
-                    continue
                 
                 if pd.notna(row["lib_conc_ng_ul"]):
                     if (library := db.get_library(library_id)) is None:

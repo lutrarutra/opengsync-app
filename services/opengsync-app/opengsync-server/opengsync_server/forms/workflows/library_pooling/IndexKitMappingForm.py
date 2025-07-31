@@ -74,9 +74,6 @@ class IndexKitMappingForm(CommonIndexKitMappingForm):
 
         self.barcode_table = self.fill_barcode_table()
         self.update_table("barcode_table", self.barcode_table)
-
-        logger.debug(self.barcode_table)
-        logger.debug(self.tables["library_table"])
         
         complete_pool_indexing_form = CompleteLibraryPoolingForm(lab_prep=self.lab_prep, uuid=self.uuid)
         return complete_pool_indexing_form.make_response()

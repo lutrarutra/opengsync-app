@@ -11,6 +11,7 @@ from opengsync_db import models
 from opengsync_db.categories import PoolType, SeqRequestStatus, LibraryStatus, LibraryType, IndexType
 
 from .... import logger, db, tools
+from ....tools import exceptions
 from ...MultiStepForm import MultiStepForm
 
 
@@ -40,32 +41,23 @@ class CompleteLibraryPoolingForm(MultiStepForm):
     def process_request(self, user: models.User) -> Response:
         if not self.validate():
             return self.make_response()
-
-        for library in self.lab_prep.libraries:
-            library.pool_id = None
-            library.status = LibraryStatus.FAILED
-            library = db.update_library(library)
-            library = db.remove_library_indices(library_id=library.id)
         
         barcode_table = self.tables["barcode_table"]
-        barcode_table.loc[barcode_table["name_i7"].notna(), "name_i7"] = barcode_table.loc[barcode_table["name_i7"].notna(), "name_i7"].astype(str)
-        barcode_table.loc[barcode_table["name_i5"].notna(), "name_i5"] = barcode_table.loc[barcode_table["name_i5"].notna(), "name_i5"].astype(str)
-        library_table = self.tables["library_table"]
-        library_table["pool"] = barcode_table.set_index("library_id").loc[library_table["library_id"], "pool"].values
         
         lab_prep_libraries = db.get_lab_prep_libraries_df(self.lab_prep.id)
-        library_table["old_pool_id"] = lab_prep_libraries.set_index("library_id").loc[library_table["library_id"], "pool_id"].values
-        library_table["experiment_id"] = None
+        barcode_table["old_pool_id"] = lab_prep_libraries.set_index("library_id").loc[barcode_table["library_id"], "pool_id"].values
+        barcode_table["experiment_id"] = None
 
         for pool in self.lab_prep.pools:
-            library_table.loc[library_table["old_pool_id"] == pool.id, "experiment_id"] = pool.experiment_id
+            barcode_table.loc[barcode_table["old_pool_id"] == pool.id, "experiment_id"] = pool.experiment_id
             db.delete_pool(pool.id)
 
-        selected_libraries = library_table[~library_table["pool"].astype(str).str.strip().str.lower().isin(["x", "t"])].copy()
+        barcode_table["selected"] = ~barcode_table["pool"].astype(str).str.strip().str.lower().isin(["x", "t"])
+        selected_libraries = barcode_table[barcode_table["selected"]].copy()
 
         if len(selected_libraries["pool"].unique()) == 1:
             selected_libraries["pool"] = "1"
-            library_table["pool"] = "1"
+            barcode_table.loc[barcode_table["selected"], "pool"] = "1"
         
         # if all the experiment_ids are the same in the pool we can link it with the experiment
         experiment_mappings = {}
@@ -88,59 +80,78 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 lab_prep_id=self.lab_prep.id, experiment_id=experiment_mappings.get("1", None)
             )
 
-        request_ids = []
-        for _, row in library_table.iterrows():
-            if (library := db.get_library(row["library_id"])) is None:
-                logger.error(f"{self.uuid}: Library {row['library_id']} not found")
-                raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
-            
-            db.refresh(library)
+        request_ids = set()
 
-            if str(row["pool"]).strip().lower() == "t":
+        if len(barcode_table.drop_duplicates(["library_id", "index_type_id"])) != len(barcode_table.drop_duplicates(["library_id"])):
+            logger.error(f"{self.uuid}: some have more than one unique index_type_id entries in barcode table.")
+            raise exceptions.InternalServerErrorException(f"{self.uuid}: some have more than one unique index_type_id entries in barcode table.")
+
+        for (library_id, pool, index_type_id), df in barcode_table.groupby(["library_id", "pool", "index_type_id"], dropna=False):
+            if str(pool).strip().lower() == "t":
                 continue
-            elif str(row["pool"]).strip().lower() == "x":
-                library.pool_id = None
-                library = db.update_library(library)
-                library = db.remove_library_indices(library_id=library.id)
-            else:
-                df = barcode_table[barcode_table["library_id"] == row["library_id"]].copy()
+            
+            if (library := db.get_library(library_id)) is None:
+                logger.error(f"{self.uuid}: Library {library_id} not found")
+                raise ValueError(f"{self.uuid}: Library {library_id} not found")
 
-                if library.type == LibraryType.TENX_SC_ATAC:
-                    if len(df) != 4:
-                        logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for TENX_SC_ATAC library, found {len(df)}.")
-                    index_type = IndexType.TENX_ATAC_INDEX
+            if pool == "x":
+                if df["sequence_i7"].isna().all():
+                    index_type = None
                 else:
-                    if df["sequence_i5"].isna().all():
-                        index_type = IndexType.SINGLE_INDEX
-                    elif df["sequence_i5"].isna().any():
-                        logger.warning(f"{self.uuid}: Mixed index types found for library {df['library_name']}.")
-                        index_type = IndexType.DUAL_INDEX
+                    if library.type == LibraryType.TENX_SC_ATAC:
+                        if len(df) != 4:
+                            logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for index type {library.index_type}, found {len(df)}.")
+                        index_type = IndexType.TENX_ATAC_INDEX
                     else:
-                        index_type = IndexType.DUAL_INDEX
+                        if len(df) != 1:
+                            logger.warning(f"{self.uuid}: Expected 1 barcode for index type {library.index_type}, found {len(df)}.")
+                        if df["sequence_i5"].isna().all():
+                            index_type = IndexType.SINGLE_INDEX
+                        else:
+                            index_type = IndexType.DUAL_INDEX
+            else:
+                try:
+                    index_type_id = int(index_type_id)
+                    index_type = IndexType.get(index_type_id)
+                except ValueError:
+                    logger.error(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
+                    raise exceptions.InternalServerErrorException(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
+            
+            library = db.remove_library_indices(library_id=library.id)
+            request_ids.add(library.seq_request_id)
+            library.index_type = index_type
+            library.pool_id = None
+            library.status = LibraryStatus.POOLED if str(pool).strip().lower() != "x" else LibraryStatus.FAILED
+            library.pool_id = None
+            library = db.update_library(library)
+            
+            if str(pool).strip().lower() != "x":
+                library = db.add_library_to_pool(library_id=library.id, pool_id=pools[pool].id)
 
-                for _, barcode_row in df.iterrows():
-                    library = db.add_library_index(
-                        library_id=library.id,
-                        index_kit_i7_id=barcode_row["kit_i7_id"] if pd.notna(barcode_row["kit_i7_id"]) else None,
-                        index_kit_i5_id=barcode_row["kit_i5_id"] if pd.notna(barcode_row["kit_i5_id"]) else None,
-                        name_i7=barcode_row["name_i7"] if pd.notna(barcode_row["name_i7"]) else None,
-                        name_i5=barcode_row["name_i5"] if pd.notna(barcode_row["name_i5"]) else None,
-                        sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,
-                        sequence_i5=barcode_row["sequence_i5"] if pd.notna(barcode_row["sequence_i5"]) else None,
-                    )
+            if index_type == IndexType.TENX_ATAC_INDEX:
+                if len(df) != 4:
+                    logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for index type {library.index_type}, found {len(df)}.")
+            else:
+                if len(df) != 1:
+                    logger.warning(f"{self.uuid}: Expected 1 barcode for index type {library.index_type}, found {len(df)}.")
 
-                library.index_type = index_type
-                library.pool_id = None
-                library = db.update_library(library)
-                library = db.add_library_to_pool(library_id=library.id, pool_id=pools[row["pool"]].id)
-                library.status = LibraryStatus.POOLED
-                library = db.update_library(library)
-
-                if library.seq_request_id not in request_ids:
-                    request_ids.append(library.seq_request_id)
+            for _, row in df.iterrows():
+                if pool == "x" and pd.isna(row["sequence_i7"]):
+                    continue
+                
+                library = db.add_library_index(
+                    library_id=library.id,
+                    index_kit_i7_id=int(row["kit_i7_id"]) if pd.notna(row["kit_i7_id"]) else None,
+                    index_kit_i5_id=int(row["kit_i5_id"]) if pd.notna(row["kit_i5_id"]) else None,
+                    name_i7=row["name_i7"] if pd.notna(row["name_i7"]) else None,
+                    name_i5=row["name_i5"] if pd.notna(row["name_i5"]) else None,
+                    sequence_i7=row["sequence_i7"],
+                    sequence_i5=row["sequence_i5"] if pd.notna(row["sequence_i5"]) else None,
+                )
         
         if self.lab_prep.prep_file is not None:
-            wb = openpyxl.load_workbook(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path))
+            path = os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path)
+            wb = openpyxl.load_workbook(path)
             active_sheet = wb["prep_table"]
             
             column_mapping: dict[str, str] = {}
@@ -149,22 +160,22 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 column_name = active_sheet[f"{col}1"].value
                 column_mapping[column_name] = col
             
-            for i, (_, row) in enumerate(library_table.iterrows()):
-                if (library := db.get_library(int(row["library_id"]))) is None:
-                    logger.error(f"{self.uuid}: Library {row['library_id']} not found")
-                    raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
+            for i, ((library_id, pool, index_type_id, index_well), df) in enumerate(barcode_table.groupby(["library_id", "pool", "index_type_id", "index_well"], dropna=False)):
+                if (library := db.get_library(int(library_id))) is None:
+                    logger.error(f"{self.uuid}: Library {library_id} not found")
+                    raise ValueError(f"{self.uuid}: Library {library_id} not found")
 
                 active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"].value = library.sequences_i7_str(sep=";")
                 active_sheet[f"{column_mapping['sequence_i5']}{i + 2}"].value = library.sequences_i5_str(sep=";")
                 active_sheet[f"{column_mapping['name_i7']}{i + 2}"].value = ";".join([index.name_i7 for index in library.indices if index.name_i7])
                 active_sheet[f"{column_mapping['name_i5']}{i + 2}"].value = ";".join([index.name_i5 for index in library.indices if index.name_i5])
-                active_sheet[f"{column_mapping['pool']}{i + 2}"].value = row["pool"]
-                active_sheet[f"{column_mapping['kit_i7']}{i + 2}"].value = row["kit_i7"]
-                active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = row["kit_i5"]
-                active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = row["index_well"]
+                active_sheet[f"{column_mapping['pool']}{i + 2}"].value = pool
+                active_sheet[f"{column_mapping['kit_i7']}{i + 2}"].value = ";".join([str(s) for s in df["kit_i7"] if pd.notna(s)])
+                active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = ";".join([str(s) for s in df["kit_i5"] if pd.notna(s)])
+                active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = index_well
 
             logger.debug(f"Overwriting existing file: {os.path.join(current_app.config['MEDIA_FOLDER'], self.lab_prep.prep_file.path)}")
-            wb.save(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path))
+            wb.save(path)
 
         for request_id in request_ids:
             if (seq_request := db.get_seq_request(request_id)) is None:
@@ -178,7 +189,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
             if prepared and seq_request.status == SeqRequestStatus.ACCEPTED:
                 seq_request.status = SeqRequestStatus.PREPARED
                 seq_request = db.update_seq_request(seq_request)
-        
+
         self.complete()
         flash("Library Indexing completed!", "success")
         return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))

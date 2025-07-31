@@ -1,6 +1,7 @@
+import os
 import pandas as pd
 
-from flask import url_for
+from flask import url_for, current_app
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, IndexType
@@ -62,13 +63,14 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
         self.seq_request = seq_request
         self.lab_prep = lab_prep
         self.pool = pool
+        self.columns = additional_columns + CommonTENXATACBarcodeInputForm.columns
 
         if workflow == "library_annotation":
             self.index_col = "library_name"
         else:
             self.index_col = "library_id"
 
-        if self.index_col not in [col.label for col in self.columns + additional_columns]:
+        if self.index_col not in [col.label for col in self.columns]:
             logger.error(f"Index column '{self.index_col}' not found in columns")
             raise exceptions.InternalServerErrorException(f"Index column '{self.index_col}' not found in columns")
         
@@ -78,7 +80,14 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
                     logger.error("lab_prep must be provided for library pooling workflow")
                     raise ValueError("lab_prep must be provided for library pooling workflow")
                 
-                self.library_table = utils.get_barcode_table(db, self.lab_prep.libraries)
+                library_table = utils.get_barcode_table(db, self.lab_prep.libraries)
+                if self.lab_prep.prep_file is not None:
+                    prep_table = pd.read_excel(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path), "prep_table")  # type: ignore
+                    prep_table = prep_table.dropna(subset=["library_id", "library_name"]).rename(columns={"kit_i7": "kit", "name_i7": "name"})
+                    self.library_table = prep_table[[col.label for col in self.columns if col.label in prep_table.columns]]
+                    self.library_table["library_type_id"] = library_table.set_index(self.index_col).loc[self.library_table["library_id"], "library_type_id"].values
+                else:
+                    self.library_table = library_table
             else:
                 logger.error(f"Library table not found for workflow {workflow}")
                 raise exceptions.WorkflowException("Library table not found for workflow")
@@ -132,7 +141,6 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
         
         self.post_url = url_for(f"{workflow}_workflow.upload_tenx_atac_barcode_form", uuid=self.uuid, **self.url_context)
             
-        self.columns = additional_columns + CommonTENXATACBarcodeInputForm.columns
         self.spreadsheet = SpreadsheetInput(
             columns=self.columns,
             csrf_token=self._csrf_token,

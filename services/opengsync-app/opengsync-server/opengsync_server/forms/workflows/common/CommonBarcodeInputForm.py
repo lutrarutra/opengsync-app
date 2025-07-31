@@ -1,6 +1,7 @@
+import os
 import pandas as pd
 
-from flask import url_for
+from flask import url_for, current_app
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, IndexType
@@ -57,13 +58,14 @@ class CommonBarcodeInputForm(MultiStepForm):
         self.seq_request = seq_request
         self.lab_prep = lab_prep
         self.pool = pool
+        self.columns = additional_columns + self.columns
 
         if workflow == "library_annotation":
             self.index_col = "library_name"
         else:
             self.index_col = "library_id"
 
-        if self.index_col not in [col.label for col in self.columns + additional_columns]:
+        if self.index_col not in [col.label for col in self.columns]:
             logger.error(f"Index column '{self.index_col}' not found in columns")
             raise exceptions.InternalServerErrorException(f"Index column '{self.index_col}' not found in columns")
         
@@ -73,8 +75,14 @@ class CommonBarcodeInputForm(MultiStepForm):
                     logger.error("lab_prep must be provided for library pooling workflow")
                     raise ValueError("lab_prep must be provided for library pooling workflow")
                 
-                self.library_table = utils.get_barcode_table(db, self.lab_prep.libraries)
-                logger.debug(self.library_table)
+                library_table = utils.get_barcode_table(db, self.lab_prep.libraries)
+                if self.lab_prep.prep_file is not None:
+                    prep_table = pd.read_excel(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path), "prep_table")  # type: ignore
+                    prep_table = prep_table.dropna(subset=["library_id", "library_name"])
+                    self.library_table = prep_table[[col.label for col in self.columns if col.label in prep_table.columns]]
+                    self.library_table["library_type_id"] = library_table.set_index(self.index_col).loc[self.library_table["library_id"], "library_type_id"].values
+                else:
+                    self.library_table = library_table
             else:
                 logger.error(f"Library table not found for workflow {workflow}")
                 raise exceptions.WorkflowException("Library table not found for workflow")
@@ -101,9 +109,7 @@ class CommonBarcodeInputForm(MultiStepForm):
             self.url_context["pool_id"] = pool.id
         
         self.post_url = url_for(f"{workflow}_workflow.upload_barcode_form", uuid=self.uuid, **self.url_context)
-        logger.debug(self.post_url)
             
-        self.columns = additional_columns + CommonBarcodeInputForm.columns
         self.spreadsheet = SpreadsheetInput(
             columns=self.columns,
             csrf_token=self._csrf_token,
@@ -138,6 +144,9 @@ class CommonBarcodeInputForm(MultiStepForm):
         for idx, row in self.df.iterrows():
             if row["library_name"] not in self.library_table["library_name"].values:
                 self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name'"))
+
+            if self._workflow_name == "library_pooling" and str(row["pool"]).strip().lower() == "x":
+                continue
 
             if (not kit_defined.at[idx]) and (not manual_defined.at[idx]):
                 if pd.notna(row["kit_i7"]):

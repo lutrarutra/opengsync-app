@@ -228,10 +228,6 @@ def uncomplete(lab_prep_id: int):
     
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-    
-    for library in lab_prep.libraries:
-        if library.status == LibraryStatus.POOLED:
-            library.status = LibraryStatus.PREPARING
 
     lab_prep.status = PrepStatus.PREPARING
     lab_prep = db.update_lab_prep(lab_prep)
