@@ -334,7 +334,7 @@ body {
 }
 
 .alert {
-    animation: movein 0.5s ease forwards, moveout 0.5s 3s ease forwards;
+    animation: movein 0.5s ease forwards, moveout 0.5s 5s ease forwards;
     @keyframes movein {
         from { top: -200px; }
         to   { top: 80px; }

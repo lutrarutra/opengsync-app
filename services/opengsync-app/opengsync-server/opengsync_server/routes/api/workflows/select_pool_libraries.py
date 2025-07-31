@@ -1,10 +1,9 @@
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, abort, Response, url_for, request, flash
-from flask_login import login_required
 from flask_htmx import make_response
 
-from opengsync_db import models, db_session, exceptions
+from opengsync_db import models, exceptions
 from opengsync_db.categories import HTTPResponse, LibraryStatus
 
 from .... import db, logger, htmx_route  # noqa

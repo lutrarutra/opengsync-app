@@ -1,9 +1,8 @@
 from typing import TYPE_CHECKING
 
 from flask import Blueprint, request, abort
-from flask_login import login_required
 
-from opengsync_db import models, db_session
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, MUXType
 
 from .... import db, logger, htmx_route  # noqa

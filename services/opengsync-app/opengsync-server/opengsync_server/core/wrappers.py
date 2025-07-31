@@ -2,7 +2,7 @@ from typing import Callable, Literal
 from functools import wraps
 import traceback
 
-from flask import Blueprint
+from flask import Blueprint, Flask
 from flask import abort, render_template, flash, current_app
 from flask_htmx import make_response
 from flask_login import login_required as login_required_f
@@ -12,12 +12,12 @@ from opengsync_db.categories import HTTPResponse
 from opengsync_db import exceptions as db_exceptions
 
 from .. import logger
-from ..tools import utils
+from ..tools import utils, textgen
 from . import exceptions as serv_exceptions
 
 
 def page_route(
-    blueprint: Blueprint,
+    blueprint: Blueprint | Flask,
     route: str | None = None,
     methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
     db: DBHandler | None = None,
@@ -54,7 +54,7 @@ def page_route(
 
 
 def htmx_route(
-    blueprint: Blueprint,
+    blueprint: Blueprint | Flask,
     route: str | None = None,
     methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
     db: DBHandler | None = None,
@@ -79,17 +79,38 @@ def htmx_route(
                 return res
             except serv_exceptions.OpeNGSyncServerException as e:
                 logger.error(f"\n-------- OpeNGSyncServerException --------\n\tBlueprint: {blueprint}\n\tRoute: {effective_route}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n-------- END ERROR --------")
-                flash("An error occured while processing your request. Please notify us.", category="error")
+                msg = "An error occured while processing your request. Please notify us."
+                if textgen is not None:
+                    msg = textgen.generate(
+                        "You need to write in 1-2 sentences make a joke about error/bug that will be incorporated to my app. \
+                        Only raw text, no special characters, no markdown, no code blocks, no quotes, no emojis, no links, no hashtags, no mentions. \
+                        Just the joke text."
+                    ) or msg
+                flash(msg, category="error")
                 return make_response(render_template("errors/htmx_alert.html"), 200, retarget="#alert-container")
             except db_exceptions.OpeNGSyncDBException as e:
                 logger.error(f"\n-------- OpeNGSyncDBException --------\n\tBlueprint: {blueprint}\n\tRoute: {effective_route}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n-------- END ERROR --------")
-                flash("An error occured while processing your request. Please notify us.", category="error")
+                msg = "An error occured while processing your request. Please notify us."
+                if textgen is not None:
+                    msg = textgen.generate(
+                        "You need to write in 1-2 sentences make a joke about error/bug that will be incorporated to my app. \
+                        Only raw text, no special characters, no markdown, no code blocks, no quotes, no emojis, no links, no hashtags, no mentions. \
+                        Just the joke text."
+                    ) or msg
+                flash(msg, category="error")
                 return make_response(render_template("errors/htmx_alert.html"), 200, retarget="#alert-container")
             except Exception as e:
                 if current_app.debug:
                     raise e
                 logger.error(f"\n-------- Exception --------\n\tBlueprint: {blueprint}\n\tRoute: {effective_route}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
-                flash("An error occured while processing your request. Please notify us.", category="error")
+                msg = "An error occured while processing your request. Please notify us."
+                if textgen is not None:
+                    msg = textgen.generate(
+                        "You need to write in 1-2 sentences make a joke about error/bug that will be incorporated to my app. \
+                        Only raw text, no special characters, no markdown, no code blocks, no quotes, no emojis, no links, no hashtags, no mentions. \
+                        Just the joke text."
+                    ) or msg
+                flash(msg, category="error")
                 return make_response(render_template("errors/htmx_alert.html"), 200, retarget="#alert-container")
             finally:
                 if db is not None and db._session:

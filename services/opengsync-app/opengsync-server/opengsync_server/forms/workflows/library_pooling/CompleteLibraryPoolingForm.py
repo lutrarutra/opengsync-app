@@ -11,7 +11,7 @@ from opengsync_db import models
 from opengsync_db.categories import PoolType, SeqRequestStatus, LibraryStatus, LibraryType, IndexType
 
 from .... import logger, db, tools
-from ....tools import exceptions
+from ....core import exceptions
 from ...MultiStepForm import MultiStepForm
 
 

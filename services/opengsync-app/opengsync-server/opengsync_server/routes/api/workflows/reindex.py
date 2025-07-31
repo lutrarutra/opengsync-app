@@ -5,10 +5,11 @@ from flask import Blueprint, request, abort, Response
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
+from ....core import exceptions
 from .... import db, logger, htmx_route  # noqa
 from ....forms.workflows import reindex as forms
 from ....forms import SelectSamplesForm
-from ....tools import exceptions, utils
+from ....tools import utils
 from ....forms.MultiStepForm import MultiStepForm
 
 if TYPE_CHECKING:

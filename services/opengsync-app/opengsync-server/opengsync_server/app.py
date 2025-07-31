@@ -5,12 +5,13 @@ from datetime import datetime
 
 import pandas as pd
 
-from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
+from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response, flash
 from flask_login import login_required
 
 from opengsync_db import categories, models, db_session, TIMEZONE, to_utc
 
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools, page_route
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools
+from .core import wrappers
 from .routes import api, pages
 from .tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue
 
@@ -85,8 +86,15 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         return user
     
     if app.debug:
-        @app.route("/test")
+        @wrappers.page_route(app, db=db)
         def test():
+            if tools.textgen is not None:
+                msg = tools.textgen.generate(
+                    "You need to write in 1-2 sentences make a joke to greet user to my web app. \
+                    Only raw text, no special characters (only punctuation , or . or !), no markdown, no code blocks, no quotes, no emojis, no links, no hashtags, no mentions. \
+                    Just the joke text."
+                )
+                flash(msg, category="info")
             return render_template("test.html")
         
     @app.route("/help")
