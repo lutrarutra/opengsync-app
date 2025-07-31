@@ -35,7 +35,7 @@
 {% endif %}
 <div class="{{class}} form-group metadata-group" id="{{guid}}">
     <label>{{ label }}</label>
-    <div class="copyable-input input-with-unit">
+    <div class="copyable-input {% if quantity.unit.symbol %}input-with-unit{% endif %}">
         <input class="form-control" type="text" value="{{ quantity.value_to_str() if quantity else '' }}" {% if input_id %}id="{{input_id}}"{% endif %} readonly>
         <a type="button" class="clipboard-btn" {{ tooltip("Click to copy.", position="top") }}
         onclick="copy_value_to_clipboard('{{guid}}')">
@@ -49,7 +49,7 @@
                 <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"/>
             </svg>
         </a>
-        {% if quantity and quantity.unit.symbol %}
+        {% if quantity.unit.symbol %}
         <span class="input-group-text unit-container">{{ quantity.unit.symbol }}</span>
         {% endif %}
     </div>
