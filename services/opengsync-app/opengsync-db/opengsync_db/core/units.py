@@ -115,8 +115,8 @@ class Quantity:
     
     def value_to_str(self, n_digits: int = 3) -> str:
         if self.unit.multiplier_suffix:
-            return f"{round(self.value, n_digits):.{n_digits}f} {self.unit.multiplier_suffix}"
-        return f"{round(self.value, n_digits):.{n_digits}f} {self.unit.symbol}"
+            return f"{float(f'{self.value:.{n_digits}g}')} {self.unit.multiplier_suffix}"
+        return f"{round(self.value, n_digits):.{n_digits}f}"
     
     @property
     def base(self) -> "Quantity":
@@ -147,7 +147,7 @@ class Quantity:
     def to_dict(self) -> dict[str, float | int | str | None]:
         return {
             "value": self.base_value,
-            "unit": self.unit.name,
+            "unit": self.base_unit.name,
             "dimension": self.unit.dimension.name,
         }
     
