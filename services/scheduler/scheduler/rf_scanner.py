@@ -145,7 +145,6 @@ def parse_metrics(run_folder: str) -> dict[str, units.Quantity]:
 
 def process_run_folder(illumina_run_folder: str, db: DBHandler):
     logger.info(f"Processing run folder: {illumina_run_folder}")
-    db.open_session()
     
     active_runs, _ = db.get_seq_runs(
         status_in=[RunStatus.FINISHED, RunStatus.RUNNING],
@@ -224,7 +223,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 seq_run.status = status
                 seq_run = db.update_seq_run(seq_run)
                 continue
-            
+                    
             run = db.create_seq_run(
                 experiment_name=experiment_name,
                 status=status,
@@ -239,9 +238,6 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 i2_cycles=parsed_data.get("i2_cycles"),
             )
 
-            for key, value in metrics.items():
-                run.set_quantity(key, value)
-
             if run.status == RunStatus.FINISHED:
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.FINISHED
@@ -252,10 +248,8 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             elif run.status == RunStatus.RUNNING:
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.SEQUENCING
-                    
+            
             run = db.update_seq_run(run)
 
             active_runs[experiment_name] = run
             logger.info("Added!")
-
-    db.close_session()

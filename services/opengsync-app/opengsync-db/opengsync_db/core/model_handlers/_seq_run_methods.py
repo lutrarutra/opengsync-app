@@ -5,7 +5,8 @@ import sqlalchemy as sa
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
-from ... import models, PAGE_LIMIT
+
+from ... import models, PAGE_LIMIT, units
 from ...categories import ReadTypeEnum, RunStatusEnum, ExperimentStatus, ExperimentStatusEnum
 
 
@@ -13,7 +14,8 @@ def create_seq_run(
     self: "DBHandler", experiment_name: str, status: RunStatusEnum, instrument_name: str,
     run_folder: str, flowcell_id: str, read_type: ReadTypeEnum,
     r1_cycles: Optional[int], i1_cycles: Optional[int], r2_cycles: Optional[int], i2_cycles: Optional[int],
-    rta_version: Optional[str] = None, recipe_version: Optional[str] = None, side: Optional[str] = None, flowcell_mode: Optional[str] = None,
+    quantities: Optional[dict[str, units.Quantity]] = None, rta_version: Optional[str] = None, recipe_version: Optional[str] = None,
+    side: Optional[str] = None, flowcell_mode: Optional[str] = None,
     flush: bool = True
 ) -> models.SeqRun:
     
@@ -36,6 +38,10 @@ def create_seq_run(
         i1_cycles=i1_cycles,
         i2_cycles=i2_cycles,
     )
+
+    if quantities is not None:
+        for key, value in quantities.items():
+            seq_run.set_quantity(key, value)
 
     self.session.add(seq_run)
 

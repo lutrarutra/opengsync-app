@@ -2,6 +2,7 @@ import argparse
 import os
 import atexit
 import time
+import traceback
 
 from apscheduler.schedulers.background import BlockingScheduler  # type: ignore
 from apscheduler.triggers.cron import CronTrigger  # type: ignore
@@ -44,16 +45,31 @@ def cli():
         
     def process_run_folder_wrapper():
         db = connect()
-        process_run_folder(args.run_folder, db)
+        try:
+            db.open_session()
+            process_run_folder(args.run_folder, db)
+        except Exception as e:
+            logger.error(f"\n-------- Exception [ process_run_folder ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
+            db.rollback()
+        finally:
+            db.close_session()
 
     def update_statuses_wrapper():
         db = connect()
-        db.open_session()
-        update_statuses(db)
-        db.close_session()
+        try:
+            db.open_session()
+            update_statuses(db)
+        except Exception as e:
+            logger.error(f"\n-------- Exception [ update_statuses ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
+            db.rollback()
+        finally:
+            db.close_session()
 
     def clean_upload_folder_wrapper():
-        clean_upload_folder(directory=args.upload_folder, days_old=args.upload_folder_file_age_days)
+        try:
+            clean_upload_folder(directory=args.upload_folder, days_old=args.upload_folder_file_age_days)
+        except Exception as e:
+            logger.error(f"\n-------- Exception [ clean_upload_folder ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
 
     scheduler.add_job(func=process_run_folder_wrapper, trigger="interval", minutes=args.rf_scan_interval, id="process_run_folder", replace_existing=True)
     time.sleep(30)
