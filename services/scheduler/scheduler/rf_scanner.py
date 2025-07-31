@@ -241,6 +241,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 r2_cycles=parsed_data.get("r2_cycles"),
                 i1_cycles=parsed_data.get("i1_cycles"),
                 i2_cycles=parsed_data.get("i2_cycles"),
+                quantities=metrics,
             )
 
             if run.status == RunStatus.FINISHED:
