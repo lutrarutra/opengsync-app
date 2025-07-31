@@ -89,8 +89,11 @@ class UnitParse:
 def parse_quantitities(df: pd.DataFrame, quantities: list[UnitParse]) -> dict[str, units.Quantity]:
     res = {}
 
-    if len(df) != 1:
+    if len(df) > 1:
         logger.warning(f"Expected 1 row in metrics DataFrame, found {len(df)}. Using the first row.")
+    elif len(df) == 0:
+        logger.error("Metrics DataFrame is empty. Cannot parse quantities.")
+        return {}
 
     variables = df.iloc[0].to_dict()
 
@@ -124,6 +127,8 @@ def parse_metrics(run_folder: str) -> dict[str, units.Quantity]:
         .replace("%", "pct")
         .lower()
     ) for col in df.columns]
+
+    logger.info(df)
 
     quantities = parse_quantitities(
         df,
