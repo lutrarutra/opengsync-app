@@ -85,7 +85,7 @@ class SpreadsheetInput(FlaskForm):
             self.spreadsheet.errors = (f"Invalid Input: {e}",)
             return False
         
-        self.__df = self.__df.replace(r'^\s*$', None, regex=True)
+        self.__df = self.__df.replace(r'^\s*$', None, regex=True).map(lambda x: x.replace('\x00', '').strip() if isinstance(x, str) else x).copy()
         self.__df.columns = [self.col_title_map[col_name] if col_name in self.col_title_map else col_name.lower().replace(" ", "_") for col_name in self.col_names]
         self.__df = self.__df.dropna(how="all")
 

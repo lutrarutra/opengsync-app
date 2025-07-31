@@ -7,8 +7,6 @@ import interop  # type: ignore
 from xml.dom.minidom import parse
 from dataclasses import dataclass
 
-import pint
-
 from opengsync_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus, PoolStatus
 from opengsync_db.core import DBHandler
 from opengsync_db import units
@@ -84,11 +82,11 @@ def parse_run_folder(run_folder: str) -> dict:
 @dataclass
 class UnitParse:
     label: str
-    unit: pint.Unit = units.registry.count
+    unit: units.Unit = units.count
     rename: str | None = None
 
 
-def parse_quantitities(df: pd.DataFrame, quantities: list[UnitParse]) -> dict[str, pint.Quantity]:
+def parse_quantitities(df: pd.DataFrame, quantities: list[UnitParse]) -> dict[str, units.Quantity]:
     res = {}
 
     if len(df) != 1:
@@ -96,7 +94,7 @@ def parse_quantitities(df: pd.DataFrame, quantities: list[UnitParse]) -> dict[st
 
     variables = df.iloc[0].to_dict()
 
-    def parse_quantity(name: str, unit: pint.Unit, new_name: str):
+    def parse_quantity(name: str, unit: units.Unit, new_name: str):
         if name in variables.keys():
             res[new_name] = variables.pop(name) * unit
 
@@ -108,12 +106,12 @@ def parse_quantitities(df: pd.DataFrame, quantities: list[UnitParse]) -> dict[st
         )
 
     for name, value in variables.items():
-        res[name] = value * units.registry.count
+        res[name] = value * units.count
 
     return res
 
 
-def parse_metrics(run_folder: str) -> dict[str, pint.Quantity]:
+def parse_metrics(run_folder: str) -> dict[str, units.Quantity]:
     metrics = interop.read(run_folder)
     df = pd.DataFrame(interop.summary(metrics))
     df.columns = [(
@@ -130,15 +128,15 @@ def parse_metrics(run_folder: str) -> dict[str, pint.Quantity]:
     quantities = parse_quantitities(
         df,
         [
-            UnitParse("cluster_count", units.registry.count),
-            UnitParse("cluster_count_pf", units.registry.count),
-            UnitParse("pct_aligned", units.registry.percent),
-            UnitParse("pct>=q30", units.registry.percent),
-            UnitParse("pct_occupied", units.registry.percent),
-            UnitParse("projected_yield_g", units.registry.Gcount, "projected_yield"),
-            UnitParse("reads", units.registry.read),
-            UnitParse("reads_pf", units.registry.read),
-            UnitParse("yield_g", units.registry.Gcount, "yield"),
+            UnitParse("cluster_count", units.count),
+            UnitParse("cluster_count_pf", units.count),
+            UnitParse("pct_aligned", units.percent),
+            UnitParse("pct>=q30", units.percent),
+            UnitParse("pct_occupied", units.percent),
+            UnitParse("projected_yield_g", units.b_count, "projected_yield"),
+            UnitParse("reads", units.read),
+            UnitParse("reads_pf", units.read),
+            UnitParse("yield_g", units.b_count, "yield"),
         ]
     )
 

@@ -6,7 +6,6 @@ from opengsync_db import models
 
 from .... import logger, db  # noqa F401
 from ....tools.spread_sheet_components import IntegerColumn, TextColumn, InvalidCellValue
-from ...MultiStepForm import MultiStepForm
 from ..common import CommonBarcodeInputForm
 from .IndexKitMappingForm import IndexKitMappingForm
 from .BarcodeMatchForm import BarcodeMatchForm

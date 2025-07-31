@@ -375,13 +375,9 @@ def add_library_to_pool(
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
         
     library.pool_id = pool_id
-    if library.is_indexed():
-        library.status = LibraryStatus.POOLED
-    else:
-        library.status = LibraryStatus.PREPARING
     self.session.add(library)
 
-    pool.num_libraries += 1
+    pool.num_libraries = len(pool.libraries) + 1
     self.session.add(pool)
 
     if flush:
@@ -488,7 +484,7 @@ def add_library_index(
     return library
 
 
-def remove_library_indices(self: "DBHandler", library_id: int) -> models.Library:
+def remove_library_indices(self: "DBHandler", library_id: int, flush: bool = True) -> models.Library:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -498,9 +494,11 @@ def remove_library_indices(self: "DBHandler", library_id: int) -> models.Library
     for index in library.indices:
         self.session.delete(index)
 
-    library.indices.clear()
-
+    library.indices = []
     self.session.add(library)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()

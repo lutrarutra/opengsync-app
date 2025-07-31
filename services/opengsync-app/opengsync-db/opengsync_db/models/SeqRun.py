@@ -1,6 +1,5 @@
 from typing import ClassVar, Optional, TYPE_CHECKING, Any
 
-import pint
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -58,23 +57,20 @@ class SeqRun(Base):
         self.read_type_id = value.id
 
     @property
-    def quantities(self) -> dict[str, pint.Quantity]:
+    def quantities(self) -> dict[str, units.Quantity]:
         if self._quantities is None:
             return {}
-        return {key: value["value"] * units.registry(value["unit"]) for key, value in self._quantities.items() if value["value"] is not None}
+        return {key: units.from_dict(q) for key, q in self._quantities.items()}
 
-    def get_quantity(self, key: str) -> pint.Quantity | None:
+    def get_quantity(self, key: str) -> units.Quantity | None:
         if self._quantities is None or (data := self._quantities.get(key)) is None:
             return None
-        if data["value"] is None:
-            return None
-        return data["value"] * units.registry(data["unit"])
+        return units.from_dict(data)
             
-    def set_quantity(self, key: str, value: pint.Quantity) -> None:
-        value = value.to_base_units()  # type: ignore
+    def set_quantity(self, key: str, value: units.Quantity) -> None:
         if self._quantities is None:
             self._quantities = {}
-        self._quantities[key] = {"value": value.magnitude, "unit": str(value.units)}
+        self._quantities[key] = value.to_dict()
 
     @property
     def cycles_str(self) -> str:
