@@ -5,16 +5,17 @@ import sqlalchemy as sa
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
+    from ..units import Quantity
 
-from ... import models, PAGE_LIMIT, units
-from ...categories import ReadTypeEnum, RunStatusEnum, ExperimentStatus, ExperimentStatusEnum
+from ... import models, PAGE_LIMIT
+from ...categories import ReadTypeEnum, RunStatusEnum, ExperimentStatusEnum
 
 
 def create_seq_run(
     self: "DBHandler", experiment_name: str, status: RunStatusEnum, instrument_name: str,
     run_folder: str, flowcell_id: str, read_type: ReadTypeEnum,
     r1_cycles: Optional[int], i1_cycles: Optional[int], r2_cycles: Optional[int], i2_cycles: Optional[int],
-    quantities: Optional[dict[str, units.Quantity]] = None, rta_version: Optional[str] = None, recipe_version: Optional[str] = None,
+    quantities: Optional[dict[str, "Quantity"]] = None, rta_version: Optional[str] = None, recipe_version: Optional[str] = None,
     side: Optional[str] = None, flowcell_mode: Optional[str] = None,
     flush: bool = True
 ) -> models.SeqRun:
