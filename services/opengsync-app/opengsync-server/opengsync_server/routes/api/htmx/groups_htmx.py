@@ -3,9 +3,8 @@ import json
 
 from flask import Blueprint, render_template, abort, request, url_for, flash
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, db_session, PAGE_LIMIT
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, AffiliationType, UserRole, ProjectStatus
 
 from .... import db, forms, htmx_route
@@ -18,11 +17,8 @@ else:
 groups_htmx = Blueprint("groups_htmx", __name__, url_prefix="/api/hmtx/groups/")
 
 
-@groups_htmx.route("get/<int:page>", methods=["GET"])
-@groups_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get(page: int):
+@htmx_route(groups_htmx, db=db)
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -91,11 +87,8 @@ def edit(group_id: int):
     return forms.models.GroupForm(request.form, group=group).process_request(user=current_user)
 
 
-@groups_htmx.route("<int:group_id>/get_users/<int:page>", methods=["GET"])
-@groups_htmx.route("<int:group_id>/get_users", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_users(group_id: int, page: int):
+@htmx_route(groups_htmx, db=db)
+def get_users(group_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "affiliation_type_id")
     sort_order = request.args.get("sort_order", "asc")
     descending = sort_order == "desc"
@@ -173,11 +166,8 @@ def add_user(group_id: int):
         return abort(HTTPResponse.BAD_REQUEST.id)
 
 
-@groups_htmx.route("<int:group_id>/get_seq_requests/<int:page>", methods=["GET"])
-@groups_htmx.route("<int:group_id>/get_seq_requests", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_seq_requests(group_id: int, page: int):
+@htmx_route(groups_htmx, db=db)
+def get_seq_requests(group_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -198,11 +188,8 @@ def get_seq_requests(group_id: int, page: int):
     )
 
 
-@groups_htmx.route("<int:group_id>/get_projects/<int:page>", methods=["GET"])
-@groups_htmx.route("<int:group_id>/get_projects", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_projects(group_id: int, page: int):
+@htmx_route(groups_htmx, db=db)
+def get_projects(group_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"

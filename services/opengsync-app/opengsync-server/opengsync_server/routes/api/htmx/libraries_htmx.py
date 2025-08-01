@@ -5,9 +5,8 @@ import pandas as pd
 
 from flask import Blueprint, render_template, request, abort, flash, url_for
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, LibraryType, LibraryStatus, AssayType, MUXType
 
 from .... import db, forms, logger, htmx_route  # noqa
@@ -21,11 +20,8 @@ else:
 libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/hmtx/libraries/")
 
 
-@libraries_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@libraries_htmx.route("get/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get(page: int):
+@htmx_route(libraries_htmx, db=db)
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -97,11 +93,8 @@ def query():
     )
 
 
-@libraries_htmx.route("<int:library_id>/get_feautres", methods=["GET"], defaults={"page": 0})
-@libraries_htmx.route("<int:library_id>/get_feautres/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get_features(library_id: int, page: int):
+@htmx_route(libraries_htmx, db=db)
+def get_features(library_id: int, page: int = 0):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -235,11 +228,8 @@ def table_query():
     )
 
 
-@libraries_htmx.route("<int:library_id>/get_samples", methods=["GET"], defaults={"page": 0})
-@libraries_htmx.route("<int:library_id>/get_samples/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get_samples(library_id: int, page: int):
+@htmx_route(libraries_htmx, db=db)
+def get_samples(library_id: int, page: int = 0):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -279,11 +269,8 @@ def reads_tab(library_id: int):
     return make_response(render_template("components/library-reads.html", library=library))
 
 
-@libraries_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
-@libraries_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def browse(workflow: str, page: int):
+@htmx_route(libraries_htmx, db=db)
+def browse(workflow: str, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

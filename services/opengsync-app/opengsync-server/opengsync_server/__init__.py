@@ -110,4 +110,5 @@ def update_index_kits(
             continue
 
         pd.concat(res).to_pickle(os.path.join(app_data_folder, "kits", f"{type.id}.pkl"))
-        logger.info(f"Updated index kit barcodes for type: {type.id} ({type.name})")
+        if os.getenv("OPENGSYNC_DEBUG") != "1":
+            logger.info(f"Updated index kit barcodes for type: {type.id} ({type.name})")

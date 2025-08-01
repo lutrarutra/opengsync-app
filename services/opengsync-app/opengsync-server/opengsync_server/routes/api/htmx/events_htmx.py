@@ -3,11 +3,12 @@ from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, abort
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, db_session
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
+
 from .... import db, forms, logger, cache  # noqa
+from ....core import wrappers
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -17,18 +18,15 @@ else:
 events_htmx = Blueprint("events_htmx", __name__, url_prefix="/api/hmtx/events/")
 
 
-@events_htmx.route("/render_calendar_month/<int:year>/<int:month>", methods=["GET"])
-@events_htmx.route("/render_calendar_month", methods=["GET"], defaults={"year": -1, "month": -1})
-@db_session(db)
-@login_required
+@wrappers.htmx_route(events_htmx, db=db)
 @cache.cached(timeout=60, query_string=True)
-def render_calendar_month(year: int, month: int):
+def render_calendar_month(year: int | None = None, month: int | None = None):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:
-        if month == -1:
+        if month is None:
             month = datetime.now().month
-        if year == -1:
+        if year is None:
             year = datetime.now().year
         start_date = datetime(year, month, 1)
         end_date = datetime(year, month + 1, 1) if start_date.month < 12 else datetime(year + 1, 1, 1)
@@ -64,17 +62,14 @@ def render_calendar_month(year: int, month: int):
     ))
 
 
-@events_htmx.route("/render_calendar_week/<int:year>/<int:week>", methods=["GET"])
-@events_htmx.route("/render_calendar_week", methods=["GET"], defaults={"year": -1, "week": -1})
-@db_session(db)
-@login_required
-def render_calendar_week(year: int, week: int):
+@wrappers.htmx_route(events_htmx, db=db, debug=True)
+def render_calendar_week(year: int | None = None, week: int | None = None):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:
-        if week == -1:
+        if week is None:
             week = datetime.now().isocalendar().week
-        if year == -1:
+        if year is None:
             year = datetime.now().year
         start_date = datetime.fromisocalendar(year, week, 1)
         end_date = datetime.fromisocalendar(year, week, 7)
@@ -115,19 +110,16 @@ def render_calendar_week(year: int, week: int):
     ))
 
 
-@events_htmx.route("/render_calendar_day/<int:year>/<int:month>/<int:day>", methods=["GET"])
-@events_htmx.route("/render_calendar_day", methods=["GET"], defaults={"year": -1, "month": -1, "day": -1})
-@db_session(db)
-@login_required
-def render_calendar_day(year: int, month: int, day: int):
+@wrappers.htmx_route(events_htmx, db=db)
+def render_calendar_day(year: int | None = None, month: int | None = None, day: int | None = None):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:
-        if day == -1:
+        if day is None:
             day = datetime.now().day
-        if month == -1:
+        if month is None:
             month = datetime.now().month
-        if year == -1:
+        if year is None:
             year = datetime.now().year
         start_date = datetime(year, month, day)
         end_date = datetime(year, month, day) + timedelta(days=1)

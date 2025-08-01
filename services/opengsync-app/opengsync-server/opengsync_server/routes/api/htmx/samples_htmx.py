@@ -3,9 +3,8 @@ from typing import Optional, TYPE_CHECKING
 
 from flask import Blueprint, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, PAGE_LIMIT, DBHandler, db_session
+from opengsync_db import models, PAGE_LIMIT, DBHandler
 from opengsync_db.categories import HTTPResponse, UserRole, SampleStatus
 from .... import db, logger, forms, htmx_route
 
@@ -17,11 +16,8 @@ else:
 samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/hmtx/samples/")
 
 
-@samples_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@samples_htmx.route("get/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get(page: int):
+@htmx_route(samples_htmx, db=db)
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -258,11 +254,8 @@ def get_plate(sample_id: int):
     )
 
 
-@samples_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
-@samples_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def browse(workflow: str, page: int):
+@htmx_route(samples_htmx, db=db)
+def browse(workflow: str, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

@@ -21,11 +21,11 @@ def page_route(
     route: str | None = None,
     methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
     db: DBHandler | None = None,
-    login_required: bool = True
+    login_required: bool = True,
+    debug: bool = False,
 ):
     def decorator(fnc: Callable):
-        effective_route = route or utils.infer_route(fnc)
-        effective_route = "/" + effective_route.lstrip("/")
+        routes = utils.infer_route(fnc, base=route)
 
         if login_required and db is None:
             raise ValueError("db must be provided if login_required is True")
@@ -48,8 +48,14 @@ def page_route(
             finally:
                 if db is not None and db._session:
                     db.close_session(commit=False)
+        
+        if debug:
+            logger.debug(routes)
+        
+        for r, defaults in routes:
+            blueprint.route(r, methods=methods, defaults=defaults)(wrapper)
 
-        return blueprint.route(effective_route, methods=methods)(wrapper)
+        return wrapper
     return decorator
 
 
@@ -58,11 +64,11 @@ def htmx_route(
     route: str | None = None,
     methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
     db: DBHandler | None = None,
-    login_required: bool = True
+    login_required: bool = True,
+    debug: bool = False,
 ):
     def decorator(fnc: Callable):
-        effective_route = route or utils.infer_route(fnc)
-        effective_route = "/" + effective_route.lstrip("/")
+        routes = utils.infer_route(fnc, base=route)
 
         if login_required and db is None:
             raise ValueError("db must be provided if login_required is True")
@@ -78,7 +84,7 @@ def htmx_route(
                 res = fnc(*args, **kwargs)
                 return res
             except serv_exceptions.OpeNGSyncServerException as e:
-                logger.error(f"\n-------- OpeNGSyncServerException --------\n\tBlueprint: {blueprint}\n\tRoute: {effective_route}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n-------- END ERROR --------")
+                logger.error(f"\n-------- OpeNGSyncServerException --------\n\tBlueprint: {blueprint}\n\tRoute: {routes}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n-------- END ERROR --------")
                 msg = "An error occured while processing your request. Please notify us."
                 if textgen is not None:
                     msg = textgen.generate(
@@ -89,7 +95,7 @@ def htmx_route(
                 flash(msg, category="error")
                 return make_response(render_template("errors/htmx_alert.html"), 200, retarget="#alert-container")
             except db_exceptions.OpeNGSyncDBException as e:
-                logger.error(f"\n-------- OpeNGSyncDBException --------\n\tBlueprint: {blueprint}\n\tRoute: {effective_route}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n-------- END ERROR --------")
+                logger.error(f"\n-------- OpeNGSyncDBException --------\n\tBlueprint: {blueprint}\n\tRoute: {routes}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n-------- END ERROR --------")
                 msg = "An error occured while processing your request. Please notify us."
                 if textgen is not None:
                     msg = textgen.generate(
@@ -102,7 +108,7 @@ def htmx_route(
             except Exception as e:
                 if current_app.debug:
                     raise e
-                logger.error(f"\n-------- Exception --------\n\tBlueprint: {blueprint}\n\tRoute: {effective_route}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
+                logger.error(f"\n-------- Exception --------\n\tBlueprint: {blueprint}\n\tRoute: {routes}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
                 msg = "An error occured while processing your request. Please notify us."
                 if textgen is not None:
                     msg = textgen.generate(
@@ -116,5 +122,10 @@ def htmx_route(
                 if db is not None and db._session:
                     db.close_session(commit=False)
 
-        return blueprint.route(effective_route, methods=methods)(wrapper)
+        for r, defaults in routes:
+            blueprint.route(r, methods=methods, defaults=defaults)(wrapper)
+
+        if debug:
+            logger.debug(routes)
+        return wrapper
     return decorator

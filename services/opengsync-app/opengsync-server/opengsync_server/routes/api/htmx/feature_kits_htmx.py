@@ -4,9 +4,8 @@ import pandas as pd
 
 from flask import Blueprint, render_template, request, abort, flash, url_for
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, KitType
 
 from .... import db, logger, cache, htmx_route  # noqa: F401
@@ -21,11 +20,8 @@ else:
 feature_kits_htmx = Blueprint("feature_kits_htmx", __name__, url_prefix="/api/hmtx/feature_kits/")
 
 
-@feature_kits_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@feature_kits_htmx.route("get/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get(page: int):
+@htmx_route(feature_kits_htmx, db=db)
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -102,12 +98,9 @@ def table_query():
     )
 
 
-@feature_kits_htmx.route("<int:feature_kit_id>/get_features", methods=["GET"], defaults={"page": 0})
-@feature_kits_htmx.route("<int:feature_kit_id>/get_features/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(feature_kits_htmx, db=db)
 @cache.cached(timeout=300, query_string=True)
-def get_features(feature_kit_id: int, page: int):
+def get_features(feature_kit_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"

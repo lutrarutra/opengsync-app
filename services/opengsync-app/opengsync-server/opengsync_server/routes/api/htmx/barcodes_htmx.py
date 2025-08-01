@@ -1,22 +1,15 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 
-from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, KitType, IndexType
+from opengsync_db import PAGE_LIMIT
+from opengsync_db.categories import HTTPResponse, IndexType
 from .... import db, logger, forms, htmx_route  # noqa
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/api/hmtx/barcodes/")
 
 
-@htmx_route(barcodes_htmx, "get/<int:page>", db=db)
-def get(page: int):
+@htmx_route(barcodes_htmx, db=db)
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"

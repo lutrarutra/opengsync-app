@@ -2,12 +2,12 @@ from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse
 
 from .... import db, forms, logger  # noqa
+from ....core import wrappers
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -17,11 +17,8 @@ else:
 lanes_htmx = Blueprint("lanes_htmx", __name__, url_prefix="/api/hmtx/lanes/")
 
 
-@lanes_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
-@lanes_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def browse(workflow: str, page: int):
+@wrappers.htmx_route(lanes_htmx, db=db)
+def browse(workflow: str, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
