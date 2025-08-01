@@ -426,7 +426,7 @@ def overview(project_id: int):
             if seq_request_id not in seq_request_nodes:
                 seq_request_node = {
                     "node": idx,
-                    "name": f"Seq Request {seq_request_id}",
+                    "name": f"Request {seq_request_id}",
                 }
                 idx += 1
                 nodes.append(seq_request_node)

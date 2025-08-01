@@ -61,7 +61,7 @@
                 var color = d3.scaleOrdinal(d3.schemeCategory20);
 
                 // Set the sankey diagram properties
-                var sankey = d3.sankey().nodeWidth(25).nodePadding(15).size([width, height]);
+                var sankey = d3.sankey().nodeWidth(20).nodePadding(15).size([width, height * 0.5]);
 
                 sankey.nodes(nodes).links(links).layout(20);
 
