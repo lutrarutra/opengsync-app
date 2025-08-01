@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Literal
 
 from flask import Blueprint, url_for, render_template, flash, abort, request, Response, current_app
 from flask_htmx import make_response
-from werkzeug.utils import secure_filename  # type: ignore
 import pandas as pd
 
 from opengsync_db import models, PAGE_LIMIT
@@ -113,7 +112,7 @@ def export(seq_request_id: int):
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
-    file_name = secure_filename(f"{seq_request.name}_request.xlsx")
+    file_name = f"request_{seq_request_id}.xlsx"
 
     metadata = {
         "Name": [seq_request.name],
@@ -165,8 +164,7 @@ def export_libraries(seq_request_id: int):
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
-    file_name = secure_filename(f"{seq_request.name}_libraries.tsv")
-
+    file_name = f"libraries_{seq_request.id}.tsv"
     libraries_df = db.get_seq_request_libraries_df(seq_request_id=seq_request_id, include_indices=True)
 
     return Response(

@@ -1,8 +1,6 @@
 from uuid import uuid4
 from typing import Optional, TYPE_CHECKING
 
-from werkzeug.utils import secure_filename  # type: ignore[import-untyped]
-
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 from ...categories import FileTypeEnum
@@ -47,7 +45,7 @@ def create_file(
     if uuid is None:
         uuid = str(uuid4())
 
-    name = secure_filename(name).strip()[:models.File.name.type.length]
+    name = name[:models.File.name.type.length]
 
     file = models.File(
         name=name,

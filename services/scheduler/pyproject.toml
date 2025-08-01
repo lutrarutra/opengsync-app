@@ -24,7 +24,6 @@ dependencies = [
     "SQLAlchemy >= 2.0",
     "pytz >= 2023.3",
     "tzlocal >= 5.2",
-    "Werkzeug >= 3.0.3",
 ]
 
 [tool.flake8]
