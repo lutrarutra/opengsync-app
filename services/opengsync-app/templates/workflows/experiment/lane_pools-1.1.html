@@ -147,6 +147,7 @@
                     var molarity = parseFloat($(this).find(`.molarity-col-${lane}`).first().find(".value").first().text());
                     var share = parseFloat($(this).find(`.share-col-${lane}`).first().find(".value").first().text());
 
+                    // FIXME: rounding error
                     var pipet = target_concentration / molarity * share * target_total_volume * 0.01;
                     update_pipet_clr($(this).find(`.pipet-col-${lane} .value`).first(), pipet);
 

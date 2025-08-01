@@ -118,7 +118,7 @@
             const current_molarity = parseFloat(row.find(".molarity-col").first().find(".value").first().text());
 
             if (target_vol && target_molarity && avg_fragment_size && current_molarity) {
-                const sample_vol = target_molarity / current_molarity * target_vol * 0.01;
+                const sample_vol = target_molarity / current_molarity * target_vol;
                 const eb_vol = target_vol - sample_vol;
                 $(row).find(".sample_volume-col .value").text(sample_vol.toFixed(2));
                 $(row).find(".eb_volume-col .value").text(eb_vol.toFixed(2));
