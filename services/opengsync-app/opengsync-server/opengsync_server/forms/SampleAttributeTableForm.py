@@ -99,7 +99,6 @@ class SampleAttributeTableForm(HTMXFlaskForm):
                 if attribute_name in ["sample_id", "sample_name"]:
                     continue
                 attribute_type = AttributeType.get_attribute_by_label(attribute_name)
-                logger.debug(row)
                 if pd.isna(val := row[attribute_name]):
                     if (_ := db.get_sample_attribute(sample_id=row["sample_id"], name=attribute_name)) is not None:
                         db.delete_sample_attribute(sample_id=sample_id, name=attribute_name)

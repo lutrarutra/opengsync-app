@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .Sample import Sample
     from .User import User
     from .Group import Group
+    from .Library import Library
 
 
 class Project(Base):
@@ -28,6 +29,16 @@ class Project(Base):
     num_samples: Mapped[int] = mapped_column(nullable=False, default=0)
 
     samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="project", lazy="select")
+
+    libraries: Mapped[list["Library"]] = relationship(
+        "Library",
+        secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id)",
+        primaryjoin="Project.id == Sample.project_id",
+        secondaryjoin="SampleLibraryLink.library_id == Library.id",
+        order_by="Library.id",
+        viewonly=True,
+        lazy="select",
+    )
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="projects", lazy="joined")

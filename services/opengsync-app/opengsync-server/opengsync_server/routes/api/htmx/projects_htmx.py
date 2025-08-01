@@ -158,11 +158,10 @@ def complete(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    for sample in project.samples:
-        for link in sample.library_links:
-            if link.library.status not in {LibraryStatus.SHARED, LibraryStatus.FAILED, LibraryStatus.REJECTED, LibraryStatus.ARCHIVED}:
-                flash(f"Cannot complete project {project.name} because some libraries are not shared/failed/rejected/archived.",)
-                return make_response(redirect=url_for("projects_page.project", project_id=project_id))
+    for library in project.libraries:
+        if library.status not in {LibraryStatus.SHARED, LibraryStatus.FAILED, LibraryStatus.REJECTED, LibraryStatus.ARCHIVED}:
+            flash(f"Cannot complete project {project.name} because some libraries are not shared/failed/rejected/archived.", "warning")
+            return make_response(redirect=url_for("projects_page.project", project_id=project_id))
             
     project.status = ProjectStatus.DELIVERED
     project = db.update_project(project)
@@ -364,7 +363,6 @@ def get_recent_projects():
         status_in = [
             ProjectStatus.PROCESSING,
             ProjectStatus.DELIVERED,
-            ProjectStatus.ARCHIVED
         ]
 
     projects, _ = db.get_projects(

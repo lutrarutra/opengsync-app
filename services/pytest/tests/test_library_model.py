@@ -1,5 +1,4 @@
 from opengsync_db import DBHandler
-from opengsync_db.categories import MUXType
 
 from .create_units import (
     create_user, create_project, create_seq_request, create_sample, create_library,
@@ -24,34 +23,36 @@ def test_library_links(db: DBHandler):
         )
         libraries.append(library)
     
-    user = db.get_user(user.id)
+    db.refresh(user)
     assert user is not None
     assert len(user.libraries) == NUM_LIBRARIES
 
-    seq_request = db.get_seq_request(seq_request.id)
+    db.refresh(project)
+    assert len(project.samples) == 1
+    assert project.num_samples == 1
+    assert len(project.libraries) == NUM_LIBRARIES
+
+    db.refresh(seq_request)
     assert seq_request is not None
     assert len(seq_request.libraries) == NUM_LIBRARIES
     assert seq_request.num_libraries == NUM_LIBRARIES
 
-    sample = db.get_sample(sample.id)
+    db.refresh(sample)
     assert sample is not None
     assert len(sample.library_links) == NUM_LIBRARIES
     assert sample.num_libraries == NUM_LIBRARIES
 
     db.delete_library(libraries[0].id)
 
-    user = db.get_user(user.id)
     db.refresh(user)
     assert user is not None
     assert len(user.libraries) == NUM_LIBRARIES - 1
 
-    seq_request = db.get_seq_request(seq_request.id)
     db.refresh(seq_request)
     assert seq_request is not None
     assert len(seq_request.libraries) == NUM_LIBRARIES - 1
     assert seq_request.num_libraries == NUM_LIBRARIES - 1
 
-    sample = db.get_sample(sample.id)
     db.refresh(sample)
     assert sample is not None
     assert len(sample.library_links) == NUM_LIBRARIES - 1
@@ -61,17 +62,16 @@ def test_library_links(db: DBHandler):
     assert db.get_seq_request(seq_request.id) is None
     assert db.get_sample(sample.id) is None
 
-    user = db.get_user(user.id)
     db.refresh(user)
     assert user is not None
     assert len(user.libraries) == 0
     assert len(user.requests) == 0
 
-    project = db.get_project(project.id)
     db.refresh(project)
     assert project is not None
     assert len(project.samples) == 0
     assert project.num_samples == 0
+    assert len(project.libraries) == 0
 
 
 def test_library_feature_link(db: DBHandler):

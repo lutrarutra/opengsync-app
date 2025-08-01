@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from .User import User
     from .SeqRequest import SeqRequest
     from .File import File
+    from .Library import Library
 
 
 @dataclass

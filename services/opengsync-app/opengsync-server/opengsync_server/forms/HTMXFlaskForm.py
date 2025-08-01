@@ -5,7 +5,6 @@ from flask import Response, render_template
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
 from wtforms.form import FormMeta
-from werkzeug.datastructures import ImmutableMultiDict  # type: ignore
 
 from ..tools import classproperty
 
@@ -19,7 +18,7 @@ class HTMXFlaskForm(FlaskForm, metaclass=ABCHTMXFlaskForm):
     _form_label: str = "form"
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, **kwargs):
-        super().__init__(formdata=ImmutableMultiDict(formdata), **kwargs)
+        super().__init__(formdata=formdata, **kwargs)
         self.formdata = formdata if formdata is not None else dict()
         self._context = {}
 
