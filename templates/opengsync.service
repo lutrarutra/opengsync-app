@@ -1,5 +1,5 @@
 [Unit]
-Description=Containerized web app for NGS sample tracking
+Description=OpeNGSync App
 After=docker.service
 
 [Service]

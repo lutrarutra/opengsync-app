@@ -25,7 +25,7 @@ class ExperimentWorkFlow(ExtendedEnum[ExperimentWorkFlowEnum], enum_type=Experim
     NOVASEQ_6K_S4_STD = ExperimentWorkFlowEnum(7, "NovaSeq S4 Standard", 320, FlowCellType.NOVSASEQ_6K_S4, True)
     NOVASEQ_6K_S4_XP = ExperimentWorkFlowEnum(8, "NovaSeq S4 XP", 50, FlowCellType.NOVSASEQ_6K_S4)
 
-    MISEQ_v3 = ExperimentWorkFlowEnum(10, "MiSeq", 20, FlowCellType.MISEQ_V3, True)
+    MISEQ_v3 = ExperimentWorkFlowEnum(10, "MiSeq v3", 20, FlowCellType.MISEQ_V3, True)
     MISEQ_v2 = ExperimentWorkFlowEnum(11, "MiSeq v2", 21, FlowCellType.MISEQ_V2, True)
     MISEQ_MICRO_v2 = ExperimentWorkFlowEnum(12, "MiSeq Micro v2", 22, FlowCellType.MISEQ_MICRO_V2, True)
     MISEQ_NANO_v2 = ExperimentWorkFlowEnum(13, "MiSeq Nano v2", 23, FlowCellType.MISEQ_NANO_V2, True)
