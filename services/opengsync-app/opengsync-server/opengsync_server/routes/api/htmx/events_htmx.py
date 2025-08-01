@@ -62,7 +62,7 @@ def render_calendar_month(year: int | None = None, month: int | None = None):
     ))
 
 
-@wrappers.htmx_route(events_htmx, db=db, debug=True)
+@wrappers.htmx_route(events_htmx, db=db)
 def render_calendar_week(year: int | None = None, week: int | None = None):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

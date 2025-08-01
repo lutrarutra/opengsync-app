@@ -257,7 +257,7 @@ def remove_library(lab_prep_id: int):
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
 
 
-@htmx_route(lab_preps_htmx, db=db, debug=True)
+@htmx_route(lab_preps_htmx, db=db)
 def get_libraries(lab_prep_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

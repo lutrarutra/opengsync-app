@@ -984,7 +984,7 @@ def store_samples(seq_request_id: int):
     return form.make_response()
 
 
-@htmx_route(seq_requests_htmx, db=db, debug=True)
+@htmx_route(seq_requests_htmx, db=db)
 def get_recent_seq_requests():
     if (sort_by := request.args.get("sort_by")) is not None:
         if sort_by not in ["timestamp_submitted_utc", "id"]:

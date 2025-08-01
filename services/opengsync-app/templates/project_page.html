@@ -67,15 +67,22 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
-            data-bs-target="#project-data-tab" type="button" role="tab"
-            aria-controls="project-data-tab" aria-selected="false">
-            Metadata</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#project-attributes-tab" type="button" role="tab"
             aria-controls="project-attributes-tab" aria-selected="false">
             Attributes</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#project-overview-tab" type="button" role="tab"
+                aria-controls="project-overview-tab" aria-selected="true">
+                Overview
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#project-data-tab" type="button" role="tab"
+            aria-controls="project-data-tab" aria-selected="false">
+            Metadata</button>
         </li>
     </ul>
 </div>
@@ -97,7 +104,29 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="project-data-tab" role="tabpanel" tabindex="1">
+        <div class="tab-pane fade" id="project-attributes-tab" role="tabpanel" tabindex="1">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h2>Attributes</h2>
+                </div>
+                <div>
+                    <a type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal"
+                        hx-get="{{ url_for('projects_htmx.edit_sample_attributes', project_id=project.id) }}"
+                        hx-swap="innerHTML" hx-target="#xl-modal-content">
+                        Edit
+                    </a>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('projects_htmx.get_sample_attributes', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="project-overview-tab" role="tabpanel" tabindex="2">
+            <div hx-get="{{ url_for('projects_htmx.overview', project_id=project.id) }}" hx-trigger="intersect once">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="project-data-tab" role="tabpanel" tabindex="3">
             <div class="row">
                 {{ 
                     metadata_group_link(
@@ -129,23 +158,6 @@
                 }}
             </div>
             {{ metadata_group_textarea("Description", project.description) }}
-        </div>
-        <div class="tab-pane fade" id="project-attributes-tab" role="tabpanel" tabindex="2">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <h2>Attributes</h2>
-                </div>
-                <div>
-                    <a type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                        hx-get="{{ url_for('projects_htmx.edit_sample_attributes', project_id=project.id) }}"
-                        hx-swap="innerHTML" hx-target="#xl-modal-content">
-                        Edit
-                    </a>
-                </div>
-            </div>
-            <div hx-get="{{ url_for('projects_htmx.get_sample_attributes', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                {{ spinner() }}
-            </div>
         </div>
     </div>
 </div>
