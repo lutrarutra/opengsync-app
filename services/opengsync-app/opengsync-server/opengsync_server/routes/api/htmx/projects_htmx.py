@@ -362,6 +362,7 @@ def get_recent_projects():
     if current_user.is_insider():
         status_in = [
             ProjectStatus.PROCESSING,
+            ProjectStatus.SEQUENCED,
             ProjectStatus.DELIVERED,
         ]
 
