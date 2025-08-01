@@ -24,6 +24,7 @@ class Lane(Base):
     
     total_volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     library_volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    # FIXME: save two different
     target_molarity: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
 
     experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id"), nullable=False)
