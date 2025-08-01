@@ -6,9 +6,8 @@ import pandas as pd
 
 from flask import Blueprint, url_for, render_template, flash, abort, request, current_app
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, ExperimentStatus, ExperimentWorkFlow
 
 from .... import db, forms, logger, htmx_route
@@ -21,11 +20,8 @@ else:
 experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/hmtx/experiments/")
 
 
-@experiments_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@experiments_htmx.route("get/<int:page>")
-@db_session(db)
-@login_required
-def get(page: int):
+@htmx_route(experiments_htmx, db=db)
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -509,11 +505,8 @@ def overview(experiment_id: int):
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/get_pools/<int:page>", methods=["GET"])
-@experiments_htmx.route("<int:experiment_id>/get_pools", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_pools(experiment_id: int, page: int):
+@htmx_route(experiments_htmx, db=db)
+def get_pools(experiment_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -551,11 +544,8 @@ def get_pools(experiment_id: int, page: int):
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/get_libraries/<int:page>", methods=["GET"])
-@experiments_htmx.route("<int:experiment_id>/get_libraries", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_libraries(experiment_id: int, page: int):
+@htmx_route(experiments_htmx, db=db)
+def get_libraries(experiment_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -638,11 +628,8 @@ def get_files(experiment_id: int):
     )
 
 
-@experiments_htmx.route("<int:experiment_id>/get_dilutions/<int:page>", methods=["GET"])
-@experiments_htmx.route("<int:experiment_id>/get_dilutions", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_pool_dilutions(experiment_id: int, page: int):
+@htmx_route(experiments_htmx, db=db)
+def get_pool_dilutions(experiment_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

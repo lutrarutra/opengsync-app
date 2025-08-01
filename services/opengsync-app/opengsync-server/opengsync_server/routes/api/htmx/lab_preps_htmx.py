@@ -11,9 +11,8 @@ from openpyxl.utils import get_column_letter
 
 from flask import Blueprint, render_template, request, abort, flash, url_for, current_app, Response
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus
 
 from .... import db, forms, logger, htmx_route  # noqa
@@ -28,11 +27,8 @@ else:
 lab_preps_htmx = Blueprint("lab_preps_htmx", __name__, url_prefix="/api/hmtx/lab_preps/")
 
 
-@lab_preps_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@lab_preps_htmx.route("get/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get(page: int):
+@htmx_route(lab_preps_htmx, db=db)
+def get(page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -261,11 +257,8 @@ def remove_library(lab_prep_id: int):
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
 
 
-@lab_preps_htmx.route("<int:lab_prep_id>/get_libraries", methods=["GET"], defaults={"page": 0})
-@lab_preps_htmx.route("<int:lab_prep_id>/get_libraries/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get_libraries(lab_prep_id: int, page: int):
+@htmx_route(lab_preps_htmx, db=db, debug=True)
+def get_libraries(lab_prep_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -388,11 +381,8 @@ def prep_table_upload_form(lab_prep_id: int) -> Response:
         return form.process_request(user=current_user)
     
 
-@lab_preps_htmx.route("<int:lab_prep_id>/get_pools/<int:page>", methods=["GET"])
-@lab_preps_htmx.route("<int:lab_prep_id>/get_pools", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_pools(lab_prep_id: int, page: int):
+@htmx_route(lab_preps_htmx, db=db)
+def get_pools(lab_prep_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

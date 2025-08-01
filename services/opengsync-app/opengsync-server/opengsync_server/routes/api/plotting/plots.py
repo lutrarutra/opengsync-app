@@ -2,7 +2,6 @@ from typing import TYPE_CHECKING
 import json
 
 from flask import Blueprint, request, abort, url_for
-from flask_login import login_required
 from flask_htmx import make_response
 
 import plotly

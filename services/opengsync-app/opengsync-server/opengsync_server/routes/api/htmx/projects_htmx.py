@@ -5,9 +5,8 @@ import numpy as np
 
 from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, DBHandler, PAGE_LIMIT, db_session
+from opengsync_db import models, DBHandler, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus
 
 from .... import db, forms, logger, htmx_route  # noqa
@@ -21,11 +20,8 @@ else:
 projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/hmtx/projects/")
 
 
-@projects_htmx.route("get/<int:page>", methods=["GET"])
-@projects_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get(page: int):
+@htmx_route(projects_htmx, db=db)
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -238,11 +234,8 @@ def table_query():
     )
         
 
-@projects_htmx.route("<int:project_id>/get_samples", methods=["GET"], defaults={"page": 0})
-@projects_htmx.route("<int:project_id>/get_samples/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get_samples(project_id: int, page: int):
+@htmx_route(projects_htmx, db=db)
+def get_samples(project_id: int, page: int = 0):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 

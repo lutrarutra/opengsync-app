@@ -2,12 +2,9 @@ from typing import TYPE_CHECKING
 
 from flask import Blueprint, request, abort, flash, url_for
 from flask_htmx import make_response
-from flask_login import login_required
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
-
-from opengsync_db import db_session
 
 from .... import db, logger, htmx_route  # noqa
 from ....forms import SelectSamplesForm

@@ -7,11 +7,11 @@ from wtforms import StringField, FieldList, FormField, IntegerField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 from flask_wtf import FlaskForm
 
-from opengsync_db.categories import IndexType, BarcodeType
+from opengsync_db.categories import IndexType
 from opengsync_db import exceptions as dbe
 
 from .... import logger, db  # noqa F401
-from ....tools import exceptions
+from ....core import exceptions
 from ...MultiStepForm import StepFile
 from ...MultiStepForm import MultiStepForm
 from ...SearchBar import SearchBar

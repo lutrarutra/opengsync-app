@@ -3,9 +3,8 @@ from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, UserRole, SeqRequestStatus
 from .... import db, logger, htmx_route  # noqa F401
 
@@ -17,11 +16,8 @@ else:
 users_htmx = Blueprint("users_htmx", __name__, url_prefix="/api/hmtx/users/")
 
 
-@users_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@users_htmx.route("get/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get(page: int):
+@htmx_route(users_htmx, db=db)
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -126,11 +122,8 @@ def table_query():
     )
 
 
-@users_htmx.route("<int:user_id>/get_projects", methods=["GET"], defaults={"page": 0})
-@users_htmx.route("<int:user_id>/get_projects/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get_projects(user_id: int, page: int):
+@htmx_route(users_htmx, db=db)
+def get_projects(user_id: int, page: int = 0):
     if (user := db.get_user(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -153,11 +146,8 @@ def get_projects(user_id: int, page: int):
     )
 
 
-@users_htmx.route("<int:user_id>/get_seq_requests", methods=["GET"], defaults={"page": 0})
-@users_htmx.route("<int:user_id>/get_seq_requests/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get_seq_requests(user_id: int, page: int):
+@htmx_route(users_htmx, db=db)
+def get_seq_requests(user_id: int, page: int = 0):
     if (user := db.get_user(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -239,11 +229,8 @@ def query_seq_requests(user_id: int):
     )
 
 
-@users_htmx.route("<int:user_id>/get_affiliations", methods=["GET"], defaults={"page": 0})
-@users_htmx.route("<int:user_id>/get_affiliations/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get_affiliations(user_id: int, page: int):
+@htmx_route(users_htmx, db=db)
+def get_affiliations(user_id: int, page: int = 0):
     if (user := db.get_user(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

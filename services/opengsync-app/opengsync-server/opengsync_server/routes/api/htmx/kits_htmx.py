@@ -3,9 +3,8 @@ from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort, url_for, flash
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, db_session, PAGE_LIMIT
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, IndexType, KitType
 from .... import db, logger, cache, forms, htmx_route  # noqa F401
 
@@ -18,11 +17,8 @@ else:
 kits_htmx = Blueprint("kits_htmx", __name__, url_prefix="/api/hmtx/kits/")
 
 
-@kits_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@kits_htmx.route("get/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get(page: int):
+@htmx_route(kits_htmx, db=db)
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "identifier")
     sort_order = request.args.get("sort_order", "asc")
     descending = sort_order == "desc"

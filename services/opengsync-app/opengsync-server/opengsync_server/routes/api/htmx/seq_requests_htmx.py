@@ -5,11 +5,10 @@ from typing import TYPE_CHECKING, Literal
 
 from flask import Blueprint, url_for, render_template, flash, abort, request, Response, current_app
 from flask_htmx import make_response
-from flask_login import login_required
 from werkzeug.utils import secure_filename  # type: ignore
 import pandas as pd
 
-from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType, SampleStatus, SubmissionType, PoolStatus
 from opengsync_db.core import exceptions
 from .... import db, forms, logger, htmx_route
@@ -23,11 +22,8 @@ else:
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/hmtx/seq_requests/")
 
 
-@seq_requests_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@seq_requests_htmx.route("get/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def get(page: int):
+@htmx_route(seq_requests_htmx, db=db)
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -317,7 +313,7 @@ def comment_form(seq_request_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/file_form", methods=["GET", "POST"])
+@seq_requests_htmx.route("file_form", methods=["GET", "POST"])
 def file_form(seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -731,11 +727,8 @@ def overview(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/get_libraries/<int:page>", methods=["GET"])
-@seq_requests_htmx.route("<int:seq_request_id>/get_libraries", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_libraries(seq_request_id: int, page: int):
+@htmx_route(seq_requests_htmx, db=db)
+def get_libraries(seq_request_id: int, page: int = 0):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -782,7 +775,6 @@ def get_libraries(seq_request_id: int, page: int):
             status_in=status_in, type_in=type_in
         )
     )
-
 
 
 @htmx_route(seq_requests_htmx, db=db)
@@ -848,11 +840,8 @@ def query_libraries(seq_request_id: int):
     )
 
 
-@seq_requests_htmx.route("<int:seq_request_id>/get_samples/<int:page>", methods=["GET"])
-@seq_requests_htmx.route("<int:seq_request_id>/get_samples", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_samples(seq_request_id: int, page: int):
+@htmx_route(seq_requests_htmx, db=db)
+def get_samples(seq_request_id: int, page: int = 0):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -877,11 +866,8 @@ def get_samples(seq_request_id: int, page: int):
     )
     
 
-@seq_requests_htmx.route("<int:seq_request_id>/get_pools/<int:page>", methods=["GET"])
-@seq_requests_htmx.route("<int:seq_request_id>/get_pools", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_pools(seq_request_id: int, page: int):
+@htmx_route(seq_requests_htmx, db=db)
+def get_pools(seq_request_id: int, page: int = 0):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -998,7 +984,7 @@ def store_samples(seq_request_id: int):
     return form.make_response()
 
 
-@htmx_route(seq_requests_htmx, db=db)
+@htmx_route(seq_requests_htmx, db=db, debug=True)
 def get_recent_seq_requests():
     if (sort_by := request.args.get("sort_by")) is not None:
         if sort_by not in ["timestamp_submitted_utc", "id"]:

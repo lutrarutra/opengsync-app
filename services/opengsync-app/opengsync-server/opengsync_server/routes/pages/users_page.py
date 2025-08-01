@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, url_for, abort, request
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from ... import db, page_route, logger
+from ... import db, page_route, logger  # noqa: F401
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore

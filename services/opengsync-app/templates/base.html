@@ -49,7 +49,7 @@
 
 <body>
     <div style="position: absolute; bottom: 15px; left: 15px; z-index: 1100;">
-        <a href="{{ url_for('help_page') }}" target="_blank" type="button" style="z-index: 1100;">
+        <a href="{{ url_for('help') }}" target="_blank" type="button" style="z-index: 1100;">
             <img src="{{ url_for('static', filename='images/help.svg') }}" width="26px" style="z-index: 1100;">
         </a>
     </div>
@@ -130,7 +130,7 @@
             {% endif %}
             {% if current_user.is_authenticated and not current_user.is_insider() %}
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'help-page' else ''}}" id="help-page" href="{{ url_for('help_page') }}">Help</a>
+                <a class="nav-link {{'active' if active_page == 'help-page' else ''}}" id="help-page" href="{{ url_for('help') }}">Help</a>
             </div>
             {% endif %}
             {% if current_user.is_authenticated and user_role == UserRole.ADMIN %}

@@ -2,9 +2,8 @@ from typing import TYPE_CHECKING
 
 from flask import Blueprint, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import PAGE_LIMIT, exceptions, models, db_session
+from opengsync_db import PAGE_LIMIT, exceptions, models
 from opengsync_db.categories import HTTPResponse, UserRole
 from .... import db, forms, cache, htmx_route
 
@@ -16,12 +15,9 @@ else:
     from flask_login import current_user
 
 
-@sequencers_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@sequencers_htmx.route("get/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(sequencers_htmx, db=db)
 @cache.cached(timeout=60, query_string=True)
-def get(page: int):
+def get(page: int = 0):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
     

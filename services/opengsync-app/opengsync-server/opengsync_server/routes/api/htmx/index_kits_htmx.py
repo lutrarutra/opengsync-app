@@ -5,13 +5,13 @@ import pandas as pd
 
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, db_session, PAGE_LIMIT
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, IndexType, KitType
 
 from .... import db, logger, cache, forms, htmx_route  # noqa F401
 from ....tools.spread_sheet_components import TextColumn
+from ....core import wrappers
 
 if TYPE_CHECKING:
     current_user: models.User = None    # type: ignore
@@ -22,12 +22,8 @@ else:
 index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/api/hmtx/index_kits/")
 
 
-@index_kits_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@index_kits_htmx.route("get/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-# @cache.cached(timeout=300, query_string=True)
-def get(page: int):
+@wrappers.htmx_route(index_kits_htmx, db=db, debug=True)
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "identifier")
     sort_order = request.args.get("sort_order", "asc")
     descending = sort_order == "desc"
@@ -99,12 +95,9 @@ def table_query():
     )
 
 
-@index_kits_htmx.route("<int:index_kit_id>/get_adapters", methods=["GET"], defaults={"page": 0})
-@index_kits_htmx.route("<int:index_kit_id>/get_adapters/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
+@htmx_route(index_kits_htmx, db=db)
 @cache.cached(timeout=300, query_string=True)
-def get_adapters(index_kit_id: int, page: int):
+def get_adapters(index_kit_id: int, page: int = 0):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

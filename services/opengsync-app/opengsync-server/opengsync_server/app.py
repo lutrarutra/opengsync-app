@@ -5,12 +5,12 @@ from datetime import datetime
 
 import pandas as pd
 
-from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response
-from flask_login import login_required
+from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response, flash
 
-from opengsync_db import categories, models, db_session, TIMEZONE, to_utc
+from opengsync_db import categories, models, TIMEZONE, to_utc
 
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools, page_route
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools
+from .core import wrappers
 from .routes import api, pages
 from .tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue
 
@@ -85,18 +85,23 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         return user
     
     if app.debug:
-        @app.route("/test")
+        @wrappers.page_route(app, db=db)
         def test():
+            if tools.textgen is not None:
+                msg = tools.textgen.generate(
+                    "You need to write in 1-2 sentences make a joke to greet user to my web app. \
+                    Only raw text, no special characters (only punctuation , or . or !), no markdown, no code blocks, no quotes, no emojis, no links, no hashtags, no mentions. \
+                    Just the joke text."
+                )
+                flash(msg, category="info")
             return render_template("test.html")
         
-    @app.route("/help")
+    @wrappers.page_route(app, db=db)
     @cache.cached(timeout=1500)
-    def help_page():
+    def help():
         return render_template("help.html")
     
-    @app.route("/")
-    @db_session(db)
-    @login_required
+    @wrappers.page_route(app, db=db, route="/")
     def dashboard():
         if not current_user.is_authenticated:
             return redirect(url_for("auth_page.auth", next=url_for("dashboard")))
@@ -105,9 +110,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             return render_template("dashboard-insider.html")
         return render_template("dashboard-user.html")
 
-    @app.route("/pdf_file/<int:file_id>")
-    @db_session(db)
-    @login_required
+    @wrappers.page_route(app, db=db)
     @cache.cached(timeout=60)
     def pdf_file(file_id: int):
         if (file := db.get_file(file_id)) is None:
@@ -133,9 +136,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         response.headers["Content-Disposition"] = "inline; filename=auth_form.pdf"
         return response
     
-    @app.route("/img_file/<int:file_id>")
-    @db_session(db)
-    @login_required
+    @wrappers.page_route(app, db=db)
     @cache.cached(timeout=60)
     def img_file(file_id: int):
         if (file := db.get_file(file_id)) is None:
@@ -161,9 +162,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         response.headers["Content-Disposition"] = "inline; filename={file.name}"
         return response
     
-    @app.route("/download_file/<int:file_id>")
-    @db_session(db)
-    @login_required
+    @wrappers.page_route(app, db=db)
     @cache.cached(timeout=60)
     def download_file(file_id: int):
         if (file := db.get_file(file_id)) is None:
@@ -233,7 +232,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     def before_request():
         session["from_url"] = request.referrer
 
-    @app.route("/status")
+    @wrappers.page_route(app, login_required=False)
     def status():
         return make_response("OK", 200)
     
@@ -249,7 +248,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.auth_htmx)
     app.register_blueprint(api.htmx.barcodes_htmx)
     app.register_blueprint(api.htmx.seq_requests_htmx)
-    app.register_blueprint(api.htmx.adapters_htmx)
     app.register_blueprint(api.htmx.sequencers_htmx)
     app.register_blueprint(api.htmx.users_htmx)
     app.register_blueprint(api.htmx.libraries_htmx)

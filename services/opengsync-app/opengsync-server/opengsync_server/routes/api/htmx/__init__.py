@@ -1,4 +1,3 @@
-from .adapters_htmx import adapters_htmx   # noqa: F401
 from .auth_htmx import auth_htmx   # noqa: F401
 from .barcodes_htmx import barcodes_htmx   # noqa: F401
 from .experiments_htmx import experiments_htmx   # noqa: F401

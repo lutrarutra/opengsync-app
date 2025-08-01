@@ -15,7 +15,7 @@ from itsdangerous import URLSafeTimedSerializer
 from opengsync_db import DBHandler, categories
 from .tools import RedisMSFFileCache
 from .tools.WeekTimeWindow import WeekTimeWindow
-from .tools.wrappers import page_route, htmx_route  # noqa: F401
+from .core.wrappers import page_route, htmx_route  # noqa: F401
 
 # Show all columns without truncation
 pd.set_option('display.max_columns', None)
@@ -60,7 +60,6 @@ if len(SECRET_KEY) == 0:
     SECRET_KEY = uuid.uuid4().hex
     with open("cert/session.key", "w") as f:
         f.write(SECRET_KEY)
-
 
 EMAIL_SENDER = os.environ["EMAIL_SENDER"]
 
@@ -111,4 +110,5 @@ def update_index_kits(
             continue
 
         pd.concat(res).to_pickle(os.path.join(app_data_folder, "kits", f"{type.id}.pkl"))
-        logger.info(f"Updated index kit barcodes for type: {type.id} ({type.name})")
+        if os.getenv("OPENGSYNC_DEBUG") != "1":
+            logger.info(f"Updated index kit barcodes for type: {type.id} ({type.name})")

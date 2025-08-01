@@ -4,9 +4,8 @@ from typing import TYPE_CHECKING, Literal
 
 from flask import Blueprint, render_template, request, abort, flash, url_for
 from flask_htmx import make_response
-from flask_login import login_required
 
-from opengsync_db import models, PAGE_LIMIT, db_session
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, PoolStatus, LibraryStatus, PoolType
 
 from .... import db, forms, logger, htmx_route  # noqa
@@ -19,11 +18,8 @@ else:
 pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/api/hmtx/pools/")
 
 
-@pools_htmx.route("get/<int:page>", methods=["GET"])
-@pools_htmx.route("get", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get(page: int):
+@htmx_route(pools_htmx, db=db)
+def get(page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -268,11 +264,8 @@ def query():
     )
 
 
-@pools_htmx.route("<int:pool_id>/get_libraries/<int:page>", methods=["GET"])
-@pools_htmx.route("<int:pool_id>/get_libraries", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_libraries(pool_id: int, page: int):
+@htmx_route(pools_htmx, db=db)
+def get_libraries(pool_id: int, page: int = 0):
     if (pool := db.get_pool(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -349,11 +342,8 @@ def plate_pool(pool_id: int, form_type: Literal["create", "edit"]):
     return form.process_request(user=current_user)
 
 
-@pools_htmx.route("<int:pool_id>/get_dilutions/<int:page>", methods=["GET"])
-@pools_htmx.route("<int:pool_id>/get_dilutions", methods=["GET"], defaults={"page": 0})
-@db_session(db)
-@login_required
-def get_dilutions(pool_id: int, page: int):
+@htmx_route(pools_htmx, db=db)
+def get_dilutions(pool_id: int, page: int = 0):
     if (pool := db.get_pool(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -376,11 +366,8 @@ def get_dilutions(pool_id: int, page: int):
     )
 
 
-@pools_htmx.route("<string:workflow>/browse", methods=["GET"], defaults={"page": 0})
-@pools_htmx.route("<string:workflow>/browse/<int:page>", methods=["GET"])
-@db_session(db)
-@login_required
-def browse(workflow: str, page: int):
+@htmx_route(pools_htmx, db=db)
+def browse(workflow: str, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
