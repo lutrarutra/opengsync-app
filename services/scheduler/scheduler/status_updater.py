@@ -26,9 +26,29 @@ def update_statuses(db: DBHandler):
     for seq_request in db.get_seq_requests(limit=20, status_in=[categories.SeqRequestStatus.PREPARED, categories.SeqRequestStatus.DATA_PROCESSING])[0]:
         sequenced = True
         for library in seq_request.libraries:
+            db.refresh(library)
             sequenced = sequenced and library.status == categories.LibraryStatus.SEQUENCED
 
         if sequenced:
             seq_request.status = categories.SeqRequestStatus.DATA_PROCESSING
 
         seq_request = db.update_seq_request(seq_request)
+
+    for project in db.get_projects(
+        limit=20, sort_by="id", descending=True,
+        status=categories.ProjectStatus.PROCESSING
+    )[0]:
+        sequenced = True
+        for library in project.libraries:
+            db.refresh(library)
+            sequenced = sequenced and library.status >= categories.LibraryStatus.SEQUENCED
+            if not sequenced:
+                break
+                
+        if sequenced:
+            project.status = categories.ProjectStatus.SEQUENCED
+        
+        project = db.update_project(project)
+
+
+    

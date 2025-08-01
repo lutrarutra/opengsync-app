@@ -113,6 +113,7 @@ def where(
     assay_type: Optional[AssayTypeEnum] = None,
     pool_id: Optional[int] = None, lab_prep_id: Optional[int] = None,
     in_lab_prep: Optional[bool] = None,
+    project_id: Optional[int] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
@@ -128,14 +129,20 @@ def where(
             models.Library.seq_request_id == seq_request_id
         )
 
-    if sample_id is not None:
+    if sample_id is not None or project_id is not None:
         query = query.join(
             models.links.SampleLibraryLink,
-            and_(
-                models.links.SampleLibraryLink.library_id == models.Library.id,
-                models.links.SampleLibraryLink.sample_id == sample_id
-            )
+            models.links.SampleLibraryLink.library_id == models.Library.id,
         )
+        
+        if sample_id is not None:
+            query = query.where(models.links.SampleLibraryLink.sample_id == sample_id)
+
+        if project_id is not None:
+            query = query.join(
+                models.Sample,
+                models.Sample.id == models.links.SampleLibraryLink.sample_id,
+            ).where(models.Sample.project_id == project_id)
 
     if experiment_id is not None:
         query = query.join(
@@ -190,6 +197,8 @@ def where(
     if custom_query is not None:
         query = custom_query(query)
 
+    query = query.distinct(models.Library.id)
+
     return query
     
 
@@ -203,6 +212,7 @@ def get_libraries(
     pool_id: Optional[int] = None,
     lab_prep_id: Optional[int] = None,
     in_lab_prep: Optional[bool] = None,
+    project_id: Optional[int] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None,
@@ -222,7 +232,7 @@ def get_libraries(
         seq_request_id=seq_request_id, assay_type=assay_type,
         pool_id=pool_id, lab_prep_id=lab_prep_id, in_lab_prep=in_lab_prep,
         type_in=type_in, status_in=status_in, pooled=pooled, status=status,
-        custom_query=custom_query
+        custom_query=custom_query, project_id=project_id
     )
 
     n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
