@@ -643,13 +643,35 @@ def get_seq_request_features_df(self: "DBHandler", seq_request_id: int) -> pd.Da
     return df
 
 
-def get_project_samples_df(self: "DBHandler", project_id: int, pivot: bool = True) -> pd.DataFrame:
-    query = sa.select(
-        models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
+def get_project_samples_df(self: "DBHandler", project_id: int, with_libraries: bool = False, pivot: bool = True) -> pd.DataFrame:
+    cols = [
+        models.Sample.id.label("sample_id"),
+        models.Sample.name.label("sample_name"),
         models.Sample._attributes.label("attributes"),
-    ).where(models.Sample.project_id == project_id)
+    ]
+    if with_libraries:
+        cols.extend([
+            models.Library.id.label("library_id"),
+            models.Library.name.label("library_name"),
+            models.Library.sample_name.label("sample_pool"),
+            models.Library.type_id.label("library_type_id"),
+            models.Library.genome_ref_id.label("genome_ref_id"),
+            models.Library.seq_request_id.label("seq_request_id"),
+        ])
+
+    query = sa.select(*cols).where(models.Sample.project_id == project_id)
+
+    if with_libraries:
+        query = query.join(
+            models.links.SampleLibraryLink,
+            models.links.SampleLibraryLink.sample_id == models.Sample.id,
+        ).join(
+            models.Library,
+            models.Library.id == models.links.SampleLibraryLink.library_id,
+        )
     
     df = pd.read_sql(query, self._engine)
+
     if pivot:
         expanded = df["attributes"].apply(pd.Series)
         for col in expanded.columns:
@@ -729,7 +751,7 @@ def get_project_libraries_df(self: "DBHandler", project_id: int, collapse_lanes:
             "mux", "mux_type", "library_id", "sample_id", "seq_request_id"
         ]
 
-    merged = pd.merge(lanes, libraries, on=["library_id", "experiment_id"], how="left")
+    merged = pd.merge(libraries, lanes, on=["library_id", "experiment_id"], how="left")
     return merged[order]
 
 

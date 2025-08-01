@@ -2,6 +2,7 @@ import json
 from typing import Optional, TYPE_CHECKING
 
 import numpy as np
+import pandas as pd
 
 from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
@@ -409,7 +410,7 @@ def overview(project_id: int):
         for _, row in sample_df.iterrows():
             library_name = row["library_name"]
             seq_request_id = row["seq_request_id"]
-            experiment_name = row["experiment_name"]
+            experiment_name = row["experiment_name"] if pd.notna(row["experiment_name"]) else None
 
             library_in_node = {
                 "node": idx,
@@ -438,31 +439,32 @@ def overview(project_id: int):
                 "value": LINK_WIDTH_UNIT
             })
 
-            if experiment_name not in experiment_nodes:
-                experiment_node = {
+            if experiment_name is not None:
+                if experiment_name not in experiment_nodes:
+                    experiment_node = {
+                        "node": idx,
+                        "name": experiment_name,
+                    }
+                    idx += 1
+                    nodes.append(experiment_node)
+                    experiment_nodes[experiment_name] = experiment_node["node"]
+                
+                library_out_node = {
                     "node": idx,
-                    "name": experiment_name,
+                    "name": library_name,
                 }
                 idx += 1
-                nodes.append(experiment_node)
-                experiment_nodes[experiment_name] = experiment_node["node"]
-            
-            library_out_node = {
-                "node": idx,
-                "name": library_name,
-            }
-            idx += 1
-            nodes.append(library_out_node)
-            links.append({
-                "source": seq_request_nodes[seq_request_id],
-                "target": library_out_node["node"],
-                "value": LINK_WIDTH_UNIT
-            })
-            links.append({
-                "source": library_out_node["node"],
-                "target": experiment_nodes[experiment_name],
-                "value": LINK_WIDTH_UNIT
-            })
+                nodes.append(library_out_node)
+                links.append({
+                    "source": seq_request_nodes[seq_request_id],
+                    "target": library_out_node["node"],
+                    "value": LINK_WIDTH_UNIT
+                })
+                links.append({
+                    "source": library_out_node["node"],
+                    "target": experiment_nodes[experiment_name],
+                    "value": LINK_WIDTH_UNIT
+                })
 
     logger.debug(nodes)
     return make_response(
