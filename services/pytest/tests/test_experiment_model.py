@@ -34,6 +34,7 @@ def test_experiment_lanes(db: DBHandler):
 
     for pool in pools:
         pool = db.get_pool(pool.id)
+        db.refresh(pool)
         assert pool is not None
         assert pool.num_libraries == len(pool.libraries)
 

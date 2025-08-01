@@ -126,6 +126,7 @@ def test_user_links(db: DBHandler):
 
     library = db.get_library(library.id)
     pool = db.get_pool(pool.id)
+    db.refresh(pool)
     seq_request = db.get_seq_request(seq_request.id)
     assert library is not None
     assert pool is not None
