@@ -22,7 +22,7 @@ else:
 index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/api/hmtx/index_kits/")
 
 
-@wrappers.htmx_route(index_kits_htmx, db=db, debug=True)
+@wrappers.htmx_route(index_kits_htmx, db=db)
 def get(page: int = 0):
     sort_by = request.args.get("sort_by", "identifier")
     sort_order = request.args.get("sort_order", "asc")

@@ -377,3 +377,97 @@ def get_recent_projects():
             "components/dashboard/projects-list.html", projects=projects
         )
     )
+
+
+@htmx_route(projects_htmx, db=db)
+def overview(project_id: int):
+    if (project := db.get_project(project_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+        
+    df = db.get_project_libraries_df(project_id=project_id)
+
+    LINK_WIDTH_UNIT = 0.5
+
+    nodes = []
+    links = []
+    experiment_nodes = {}
+    seq_request_nodes = {}
+    idx = 0
+
+    for (sample_name,), sample_df in df.groupby(["sample_name"]):
+        sample_node = {
+            "node": idx,
+            "name": sample_name,
+        }
+        idx += 1
+        nodes.append(sample_node)
+        for _, row in sample_df.iterrows():
+            library_name = row["library_name"]
+            seq_request_id = row["seq_request_id"]
+            experiment_name = row["experiment_name"]
+
+            library_in_node = {
+                "node": idx,
+                "name": library_name,
+            }
+            idx += 1
+            nodes.append(library_in_node)
+            links.append({
+                "source": sample_node["node"],
+                "target": library_in_node["node"],
+                "value": LINK_WIDTH_UNIT
+            })
+
+            if seq_request_id not in seq_request_nodes:
+                seq_request_node = {
+                    "node": idx,
+                    "name": f"Request {seq_request_id}",
+                }
+                idx += 1
+                nodes.append(seq_request_node)
+                seq_request_nodes[seq_request_id] = seq_request_node["node"]
+
+            links.append({
+                "source": library_in_node["node"],
+                "target": seq_request_nodes[seq_request_id],
+                "value": LINK_WIDTH_UNIT
+            })
+
+            if experiment_name not in experiment_nodes:
+                experiment_node = {
+                    "node": idx,
+                    "name": experiment_name,
+                }
+                idx += 1
+                nodes.append(experiment_node)
+                experiment_nodes[experiment_name] = experiment_node["node"]
+            
+            library_out_node = {
+                "node": idx,
+                "name": library_name,
+            }
+            idx += 1
+            nodes.append(library_out_node)
+            links.append({
+                "source": seq_request_nodes[seq_request_id],
+                "target": library_out_node["node"],
+                "value": LINK_WIDTH_UNIT
+            })
+            links.append({
+                "source": library_out_node["node"],
+                "target": experiment_nodes[experiment_name],
+                "value": LINK_WIDTH_UNIT
+            })
+
+    logger.debug(nodes)
+    return make_response(
+        render_template(
+            "components/plots/project_overview.html",
+            nodes=nodes, links=links,
+        )
+    )
