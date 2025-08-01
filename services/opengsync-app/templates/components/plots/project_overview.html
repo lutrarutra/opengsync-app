@@ -9,7 +9,7 @@
                 const _h = nodes.length * 50;
                 const _w = $("#graph").width();
 
-                var margin = {top: 50, right: 10, bottom: 10, left: 10};
+                var margin = {top: 10, right: 10, bottom: 10, left: 10};
                 var width =  _w - margin.left - margin.right;
                 var height = _h - margin.top - margin.bottom;
 
@@ -21,41 +21,6 @@
                         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
                 const dx = width / (5 - 1);
-
-                svg.append("text")
-                    .attr("x", 30)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Sample");
-
-                svg.append("text")
-                    .attr("x", dx)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Library");
-
-                svg.append("text")
-                    .attr("x", dx * 2)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Request");
-
-                svg.append("text")
-                    .attr("x", dx * 3)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Library");
-
-                svg.append("text")
-                    .attr("x", dx * 4 - 50)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Experiment");
 
                 // Color scale used
                 var color = d3.scaleOrdinal(d3.schemeCategory20);
