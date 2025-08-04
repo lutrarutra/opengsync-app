@@ -21,7 +21,7 @@ class ProjectSelectForm(MultiStepForm):
     _step_name = "project_select"
 
     existing_project = FormField(OptionalSearchBar, label="Select Existing Project")
-    new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.name.type.length)])
+    new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.title.type.length)])
     project_description = TextAreaField("Project Description", validators=[OptionalValidator(), Length(max=models.Project.description.type.length)], description="New projects only: brief context/background of the project.")
 
     def __init__(self, seq_request: models.SeqRequest, workflow_type: Literal["raw", "pooled", "tech"], formdata: dict | None = None, uuid: Optional[str] = None):
@@ -35,10 +35,10 @@ class ProjectSelectForm(MultiStepForm):
         self._context["workflow_type"] = workflow_type
 
     def fill_previous_form(self, previous_form: StepFile):
-        self.new_project.data = previous_form.metadata.get("project_name")
+        self.new_project.data = previous_form.metadata.get("project_title")
         if (project_id := previous_form.metadata.get("project_id")) is not None:
             self.existing_project.selected.data = project_id
-            self.existing_project.search_bar.data = project.name if (project := db.get_project(project_id)) is not None else None
+            self.existing_project.search_bar.data = project.title if (project := db.get_project(project_id)) is not None else None
         self.project_description.data = previous_form.metadata.get("project_description")
     
     def validate(self, user: models.User) -> bool:
@@ -63,17 +63,17 @@ class ProjectSelectForm(MultiStepForm):
             return False
         
         self.project_id: Optional[int] = self.existing_project.selected.data
-        self.project_name: str
+        self.project_title: str
         if self.project_id is not None:
-            self.project_name = self.existing_project.search_bar.data
+            self.project_title = self.existing_project.search_bar.data
         else:
             if self.new_project.data is None:
                 self.new_project.errors = ("Please enter a project name.",)
                 return False
-            self.project_name = self.new_project.data.strip()
+            self.project_title = self.new_project.data.strip()
         
         if self.project_id is None:
-            if self.project_name in [project.name for project in user.projects]:
+            if self.project_title in [project.title for project in user.projects]:
                 self.new_project.errors = ("You already have a project with this name.",)
                 return False
 
@@ -84,7 +84,7 @@ class ProjectSelectForm(MultiStepForm):
         if not validated:
             return self.make_response()
 
-        self.metadata["project_name"] = self.project_name
+        self.metadata["project_title"] = self.project_title
         self.metadata["workflow"] = "library_annotation"
         self.metadata["workflow_type"] = self.workflow_type
         self.metadata["project_id"] = self.project_id

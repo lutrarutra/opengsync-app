@@ -13,8 +13,8 @@ from .. import exceptions
 
 
 def create_project(
-    self: "DBHandler", name: str, description: str, owner_id: int,
-    group_id: Optional[int] = None,
+    self: "DBHandler", title: str, description: str, owner_id: int,
+    group_id: int | None = None,
     status: ProjectStatusEnum = ProjectStatus.DRAFT,
     flush: bool = True
 ) -> models.Project:
@@ -29,7 +29,7 @@ def create_project(
             raise exceptions.ElementDoesNotExist(f"Group with id {group_id} does not exist")
 
     project = models.Project(
-        name=name.strip(),
+        title=title.strip(),
         description=description.strip(),
         owner_id=owner_id,
         group_id=group_id,
@@ -178,27 +178,6 @@ def update_project(self: "DBHandler", project: models.Project) -> models.Project
     return project
 
 
-def project_contains_sample_with_name(
-    self: "DBHandler", project_id: int, sample_name: str
-) -> bool:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    project = self.session.get(models.Project, project_id)
-    if not project:
-        raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
-
-    res = self.session.query(models.Sample).where(
-        models.Sample.name == sample_name
-    ).where(
-        models.Sample.project_id == project_id
-    ).first() is not None
-
-    if not persist_session:
-        self.close_session()
-    return res
-
-
 def query_projects(
     self: "DBHandler", word: str,
     seq_request_id: Optional[int] = None,
@@ -219,7 +198,7 @@ def query_projects(
     )
 
     query = query.order_by(
-        sa.func.similarity(models.Project.name, word).desc()
+        sa.func.similarity(models.Project.title, word).desc()
     )
 
     if limit is not None:

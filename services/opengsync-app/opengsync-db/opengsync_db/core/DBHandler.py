@@ -141,7 +141,6 @@ class DBHandler():
     from .model_handlers._project_methods import (
         create_project, get_project, get_projects,
         update_project, delete_project,
-        project_contains_sample_with_name,
         query_projects
     )
 

@@ -145,12 +145,7 @@ def where(
             ).where(models.Sample.project_id == project_id)
 
     if experiment_id is not None:
-        query = query.join(
-            models.Pool,
-            models.Pool.id == models.Library.pool_id,
-        ).where(
-            models.Pool.experiment_id == experiment_id
-        )
+        query = query.where(models.Library.experiment_id == experiment_id)
 
     if pooled is not None:
         if pooled:

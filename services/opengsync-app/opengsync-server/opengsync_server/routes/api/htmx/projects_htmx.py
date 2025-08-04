@@ -146,7 +146,7 @@ def delete(project_id: int):
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     db.delete_project(project_id)
-    flash(f"Deleted project {project.name}.", "success")
+    flash(f"Deleted project {project.title}.", "success")
     return make_response(redirect=url_for("projects_page.projects"))
 
 
@@ -160,7 +160,7 @@ def complete(project_id: int):
     
     for library in project.libraries:
         if library.status not in {LibraryStatus.SHARED, LibraryStatus.FAILED, LibraryStatus.REJECTED, LibraryStatus.ARCHIVED}:
-            flash(f"Cannot complete project {project.name} because some libraries are not shared/failed/rejected/archived.", "warning")
+            flash(f"Cannot complete project {project.title} because some libraries are not shared/failed/rejected/archived.", "warning")
             return make_response(redirect=url_for("projects_page.project", project_id=project_id))
             
     project.status = ProjectStatus.DELIVERED
