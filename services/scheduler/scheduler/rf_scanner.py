@@ -86,13 +86,26 @@ class UnitParse:
     rename: str | None = None
 
 
-def parse_quantitities(df: pd.DataFrame, quantities: list[UnitParse]) -> dict[str, units.Quantity]:
+def parse_quantitities(run_folder: str, quantities: list[UnitParse]) -> dict[str, units.Quantity]:
+    metrics = interop.read(run_folder)
+    df = pd.DataFrame(interop.summary(metrics))
+    df.columns = [(
+        str(col)
+        .replace(" >", ">")
+        .replace(" <", "<")
+        .replace(" =", "=")
+        .replace("= ", "=")
+        .replace(" ", "_")
+        .replace("%", "pct")
+        .lower()
+    ) for col in df.columns]
+
     res = {}
 
     if len(df) > 1:
-        logger.warning(f"Expected 1 row in metrics DataFrame, found {len(df)}. Using the first row.")
+        logger.warning(f"{run_folder}: Expected 1 row in metrics DataFrame, found {len(df)}. Using the first row.")
     elif len(df) == 0:
-        logger.error("Metrics DataFrame is empty. Cannot parse quantities.")
+        logger.error(f"{run_folder}: Metrics DataFrame is empty. Cannot parse quantities.")
         return {}
 
     variables = df.iloc[0].to_dict()
@@ -115,23 +128,8 @@ def parse_quantitities(df: pd.DataFrame, quantities: list[UnitParse]) -> dict[st
 
 
 def parse_metrics(run_folder: str) -> dict[str, units.Quantity]:
-    metrics = interop.read(run_folder)
-    df = pd.DataFrame(interop.summary(metrics))
-    df.columns = [(
-        str(col)
-        .replace(" >", ">")
-        .replace(" <", "<")
-        .replace(" =", "=")
-        .replace("= ", "=")
-        .replace(" ", "_")
-        .replace("%", "pct")
-        .lower()
-    ) for col in df.columns]
-
-    logger.info(df)
-
     quantities = parse_quantitities(
-        df,
+        run_folder,
         [
             UnitParse("cluster_count", units.count),
             UnitParse("cluster_count_pf", units.count),
@@ -144,7 +142,6 @@ def parse_metrics(run_folder: str) -> dict[str, units.Quantity]:
             UnitParse("yield_g", units.b_count, "yield"),
         ]
     )
-
     return quantities
 
 
