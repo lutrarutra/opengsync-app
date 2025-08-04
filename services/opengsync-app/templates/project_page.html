@@ -8,7 +8,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ project.title }} {% if project.group_id %}<span class="desc">{{ project.group.name }} {{ project.group.type.icon }}</span>{% endif %}</h1>
+            <h1>{{ project.identifier or project.title }} {% if project.group_id %}<span class="desc">{{ project.group.name }} {{ project.group.type.icon }}</span>{% endif %}</h1>
         </div>
         <div class="page-controls">
             {% if current_user.is_insider() and project.status == ProjectStatus.PROCESSING %}

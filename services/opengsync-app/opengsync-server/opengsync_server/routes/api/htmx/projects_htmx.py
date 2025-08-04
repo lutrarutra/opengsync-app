@@ -81,10 +81,7 @@ def get(page: int = 0):
 @htmx_route(projects_htmx, db=db, methods=["POST"])
 def query():
     field_name = next(iter(request.form.keys()))
-    if (word := request.form.get(field_name)) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-
-    if word is None:
+    if (word := request.form.get(field_name, default="")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
     if not current_user.is_insider():
@@ -102,8 +99,8 @@ def query():
             return abort(HTTPResponse.NOT_FOUND.id)
         
         _user_id = None
-
-    results = db.query_projects(word, user_id=_user_id, group_id=group_id)
+            
+    results = db.query_projects(identifier_title=word, user_id=_user_id, group_id=group_id)
 
     return make_response(
         render_template(
@@ -170,29 +167,31 @@ def complete(project_id: int):
 
 @htmx_route(projects_htmx, db=db)
 def table_query():
-    if (word := request.args.get("name", None)) is not None:
-        field_name = "name"
-    elif (word := request.args.get("id", None)) is not None:
+    id = None
+    title = None
+    if (identifier := request.args.get("identifier", None)) is not None:
+        field_name = "identifier"
+    elif (title := request.args.get("title", None)) is not None:
+        field_name = "title"
+    elif (id := request.args.get("id", None)) is not None:
         field_name = "id"
+        try:
+            id = int(id)
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    if word is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
     def __get_projects(
-        session: DBHandler, word: str | int, field_name: str,
+        title: str | None = None,
+        identifier: str | None = None,
+        id: int | None = None,
         user_id: Optional[int] = None
     ) -> list[models.Project]:
         projects: list[models.Project] = []
-        if field_name == "name":
-            projects = session.query_projects(
-                str(word), user_id=user_id
-            )
-        elif field_name == "id":
+        if id is not None:
             try:
-                _id = int(word)
-                if (project := session.get_project(_id)) is not None:
+                if (project := db.get_project(id)) is not None:
                     if user_id is not None:
                         if project.owner_id == user_id:
                             projects = [project]
@@ -201,12 +200,14 @@ def table_query():
             except ValueError:
                 pass
         else:
-            assert False    # This should never happen
+            projects = db.query_projects(title=title, identifier=identifier, user_id=user_id)
 
         return projects
     
     context = {}
     if (user_id := request.args.get("user_id", None)) is not None:
+        logger.error("User-specific project queries are not implemented yet.")
+        raise NotImplementedError("User-specific project queries are not implemented yet.")
         template = "components/tables/user-project.html"
         try:
             user_id = int(user_id)
@@ -215,7 +216,6 @@ def table_query():
         if (user := db.get_user(user_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
             
-        projects = __get_projects(db, word, field_name, user_id=user_id)
         context["user"] = user
     else:
         template = "components/tables/project.html"
@@ -224,11 +224,14 @@ def table_query():
             user_id = current_user.id
         else:
             user_id = None
-        projects = __get_projects(db, word, field_name, user_id=user_id)
+
+    projects = __get_projects(title=title, identifier=identifier, id=id, user_id=user_id)
 
     return make_response(
         render_template(
-            template, current_query=word, field_name=field_name,
+            template,
+            current_query=identifier or title or id,
+            field_name=field_name,
             projects=projects, **context
         )
     )
@@ -465,7 +468,6 @@ def overview(project_id: int):
                     "value": LINK_WIDTH_UNIT
                 })
 
-    logger.debug(nodes)
     return make_response(
         render_template(
             "components/plots/project_overview.html",

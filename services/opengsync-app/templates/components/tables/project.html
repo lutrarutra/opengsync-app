@@ -17,6 +17,15 @@
                 }}
                 {{
                     table_col(
+                        table_container_id='project-table', column_name='Identifier', column_var='identifier',
+                        sort_url='projects_htmx.get', context={},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='projects_htmx.table_query', current_query=current_query,
+                        active_query_field=active_query_field, query_type="text", col_size=1
+                    )
+                }}
+                {{
+                    table_col(
                         table_container_id='project-table', column_name='Title', column_var='title',
                         sort_url='projects_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
@@ -57,6 +66,7 @@
             {% for project in projects %}
             <tr>
                 <th scope="row">{{ project.id }}</th>
+                <td><a href="{{ url_for('projects_page.project', project_id=project.id) }}">{{ project.identifier or "" }}</a></td>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id) }}">{{ project.title }}</a></td>
                 <td>{{ project.status.name }} {{ project.status.icon }}</td>
                 <td>{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</td>
