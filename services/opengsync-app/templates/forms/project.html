@@ -5,7 +5,7 @@
 <div id="project-form">
     {{ form.csrf_token() }}
     <div class="row">
-        {{ form_group(form.name, class="col-6") }}
+        {{ form_group(form.title, class="col-6") }}
         {{ select_input(form.status, class="col-6") }}
     </div>
     {{
