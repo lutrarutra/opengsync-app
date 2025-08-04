@@ -3,7 +3,7 @@ from typing import Optional, Any
 from flask import Response, flash, url_for
 from flask_htmx import make_response
 from wtforms import StringField, TextAreaField, SelectField, FormField
-from wtforms.validators import DataRequired, Length
+from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from opengsync_db import models
 from opengsync_db.categories import ProjectStatus
@@ -16,6 +16,7 @@ from ..SearchBar import OptionalSearchBar
 class ProjectForm(HTMXFlaskForm):
     _template_path = "forms/project.html"
 
+    identifier = StringField("Identifier", validators=[OptionalValidator(), Length(min=1, max=models.Project.identifier.type.length)], description="Identifier of the project. It must be unique across all projects.")
     title = StringField("Title", validators=[DataRequired(), Length(min=6, max=models.Project.title.type.length)], description="Title of the project")
     description = TextAreaField("Description", validators=[DataRequired(), Length(min=1, max=models.Project.description.type.length)])
     status = SelectField("Status", choices=ProjectStatus.as_selectable(), coerce=int, default=ProjectStatus.DRAFT.id, description="Status of the project")
@@ -31,6 +32,8 @@ class ProjectForm(HTMXFlaskForm):
         if self.project is None:
             logger.error("Project is not set for form filling.")
             raise ValueError("Project is not set for form filling.")
+        
+        self.identifier.data = self.project.identifier or ""
         self.title.data = self.project.title
         self.description.data = self.project.description
         self.status.data = self.project.status.id
@@ -71,6 +74,11 @@ class ProjectForm(HTMXFlaskForm):
             if self.title.data in [project.title for project in user_projects]:
                 self.title.errors = ("You already have a project with this title.",)
                 return False
+            
+            if self.identifier.data:
+                if (db.get_project(identifier=self.identifier.data) is not None):
+                    self.identifier.errors = ("Project with this identifier already exists.",)
+                    return False
 
         # Editing existing project
         else:
@@ -78,6 +86,12 @@ class ProjectForm(HTMXFlaskForm):
                 if project.title == self.title.data:
                     if project.id != self.project.id and project.owner_id == user.id:
                         self.title.errors = ("Owner of the project already has a project with this title.",)
+                        return False
+                    
+            if self.identifier.data:
+                if (prj := db.get_project(identifier=self.identifier.data)) is not None:
+                    if prj.id != self.project.id:
+                        self.identifier.errors = ("Project with this identifier already exists.",)
                         return False
                     
         if self.group.selected.data is not None:
@@ -97,6 +111,7 @@ class ProjectForm(HTMXFlaskForm):
     
     def __create_new_project(self, user_id: int) -> Response:
         project = db.create_project(
+            identifier=self.identifier.data,
             title=self.title.data,  # type: ignore
             description=self.description.data,  # type: ignore
             owner_id=user_id,
@@ -115,6 +130,7 @@ class ProjectForm(HTMXFlaskForm):
             logger.error("Project is not set for update.")
             raise ValueError("Project is not set for update.")
 
+        self.project.identifier = self.identifier.data
         self.project.title = self.title.data  # type: ignore
         self.project.description = self.description.data
         self.project.status = ProjectStatus.get(self.status.data)

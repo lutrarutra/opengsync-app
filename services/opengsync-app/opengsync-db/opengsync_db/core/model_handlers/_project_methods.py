@@ -13,7 +13,9 @@ from .. import exceptions
 
 
 def create_project(
-    self: "DBHandler", title: str, description: str, owner_id: int,
+    self: "DBHandler",
+    title: str, description: str, owner_id: int,
+    identifier: str | None = None,
     group_id: int | None = None,
     status: ProjectStatusEnum = ProjectStatus.DRAFT,
     flush: bool = True
@@ -29,6 +31,7 @@ def create_project(
             raise exceptions.ElementDoesNotExist(f"Group with id {group_id} does not exist")
 
     project = models.Project(
+        identifier=identifier,
         title=title.strip(),
         description=description.strip(),
         owner_id=owner_id,
@@ -48,11 +51,19 @@ def create_project(
     return project
 
 
-def get_project(self: "DBHandler", project_id: int) -> models.Project | None:
+def get_project(self: "DBHandler", project_id: int | None = None, identifier: str | None = None) -> models.Project | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    res = self.session.get(models.Project, project_id)
+    if project_id is None and identifier is None:
+        raise ValueError("Either project_id or identifier must be provided")
+    
+    if project_id is not None:
+        res = self.session.get(models.Project, project_id)
+    else:
+        res = self.session.query(models.Project).filter(
+            models.Project.identifier == identifier
+        ).first()
     
     if not persist_session:
         self.close_session()
@@ -131,9 +142,10 @@ def get_projects(
 
     if sort_by is not None:
         attr = getattr(models.Project, sort_by)
+
         if descending:
             attr = attr.desc()
-        query = query.order_by(attr)
+        query = query.order_by(sa.nulls_last(attr))
 
     n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
@@ -179,7 +191,10 @@ def update_project(self: "DBHandler", project: models.Project) -> models.Project
 
 
 def query_projects(
-    self: "DBHandler", word: str,
+    self: "DBHandler",
+    identifier: str | None = None,
+    title: str | None = None,
+    identifier_title: str | None = None,
     seq_request_id: Optional[int] = None,
     group_id: Optional[int] = None,
     status: Optional[ProjectStatusEnum] = None,
@@ -196,10 +211,20 @@ def query_projects(
         group_id=group_id, status=status,
         status_in=status_in, user_id=user_id
     )
-
-    query = query.order_by(
-        sa.func.similarity(models.Project.title, word).desc()
-    )
+    
+    if identifier is None and title is None and identifier_title is None:
+        raise ValueError("Either identifier or title must be provided")
+    if identifier is not None:
+        query = query.order_by(sa.nulls_last(sa.func.similarity(models.Project.identifier, identifier).desc()))
+    elif title is not None:
+        query = query.order_by(sa.func.similarity(models.Project.title, title).desc())
+    elif identifier_title is not None:
+        query = query.order_by(
+            sa.nulls_last(sa.func.greatest(
+                sa.func.similarity(models.Project.title, identifier_title),
+                sa.func.similarity(models.Project.identifier, identifier_title)
+            ).desc())
+        )
 
     if limit is not None:
         query = query.limit(limit)

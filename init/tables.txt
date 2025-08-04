@@ -1,6 +1,7 @@
 project
  - id
- - name
+ - identifier
+ - title
  - description
  - timestamp_created_utc
  - status_id
@@ -30,7 +31,6 @@ sample_plate_link
  - library_id
 sample_library_link
  - mux
- - mux_type_id
  - sample_id
  - library_id
 lane_pool_link
@@ -211,7 +211,7 @@ comment
  - seq_request_id
  - experiment_id
  - lab_prep_id
-seqrun
+seq_run
  - id
  - experiment_name
  - status_id
@@ -227,17 +227,7 @@ seqrun
  - r2_cycles
  - i1_cycles
  - i2_cycles
- - cluster_count_m
- - cluster_count_m_pf
- - error_rate
- - first_cycle_intensity
- - percent_aligned
- - percent_q30
- - percent_occupied
- - projected_yield
- - reads_m
- - reads_m_pf
- - yield_g
+ - quantities
 lane
  - id
  - number

@@ -4,15 +4,16 @@
 
 <div id="project-form">
     {{ form.csrf_token() }}
+    {{ form_group(form.title) }}
     <div class="row">
-        {{ form_group(form.title, class="col-6") }}
+        {% if current_user.is_insider() %}
+        {{ form_group(form.identifier, class="col-6", placeholder="BSA_XXXX") }}
+        {% else %}
+        {{ form_group(form.identifier, class="col-6", placeholder="BSA_XXXX", disabled=true) }}
+        {% endif %}
         {{ select_input(form.status, class="col-6") }}
     </div>
-    {{
-        search_select_field(
-            form.group, query_url=url_for('groups_htmx.query'),
-        ) 
-    }}
+    {{ search_select_field(form.group, query_url=url_for('groups_htmx.query')) }}
     {{ form_group(form.description) }}
 </div>
 <script>

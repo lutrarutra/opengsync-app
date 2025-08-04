@@ -19,6 +19,7 @@ class Project(Base):
     __tablename__ = "project"
 
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
+    identifier: Mapped[str | None] = mapped_column(sa.String(16), default=None, nullable=True, unique=True, index=True)
     title: Mapped[str] = mapped_column(sa.String(128), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(sa.String(1024), default=None, nullable=True)
 
@@ -46,12 +47,14 @@ class Project(Base):
     group_id: Mapped[int | None] = mapped_column(sa.ForeignKey("group.id"), nullable=True)
     group: Mapped["Group | None"] = relationship("Group", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "title", "owner_id", "num_samples", "status_id", "group_id", "timestamp_created_utc"]
+    sortable_fields: ClassVar[list[str]] = ["id", "identifier", "title", "owner_id", "num_samples", "status_id", "group_id", "timestamp_created_utc"]
 
     def search_value(self) -> int:
         return self.id
     
     def search_name(self) -> str:
+        if self.identifier is not None:
+            return self.identifier + (f" ({self.title})" if self.title else "")
         return self.title
     
     @property
