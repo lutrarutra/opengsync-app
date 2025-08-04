@@ -58,10 +58,6 @@ class ReseqLibrariesForm(MultiStepForm):
                 seq_request_id=library.seq_request_id,
                 status=LibraryStatus.ACCEPTED
             )
-
-        else:
-            logger.error(f"{self.uuid}: Invalid re-sequencing type {self.reprep_type.data}")
-            raise ValueError(f"{self.uuid}: Invalid re-sequencing type {self.reprep_type.data}")
         
         flash("Libraries Cloned!", "success")
         
