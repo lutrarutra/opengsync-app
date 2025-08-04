@@ -376,7 +376,7 @@ def remove_pool_from_lane(self: "DBHandler", experiment_id: int, pool_id: int, l
     return lane
 
 
-def link_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
+def link_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -397,12 +397,16 @@ def link_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
             self.add_pool_to_lane(experiment_id=experiment_id, pool_id=pool_id, lane_num=lane.number)
 
     self.session.add(experiment)
+    self.session.add(pool)
+    
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()
 
 
-def unlink_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
+def unlink_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -421,8 +425,15 @@ def unlink_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int):
         ).first()) is not None:
             self.session.delete(link)
 
+    for library in pool.libraries:
+        library.experiment_id = None
+
     experiment.pools.remove(pool)
+    self.session.add(pool)
     self.session.add(experiment)
+
+    if flush:
+        self.session.flush()
 
     if not persist_session:
         self.close_session()

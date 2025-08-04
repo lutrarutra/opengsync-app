@@ -146,17 +146,16 @@
                     )
                 }}
                 {% else %}
-                {{ 
-                    metadata_group("Group", "", class="col-4")
-                }}
+                {{ metadata_group("Group", "", class="col-4") }}
                 {% endif %}
                 {{
                     metadata_group_email_link(
                         "Owner Email", project.owner.email, class="col-4",
-                        subject="BSF Project: " + project.title + " (" + project.id | string + ")"
+                        subject="BSF Project: " + project.identifier or project.title
                     )
                 }}
             </div>
+            {{ metadata_group("Title", project.title) }}
             {{ metadata_group_textarea("Description", project.description) }}
         </div>
     </div>

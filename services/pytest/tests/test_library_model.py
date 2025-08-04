@@ -1,8 +1,8 @@
-from opengsync_db import DBHandler
+from opengsync_db import DBHandler, categories
 
 from .create_units import (
     create_user, create_project, create_seq_request, create_sample, create_library,
-    create_feature
+    create_feature, create_pool, create_experiment
 )  # noqa
 
 
@@ -108,3 +108,64 @@ def test_library_feature_link(db: DBHandler):
 
     assert len(db.get_features(limit=None)[0]) == num_prev_features
     assert len(db.get_libraries(limit=None)[0]) == num_prev_libraries
+
+
+def test_experiment_link(db: DBHandler):
+    user = create_user(db)
+    seq_request = create_seq_request(db, user)
+
+    library_1 = create_library(db, user, seq_request)
+    library_2 = create_library(db, user, seq_request)
+
+    pool_1 = create_pool(db, user, seq_request=seq_request)
+    pool_2 = create_pool(db, user, seq_request=seq_request)
+
+    experiment = create_experiment(db, user, categories.ExperimentWorkFlow.MISEQ_v2)
+
+    db.add_library_to_pool(library_id=library_1.id, pool_id=pool_1.id)
+    db.add_library_to_pool(library_id=library_2.id, pool_id=pool_2.id)
+
+    assert len(experiment.libraries) == 0
+    assert len(experiment.pools) == 0
+
+    db.refresh(library_1)
+    db.refresh(library_2)
+    db.refresh(pool_1)
+    db.refresh(pool_2)
+
+    assert len(pool_1.libraries) == 1
+    assert len(pool_2.libraries) == 1
+
+    db.link_pool_experiment(
+        pool_id=pool_1.id,
+        experiment_id=experiment.id,
+    )
+
+    db.link_pool_experiment(
+        pool_id=pool_2.id,
+        experiment_id=experiment.id,
+    )
+
+    db.refresh(experiment)
+
+    assert len(experiment.pools) == 2
+    assert len(experiment.libraries) == 2
+
+    db.unlink_pool_experiment(
+        pool_id=pool_1.id,
+        experiment_id=experiment.id,
+    )
+
+    db.refresh(experiment)
+
+    assert len(experiment.pools) == 1
+    assert len(experiment.libraries) == 1
+
+    db.unlink_pool_experiment(
+        pool_id=pool_2.id,
+        experiment_id=experiment.id,
+    )
+
+    db.refresh(experiment)
+    assert len(experiment.pools) == 0
+    assert len(experiment.libraries) == 0
