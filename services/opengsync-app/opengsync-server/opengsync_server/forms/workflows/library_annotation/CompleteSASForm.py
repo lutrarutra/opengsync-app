@@ -96,7 +96,7 @@ class CompleteSASForm(MultiStepForm):
 
         project_node = {
             "node": 0,
-            "name": self.metadata["project_name"],
+            "name": self.metadata["project_title"],
         }
         nodes.append(project_node)
         node_idx = 1
@@ -177,7 +177,7 @@ class CompleteSASForm(MultiStepForm):
                 raise ValueError(f"Project with id {project_id} not found.")
         else:
             project = db.create_project(
-                name=self.metadata["project_name"],
+                title=self.metadata["project_title"],
                 description=self.metadata["project_description"],
                 owner_id=user.id,
                 group_id=self.seq_request.group_id

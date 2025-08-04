@@ -110,7 +110,7 @@ class Sample(Base):
         return self.name
     
     def search_description(self) -> str:
-        return self.project.name
+        return self.project.title
     
     def is_editable(self) -> bool:
         if self.status is None:

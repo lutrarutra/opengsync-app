@@ -52,12 +52,12 @@
         $(document).ready(function() {
             init_tooltips();
 
-            $("#{{ form.new_project.name }}").on("input", function() {
-                $("#{{ form.existing_project.name }}-search").val(null);
-                $("#{{ form.existing_project.name }}").val(null);
+            $("#{{ form.new_project.title }}").on("input", function() {
+                $("#{{ form.existing_project.title }}-search").val(null);
+                $("#{{ form.existing_project.title }}").val(null);
             });
-            $("#{{ form.existing_project.name }}").on("change", function() {
-                $("#{{ form.new_project.name }}").val(null);
+            $("#{{ form.existing_project.title }}").on("change", function() {
+                $("#{{ form.new_project.title }}").val(null);
             });
         });
     </script>

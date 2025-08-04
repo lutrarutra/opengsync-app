@@ -633,7 +633,7 @@ def overview(seq_request_id: int):
         if sample.project_id not in project_nodes.keys():
             project_node = {
                 "node": idx,
-                "name": sample.project.name,
+                "name": sample.project.title,
                 "id": f"project-{sample.project_id}"
             }
             nodes.append(project_node)

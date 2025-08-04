@@ -16,7 +16,7 @@ from ..SearchBar import OptionalSearchBar
 class ProjectForm(HTMXFlaskForm):
     _template_path = "forms/project.html"
 
-    name = StringField("Name", validators=[DataRequired(), Length(min=6, max=models.Project.name.type.length)], description="Name of the project")
+    title = StringField("Title", validators=[DataRequired(), Length(min=6, max=models.Project.title.type.length)], description="Title of the project")
     description = TextAreaField("Description", validators=[DataRequired(), Length(min=1, max=models.Project.description.type.length)])
     status = SelectField("Status", choices=ProjectStatus.as_selectable(), coerce=int, default=ProjectStatus.DRAFT.id, description="Status of the project")
     group = FormField(OptionalSearchBar, label="Group", description="Group to which the project belongs. All users of that group will be able to see this project.")
@@ -31,7 +31,7 @@ class ProjectForm(HTMXFlaskForm):
         if self.project is None:
             logger.error("Project is not set for form filling.")
             raise ValueError("Project is not set for form filling.")
-        self.name.data = self.project.name
+        self.title.data = self.project.title
         self.description.data = self.project.description
         self.status.data = self.project.status.id
         if self.project.group_id:
@@ -57,8 +57,6 @@ class ProjectForm(HTMXFlaskForm):
                 return False
         else:
             if not user.is_insider():
-                logger.debug(status)
-                logger.debug(self.project.status)
                 if status != self.project.status:
                     self.status.errors = ("You don't have permissions to edit the status.",)
                     return False
@@ -70,16 +68,16 @@ class ProjectForm(HTMXFlaskForm):
 
         # Creating new project
         if self.project is None:
-            if self.name.data in [project.name for project in user_projects]:
-                self.name.errors = ("You already have a project with this name.",)
+            if self.title.data in [project.title for project in user_projects]:
+                self.title.errors = ("You already have a project with this title.",)
                 return False
 
         # Editing existing project
         else:
             for project in user_projects:
-                if project.name == self.name.data:
+                if project.title == self.title.data:
                     if project.id != self.project.id and project.owner_id == user.id:
-                        self.name.errors = ("Owner of the project already has a project with this name.",)
+                        self.title.errors = ("Owner of the project already has a project with this title.",)
                         return False
                     
         if self.group.selected.data is not None:
@@ -99,14 +97,14 @@ class ProjectForm(HTMXFlaskForm):
     
     def __create_new_project(self, user_id: int) -> Response:
         project = db.create_project(
-            name=self.name.data,  # type: ignore
+            title=self.title.data,  # type: ignore
             description=self.description.data,  # type: ignore
             owner_id=user_id,
             group_id=self.group.selected.data,
         )
 
-        logger.debug(f"Created project {project.name}.")
-        flash(f"Created project {project.name}.", "success")
+        logger.debug(f"Created project {project.title}.")
+        flash(f"Created project {project.title}.", "success")
 
         return make_response(
             redirect=url_for("projects_page.project", project_id=project.id),
@@ -117,14 +115,14 @@ class ProjectForm(HTMXFlaskForm):
             logger.error("Project is not set for update.")
             raise ValueError("Project is not set for update.")
 
-        self.project.name = self.name.data  # type: ignore
+        self.project.title = self.title.data  # type: ignore
         self.project.description = self.description.data
         self.project.status = ProjectStatus.get(self.status.data)
         self.project.group_id = self.group.selected.data
 
         self.project = db.update_project(project=self.project)
 
-        flash(f"Updated project {self.project.name}.", "success")
+        flash(f"Updated project {self.project.title}.", "success")
 
         return make_response(
             redirect=url_for("projects_page.project", project_id=self.project.id),

@@ -51,7 +51,7 @@
                 {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
                 <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
                 {% endif %}
-                <td><a href="{{ url_for('projects_page.project', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}">{{ sample.project.name }}</a></td>
+                <td><a href="{{ url_for('projects_page.project', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}">{{ sample.project.title }}</a></td>
                 <td>
                     {% for library_link in sample.library_links %}
                     {% set library = library_link.library %}

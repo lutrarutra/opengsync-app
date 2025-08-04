@@ -24,7 +24,7 @@ def create_user(db: DBHandler) -> models.User:
 def create_project(db: DBHandler, user: models.User) -> models.Project:
     _uuid = str(uuid.uuid1())
     return db.create_project(
-        name=_uuid,
+        title=_uuid,
         description=_uuid,
         owner_id=user.id,
     )

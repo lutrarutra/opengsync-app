@@ -94,7 +94,7 @@
                 {{ metadata_group("Name", sample.name, class="col-3") }}
                 {{
                     metadata_group_link(
-                        "Project", sample.project.name,
+                        "Project", sample.project.title,
                         url_for("projects_page.project", project_id=sample.project_id),
                         class="col-3"
                     )
