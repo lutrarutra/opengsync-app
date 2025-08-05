@@ -1,5 +1,6 @@
 from typing import Optional, Union, TypeVar, Sequence, Callable, get_type_hints, Literal, get_origin, get_args
 from types import NoneType, UnionType
+from pathlib import Path
 import itertools
 import difflib
 import string
@@ -401,6 +402,8 @@ def infer_route(func: Callable, base: str | None = None) -> list[tuple[str, dict
                     raise ValueError(f"Unsupported Optional base type: {base_type}")
             else:
                 raise ValueError(f"Unsupported Union types: {args}")
+        elif type_hint == Path:
+            converter = "path"
         else:
             raise ValueError(f"Unsupported type hint: {type_hint}, {origin}")
 

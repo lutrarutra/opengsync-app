@@ -31,6 +31,9 @@ __pycache__/
 .hintrc
 .DS_Store
 
+
+share/
+
 # C extensions
 *.so
 

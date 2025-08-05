@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Index of {{ current_path.as_posix() if current_path else '/' }}</title>
+        {% if not rclone %}
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background-color: #f2f2f2; }
+            a { text-decoration: none; color: #0066cc; }
+            a:hover { text-decoration: underline; }
+            .breadcrumb { margin-bottom: 20px; }
+        </style>
+        {% endif %}
+    </head>
+    <body>
+        {% if rclone %}
+        <pre>
+        {%- if current_path -%}
+        <a href="{{ url_for('file_share.browse', token=token, subpath=parent_dir.as_posix() if parent_dir else '') }}">../</a>
+        {%- endif -%}
+        {%- for dir in directories -%}
+        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / dir.name).as_posix() if current_path else dir.name) }}/">{{ dir.name }}/</a>
+        {% endfor %}
+        {%- for file in files -%}
+        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / file.name).as_posix() if current_path else file.name) }}">{{ file.name }}</a>
+        {%- endfor -%}
+        </pre>
+        {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Size</th>
+                    <th>Last Modified</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if current_path.parts %}
+                <tr>
+                    <td><a href="{{ url_for('file_share.browse', token=token, subpath=parent_dir.as_posix() if parent_dir else '').rstrip('/') }}">../</a></td>
+                    <td>-</td>
+                    <td>-</td>
+                </tr>
+                {% endif %}
+                {% for dir in directories %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / dir.name).as_posix() if current_path else dir.name) }}">
+                            {{ dir.name }}/
+                        </a>
+                    </td>
+                    <td>{{ dir.size }}</td>
+                    <td>{{ dir.modified }}</td>
+                </tr>
+                {% endfor %}
+                {% for file in files %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / file.name).as_posix() if current_path else file.name) }}">
+                            {{ file.name }}
+                        </a>
+                    </td>
+                    <td>{{ file.size|filesizeformat }}</td>
+                    <td>{{ file.modified }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </body>
+</html>
