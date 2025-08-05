@@ -84,22 +84,18 @@
             aria-controls="project-data-tab" aria-selected="false">
             Metadata</button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#project-seq_requests-tab" type="button" role="tab"
+            aria-controls="project-seq_requests-tab" aria-selected="false">
+            Requests</button>
+        </li>
     </ul>
 </div>
 
 <div class="page-content">
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="project-samples-tab" role="tabpanel" tabindex="0">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <h2>Samples:</h2>
-                </div>
-                <div>
-                    <a type="button" class="btn btn-primary disabled" disabled>
-                        Download
-                    </a>
-                </div>
-            </div>
             <div hx-get="{{ url_for('projects_htmx.get_samples', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
@@ -151,12 +147,17 @@
                 {{
                     metadata_group_email_link(
                         "Owner Email", project.owner.email, class="col-4",
-                        subject="BSF Project: " + project.identifier or project.title
+                        subject="BSF Project: " + (project.identifier or project.title)
                     )
                 }}
             </div>
             {{ metadata_group("Title", project.title) }}
             {{ metadata_group_textarea("Description", project.description) }}
+        </div>
+        <div class="tab-pane fadee" id="project-seq_requests-tab" role="tabpanel" tabindex="0">
+            <div hx-get="{{ url_for('projects_htmx.get_seq_requests', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
         </div>
     </div>
 </div>

@@ -124,6 +124,7 @@ def where(
     submission_type: Optional[SubmissionTypeEnum] = None,
     submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
     show_drafts: bool = True, user_id: Optional[int] = None,
+    project_id: int | None = None,
     group_id: Optional[int] = None
 ) -> Query:
     if status is not None:
@@ -169,8 +170,23 @@ def where(
         )
 
     if group_id is not None:
-        query = query.where(
-            models.SeqRequest.group_id == group_id
+        query = query.where(models.SeqRequest.group_id == group_id)
+
+    if project_id is not None:
+        query = query.join(
+            models.Library,
+            models.Library.seq_request_id == models.SeqRequest.id
+        ).join(
+            models.links.SampleLibraryLink,
+            models.links.SampleLibraryLink.library_id == models.Library.id
+        ).join(
+            models.Sample,
+            models.Sample.id == models.links.SampleLibraryLink.sample_id
+        ).join(
+            models.Project,
+            models.Project.id == models.Sample.project_id
+        ).where(
+            models.Project.id == project_id
         )
 
     return query
@@ -185,6 +201,7 @@ def get_seq_requests(
     show_drafts: bool = True,
     sort_by: Optional[str] = None, descending: bool = False,
     user_id: Optional[int] = None,
+    project_id: int | None = None,
     group_id: Optional[int] = None,
     limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
     count_pages: bool = False
@@ -196,7 +213,7 @@ def get_seq_requests(
     query = self.session.query(models.SeqRequest)
     query = where(
         query, status_in=status_in, submission_type_in=submission_type_in, submission_type=submission_type,
-        show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status
+        show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status, project_id=project_id
     )
 
     if sort_by is not None:
