@@ -1,32 +1,31 @@
-from typing import Optional
-
 import pandas as pd
 
-from flask import Response, url_for
+from flask import Response
 from wtforms import BooleanField
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, MUXType, SubmissionType
+from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, tools, db
+from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue
-from ...SpreadsheetInput import SpreadsheetInput
 from ...MultiStepForm import MultiStepForm
+from ..common import CommonFlexMuxForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
 
-class FlexAnnotationForm(MultiStepForm):
+class FlexAnnotationForm(CommonFlexMuxForm):
     _template_path = "workflows/library_annotation/sas-flex_annotation.html"
     _workflow_name = "library_annotation"
-    _step_name = "flex_annotation"
+    seq_request: models.SeqRequest
 
     columns = [
-        TextColumn("demux_name", "Demultiplexed Sample Name", 250, clean_up_fnc=tools.make_alpha_numeric, required=True, max_length=models.Sample.name.type.length, min_length=4),
-        DropdownColumn("sample_name", "Sample (Pool) Name", 250, choices=[], required=True),
-        TextColumn("barcode_id", "Bardcode ID", 250, max_length=16),
+        DropdownColumn("sample_name", "Sample Pool", 300, required=True, choices=[]),
+        TextColumn("demux_name", "Demultiplexed Name", 300, required=True, clean_up_fnc=tools.make_alpha_numeric),
+        TextColumn("barcode_id", "Bardcode ID", 200, required=False, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, clean_up_fnc=CommonFlexMuxForm.padded_barcode_id),
     ]
 
-    allowed_barcodes = [f"BC{i:03}" for i in range(1, 17)]
     single_plex = BooleanField("Single-Plex (do not fill the spreadsheet)", description="Samples were not multiplexed, i.e. one sample per library.", default=False)
 
     @staticmethod
@@ -37,28 +36,16 @@ class FlexAnnotationForm(MultiStepForm):
         )
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
-        MultiStepForm.__init__(
-            self, workflow=FlexAnnotationForm._workflow_name, step_name=FlexAnnotationForm._step_name,
-            uuid=uuid, formdata=formdata, step_args={}
+        CommonFlexMuxForm.__init__(
+            self, uuid=uuid, formdata=formdata, workflow=FlexAnnotationForm._workflow_name,
+            seq_request=seq_request, library=None, lab_prep=None, columns=FlexAnnotationForm.columns
         )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
-        
-        self.library_table = self.tables["library_table"]
-        self.flex_table = self.library_table[self.library_table['library_type_id'] == LibraryType.TENX_SC_GEX_FLEX.id]
         self.flex_samples = self.flex_table["sample_name"].unique().tolist()
-
-        self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=FlexAnnotationForm.columns, csrf_token=self._csrf_token,
-            post_url=url_for('library_annotation_workflow.parse_flex_annotation', seq_request_id=seq_request.id, uuid=self.uuid),
-            formdata=formdata, allow_new_rows=True
-        )
 
         self.spreadsheet.columns["sample_name"].source = self.flex_samples
 
-    def get_template(self) -> pd.DataFrame:
-        df = pd.DataFrame(columns=[col.name for col in FlexAnnotationForm.columns])
-        return df
+    def fill_previous_form(self, previous_form: StepFile):
+        self.spreadsheet.set_data(previous_form.tables["flex_table"])
 
     def validate(self) -> bool:
         if not super().validate():
@@ -94,14 +81,19 @@ class FlexAnnotationForm(MultiStepForm):
     def process_request(self) -> Response:
         if not self.validate():
             return self.make_response()
+        
+        logger.debug(self.sample_table)
 
         if not self.single_plex.data:
+            self.metadata["mux_type_id"] = CommonFlexMuxForm.mux_type.id
             if self.flex_table is None:
                 logger.error(f"{self.uuid}: Flex table is None.")
                 raise Exception("Flex table is None.")
             
             sample_table = self.tables["sample_table"]
             sample_pooling_table = self.tables["sample_pooling_table"]
+            sample_pooling_table["library_type_id"] = utils.map_columns(sample_pooling_table, self.sample_table, "library_name", "library_type_id")
+            logger.debug(sample_pooling_table)
 
             sample_data = {
                 "sample_name": [],
@@ -120,7 +112,10 @@ class FlexAnnotationForm(MultiStepForm):
                 for _, pooling_row in sample_pooling_table[sample_pooling_table["sample_name"] == flex_row["sample_name"]].iterrows():
                     pooling_data["sample_name"].append(flex_row["demux_name"])
                     pooling_data["library_name"].append(pooling_row["library_name"])
-                    pooling_data["mux_barcode"].append(flex_row["barcode_id"])
+                    if LibraryType.TENX_SC_ABC_FLEX.id == pooling_row["library_type_id"]:
+                        pooling_data["mux_barcode"].append(flex_row["barcode_id"].replace("BC", "AB") if pd.notna(flex_row["barcode_id"]) else None)
+                    else:
+                        pooling_data["mux_barcode"].append(flex_row["barcode_id"])
                     pooling_data["sample_pool"].append(flex_row["sample_name"])
                     pooling_data["mux_type_id"].append(MUXType.TENX_FLEX_PROBE.id)
 
@@ -140,6 +135,8 @@ class FlexAnnotationForm(MultiStepForm):
             self.update_table("sample_table", sample_table, update_data=False)
             self.add_table("flex_table", self.flex_table)
             self.update_data()
+
+            logger.debug(sample_pooling_table)
         
         next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

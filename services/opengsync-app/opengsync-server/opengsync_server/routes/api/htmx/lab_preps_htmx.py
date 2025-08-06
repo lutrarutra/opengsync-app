@@ -512,7 +512,7 @@ def get_comments(lab_prep_id: int):
 
 
 @htmx_route(lab_preps_htmx, db=db)
-def get_sample_pooling_table(lab_prep_id: int):
+def get_mux_table(lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -559,8 +559,8 @@ def get_sample_pooling_table(lab_prep_id: int):
                 col,
                 col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
                 {
-                    "sample_name": 200,
-                    "library_name": 250,
+                    "sample_name": 250,
+                    "library_name": 300,
                     "sample_pool": 200,
                     "barcode": 100,
                     "read": 80,

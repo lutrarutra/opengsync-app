@@ -37,7 +37,6 @@ class CompleteSASForm(MultiStepForm):
         self.pool_table = self.tables.get("pool_table")
         self.feature_table = self.tables.get("feature_table")
         self.library_properties_table = self.tables.get("library_properties_table")
-        self.flex_table = self.tables.get("flex_table")
         self.comment_table = self.tables.get("comment_table")
         self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata["mux_type_id"] is not None else None
         
@@ -84,7 +83,6 @@ class CompleteSASForm(MultiStepForm):
         self._context["barcode_table"] = self.barcode_table
         self._context["feature_table"] = self.feature_table
         self._context["library_properties_table"] = self.library_properties_table
-        self._context["flex_table"] = self.flex_table
         self._context["comment_table"] = self.comment_table
         self._context["pool_table"] = self.pool_table
 

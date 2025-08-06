@@ -10,7 +10,6 @@ from .Base import Base
 
 if TYPE_CHECKING:
     from .Pool import Pool
-    from .Experiment import Experiment
 
 
 class PoolDilution(Base):
@@ -23,9 +22,6 @@ class PoolDilution(Base):
     pool: Mapped["Pool"] = relationship("Pool", back_populates="dilutions", lazy="joined")
 
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
-
-    experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
-    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select")
 
     operator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     operator: Mapped[models.User] = relationship("User", lazy="joined")

@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from .Lane import Lane
     from .Contact import Contact
     from .File import File
-    from .dilutions import PoolDilution
+    from .PoolDilution import PoolDilution
     from .Plate import Plate
     from .LabPrep import LabPrep
 

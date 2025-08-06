@@ -39,6 +39,17 @@ def begin(lab_prep_id: int, mux_type_id: int):
     return form.make_response()
 
 
+@htmx_route(mux_prep_workflow, db=db, methods=["GET", "POST"])
+def sample_pooling(lab_prep_id: int):
+    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if request.method == "GET":
+        return forms.SamplePoolingForm(lab_prep=lab_prep).make_response()
+
+    return forms.SamplePoolingForm(lab_prep=lab_prep, formdata=request.form).process_request()
+
+
 @htmx_route(mux_prep_workflow, db=db, methods=["POST"])
 def parse_oligo_mux_annotation(lab_prep_id: int, uuid: str):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:

@@ -85,7 +85,10 @@ class PoolForm(HTMXFlaskForm):
         
         self.name.data = self.pool.name
         self.pool_type.data = self.pool.type.id
-        self.status.data = self.pool.status_id
+        if self.form_type == "clone":
+            self.status.data = PoolStatus.STORED.id
+        else:
+            self.status.data = self.pool.status_id
         self.num_m_reads_requested.data = self.pool.num_m_reads_requested
         if self.pool.contact is not None:
             self.contact_name.data = self.pool.contact.name
@@ -146,6 +149,20 @@ class PoolForm(HTMXFlaskForm):
             seq_request_id=self.pool.seq_request_id,
             original_pool_id=self.pool.original_pool_id if self.pool.original_pool_id is not None else self.pool.id,
         )
+
+        for dilution in self.pool.dilutions:
+            pool.dilutions.append(models.PoolDilution(
+                pool_id=pool.id,
+                operator_id=dilution.operator_id,
+                identifier=dilution.identifier,
+                qubit_concentration=dilution.qubit_concentration,
+                volume_ul=dilution.volume_ul,
+                timestamp_utc=dilution.timestamp_utc
+            ))
+
+        pool = db.update_pool(pool)
+        db.flush()
+        db.refresh(pool)
 
         for library in self.pool.libraries:
             clone_library = db.clone_library(

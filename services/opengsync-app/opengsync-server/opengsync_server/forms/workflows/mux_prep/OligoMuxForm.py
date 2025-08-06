@@ -41,15 +41,12 @@ class OligoMuxForm(MultiStepForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
 
-        if (csrf_token := formdata.get("csrf_token")) is None:
-            csrf_token = self.csrf_token._value()  # type: ignore
-
         self.sample_table = db.get_lab_prep_samples_df(lab_prep.id)
         self.sample_table = self.sample_table[self.sample_table["mux_type"].isin([MUXType.TENX_OLIGO])]
         self.mux_table = self.sample_table.drop_duplicates(subset=["sample_name", "sample_pool"], keep="first")
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=self.columns, csrf_token=csrf_token,
+            columns=self.columns, csrf_token=self._csrf_token,
             post_url=url_for("mux_prep_workflow.parse_oligo_mux_annotation", lab_prep_id=self.lab_prep.id, uuid=self.uuid),
             formdata=formdata, df=self.__get_template()
         )

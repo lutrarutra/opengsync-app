@@ -266,8 +266,8 @@ def get_experiment_laned_pools_df(self: "DBHandler", experiment_id: int) -> pd.D
         models.Pool,
         models.Pool.id == models.links.LanePoolLink.pool_id
     ).join(
-        models.dilutions.PoolDilution,
-        models.dilutions.PoolDilution.id == models.links.LanePoolLink.dilution_id,
+        models.PoolDilution,
+        models.PoolDilution.id == models.links.LanePoolLink.dilution_id,
         isouter=True
     )
 

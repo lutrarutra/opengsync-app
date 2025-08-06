@@ -211,20 +211,17 @@ def update_pool(self: "DBHandler", pool: models.Pool,) -> models.Pool:
 
 
 def dilute_pool(
-    self: "DBHandler", pool_id: int, qubit_concentration: float,
+    self: "DBHandler",
+    pool_id: int,
+    qubit_concentration: float,
     operator_id: int,
     volume_ul: Optional[float] = None,
-    experiment_id: int | None = None
 ) -> models.Pool:
     if not (persist_session := self._session is not None):
         self.open_session()
 
     if (pool := self.session.get(models.Pool, pool_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-
-    if experiment_id is not None:
-        if self.session.get(models.Experiment, experiment_id) is None:
-            raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
         
     n = len(pool.dilutions)
 
@@ -244,7 +241,6 @@ def dilute_pool(
         identifier=to_identifier(n),
         qubit_concentration=qubit_concentration,
         volume_ul=volume_ul,
-        experiment_id=experiment_id,
     )
 
     pool.dilutions.append(dilution)

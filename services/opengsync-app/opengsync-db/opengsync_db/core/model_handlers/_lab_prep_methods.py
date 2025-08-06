@@ -114,6 +114,11 @@ def delete_lab_prep(self: "DBHandler", lab_prep_id: int, flush: bool = True) -> 
         for library in pool.libraries:
             library.pool_id = None
 
+    for plate in lab_prep.plates:
+        for link in plate.sample_links:
+            self.session.delete(link)
+        self.session.delete(plate)
+
     self.session.delete(lab_prep)
 
     if flush:
