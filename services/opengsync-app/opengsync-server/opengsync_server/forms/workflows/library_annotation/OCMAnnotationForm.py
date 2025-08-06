@@ -1,13 +1,12 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import Response, url_for
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, FeatureType, MUXType
+from opengsync_db.categories import MUXType
 
-from .... import logger, tools, db  # noqa
+from .... import logger, db  # noqa
+from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
@@ -24,7 +23,7 @@ class OCMAnnotationForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "ocm_annotation"
     columns = [
-        TextColumn("demux_name", "Demultiplexed Name", 300, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        TextColumn("demux_name", "Demultiplexed Name", 300, required=True, max_length=models.Sample.name.type.length, min_length=4, validation_fnc=utils.check_string),
         DropdownColumn("sample_name", "Sample (Pool) Name", 300, choices=[], required=True),
         TextColumn("barcode_id", "Bardcode ID", 200, required=True, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, clean_up_fnc=lambda x: str(x).strip().upper()),
     ]

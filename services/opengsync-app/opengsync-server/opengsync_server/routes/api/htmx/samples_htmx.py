@@ -79,8 +79,8 @@ def delete(sample_id: int):
     )
 
 
-@htmx_route(samples_htmx, db=db, methods=["POST"])
-def edit(sample_id):
+@htmx_route(samples_htmx, db=db, methods=["GET", "POST"])
+def edit(sample_id: int):
     if (sample := db.get_sample(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -88,10 +88,11 @@ def edit(sample_id):
         affiliation = db.get_user_sample_access_type(user_id=current_user.id, sample_id=sample.id)
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
-
-    return forms.models.SampleForm(request.form).process_request(
-        user_id=current_user.id, sample=sample
-    )
+        
+    if request.method == "GET":
+        return forms.models.SampleForm(sample).make_response()
+    
+    return forms.models.SampleForm(sample, request.form).process_request()
 
 
 @htmx_route(samples_htmx, db=db, methods=["POST"])

@@ -7,7 +7,9 @@ from wtforms.validators import DataRequired, Length
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, GenomeRef, LibraryStatus, MUXType
+
 from ... import db, logger  # noqa: F401
+from ...tools import utils
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -35,6 +37,16 @@ class LibraryForm(HTMXFlaskForm):
         self.status.data = library.status_id
         self.mux_type.data = library.mux_type_id
         self.nuclei_isolation.data = library.nuclei_isolation
+
+    def validate(self) -> bool:
+        if not super().validate():
+            return False
+        
+        if (error := utils.check_string(self.name.data)):
+            self.name.errors = (error,)
+            return False
+        
+        return True
     
     def process_request(self) -> Response:
         if not self.validate():

@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import Response, url_for
@@ -8,6 +6,7 @@ from opengsync_db import models
 from opengsync_db.categories import AssayType, GenomeRef, LibraryType, LibraryTypeEnum, GenomeRefEnum
 
 from .... import logger, db
+from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
@@ -23,7 +22,7 @@ class DefineSamplesForm(MultiStepForm):
     _step_name = "define_samples"
 
     columns = [
-        TextColumn("sample_name", "Sample Name", 300, max_length=models.Sample.name.type.length, min_length=4, required=True),
+        TextColumn("sample_name", "Sample Name", 300, max_length=models.Sample.name.type.length, min_length=4, required=True, validation_fnc=utils.check_string),
         DropdownColumn("genome", "Genome", 300, choices=GenomeRef.names(), required=True),
     ]
 

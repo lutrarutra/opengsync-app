@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import Response, url_for
@@ -8,6 +6,7 @@ from opengsync_db import models
 from opengsync_db.categories import AssayType, GenomeRef, LibraryType, LibraryTypeEnum, GenomeRefEnum, MUXType
 
 from .... import logger, db
+from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
@@ -23,9 +22,9 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
     _step_name = "define_mux_samples"
 
     columns = [
-        TextColumn("sample_name", "Sample Name", 300, required=True, max_length=models.Sample.name.type.length, min_length=4),
+        TextColumn("sample_name", "Sample Name", 300, required=True, max_length=models.Sample.name.type.length, min_length=4, validation_fnc=utils.check_string),
         DropdownColumn("genome", "Genome", 300, choices=GenomeRef.names(), required=True),
-        TextColumn("pool", "Pool", 300, max_length=models.Library.name.type.length, min_length=4),
+        TextColumn("pool", "Pool", 300, max_length=models.Library.name.type.length, min_length=4, validation_fnc=utils.check_string),
     ]
 
     @staticmethod

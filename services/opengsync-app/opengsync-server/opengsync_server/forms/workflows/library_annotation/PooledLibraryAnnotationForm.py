@@ -24,10 +24,10 @@ class PooledLibraryAnnotationForm(MultiStepForm):
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False, description="I have isolated nuclei from my samples.")
 
     columns = [
-        TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: utils.make_alpha_numeric(x)),
+        TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, validation_fnc=utils.check_string),
         DropdownColumn("genome", "Genome", 200, choices=GenomeRef.names(), required=True),
         DropdownColumn("library_type", "Library Type", 300, choices=LibraryType.names(), required=True),
-        TextColumn("pool", "Pool", 200, required=True, max_length=models.Pool.name.type.length, min_length=4, clean_up_fnc=lambda x: utils.make_alpha_numeric(x)),
+        TextColumn("pool", "Pool", 200, required=True, max_length=models.Pool.name.type.length, min_length=4, clean_up_fnc=utils.check_string),
     ]
 
     @staticmethod

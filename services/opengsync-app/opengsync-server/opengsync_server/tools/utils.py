@@ -138,6 +138,28 @@ def parse_time_windows(s: str) -> list[WeekTimeWindow]:
     return windows
 
 
+def check_string(val: str | None, allowed_special_characters: list[str] = ["-", "_"], required: bool = True) -> str | None:
+    """Check if the given string is a valid name.
+
+    Args:
+        val (str): The string to check.
+        allowed_special_characters (list[str], optional): Defaults to ["-", "_"].
+
+    Returns:
+        str | None: Returns None if the string is valid, otherwise returns an error message.
+    """
+    if pd.isna(val):
+        if not required:
+            return None
+        return "Value is missing."
+    
+    allowed_characters = string.ascii_letters + string.digits + "".join(allowed_special_characters)
+    
+    for c in val:
+        if c not in allowed_characters:
+            return "Invalid character in name: '" + c + f"'. You can only use letters, digits and the following special characters: {allowed_special_characters}"
+
+
 def titlecase_with_acronyms(val: str) -> str:
     return " ".join([c[0].upper() + c[1:] for c in val.split(" ")])
 

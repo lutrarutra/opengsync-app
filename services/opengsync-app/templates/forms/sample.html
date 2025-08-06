@@ -1,9 +1,27 @@
 {% from 'components/form_group.jinja2' import form_group, select_input %}
 
-<div id="sample-form">
-    {{ sample_form.csrf_token() }}
-    <div class="row">
-        {{ form_group(sample_form.name, class="col-6") }}
-        {{ select_input(sample_form.status, class="col-6") }}
+<div class="modal-content" id="sample-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Edit Sample</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="sample-form">
+            {{ sample_form.csrf_token() }}
+            <div class="row">
+                {{ form_group(sample_form.name, class="col-6") }}
+                {{ select_input(sample_form.status, class="col-6") }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" hx-include="#sample-form" hx-target="#sample-form-container"
+                hx-swap="outerHTML" hx-post="{{ url_for('samples_htmx.edit', sample_id=sample.id) }}">Save</button>
+        </div>
     </div>
 </div>

@@ -28,7 +28,7 @@ class LibraryAnnotationForm(MultiStepForm):
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False, description="I want you to isolate nuclei from my samples before sequencing.")
 
     columns = [
-        TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: utils.make_alpha_numeric(x)),
+        TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, validation_fnc=utils.check_string),
         DropdownColumn("genome", "Genome", 200, choices=GenomeRef.names(), required=True),
         DropdownColumn("library_type", "Library Type", 200, choices=LibraryType.names(), required=True),
         FloatColumn("seq_depth", "Sequencing Depth (M reads)", 200),
