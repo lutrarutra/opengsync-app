@@ -200,6 +200,31 @@
                     {{ tooltip("You cannot edit completed prep.", category="warning") }}
                     {% else %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('mux_prep_workflow.sample_pooling', lab_prep_id=lab_prep.id) }}"
+                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                    hx-swap="innerHTML" hx-trigger="click"{% endif %}>
+                    <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
+                        <div class="card-front">
+                            <div class="card-icon">
+                                <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="120px">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">Multiplexing Pooling Form</h5>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="text-container">
+                                <p class="card-text">Assign multiplexed samples to pools.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
+                    {% if lab_prep.status != PrepStatus.PREPARING %}
+                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
+                    {% else %}
+                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_OLIGO.id) }}"
                     hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click"{% endif %}>
@@ -427,7 +452,7 @@
         </div>
 
         <div class="tab-pane fade" id="mux-tab" role="tabpanel" tabindex="5">
-            <div hx-get="{{ url_for('lab_preps_htmx.get_sample_pooling_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('lab_preps_htmx.get_mux_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

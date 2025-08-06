@@ -41,11 +41,6 @@ class MultiStepForm(HTMXFlaskForm):
         if uuid is None:
             uuid = str(uuid4())
 
-        if (csrf_token := self.formdata.get("csrf_token")) is None:
-            self._csrf_token = self.csrf_token._value()  # type: ignore
-        else:
-            self._csrf_token = csrf_token
-
         self.step_name = step_name
         self.step_args = step_args
         self.uuid = uuid

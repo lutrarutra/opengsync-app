@@ -3,6 +3,7 @@ from typing import Optional, TYPE_CHECKING, ClassVar
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.mutable import MutableDict
 
 from .Base import Base
 
@@ -57,7 +58,7 @@ class SampleLibraryLink(Base):
     __tablename__ = "sample_library_link"
     __mapper_args__ = {"confirm_deleted_rows": False}
 
-    mux: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True, default=None)
+    mux: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
     sample_id: Mapped[int] = mapped_column(sa.ForeignKey("sample.id"), primary_key=True)
     library_id: Mapped[int] = mapped_column(sa.ForeignKey("library.id"), primary_key=True)

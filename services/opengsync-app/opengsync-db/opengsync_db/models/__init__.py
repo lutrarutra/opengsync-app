@@ -17,7 +17,7 @@ from .SeqQuality import SeqQuality  # noqa: F401
 from .Comment import Comment  # noqa: F401
 from .SeqRun import SeqRun  # noqa: F401
 from .Lane import Lane  # noqa: F401
-from .dilutions import PoolDilution  # noqa: F401
+from .PoolDilution import PoolDilution  # noqa: F401
 from .Plate import Plate  # noqa: F401
 from .Barcode import Barcode  # noqa: F401
 from .LibraryIndex import LibraryIndex  # noqa: F401

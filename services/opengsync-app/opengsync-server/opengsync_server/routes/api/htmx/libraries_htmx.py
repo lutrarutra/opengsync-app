@@ -570,40 +570,28 @@ def get_mux_table(library_id: int):
     if library.mux_type is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    df = db.get_library_mux_table_df(library.id)
+    mux_data = {
+        "sample_name": [],
+        "barcode": [],
+    }
 
     if library.mux_type == MUXType.TENX_OLIGO:
-        mux_data = {
-            "sample_name": [],
-            "barcode": [],
-            "read": [],
-            "pattern": [],
-        }
-        for _, row in df.iterrows():
-            mux_data["sample_name"].append(row["sample_name"])
-            mux_data["barcode"].append(row["mux"]["barcode"] if row.get("mux") else None)
-            mux_data["read"].append(row["mux"]["read"] if row.get("mux") else None)
-            mux_data["pattern"].append(row["mux"]["pattern"] if row.get("mux") else None)
-    elif library.mux_type == MUXType.TENX_FLEX_PROBE:
-        mux_data = {
-            "sample_name": [],
-            "barcode": [],
-        }
-        for _, row in df.iterrows():
-            mux_data["sample_name"].append(row["sample_name"])
-            mux_data["barcode"].append(row["mux"]["barcode"] if row.get("mux") else None)
-        
-    elif library.mux_type == MUXType.TENX_ON_CHIP:
-        mux_data = {
-            "sample_name": [],
-            "barcode": [],
-        }
-        for _, row in df.iterrows():
-            mux_data["sample_name"].append(row["sample_name"])
-            mux_data["barcode"].append(row["mux"]["barcode"] if row.get("mux") else None)
-    else:
-        raise NotImplementedError(f"Unsupported MUX type: {library.mux_type}")
+        mux_data["read"] = []
+        mux_data["pattern"] = []
 
+    for link in library.sample_links:
+        mux_data["sample_name"].append(link.sample.name)
+        if link.mux is not None:
+            mux_data["barcode"].append(link.mux.get("barcode"))
+            if library.mux_type == MUXType.TENX_OLIGO:
+                mux_data["read"].append(link.mux.get("read", ""))
+                mux_data["pattern"].append(link.mux.get("pattern", ""))
+        else:
+            mux_data["barcode"].append(None)
+            if library.mux_type == MUXType.TENX_OLIGO:
+                mux_data["read"].append("")
+                mux_data["pattern"].append("")
+                
     df = pd.DataFrame(mux_data)
     columns = []
     for i, col in enumerate(df.columns):

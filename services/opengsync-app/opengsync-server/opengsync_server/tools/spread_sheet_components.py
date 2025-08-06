@@ -62,6 +62,9 @@ class SpreadSheetColumn:
             
             if not value:
                 value = None
+
+        if self.type == "text":
+            value = str(value) if value is not None else None
                 
         if self.clean_up_fnc is not None:
             return self.clean_up_fnc(value)

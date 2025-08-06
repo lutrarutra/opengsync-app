@@ -234,7 +234,7 @@
         </div>
         <div class="footer-controls">
             {% if seq_request_form.form_type == "edit" %}
-            <button class="btn btn-primary" hx-include="#seq_request-form" hx-target="#seq_request-form-container" hx-swap="outerHTML"
+            <button class="btn btn-success" hx-include="#seq_request-form" hx-target="#seq_request-form-container" hx-swap="outerHTML"
                 hx-post="{{ url_for('seq_requests_htmx.edit', seq_request_id=seq_request.id) }}">Submit</button>
             {% elif seq_request_form.form_type == "create" %}
             <button class="btn btn-success" hx-include="#seq_request-form" hx-target="#seq_request-form-container"
