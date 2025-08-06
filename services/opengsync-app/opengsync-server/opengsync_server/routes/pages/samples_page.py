@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, url_for, abort, request
 
 from opengsync_db.models import User
 from opengsync_db.categories import HTTPResponse
-from ... import db, forms, page_route
+from ... import db, page_route
 
 if TYPE_CHECKING:
     current_user: User = None   # type: ignore
@@ -30,7 +30,6 @@ def sample(sample_id):
             return abort(HTTPResponse.FORBIDDEN.id)
     
     is_editable = sample.is_editable()
-    sample_form = forms.models.SampleForm(sample=sample)
 
     path_list = [
         ("Samples", url_for("samples_page.samples")),
@@ -58,7 +57,7 @@ def sample(sample_id):
             ]
 
     return render_template(
-        "sample_page.html", sample_form=sample_form,
+        "sample_page.html",
         path_list=path_list, sample=sample,
         is_editable=is_editable
     )

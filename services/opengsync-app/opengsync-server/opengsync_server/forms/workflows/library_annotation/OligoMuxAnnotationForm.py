@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import Response, url_for
@@ -8,6 +6,7 @@ from opengsync_db import models
 from opengsync_db.categories import LibraryType, FeatureType, MUXType
 
 from .... import logger, tools, db  # noqa
+from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, MissingCellValue, InvalidCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
@@ -24,7 +23,7 @@ class OligoMuxAnnotationForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "oligo_mux_annotation"
     columns = [
-        TextColumn("demux_name", "Demultiplexed Name", 170, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
+        TextColumn("demux_name", "Demultiplexed Name", 170, required=True, max_length=models.Sample.name.type.length, min_length=4, validation_fnc=utils.check_string),
         DropdownColumn("sample_name", "Sample (Pool) Name", 170, choices=[], required=True),
         TextColumn("kit", "Kit", 170, max_length=models.Kit.name.type.length),
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
