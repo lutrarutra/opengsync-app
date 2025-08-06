@@ -64,7 +64,7 @@ def get_lab_preps(
     protocol_in: Optional[list[LabProtocolEnum]] = None,
     status: Optional[PrepStatusEnum] = None,
     status_in: Optional[list[PrepStatusEnum]] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
     count_pages: bool = False
 ) -> tuple[list[models.LabPrep], int | None]:
@@ -129,7 +129,7 @@ def query_lab_preps(
     protocol_in: Optional[list[LabProtocolEnum]] = None,
     status: Optional[PrepStatusEnum] = None,
     status_in: Optional[list[PrepStatusEnum]] = None,
-    limit: Optional[int] = PAGE_LIMIT
+    limit: int | None = PAGE_LIMIT
 ) -> list[models.LabPrep]:
     if not (persist_session := self._session is not None):
         self.open_session()

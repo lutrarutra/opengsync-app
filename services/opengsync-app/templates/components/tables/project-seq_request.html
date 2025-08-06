@@ -1,0 +1,69 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="project-seq_request-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='project-seq_request-table', column_name='ID', column_var='id',
+                        sort_url='projects_htmx.get_seq_requests', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='project-seq_request-table', column_name='Name', column_var='name',
+                        sort_url='projects_htmx.get_seq_requests', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=3,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='project-seq_request-table', column_name='Status', column_var='status_id',
+                        sort_url='projects_htmx.get_seq_requests', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='project-seq_request-table', column_name='Submitted', column_var='submitted_time',
+                        sort_url='projects_htmx.get_seq_requests', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='project-seq_request-table', column_name='Finished', column_var='finished_time',
+                        sort_url='projects_htmx.get_seq_requests', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='seq_request-table', column_name='# Libraries', column_var='num_libraries',
+                        sort_url='projects_htmx.get_seq_requests', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for seq_request in seq_requests %}
+            <tr>
+                <th scope="row">{{ seq_request.id }}</th>
+                <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, from='project@' + project.id | string) }}">{{ seq_request.name }}</a></td>
+                <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
+                <td>{{ seq_request.timestamp_submitted_str() }}</td>
+                <td>{{ seq_request.timestamp_finished_str() }}</td>
+                <td>{{ seq_request.num_libraries }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("project-seq_request-table-spinner") }}
+    {{ pagination("project-seq_request-table", "projects_htmx.get_seq_requests", n_pages, active_page) }}
+</div>

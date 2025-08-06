@@ -36,7 +36,7 @@ def create_kit(
     return kit
 
 
-def get_kit(self: "DBHandler", id: Optional[int] = None, identifier: Optional[str] = None, name: Optional[str] = None) -> models.Kit | None:
+def get_kit(self: "DBHandler", id: int | None = None, identifier: Optional[str] = None, name: Optional[str] = None) -> models.Kit | None:
     if id is None and identifier is None and name is None:
         raise ValueError("Either id or identifier must be provided.")
 
@@ -69,7 +69,7 @@ def get_kit_by_name(self: "DBHandler", name: str) -> models.Kit | None:
 
 
 def get_kits(
-    self: "DBHandler", limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = 0,
+    self: "DBHandler", limit: int | None = PAGE_LIMIT, offset: int | None = 0,
     sort_by: Optional[str] = None, descending: bool = False,
     count_pages: bool = False
 ) -> tuple[list[models.Kit], int | None]:
@@ -103,7 +103,7 @@ def get_kits(
 
 
 def query_kits(
-    self: "DBHandler", word: str, limit: Optional[int] = PAGE_LIMIT, kit_type: Optional[KitTypeEnum] = None,
+    self: "DBHandler", word: str, limit: int | None = PAGE_LIMIT, kit_type: Optional[KitTypeEnum] = None,
 ) -> list[models.Kit]:
     if not (persist_session := self._session is not None):
         self.open_session()

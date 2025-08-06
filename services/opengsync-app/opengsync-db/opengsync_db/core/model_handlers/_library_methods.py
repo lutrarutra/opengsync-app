@@ -24,13 +24,13 @@ def create_library(
     seq_request_id: int,
     genome_ref: GenomeRefEnum,
     assay_type: AssayTypeEnum,
-    original_library_id: Optional[int] = None,
+    original_library_id: int | None = None,
     properties: Optional[dict | None] = None,
     index_type: IndexTypeEnum | None = None,
     nuclei_isolation: bool = False,
     mux_type: MUXTypeEnum | None = None,
-    pool_id: Optional[int] = None,
-    lab_prep_id: Optional[int] = None,
+    pool_id: int | None = None,
+    lab_prep_id: int | None = None,
     seq_depth_requested: Optional[float] = None,
     status: Optional[LibraryStatusEnum] = None,
     flush: bool = True
@@ -108,12 +108,12 @@ def get_library(self: "DBHandler", library_id: int) -> models.Library | None:
 
 def where(
     query: Query,
-    user_id: Optional[int] = None, sample_id: Optional[int] = None,
-    experiment_id: Optional[int] = None, seq_request_id: Optional[int] = None,
+    user_id: int | None = None, sample_id: int | None = None,
+    experiment_id: int | None = None, seq_request_id: int | None = None,
     assay_type: Optional[AssayTypeEnum] = None,
-    pool_id: Optional[int] = None, lab_prep_id: Optional[int] = None,
+    pool_id: int | None = None, lab_prep_id: int | None = None,
     in_lab_prep: Optional[bool] = None,
-    project_id: Optional[int] = None,
+    project_id: int | None = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
@@ -143,6 +143,8 @@ def where(
                 models.Sample,
                 models.Sample.id == models.links.SampleLibraryLink.sample_id,
             ).where(models.Sample.project_id == project_id)
+
+            query = query.distinct(models.Library.id)
 
     if experiment_id is not None:
         query = query.where(models.Library.experiment_id == experiment_id)
@@ -192,29 +194,27 @@ def where(
     if custom_query is not None:
         query = custom_query(query)
 
-    query = query.distinct(models.Library.id)
-
     return query
     
 
 def get_libraries(
     self: "DBHandler",
-    user_id: Optional[int] = None,
-    sample_id: Optional[int] = None,
-    experiment_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
+    user_id: int | None = None,
+    sample_id: int | None = None,
+    experiment_id: int | None = None,
+    seq_request_id: int | None = None,
     assay_type: Optional[AssayTypeEnum] = None,
-    pool_id: Optional[int] = None,
-    lab_prep_id: Optional[int] = None,
+    pool_id: int | None = None,
+    lab_prep_id: int | None = None,
     in_lab_prep: Optional[bool] = None,
-    project_id: Optional[int] = None,
+    project_id: int | None = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None,
     status: Optional[LibraryStatusEnum] = None,
     custom_query: Callable[[Query], Query] | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     count_pages: bool = False
 ) -> tuple[list[models.Library], int | None]:
     if not (persist_session := self._session is not None):
@@ -307,20 +307,20 @@ def get_number_of_cloned_libraries(self: "DBHandler", original_library_id: int) 
 def query_libraries(
     self: "DBHandler",
     name: Optional[str] = None, owner: Optional[str] = None,
-    user_id: Optional[int] = None,
-    sample_id: Optional[int] = None,
-    experiment_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
+    user_id: int | None = None,
+    sample_id: int | None = None,
+    experiment_id: int | None = None,
+    seq_request_id: int | None = None,
     assay_type: Optional[AssayTypeEnum] = None,
-    pool_id: Optional[int] = None,
-    lab_prep_id: Optional[int] = None,
+    pool_id: int | None = None,
+    lab_prep_id: int | None = None,
     in_lab_prep: Optional[bool] = None,
     type_in: Optional[list[LibraryTypeEnum]] = None,
     status_in: Optional[list[LibraryStatusEnum]] = None,
     pooled: Optional[bool] = None,
     status: Optional[LibraryStatusEnum] = None,
     custom_query: Callable[[Query], Query] | None = None,
-    limit: Optional[int] = PAGE_LIMIT,
+    limit: int | None = PAGE_LIMIT,
 ) -> list[models.Library]:
 
     if not (persist_session := self._session is not None):

@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, url_for, flash, request, abort
 from flask_htmx import make_response
 from flask_mail import Message
-from flask_login import logout_user, login_required
+from flask_login import logout_user
 
-from opengsync_db import models, db_session
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, UserRole
 from .... import db, forms, logger, mail, serializer, EMAIL_SENDER, htmx_route
 

@@ -112,6 +112,12 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#experiment-projects-tab" type="button" role="tab"
+            aria-controls="experiment-projects-tab" aria-selected="false">
+            Projects</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#experiment-num_reads-tab" type="button" role="tab"
             aria-controls="experiment-num_reads-tab" aria-selected="true"
             id="experiment-num_reads-tab-btn">
@@ -437,7 +443,12 @@
             </div>
         </div>  
         {% endif %}
-        <div class="tab-pane fade" id="experiment-num_reads-tab" role="tabpanel" tabindex="9">
+        <div class="tab-pane fadee" id="experiment-projects-tab" role="tabpanel" tabindex="9">
+            <div hx-get="{{ url_for('experiments_htmx.get_projects', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="experiment-num_reads-tab" role="tabpanel" tabindex="10">
             {% include "components/plots/experiment_library_reads.html" %}
         </div>
     </div>

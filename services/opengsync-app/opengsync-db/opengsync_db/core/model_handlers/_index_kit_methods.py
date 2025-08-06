@@ -77,7 +77,7 @@ def get_index_kit_by_identifier(
 
 
 def query_index_kits(
-    self: "DBHandler", word: str, limit: Optional[int] = PAGE_LIMIT, index_type: Optional[IndexTypeEnum] = None,
+    self: "DBHandler", word: str, limit: int | None = PAGE_LIMIT, index_type: Optional[IndexTypeEnum] = None,
     index_type_in: Optional[list[IndexTypeEnum]] = None
 ) -> list[models.IndexKit]:
     if not (persist_session := self._session is not None):
@@ -134,7 +134,7 @@ def remove_all_barcodes_from_kit(
 
 def get_index_kits(
     self: "DBHandler", type_in: Optional[list[IndexTypeEnum]] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
     count_pages: bool = False
 ) -> tuple[list[models.IndexKit], int | None]:

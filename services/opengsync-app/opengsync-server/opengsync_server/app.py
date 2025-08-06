@@ -66,6 +66,9 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.config["MAIL_SERVER"] = "smtp-relay.sendinblue.com"
     app.config["MAIL_PORT"] = 587
     app.config["MAIL_USE_TLS"] = True
+
+    app.config["SHARE_ROOT"] = "/usr/src/app/share"
+
     # app.config["MAIL_USE_SSL"] = True
     app.config["MAIL_USERNAME"] = os.environ["EMAIL_USER"]
     app.config["MAIL_PASSWORD"] = os.environ["EMAIL_PASS"]
@@ -263,6 +266,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.kits_htmx)
     
     app.register_blueprint(api.plotting.plots_api)
+    app.register_blueprint(api.files.file_share_bp)
 
     app.register_blueprint(api.workflows.library_annotation_workflow)
     app.register_blueprint(api.workflows.lane_pools_workflow)

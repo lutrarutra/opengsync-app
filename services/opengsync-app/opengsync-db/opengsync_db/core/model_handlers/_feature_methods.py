@@ -17,7 +17,7 @@ def create_feature(
     pattern: str,
     read: str,
     type: FeatureTypeEnum,
-    feature_kit_id: Optional[int] = None,
+    feature_kit_id: int | None = None,
     target_name: Optional[str] = None,
     target_id: Optional[str] = None,
     flush: bool = True
@@ -75,10 +75,10 @@ def get_feature(self: "DBHandler", feature_id: int) -> models.Feature | None:
 
 
 def get_features(
-    self: "DBHandler", feature_kit_id: Optional[int] = None,
-    library_id: Optional[int] = None,
+    self: "DBHandler", feature_kit_id: int | None = None,
+    library_id: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     count_pages: bool = False
 ) -> tuple[list[models.Feature], int | None]:
     

@@ -545,6 +545,36 @@ def get_pools(experiment_id: int, page: int = 0):
 
 
 @htmx_route(experiments_htmx, db=db)
+def get_projects(experiment_id: int, page: int = 0):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    if sort_by not in models.Library.sortable_fields:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    if (experiment := db.get_experiment(experiment_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    projects, n_pages = db.get_projects(
+        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, count_pages=True
+    )
+
+    return make_response(
+        render_template(
+            "components/tables/experiment-project.html",
+            projects=projects, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
+            experiment=experiment
+        )
+    )
+
+
+@htmx_route(experiments_htmx, db=db)
 def get_libraries(experiment_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

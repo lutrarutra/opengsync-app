@@ -18,10 +18,10 @@ def create_pool(
     contact_name: str,
     contact_email: str,
     pool_type: PoolTypeEnum,
-    experiment_id: Optional[int] = None,
-    original_pool_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
-    lab_prep_id: Optional[int] = None,
+    experiment_id: int | None = None,
+    original_pool_id: int | None = None,
+    seq_request_id: int | None = None,
+    lab_prep_id: int | None = None,
     num_m_reads_requested: Optional[float] = None,
     status: PoolStatusEnum = PoolStatus.DRAFT,
     contact_phone: Optional[str] = None,
@@ -96,17 +96,17 @@ def get_pool(self: "DBHandler", pool_id: int) -> models.Pool | None:
 
 def get_pools(
     self: "DBHandler",
-    user_id: Optional[int] = None,
-    library_id: Optional[int] = None,
-    experiment_id: Optional[int] = None,
-    lab_prep_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
+    user_id: int | None = None,
+    library_id: int | None = None,
+    experiment_id: int | None = None,
+    lab_prep_id: int | None = None,
+    seq_request_id: int | None = None,
     associated_to_experiment: Optional[bool] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     status: Optional[PoolStatusEnum] = None,
     status_in: Optional[list[PoolStatusEnum]] = None,
     type_in: Optional[list[PoolTypeEnum]] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     count_pages: bool = False
 ) -> tuple[list[models.Pool], int | None]:
     if not (persist_session := self._session is not None):
@@ -214,7 +214,7 @@ def dilute_pool(
     self: "DBHandler", pool_id: int, qubit_concentration: float,
     operator_id: int,
     volume_ul: Optional[float] = None,
-    experiment_id: Optional[int] = None
+    experiment_id: int | None = None
 ) -> models.Pool:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -258,10 +258,10 @@ def dilute_pool(
 
 
 def query_pools(
-    self: "DBHandler", name: str, experiment_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
+    self: "DBHandler", name: str, experiment_id: int | None = None,
+    seq_request_id: int | None = None,
     status_in: Optional[list[PoolStatusEnum]] = None,
-    limit: Optional[int] = PAGE_LIMIT
+    limit: int | None = PAGE_LIMIT
 ) -> list[models.Pool]:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -314,10 +314,10 @@ def get_pool_dilution(self: "DBHandler", pool_id: int, identifier: str) -> model
 
 
 def get_pool_dilutions(
-    self: "DBHandler", pool_id: Optional[int] = None,
-    experiment_id: Optional[int] = None,
+    self: "DBHandler", pool_id: int | None = None,
+    experiment_id: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     count_pages: bool = False
 ) -> tuple[list[models.PoolDilution], int | None]:
     if not (persist_session := self._session is not None):
@@ -413,7 +413,7 @@ def get_user_pool_access_type(self: "DBHandler", pool_id: int, user_id: int) -> 
     return access_type
 
 
-def clone_pool(self: "DBHandler", pool_id: int, status: PoolStatusEnum, seq_request_id: Optional[int] = None) -> models.Pool:
+def clone_pool(self: "DBHandler", pool_id: int, status: PoolStatusEnum, seq_request_id: int | None = None) -> models.Pool:
     if not (persist_session := self._session is not None):
         self.open_session()
 

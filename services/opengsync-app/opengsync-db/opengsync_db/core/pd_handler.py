@@ -621,7 +621,7 @@ def get_feature_kit_features_df(self: "DBHandler", feature_kit_id: int) -> pd.Da
 def get_seq_request_features_df(self: "DBHandler", seq_request_id: int) -> pd.DataFrame:
     query = sa.select(
         models.Library.id.label("library_id"), models.Library.name.label("library_name"),
-        models.Library.sample_name.label("sample_name"),
+        models.Library.sample_name.label("sample_pool"),
         models.Feature.id.label("feature_id"), models.Feature.name.label("feature_name"),
         models.Feature.sequence.label("sequence"), models.Feature.pattern.label("pattern"), models.Feature.read.label("read"),
         models.Feature.type_id.label("type_id"), models.Feature.target_name.label("target_name"), models.Feature.target_id.label("target_id"),

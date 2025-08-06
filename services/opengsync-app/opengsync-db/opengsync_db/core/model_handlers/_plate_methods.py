@@ -44,7 +44,7 @@ def get_plate(self: "DBHandler", plate_id: int) -> models.Plate | None:
 
 def get_plates(
     self: "DBHandler",
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
     count_pages: bool = False
 ) -> tuple[list[models.Plate], int | None]:

@@ -16,6 +16,7 @@ services:
             - ${DATA_DIR}/media:/usr/src/app/media
             - ${DATA_DIR}/logs/opengsync:/usr/src/app/logs
             - ${DB_DIR}/init:/usr/src/app/init
+            - ./share:/usr/src/app/share:ro
             - compiled_css:/usr/src/app/static/style/compiled:ro
         environment:
             TZ: ${TIMEZONE}

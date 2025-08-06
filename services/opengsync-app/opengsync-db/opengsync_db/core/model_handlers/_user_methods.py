@@ -71,10 +71,10 @@ def get_user_by_email(self: "DBHandler", email: str) -> models.User | None:
 
 
 def get_users(
-    self: "DBHandler", limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    self: "DBHandler", limit: int | None = PAGE_LIMIT, offset: int | None = None,
     role_in: Optional[list[UserRoleEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False,
-    group_id: Optional[int] = None, exclude_group_id: Optional[int] = None,
+    group_id: int | None = None, exclude_group_id: int | None = None,
     count_pages: bool = False
 ) -> tuple[list[models.User], int | None]:
     if not (persist_session := self._session is not None):
@@ -166,7 +166,7 @@ def delete_user(self: "DBHandler", user_id: int, flush: bool = True) -> None:
 
 def query_users(
     self: "DBHandler", word: str, role_in: Optional[list[UserRoleEnum]] = None,
-    only_insiders: bool = False, limit: Optional[int] = PAGE_LIMIT
+    only_insiders: bool = False, limit: int | None = PAGE_LIMIT
 ) -> list[models.User]:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -199,7 +199,7 @@ def query_users(
 
 
 def query_users_by_email(
-    self: "DBHandler", word: str, role_in: Optional[list[UserRoleEnum]] = None, limit: Optional[int] = PAGE_LIMIT
+    self: "DBHandler", word: str, role_in: Optional[list[UserRoleEnum]] = None, limit: int | None = PAGE_LIMIT
 ) -> list[models.User]:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -227,7 +227,7 @@ def query_users_by_email(
 
 
 def get_user_affiliations(
-    self: "DBHandler", user_id: int, limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    self: "DBHandler", user_id: int, limit: int | None = PAGE_LIMIT, offset: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None,
     count_pages: bool = False
 ) -> tuple[list[models.links.UserAffiliation], int | None]:

@@ -8,7 +8,7 @@ from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
 
 from opengsync_db import models, DBHandler, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus
+from opengsync_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus, SeqRequestStatus
 
 from .... import db, forms, logger, htmx_route  # noqa
 from ....tools.spread_sheet_components import TextColumn
@@ -186,7 +186,7 @@ def table_query():
         title: str | None = None,
         identifier: str | None = None,
         id: int | None = None,
-        user_id: Optional[int] = None
+        user_id: int | None = None
     ) -> list[models.Project]:
         projects: list[models.Project] = []
         if id is not None:
@@ -233,6 +233,45 @@ def table_query():
             current_query=identifier or title or id,
             field_name=field_name,
             projects=projects, **context
+        )
+    )
+
+
+@htmx_route(projects_htmx, db=db)
+def get_seq_requests(project_id: int, page: int = 0):
+    if (project := db.get_project(project_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [SeqRequestStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+    
+    seq_requests, n_pages = db.get_seq_requests(
+        offset=offset, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True
+    )
+    return make_response(
+        render_template(
+            "components/tables/project-seq_request.html",
+            seq_requests=seq_requests,
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
+            project=project, status_in=status_in
         )
     )
         
