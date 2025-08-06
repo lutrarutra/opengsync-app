@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, abort, url_for, request
 from flask_login import current_user
 
-from opengsync_db.categories import HTTPResponse, LibraryStatus, LibraryType
+from opengsync_db.categories import HTTPResponse, LibraryStatus
 
 from ... import db, page_route  # noqa
 
@@ -29,8 +29,10 @@ def lab_prep(lab_prep_id: int):
     for library in lab_prep.libraries:
         if library.status.id < LibraryStatus.POOLED.id:
             can_be_completed = False
-        if library.type in [LibraryType.TENX_SC_GEX_FLEX, LibraryType.TENX_MUX_OLIGO]:
+        
+        if library.mux_type is not None:
             contains_mux_libraries = True
+                
         if can_be_completed and contains_mux_libraries:
             break
         
