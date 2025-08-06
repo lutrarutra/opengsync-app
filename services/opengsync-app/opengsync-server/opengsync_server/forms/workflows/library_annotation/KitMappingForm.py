@@ -119,8 +119,8 @@ class KitMappingForm(MultiStepForm):
             library_name: str, feature_name: str,
             sequence: str, pattern: str, read: str,
             kit_name: Optional[str] = None,
-            kit_id: Optional[int] = None,
-            feature_id: Optional[int] = None
+            kit_id: int | None = None,
+            feature_id: int | None = None
         ):
             feature_data["library_name"].append(library_name)
             feature_data["kit_id"].append(kit_id)
@@ -216,8 +216,8 @@ class KitMappingForm(MultiStepForm):
             demux_name: str, sample_name: str,
             feature_name: str, sequence: str, pattern: str, read: str,
             kit_name: Optional[str] = None,
-            kit_id: Optional[int] = None,
-            feature_id: Optional[int] = None
+            kit_id: int | None = None,
+            feature_id: int | None = None
         ):
             mux_data["demux_name"].append(demux_name)
             mux_data["sample_name"].append(sample_name)

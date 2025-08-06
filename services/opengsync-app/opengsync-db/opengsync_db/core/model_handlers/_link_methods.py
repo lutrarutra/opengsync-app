@@ -114,11 +114,11 @@ def unlink_sample_library(self: "DBHandler", sample_id: int, library_id: int, fl
 
 def get_sample_library_links(
     self: "DBHandler",
-    sample_id: Optional[int] = None,
-    library_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
-    limit: Optional[int] = PAGE_LIMIT,
-    offset: Optional[int] = None,
+    sample_id: int | None = None,
+    library_id: int | None = None,
+    seq_request_id: int | None = None,
+    limit: int | None = PAGE_LIMIT,
+    offset: int | None = None,
     count_pages: bool = False,
 ) -> tuple[list[models.links.SampleLibraryLink], int | None]:
     

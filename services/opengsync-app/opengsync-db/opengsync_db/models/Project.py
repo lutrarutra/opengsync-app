@@ -73,7 +73,9 @@ class Project(Base):
         return self.timestamp_created.strftime(fmt)
     
     def __str__(self) -> str:
-        return f"Project(id: {self.id}, title: {self.title}, owner_id: {self.owner_id})"
+        if self.identifier:
+            return f"Project(id: {self.id}, identifier: {self.identifier})"
+        return f"Project(id: {self.id}, title: {self.title})"
     
     def __repr__(self) -> str:
         return self.__str__()

@@ -8,7 +8,7 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class GenomeRefEnum(DBEnum):
     assembly: Optional[str] = None
     organism_latin_name: Optional[str] = None
-    organism_tax_id: Optional[int] = None
+    organism_tax_id: int | None = None
 
     @property
     def display_name(self) -> str:

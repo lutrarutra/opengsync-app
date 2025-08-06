@@ -55,7 +55,7 @@ def get_sequencer(self: "DBHandler", sequencer_id: int) -> models.Sequencer | No
 
 
 def get_sequencers(
-    self: "DBHandler", limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    self: "DBHandler", limit: int | None = PAGE_LIMIT, offset: int | None = None,
     count_pages: bool = False
 ) -> tuple[list[models.Sequencer], int | None]:
     
@@ -141,7 +141,7 @@ def delete_sequencer(self: "DBHandler", sequencer_id: int, flush: bool = True):
     
 
 def query_sequencers(
-    self: "DBHandler", word: str, limit: Optional[int] = PAGE_LIMIT
+    self: "DBHandler", word: str, limit: int | None = PAGE_LIMIT
 ) -> list[models.Sequencer]:
     
     if not (persist_session := self._session is not None):

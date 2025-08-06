@@ -186,7 +186,7 @@ def table_query():
         title: str | None = None,
         identifier: str | None = None,
         id: int | None = None,
-        user_id: Optional[int] = None
+        user_id: int | None = None
     ) -> list[models.Project]:
         projects: list[models.Project] = []
         if id is not None:

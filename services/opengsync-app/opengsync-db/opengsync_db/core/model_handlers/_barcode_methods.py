@@ -55,10 +55,10 @@ def get_barcode(
 
 
 def get_barcodes(
-    self: "DBHandler", index_kit_id: Optional[int] = None,
-    adapter_id: Optional[int] = None,
+    self: "DBHandler", index_kit_id: int | None = None,
+    adapter_id: int | None = None,
     type: Optional[BarcodeTypeEnum] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
     count_pages: bool = False
 ) -> tuple[list[models.Barcode], int | None]:
@@ -114,7 +114,7 @@ def get_barcode_from_kit(
     return barcode
 
 
-def query_barcode_sequences(self: "DBHandler", sequence: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.Barcode]:
+def query_barcode_sequences(self: "DBHandler", sequence: str, limit: int | None = PAGE_LIMIT) -> list[models.Barcode]:
     if not (persist_session := self._session is not None):
         self.open_session()
 

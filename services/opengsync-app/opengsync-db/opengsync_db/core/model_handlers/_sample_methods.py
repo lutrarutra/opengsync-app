@@ -57,11 +57,11 @@ def get_sample(self: "DBHandler", sample_id: int) -> models.Sample | None:
 
 
 def where(
-    query: Query, user_id: Optional[int] = None,
-    project_id: Optional[int] = None,
-    library_id: Optional[int] = None,
-    pool_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
+    query: Query, user_id: int | None = None,
+    project_id: int | None = None,
+    library_id: int | None = None,
+    pool_id: int | None = None,
+    seq_request_id: int | None = None,
     status: Optional[SampleStatusEnum] = None,
     status_in: Optional[list[SampleStatusEnum]] = None
 ) -> Query:
@@ -119,14 +119,14 @@ def where(
 
 
 def get_samples(
-    self: "DBHandler", user_id: Optional[int] = None,
-    project_id: Optional[int] = None,
-    library_id: Optional[int] = None,
-    pool_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
+    self: "DBHandler", user_id: int | None = None,
+    project_id: int | None = None,
+    library_id: int | None = None,
+    pool_id: int | None = None,
+    seq_request_id: int | None = None,
     status: Optional[SampleStatusEnum] = None,
     status_in: Optional[list[SampleStatusEnum]] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
     count_pages: bool = False
 ) -> tuple[list[models.Sample], int | None]:
@@ -191,14 +191,14 @@ def delete_sample(self: "DBHandler", sample_id: int, flush: bool = True):
 
 def query_samples(
     self: "DBHandler", word: str,
-    user_id: Optional[int] = None,
-    project_id: Optional[int] = None,
-    library_id: Optional[int] = None,
-    pool_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
+    user_id: int | None = None,
+    project_id: int | None = None,
+    library_id: int | None = None,
+    pool_id: int | None = None,
+    seq_request_id: int | None = None,
     status: Optional[SampleStatusEnum] = None,
     status_in: Optional[list[SampleStatusEnum]] = None,
-    limit: Optional[int] = PAGE_LIMIT
+    limit: int | None = PAGE_LIMIT
 ) -> list[models.Sample]:
 
     if not (persist_session := self._session is not None):

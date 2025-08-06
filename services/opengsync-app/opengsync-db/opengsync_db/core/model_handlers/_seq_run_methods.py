@@ -55,7 +55,7 @@ def create_seq_run(
     return seq_run
 
 
-def get_seq_run(self: "DBHandler", id: Optional[int] = None, experiment_name: Optional[str] = None) -> models.SeqRun | None:
+def get_seq_run(self: "DBHandler", id: int | None = None, experiment_name: Optional[str] = None) -> models.SeqRun | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -79,7 +79,7 @@ def get_seq_runs(
     self: "DBHandler",
     status: Optional[RunStatusEnum] = None,
     status_in: Optional[list[RunStatusEnum]] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
     experiment_status: Optional[ExperimentStatusEnum] = None,
     experiment_status_in: Optional[list[ExperimentStatusEnum]] = None,
@@ -138,7 +138,7 @@ def update_seq_run(
     return seq_run
 
 
-def query_seq_runs(self: "DBHandler", word: str, limit: Optional[int] = PAGE_LIMIT) -> list[models.SeqRun]:
+def query_seq_runs(self: "DBHandler", word: str, limit: int | None = PAGE_LIMIT) -> list[models.SeqRun]:
     if not (persist_session := self._session is not None):
         self.open_session()
 

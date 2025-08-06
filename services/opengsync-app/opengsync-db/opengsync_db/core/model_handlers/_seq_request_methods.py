@@ -31,9 +31,9 @@ def create_seq_request(
     submission_type: SubmissionTypeEnum,
     contact_person_id: int,
     organization_contact_id: int,
-    bioinformatician_contact_id: Optional[int] = None,
-    read_length: Optional[int] = None,
-    num_lanes: Optional[int] = None,
+    bioinformatician_contact_id: int | None = None,
+    read_length: int | None = None,
+    num_lanes: int | None = None,
     special_requirements: Optional[str] = None,
     billing_code: Optional[str] = None,
     flush: bool = True
@@ -123,9 +123,9 @@ def where(
     status_in: Optional[list[SeqRequestStatusEnum]] = None,
     submission_type: Optional[SubmissionTypeEnum] = None,
     submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
-    show_drafts: bool = True, user_id: Optional[int] = None,
+    show_drafts: bool = True, user_id: int | None = None,
     project_id: int | None = None,
-    group_id: Optional[int] = None
+    group_id: int | None = None
 ) -> Query:
     if status is not None:
         query = query.where(
@@ -200,10 +200,10 @@ def get_seq_requests(
     submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
     show_drafts: bool = True,
     sort_by: Optional[str] = None, descending: bool = False,
-    user_id: Optional[int] = None,
+    user_id: int | None = None,
     project_id: int | None = None,
-    group_id: Optional[int] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    group_id: int | None = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     count_pages: bool = False
 ) -> tuple[list[models.SeqRequest], int | None]:
 
@@ -308,9 +308,9 @@ def query_seq_requests(
     status: Optional[SeqRequestStatusEnum] = None,
     status_in: Optional[list[SeqRequestStatusEnum]] = None,
     show_drafts: bool = True,
-    user_id: Optional[int] = None,
-    group_id: Optional[int] = None,
-    limit: Optional[int] = PAGE_LIMIT,
+    user_id: int | None = None,
+    group_id: int | None = None,
+    limit: int | None = PAGE_LIMIT,
 ) -> list[models.SeqRequest]:
     if not (persist_session := self._session is not None):
         self.open_session()

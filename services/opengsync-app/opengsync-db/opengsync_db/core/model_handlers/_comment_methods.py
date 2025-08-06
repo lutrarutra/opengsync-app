@@ -8,10 +8,10 @@ from .. import exceptions
 
 
 def create_comment(
-    self: "DBHandler", text: str, author_id: int, file_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
-    experiment_id: Optional[int] = None,
-    lab_prep_id: Optional[int] = None,
+    self: "DBHandler", text: str, author_id: int, file_id: int | None = None,
+    seq_request_id: int | None = None,
+    experiment_id: int | None = None,
+    lab_prep_id: int | None = None,
     flush: bool = True
 ) -> models.Comment:
     if not (persist_session := self._session is not None):
@@ -74,11 +74,11 @@ def get_comment(self: "DBHandler", comment_id: int) -> models.Comment | None:
 
 def get_comments(
     self: "DBHandler",
-    author_id: Optional[int] = None,
-    file_id: Optional[int] = None,
-    experiment_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
-    lab_prep_id: Optional[int] = None
+    author_id: int | None = None,
+    file_id: int | None = None,
+    experiment_id: int | None = None,
+    seq_request_id: int | None = None,
+    lab_prep_id: int | None = None
 ) -> list[models.Comment]:
     if not (persist_session := self._session is not None):
         self.open_session()

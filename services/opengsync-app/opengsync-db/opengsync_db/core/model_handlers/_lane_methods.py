@@ -61,9 +61,9 @@ def get_experiment_lane(self: "DBHandler", experiment_id: int, lane_num: int) ->
 
 
 def get_lanes(
-    self: "DBHandler", experiment_id: Optional[int] = None,
+    self: "DBHandler", experiment_id: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     count_pages: bool = False
 ) -> tuple[list[models.Lane], int | None]:
     

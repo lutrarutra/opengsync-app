@@ -21,7 +21,7 @@ def update_statuses(db: DBHandler):
         status_in=[
             categories.LibraryStatus.POOLED, categories.LibraryStatus.STORED, categories.LibraryStatus.PREPARING,
             categories.LibraryStatus.ACCEPTED, categories.LibraryStatus.SUBMITTED, categories.LibraryStatus.DRAFT,
-        ], custom_query=find_finished_libraries
+        ], custom_query=find_finished_libraries, limit=None
     )[0]:
         if library.experiment is not None:
             if library.experiment.status == categories.ExperimentStatus.FINISHED:

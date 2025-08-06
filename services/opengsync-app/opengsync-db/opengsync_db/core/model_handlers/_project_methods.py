@@ -72,11 +72,12 @@ def get_project(self: "DBHandler", project_id: int | None = None, identifier: st
 
 def where(
     query: Query,
-    seq_request_id: Optional[int] = None,
-    group_id: Optional[int] = None,
+    seq_request_id: int | None = None,
+    experiment_id: int | None = None,
+    group_id: int | None = None,
     status: Optional[ProjectStatusEnum] = None,
     status_in: Optional[list[ProjectStatusEnum]] = None,
-    user_id: Optional[int] = None,
+    user_id: int | None = None,
 ) -> Query:
     
     if user_id is not None:
@@ -110,6 +111,20 @@ def where(
             models.Library.seq_request_id == seq_request_id
         ).distinct(models.Project.id)
 
+    if experiment_id is not None:
+        query = query.join(
+            models.Sample,
+            models.Sample.project_id == models.Project.id,
+        ).join(
+            models.links.SampleLibraryLink,
+            models.links.SampleLibraryLink.sample_id == models.Sample.id,
+        ).join(
+            models.Library,
+            models.Library.id == models.links.SampleLibraryLink.library_id,
+        ).where(
+            models.Library.experiment_id == experiment_id
+        ).distinct(models.Project.id)
+
     if status is not None:
         query = query.where(models.Project.status_id == status.id)
 
@@ -121,12 +136,13 @@ def where(
 
 def get_projects(
     self: "DBHandler",
-    seq_request_id: Optional[int] = None,
-    group_id: Optional[int] = None,
+    seq_request_id: int | None = None,
+    experiment_id: int | None = None,
+    group_id: int | None = None,
     status: Optional[ProjectStatusEnum] = None,
     status_in: Optional[list[ProjectStatusEnum]] = None,
-    user_id: Optional[int] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    user_id: int | None = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
     count_pages: bool = False,
 ) -> tuple[list[models.Project], int | None]:
@@ -137,7 +153,7 @@ def get_projects(
     query = where(
         query, seq_request_id=seq_request_id,
         group_id=group_id, status=status,
-        status_in=status_in, user_id=user_id
+        status_in=status_in, user_id=user_id, experiment_id=experiment_id
     )
 
     if sort_by is not None:
@@ -195,12 +211,12 @@ def query_projects(
     identifier: str | None = None,
     title: str | None = None,
     identifier_title: str | None = None,
-    seq_request_id: Optional[int] = None,
-    group_id: Optional[int] = None,
+    seq_request_id: int | None = None,
+    group_id: int | None = None,
     status: Optional[ProjectStatusEnum] = None,
     status_in: Optional[list[ProjectStatusEnum]] = None,
-    user_id: Optional[int] = None,
-    limit: Optional[int] = PAGE_LIMIT,
+    user_id: int | None = None,
+    limit: int | None = PAGE_LIMIT,
 ) -> list[models.Project]:
     if not (persist_session := self._session is not None):
         self.open_session()

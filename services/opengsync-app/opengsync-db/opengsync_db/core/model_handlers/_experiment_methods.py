@@ -13,7 +13,7 @@ from ...categories import ExperimentWorkFlowEnum, ExperimentStatusEnum, Experime
 def create_experiment(
     self: "DBHandler", name: str, workflow: ExperimentWorkFlowEnum, status: ExperimentStatusEnum,
     sequencer_id: int, r1_cycles: int, i1_cycles: int, operator_id: int,
-    r2_cycles: Optional[int] = None, i2_cycles: Optional[int] = None, flush: bool = True
+    r2_cycles: int | None = None, i2_cycles: int | None = None, flush: bool = True
 ) -> models.Experiment:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -48,7 +48,7 @@ def create_experiment(
     return experiment
 
 
-def get_experiment(self: "DBHandler", id: Optional[int] = None, name: Optional[str] = None) -> models.Experiment | None:
+def get_experiment(self: "DBHandler", id: int | None = None, name: Optional[str] = None) -> models.Experiment | None:
     if not (persist_session := self._session is not None):
         self.open_session()
 
@@ -68,7 +68,7 @@ def get_experiment(self: "DBHandler", id: Optional[int] = None, name: Optional[s
 
 
 def get_experiments(
-    self: "DBHandler", limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    self: "DBHandler", limit: int | None = PAGE_LIMIT, offset: int | None = None,
     status: Optional[ExperimentStatusEnum] = None,
     status_in: Optional[list[ExperimentStatusEnum]] = None,
     workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
@@ -183,7 +183,7 @@ def update_experiment(self: "DBHandler", experiment: models.Experiment) -> model
 def query_experiments(
     self: "DBHandler", word: str,
     workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
-    limit: Optional[int] = PAGE_LIMIT
+    limit: int | None = PAGE_LIMIT
 ) -> list[models.Experiment]:
     if not (persist_session := self._session is not None):
         self.open_session()

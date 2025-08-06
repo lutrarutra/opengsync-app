@@ -176,8 +176,8 @@ class FeatureAnnotationForm(MultiStepForm):
             library_name: str, feature_name: str,
             sequence: str, pattern: str, read: str,
             kit_name: Optional[str],
-            kit_id: Optional[int] = None,
-            feature_id: Optional[int] = None
+            kit_id: int | None = None,
+            feature_id: int | None = None
         ):
             feature_data["library_name"].append(library_name)
             feature_data["kit_id"].append(kit_id)

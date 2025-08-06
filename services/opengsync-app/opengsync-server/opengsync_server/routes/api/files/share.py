@@ -1,10 +1,7 @@
 import os
 from datetime import datetime
-import hashlib
-import html
-import mimetypes
 from pathlib import Path
-from flask import Blueprint, send_file, current_app, request, Response, make_response, jsonify, render_template, send_from_directory
+from flask import Blueprint, current_app, request, render_template, send_from_directory
 from itsdangerous import BadSignature, SignatureExpired
 
 from opengsync_db.categories import HTTPResponse
@@ -16,18 +13,19 @@ from ....core import tokens
 file_share_bp = Blueprint("file_share", __name__, url_prefix="/api/files/")
 
 
-@wrappers.api_route(file_share_bp, db=db, login_required=False)
-def generate(path: Path):
-    if isinstance(path, str):
-        path = Path(path)
+if os.getenv("OPENGSYNC_DEBUG") == "1":
+    @wrappers.api_route(file_share_bp, db=db, login_required=False)
+    def generate(path: Path):
+        if isinstance(path, str):
+            path = Path(path)
 
-    if not os.path.exists(current_app.config["SHARE_ROOT"] / path):
-        return "Path does not exist", HTTPResponse.BAD_REQUEST.id
-    
-    token = tokens.generate_file_share_token(str(path), serializer)
-    logger.debug("Generated file share token", extra={"path": path, "token": token})
-    
-    return {"token": token}, HTTPResponse.OK.id
+        if not os.path.exists(current_app.config["SHARE_ROOT"] / path):
+            return "Path does not exist", HTTPResponse.BAD_REQUEST.id
+        
+        token = tokens.generate_file_share_token(str(path), serializer)
+        logger.debug("Generated file share token", extra={"path": path, "token": token})
+        
+        return {"token": token}, HTTPResponse.OK.id
 
 
 @wrappers.api_route(file_share_bp, login_required=False)

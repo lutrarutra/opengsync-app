@@ -92,7 +92,7 @@ def where(
 def get_groups(
     self: "DBHandler",
     user_id: Optional[int], type: Optional[GroupTypeEnum] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     type_in: Optional[list[GroupTypeEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     count_pages: bool = False
@@ -125,8 +125,8 @@ def get_groups(
 
 
 def query_groups(
-    self: "DBHandler", name: str, user_id: Optional[int] = None, type: Optional[GroupTypeEnum] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    self: "DBHandler", name: str, user_id: int | None = None, type: Optional[GroupTypeEnum] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     type_in: Optional[list[GroupTypeEnum]] = None,
 ) -> list[models.Group]:
     if not (persist_session := self._session is not None):
@@ -169,7 +169,7 @@ def get_group_user_affiliation(self: "DBHandler", user_id: int, group_id: int) -
 
 def get_group_affiliations(
     self: "DBHandler", group_id: int, type: Optional[GroupTypeEnum] = None,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     type_in: Optional[list[GroupTypeEnum]] = None,
     sort_by: Optional[str] = None, descending: bool = False,
     count_pages: bool = False

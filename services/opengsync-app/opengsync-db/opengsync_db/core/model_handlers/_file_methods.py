@@ -12,9 +12,9 @@ def create_file(
     self: "DBHandler", name: str, type: FileTypeEnum,
     uploader_id: int, extension: str, size_bytes: int,
     uuid: Optional[str] = None,
-    seq_request_id: Optional[int] = None,
-    experiment_id: Optional[int] = None,
-    lab_prep_id: Optional[int] = None,
+    seq_request_id: int | None = None,
+    experiment_id: int | None = None,
+    lab_prep_id: int | None = None,
     flush: bool = True
 ) -> models.File:
     
@@ -98,10 +98,10 @@ def delete_file(self: "DBHandler", file_id: int, flush: bool = True):
 
 def get_files(
     self: "DBHandler",
-    uploader_id: Optional[int] = None,
-    experiment_id: Optional[int] = None,
-    seq_request_id: Optional[int] = None,
-    lab_prep_id: Optional[int] = None
+    uploader_id: int | None = None,
+    experiment_id: int | None = None,
+    seq_request_id: int | None = None,
+    lab_prep_id: int | None = None
 ) -> list[models.File]:
     if not (persist_session := self._session is not None):
         self.open_session()

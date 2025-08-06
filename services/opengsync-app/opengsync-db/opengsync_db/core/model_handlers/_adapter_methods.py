@@ -51,9 +51,9 @@ def get_adapter(self: "DBHandler", id: int) -> models.Adapter | None:
 
 
 def get_adapters(
-    self: "DBHandler", index_kit_id: Optional[int] = None,
+    self: "DBHandler", index_kit_id: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
-    limit: Optional[int] = PAGE_LIMIT, offset: Optional[int] = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
     count_pages: bool = False
 ) -> tuple[list[models.Adapter], int | None]:
     

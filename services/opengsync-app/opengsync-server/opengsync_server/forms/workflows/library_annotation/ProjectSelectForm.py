@@ -62,7 +62,7 @@ class ProjectSelectForm(MultiStepForm):
             self.project_description.errors = ("Project description is not needed if using existing project.",)
             return False
         
-        self.project_id: Optional[int] = self.existing_project.selected.data
+        self.project_id: int | None = self.existing_project.selected.data
         self.project_title: str
         if self.project_id is not None:
             self.project_title = self.existing_project.search_bar.data
