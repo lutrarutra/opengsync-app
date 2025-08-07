@@ -31,7 +31,7 @@
             <tr>
                 <th scope="row">{{ group.id }}</th>
                 <td><a href="{{ url_for('groups_page.group', group_id=group.id) }}">{{ group.name }}</a></td>
-                <td>{{ group.type.name }} {{ group.type.icon }}</td>
+                <td>{{ group.type.icon }} {{ group.type.name }}</td>
             </tr>
             {% endfor %}
         </tbody>

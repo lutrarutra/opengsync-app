@@ -42,7 +42,7 @@
                     <a href="{{ url_for('users_page.user', user_id=affiliation.user.id, from='group@' + group.id | string) }}">{{ affiliation.user.name }}</a>{% if affiliation.user_id == current_user.id %} <span class="desc">me</span>{% endif %}
                 </td>
                 <td>{{ affiliation.user.email }}</td>
-                <td>{{ affiliation.affiliation_type.name }} {{ affiliation.affiliation_type.icon }}</td>
+                <td>{{ affiliation.affiliation_type.icon }} {{ affiliation.affiliation_type.name }}</td>
             </tr>
             {% endfor %}
         </tbody>
