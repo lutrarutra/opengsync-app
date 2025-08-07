@@ -3,6 +3,9 @@ from datetime import datetime
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.mutable import MutableDict
+
 
 from .Base import Base
 from .. import localize
@@ -47,8 +50,25 @@ class Project(Base):
     group_id: Mapped[int | None] = mapped_column(sa.ForeignKey("group.id"), nullable=True)
     group: Mapped["Group | None"] = relationship("Group", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
 
+    __software: Mapped[dict[str, dict] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="software")
+
     sortable_fields: ClassVar[list[str]] = ["id", "identifier", "title", "owner_id", "num_samples", "status_id", "group_id", "timestamp_created_utc"]
 
+    @property
+    def software(self) -> dict[str, dict]:
+        return self.__software or {}
+
+    def set_software(self, software: str, version: str, comment: str | None = None) -> None:
+        if self.__software is None:
+            self.__software = {}
+        software = software.strip().lower()
+        self.__software[software] = {
+            "version": version,
+            "timestamp": datetime.now().isoformat()
+        }
+        if comment is not None:
+            self.__software[software]["comment"] = comment
+    
     def search_value(self) -> int:
         return self.id
     

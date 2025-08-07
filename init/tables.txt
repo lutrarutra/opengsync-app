@@ -8,6 +8,7 @@ project
  - num_samples
  - owner_id
  - group_id
+ - software
 sample
  - id
  - name
@@ -245,7 +246,6 @@ pool_dilution
  - identifier
  - pool_id
  - timestamp_utc
- - experiment_id
  - operator_id
  - qubit_concentration
  - volume_ul

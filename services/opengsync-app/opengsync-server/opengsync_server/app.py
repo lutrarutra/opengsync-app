@@ -201,6 +201,19 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     def inject_uuid():
         return dict(uuid4=uuid4)
     
+    @app.template_filter()
+    def format_iso(value: str | None, fmt: str = "%Y-%m-%d %H:%M") -> str:
+        """Format a datetime string to a given format."""
+        if not value:
+            return ""
+        try:
+            dt = datetime.fromisoformat(value).astimezone(TIMEZONE)
+        except ValueError as e:
+            logger.error(f"Error formatting date: {e}")
+            return "<error formatting time>"
+
+        return dt.strftime(fmt)
+    
     @app.context_processor
     def inject_categories():
         return dict(
