@@ -23,20 +23,18 @@ class LabPrepForm(HTMXFlaskForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.form_type = form_type
         self.lab_prep = lab_prep
+        self._context["lab_prep"] = lab_prep
         self._context["identifiers"] = dict([(pool_type.id, pool_type.identifier) for pool_type in LabProtocol.as_list()])
 
-        if self.form_type == "edit":
-            if self.lab_prep is None:
-                logger.error("lab_prep must be provided if form_type is 'edit'.")
-                raise ValueError("lab_prep must be provided if form_type is 'edit'.")
-            self._context["lab_prep"] = lab_prep
-            if len(formdata) == 0:
-                self.__fill_form(self.lab_prep)
-
-    def __fill_form(self, lab_prep: models.LabPrep):
-        self.protocol.data = lab_prep.protocol_id
-        self.name.data = lab_prep.name
-        self.assay_type.data = lab_prep.assay_type_id
+        if self.form_type == "edit" and self.lab_prep is None:
+            logger.error("lab_prep must be provided if form_type is 'edit'.")
+            raise ValueError("lab_prep must be provided if form_type is 'edit'.")
+    
+    def prepare(self):
+        if self.lab_prep is not None:
+            self.protocol.data = self.lab_prep.protocol_id
+            self.name.data = self.lab_prep.name
+            self.assay_type.data = self.lab_prep.assay_type_id
 
     def validate(self) -> bool:
         if (validated := super().validate()) is False:
@@ -49,7 +47,7 @@ class LabPrepForm(HTMXFlaskForm):
             return False
         
         try:
-            assay_type = AssayType.get(self.assay_type.data)
+            AssayType.get(self.assay_type.data)
         except ValueError:
             self.assay_type.errors = ("Invalid assay type",)
             return False
