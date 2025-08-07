@@ -15,6 +15,12 @@
 @import "banner.scss";
 @import "form.scss";
 
+body.waiting,
+body.waiting * {
+    cursor: wait !important;
+}
+
+
 .spreadsheet-grid {
     tbody tr {
         td {

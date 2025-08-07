@@ -137,7 +137,7 @@
 
             function update_libraries() {
                 $(".library-row").each(function() {
-                    const library_id = parseInt($(this).attr("id").split("-").pop());
+                    const library_id = parseInt($(this).data("id"));
                     if (selected_libraries.includes(library_id)) {
                         $(this).addClass("selected");
                     }

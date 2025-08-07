@@ -235,6 +235,11 @@
         $("tr[data-href]").on("click", function(event) {
             window.location.href = this.dataset.href;
         });
+
+        $(document).ready(function() {
+            init_tooltips();
+        });
+
         
         function redirect(url) {
             document.location.href = url;
@@ -252,6 +257,27 @@
                     const tab = new bootstrap.Tab(trigger);
                     tab.show();
                 }
+            }
+        });
+
+        $(document).on('click', 'button[hx-post], button[hx-get], button[hx-delete]', function () {
+            const $el = $(this);
+            if ($el.prop('disabled')) return; // already disabled
+            $el.prop('disabled', true);
+            $el.data('was-disabled', true); // mark that we disabled it
+            document.body.classList.add("waiting");
+        });
+
+        // Re-enable after HTMX request completes
+        document.body.addEventListener('htmx:afterRequest', function (evt) {
+            const el = evt.target;
+            document.body.classList.remove("waiting");
+            if (!el.matches('[hx-post], [hx-get], [hx-delete]')) return;
+
+            const $el = $(el);
+            if ($el.data('was-disabled')) {
+                $el.prop('disabled', false);
+                $el.removeData('was-disabled');
             }
         });
 
@@ -358,9 +384,6 @@
 
             $("#burger").toggleClass("toggle");
         });
-
-        init_tooltips();
-
     </script>
 </body>
 

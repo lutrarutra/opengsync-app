@@ -41,8 +41,7 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-primary"
-                hx-target="#project-select-form-container" hx-swap="outerHTML"
-                hx-include="#project-select-form"
+                hx-target="#project-select-form-container" hx-swap="outerHTML" hx-include="#project-select-form"
                 hx-post="{{ url_for('library_annotation_workflow.select_project', seq_request_id=seq_request.id, workflow_type=workflow_type) }}">
                 Next
             </button>
@@ -50,14 +49,12 @@
     </div>
     <script>
         $(document).ready(function() {
-            init_tooltips();
-
-            $("#{{ form.new_project.title }}").on("input", function() {
-                $("#{{ form.existing_project.title }}-search").val(null);
-                $("#{{ form.existing_project.title }}").val(null);
+            $("#{{ form.new_project.name }}").on("input", function() {
+                $("#{{ form.existing_project.name }}-search").val(null);
+                $("#{{ form.existing_project.name }}").val(null);
             });
-            $("#{{ form.existing_project.title }}").on("change", function() {
-                $("#{{ form.new_project.title }}").val(null);
+            $("#{{ form.existing_project.name }}").on("change", function() {
+                $("#{{ form.new_project.name }}").val(null);
             });
         });
     </script>

@@ -45,7 +45,7 @@
                     </thead>
                     <tbody id="selected-pools-table-container">
                         {% for pool in selected_pools %}
-                        <tr onclick="select_pool({{ pool.id }});" id="selected-pool-row-{{ pool.id }}" class="pool-row selected">
+                        <tr onclick="select_pool({{ pool.id }});" id="selected-pool-row-{{ pool.id }}" data-id="{{ pool.id }}" class="pool-row selected">
                             <th scope="row">{{ pool.id }}</th>
                             <td>{{ pool.name }}</td>
                             <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
@@ -99,7 +99,7 @@
 
     function update_pools() {
         $(".pool-row").each(function() {
-            const pool_id = parseInt($(this).attr("id").split("-").pop());
+            const pool_id = parseInt($(this).data("id"));
             if (selected_pools.includes(pool_id)) {
                 $(this).addClass("selected");
             }
