@@ -24,8 +24,7 @@ def __find_finished_libraries(q):
         models.SeqRun.experiment_name == models.Experiment.name,
     ).where(
         models.SeqRun.status_id.in_([
-            categories.RunStatus.FINISHED,
-            categories.RunStatus.ARCHIVED,
+            categories.RunStatus.FINISHED.id, categories.RunStatus.ARCHIVED.id,
         ])
     )
 
@@ -39,8 +38,7 @@ def __find_sequenced_pools(q):
         models.SeqRun.experiment_name == models.Experiment.name,
     ).where(
         models.SeqRun.status_id.in_([
-            categories.RunStatus.FINISHED,
-            categories.RunStatus.ARCHIVED,
+            categories.RunStatus.FINISHED.id, categories.RunStatus.ARCHIVED.id,
         ])
     )
 
