@@ -1,7 +1,8 @@
 import math
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Callable
 
 import sqlalchemy as sa
+from sqlalchemy.orm import Query
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
@@ -67,25 +68,13 @@ def get_experiment(self: "DBHandler", id: int | None = None, name: Optional[str]
     return experiment
 
 
-def get_experiments(
-    self: "DBHandler", limit: int | None = PAGE_LIMIT, offset: int | None = None,
+def where(
+    query: Query,
     status: Optional[ExperimentStatusEnum] = None,
     status_in: Optional[list[ExperimentStatusEnum]] = None,
     workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-    count_pages: bool = False
-) -> tuple[list[models.Experiment], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.Experiment)
-
-    if sort_by is not None:
-        attr = getattr(models.Experiment, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
-
+    custom_query: Callable[[Query], Query] | None = None,
+) -> Query:
     if status is not None:
         query = query.where(models.Experiment.status_id == status.id)
 
@@ -95,7 +84,41 @@ def get_experiments(
     if workflow_in is not None:
         query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
 
+    if custom_query is not None:
+        query = custom_query(query)
+
+    return query
+
+
+def get_experiments(
+    self: "DBHandler",
+    status: Optional[ExperimentStatusEnum] = None,
+    status_in: Optional[list[ExperimentStatusEnum]] = None,
+    workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
+    custom_query: Callable[[Query], Query] | None = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
+    sort_by: Optional[str] = None, descending: bool = False,
+    count_pages: bool = False
+) -> tuple[list[models.Experiment], int | None]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    query = self.session.query(models.Experiment)
+    query = where(
+        query,
+        status=status,
+        status_in=status_in,
+        workflow_in=workflow_in,
+        custom_query=custom_query,
+    )
+
     n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+
+    if sort_by is not None:
+        attr = getattr(models.Experiment, sort_by)
+        if descending:
+            attr = attr.desc()
+        query = query.order_by(attr)
 
     if offset is not None:
         query = query.offset(offset)
