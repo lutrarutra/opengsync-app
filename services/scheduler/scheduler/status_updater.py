@@ -90,14 +90,14 @@ def __find_finished_seq_requests(q):
 
 
 def update_statuses(db: DBHandler):
-    logger.info("Checking statuses..")
+    logs = ["Checking statuses.."]
 
     for run in db.get_seq_runs(
         status=categories.RunStatus.RUNNING, limit=None
     )[0]:
         if run.experiment is not None:
             run.experiment.status = categories.ExperimentStatus.SEQUENCING
-            logger.info(f"Updating experiment {run.experiment.id} status to {run.experiment.status}")
+            logs.append(f"Updating experiment {run.experiment.id} status to {run.experiment.status}")
             run = db.update_seq_run(run)
 
     db.flush()
@@ -119,7 +119,7 @@ def update_statuses(db: DBHandler):
                 experiment.status = categories.ExperimentStatus.ARCHIVED
             else:
                 continue
-            logger.debug(f"Updating experiment {experiment.id} status to {experiment.status}")
+            logs.append(f"Updating experiment {experiment.id} status to {experiment.status}")
             experiment = db.update_experiment(experiment)
 
     db.flush()
@@ -138,7 +138,7 @@ def update_statuses(db: DBHandler):
                 library.status = categories.LibraryStatus.ARCHIVED
             else:
                 continue
-            logger.info(f"Updating library {library.id} status to {library.status}")
+            logs.append(f"Updating library {library.id} status to {library.status}")
             library = db.update_library(library)
     
     db.flush()
@@ -148,7 +148,7 @@ def update_statuses(db: DBHandler):
         custom_query=__find_sequenced_pools, limit=None
     )[0]:
         pool.status = categories.PoolStatus.SEQUENCED
-        logger.info(f"Updating pool {pool.id} status to {pool.status}")
+        logs.append(f"Updating pool {pool.id} status to {pool.status}")
         pool = db.update_pool(pool)
 
     db.flush()
@@ -157,7 +157,7 @@ def update_statuses(db: DBHandler):
         status=categories.SeqRequestStatus.PREPARED, custom_query=__find_sequenced_seq_requests, limit=None
     )[0]:
         seq_request.status = categories.SeqRequestStatus.DATA_PROCESSING
-        logger.info(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
+        logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
         seq_request = db.update_seq_request(seq_request)
 
     db.flush()
@@ -167,7 +167,7 @@ def update_statuses(db: DBHandler):
     )[0]:
         project.status = categories.ProjectStatus.SEQUENCED
         project = db.update_project(project)
-        logger.info(f"Updating project {project.id} status to {project.status}")
+        logs.append(f"Updating project {project.id} status to {project.status}")
 
     db.flush()
 
@@ -176,9 +176,6 @@ def update_statuses(db: DBHandler):
     )[0]:
         seq_request.status = categories.SeqRequestStatus.FINISHED
         seq_request = db.update_seq_request(seq_request)
-        logger.info(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
+        logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
 
-        
-
-
-    
+    logger.info("\n".join(logs))
