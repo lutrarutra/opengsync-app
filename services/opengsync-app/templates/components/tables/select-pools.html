@@ -127,7 +127,7 @@
 
             function update_pools() {
                 $(".pool-row").each(function() {
-                    const pool_id = parseInt($(this).attr("id").split("-").pop());
+                    const pool_id = parseInt($(this).data("id"));
                     if (selected_pools.includes(pool_id)) {
                         $(this).addClass("selected");
                     } else {

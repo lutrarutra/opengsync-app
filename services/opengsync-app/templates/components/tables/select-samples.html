@@ -119,7 +119,7 @@
             
             function update_samples() {
                 $(".sample-row").each(function() {
-                    const sample_id = parseInt($(this).attr("id").split("-").pop());
+                    const sample_id = parseInt($(this).data("id"));
                     if (selected_samples.includes(sample_id)) {
                         $(this).addClass("selected");
                     }

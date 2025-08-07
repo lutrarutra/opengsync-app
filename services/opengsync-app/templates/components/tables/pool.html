@@ -56,7 +56,7 @@
             {% for pool in pools %}
             <tr>
                 <th scope="row">{{ pool.id }}</th>
-                <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}">
+                <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}" data-id="{{ pool.id }}">
                     <a href="{{ url_for('pools_page.pool', pool_id=pool.id) }}">
                         {{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}
                     </a>
@@ -83,7 +83,7 @@
                 e.preventDefault();
                 const x = e.pageX;
                 const y = e.pageY;
-                selected_pool_id = e.target.id.split("-")[3];
+                selected_pool_id = $(this).data("id");
                 $("#copy-edit-menu").css({
                     display: "block",
                     left: x + 8, top: y + 8

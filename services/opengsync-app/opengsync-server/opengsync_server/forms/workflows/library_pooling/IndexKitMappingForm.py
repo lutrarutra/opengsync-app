@@ -7,8 +7,6 @@ from wtforms.validators import Optional as OptionalValidator
 from opengsync_db import models
 from opengsync_server.forms.MultiStepForm import StepFile
 
-from .... import db, logger
-from ...MultiStepForm import MultiStepForm
 from ...SearchBar import SearchBar
 from ..common import CommonIndexKitMappingForm
 from .CompleteLibraryPoolingForm import CompleteLibraryPoolingForm

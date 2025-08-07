@@ -64,7 +64,7 @@
             {% for library in libraries %}
             <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td class="library-name-cell" id="library-name-cell-{{library.id}}"><a href="{{ url_for('libraries_page.library', library_id=library.id, from='lab_prep@' + lab_prep.id | string) }}">
+                <td class="library-name-cell" id="library-name-cell-{{library.id}}" data-id="{{ library.id }}"><a href="{{ url_for('libraries_page.library', library_id=library.id, from='lab_prep@' + lab_prep.id | string) }}">
                     {{ library.name }}
                 </a></td>
                 <td>
@@ -113,7 +113,7 @@
             e.preventDefault();
             const x = e.pageX;
             const y = e.pageY;
-            selected_library_id = e.target.parentElement.id.split("-")[3];
+            selected_library_id = $(this).data("id");
             $("#copy-edit-menu").css({
                 display: "block",
                 left: x + 8, top: y + 8
