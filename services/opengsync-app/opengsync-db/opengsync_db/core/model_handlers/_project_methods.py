@@ -1,5 +1,5 @@
 import math
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
@@ -78,6 +78,7 @@ def where(
     status: Optional[ProjectStatusEnum] = None,
     status_in: Optional[list[ProjectStatusEnum]] = None,
     user_id: int | None = None,
+    custom_query: Callable[[Query], Query] | None = None,
 ) -> Query:
     
     if user_id is not None:
@@ -131,6 +132,9 @@ def where(
     if status_in is not None:
         query = query.where(models.Project.status_id.in_([s.id for s in status_in]))
 
+    if custom_query is not None:
+        query = custom_query(query)
+
     return query
 
 
@@ -145,6 +149,7 @@ def get_projects(
     limit: int | None = PAGE_LIMIT, offset: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
     count_pages: bool = False,
+    custom_query: Callable[[Query], Query] | None = None,
 ) -> tuple[list[models.Project], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
@@ -153,7 +158,8 @@ def get_projects(
     query = where(
         query, seq_request_id=seq_request_id,
         group_id=group_id, status=status,
-        status_in=status_in, user_id=user_id, experiment_id=experiment_id
+        status_in=status_in, user_id=user_id, experiment_id=experiment_id,
+        custom_query=custom_query
     )
 
     if sort_by is not None:

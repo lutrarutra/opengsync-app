@@ -1,6 +1,6 @@
 import math
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING, Literal
+from typing import Optional, TYPE_CHECKING, Literal, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
@@ -125,7 +125,8 @@ def where(
     submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
     show_drafts: bool = True, user_id: int | None = None,
     project_id: int | None = None,
-    group_id: int | None = None
+    group_id: int | None = None,
+    custom_query: Callable[[Query], Query] | None = None,
 ) -> Query:
     if status is not None:
         query = query.where(
@@ -189,6 +190,9 @@ def where(
             models.Project.id == project_id
         )
 
+    if custom_query is not None:
+        query = custom_query(query)
+
     return query
 
 
@@ -204,7 +208,8 @@ def get_seq_requests(
     project_id: int | None = None,
     group_id: int | None = None,
     limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    count_pages: bool = False
+    count_pages: bool = False,
+    custom_query: Callable[[Query], Query] | None = None,
 ) -> tuple[list[models.SeqRequest], int | None]:
 
     if not (persist_session := self._session is not None):
@@ -213,7 +218,8 @@ def get_seq_requests(
     query = self.session.query(models.SeqRequest)
     query = where(
         query, status_in=status_in, submission_type_in=submission_type_in, submission_type=submission_type,
-        show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status, project_id=project_id
+        show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status, project_id=project_id,
+        custom_query=custom_query
     )
 
     if sort_by is not None:
