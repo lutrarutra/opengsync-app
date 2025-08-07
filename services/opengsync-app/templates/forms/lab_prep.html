@@ -24,8 +24,8 @@
         </div>
         <div class="footer-controls">
             {% if lab_prep_form.form_type == "edit" %}
-            <button class="btn btn-primary" hx-include="#lab_prep-form" hx-target="#lab_prep-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('lab_preps_htmx.edit', lab_prep_id=lab_prep.id) }}">Submit</button>
+            <button class="btn btn-success" hx-include="#lab_prep-form" hx-target="#lab_prep-form-container" hx-swap="outerHTML"
+                hx-post="{{ url_for('lab_preps_htmx.edit', lab_prep_id=lab_prep.id) }}">Save</button>
             {% elif lab_prep_form.form_type == "create" %}
             <button class="btn btn-success" hx-include="#lab_prep-form" hx-target="#lab_prep-form-container"
                 hx-swap="outerHTML" hx-post="{{ url_for('lab_preps_htmx.create') }}">Create</button>

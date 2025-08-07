@@ -28,4 +28,4 @@ class LabPrepCommentForm(CommentForm):
         )
 
         flash("Comment added successfully.", "success")
-        return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))
+        return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id, tab="comments-tab"))

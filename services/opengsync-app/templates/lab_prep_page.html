@@ -145,6 +145,12 @@
             aria-controls="comments-tab" aria-selected="true"
             id="comments-tab-btn">Comments</button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#metadata-tab" type="button" role="tab"
+            aria-controls="metadata-tab" aria-selected="true"
+            id="metadata-tab-btn">Metadata</button>
+        </li>
     </ul>
 </div>
 
@@ -477,6 +483,24 @@
             
             <div hx-get="{{ url_for('lab_preps_htmx.get_comments', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="8">
+            <h4>Metadata</h4>
+            <div class="row">
+                {{ metadata_group("Name", lab_prep.name, class="col-3") }}
+                {{ metadata_group("Protocol", lab_prep.protocol.display_name, class="col-3") }}
+                {{ metadata_group("Status", lab_prep.status.display_name, class="col-3") }}
+                {{ metadata_group("Assay", lab_prep.assay_type.abbreviation, class="col-3") }}
+            </div>
+            <div class="row">
+                {{ metadata_group_link("Creator", lab_prep.creator.name, url_for("users_page.user", user_id=lab_prep.creator.id, from="lab_prep@" + lab_prep.id | string), class="col-3") }}
+                {{ 
+                    metadata_group_email_link(
+                        "Email", lab_prep.creator.email, class="col-3",
+                        subject="Library Prep: " + lab_prep.name
+                    ) 
+                }}
             </div>
         </div>
     </div>
