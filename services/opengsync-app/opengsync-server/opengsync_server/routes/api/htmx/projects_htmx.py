@@ -422,6 +422,26 @@ def get_recent_projects():
 
 
 @htmx_route(projects_htmx, db=db)
+def get_software(project_id: int):
+    if (project := db.get_project(project_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+
+    if not current_user.is_insider() and project.owner_id != current_user.id:
+        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        if affiliation is None:
+            return abort(HTTPResponse.FORBIDDEN.id)
+
+    software = project.software or {}
+    return make_response(
+        render_template(
+            "components/project-software.html",
+            software=software,
+            project=project,
+        )
+    )
+
+
+@htmx_route(projects_htmx, db=db)
 def overview(project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

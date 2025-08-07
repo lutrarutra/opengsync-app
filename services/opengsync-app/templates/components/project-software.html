@@ -1,0 +1,9 @@
+{% from "components/metadata_group.jinja2" import metadata_group %}
+{% for software, data in project.software.items() %}
+<div class="row">
+    {{ metadata_group("Software", software, class="col-2") }}
+    {{ metadata_group("Version", data["version"], class="col-2") }}
+    {{ metadata_group("Timestamp", data["timestamp"] | format_iso, class="col-2") }}
+    {{ metadata_group("Comment", data.get("comment", ""), class="col-6") }}
+</div>
+{% endfor %}

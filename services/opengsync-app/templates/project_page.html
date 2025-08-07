@@ -90,6 +90,12 @@
             aria-controls="project-seq_requests-tab" aria-selected="false">
             Requests</button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#project-software-tab" type="button" role="tab"
+            aria-controls="project-software-tab" aria-selected="false">
+            Software</button>
+        </li>
     </ul>
 </div>
 
@@ -154,8 +160,13 @@
             {{ metadata_group("Title", project.title) }}
             {{ metadata_group_textarea("Description", project.description) }}
         </div>
-        <div class="tab-pane fadee" id="project-seq_requests-tab" role="tabpanel" tabindex="0">
+        <div class="tab-pane fade" id="project-seq_requests-tab" role="tabpanel" tabindex="4">
             <div hx-get="{{ url_for('projects_htmx.get_seq_requests', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="project-software-tab" role="tabpanel" tabindex="5">
+            <div hx-get="{{ url_for('projects_htmx.get_software', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
