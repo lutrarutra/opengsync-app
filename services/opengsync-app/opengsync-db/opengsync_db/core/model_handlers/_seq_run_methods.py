@@ -1,7 +1,8 @@
 import math
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Callable
 
 import sqlalchemy as sa
+from sqlalchemy.orm import Query
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
@@ -75,20 +76,14 @@ def get_seq_run(self: "DBHandler", id: int | None = None, experiment_name: Optio
     return seq_run
 
 
-def get_seq_runs(
-    self: "DBHandler",
+def where(
+    query: Query,
     status: Optional[RunStatusEnum] = None,
     status_in: Optional[list[RunStatusEnum]] = None,
-    limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    sort_by: Optional[str] = None, descending: bool = False,
     experiment_status: Optional[ExperimentStatusEnum] = None,
     experiment_status_in: Optional[list[ExperimentStatusEnum]] = None,
-    count_pages: bool = False
-) -> tuple[list[models.SeqRun], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.SeqRun)
+    custom_query: Callable[[Query], Query] | None = None,
+) -> Query:
 
     if status is not None:
         query = query.where(models.SeqRun.status_id == status.id)
@@ -108,6 +103,36 @@ def get_seq_runs(
         if experiment_status_in is not None:
             query = query.where(models.Experiment.status_id.in_([s.id for s in experiment_status_in]))
 
+    if custom_query is not None:
+        query = custom_query(query)
+
+    return query
+
+
+def get_seq_runs(
+    self: "DBHandler",
+    status: Optional[RunStatusEnum] = None,
+    status_in: Optional[list[RunStatusEnum]] = None,
+    experiment_status: Optional[ExperimentStatusEnum] = None,
+    experiment_status_in: Optional[list[ExperimentStatusEnum]] = None,
+    custom_query: Callable[[Query], Query] | None = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
+    sort_by: Optional[str] = None, descending: bool = False,
+    count_pages: bool = False
+) -> tuple[list[models.SeqRun], int | None]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    query = self.session.query(models.SeqRun)
+    query = where(
+        query,
+        status=status,
+        status_in=status_in,
+        experiment_status=experiment_status,
+        experiment_status_in=experiment_status_in,
+        custom_query=custom_query
+    )
+    
     if sort_by is not None:
         attr = getattr(models.SeqRun, sort_by)
         if descending:

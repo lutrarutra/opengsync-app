@@ -1,8 +1,9 @@
 import math
 import string
-from typing import Optional, TYPE_CHECKING, Sequence
+from typing import Optional, TYPE_CHECKING, Sequence, Callable
 
 import sqlalchemy as sa
+from sqlalchemy.orm import Query
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
@@ -94,25 +95,19 @@ def get_pool(self: "DBHandler", pool_id: int) -> models.Pool | None:
     return pool
 
 
-def get_pools(
-    self: "DBHandler",
+def where(
+    query: Query,
     user_id: int | None = None,
     library_id: int | None = None,
     experiment_id: int | None = None,
     lab_prep_id: int | None = None,
     seq_request_id: int | None = None,
     associated_to_experiment: Optional[bool] = None,
-    sort_by: Optional[str] = None, descending: bool = False,
     status: Optional[PoolStatusEnum] = None,
     status_in: Optional[list[PoolStatusEnum]] = None,
     type_in: Optional[list[PoolTypeEnum]] = None,
-    limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    count_pages: bool = False
-) -> tuple[list[models.Pool], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.Pool)
+    custom_query: Callable[[Query], Query] | None = None,
+) -> Query:
     if user_id is not None:
         query = query.where(
             models.Pool.owner_id == user_id
@@ -159,6 +154,47 @@ def get_pools(
             query = query.where(models.Pool.experiment_id.isnot(None))
         else:
             query = query.where(models.Pool.experiment_id.is_(None))
+
+    if custom_query is not None:
+        query = custom_query(query)
+
+    return query
+
+
+def get_pools(
+    self: "DBHandler",
+    user_id: int | None = None,
+    library_id: int | None = None,
+    experiment_id: int | None = None,
+    lab_prep_id: int | None = None,
+    seq_request_id: int | None = None,
+    associated_to_experiment: Optional[bool] = None,
+    status: Optional[PoolStatusEnum] = None,
+    status_in: Optional[list[PoolStatusEnum]] = None,
+    type_in: Optional[list[PoolTypeEnum]] = None,
+    custom_query: Callable[[Query], Query] | None = None,
+    sort_by: Optional[str] = None, descending: bool = False,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
+    count_pages: bool = False,
+) -> tuple[list[models.Pool], int | None]:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    query = self.session.query(models.Pool)
+
+    query = where(
+        query,
+        user_id=user_id,
+        library_id=library_id,
+        experiment_id=experiment_id,
+        lab_prep_id=lab_prep_id,
+        seq_request_id=seq_request_id,
+        associated_to_experiment=associated_to_experiment,
+        status=status,
+        status_in=status_in,
+        type_in=type_in,
+        custom_query=custom_query
+    )
 
     if sort_by is not None:
         attr = getattr(models.Pool, sort_by)
