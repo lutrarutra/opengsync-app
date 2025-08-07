@@ -65,5 +65,5 @@
         </tbody>
     </table>
     {{ spinner("project-seq_request-table-spinner") }}
-    {{ pagination("project-seq_request-table", "projects_htmx.get_seq_requests", n_pages, active_page) }}
+    {{ pagination("project-seq_request-table", "projects_htmx.get_seq_requests", n_pages, active_page, context={"project_id": project.id}) }}
 </div>
