@@ -12,7 +12,7 @@ from .BarcodeMatchForm import BarcodeMatchForm
 
 class TENXATACBarcodeInputForm(CommonTENXATACBarcodeInputForm):
     _template_path = "workflows/library_pooling/barcode-input.html"
-    _workflow_name = "reindex"
+    _workflow_name = "library_pooling"
     lab_prep: models.LabPrep
 
     def __init__(

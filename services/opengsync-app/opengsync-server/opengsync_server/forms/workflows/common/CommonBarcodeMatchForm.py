@@ -78,6 +78,8 @@ class CommonBarcodeMatchForm(MultiStepForm):
         self._context["lab_prep"] = lab_prep
         self._context["pool"] = pool
 
+        logger.debug(self.uuid)
+
         self.barcode_table = self.tables["barcode_table"]
         self.index_type = CommonBarcodeMatchForm.check_index_type(self.barcode_table)
         self._context["index_type"] = self.index_type

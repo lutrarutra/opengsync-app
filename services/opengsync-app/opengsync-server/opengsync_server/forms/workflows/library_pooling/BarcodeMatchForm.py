@@ -9,7 +9,7 @@ from .CompleteLibraryPoolingForm import CompleteLibraryPoolingForm
 
 class BarcodeMatchForm(CommonBarcodeMatchForm):
     _template_path = "workflows/library_pooling/barcode-match.html"
-    _workflow_name = "reindex"
+    _workflow_name = "library_pooling"
     lab_prep: models.LabPrep
         
     def __init__(

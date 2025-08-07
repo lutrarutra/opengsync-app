@@ -87,10 +87,12 @@ class BarcodeInputForm(CommonBarcodeInputForm):
         self.add_table("barcode_table", barcode_table)
         self.update_data()
 
+        logger.debug(self.uuid)
+
         if TENXATACBarcodeInputForm.is_applicable(self):
             form = TENXATACBarcodeInputForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         elif IndexKitMappingForm.is_applicable(self):
-            form = IndexKitMappingForm(uuid=self.uuid, lab_prep=self.lab_prep, formdata=None)
+            form = IndexKitMappingForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         elif BarcodeMatchForm.is_applicable(self):
             form = BarcodeMatchForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         else:

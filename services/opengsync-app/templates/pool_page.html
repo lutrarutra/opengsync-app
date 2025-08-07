@@ -202,18 +202,6 @@
             <div class="row">
                 {{ metadata_group("Name", pool.name, class="col-3") }}
                 {{ metadata_group("Type", pool.type, class="col-3") }}
-                {{
-                    metadata_group_link(
-                        "Owner", pool.owner.name,
-                        url_for("users_page.user", user_id=pool.owner.id, from='pool@' + pool.id | string),
-                        class="col-3"
-                    )
-                }}
-                {{ 
-                    metadata_group_email_link("Owner Email", pool.owner.email, class="col-3")
-                }}
-            </div>
-            <div class="row">
                 {% if pool.seq_request_id %}
                 {{                     
                     metadata_group_link(
@@ -225,9 +213,32 @@
                 {% else %}
                 {{ metadata_group("Request", "", class="col-3") }}
                 {% endif %}
-                {{ metadata_group("Contact Name", pool.contact.name, class="col-3") }}
+                {% if pool.lab_prep_id %}
+                {{ 
+                    metadata_group_link(
+                        "Lab Prep", pool.lab_prep.display_name,
+                        url_for("lab_preps_page.lab_prep", lab_prep_id=pool.lab_prep_id, from='pool@' + pool.id | string),
+                        class="col-3"
+                    )
+                }}
+                {% else %}
+                {{ metadata_group("Lab Prep", "", class="col-3") }}
+                {% endif %}
+            </div>
+            <div class="row">
+                {{
+                    metadata_group_link(
+                        "Owner", pool.owner.name,
+                        url_for("users_page.user", user_id=pool.owner.id, from='pool@' + pool.id | string),
+                        class="col-2"
+                    )
+                }}
+                {{ 
+                    metadata_group_email_link("Owner Email", pool.owner.email, class="col-3")
+                }}
+                {{ metadata_group("Contact Name", pool.contact.name, class="col-2") }}
                 {{ metadata_group_email_link("Contact Email", pool.contact.email, class="col-3") }}
-                {{ metadata_group("Contact Phone", pool.contact.phone, class="col-3") }}
+                {{ metadata_group("Contact Phone", pool.contact.phone, class="col-2") }}
             </div>
         </div>
         <div class="tab-pane fade" id="ba_report-tab" role="tabpanel" tabindex="5">
