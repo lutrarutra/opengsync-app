@@ -5,7 +5,7 @@ from opengsync_db import categories, models
 
 
 def update_statuses(db: DBHandler):
-    logger.info("Updating statuses..")
+    logger.info("Checking statuses..")
 
     def find_finished_libraries(q):
         return q.join(
@@ -30,7 +30,10 @@ def update_statuses(db: DBHandler):
                 library.status = categories.LibraryStatus.ARCHIVED
             else:
                 continue
+            logger.info(f"Updating library {library.id} status to {library.status}")
             library = db.update_library(library)
+    
+    db.flush()
 
     for run in db.get_seq_runs(
         limit=20, sort_by="id", descending=True,
@@ -42,13 +45,18 @@ def update_statuses(db: DBHandler):
                 run.experiment.status = categories.ExperimentStatus.FINISHED
                 for pool in run.experiment.pools:
                     pool.status = categories.PoolStatus.SEQUENCED
+                    logger.info(f"Updating pool {pool.id} status to {pool.status}")
                     for library in pool.libraries:
                         db.refresh(library)
                         library.status = categories.LibraryStatus.SEQUENCED
+                        logger.info(f"Updating run {run.id} status to {run.experiment.status}")
             elif run.status == categories.RunStatus.RUNNING:
                 run.experiment.status = categories.ExperimentStatus.SEQUENCING
+                logger.info(f"Updating run {run.id} status to {run.experiment.status}")
 
             run = db.update_seq_run(run)
+
+    db.flush()
 
     for seq_request in db.get_seq_requests(limit=20, status_in=[categories.SeqRequestStatus.PREPARED, categories.SeqRequestStatus.DATA_PROCESSING])[0]:
         sequenced = True
@@ -58,8 +66,10 @@ def update_statuses(db: DBHandler):
 
         if sequenced:
             seq_request.status = categories.SeqRequestStatus.DATA_PROCESSING
+            logger.info(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
+            seq_request = db.update_seq_request(seq_request)
 
-        seq_request = db.update_seq_request(seq_request)
+    db.flush()
 
     for project in db.get_projects(
         limit=20, sort_by="id", descending=True,
@@ -74,8 +84,37 @@ def update_statuses(db: DBHandler):
                 
         if sequenced:
             project.status = categories.ProjectStatus.SEQUENCED
-        
-        project = db.update_project(project)
+            project = db.update_project(project)
+            logger.info(f"Updating project {project.id} status to {project.status}")
+
+    db.flush()
+
+    def find_finished_seq_requests(q):
+        return q.join(
+            models.Library,
+            models.Library.seq_request_id == models.SeqRequest.id,
+        ).join(
+            models.links.SampleLibraryLink,
+            models.links.SampleLibraryLink.library_id == models.Library.id,
+        ).join(
+            models.Sample,
+            models.Sample.id == models.links.SampleLibraryLink.sample_id,
+        ).join(
+            models.Project,
+            models.Project.id == models.Sample.project_id,
+        ).where(
+            models.Project.status_id.in_(
+                [categories.ProjectStatus.DELIVERED.id, categories.ProjectStatus.ARCHIVED.id]
+            )
+        ).distinct(models.SeqRequest.id)
+
+    for seq_request in db.get_seq_requests(
+        status=categories.SeqRequestStatus.DATA_PROCESSING, custom_query=find_finished_seq_requests, limit=None
+    )[0]:
+        seq_request.status = categories.SeqRequestStatus.FINISHED
+        seq_request = db.update_seq_request(seq_request)
+        logger.info(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
+
         
 
 
