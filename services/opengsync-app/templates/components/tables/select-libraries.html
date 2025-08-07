@@ -69,7 +69,7 @@
                         {{ library.type.abbreviation }}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
                     </span>
                 </td>
-                <td>{{ library.status.name }} {{ library.status.icon }}</td>
+                <td>{{ library.status.icon }} {{ library.status.name }}</td>
                 <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
                 {% if workflow == "qubit_measure" %}
                 <td>

@@ -52,7 +52,7 @@
                 <th scope="row">{{ lab_prep.id }}</th>
                 <td><a href="{{ url_for('lab_preps_page.lab_prep', lab_prep_id=lab_prep.id) }}">{{ lab_prep.display_name }}</a></td>
                 <td>{{ lab_prep.protocol.name }}</td>
-                <td>{{ lab_prep.status.name }} {{ lab_prep.status.icon }}</td>
+                <td>{{ lab_prep.status.icon }} {{ lab_prep.status.name }}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=lab_prep.creator_id) }}">{{ lab_prep.creator.name }} <span class="desc">{{ "me" if current_user.id == lab_prep.creator_id }}</span></a></td>
             </tr>
             {% endfor %}

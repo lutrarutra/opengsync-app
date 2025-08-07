@@ -29,6 +29,13 @@
                         sort_by=sort_by, sort_order=sort_order, col_size=7
                     )
                 }}
+                {{
+                    table_col(
+                        table_container_id='project-table', column_name='Status', column_var='status_id',
+                        sort_url='projects_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=ProjectStatus.as_list(), multiselect_selected=status_in, context={'user_id': user.id}
+                    )
+                }}
                 <th scope="col col-2"># Samples</th>
             </tr>
         </thead>
@@ -38,6 +45,7 @@
                 <th scope="row">{{ project.id }}</th>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id, from='user@' + user.id | string) }}">{{ project.identifier or "" }}</a></td>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id, from='user@' + user.id | string) }}">{{ project.title }}</a></td>
+                <td>{{ project.status.icon }} {{ project.status.name }}</td>
                 <td>{{ project.num_samples }}</td>
             </tr>
             {% endfor %}

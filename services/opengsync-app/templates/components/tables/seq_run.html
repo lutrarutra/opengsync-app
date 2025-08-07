@@ -39,7 +39,7 @@
             <tr>
                 <th scope="row">{{ seq_run.id }}</th>
                 <td><a href="{{ url_for('seq_runs_page.seq_run', seq_run_id=seq_run.id) }}">{{ seq_run.experiment_name }}</a></td>
-                <td>{{ seq_run.status.name }} {{ seq_run.status.icon }}</td>
+                <td>{{ seq_run.status.icon }} {{ seq_run.status.name }}</td>
                 <td>{{ seq_run.cycles_str }}</td>
                 <td>{{ seq_run.flowcell_id }}</td>
                 <td>{{ seq_run.run_folder }}</td>

@@ -15,6 +15,6 @@ class RunStatusEnum(DBEnum):
 class RunStatus(ExtendedEnum[RunStatusEnum], enum_type=RunStatusEnum):
     IDLE = RunStatusEnum(0, "Idle", "⌛")
     RUNNING = RunStatusEnum(1, "Running", "🟢")
-    FINISHED = RunStatusEnum(2, "Finished", "🏁")
+    FINISHED = RunStatusEnum(2, "Finished", "✅")
     ARCHIVED = RunStatusEnum(10, "Archived", "🗃️")
     FAILED = RunStatusEnum(11, "Failed", "❌")

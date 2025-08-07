@@ -92,7 +92,7 @@
                     </span>
                     {% endif %}
                 </td>
-                <td><span {{ tooltip(pool.status.description) }}>{{ pool.status.name }} {{ pool.status.icon }}</span></td>
+                <td>{{ pool.status.icon }} {{ pool.status.name }}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=pool.owner_id, from='experiment@' + experiment.id | string) }}">{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></a></td>
                 <td>{{ pool.num_libraries }}</td>
                 <td class="avg_fragment_size-col">

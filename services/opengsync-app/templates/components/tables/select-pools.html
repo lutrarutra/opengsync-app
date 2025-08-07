@@ -52,7 +52,7 @@
             <tr id="pool-row-{{ pool.id }}" data-id="{{ pool.id }}" class="pool-row">
                 <th scope="row">{{ pool.id }}</th>
                 <td>{{ pool.name }}</td>
-                <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
+                <td>{{ pool.status.icon }} {{ pool.status.name }}</td>
                 <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                 {% if workflow == "qubit_measure" %}
                 <td>

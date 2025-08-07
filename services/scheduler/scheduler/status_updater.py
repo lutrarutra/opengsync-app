@@ -129,13 +129,7 @@ def update_statuses(db: DBHandler):
         ], custom_query=__find_finished_libraries, limit=None
     )[0]:
         if library.experiment is not None:
-            db.refresh(library.experiment)
-            if library.experiment.status == categories.ExperimentStatus.FINISHED:
-                library.status = categories.LibraryStatus.SEQUENCED
-            elif library.experiment.status == categories.ExperimentStatus.ARCHIVED:
-                library.status = categories.LibraryStatus.ARCHIVED
-            else:
-                continue
+            library.status = categories.LibraryStatus.SEQUENCED
             logs.append(f"Updating library {library.id} status to {library.status}")
             library = db.update_library(library)
     
