@@ -4,6 +4,7 @@ from typing import Optional, TYPE_CHECKING, Callable
 import sqlalchemy as sa
 from sqlalchemy.sql.operators import or_, and_  # noqa F401
 from sqlalchemy.orm.query import Query
+from sqlalchemy.orm import aliased
 
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
@@ -44,14 +45,12 @@ def create_library(
     if seq_request_id is not None:
         if (seq_request := self.session.get(models.SeqRequest, seq_request_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Seq request with id {seq_request_id} does not exist")
-        seq_request.num_libraries += 1
         self.session.add(seq_request)
 
     if status is None:
         if pool_id is not None:
             if (pool := self.session.get(models.Pool, pool_id)) is None:
                 raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-            pool.num_libraries += 1
             self.session.add(pool)
             status = LibraryStatus.POOLED
         else:
@@ -261,18 +260,30 @@ def delete_library(
 
     if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+    
+    if delete_orphan_samples:
+        SLL1 = aliased(models.links.SampleLibraryLink)
+        SLL2 = aliased(models.links.SampleLibraryLink)
 
-    for link in library.sample_links:
-        link.sample.num_libraries -= 1
-        if link.sample.num_libraries == 0 and delete_orphan_samples:
-            self.delete_sample(link.sample_id)
+        subquery = (
+            self.session.query(models.Sample.id)
+            .join(SLL1, SLL1.sample_id == models.Sample.id)  # for counting
+            .group_by(models.Sample.id)
+            .having(sa.func.count(SLL1.library_id) == 1)
+            .join(SLL2, SLL2.sample_id == models.Sample.id)  # for filtering by library_id
+            .filter(SLL2.library_id == library_id)
+            .subquery()
+        )
 
-    library.seq_request.num_libraries -= 1
+        self.session.query(models.Sample).filter(
+            models.Sample.id.in_(sa.select(subquery.c.id))
+        ).delete(synchronize_session="fetch")
+
     self.session.delete(library)
 
     if flush:
         self.session.flush()
-        
+
     self.delete_orphan_features(flush=flush)
 
     if not persist_session:
@@ -280,6 +291,7 @@ def delete_library(
 
 
 def update_library(self: "DBHandler", library: models.Library) -> models.Library:
+    
     if not (persist_session := self._session is not None):
         self.open_session()
     
@@ -375,15 +387,9 @@ def add_library_to_pool(
 
     if library.pool_id is not None:
         raise exceptions.LinkAlreadyExists(f"Library with id {library_id} is already pooled")
-
-    if (pool := self.session.get(models.Pool, pool_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
         
     library.pool_id = pool_id
     self.session.add(library)
-
-    pool.num_libraries = len(pool.libraries) + 1
-    self.session.add(pool)
 
     if flush:
         self.session.flush()

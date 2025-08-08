@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.mutable import MutableDict
 
@@ -62,9 +63,6 @@ class Library(Base):
     volume: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
 
-    num_samples: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
-    num_features: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
-
     properties: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
@@ -89,7 +87,7 @@ class Library(Base):
 
     sample_links: Mapped[list[links.SampleLibraryLink]] = relationship(
         links.SampleLibraryLink, back_populates="library", lazy="select",
-        cascade="save-update, merge, delete, delete-orphan", order_by=links.SampleLibraryLink.sample_id
+        cascade="all, delete-orphan", order_by=links.SampleLibraryLink.sample_id
     )
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=links.LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
     plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
@@ -97,6 +95,36 @@ class Library(Base):
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "owner_id", "pool_id", "adapter"]
+
+    @hybrid_property
+    def num_samples(self) -> int:
+        return len(self.sample_links)
+    
+    @num_samples.expression
+    def __num_samples(cls) -> sa.ScalarSelect[int]:
+        from .Sample import Sample
+        return sa.select(
+            sa.func.count(Sample.id)
+        ).where(
+            Sample.id == links.SampleLibraryLink.sample_id
+        ).where(
+            links.SampleLibraryLink.library_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    @hybrid_property
+    def num_features(self) -> int:
+        return len(self.features)
+
+    @num_features.expression
+    def __num_features(cls) -> sa.ScalarSelect[int]:
+        from .Feature import Feature
+        return sa.select(
+            sa.func.count(Feature.id)
+        ).where(
+            Feature.id == links.LibraryFeatureLink.feature_id
+        ).where(
+            links.LibraryFeatureLink.library_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @property
     def status(self) -> LibraryStatusEnum:

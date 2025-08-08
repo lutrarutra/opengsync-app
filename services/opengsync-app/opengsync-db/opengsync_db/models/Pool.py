@@ -2,6 +2,7 @@ from typing import Optional, TYPE_CHECKING, ClassVar
 from datetime import datetime
 
 import sqlalchemy as sa
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
@@ -35,8 +36,6 @@ class Pool(Base):
     num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
-
-    num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="joined")
@@ -76,6 +75,19 @@ class Pool(Base):
     warning_max_molarity: ClassVar[float] = 5.0
     error_min_molarity: ClassVar[float] = 0.5
     error_max_molarity: ClassVar[float] = 10.0
+
+    @hybrid_property
+    def num_libraries(self) -> int:
+        return len(self.libraries)
+    
+    @num_libraries.expression
+    def __num_libraries(cls) -> sa.ScalarSelect[int]:
+        from .Library import Library
+        return sa.select(
+            sa.func.count(Library.id)
+        ).where(
+            Library.pool_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
     def status(self) -> PoolStatusEnum:

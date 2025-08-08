@@ -218,6 +218,10 @@ table input.table-query-input{
     }
 }
 
+table.barcode-clashes-table tbody td.index-cell {
+    font-family: monospace;
+}
+
 .table tbody {
     td, th {
         vertical-align: middle;

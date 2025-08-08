@@ -19,12 +19,6 @@ def create_sample(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (project := self.session.get(models.Project, project_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Project with id '{project_id}', not found.")
-
-    if (user := self.session.get(models.User, owner_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id '{owner_id}', not found.")
-
     sample = models.Sample(
         name=name.strip(),
         project_id=project_id,
@@ -32,8 +26,6 @@ def create_sample(
         status_id=status.id if status is not None else None
     )
 
-    user.num_samples += 1
-    project.num_samples += 1
     self.session.add(sample)
 
     if flush:
@@ -178,9 +170,27 @@ def delete_sample(self: "DBHandler", sample_id: int, flush: bool = True):
     if (sample := self.session.get(models.Sample, sample_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
     
-    sample.owner.num_samples -= 1
-    sample.project.num_samples -= 1
     self.session.delete(sample)
+
+    if flush:
+        self.session.flush()
+
+    if not persist_session:
+        self.close_session()
+
+
+def delete_oprhan_samples(
+    self: "DBHandler", flush: bool = True
+) -> None:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    samples = self.session.query(models.Sample).where(
+        ~sa.exists().where(models.links.SampleLibraryLink.sample_id == models.Sample.id)
+    )
+
+    for sample in samples:
+        self.session.delete(sample)
 
     if flush:
         self.session.flush()

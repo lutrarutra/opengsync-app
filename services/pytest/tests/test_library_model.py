@@ -57,9 +57,12 @@ def test_library_links(db: DBHandler):
     assert sample is not None
     assert len(sample.library_links) == NUM_LIBRARIES - 1
     assert sample.num_libraries == NUM_LIBRARIES - 1
+    assert len(db.get_samples(limit=None)[0]) == 1
 
     db.delete_seq_request(seq_request.id)
     assert db.get_seq_request(seq_request.id) is None
+    assert len(db.get_libraries(limit=None)[0]) == 0
+    assert len(db.get_samples(limit=None)[0]) == 0
     assert db.get_sample(sample.id) is None
 
     db.refresh(user)

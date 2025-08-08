@@ -102,7 +102,6 @@ def remove_libraries(pool_id: int):
         if library.status == LibraryStatus.POOLED:
             library.status = LibraryStatus.STORED
 
-    pool.num_libraries = 0
     db.update_pool(pool)
     
     flash("Libraries removed from pool", "success")

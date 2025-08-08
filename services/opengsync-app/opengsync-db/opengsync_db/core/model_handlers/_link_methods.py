@@ -2,7 +2,6 @@ import math
 from typing import Optional, TYPE_CHECKING
 
 from ... import models, PAGE_LIMIT
-from ...categories import MUXTypeEnum
 from .. import exceptions
 
 if TYPE_CHECKING:
@@ -50,12 +49,6 @@ def link_sample_library(
     
     if not (persist_session := self._session is not None):
         self.open_session()
-
-    if (sample := self.session.get(models.Sample, sample_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-    
-    if (library := self.session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
         
     if self.session.query(models.links.SampleLibraryLink).where(
         models.links.SampleLibraryLink.sample_id == sample_id,
@@ -69,8 +62,6 @@ def link_sample_library(
         mux=mux,
     )
 
-    sample.num_libraries += 1
-    library.num_samples += 1
     self.session.add(link)
 
     if flush:
@@ -92,17 +83,6 @@ def unlink_sample_library(self: "DBHandler", sample_id: int, library_id: int, fl
     ).first()) is None:
         raise exceptions.LinkDoesNotExist(f"Sample with id {sample_id} and Library with id {library_id} are not linked")
 
-    if (sample := self.session.get(models.Sample, sample_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-    
-    if (library := self.session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-
-    sample.num_libraries -= 1
-    library.num_samples -= 1
-
-    self.session.add(sample)
-    self.session.add(library)
     self.session.delete(link)
 
     if flush:
@@ -199,7 +179,6 @@ def link_feature_library(self: "DBHandler", feature_id: int, library_id: int):
         raise exceptions.LinkAlreadyExists(f"Feature with id {feature_id} and Library with id {library_id} are already linked")
     
     library.features.append(feature)
-    library.num_features += 1
     self.session.add(library)
 
     if not persist_session:
@@ -223,7 +202,6 @@ def link_features_library(
     ).all()
 
     library.features.extend(features)
-    library.num_features = len(library.features)
     self.session.add(library)
 
     if flush:
@@ -238,12 +216,6 @@ def link_features_library(
 def unlink_sample_from_library(self: "DBHandler", sample_id: int, library_id: int):
     if not (persist_session := self._session is not None):
         self.open_session()
-
-    if (sample := self.session.get(models.Sample, sample_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-    
-    if (library := self.session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
     if (link := self.session.query(models.links.SampleLibraryLink).where(
         models.links.SampleLibraryLink.sample_id == sample_id,
@@ -251,10 +223,6 @@ def unlink_sample_from_library(self: "DBHandler", sample_id: int, library_id: in
     ).first()) is None:
         raise exceptions.LinkDoesNotExist(f"Sample with id {sample_id} and Library with id {library_id} are not linked")
     
-    sample.num_libraries -= 1
-    library.num_samples -= 1
-    self.session.add(sample)
-    self.session.add(library)
     self.session.delete(link)
 
     if not persist_session:
@@ -271,14 +239,7 @@ def unlink_feature_library(self: "DBHandler", feature_id: int, library_id: int):
     if (library := self.session.get(models.Library, library_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
-    if (_ := self.session.query(models.links.LibraryFeatureLink).where(
-        models.links.LibraryFeatureLink.feature_id == feature_id,
-        models.links.LibraryFeatureLink.library_id == library_id,
-    ).first()) is None:
-        raise exceptions.LinkDoesNotExist(f"Feature with id {feature_id} and Library with id {library_id} are not linked")
-    
     library.features.remove(feature)
-    library.num_features -= 1
     self.session.add(library)
 
     if not persist_session:
@@ -338,9 +299,6 @@ def add_pool_to_lane(
 def remove_pool_from_lane(self: "DBHandler", experiment_id: int, pool_id: int, lane_num: int, flush: bool = True) -> models.Lane:
     if not (persist_session := self._session is not None):
         self.open_session()
-
-    if (_ := self.session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
     if (lane := self.session.query(models.Lane).where(
         models.Lane.experiment_id == experiment_id,
@@ -444,12 +402,6 @@ def get_laned_pool_link(
 ) -> models.links.LanePoolLink | None:
     if not (persist_session := self._session is not None):
         self.open_session()
-
-    if (_ := self.session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-    
-    if (_ := self.session.get(models.Pool, pool_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
 
     link = self.session.query(models.links.LanePoolLink).where(
         models.links.LanePoolLink.experiment_id == experiment_id,

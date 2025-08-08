@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from .Base import Base
@@ -76,10 +77,6 @@ class User(Base, UserMixin):
     password: Mapped[str] = mapped_column(sa.String(128), nullable=False)
     role_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
-    num_projects: Mapped[int] = mapped_column(nullable=False, default=0)
-    num_samples: Mapped[int] = mapped_column(nullable=False, default=0)
-    num_seq_requests: Mapped[int] = mapped_column(nullable=False, default=0)
-
     affiliations: Mapped[list[links.UserAffiliation]] = relationship("UserAffiliation", back_populates="user", lazy="select", cascade="all, save-update, merge")
     requests: Mapped[list["SeqRequest"]] = relationship("SeqRequest", back_populates="requestor", lazy="select")
     projects: Mapped[list["Project"]] = relationship("Project", back_populates="owner", lazy="select")
@@ -90,6 +87,45 @@ class User(Base, UserMixin):
     preps: Mapped[list["LabPrep"]] = relationship("LabPrep", back_populates="creator", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_samples", "num_seq_requests"]
+
+    @hybrid_property
+    def num_samples(self) -> int:
+        return len(self.samples)
+    
+    @num_samples.expression
+    def __num_samples(cls) -> sa.ScalarSelect[int]:
+        from .Sample import Sample
+        return sa.select(
+            sa.func.count(Sample.id)
+        ).where(
+            Sample.owner_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_seq_requests(self) -> int:
+        return len(self.requests)
+    
+    @num_seq_requests.expression
+    def __num_seq_requests(cls) -> sa.ScalarSelect[int]:
+        from .SeqRequest import SeqRequest
+        return sa.select(
+            sa.func.count(SeqRequest.id)
+        ).where(
+            SeqRequest.requestor_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    @hybrid_property
+    def num_projects(self) -> int:
+        return len(self.projects)
+    
+    @num_projects.expression
+    def __num_projects(cls) -> sa.ScalarSelect[int]:
+        from .Project import Project
+        return sa.select(
+            sa.func.count(Project.id)
+        ).where(
+            Project.owner_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     def is_insider(self) -> bool:
         return self.role.is_insider()

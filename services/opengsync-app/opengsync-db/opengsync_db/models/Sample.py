@@ -3,20 +3,20 @@ from datetime import datetime
 from dataclasses import dataclass
 
 import sqlalchemy as sa
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 
 from ..categories import SampleStatus, SampleStatusEnum, AttributeType, AttributeTypeEnum
 from .Base import Base
+from . import links
 
 if TYPE_CHECKING:
-    from . import links
     from .Project import Project
     from .User import User
     from .SeqRequest import SeqRequest
     from .File import File
-    from .Library import Library
 
 
 @dataclass
@@ -47,7 +47,6 @@ class Sample(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
     status_id: Mapped[int | None] = mapped_column(sa.SmallInteger, nullable=True)
-    num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
@@ -59,7 +58,7 @@ class Sample(Base):
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
     
-    plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="sample", lazy="select")
+    plate_links: Mapped[list[links.SamplePlateLink]] = relationship("SamplePlateLink", back_populates="sample", lazy="select")
 
     seq_requests: Mapped[list["SeqRequest"]] = relationship(
         "SeqRequest", back_populates="samples", lazy="select",
@@ -73,12 +72,27 @@ class Sample(Base):
 
     library_links: Mapped[list["links.SampleLibraryLink"]] = relationship(
         "SampleLibraryLink", back_populates="sample", lazy="select",
-        cascade="save-update, merge, delete, delete-orphan"
+        cascade="all, delete-orphan"
     )
 
     _attributes: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="attributes")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries", "status_id"]
+
+    @hybrid_property
+    def num_libraries(self) -> int:
+        return len(self.library_links)
+    
+    @num_libraries.expression
+    def __num_libraries(cls) -> sa.ScalarSelect[int]:
+        from .Library import Library
+        return sa.select(
+            sa.func.count(Library.id)
+        ).where(
+            Library.id == links.SampleLibraryLink.library_id
+        ).where(
+            links.SampleLibraryLink.sample_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
     def status(self) -> SampleStatusEnum | None:

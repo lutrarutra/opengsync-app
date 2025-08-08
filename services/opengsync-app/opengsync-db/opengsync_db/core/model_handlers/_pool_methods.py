@@ -30,9 +30,6 @@ def create_pool(
 ) -> models.Pool:
     if not (persist_session := self._session is not None):
         self.open_session()
-
-    if (_ := self.session.get(models.User, owner_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
     
     if seq_request_id is not None:
         if self.session.get(models.SeqRequest, seq_request_id) is None:
@@ -489,7 +486,6 @@ def merge_pools(self: "DBHandler", merged_pool_id: int, pool_ids: Sequence[int],
     for pool in pools:
         for library in pool.libraries:
             merged_pool.libraries.append(library)
-            merged_pool.num_libraries += 1
         self.session.delete(pool)
 
     self.session.add(merged_pool)

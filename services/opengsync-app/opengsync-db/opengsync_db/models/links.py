@@ -60,8 +60,8 @@ class SampleLibraryLink(Base):
 
     mux: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
-    sample_id: Mapped[int] = mapped_column(sa.ForeignKey("sample.id"), primary_key=True)
-    library_id: Mapped[int] = mapped_column(sa.ForeignKey("library.id"), primary_key=True)
+    sample_id: Mapped[int] = mapped_column(sa.ForeignKey("sample.id", ondelete="CASCADE"), primary_key=True)
+    library_id: Mapped[int] = mapped_column(sa.ForeignKey("library.id", ondelete="CASCADE"), primary_key=True)
 
     sample: Mapped["Sample"] = relationship(
         "Sample", back_populates="library_links", lazy="joined",
