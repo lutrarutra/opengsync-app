@@ -9,7 +9,7 @@ from flask import Flask, render_template, redirect, request, url_for, session, a
 
 from opengsync_db import categories, models, TIMEZONE, to_utc
 
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools, log_buffer
 from .core import wrappers
 from .routes import api, pages
 from .tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue
@@ -90,6 +90,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     if app.debug:
         @wrappers.page_route(app, db=db)
         def test():
+            logger.info("hiii")
             if tools.textgen is not None:
                 msg = tools.textgen.generate(
                     "You need to write in 1-2 sentences make a joke to greet user to my web app. \
@@ -97,6 +98,8 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
                     Just the joke text."
                 )
                 flash(msg, category="info")
+            logger.debug("hellooo")
+            log_buffer.flush()
             return render_template("test.html")
         
     @wrappers.page_route(app, db=db)
@@ -316,4 +319,5 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(pages.lab_preps_page_bp)
     app.register_blueprint(pages.groups_page_bp)
 
+    log_buffer.flush()
     return app

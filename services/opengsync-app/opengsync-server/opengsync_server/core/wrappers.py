@@ -12,6 +12,7 @@ from opengsync_db.categories import HTTPResponse
 from opengsync_db import exceptions as db_exceptions
 
 from .. import logger
+from ..core.LogBuffer import log_buffer
 from ..tools import utils, textgen
 from . import exceptions as serv_exceptions
 

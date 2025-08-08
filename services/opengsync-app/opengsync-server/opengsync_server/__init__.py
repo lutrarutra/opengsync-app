@@ -1,8 +1,7 @@
-import sys
 import os
+import sys
 import uuid
 
-from loguru import logger
 import pandas as pd
 import pytz
 from flask_htmx import HTMX
@@ -12,10 +11,21 @@ from flask_mail import Mail
 from flask_caching import Cache
 from itsdangerous import URLSafeTimedSerializer
 
+from loguru import logger
+
 from opengsync_db import DBHandler, categories
+
+from .core.LogBuffer import log_buffer
 from .tools import RedisMSFFileCache
 from .tools.WeekTimeWindow import WeekTimeWindow
 from .core.wrappers import page_route, htmx_route  # noqa: F401
+
+DEFAULT_FMT = """{level} @ {time:YYYY-MM-DD HH:mm:ss} [{file}:{line} in {function}]:\n------------------------ [BEGIN LOG] ------------------------\n\n{message}\n\n------------------------ [ END LOG ] ------------------------\n"""
+
+debug = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
+
+logger.remove()
+logger.add(log_buffer, format="{message}", serialize=True, catch=True)
 
 # Show all columns without truncation
 pd.set_option('display.max_columns', None)
@@ -26,30 +36,6 @@ pd.set_option('display.max_colwidth', None)
 # Optional: increase the display width of your console (characters per line)
 pd.set_option('display.width', 1000)
 
-logger.remove()
-
-fmt = """{level} @ {time:YYYY-MM-DD HH:mm:ss} [{file}:{line} in {function}]:\n------------------------ [BEGIN LOG] ------------------------\n\n{message}\n\n------------------------ [ END LOG ] ------------------------\n"""
-
-
-if os.getenv("OPENGSYNC_DEBUG") == "1":
-    logger.add(
-        sys.stdout, colorize=True,
-        format=fmt, level="DEBUG"
-    )
-else:
-    date = "{time:YYYY-MM-DD}"
-    logger.add(
-        sys.stdout, colorize=True,
-        format=fmt, level="INFO"
-    )
-    logger.add(
-        f"logs/{date}_server.log", format=fmt, level="INFO",
-        colorize=False, rotation="1 day"
-    )
-    logger.add(
-        f"logs/{date}_server.err", format=fmt, level="ERROR",
-        colorize=False, rotation="1 day"
-    )
 
 SECRET_KEY = ""
 if os.path.exists("cert/session.key"):
