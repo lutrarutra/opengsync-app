@@ -172,20 +172,14 @@ def where(
         query = query.where(models.SeqRequest.group_id == group_id)
 
     if project_id is not None:
-        query = query.join(
-            models.Library,
-            models.Library.seq_request_id == models.SeqRequest.id
-        ).join(
-            models.links.SampleLibraryLink,
-            models.links.SampleLibraryLink.library_id == models.Library.id
-        ).join(
-            models.Sample,
-            models.Sample.id == models.links.SampleLibraryLink.sample_id
-        ).join(
-            models.Project,
-            models.Project.id == models.Sample.project_id
-        ).where(
-            models.Project.id == project_id
+        query = query.where(
+            sa.exists().where(
+                (models.Sample.project_id == models.Project.id) &
+                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                (models.Library.seq_request_id == models.SeqRequest.id) &
+                (models.Project.id == project_id)
+            )
         )
 
     if custom_query is not None:

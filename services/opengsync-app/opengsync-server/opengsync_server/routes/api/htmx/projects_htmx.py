@@ -1,5 +1,5 @@
 import json
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -7,7 +7,7 @@ import pandas as pd
 from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
 
-from opengsync_db import models, DBHandler, PAGE_LIMIT
+from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus, SeqRequestStatus
 
 from .... import db, forms, logger, htmx_route  # noqa
@@ -251,6 +251,9 @@ def get_seq_requests(project_id: int, page: int = 0):
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
+
+    if sort_by not in models.SeqRequest.sortable_fields:
+        return abort(HTTPResponse.BAD_REQUEST.id)
 
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)

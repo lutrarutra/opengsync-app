@@ -87,7 +87,7 @@ def where(
                 models.links.UserAffiliation.user_id == user_id,
                 models.Project.owner_id == user_id,
             )
-        ).distinct(models.Project.id)
+        )
 
     if group_id is not None:
         query = query.where(
@@ -95,32 +95,24 @@ def where(
         )
 
     if seq_request_id is not None:
-        query = query.join(
-            models.Sample,
-            models.Sample.project_id == models.Project.id,
-        ).join(
-            models.links.SampleLibraryLink,
-            models.links.SampleLibraryLink.sample_id == models.Sample.id,
-        ).join(
-            models.Library,
-            models.Library.id == models.links.SampleLibraryLink.library_id,
-        ).where(
-            models.Library.seq_request_id == seq_request_id
-        ).distinct(models.Project.id)
+        query = query.where(
+            sa.exists().where(
+                (models.Sample.project_id == models.Project.id) &
+                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                (models.Library.seq_request_id == seq_request_id)
+            )
+        )
 
     if experiment_id is not None:
-        query = query.join(
-            models.Sample,
-            models.Sample.project_id == models.Project.id,
-        ).join(
-            models.links.SampleLibraryLink,
-            models.links.SampleLibraryLink.sample_id == models.Sample.id,
-        ).join(
-            models.Library,
-            models.Library.id == models.links.SampleLibraryLink.library_id,
-        ).where(
-            models.Library.experiment_id == experiment_id
-        ).distinct(models.Project.id)
+        query = query.where(
+            sa.exists().where(
+                (models.Sample.project_id == models.Project.id) &
+                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                (models.Library.experiment_id == experiment_id)
+            )
+        )
 
     if status is not None:
         query = query.where(models.Project.status_id == status.id)

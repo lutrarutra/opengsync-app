@@ -119,54 +119,42 @@ def where(
     custom_query: Callable[[Query], Query] | None = None,
 ) -> Query:
     if user_id is not None:
-        query = query.where(
-            models.Library.owner_id == user_id
-        )
+        query = query.where(models.Library.owner_id == user_id)
 
     if seq_request_id is not None:
+        query = query.where(models.Library.seq_request_id == seq_request_id)
+
+    if sample_id is not None:
         query = query.where(
-            models.Library.seq_request_id == seq_request_id
+            sa.exists().where(
+                (models.links.SampleLibraryLink.sample_id == sample_id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id)
+            )
         )
 
-    if sample_id is not None or project_id is not None:
-        query = query.join(
-            models.links.SampleLibraryLink,
-            models.links.SampleLibraryLink.library_id == models.Library.id,
+    if project_id is not None:
+        query = query.where(
+            sa.exists().where(
+                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                (models.Sample.project_id == project_id)
+            )
         )
-        
-        if sample_id is not None:
-            query = query.where(models.links.SampleLibraryLink.sample_id == sample_id)
-
-        if project_id is not None:
-            query = query.join(
-                models.Sample,
-                models.Sample.id == models.links.SampleLibraryLink.sample_id,
-            ).where(models.Sample.project_id == project_id)
-
-            query = query.distinct(models.Library.id)
 
     if experiment_id is not None:
         query = query.where(models.Library.experiment_id == experiment_id)
 
     if pooled is not None:
         if pooled:
-            query = query.where(
-                models.Library.pool_id.is_not(None)
-            )
+            query = query.where(models.Library.pool_id.is_not(None))
         else:
-            query = query.where(
-                models.Library.pool_id.is_(None)
-            )
+            query = query.where(models.Library.pool_id.is_(None))
 
     if status is not None:
-        query = query.where(
-            models.Library.status_id == status.id
-        )
+        query = query.where(models.Library.status_id == status.id)
 
     if pool_id is not None:
-        query = query.where(
-            models.Library.pool_id == pool_id
-        )
+        query = query.where(models.Library.pool_id == pool_id)
 
     if assay_type is not None:
         query = query.where(models.Library.assay_type_id == assay_type.id)
@@ -181,14 +169,10 @@ def where(
             query = query.where(models.Library.lab_prep_id == None) # noqa
 
     if type_in is not None:
-        query = query.where(
-            models.Library.type_id.in_([t.id for t in type_in])
-        )
+        query = query.where(models.Library.type_id.in_([t.id for t in type_in]))
 
     if status_in is not None:
-        query = query.where(
-            models.Library.status_id.in_([s.id for s in status_in])
-        )
+        query = query.where(models.Library.status_id.in_([s.id for s in status_in]))
 
     if custom_query is not None:
         query = custom_query(query)

@@ -111,40 +111,30 @@ def where(
         )
 
     if library_id is not None:
-        query = query.join(
-            models.Library,
-            models.Library.pool_id == models.Pool.id,
-        ).where(
-            models.Library.id == library_id
+        query = query.where(
+            sa.exists().where(
+                (models.Library.pool_id == models.Pool.id) &
+                (models.Library.id == library_id)
+            )
         )
 
     if experiment_id is not None:
-        query = query.where(
-            models.Pool.experiment_id == experiment_id
-        )
+        query = query.where(models.Pool.experiment_id == experiment_id)
 
     if seq_request_id is not None:
-        query = query.where(
-            models.Pool.seq_request_id == seq_request_id
-        )
+        query = query.where(models.Pool.seq_request_id == seq_request_id)
 
     if lab_prep_id is not None:
-        query = query.where(
-            models.Pool.lab_prep_id == lab_prep_id
-        )
+        query = query.where(models.Pool.lab_prep_id == lab_prep_id)
 
     if status is not None:
         query = query.where(models.Pool.status_id == status.id)
 
     if status_in is not None:
-        query = query.where(
-            models.Pool.status_id.in_([s.id for s in status_in])
-        )
+        query = query.where(models.Pool.status_id.in_([s.id for s in status_in]))
 
     if type_in is not None:
-        query = query.where(
-            models.Pool.type_id.in_([t.id for t in type_in])
-        )
+        query = query.where(models.Pool.type_id.in_([t.id for t in type_in]))
 
     if associated_to_experiment is not None:
         if associated_to_experiment:
