@@ -2,13 +2,13 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 
-<div id="experiment-experiment-project-table" class="table-container">
+<div id="experiment-project-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
                 {{
                     table_col(
-                        table_container_id='experiment-experiment-project-table', column_name='ID', column_var='id',
+                        table_container_id='experiment-project-table', column_name='ID', column_var='id',
                         sort_url='experiments_htmx.get_projects', context={'experiment_id': experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
                     )
@@ -22,7 +22,7 @@
                 }}
                 {{
                     table_col(
-                        table_container_id='experiment-experiment-project-table', column_name='Title', column_var='title',
+                        table_container_id='experiment-project-table', column_name='Title', column_var='title',
                         sort_url='experiments_htmx.get_projects', context={'experiment_id': experiment.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=4
                     )
@@ -70,6 +70,6 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("experiment-experiment-project-table-spinner") }}
-    {{ pagination("experiment-experiment-project-table", "experiments_htmx.get_projects", n_pages, active_page, context={"experiment_id": experiment.id}) }}
+    {{ spinner("experiment-project-table-spinner") }}
+    {{ pagination("experiment-project-table", "experiments_htmx.get_projects", n_pages, active_page, context={"experiment_id": experiment.id}) }}
 </div>

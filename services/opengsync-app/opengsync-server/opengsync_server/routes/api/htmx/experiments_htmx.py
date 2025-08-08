@@ -8,7 +8,7 @@ from flask import Blueprint, url_for, render_template, flash, abort, request, cu
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, ExperimentStatus, ExperimentWorkFlow
+from opengsync_db.categories import HTTPResponse, ExperimentStatus, ExperimentWorkFlow, ProjectStatus
 
 from .... import db, forms, logger, htmx_route
 
@@ -554,14 +554,25 @@ def get_projects(experiment_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    if sort_by not in models.Library.sortable_fields:
+    if sort_by not in models.Project.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
     if (experiment := db.get_experiment(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [ProjectStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+    
     projects, n_pages = db.get_projects(
-        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, count_pages=True
+        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, count_pages=True,
+        status_in=status_in
     )
 
     return make_response(
@@ -569,7 +580,7 @@ def get_projects(experiment_id: int, page: int = 0):
             "components/tables/experiment-project.html",
             projects=projects, n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
-            experiment=experiment
+            experiment=experiment, status_in=status_in,
         )
     )
 

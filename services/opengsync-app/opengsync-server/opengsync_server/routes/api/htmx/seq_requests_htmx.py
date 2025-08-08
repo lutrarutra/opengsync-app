@@ -8,7 +8,10 @@ from flask_htmx import make_response
 import pandas as pd
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType, SampleStatus, SubmissionType, PoolStatus
+from opengsync_db.categories import (
+    HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType,
+    SampleStatus, SubmissionType, PoolStatus, ProjectStatus
+)
 from opengsync_db.core import exceptions
 from .... import db, forms, logger, htmx_route
 
@@ -771,6 +774,47 @@ def get_libraries(seq_request_id: int, page: int = 0):
             libraries=libraries, n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order, seq_request=seq_request,
             status_in=status_in, type_in=type_in
+        )
+    )
+
+
+@htmx_route(seq_requests_htmx, db=db)
+def get_projects(seq_request_id: int, page: int = 0):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    if sort_by not in models.Project.sortable_fields:
+        return abort(HTTPResponse.BAD_REQUEST.id)
+
+    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
+    
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [ProjectStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            return abort(HTTPResponse.BAD_REQUEST.id)
+    
+        if len(status_in) == 0:
+            status_in = None
+    
+    projects, n_pages = db.get_projects(
+        offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending, count_pages=True,
+        status_in=status_in
+    )
+
+    return make_response(
+        render_template(
+            "components/tables/seq_request-project.html",
+            projects=projects, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
+            seq_request=seq_request, status_in=status_in,
         )
     )
 

@@ -263,6 +263,12 @@
             aria-controls="request-share-tab" aria-selected="true"
             id="request-share-tab-btn">Share</button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-projects-tab" type="button" role="tab"
+            aria-controls="request-projects-tab" aria-selected="true"
+            id="request-projects-tab-btn">Projects</button>
+        </li>
     </ul>
 </div>
 
@@ -666,7 +672,12 @@
                 </div>
                 {% endfor %}
             </div>
-        </div>  
+        </div>
+        <div class="tab-pane fadee" id="request-projects-tab" role="tabpanel" tabindex="10">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_projects', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
     </div>
 
     <div class="modal fade" id="seq_request_share_email-form-popup" aria-hidden="true" aria-labelledby="">

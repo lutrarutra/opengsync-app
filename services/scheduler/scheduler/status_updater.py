@@ -1,5 +1,7 @@
 from . import logger
 
+import sqlalchemy as sa
+
 from opengsync_db.core import DBHandler
 from opengsync_db import categories, models
 
@@ -53,38 +55,28 @@ def __find_sequenced_seq_requests(q):
 
 
 def __find_sequenced_projects(q):
-    return q.join(
-        models.Sample,
-        models.Sample.project_id == models.Project.id
-    ).join(
-        models.links.SampleLibraryLink,
-        models.links.SampleLibraryLink.sample_id == models.Sample.id
-    ).join(
-        models.Library,
-        models.Library.id == models.links.SampleLibraryLink.library_id
-    ).where(
-        models.Library.status_id >= categories.LibraryStatus.SEQUENCED.id
+    return q.where(
+        sa.exists().where(
+            (models.Sample.project_id == models.Project.id) &
+            (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+            (models.Library.id == models.links.SampleLibraryLink.library_id) &
+            (models.Library.status_id >= categories.LibraryStatus.SEQUENCED.id)
+        )
     )
 
 
 def __find_finished_seq_requests(q):
-    return q.join(
-        models.Library,
-        models.Library.seq_request_id == models.SeqRequest.id,
-    ).join(
-        models.links.SampleLibraryLink,
-        models.links.SampleLibraryLink.library_id == models.Library.id,
-    ).join(
-        models.Sample,
-        models.Sample.id == models.links.SampleLibraryLink.sample_id,
-    ).join(
-        models.Project,
-        models.Project.id == models.Sample.project_id,
-    ).where(
-        models.Project.status_id.in_(
-            [categories.ProjectStatus.DELIVERED.id, categories.ProjectStatus.ARCHIVED.id]
+    return q.where(
+        sa.exists().where(
+            (models.Library.seq_request_id == models.SeqRequest.id) &
+            (models.links.SampleLibraryLink.library_id == models.Library.id) &
+            (models.Sample.id == models.links.SampleLibraryLink.sample_id) &
+            (models.Project.id == models.Sample.project_id) &
+            (models.Project.status_id.in_([
+                categories.ProjectStatus.DELIVERED.id, categories.ProjectStatus.ARCHIVED.id
+            ]))
         )
-    ).distinct(models.SeqRequest.id)
+    )
 
 
 def update_statuses(db: DBHandler):

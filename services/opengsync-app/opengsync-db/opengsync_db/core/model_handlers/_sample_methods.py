@@ -58,54 +58,43 @@ def where(
     status_in: Optional[list[SampleStatusEnum]] = None
 ) -> Query:
     if seq_request_id is not None:
-        query = query.join(
-            models.links.SampleLibraryLink,
-            models.links.SampleLibraryLink.sample_id == models.Sample.id
-        ).join(
-            models.Library,
-            models.Library.id == models.links.SampleLibraryLink.library_id
-        ).where(
-            models.Library.seq_request_id == seq_request_id
-        ).distinct(models.Sample.id)
+        query = query.where(
+            sa.exists().where(
+                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                (models.Library.seq_request_id == seq_request_id)
+            )
+        )
 
     if user_id is not None:
-        query = query.where(
-            models.Sample.owner_id == user_id
-        )
+        query = query.where(models.Sample.owner_id == user_id)
 
     if project_id is not None:
-        query = query.where(
-            models.Sample.project_id == project_id
-        )
+        query = query.where(models.Sample.project_id == project_id)
 
     if library_id is not None:
-        query = query.join(
-            models.links.SampleLibraryLink,
-            models.links.SampleLibraryLink.sample_id == models.Sample.id
-        ).where(
-            models.links.SampleLibraryLink.library_id == library_id
+        query = query.where(
+            sa.exists().where(
+                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                (models.Library.id == library_id)
+            )
         )
 
     if pool_id is not None:
-        query = query.join(
-            models.links.SampleLibraryLink,
-            models.links.SampleLibraryLink.sample_id == models.Sample.id
-        ).join(
-            models.Library,
-            models.Library.id == models.links.SampleLibraryLink.library_id
-        ).where(
-            models.Library.pool_id == pool_id
+        query = query.where(
+            sa.exists().where(
+                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                (models.Library.pool_id == pool_id)
+            )
         )
 
     if status is not None:
-        query = query.where(
-            models.Sample.status_id == status.id
-        )
+        query = query.where(models.Sample.status_id == status.id)
 
     if status_in is not None:
-        query = query.where(
-            models.Sample.status_id.in_([s.id for s in status_in])
-        )
+        query = query.where(models.Sample.status_id.in_([s.id for s in status_in]))
 
     return query
 
