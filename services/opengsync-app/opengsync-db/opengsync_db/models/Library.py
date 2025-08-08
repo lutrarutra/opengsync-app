@@ -94,14 +94,14 @@ class Library(Base):
     indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="joined", cascade="all, save-update, merge, delete, delete-orphan")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "owner_id", "pool_id", "adapter"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "owner_id", "pool_id", "adapter", "num_samples", "num_features"]
 
     @hybrid_property
-    def num_samples(self) -> int:
+    def num_samples(self) -> int:  # type: ignore[override]
         return len(self.sample_links)
     
     @num_samples.expression
-    def __num_samples(cls) -> sa.ScalarSelect[int]:
+    def num_samples(cls) -> sa.ScalarSelect[int]:
         from .Sample import Sample
         return sa.select(
             sa.func.count(Sample.id)
@@ -112,11 +112,11 @@ class Library(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @hybrid_property
-    def num_features(self) -> int:
+    def num_features(self) -> int:  # type: ignore[override]
         return len(self.features)
 
     @num_features.expression
-    def __num_features(cls) -> sa.ScalarSelect[int]:
+    def num_features(cls) -> sa.ScalarSelect[int]:
         from .Feature import Feature
         return sa.select(
             sa.func.count(Feature.id)

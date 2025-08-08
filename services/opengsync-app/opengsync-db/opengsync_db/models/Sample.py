@@ -80,11 +80,11 @@ class Sample(Base):
     sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries", "status_id"]
 
     @hybrid_property
-    def num_libraries(self) -> int:
+    def num_libraries(self) -> int:  # type: ignore[override]
         return len(self.library_links)
     
     @num_libraries.expression
-    def __num_libraries(cls) -> sa.ScalarSelect[int]:
+    def num_libraries(cls) -> sa.ScalarSelect[int]:
         from .Library import Library
         return sa.select(
             sa.func.count(Library.id)

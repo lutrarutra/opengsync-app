@@ -77,11 +77,11 @@ class Pool(Base):
     error_max_molarity: ClassVar[float] = 10.0
 
     @hybrid_property
-    def num_libraries(self) -> int:
+    def num_libraries(self) -> int:  # type: ignore[override]
         return len(self.libraries)
     
     @num_libraries.expression
-    def __num_libraries(cls) -> sa.ScalarSelect[int]:
+    def num_libraries(cls) -> sa.ScalarSelect[int]:
         from .Library import Library
         return sa.select(
             sa.func.count(Library.id)

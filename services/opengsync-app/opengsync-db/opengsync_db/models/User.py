@@ -86,14 +86,14 @@ class User(Base, UserMixin):
     files: Mapped[list["File"]] = relationship("File", back_populates="uploader", lazy="select")
     preps: Mapped[list["LabPrep"]] = relationship("LabPrep", back_populates="creator", lazy="select")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_samples", "num_seq_requests"]
+    sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_samples", "num_projects", "num_seq_requests"]
 
     @hybrid_property
-    def num_samples(self) -> int:
+    def num_samples(self) -> int:  # type: ignore[override]
         return len(self.samples)
     
     @num_samples.expression
-    def __num_samples(cls) -> sa.ScalarSelect[int]:
+    def num_samples(cls) -> sa.ScalarSelect[int]:
         from .Sample import Sample
         return sa.select(
             sa.func.count(Sample.id)
@@ -102,11 +102,11 @@ class User(Base, UserMixin):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
-    def num_seq_requests(self) -> int:
+    def num_seq_requests(self) -> int:  # type: ignore[override]
         return len(self.requests)
     
     @num_seq_requests.expression
-    def __num_seq_requests(cls) -> sa.ScalarSelect[int]:
+    def num_seq_requests(cls) -> sa.ScalarSelect[int]:
         from .SeqRequest import SeqRequest
         return sa.select(
             sa.func.count(SeqRequest.id)
@@ -115,11 +115,11 @@ class User(Base, UserMixin):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @hybrid_property
-    def num_projects(self) -> int:
+    def num_projects(self) -> int:  # type: ignore[override]
         return len(self.projects)
     
     @num_projects.expression
-    def __num_projects(cls) -> sa.ScalarSelect[int]:
+    def num_projects(cls) -> sa.ScalarSelect[int]:
         from .Project import Project
         return sa.select(
             sa.func.count(Project.id)
