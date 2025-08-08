@@ -176,9 +176,6 @@ def get_group_affiliations(
 ) -> tuple[list[models.links.UserAffiliation], int | None]:
     if not (persist_session := self._session is not None):
         self.open_session()
-
-    if (_ := self.session.get(models.Group, group_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
     
     query = self.session.query(models.links.UserAffiliation).where(
         models.links.UserAffiliation.group_id == group_id
@@ -227,9 +224,6 @@ def update_group(self: "DBHandler", group: models.Group) -> models.Group:
 def add_user_to_group(self: "DBHandler", user_id: int, group_id: int, affiliation_type: AffiliationTypeEnum) -> models.Group:
     if not (persist_session := self._session is not None):
         self.open_session()
-
-    if (_ := self.session.get(models.User, user_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id {user_id} not found")
     
     if (group := self.session.get(models.Group, group_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
@@ -257,9 +251,6 @@ def add_user_to_group(self: "DBHandler", user_id: int, group_id: int, affiliatio
 def remove_user_from_group(self: "DBHandler", user_id: int, group_id: int) -> models.Group:
     if not (persist_session := self._session is not None):
         self.open_session()
-
-    if (_ := self.session.get(models.User, user_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id {user_id} not found")
     
     if (group := self.session.get(models.Group, group_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")

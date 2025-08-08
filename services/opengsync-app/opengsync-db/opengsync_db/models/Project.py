@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, ClassVar
 from datetime import datetime
 
 import sqlalchemy as sa
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
@@ -30,8 +31,6 @@ class Project(Base):
 
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
-    num_samples: Mapped[int] = mapped_column(nullable=False, default=0)
-
     samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="project", lazy="select")
 
     libraries: Mapped[list["Library"]] = relationship(
@@ -52,7 +51,20 @@ class Project(Base):
 
     __software: Mapped[dict[str, dict] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="software")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "identifier", "title", "owner_id", "num_samples", "status_id", "group_id", "timestamp_created_utc"]
+    sortable_fields: ClassVar[list[str]] = ["id", "identifier", "title", "owner_id", "status_id", "group_id", "timestamp_created_utc"]
+
+    @hybrid_property
+    def num_samples(self) -> int:
+        return len(self.samples)
+    
+    @num_samples.expression
+    def __num_samples(cls) -> sa.ScalarSelect[int]:
+        from .Sample import Sample
+        return sa.select(
+            sa.func.count(Sample.id)
+        ).where(
+            Sample.project_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
     def software(self) -> dict[str, dict]:

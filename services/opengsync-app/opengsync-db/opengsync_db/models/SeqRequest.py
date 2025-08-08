@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
@@ -10,9 +11,9 @@ from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadT
 from . import links
 
 if TYPE_CHECKING:
+    from .Library import Library
     from .User import User
     from .Contact import Contact
-    from .Library import Library
     from .Pool import Pool
     from .File import File
     from .Comment import Comment
@@ -40,8 +41,6 @@ class SeqRequest(Base):
 
     read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
     num_lanes: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-    
-    num_libraries: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
     organization_contact_id: Mapped[int] = mapped_column(sa.ForeignKey("contact.id"), nullable=False)
     organization_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[organization_contact_id], cascade="save-update, merge")
@@ -81,6 +80,19 @@ class SeqRequest(Base):
     )
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
+
+    @hybrid_property
+    def num_libraries(self) -> int:
+        return len(self.libraries)
+    
+    @num_libraries.expression
+    def __num_libraries(cls) -> sa.ScalarSelect[int]:
+        from .Library import Library
+        return sa.select(
+            sa.func.count(Library.id)
+        ).where(
+            Library.seq_request_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
     def status(self) -> SeqRequestStatusEnum:

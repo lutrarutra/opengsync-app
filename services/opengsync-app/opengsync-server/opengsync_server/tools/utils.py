@@ -316,7 +316,7 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
                 else:
                     kit_i7 = None
                 kit_i7s.append(kit_i7 or "")
-                names_i7.append(name_i7)
+                names_i7.append(name_i7 or "")
                 sequences_i7.append(";".join(seqs_i7))
 
             kit_i5s = []
@@ -331,15 +331,15 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
                 else:
                     kit_i5 = None
                 kit_i5s.append(kit_i5 or "")
-                names_i5.append(name_i5)
+                names_i5.append(name_i5 or "")
                 sequences_i5.append(";".join(seqs_i5))
 
             library_data["index_well"].append(None)
-            library_data["kit_i7"].append(";".join(kit_i7s) if pd.notna(kit_i7s) and len(kit_i7s) else None)
-            library_data["name_i7"].append(";".join(names_i7) if pd.notna(names_i7) and len(names_i7) else None)
+            library_data["kit_i7"].append(";".join(kit_i7s) if len(kit_i7s) else None)
+            library_data["name_i7"].append(";".join(names_i7) if len(names_i7) else None)
             library_data["sequence_i7"].append(";".join(sequences_i7) if len(sequences_i7) else None)
-            library_data["kit_i5"].append(";".join(kit_i5s) if pd.notna(kit_i5s) and len(kit_i5s) else None)
-            library_data["name_i5"].append(";".join(names_i5) if pd.notna(names_i5) and len(names_i5) else None)
+            library_data["kit_i5"].append(";".join(kit_i5s) if len(kit_i5s) else None)
+            library_data["name_i5"].append(";".join(names_i5) if len(names_i5) else None)
             library_data["sequence_i5"].append(";".join(sequences_i5) if len(sequences_i5) else None)
 
     df = pd.DataFrame(library_data)

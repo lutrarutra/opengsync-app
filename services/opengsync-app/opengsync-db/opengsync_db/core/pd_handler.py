@@ -197,8 +197,7 @@ def get_experiment_barcodes_df(self: "DBHandler", experiment_id: int) -> pd.Data
 
 def get_experiment_pools_df(self: "DBHandler", experiment_id: int) -> pd.DataFrame:
     query = sa.select(
-        models.Pool.id, models.Pool.name,
-        models.Pool.status_id, models.Pool.num_libraries,
+        models.Pool.id, models.Pool.name, models.Pool.status_id,
         models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
         models.Pool.avg_fragment_size,
     ).where(

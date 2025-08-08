@@ -83,8 +83,6 @@ def create_seq_request(
         billing_code=billing_code.strip() if billing_code else None,
     )
 
-    requestor.num_seq_requests += 1
-
     seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
         email=requestor.email,
         status_id=DeliveryStatus.PENDING.id,
@@ -296,7 +294,6 @@ def delete_seq_request(self: "DBHandler", seq_request_id: int, flush: bool = Tru
         if pool.type == PoolType.EXTERNAL:
             self.delete_pool(pool.id)
 
-    seq_request.requestor.num_seq_requests -= 1
     self.session.delete(seq_request)
 
     if flush:

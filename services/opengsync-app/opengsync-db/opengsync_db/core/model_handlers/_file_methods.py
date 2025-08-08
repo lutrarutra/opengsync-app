@@ -20,9 +20,6 @@ def create_file(
     
     if not (persist_session := self._session is not None):
         self.open_session()
-
-    if (_ := self.session.get(models.User, uploader_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id '{uploader_id}', not found.")
     
     if seq_request_id is not None:
         if experiment_id is not None:
@@ -126,9 +123,6 @@ def get_files(
 def file_permissions_check(self: "DBHandler", user_id: int, file_id: int) -> bool:
     if not (persist_session := self._session is not None):
         self.open_session()
-
-    if (_ := self.session.get(models.User, user_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id '{user_id}', not found.")
     
     if (file := self.session.get(models.File, file_id)) is None:
         raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")

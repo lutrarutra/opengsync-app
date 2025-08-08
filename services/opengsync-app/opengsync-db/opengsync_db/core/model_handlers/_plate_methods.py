@@ -103,9 +103,6 @@ def add_sample_to_plate(
     if (plate := self.get_plate(plate_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
     
-    if (_ := self.get_sample(sample_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
-    
     if self.session.query(models.links.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
         raise exceptions.LinkAlreadyExists(f"Well {well_idx} is already occupied in plate with id {plate_id}")
     
@@ -129,9 +126,6 @@ def add_library_to_plate(
 
     if (plate := self.get_plate(plate_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
-    
-    if (_ := self.get_library(library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
     
     if self.session.query(models.links.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
         raise exceptions.LinkAlreadyExists(f"Well {well_idx} is already occupied in plate with id {plate_id}")

@@ -23,9 +23,6 @@ def create_project(
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (owner := self.session.get(models.User, owner_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
-    
     if group_id is not None:
         if self.session.get(models.Group, group_id) is not None:
             raise exceptions.ElementDoesNotExist(f"Group with id {group_id} does not exist")
@@ -39,7 +36,6 @@ def create_project(
         status_id=status.id,
     )
 
-    owner.num_projects += 1
     self.session.add(project)
     
     if flush:
@@ -191,7 +187,6 @@ def delete_project(self: "DBHandler", project_id: int, flush: bool = True):
     if (project := self.session.get(models.Project, project_id)) is None:
         raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
 
-    project.owner.num_projects -= 1
     self.session.delete(project)
 
     if flush:

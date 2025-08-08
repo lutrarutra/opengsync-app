@@ -2,7 +2,7 @@
 
 {% macro barcode_clashes_table(df) %}
 {% set uuid = uuid4() %}
-<table class="table">
+<table class="table barcode-clashes-table">
     <thead>
         <tr>
             <th scope="col" class="col-1">Library ID</th>
@@ -36,7 +36,7 @@
             {% if "pool" in df.columns %}
             <td>{{ row["pool"] }}</td>
             {% endif %}
-            <td>{{ row["combined_index"] }}</td>
+            <td class="index-cell">{{ row["combined_index"] }}</td>
             <td {% if row["min_hamming_bases"] < 1 %}
             class="cemm-red"
             {% elif row["min_hamming_bases"] < 2 %}
