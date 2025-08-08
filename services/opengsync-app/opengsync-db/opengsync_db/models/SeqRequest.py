@@ -82,11 +82,11 @@ class SeqRequest(Base):
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
 
     @hybrid_property
-    def num_libraries(self) -> int:
+    def num_libraries(self) -> int:  # type: ignore[override]
         return len(self.libraries)
     
     @num_libraries.expression
-    def __num_libraries(cls) -> sa.ScalarSelect[int]:
+    def num_libraries(cls) -> sa.ScalarSelect[int]:
         from .Library import Library
         return sa.select(
             sa.func.count(Library.id)

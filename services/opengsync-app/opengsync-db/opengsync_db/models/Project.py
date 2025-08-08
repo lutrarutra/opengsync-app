@@ -51,14 +51,14 @@ class Project(Base):
 
     __software: Mapped[dict[str, dict] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="software")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "identifier", "title", "owner_id", "status_id", "group_id", "timestamp_created_utc"]
+    sortable_fields: ClassVar[list[str]] = ["id", "identifier", "title", "owner_id", "status_id", "group_id", "timestamp_created_utc", "num_samples"]
 
     @hybrid_property
-    def num_samples(self) -> int:
+    def num_samples(self) -> int:  # type: ignore[override]
         return len(self.samples)
     
     @num_samples.expression
-    def __num_samples(cls) -> sa.ScalarSelect[int]:
+    def num_samples(cls) -> sa.ScalarSelect[int]:
         from .Sample import Sample
         return sa.select(
             sa.func.count(Sample.id)
