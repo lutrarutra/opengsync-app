@@ -52,6 +52,7 @@ def page_route(
 
         @wraps(fnc)
         def wrapper(*args, **kwargs):
+            log_buffer.start()
             try:
                 return fnc(*args, **kwargs)
             except serv_exceptions.OpeNGSyncServerException as e:
@@ -71,6 +72,7 @@ def page_route(
             finally:
                 if db is not None and db._session:
                     db.close_session(commit=False)
+                log_buffer.flush()
         
         for r, defaults in routes:
             blueprint.route(r, methods=methods, defaults=defaults, strict_slashes=strict_slashes)(wrapper)
@@ -100,6 +102,7 @@ def htmx_route(
 
         @wraps(fnc)
         def wrapper(*args, **kwargs):
+            log_buffer.start()
             try:
                 res = fnc(*args, **kwargs)
                 return res
@@ -113,13 +116,14 @@ def htmx_route(
                 return make_response(render_template("errors/htmx_alert.html"), 200, retarget="#alert-container")
             except Exception as e:
                 if current_app.debug:
-                    raise e
+                    raise serv_exceptions.HTMXException() from e
                 logger.error(f"\n-------- Exception --------\n\tBlueprint: {blueprint}\n\tRoute: {routes}\n\targs: {args}\n\tkwargs: {kwargs}\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
                 flash(__get_flash_msg("An error occured while processing your request. Please notify us."), category="error")
                 return make_response(render_template("errors/htmx_alert.html"), 200, retarget="#alert-container")
             finally:
                 if db is not None and db._session:
                     db.close_session(commit=False)
+                log_buffer.flush()
 
         for r, defaults in routes:
             blueprint.route(r, methods=methods, defaults=defaults)(wrapper)
@@ -151,6 +155,7 @@ def api_route(
 
         @wraps(fnc)
         def wrapper(*args, **kwargs):
+            log_buffer.start()
             try:
                 return fnc(*args, **kwargs)
             except serv_exceptions.OpeNGSyncServerException as e:
@@ -165,6 +170,7 @@ def api_route(
             finally:
                 if db is not None and db._session:
                     db.close_session(commit=False)
+                log_buffer.flush()
         
         if debug:
             logger.debug(routes)

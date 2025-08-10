@@ -32,3 +32,21 @@ class WorkflowException(OpeNGSyncServerException):
     @property
     def response(self) -> DBEnum:
         return HTTPResponse.INTERNAL_SERVER_ERROR
+    
+
+class HTMXException(Exception):
+    @property
+    def response(self) -> DBEnum:
+        return HTTPResponse.INTERNAL_SERVER_ERROR
+
+
+class PageException(Exception):
+    @property
+    def response(self) -> DBEnum:
+        return HTTPResponse.INTERNAL_SERVER_ERROR
+    
+
+class APIException(Exception):
+    @property
+    def response(self) -> DBEnum:
+        return HTTPResponse.INTERNAL_SERVER_ERROR

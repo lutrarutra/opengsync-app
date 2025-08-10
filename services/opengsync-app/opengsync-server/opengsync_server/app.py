@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd
 
 from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response, flash
+from flask_htmx import make_response as make_htmx_response
 
 from opengsync_db import categories, models, TIMEZONE, to_utc
 
@@ -21,6 +22,7 @@ else:
 
 
 def create_app(static_folder: str, template_folder: str) -> Flask:
+    log_buffer.start()
     if not os.path.exists(static_folder):
         raise FileNotFoundError(f"Static folder not found: {static_folder}")
     
@@ -37,10 +39,12 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         db=os.environ["POSTGRES_DB"],
     )
     app.debug = os.getenv("OPENGSYNC_DEBUG") == "1"
+    app.config["APP_ROOT"] = os.path.dirname(os.path.abspath(__file__))
     app.config["MEDIA_FOLDER"] = tools.io.mkdir(os.path.join("media"))
     app.config["UPLOADS_FOLDER"] = tools.io.mkdir(os.path.join("uploads"))
     app.config["APP_DATA_FOLDER"] = tools.io.mkdir(os.path.join("app_data"))
 
+    logger.info(__file__)
     logger.info(f"MEDIA_FOLDER: {app.config['MEDIA_FOLDER']}")
     logger.info(f"UPLOADS_FOLDER: {app.config['UPLOADS_FOLDER']}")
     logger.info(f"APP_DATA_FOLDER: {app.config['APP_DATA_FOLDER']}")
@@ -80,6 +84,28 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     login_manager.init_app(app)
     mail.init_app(app)
 
+    if app.debug:
+        import traceback
+        from .core import exceptions
+
+        @app.errorhandler(Exception)
+        def handle_exception(e: Exception):
+            exc = e
+            if e.__cause__:
+                exc = e.__cause__
+            exc_tb = traceback.TracebackException(type(exc), exc, exc.__traceback__)
+            for frame in exc_tb.stack:
+                try:
+                    frame.filename = frame.filename.replace("/usr/src/app/opengsync-server/", "")
+                except Exception:
+                    pass
+                
+            logger.error("".join(exc_tb.format()))
+            log_buffer.flush()
+            if isinstance(e, exceptions.HTMXException):
+                return make_htmx_response(render_template("errors/htmx_traceback.html", exc=exc_tb), 200, retarget="#debug-modal")
+            return make_response(render_template("errors/traceback.html", exc=exc_tb))
+
     @login_manager.user_loader
     def load_user(user_id: int) -> models.User | None:
         if (user := db.get_user(user_id)) is None:
@@ -88,7 +114,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         return user
     
     if app.debug:
-        @wrappers.page_route(app, db=db)
+        @wrappers.page_route(app, login_required=False)
         def test():
             logger.info("hiii")
             if tools.textgen is not None:
@@ -99,7 +125,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
                 )
                 flash(msg, category="info")
             logger.debug("hellooo")
-            log_buffer.flush()
             return render_template("test.html")
         
     @wrappers.page_route(app, db=db)
