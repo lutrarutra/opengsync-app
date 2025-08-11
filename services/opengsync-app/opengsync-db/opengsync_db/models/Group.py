@@ -34,3 +34,10 @@ class Group(Base):
     
     def search_name(self) -> str:
         return self.name
+
+    __table_args__ = (
+        sa.Index(
+            "trgm_group_name_idx", sa.func.lower(name),
+            postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}
+        ),
+    )

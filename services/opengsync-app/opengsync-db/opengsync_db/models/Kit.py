@@ -46,3 +46,19 @@ class Kit(Base):
     
     def __repr__(self) -> str:
         return self.__str__()
+
+    __table_args__ = (
+        sa.Index(
+            "trgm_kit_name_idx", sa.func.lower(name),
+            postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}
+        ),
+        sa.Index(
+            "trgm_kit_identifier_idx", sa.func.lower(identifier),
+            postgresql_using="gin", postgresql_ops={"identifier": "gin_trgm_ops"}
+        ),
+        sa.Index(
+            "trgm_kit_identifier_name_idx",
+            sa.text("lower(identifier || ' ' || name) gin_trgm_ops"),
+            postgresql_using="gin",
+        )
+    )

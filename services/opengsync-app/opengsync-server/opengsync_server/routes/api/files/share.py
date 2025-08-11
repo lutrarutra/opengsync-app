@@ -14,7 +14,7 @@ file_share_bp = Blueprint("file_share", __name__, url_prefix="/api/files/")
 
 
 if DEBUG:
-    @wrappers.api_route(file_share_bp, db=db, login_required=False)
+    @wrappers.api_route(file_share_bp)
     def generate(path: Path):
         if isinstance(path, str):
             path = Path(path)
@@ -28,7 +28,7 @@ if DEBUG:
         return {"token": token}, HTTPResponse.OK.id
 
 
-@wrappers.api_route(file_share_bp, login_required=False)
+@wrappers.api_route(file_share_bp)
 def validate(token: str):
     try:
         path = tokens.verify_file_share_token(token, max_age_hours=1, serializer=serializer)
@@ -41,12 +41,10 @@ def validate(token: str):
     return "OK", HTTPResponse.OK.id
 
 
-@wrappers.page_route(file_share_bp, login_required=False, debug=True, strict_slashes=False)
+@wrappers.page_route(file_share_bp, login_required=False, strict_slashes=False)
 def browse(token: str, subpath: Path = Path("")):
     if isinstance(subpath, str):
         subpath = Path(subpath)
-
-    logger.debug(subpath)
 
     try:
         path = tokens.verify_file_share_token(token, max_age_hours=1, serializer=serializer)

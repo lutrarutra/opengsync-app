@@ -275,3 +275,16 @@ class Library(Base):
                 i5s.append(index.name_i5)
 
         return sep.join(i5s)
+
+    __table_args__ = (
+        sa.Index(
+            "trgm_library_name_idx",
+            sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_library_sample_name_idx",
+            sa.text("lower(sample_name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+    )

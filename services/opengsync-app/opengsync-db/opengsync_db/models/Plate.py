@@ -77,3 +77,10 @@ class Plate(Base):
     
     def get_sample_xy(self, row: int, col: int) -> Sample | Library | None:
         return self.get_sample(row * self.num_cols + col)
+
+    __table_args__ = (
+        sa.Index(
+            "trgm_plate_name_idx", sa.func.lower(name),
+            postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}
+        ),
+    )
