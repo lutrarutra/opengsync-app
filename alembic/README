@@ -1,2 +1,6 @@
-1. `alembic revision --autogenerate -m "message"`
+1. `alembic revision --autogenerate`
 2. `alembic upgrade head`
+
+
+### Alembic Table
+`alembic_version`
