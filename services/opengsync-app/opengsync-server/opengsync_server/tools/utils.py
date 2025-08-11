@@ -61,7 +61,7 @@ def check_indices(df: pd.DataFrame, groupby: str | None = None) -> pd.DataFrame:
         indices.append("sequence_i5")
 
     df["combined_index"] = ""
-    df["min_hamming_bases"] = None
+    df["min_hamming_bases"] = 5  # FIXME: This is a placeholder value due to bug
     if len(df) > 1:
         if groupby is None:
             for index in indices:
@@ -109,7 +109,7 @@ def check_indices(df: pd.DataFrame, groupby: str | None = None) -> pd.DataFrame:
 
     df.loc[df["min_hamming_bases"] < 1, "error"] = "Hamming distance of 0 between barcode combination in two or more libraries."
     df.loc[df["min_hamming_bases"] < 3, "warning"] = "Small hamming distance between barcode combination in two or more libraries."
-
+    logger.info(df)
     return df
 
 

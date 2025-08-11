@@ -15,12 +15,10 @@ class LogBuffer:
     def __init__(
         self,
         stdout: bool = True,
-        log_path: Optional[str] = None,
-        err_path: Optional[str] = None,
+        log_dir: Optional[str] = None,
     ):
         self.stdout = stdout
-        self.log_path = log_path
-        self.err_path = err_path
+        self.log_dir = log_dir
         self.buffer: list[str] | None = None
         self.src_prefix = os.path.dirname(os.path.abspath(__file__)).removesuffix("/opengsync_server/core")
         print(f"LogBuffer initialized with src_prefix: {self.src_prefix}", flush=True)
@@ -30,23 +28,8 @@ class LogBuffer:
         if self.buffer is not None:
             self.buffer.append(message)
         else:
-            # Immediate logging (non-buffered)
-            try:
-                record = json.loads(message)
-                message = self.parse_record(record)
-                message = DEFAULT_FMT.format(
-                    level="INFO",
-                    time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    message="".join(message),  # Combine with origins
-                )
-                print(message, flush=True)
-            except json.JSONDecodeError:
-                message = DEFAULT_FMT.format(
-                    level="ERROR",
-                    time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    message="".join(message),  # Combine with origins
-                )
-                print(message, flush=True)  # Fallback for non-serialized messages
+            self.buffer = [message]
+            self.flush()
 
     def start(self):
         """Enable buffering."""
@@ -88,21 +71,29 @@ class LogBuffer:
         
         if self.stdout:
             print(log, flush=True)
-        if self.log_path:
-            with open(self.log_path, "a") as f:
+
+        if self.log_dir:
+            log_path = os.path.join(
+                self.log_dir,
+                datetime.now().strftime("%Y-%m-%d_server") + ".log",
+            )
+            err_path = os.path.join(
+                self.log_dir,
+                datetime.now().strftime("%Y-%m-%d_server") + ".err",
+            )
+            with open(log_path, "a") as f:
                 f.write(log)
-        if self.err_path:
-            with open(self.err_path, "a") as f:
+            with open(err_path, "a") as f:
                 f.write(log)
         
         self.buffer = None
 
 
 def create_buffer(
-    stdout: bool = True, log_path: Optional[str] = None, err_path: Optional[str] = None
+    stdout: bool = True, log_dir: str = "logs/"
 ) -> LogBuffer:
-    log_buffer = LogBuffer(stdout=stdout, log_path=log_path, err_path=err_path)
+    log_buffer = LogBuffer(stdout=stdout, log_dir=log_dir)
     return log_buffer
 
 
-log_buffer = create_buffer(stdout=True, log_path="opengsync.log", err_path="opengsync.err")
+log_buffer = create_buffer(stdout=True)
