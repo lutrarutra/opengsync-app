@@ -72,7 +72,7 @@ def create_pool(
     self.session.add(pool)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -215,7 +215,7 @@ def delete_pool(self: "DBHandler", pool_id: int, flush: bool = True):
     self.session.delete(pool)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -481,7 +481,7 @@ def merge_pools(self: "DBHandler", merged_pool_id: int, pool_ids: Sequence[int],
     self.session.add(merged_pool)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

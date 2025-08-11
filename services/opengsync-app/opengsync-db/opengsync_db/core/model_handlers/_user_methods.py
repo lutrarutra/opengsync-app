@@ -38,7 +38,7 @@ def create_user(
     self.session.add(user)
     
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -158,7 +158,7 @@ def delete_user(self: "DBHandler", user_id: int, flush: bool = True) -> None:
 
     self.session.delete(user)
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

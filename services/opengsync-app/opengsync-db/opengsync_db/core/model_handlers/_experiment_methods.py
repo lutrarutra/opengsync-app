@@ -41,7 +41,7 @@ def create_experiment(
     self.session.add(experiment)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -154,7 +154,7 @@ def delete_experiment(self: "DBHandler", experiment_id: int, flush: bool = True)
     self.session.delete(experiment)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

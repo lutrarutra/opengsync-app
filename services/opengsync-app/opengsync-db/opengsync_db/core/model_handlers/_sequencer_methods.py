@@ -34,7 +34,7 @@ def create_sequencer(
     self.session.add(sequencer)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -134,7 +134,7 @@ def delete_sequencer(self: "DBHandler", sequencer_id: int, flush: bool = True):
     self.session.delete(sequencer)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

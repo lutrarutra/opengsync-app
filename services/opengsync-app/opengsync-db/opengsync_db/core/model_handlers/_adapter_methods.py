@@ -30,7 +30,7 @@ def create_adapter(
     self.session.add(adapter)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

@@ -33,7 +33,7 @@ def create_index_kit(
     self.session.add(seq_kit)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -125,7 +125,7 @@ def remove_all_barcodes_from_kit(
         self.session.delete(adapter)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

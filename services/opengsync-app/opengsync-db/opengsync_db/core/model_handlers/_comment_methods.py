@@ -53,7 +53,7 @@ def create_comment(
     self.session.add(comment)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -113,7 +113,7 @@ def delete_comment(self: "DBHandler", comment_id: int, flush: bool = True) -> No
     self.session.delete(comment)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

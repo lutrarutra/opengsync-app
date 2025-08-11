@@ -59,7 +59,7 @@ def create_file(
     self.session.add(file)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -87,7 +87,7 @@ def delete_file(self: "DBHandler", file_id: int, flush: bool = True):
 
     self.session.delete(file)
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

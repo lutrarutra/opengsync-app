@@ -22,7 +22,7 @@ def create_plate(
     self.session.add(plate)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -88,7 +88,7 @@ def delete_plate(self: "DBHandler", plate_id: int, flush: bool = True):
     self.session.delete(plate)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

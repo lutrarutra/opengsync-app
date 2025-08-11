@@ -56,7 +56,7 @@ def create_feature(
     self.session.add(feature)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -133,7 +133,7 @@ def delete_feature(self: "DBHandler", feature_id: int, flush: bool = True):
     self.session.delete(feature)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -185,7 +185,7 @@ def delete_orphan_features(
         self.session.delete(feature)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

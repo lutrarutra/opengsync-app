@@ -29,7 +29,7 @@ def create_sample(
     self.session.add(sample)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -162,7 +162,7 @@ def delete_sample(self: "DBHandler", sample_id: int, flush: bool = True):
     self.session.delete(sample)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -182,7 +182,7 @@ def delete_oprhan_samples(
         self.session.delete(sample)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

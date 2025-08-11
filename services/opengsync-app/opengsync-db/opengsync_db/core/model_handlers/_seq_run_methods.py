@@ -48,7 +48,7 @@ def create_seq_run(
     self.session.add(seq_run)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

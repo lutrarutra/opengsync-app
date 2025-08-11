@@ -86,7 +86,7 @@ def create_library(
     self.session.add(library)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -266,7 +266,7 @@ def delete_library(
     self.session.delete(library)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     self.delete_orphan_features(flush=flush)
 
@@ -376,7 +376,7 @@ def add_library_to_pool(
     self.session.add(library)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -471,7 +471,7 @@ def add_library_index(
     self.session.add(library)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -493,7 +493,7 @@ def remove_library_indices(self: "DBHandler", library_id: int, flush: bool = Tru
     self.session.add(library)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

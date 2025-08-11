@@ -18,6 +18,7 @@ class DBHandler():
         self._session: orm.Session | None = None
         self._connection: sa.engine.Connection | None = None
         self.expire_on_commit = expire_on_commit
+        self.__needs_commit = False
         
     def connect(
         self, user: str, password: str, host: str, db: str = "opengsync_db", port: Union[str, int] = 5432
@@ -87,6 +88,7 @@ class DBHandler():
 
     def flush(self) -> None:
         if self._session is not None:
+            self.__needs_commit = True
             self._session.flush()
         else:
             raise Exception("Session is not open, cannot flush changes.")
@@ -129,17 +131,19 @@ class DBHandler():
             return
        
         if commit and not rollback:
-            if self.session.dirty or self.session.new or self.session.deleted:
-                self.info("Committing transaction...")
+            if self.__needs_commit or self.session.dirty or self.session.new or self.session.deleted:
                 try:
                     self.session.commit()
                 except Exception:
                     self.error("Commit failed: - rolling back transaction.")
                     self.session.rollback()
                     raise
-        if rollback:
+        elif rollback:
             self.info("Rolling back transaction...")
             self.session.rollback()
+        else:
+            if not commit and self.__needs_commit:
+                self.warn("Session was not committed, but changes were made. This may lead to data loss.")
 
         self._session = DBHandler.Session.remove()
 
@@ -327,4 +331,8 @@ class DBHandler():
         get_project_samples_df, get_lab_prep_libraries_df,
         get_lab_prep_samples_df, query_barcode_sequences_df, get_flowcell_df,
         get_library_mux_table_df, get_project_libraries_df,
+    )
+
+    from .model_handlers._share_methods import (
+        create_share_token, get_share_tokens
     )

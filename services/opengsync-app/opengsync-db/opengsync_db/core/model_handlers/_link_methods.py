@@ -65,7 +65,7 @@ def link_sample_library(
     self.session.add(link)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -86,7 +86,7 @@ def unlink_sample_library(self: "DBHandler", sample_id: int, library_id: int, fl
     self.session.delete(link)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -205,7 +205,7 @@ def link_features_library(
     self.session.add(library)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -288,7 +288,7 @@ def add_pool_to_lane(
     self.session.add(link)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -326,7 +326,7 @@ def remove_pool_from_lane(self: "DBHandler", experiment_id: int, pool_id: int, l
     self.session.add(lane)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -358,7 +358,7 @@ def link_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int, fl
     self.session.add(pool)
     
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -391,7 +391,7 @@ def unlink_pool_experiment(self: "DBHandler", experiment_id: int, pool_id: int, 
     self.session.add(experiment)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

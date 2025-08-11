@@ -39,7 +39,7 @@ def create_project(
     self.session.add(project)
     
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -182,7 +182,7 @@ def delete_project(self: "DBHandler", project_id: int, flush: bool = True):
     self.session.delete(project)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

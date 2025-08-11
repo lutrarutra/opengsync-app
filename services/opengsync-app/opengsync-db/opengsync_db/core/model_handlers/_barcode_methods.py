@@ -32,7 +32,7 @@ def create_barcode(
     self.session.add(barcode)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

@@ -125,7 +125,7 @@ def delete_lane(self: "DBHandler", lane_id: int, flush: bool = True):
     self.session.delete(lane)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

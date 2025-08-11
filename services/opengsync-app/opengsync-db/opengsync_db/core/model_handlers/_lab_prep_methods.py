@@ -40,7 +40,7 @@ def create_lab_prep(
     self.session.add(lab_prep)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -122,7 +122,7 @@ def delete_lab_prep(self: "DBHandler", lab_prep_id: int, flush: bool = True) -> 
     self.session.delete(lab_prep)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

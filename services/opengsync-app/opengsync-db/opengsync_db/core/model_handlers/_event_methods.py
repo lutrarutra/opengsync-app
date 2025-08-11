@@ -28,7 +28,7 @@ def create_event(
     self.session.add(event)
 
     if flush:
-        self.session.flush()
+        self.flush()
     
     if not persist_session:
         self.close_session()
@@ -111,7 +111,7 @@ def delete_event(self: "DBHandler", event_id: int, flush: bool = True):
     self.session.delete(event)
 
     if flush:
-        self.session.flush()
+        self.flush()
     
     if not persist_session:
         self.close_session()

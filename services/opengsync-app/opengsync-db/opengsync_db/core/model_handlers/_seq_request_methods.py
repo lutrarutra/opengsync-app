@@ -97,7 +97,7 @@ def create_seq_request(
     self.session.add(seq_request)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -291,7 +291,7 @@ def delete_seq_request(self: "DBHandler", seq_request_id: int, flush: bool = Tru
     self.session.delete(seq_request)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

@@ -28,7 +28,7 @@ def create_feature_kit(
     self.session.add(feature_kit)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -114,7 +114,7 @@ def delete_feature_kit(self: "DBHandler", feature_kit_id: int, flush: bool = Tru
     self.delete_orphan_features()
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

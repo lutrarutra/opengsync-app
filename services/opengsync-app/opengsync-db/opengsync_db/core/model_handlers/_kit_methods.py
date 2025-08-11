@@ -28,7 +28,7 @@ def create_kit(
     self.session.add(kit)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
@@ -148,7 +148,7 @@ def delete_kit(self: "DBHandler", id: int, flush: bool = True):
     self.session.delete(kit)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()

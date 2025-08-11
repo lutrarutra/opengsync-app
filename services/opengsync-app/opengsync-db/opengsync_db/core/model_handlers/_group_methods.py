@@ -36,7 +36,7 @@ def create_group(
     self.session.add(group)
 
     if flush:
-        self.session.flush()
+        self.flush()
 
     if not persist_session:
         self.close_session()
