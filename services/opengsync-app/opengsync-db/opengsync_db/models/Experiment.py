@@ -1,4 +1,5 @@
 from datetime import datetime
+from datetime import timezone
 from typing import Optional, TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa

@@ -1,6 +1,7 @@
 import os
 from typing import Optional, TYPE_CHECKING
 from datetime import datetime
+from datetime import timezone
 
 from uuid_extensions import uuid7str
 

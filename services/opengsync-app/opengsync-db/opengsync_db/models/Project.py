@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, ClassVar
 from datetime import datetime
+from datetime import timezone
 
 import sqlalchemy as sa
 from sqlalchemy.ext.hybrid import hybrid_property

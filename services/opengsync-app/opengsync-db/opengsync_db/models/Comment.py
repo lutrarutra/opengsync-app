@@ -1,5 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 from datetime import datetime
+from datetime import timezone
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
