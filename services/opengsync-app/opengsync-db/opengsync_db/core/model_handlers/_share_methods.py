@@ -36,6 +36,18 @@ def create_share_token(
     return token
 
 
+def get_share_token(self: "DBHandler", uuid: str) -> models.ShareToken | None:
+    if not (persist_session := self._session is not None):
+        self.open_session()
+
+    token = self.session.get(models.ShareToken, uuid)
+
+    if not persist_session:
+        self.close_session()
+
+    return token
+
+
 def get_share_tokens(
     self: "DBHandler",
     owner: models.User | None = None,
@@ -54,7 +66,7 @@ def get_share_tokens(
 
     tokens = query.all()
 
-    if persist_session:
+    if not persist_session:
         self.close_session()
 
     return tokens

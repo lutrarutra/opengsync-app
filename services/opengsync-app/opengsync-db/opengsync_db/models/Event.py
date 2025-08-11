@@ -18,7 +18,7 @@ class Event(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     title: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     note: Mapped[Optional[str]] = mapped_column(sa.String(512), nullable=True)
-    timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False)
+    timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     creator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)

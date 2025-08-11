@@ -334,5 +334,5 @@ class DBHandler():
     )
 
     from .model_handlers._share_methods import (
-        create_share_token, get_share_tokens
+        create_share_token, get_share_tokens, get_share_token
     )

@@ -50,7 +50,7 @@ class Sample(Base):
 
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
-    timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
+    timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
 
     project_id: Mapped[int] = mapped_column(sa.ForeignKey("project.id"), nullable=False)
     project: Mapped["Project"] = relationship("Project", back_populates="samples", lazy="select")

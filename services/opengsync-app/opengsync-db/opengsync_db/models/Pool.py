@@ -29,7 +29,7 @@ class Pool(Base):
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
-    timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(), nullable=True, default=None)
+    timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
     clone_number: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
     original_pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True, default=None)
     

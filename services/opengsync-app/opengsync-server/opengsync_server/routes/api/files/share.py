@@ -28,16 +28,15 @@ if DEBUG:
         return {"token": token}, HTTPResponse.OK.id
 
 
-@wrappers.api_route(file_share_bp)
+@wrappers.api_route(file_share_bp, db=db)
 def validate(token: str):
-    try:
-        path = tokens.verify_file_share_token(token, max_age_hours=1, serializer=serializer)
-    except SignatureExpired:
-        return "Token expired, please request a new token..", HTTPResponse.BAD_REQUEST.id
-    except BadSignature:
-        return "Invalid token", HTTPResponse.BAD_REQUEST.id
-
-    logger.debug(f"File share token verified: {path}", extra={"path": path})
+    if (share_token := db.get_share_token(token)) is None:
+        return "Token Not Found", HTTPResponse.NOT_FOUND.id
+    
+    if share_token.is_expired:
+        return "Token expired", HTTPResponse.BAD_REQUEST.id
+        
+    logger.debug(f"File share token verified:\n{'\n\t'.join([path.path for path in share_token.paths])}")
     return "OK", HTTPResponse.OK.id
 
 
