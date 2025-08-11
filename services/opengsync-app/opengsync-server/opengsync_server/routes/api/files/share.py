@@ -6,14 +6,14 @@ from itsdangerous import BadSignature, SignatureExpired
 
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger, serializer
+from .... import db, logger, serializer, DEBUG
 from ....core import wrappers
 from ....core import tokens
 
 file_share_bp = Blueprint("file_share", __name__, url_prefix="/api/files/")
 
 
-if os.getenv("OPENGSYNC_DEBUG") == "1":
+if DEBUG:
     @wrappers.api_route(file_share_bp, db=db, login_required=False)
     def generate(path: Path):
         if isinstance(path, str):

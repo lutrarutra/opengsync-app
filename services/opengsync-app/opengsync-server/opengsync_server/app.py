@@ -10,7 +10,7 @@ from flask_htmx import make_response as make_htmx_response
 
 from opengsync_db import categories, models, TIMEZONE, to_utc
 
-from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools, log_buffer
+from . import htmx, bcrypt, login_manager, mail, SECRET_KEY, logger, db, cache, msf_cache, tools, log_buffer, DEBUG
 from .core import wrappers
 from .routes import api, pages
 from .tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue
@@ -38,7 +38,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         port=os.environ["POSTGRES_PORT"],
         db=os.environ["POSTGRES_DB"],
     )
-    app.debug = os.getenv("OPENGSYNC_DEBUG") == "1"
+    app.debug = DEBUG
     app.config["APP_ROOT"] = os.path.dirname(os.path.abspath(__file__))
     app.config["MEDIA_FOLDER"] = tools.io.mkdir(os.path.join("media"))
     app.config["UPLOADS_FOLDER"] = tools.io.mkdir(os.path.join("uploads"))
@@ -96,7 +96,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
             exc_tb = traceback.TracebackException(type(exc), exc, exc.__traceback__)
             for frame in exc_tb.stack:
                 try:
-                    frame.filename = frame.filename.replace("/usr/src/app/opengsync-server/", "")
+                    frame.filename = frame.filename.replace("/usr/src/app/", "")
                 except Exception:
                     pass
                 
@@ -116,7 +116,6 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     if app.debug:
         @wrappers.page_route(app, login_required=False)
         def test():
-            logger.info("hiii")
             if tools.textgen is not None:
                 msg = tools.textgen.generate(
                     "You need to write in 1-2 sentences make a joke to greet user to my web app. \
@@ -124,10 +123,9 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
                     Just the joke text."
                 )
                 flash(msg, category="info")
-            logger.debug("hellooo")
             return render_template("test.html")
         
-    @wrappers.page_route(app, db=db)
+    @wrappers.page_route(app, login_required=False)
     @cache.cached(timeout=1500)
     def help():
         return render_template("help.html")

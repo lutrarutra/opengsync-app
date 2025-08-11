@@ -1,5 +1,4 @@
 import os
-import sys
 import uuid
 
 import pandas as pd
@@ -22,7 +21,7 @@ from .core.wrappers import page_route, htmx_route  # noqa: F401
 
 DEFAULT_FMT = """{level} @ {time:YYYY-MM-DD HH:mm:ss} [{file}:{line} in {function}]:\n------------------------ [BEGIN LOG] ------------------------\n\n{message}\n\n------------------------ [ END LOG ] ------------------------\n"""
 
-debug = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
+DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
 
 logger.remove()
 logger.add(log_buffer.write, format="{message}", serialize=True, catch=True)
@@ -93,12 +92,12 @@ def update_index_kits(
             res.append(df)
 
         if len(res) == 0:
-            if not debug:
+            if not DEBUG:
                 logger.error(f"No barcodes found for index kit type: {type.id} ({type.name})")
             continue
 
         pd.concat(res).to_pickle(os.path.join(app_data_folder, "kits", f"{type.id}.pkl"))
-        if not debug:
+        if not DEBUG:
             logger.info(f"Updated index kit barcodes for type: {type.id} ({type.name})")
 
 

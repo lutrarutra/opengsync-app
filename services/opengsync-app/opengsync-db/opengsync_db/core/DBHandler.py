@@ -113,9 +113,17 @@ class DBHandler():
     def close_session(self, commit: bool = True, rollback: bool = False) -> None:
         if self._session is None:
             self.warn("Session is already closed or was never opened.")
+            return
        
         if commit and not rollback:
-            self.session.commit()
+            if self.session.dirty or self.session.new or self.session.deleted:
+                self.info("Committing transaction...")
+                try:
+                    self.session.commit()
+                except Exception:
+                    self.error("Commit failed: - rolling back transaction.")
+                    self.session.rollback()
+                    raise
         if rollback:
             self.info("Rolling back transaction...")
             self.session.rollback()
