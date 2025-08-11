@@ -8,7 +8,6 @@ services:
         volumes:
             - ./services/opengsync-app/opengsync-server:/usr/src/app/opengsync-server
             - ./services/opengsync-app/templates:/usr/src/app/templates:ro
-            - ./cert:/usr/src/app/cert
             - ${UPLOADS_DIR}:/usr/src/app/uploads
             - ${DATA_DIR}/media:/usr/src/app/media
             - ${DATA_DIR}/logs/opengsync:/usr/src/app/logs
