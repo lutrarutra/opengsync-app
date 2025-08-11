@@ -14,7 +14,7 @@ class SharePath(Base):
     __tablename__ = "share_path"
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, autoincrement=True)
-    uuid: Mapped[uuid_lib.UUID] = mapped_column(sa.ForeignKey("share_token.uuid"), nullable=False)
+    uuid: Mapped[str] = mapped_column(sa.ForeignKey("share_token.uuid"), nullable=False)
     path: Mapped[str] = mapped_column(sa.String(512), nullable=False)
 
     token: Mapped["ShareToken"] = relationship("ShareToken", back_populates="paths", lazy="select")

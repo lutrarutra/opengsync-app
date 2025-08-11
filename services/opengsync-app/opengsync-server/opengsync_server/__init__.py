@@ -36,15 +36,7 @@ pd.set_option('display.max_colwidth', None)
 pd.set_option('display.width', 1000)
 
 
-SECRET_KEY = ""
-if os.path.exists("cert/session.key"):
-    with open("cert/session.key", "r") as f:
-        SECRET_KEY = f.read().strip()
-
-if len(SECRET_KEY) == 0:
-    SECRET_KEY = uuid.uuid4().hex
-    with open("cert/session.key", "w") as f:
-        f.write(SECRET_KEY)
+SECRET_KEY = os.environ["SECRET_KEY"]
 
 EMAIL_SENDER = os.environ["EMAIL_SENDER"]
 

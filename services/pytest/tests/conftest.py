@@ -16,7 +16,7 @@ def _db():
     db = DBHandler()
     db.connect(user=db_user, password=db_password, host=db_host, port=db_port, db=db_name)
     Base.metadata.drop_all(db._engine)
-    Base.metadata.create_all(db._engine)
+    db.create_tables()
     yield db
     db._engine.dispose()
 

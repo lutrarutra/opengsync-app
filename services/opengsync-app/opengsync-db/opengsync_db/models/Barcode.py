@@ -43,11 +43,13 @@ class Barcode(Base):
     
     __table_args__ = (
         sa.Index(
-            "trgm_barcode_name_idx", sa.func.lower(name),
-            postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}
+            "trgm_barcode_name_idx",
+            sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
         ),
         sa.Index(
-            "trgm_barcode_sequence_idx", sa.func.lower(sequence),
-            postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}
+            "trgm_barcode_sequence_idx",
+            sa.text("lower(sequence) gin_trgm_ops"),
+            postgresql_using="gin",
         ),
     )

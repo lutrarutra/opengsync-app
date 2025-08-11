@@ -172,7 +172,8 @@ class SeqRequest(Base):
     
     __table_args__ = (
         sa.Index(
-            "trgm_seq_request_name_idx", sa.func.lower(name),
-            postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}
+            "trgm_seq_request_name_idx",
+            sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
         ),
     )

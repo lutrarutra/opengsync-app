@@ -190,16 +190,19 @@ class User(Base, UserMixin):
 
     __table_args__ = (
         sa.Index(
-            "trgm_lims_user_email_idx", sa.func.lower(email),
-            postgresql_using="gin", postgresql_ops={"email": "gin_trgm_ops"}
+            "trgm_lims_user_email_idx",
+            sa.text("lower(email) gin_trgm_ops"),
+            postgresql_using="gin",
         ),
         sa.Index(
-            "trgm_lims_user_first_name_idx", sa.func.lower(first_name),
-            postgresql_using="gin", postgresql_ops={"first_name": "gin_trgm_ops"}
+            "trgm_lims_user_first_name_idx",
+            sa.text("lower(first_name) gin_trgm_ops"),
+            postgresql_using="gin",
         ),
         sa.Index(
-            "trgm_lims_user_last_name_idx", sa.func.lower(last_name),
-            postgresql_using="gin", postgresql_ops={"last_name": "gin_trgm_ops"}
+            "trgm_lims_user_last_name_idx",
+            sa.text("lower(last_name) gin_trgm_ops"),
+            postgresql_using="gin",
         ),
         sa.Index(
             "trgm_lims_user_full_name_idx",

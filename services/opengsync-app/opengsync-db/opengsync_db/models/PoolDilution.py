@@ -21,7 +21,7 @@ class PoolDilution(Base):
     pool_id: Mapped[int] = mapped_column(sa.ForeignKey("pool.id"))
     pool: Mapped["Pool"] = relationship("Pool", back_populates="dilutions", lazy="joined")
 
-    timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now)
+    timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
 
     operator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     operator: Mapped[models.User] = relationship("User", lazy="joined")

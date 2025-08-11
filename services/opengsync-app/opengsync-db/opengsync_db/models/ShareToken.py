@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING
-
-import uuid as uuid_lib
+from uuid_extensions import uuid7str
 from datetime import datetime
 from datetime import timezone
 
@@ -17,9 +16,9 @@ if TYPE_CHECKING:
 class ShareToken(Base):
     __tablename__ = "share_token"
 
-    uuid: Mapped[uuid_lib.UUID] = mapped_column(sa.Uuid, primary_key=True, default=sa.func.uuid_generate_v4)
+    uuid: Mapped[str] = mapped_column(sa.CHAR(36), primary_key=True, default=lambda: uuid7str(), unique=True)
     time_valid_min: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    created_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now)
+    created_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
     _expired: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False, name="expired")
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)

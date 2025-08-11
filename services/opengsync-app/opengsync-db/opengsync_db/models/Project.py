@@ -27,7 +27,7 @@ class Project(Base):
     title: Mapped[str] = mapped_column(sa.String(128), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(sa.String(1024), default=None, nullable=True)
 
-    timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now)
+    timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
 
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
@@ -114,11 +114,13 @@ class Project(Base):
     
     __table_args__ = (
         sa.Index(
-            "trgm_project_identifier_idx", sa.func.lower(identifier),
-            postgresql_using="gin", postgresql_ops={"identifier": "gin_trgm_ops"}
+            "trgm_project_identifier_idx",
+            sa.text("lower(identifier) gin_trgm_ops"),
+            postgresql_using="gin",
         ),
         sa.Index(
-            "trgm_project_title_idx", sa.func.lower(title),
-            postgresql_using="gin", postgresql_ops={"title": "gin_trgm_ops"}
+            "trgm_project_title_idx",
+            sa.text("lower(title) gin_trgm_ops"),
+            postgresql_using="gin",
         ),
     )

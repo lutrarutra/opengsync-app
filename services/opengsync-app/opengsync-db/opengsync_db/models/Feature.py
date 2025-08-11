@@ -46,15 +46,18 @@ class Feature(Base):
 
     __table_args__ = (
         sa.Index(
-            "trgm_feature_name_idx", sa.func.lower(name),
-            postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}
+            "trgm_feature_name_idx",
+            sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
         ),
         sa.Index(
-            "trgm_feature_target_id_idx", sa.func.lower(target_id),
-            postgresql_using="gin", postgresql_ops={"target_id": "gin_trgm_ops"}
+            "trgm_feature_target_id_idx",
+            sa.text("lower(target_id) gin_trgm_ops"),
+            postgresql_using="gin",
         ),
         sa.Index(
-            "trgm_feature_target_name_idx", sa.func.lower(target_name),
-            postgresql_using="gin", postgresql_ops={"target_name": "gin_trgm_ops"}
+            "trgm_feature_target_name_idx",
+            sa.text("lower(target_name) gin_trgm_ops"),
+            postgresql_using="gin",
         )
     )
