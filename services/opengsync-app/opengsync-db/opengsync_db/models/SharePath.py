@@ -1,4 +1,3 @@
-import uuid as uuid_lib
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -18,5 +17,3 @@ class SharePath(Base):
     path: Mapped[str] = mapped_column(sa.String(512), nullable=False)
 
     token: Mapped["ShareToken"] = relationship("ShareToken", back_populates="paths", lazy="select")
-
-    __table_args__ = (sa.UniqueConstraint("uuid", "path", name="uq_uuid_path"), )
