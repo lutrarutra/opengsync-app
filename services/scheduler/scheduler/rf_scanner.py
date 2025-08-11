@@ -146,7 +146,7 @@ def parse_metrics(run_folder: str) -> dict[str, units.Quantity]:
 
 
 def process_run_folder(illumina_run_folder: str, db: DBHandler):
-    logger.info(f"Processing run folder: {illumina_run_folder}")
+    logs = [f"Processing run folder: {illumina_run_folder}"]
     
     active_runs, _ = db.get_seq_runs(
         status_in=[RunStatus.FINISHED, RunStatus.RUNNING],
@@ -166,7 +166,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                         library.status = LibraryStatus.SEQUENCED
             run = db.update_seq_run(run)
             active_runs[run.experiment_name] = run
-            logger.info(f"Archived: {run.experiment_name} ({run.run_folder})")
+            logs.append(f"Archived: {run.experiment_name} ({run.run_folder})")
     
     for run_parameters_path in glob.glob(os.path.join(illumina_run_folder, "*", "RunParameters.xml")):
         run_folder = os.path.dirname(run_parameters_path)
@@ -180,11 +180,22 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
         parsed_data = parse_run_folder(run_folder)
         
         experiment_name = parsed_data["experiment_name"]
-        logger.info(f"Processing: {experiment_name} ({run_name}): ", end="")
+        logs.append(f"Processing {experiment_name} ({run_name}):")
 
         if (run := active_runs.get(experiment_name)) is not None:
+            if run.run_folder != run_name:
+                logs.append(f"WARNING: Run folder name mismatch: {run.run_folder} != {run_name}.")
+                if status > run.status:
+                    logs.append(f"Updating run folder name to {run_name}.")
+                    run.run_folder = run_name
+                    run = db.update_seq_run(run)
+                    parsed_data = parse_run_folder(run_folder)
+                else:
+                    logs.append("Skipping update due to lower status.")
+                    continue
+                
             if run.status == status:
-                logger.info("Up to date!")
+                logs.append("Up to date!")
                 continue
             
             if run.status == RunStatus.FINISHED:
@@ -216,7 +227,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
 
             run = db.update_seq_run(run)
             active_runs[experiment_name] = run
-            logger.info("Updated!")
+            logs.append("Updated!")
         else:
             metrics = parse_metrics(run_folder)
 
@@ -255,4 +266,4 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             run = db.update_seq_run(run)
 
             active_runs[experiment_name] = run
-            logger.info("Added!")
+            logs.append("Added!")

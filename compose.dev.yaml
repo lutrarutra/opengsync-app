@@ -38,35 +38,35 @@ services:
                 restart: true
         healthcheck:
             test: ["CMD", "curl", "-f", "http://opengsync-app:${OPENGSYNC_PORT}/status"]
-            interval: 60s
+            interval: 10s
             timeout: 10s
             retries: 5
         command: "sh ./entrypoint.sh"
 
-    scheduler:
-        container_name: scheduler-dev
-        build:
-            context: ./services
-            dockerfile: scheduler/Dockerfile
-        env_file: .env
-        environment:
-            TZ: ${TIMEZONE}
-        volumes:
-            - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
-            - ${UPLOADS_DIR}:/uploads
-        depends_on:
-            postgres:
-                condition: service_healthy
-                restart: true
-        restart: always
-        command: >
-            python /usr/src/app/scheduler/run.py
-            --run-folder /illumina_run_folder
-            --rf-scan-interval 5
-            --status-update-interval 2
-            --upload-folder /uploads
-            --upload-folder-file-age-days 1
-            --upload-folder-clean-schedule '0 * * * * *'
+    # scheduler:
+    #     container_name: scheduler-dev
+    #     build:
+    #         context: ./services
+    #         dockerfile: scheduler/Dockerfile
+    #     env_file: .env
+    #     environment:
+    #         TZ: ${TIMEZONE}
+    #     volumes:
+    #         - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
+    #         - ${UPLOADS_DIR}:/uploads
+    #     depends_on:
+    #         postgres:
+    #             condition: service_healthy
+    #             restart: true
+    #     restart: always
+    #     command: >
+    #         python /usr/src/app/scheduler/run.py
+    #         --run-folder /illumina_run_folder
+    #         --rf-scan-interval 5
+    #         --status-update-interval 2
+    #         --upload-folder /uploads
+    #         --upload-folder-file-age-days 1
+    #         --upload-folder-clean-schedule '0 * * * * *'
 
     redis-cache:
         container_name: redis-cache-dev

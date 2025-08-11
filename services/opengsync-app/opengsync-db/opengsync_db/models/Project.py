@@ -111,3 +111,16 @@ class Project(Base):
     
     def __repr__(self) -> str:
         return self.__str__()
+    
+    __table_args__ = (
+        sa.Index(
+            "trgm_project_identifier_idx",
+            sa.text("lower(identifier) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_project_title_idx",
+            sa.text("lower(title) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+    )

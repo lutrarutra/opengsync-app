@@ -1,9 +1,8 @@
-from opengsync_db import DBHandler, DBSession
-from opengsync_db.categories import ExperimentWorkFlow, MUXType
+from opengsync_db import DBHandler
 
 from .create_units import (
-    create_user, create_project, create_seq_request, create_sample, create_library, create_pool,
-    create_feature, create_experiment, create_file, create_group
+    create_user, create_project, create_seq_request, create_sample, create_library,
+    create_file, create_group
 )  # noqa
 
 

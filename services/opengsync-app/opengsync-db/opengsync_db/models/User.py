@@ -187,3 +187,26 @@ class User(Base, UserMixin):
     
     def __repr__(self) -> str:
         return str(self)
+
+    __table_args__ = (
+        sa.Index(
+            "trgm_lims_user_email_idx",
+            sa.text("lower(email) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_lims_user_first_name_idx",
+            sa.text("lower(first_name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_lims_user_last_name_idx",
+            sa.text("lower(last_name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_lims_user_full_name_idx",
+            sa.text("lower(first_name || ' ' || last_name) gin_trgm_ops"),
+            postgresql_using="gin",
+        )
+    )

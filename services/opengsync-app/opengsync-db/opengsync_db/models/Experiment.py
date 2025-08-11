@@ -127,3 +127,11 @@ class Experiment(Base):
         for lane in self.lanes:
             reads += lane.m_reads_planned()
         return reads
+    
+    __table_args__ = (
+        sa.Index(
+            "trgm_experiment_name_idx",
+            sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+    )

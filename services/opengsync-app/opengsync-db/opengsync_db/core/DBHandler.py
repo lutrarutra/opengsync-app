@@ -29,37 +29,38 @@ class DBHandler():
             self._connection = self._engine.connect()
         except Exception as e:
             raise Exception(f"Could not connect to DB '{self.public_url}':\n{e}")
-        self.log(f"Connected to DB '{self.public_url}'")
+        
+        self.info(f"Connected to DB '{self.public_url}'")
 
         self.session_factory = orm.sessionmaker(bind=self._engine, expire_on_commit=self.expire_on_commit)
         DBHandler.Session = orm.scoped_session(self.session_factory)
         from . import listeners  # noqa: F401
 
-    def log(self, *values: object) -> None:
+    def info(self, *values: object) -> None:
         message = " ".join([str(value) for value in values])
         if self._logger is not None:
-            self._logger.info(message)
+            self._logger.opt(depth=1).info(message)
         else:
             print(f"LOG: {message}")
     
     def error(self, *values: object) -> None:
         message = " ".join([str(value) for value in values])
         if self._logger is not None:
-            self._logger.error(message)
+            self._logger.opt(depth=1).error(message)
         else:
             print(f"ERROR: {message}")
 
     def warn(self, *values: object) -> None:
         message = " ".join([str(value) for value in values])
         if self._logger is not None:
-            self._logger.warning(message)
+            self._logger.opt(depth=1).warning(message)
         else:
             print(f"WARNING: {message}")
 
     def debug(self, *values: object) -> None:
         message = " ".join([str(value) for value in values])
         if self._logger is not None:
-            self._logger.debug(message)
+            self._logger.opt(depth=1).debug(message)
         else:
             print(f"DEBUG: {message}")
 
@@ -97,11 +98,24 @@ class DBHandler():
             raise Exception("Session is not open, cannot refresh session state.")
         
     def create_tables(self) -> None:
-        if not sa.inspect(self._engine).has_table(models.User.__tablename__):
-            self.log("Creating tables...")
-            Base.metadata.create_all(self._engine)
-        else:
+        """Create database tables with pg_trgm extension if needed."""
+        inspector = sa.inspect(self._engine)
+        
+        if inspector.has_table(models.User.__tablename__):
             self.warn("Tables already exist, skipping creation...")
+            return
+        
+        try:
+            with self._engine.begin() as conn:
+                conn.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+                self.info("Created pg_trgm extension")
+                
+                Base.metadata.create_all(conn)
+                self.info("Successfully created all tables")
+                
+        except Exception as e:
+            self.error(f"Failed to create tables: {str(e)}")
+            raise RuntimeError("Database initialization failed") from e
 
     def open_session(self, autoflush: bool = False) -> None:
         if self._session is not None:
@@ -112,11 +126,19 @@ class DBHandler():
     def close_session(self, commit: bool = True, rollback: bool = False) -> None:
         if self._session is None:
             self.warn("Session is already closed or was never opened.")
+            return
        
         if commit and not rollback:
-            self.session.commit()
+            if self.session.dirty or self.session.new or self.session.deleted:
+                self.info("Committing transaction...")
+                try:
+                    self.session.commit()
+                except Exception:
+                    self.error("Commit failed: - rolling back transaction.")
+                    self.session.rollback()
+                    raise
         if rollback:
-            self.log("Rolling back transaction...")
+            self.info("Rolling back transaction...")
             self.session.rollback()
 
         self._session = DBHandler.Session.remove()
@@ -125,13 +147,13 @@ class DBHandler():
         if self._session is None:
             self.error("Session is not open, cannot rollback.")
             raise Exception("Session is not open, cannot rollback.")
-        self.log("Rolling back transaction...")
+        self.info("Rolling back transaction...")
         self._session.rollback()
 
     def close_connection(self) -> None:
         if self._connection is not None:
             self._connection = self._connection.close()
-            self.log("Connection closed.")
+            self.info("Connection closed.")
 
     def __del__(self):
         if self._session is not None:

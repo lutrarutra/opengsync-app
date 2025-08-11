@@ -2,6 +2,8 @@ import os
 from typing import Optional, TYPE_CHECKING
 from datetime import datetime
 
+from uuid_extensions import uuid7str
+
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,7 +22,7 @@ class File(Base):
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     extension: Mapped[str] = mapped_column(sa.String(16), nullable=False)
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    uuid: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    uuid: Mapped[str] = mapped_column(sa.CHAR(36), nullable=False, default=lambda: uuid7str(), unique=True)
     size_bytes: Mapped[int] = mapped_column(sa.BigInteger, nullable=False)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(), nullable=False, default=sa.func.now())
     

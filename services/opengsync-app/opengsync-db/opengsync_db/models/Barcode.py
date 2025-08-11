@@ -40,3 +40,16 @@ class Barcode(Base):
     def reverse_complement(seq: str) -> str:
         complement = {"A": "T", "T": "A", "C": "G", "G": "C"}
         return "".join(complement.get(base, base) for base in reversed(seq))
+    
+    __table_args__ = (
+        sa.Index(
+            "trgm_barcode_name_idx",
+            sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_barcode_sequence_idx",
+            sa.text("lower(sequence) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+    )

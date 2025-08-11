@@ -1,0 +1,18 @@
+<div class="modal fade" id="debug-modal" aria-hidden="true" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content traceback-modal">
+            <div class="modal-header">
+                <h5 class="modal-title" style="color: #ff5555;">Exception: {{ exc.exc_type.__name__ }}: {{ exc._str }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="traceback">
+                    {{ exc.format() | join('') }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        $('#debug-modal').modal('show');
+    </script>
+</div>

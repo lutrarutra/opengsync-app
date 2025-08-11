@@ -189,6 +189,7 @@
     {% include "components/right_click_menu.html" %}
     {% include "components/alerts.html" %}
     <div id="alert-container"></div>
+    <div id="debug-container"></div>
     <div id="main-container">
         <div id="main">
             <div id="left-margin">
@@ -222,6 +223,9 @@
         <div class="modal-dialog modal-fullscreen modal-dialog-centered" id="fullscreen-modal-content">
             {{ spinner() }}
         </div>
+    </div>
+
+    <div id="debug-modal" aria-hidden="true" style="display: none;">
     </div>
 
     <script src="{{ url_for('static', filename='js/searchbar.js') }}"></script>

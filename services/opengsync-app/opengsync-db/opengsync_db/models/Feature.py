@@ -43,3 +43,21 @@ class Feature(Base):
     
     def __repr__(self) -> str:
         return f"Feature(id={self.id}, name={self.name}, sequence={self.sequence}, pattern={self.pattern}, read={self.read}, feature_kit_id={self.feature_kit_id})"
+
+    __table_args__ = (
+        sa.Index(
+            "trgm_feature_name_idx",
+            sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_feature_target_id_idx",
+            sa.text("lower(target_id) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+        sa.Index(
+            "trgm_feature_target_name_idx",
+            sa.text("lower(target_name) gin_trgm_ops"),
+            postgresql_using="gin",
+        )
+    )

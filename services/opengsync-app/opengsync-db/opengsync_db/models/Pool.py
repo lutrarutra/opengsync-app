@@ -174,3 +174,11 @@ class Pool(Base):
             if link.num_m_reads is not None:
                 num_reads += link.num_m_reads
         return num_reads
+    
+    __table_args__ = (
+        sa.Index(
+            "trgm_pool_name_idx",
+            sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+    )

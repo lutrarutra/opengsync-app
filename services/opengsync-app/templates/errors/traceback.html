@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Exception Occurred</title>
+        <style>
+            body {
+                font-family: monospace, monospace;
+                background: #1e1e1e;
+                color: #f8f8f2;
+                padding: 1rem;
+                white-space: pre-wrap;
+            }
+            h1 {
+                color: #ff5555;
+            }
+            .traceback {
+                background: #2d2d2d;
+                border: 1px solid #444;
+                padding: 1rem;
+                margin-top: 1rem;
+                overflow-x: auto;
+                border-radius: 4px;
+                color: #f8f8f2;
+            }
+            a {
+                color: #8be9fd;
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Exception: {{ exc.exc_type.__name__ }}: {{ exc._str }}</h1>
+
+        <div class="traceback">
+            {{ exc.format() | join('') }}
+        </div>
+    </body>
+</html>

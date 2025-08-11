@@ -98,3 +98,11 @@ class SeqRun(Base):
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    __table_args__ = (
+        sa.Index(
+            "trgm_seq_run_experiment_name_idx",
+            sa.text("lower(experiment_name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+    )

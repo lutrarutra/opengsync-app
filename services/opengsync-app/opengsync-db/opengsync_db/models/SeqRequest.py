@@ -169,3 +169,11 @@ class SeqRequest(Base):
     
     def __repr__(self) -> str:
         return str(self)
+    
+    __table_args__ = (
+        sa.Index(
+            "trgm_seq_request_name_idx",
+            sa.text("lower(name) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
+    )

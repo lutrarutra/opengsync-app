@@ -1,0 +1,2 @@
+1. `alembic revision --autogenerate -m "message"`
+2. `alembic upgrade head`

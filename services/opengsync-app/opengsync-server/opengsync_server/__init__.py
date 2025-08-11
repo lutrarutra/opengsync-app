@@ -1,8 +1,6 @@
-import sys
 import os
 import uuid
 
-from loguru import logger
 import pandas as pd
 import pytz
 from flask_htmx import HTMX
@@ -12,10 +10,21 @@ from flask_mail import Mail
 from flask_caching import Cache
 from itsdangerous import URLSafeTimedSerializer
 
+from loguru import logger
+
 from opengsync_db import DBHandler, categories
+
+from .core.LogBuffer import log_buffer
 from .tools import RedisMSFFileCache
 from .tools.WeekTimeWindow import WeekTimeWindow
 from .core.wrappers import page_route, htmx_route  # noqa: F401
+
+DEFAULT_FMT = """{level} @ {time:YYYY-MM-DD HH:mm:ss} [{file}:{line} in {function}]:\n------------------------ [BEGIN LOG] ------------------------\n\n{message}\n\n------------------------ [ END LOG ] ------------------------\n"""
+
+DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
+
+logger.remove()
+logger.add(log_buffer.write, format="{message}", serialize=True, catch=True)
 
 # Show all columns without truncation
 pd.set_option('display.max_columns', None)
@@ -26,40 +35,8 @@ pd.set_option('display.max_colwidth', None)
 # Optional: increase the display width of your console (characters per line)
 pd.set_option('display.width', 1000)
 
-logger.remove()
 
-fmt = """{level} @ {time:YYYY-MM-DD HH:mm:ss} [{file}:{line} in {function}]:\n------------------------ [BEGIN LOG] ------------------------\n\n{message}\n\n------------------------ [ END LOG ] ------------------------\n"""
-
-
-if os.getenv("OPENGSYNC_DEBUG") == "1":
-    logger.add(
-        sys.stdout, colorize=True,
-        format=fmt, level="DEBUG"
-    )
-else:
-    date = "{time:YYYY-MM-DD}"
-    logger.add(
-        sys.stdout, colorize=True,
-        format=fmt, level="INFO"
-    )
-    logger.add(
-        f"logs/{date}_server.log", format=fmt, level="INFO",
-        colorize=False, rotation="1 day"
-    )
-    logger.add(
-        f"logs/{date}_server.err", format=fmt, level="ERROR",
-        colorize=False, rotation="1 day"
-    )
-
-SECRET_KEY = ""
-if os.path.exists("cert/session.key"):
-    with open("cert/session.key", "r") as f:
-        SECRET_KEY = f.read().strip()
-
-if len(SECRET_KEY) == 0:
-    SECRET_KEY = uuid.uuid4().hex
-    with open("cert/session.key", "w") as f:
-        f.write(SECRET_KEY)
+SECRET_KEY = os.environ["SECRET_KEY"]
 
 EMAIL_SENDER = os.environ["EMAIL_SENDER"]
 
@@ -79,6 +56,7 @@ DOMAIN_WHITE_LIST = os.environ["DOMAIN_WHITE_LIST"].split("|")
 
 sample_submission_windows: list[WeekTimeWindow] | None
 
+log_buffer.start()
 if (s := os.environ["SAMPLE_SUBMISSION_WINDOWS"]):
     from .tools.utils import parse_time_windows
     sample_submission_windows = parse_time_windows(s)
@@ -106,9 +84,13 @@ def update_index_kits(
             res.append(df)
 
         if len(res) == 0:
-            logger.warning(f"No barcodes found for index kit type: {type.id} ({type.name})")
+            if not DEBUG:
+                logger.error(f"No barcodes found for index kit type: {type.id} ({type.name})")
             continue
 
         pd.concat(res).to_pickle(os.path.join(app_data_folder, "kits", f"{type.id}.pkl"))
-        if os.getenv("OPENGSYNC_DEBUG") != "1":
+        if not DEBUG:
             logger.info(f"Updated index kit barcodes for type: {type.id} ({type.name})")
+
+
+log_buffer.flush()
