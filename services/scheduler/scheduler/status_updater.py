@@ -6,6 +6,16 @@ from opengsync_db.core import DBHandler
 from opengsync_db import categories, models
 
 
+def __find_stored_samples(q):
+    return q.where(
+        ~sa.exists().where(
+            (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+            (models.Library.id == models.links.SampleLibraryLink.library_id) &
+            (models.Library.status_id < categories.LibraryStatus.PREPARING.id)
+        )
+    )
+
+
 def __find_finished_experiments(q):
     return q.join(
         models.SeqRun,
@@ -125,6 +135,16 @@ def update_statuses(db: DBHandler):
             logs.append(f"Updating library {library.id} status to {library.status}")
             library = db.update_library(library)
     
+    db.flush()
+
+    for sample in db.get_samples(
+        status=categories.SampleStatus.WAITING_DELIVERY, limit=None,
+        custom_query=__find_stored_samples,
+    )[0]:
+        sample.status = categories.SampleStatus.STORED
+        logs.append(f"Updating sample {sample.id} status to {sample.status}")
+        sample = db.update_sample(sample)
+
     db.flush()
 
     for pool in db.get_pools(

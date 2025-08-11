@@ -1,5 +1,5 @@
 import math
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
@@ -55,7 +55,8 @@ def where(
     pool_id: int | None = None,
     seq_request_id: int | None = None,
     status: Optional[SampleStatusEnum] = None,
-    status_in: Optional[list[SampleStatusEnum]] = None
+    status_in: Optional[list[SampleStatusEnum]] = None,
+    custom_query: Callable[[Query], Query] | None = None,
 ) -> Query:
     if seq_request_id is not None:
         query = query.where(
@@ -96,6 +97,9 @@ def where(
     if status_in is not None:
         query = query.where(models.Sample.status_id.in_([s.id for s in status_in]))
 
+    if custom_query is not None:
+        query = custom_query(query)
+
     return query
 
 
@@ -107,6 +111,7 @@ def get_samples(
     seq_request_id: int | None = None,
     status: Optional[SampleStatusEnum] = None,
     status_in: Optional[list[SampleStatusEnum]] = None,
+    custom_query: Callable[[Query], Query] | None = None,
     limit: int | None = PAGE_LIMIT, offset: int | None = None,
     sort_by: Optional[str] = None, descending: bool = False,
     count_pages: bool = False
@@ -117,7 +122,8 @@ def get_samples(
     query = self.session.query(models.Sample)
     query = where(
         query, user_id=user_id, project_id=project_id, library_id=library_id,
-        pool_id=pool_id, seq_request_id=seq_request_id, status=status, status_in=status_in
+        pool_id=pool_id, seq_request_id=seq_request_id, status=status, status_in=status_in,
+        custom_query=custom_query
     )
     n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
