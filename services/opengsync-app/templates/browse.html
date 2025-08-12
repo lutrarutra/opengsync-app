@@ -20,12 +20,9 @@
         {%- if current_path -%}
         <a href="{{ url_for('file_share.browse', token=token, subpath=parent_dir.as_posix() if parent_dir else '') }}">../</a>
         {%- endif -%}
-        {%- for dir in directories -%}
-        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / dir.name).as_posix() if current_path else dir.name) }}/">{{ dir.name }}/</a>
+        {%- for path in paths -%}
+        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / path.name).as_posix() if current_path else path.name) }}{% if path.path.is_dir() %}/{% endif %}">{{ path.name }}{% if path.path.is_dir() %}/{% endif %}</a>
         {% endfor %}
-        {%- for file in files -%}
-        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / file.name).as_posix() if current_path else file.name) }}">{{ file.name }}</a>
-        {%- endfor -%}
         </pre>
         {% else %}
         <table>
@@ -44,26 +41,16 @@
                     <td>-</td>
                 </tr>
                 {% endif %}
-                {% for dir in directories %}
+                {% for path in paths %}
+                {% set stat = path.path.stat() %}
                 <tr>
                     <td>
-                        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / dir.name).as_posix() if current_path else dir.name) }}">
-                            {{ dir.name }}/
+                        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / path.name).as_posix() if current_path else path.name) }}">
+                            {{ path.name }}{% if path.path.is_dir() %}/{% endif %}
                         </a>
                     </td>
-                    <td>{{ dir.size }}</td>
-                    <td>{{ dir.modified }}</td>
-                </tr>
-                {% endfor %}
-                {% for file in files %}
-                <tr>
-                    <td>
-                        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / file.name).as_posix() if current_path else file.name) }}">
-                            {{ file.name }}
-                        </a>
-                    </td>
-                    <td>{{ file.size|filesizeformat }}</td>
-                    <td>{{ file.modified }}</td>
+                    <td>{{ stat.st_size | bytes_to_human }}</td>
+                    <td>{{ stat.st_mtime | from_timestamp }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

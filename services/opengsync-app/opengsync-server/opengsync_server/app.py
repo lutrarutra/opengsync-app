@@ -240,6 +240,32 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
 
         return dt.strftime(fmt)
     
+    @app.template_filter()
+    def from_timestamp(value: str | None, fmt: str = "%Y-%m-%d %H:%M") -> str:
+        """Convert a timestamp to a formatted string."""
+        if not value:
+            return ""
+        try:
+            dt = datetime.fromtimestamp(float(value)).astimezone(TIMEZONE)
+        except ValueError as e:
+            logger.error(f"Error converting timestamp: {e}")
+            return "<error formatting time>"
+
+        return dt.strftime(fmt)
+    
+    @app.template_filter()
+    def bytes_to_human(size: int | None) -> str:
+        if size is None or size < 0:
+            return ""
+        
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
+            if size < 1024:  # type: ignore
+                if unit == "B":
+                    return f"{size} {unit}"
+                return f"{size:.2f} {unit}"
+            size /= 1024  # type: ignore
+        return f"{size:.2f} PB"
+    
     @app.context_processor
     def inject_categories():
         return dict(
