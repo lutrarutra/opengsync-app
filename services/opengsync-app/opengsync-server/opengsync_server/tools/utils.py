@@ -158,6 +158,8 @@ def check_string(val: str | None, allowed_special_characters: list[str] = ["-", 
     for c in val:
         if c not in allowed_characters:
             return "Invalid character in name: '" + c + f"'. You can only use letters, digits and the following special characters: {allowed_special_characters}"
+        
+    return None
 
 
 def titlecase_with_acronyms(val: str) -> str:
@@ -440,3 +442,17 @@ def infer_route(func: Callable, base: str | None = None) -> list[tuple[str, dict
         routes.append((route, defs))
         
     return routes
+
+
+def is_browser_friendly(mimetype: str | None) -> bool:
+    if not mimetype:
+        return False
+    return (
+        mimetype.startswith("image/") or
+        mimetype.startswith("text/") or
+        mimetype in {
+            "application/pdf",
+            "application/javascript",
+            "application/json",
+        }
+    )

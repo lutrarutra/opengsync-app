@@ -109,12 +109,12 @@ def remove_libraries(pool_id: int):
 
 
 @htmx_route(pools_htmx, db=db)
-def get_form(form_type: Literal["create", "edit"]):
+def get_form(form_type: Literal["create", "edit"], pool_id: int | None = None):
     if form_type not in ["create", "edit"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if form_type == "create":
-        if (pool_id := request.args.get("pool_id")) is not None:
+        if pool_id is not None:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
         form = forms.models.PoolForm("create")
@@ -123,12 +123,7 @@ def get_form(form_type: Literal["create", "edit"]):
         return form.make_response()
     
     if form_type == "edit":
-        if (pool_id := request.args.get("pool_id")) is None:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-        
-        try:
-            pool_id = int(pool_id)
-        except ValueError:
+        if pool_id is None:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
         if (pool := db.get_pool(pool_id)) is None:

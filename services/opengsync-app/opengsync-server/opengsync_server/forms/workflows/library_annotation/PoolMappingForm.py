@@ -10,6 +10,7 @@ from wtforms.validators import Length, Optional as OptionalValidator, DataRequir
 from opengsync_db import models
 
 from .... import logger, db  # noqa F401
+from ....tools import utils
 from ...MultiStepForm import MultiStepForm, StepFile
 from .BarcodeInputForm import BarcodeInputForm
 
@@ -47,14 +48,14 @@ class PoolMappingForm(MultiStepForm):
         self.library_table = self.tables["library_table"]
         self.raw_pool_labels = self.library_table["pool"].unique().tolist()
 
-        if not formdata:
-            if self.seq_request.contact_person:
-                if not self.contact_name.data:
-                    self.contact_name.data = self.seq_request.contact_person.name
-                if not self.contact_email.data:
-                    self.contact_email.data = self.seq_request.contact_person.email
-                if not self.contact_phone.data:
-                    self.contact_phone.data = self.seq_request.contact_person.phone
+    def prepare(self):
+        if self.seq_request.contact_person:
+            if not self.contact_name.data:
+                self.contact_name.data = self.seq_request.contact_person.name
+            if not self.contact_email.data:
+                self.contact_email.data = self.seq_request.contact_person.email
+            if not self.contact_phone.data:
+                self.contact_phone.data = self.seq_request.contact_person.phone
 
         for i, pool in enumerate(self.raw_pool_labels):
             if i > len(self.pool_forms) - 1:
@@ -62,8 +63,6 @@ class PoolMappingForm(MultiStepForm):
 
             sub_form: PoolMappingSubForm = self.pool_forms[i]  # type: ignore
             sub_form.raw_label.data = str(pool)
-            if formdata:
-                continue
 
             if not sub_form.new_pool_name.data:
                 sub_form.new_pool_name.data = str(pool)
@@ -117,6 +116,10 @@ class PoolMappingForm(MultiStepForm):
                 sub_form.new_pool_name.data = sub_form.new_pool_name.data.strip()
                 if sub_form.new_pool_name.data in [pool.name for pool in user.pools]:
                     sub_form.new_pool_name.errors = ["You already have a pool with this name."]
+                    return False
+
+                if (error := utils.check_string(sub_form.new_pool_name.data)) is not None:
+                    sub_form.new_pool_name.errors = [error]
                     return False
 
                 add_pool(

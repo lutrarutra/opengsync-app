@@ -79,21 +79,22 @@ class PoolForm(HTMXFlaskForm):
         return True
 
     def prepare(self):
-        if self.pool is None:
-            logger.error("Pool not passed as argument for edit form")
-            raise ValueError("Pool not passed as argument for edit form")
+        if self.form_type != "create":
+            if self.pool is None:
+                logger.error("Pool not passed as argument for edit form")
+                raise ValueError("Pool not passed as argument for edit form")
         
-        self.name.data = self.pool.name
-        self.pool_type.data = self.pool.type.id
-        if self.form_type == "clone":
-            self.status.data = PoolStatus.STORED.id
-        else:
-            self.status.data = self.pool.status_id
-        self.num_m_reads_requested.data = self.pool.num_m_reads_requested
-        if self.pool.contact is not None:
-            self.contact_name.data = self.pool.contact.name
-            self.contact_email.data = self.pool.contact.email
-            self.contact_phone.data = self.pool.contact.phone
+            self.name.data = self.pool.name
+            self.pool_type.data = self.pool.type.id
+            if self.form_type == "clone":
+                self.status.data = PoolStatus.STORED.id
+            else:
+                self.status.data = self.pool.status_id
+            self.num_m_reads_requested.data = self.pool.num_m_reads_requested
+            if self.pool.contact is not None:
+                self.contact_name.data = self.pool.contact.name
+                self.contact_email.data = self.pool.contact.email
+                self.contact_phone.data = self.pool.contact.phone
 
     def __edit_existing_pool(self) -> models.Pool:
         if self.pool is None:
