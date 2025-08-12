@@ -10,7 +10,9 @@
             a { text-decoration: none; color: #0066cc; }
             a:hover { text-decoration: underline; }
             .breadcrumb { margin-bottom: 20px; }
+            a:visited { color: #551a8b; }
         </style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"/>
     </head>
     <body>
         <table>
@@ -34,7 +36,11 @@
                 <tr>
                     <td>
                         <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / path.name).as_posix() if current_path else path.name) }}">
-                            {{ path.name }}{% if path.path.is_dir() %}/{% endif %}
+                            {% if path.path.is_file() %}
+                            <i class="bi bi-file-earmark"></i> {{ path.name }}
+                            {% else %}
+                            <i class="bi bi-archive"></i> {{ path.name }}/
+                            {% endif %}
                         </a>
                     </td>
                     <td>{{ stat.st_size | bytes_to_human }}</td>

@@ -1,15 +1,14 @@
-import os
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
+import mimetypes
 
-from flask import Blueprint, current_app, request, render_template, send_from_directory, Response
+from flask import Blueprint, current_app, render_template, Response, send_from_directory
 
 from opengsync_db.categories import HTTPResponse
-from opengsync_db import DBHandler, models
 
-from .... import db, logger, cache
+from .... import db, logger, DEBUG
 from ....core import wrappers
+from ....tools import utils
 
 file_share_bp = Blueprint("file_share", __name__, url_prefix="/api/files/")
 
@@ -74,7 +73,7 @@ def validate(token: str):
     return "OK", HTTPResponse.OK.id
 
 
-@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60)
+@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60 if not DEBUG else None)
 def rclone(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
@@ -91,7 +90,13 @@ def rclone(token: str, subpath: Path = Path()):
 
     if len(paths := browser.list_contents(subpath)) == 0:
         if (file := browser.get_file(subpath)) is not None:
+            mimetype = mimetypes.guess_type(file.path)[0] or "application/octet-stream"
+
+            if DEBUG:
+                return send_from_directory(file.path.parent, file.name, as_attachment=True, mimetype=mimetype)
+            
             response = Response()
+            response.headers["Content-Type"] = mimetype
             response.headers["X-Accel-Redirect"] = str(file.path).replace("/usr/src/app/share/", "/nginx-share/")
             return response
 
@@ -101,7 +106,8 @@ def rclone(token: str, subpath: Path = Path()):
         paths=paths, token=token
     )
 
-@wrappers.page_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60)
+
+@wrappers.page_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60 if not DEBUG else None)
 def browse(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
@@ -118,9 +124,19 @@ def browse(token: str, subpath: Path = Path()):
 
     if len(paths := browser.list_contents(subpath)) == 0:
         if (file := browser.get_file(subpath)) is not None:
+            mimetype = mimetypes.guess_type(file.path)[0] or "application/octet-stream"
+
+            if DEBUG:
+                return send_from_directory(file.path.parent, file.name, as_attachment=not utils.is_browser_friendly(mimetype), mimetype=mimetype)
+            
             response = Response()
+            response.headers["Content-Type"] = mimetype
+            if not utils.is_browser_friendly(mimetype):
+                response.headers["Content-Disposition"] = f"attachment; filename={file.name}"
             response.headers["X-Accel-Redirect"] = str(file.path).replace("/usr/src/app/share/", "/nginx-share/")
             return response
+        
+    paths = sorted(paths, key=lambda p: p.name.lower())
 
     return render_template(
         "share/browse.html", current_path=subpath,

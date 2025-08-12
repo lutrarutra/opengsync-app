@@ -51,7 +51,7 @@ def _route_decorator(
     response_handler: Callable[[Exception], Any],
     cache_timeout_seconds: int | None,
     cache_query_string: bool,
-    cache_kwargs: dict[str, Any],
+    cache_kwargs: dict[str, Any] | None,
 ) -> Callable[[F], F]:
     """Base decorator for all route types."""
     def decorator(fnc: F) -> F:
