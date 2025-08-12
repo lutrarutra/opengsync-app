@@ -117,31 +117,34 @@
                 </p>
                 <ul>
                     {% if current_user.is_authenticated and current_user.is_insider() %}
-                    <li><a class="nav-link {{'active' if active_page == 'kits-page' else ''}}" id="kits-page" href="{{ url_for('kits_page.kits') }}">Kits</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'kits-page' else ''}}" href="{{ url_for('kits_page.kits') }}">Kits</a></li>
                     {% endif %}
-                    <li><a class="nav-link {{'active' if active_page == 'barcodes-page' else ''}}" id="barcodes-page" href="{{ url_for('kits_page.index_kits') }}">Barcodes</a></li>
-                    <li><a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" id="feature_kits-page" href="{{ url_for('kits_page.feature_kits') }}">Features</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'barcodes-page' else ''}}" href="{{ url_for('kits_page.index_kits') }}">Barcodes</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" href="{{ url_for('kits_page.feature_kits') }}">Features</a></li>
                 </ul>
             </div>
             {% if current_user.is_authenticated %}
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'groups-page' else ''}}" id="groups-page" href="{{ url_for('groups_page.groups') }}">Groups</a>
+                <a class="nav-link {{'active' if active_page == 'groups-page' else ''}}" href="{{ url_for('groups_page.groups') }}">Groups</a>
             </div>
             {% endif %}
             {% if current_user.is_authenticated and not current_user.is_insider() %}
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'help-page' else ''}}" id="help-page" href="{{ url_for('help') }}">Help</a>
-            </div>
-            {% endif %}
-            {% if current_user.is_authenticated and user_role == UserRole.ADMIN %}
-            <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'devices-page' else ''}}" id="devices-page" href="{{ url_for('devices_page.devices') }}">Devices</a>
+                <a class="nav-link {{'active' if active_page == 'help-page' else ''}}" href="{{ url_for('help') }}">Help</a>
             </div>
             {% endif %}
             {% if current_user.is_authenticated and current_user.is_insider() %}
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'seq_run-page' else ''}}" id="seq_run-page" href="{{ url_for('seq_runs_page.seq_runs') }}">Runs</a>
+                <a class="nav-link {{'active' if active_page == 'seq_run-page' else ''}}" href="{{ url_for('seq_runs_page.seq_runs') }}">Runs</a>
             </div>
+            {% if user_role == UserRole.ADMIN  %}
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'share_token-page' else ''}}" href="{{ url_for('share_tokens_page.share_tokens') }}">Share</a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'devices-page' else ''}}" href="{{ url_for('devices_page.devices') }}">Devices</a>
+            </div>
+            {% endif %}
             {% endif %}
         </div>
         <div class="nav-right">

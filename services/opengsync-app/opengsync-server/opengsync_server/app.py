@@ -254,6 +254,15 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
         return dt.strftime(fmt)
     
     @app.template_filter()
+    def format_datetime(value: datetime | None, fmt: str = "%Y-%m-%d %H:%M") -> str:
+        """Format a datetime object to a given format."""
+        if value is None:
+            return ""
+        if not isinstance(value, datetime):
+            raise TypeError(f"Expected datetime, got {type(value)}")
+        return value.astimezone(TIMEZONE).strftime(fmt)
+    
+    @app.template_filter()
     def bytes_to_human(size: int | None) -> str:
         if size is None or size < 0:
             return ""
@@ -329,6 +338,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(api.htmx.events_htmx)
     app.register_blueprint(api.htmx.groups_htmx)
     app.register_blueprint(api.htmx.kits_htmx)
+    app.register_blueprint(api.htmx.share_tokens_htmx)
     
     app.register_blueprint(api.plotting.plots_api)
     app.register_blueprint(api.files.file_share_bp)
@@ -367,6 +377,7 @@ def create_app(static_folder: str, template_folder: str) -> Flask:
     app.register_blueprint(pages.seq_runs_page_bp)
     app.register_blueprint(pages.lab_preps_page_bp)
     app.register_blueprint(pages.groups_page_bp)
+    app.register_blueprint(pages.share_tokens_page_bp)
 
     log_buffer.flush()
     return app

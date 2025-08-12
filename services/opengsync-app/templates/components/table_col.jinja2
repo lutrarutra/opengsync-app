@@ -64,7 +64,7 @@ sort-order="{{ sort_order }}">
 {% endif %}
 
 {% if multiselect_choices %}
-<th scopy='col' class='col-{{ col_size}} temp-query-input' id='{{ table_container_id }}:{{ column_var }}-filter'
+<th scope='col' class='col-{{ col_size}} temp-query-input' id='{{ table_container_id }}:{{ column_var }}-filter'
     {% if not multiselect_selected %}style="display: none;"{% endif %}>
     {{
         multi_select(
