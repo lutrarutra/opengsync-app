@@ -136,3 +136,9 @@ mkdir -p data/db_backup/base && sudo chown -R 999:999 data/db_backup/base
 - Common library prep table requirements
 
 
+# Share
+
+## Download shared file:
+```sh
+rclone copy --http-url http://<ip>/api/files/browse/<token> :http: . -v --stats-log-level NOTICE --stats 500ms --progress
+```

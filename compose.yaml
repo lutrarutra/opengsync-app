@@ -11,6 +11,7 @@ services:
             - ${UPLOADS_DIR}:/usr/src/app/uploads
             - ${DATA_DIR}/media:/usr/src/app/media
             - ${DATA_DIR}/logs/opengsync:/usr/src/app/logs
+            - ./mnt/share:/usr/src/app/share:ro
         env_file: .env
         environment:
             TZ: ${TIMEZONE}
@@ -78,6 +79,7 @@ services:
             - compiled_css:/usr/src/app/static/style/compiled:ro
             - ${DATA_DIR}/media:/usr/src/app/media:ro
             - ${UPLOADS_DIR}:/usr/src/app/uploads:ro
+            - ./mnt/share:/usr/src/app/share:ro
         depends_on:
             opengsync-app:
                 condition: service_started

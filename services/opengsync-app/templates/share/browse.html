@@ -2,7 +2,6 @@
 <html>
     <head>
         <title>Index of {{ current_path.as_posix() if current_path else '/' }}</title>
-        {% if not rclone %}
         <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             table { width: 100%; border-collapse: collapse; }
@@ -12,19 +11,8 @@
             a:hover { text-decoration: underline; }
             .breadcrumb { margin-bottom: 20px; }
         </style>
-        {% endif %}
     </head>
     <body>
-        {% if rclone %}
-        <pre>
-        {%- if current_path -%}
-        <a href="{{ url_for('file_share.browse', token=token, subpath=parent_dir.as_posix() if parent_dir else '') }}">../</a>
-        {%- endif -%}
-        {%- for path in paths -%}
-        <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / path.name).as_posix() if current_path else path.name) }}{% if path.path.is_dir() %}/{% endif %}">{{ path.name }}{% if path.path.is_dir() %}/{% endif %}</a>
-        {% endfor %}
-        </pre>
-        {% else %}
         <table>
             <thead>
                 <tr>
@@ -36,7 +24,7 @@
             <tbody>
                 {% if current_path.parts %}
                 <tr>
-                    <td><a href="{{ url_for('file_share.browse', token=token, subpath=parent_dir.as_posix() if parent_dir else '').rstrip('/') }}">../</a></td>
+                    <td><a href="{{ url_for('file_share.browse', token=token, subpath=parent_dir.as_posix() if parent_dir else '') }}">../</a></td>
                     <td>-</td>
                     <td>-</td>
                 </tr>
@@ -55,6 +43,5 @@
                 {% endfor %}
             </tbody>
         </table>
-        {% endif %}
     </body>
 </html>

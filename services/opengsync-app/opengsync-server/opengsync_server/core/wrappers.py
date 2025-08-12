@@ -49,6 +49,9 @@ def _route_decorator(
     debug: bool,
     strict_slashes: bool,
     response_handler: Callable[[Exception], Any],
+    cache_timeout_seconds: int | None,
+    cache_query_string: bool,
+    cache_kwargs: dict[str, Any],
 ) -> Callable[[F], F]:
     """Base decorator for all route types."""
     def decorator(fnc: F) -> F:
@@ -57,6 +60,9 @@ def _route_decorator(
         if login_required and db is None:
             raise ValueError("db must be provided if login_required is True")
 
+        if cache_timeout_seconds is not None:
+            from .. import cache
+            fnc = cache.cached(timeout=cache_timeout_seconds, query_string=cache_query_string, **(cache_kwargs or {}))(fnc)
         if login_required:
             fnc = login_required_f(fnc)  # type: ignore
         if db is not None:
@@ -114,9 +120,12 @@ def page_route(
     db: DBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
-    strict_slashes: bool = True
+    cache_timeout_seconds: int | None = None,
+    cache_query_string: bool = False,
+    cache_kwargs: dict[str, Any] | None = None,
+    strict_slashes: bool = True,
 ) -> Callable[[F], F]:
-    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _page_handler)
+    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _page_handler, cache_timeout_seconds, cache_query_string, cache_kwargs)
 
 
 def htmx_route(
@@ -126,9 +135,12 @@ def htmx_route(
     db: DBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
-    strict_slashes: bool = True
+    cache_timeout_seconds: int | None = None,
+    cache_query_string: bool = False,
+    cache_kwargs: dict[str, Any] | None = None,
+    strict_slashes: bool = True,
 ) -> Callable[[F], F]:
-    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _htmx_handler)
+    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _htmx_handler, cache_timeout_seconds, cache_query_string, cache_kwargs)
 
 
 def api_route(
@@ -138,6 +150,9 @@ def api_route(
     db: DBHandler | None = None,
     login_required: bool = False,
     debug: bool = False,
-    strict_slashes: bool = True
+    cache_timeout_seconds: int | None = None,
+    cache_query_string: bool = False,
+    cache_kwargs: dict[str, Any] | None = None,
+    strict_slashes: bool = True,
 ) -> Callable[[F], F]:
-    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _api_handler)
+    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _api_handler, cache_timeout_seconds, cache_query_string, cache_kwargs)

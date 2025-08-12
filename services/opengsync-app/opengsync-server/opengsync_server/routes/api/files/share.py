@@ -3,11 +3,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from flask import Blueprint, current_app, request, render_template, send_from_directory
+from flask import Blueprint, current_app, request, render_template, send_from_directory, Response
 
 from opengsync_db.categories import HTTPResponse
+from opengsync_db import DBHandler, models
 
-from .... import db, logger
+from .... import db, logger, cache
 from ....core import wrappers
 
 file_share_bp = Blueprint("file_share", __name__, url_prefix="/api/files/")
@@ -73,7 +74,34 @@ def validate(token: str):
     return "OK", HTTPResponse.OK.id
 
 
-@wrappers.page_route(file_share_bp, db=db, login_required=False, strict_slashes=False)
+@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60)
+def rclone(token: str, subpath: Path = Path()):
+    if isinstance(subpath, str):
+        subpath = Path(subpath)
+
+    if (share_token := db.get_share_token(token)) is None:
+        return "Token Not Found", HTTPResponse.NOT_FOUND.id
+    
+    if share_token.is_expired:
+        return "Token expired", HTTPResponse.BAD_REQUEST.id
+    
+    SHARE_ROOT = Path(current_app.config["SHARE_ROOT"])
+
+    browser = SharedFileBrowser([path.path for path in share_token.paths], SHARE_ROOT)
+
+    if len(paths := browser.list_contents(subpath)) == 0:
+        if (file := browser.get_file(subpath)) is not None:
+            response = Response()
+            response.headers["X-Accel-Redirect"] = str(file.path).replace("/usr/src/app/share/", "/nginx-share/")
+            return response
+
+    return render_template(
+        "share/rclone.html", current_path=subpath,
+        parent_dir=subpath.parent if subpath != Path() else None,
+        paths=paths, token=token
+    )
+
+@wrappers.page_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60)
 def browse(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
@@ -86,18 +114,16 @@ def browse(token: str, subpath: Path = Path()):
     
     SHARE_ROOT = Path(current_app.config["SHARE_ROOT"])
 
-    rclone = "rclone" in (request.headers.get("User-Agent") or "").lower() or "rclone" in request.args.get("agent", "").lower()
-
     browser = SharedFileBrowser([path.path for path in share_token.paths], SHARE_ROOT)
 
     if len(paths := browser.list_contents(subpath)) == 0:
-        if (file := browser.get_file(subpath)) is None:
-            return "Path not found", HTTPResponse.NOT_FOUND.id
-        
-        if file.path.is_file():
-            return send_from_directory(SHARE_ROOT / subpath.parts[0], file.name, as_attachment=True)
+        if (file := browser.get_file(subpath)) is not None:
+            response = Response()
+            response.headers["X-Accel-Redirect"] = str(file.path).replace("/usr/src/app/share/", "/nginx-share/")
+            return response
 
     return render_template(
-        "browse.html", current_path=subpath,
-        paths=paths, rclone=rclone, token=token
+        "share/browse.html", current_path=subpath,
+        parent_dir=subpath.parent if subpath != Path() else None,
+        paths=paths, token=token
     )

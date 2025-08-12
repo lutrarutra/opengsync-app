@@ -33,6 +33,8 @@ __pycache__/
 
 
 share/
+!services/opengsync-app/templates/share
+
 
 # C extensions
 *.so
