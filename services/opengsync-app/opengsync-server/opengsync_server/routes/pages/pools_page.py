@@ -1,28 +1,21 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, render_template, abort, url_for, request
 
 from opengsync_db.categories import PoolStatus
-from opengsync_db.models import User
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from ... import db, page_route
-
-if TYPE_CHECKING:
-    current_user: User = None  # type: ignore
-else:
-    from flask_login import current_user
-
+from ... import db
+from ...core import wrappers
 pools_page_bp = Blueprint("pools_page", __name__)
 
 
-@page_route(pools_page_bp, db=db)
-def pools():
+@wrappers.page_route(pools_page_bp, db=db)
+def pools(current_user: models.User, ):
     return render_template("pools_page.html")
 
 
-@page_route(pools_page_bp, db=db)
-def pool(pool_id: int):
+@wrappers.page_route(pools_page_bp, db=db)
+def pool(current_user: models.User, pool_id: int):
     if (pool := db.get_pool(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

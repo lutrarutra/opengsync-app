@@ -1,26 +1,19 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, render_template, url_for, abort, request
 
-from opengsync_db.models import User
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
-from ... import db, page_route
-
-if TYPE_CHECKING:
-    current_user: User = None   # type: ignore
-else:
-    from flask_login import current_user
-
+from ... import db
+from ...core import wrappers
 samples_page_bp = Blueprint("samples_page", __name__)
 
 
-@page_route(samples_page_bp, db=db)
-def samples():
+@wrappers.page_route(samples_page_bp, db=db)
+def samples(current_user: models.User, ):
     return render_template("samples_page.html")
 
 
-@page_route(samples_page_bp, db=db)
-def sample(sample_id):
+@wrappers.page_route(samples_page_bp, db=db)
+def sample(current_user: models.User, sample_id: int):
     if (sample := db.get_sample(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 

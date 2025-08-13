@@ -12,14 +12,10 @@ from itsdangerous import URLSafeTimedSerializer
 
 from loguru import logger
 
-from opengsync_db import DBHandler, categories
+from opengsync_db import DBHandler
 
 from .core.LogBuffer import log_buffer
 from .tools import RedisMSFFileCache
-from .tools.WeekTimeWindow import WeekTimeWindow
-from .core.wrappers import page_route, htmx_route  # noqa: F401
-
-DEFAULT_FMT = """{level} @ {time:YYYY-MM-DD HH:mm:ss} [{file}:{line} in {function}]:\n------------------------ [BEGIN LOG] ------------------------\n\n{message}\n\n------------------------ [ END LOG ] ------------------------\n"""
 
 DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
 
@@ -37,8 +33,8 @@ pd.set_option('display.width', 1000)
 
 
 SECRET_KEY = os.environ["SECRET_KEY"]
-
 EMAIL_SENDER = os.environ["EMAIL_SENDER"]
+TIMEZONE = pytz.timezone(os.environ["TIMEZONE"])
 
 htmx = HTMX()
 bcrypt = Bcrypt()
@@ -46,51 +42,6 @@ login_manager = LoginManager()
 mail = Mail()
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
-TIMEZONE = pytz.timezone(os.environ["TIMEZONE"])
-
 db = DBHandler(logger=logger, expire_on_commit=True)
 cache = Cache()
 msf_cache = RedisMSFFileCache()
-
-DOMAIN_WHITE_LIST = os.environ["DOMAIN_WHITE_LIST"].split("|")
-
-sample_submission_windows: list[WeekTimeWindow] | None
-
-log_buffer.start()
-if (s := os.environ["SAMPLE_SUBMISSION_WINDOWS"]):
-    from .tools.utils import parse_time_windows
-    sample_submission_windows = parse_time_windows(s)
-    for window in sample_submission_windows:
-        logger.info(f"Sample submission window: {window.weekday} {window.start_time} - {window.end_time}")
-else:
-    sample_submission_windows = None
-    logger.warning("No sample submission windows configured..")
-
-
-def update_index_kits(
-    db: DBHandler, app_data_folder: str,
-    types: list[categories.IndexTypeEnum] = categories.IndexType.as_list()
-):
-    import pandas as pd
-
-    if not os.path.exists(os.path.join(app_data_folder, "kits")):
-        os.makedirs(os.path.join(app_data_folder, "kits"))
-    for type in types:
-        res = []
-        for kit in db.get_index_kits(limit=None, sort_by="id", descending=True, type_in=[type])[0]:
-            df = db.get_index_kit_barcodes_df(kit.id, per_index=True)
-            df["kit_id"] = kit.id
-            df["kit"] = kit.identifier
-            res.append(df)
-
-        if len(res) == 0:
-            if not DEBUG:
-                logger.error(f"No barcodes found for index kit type: {type.id} ({type.name})")
-            continue
-
-        pd.concat(res).to_pickle(os.path.join(app_data_folder, "kits", f"{type.id}.pkl"))
-        if not DEBUG:
-            logger.info(f"Updated index kit barcodes for type: {type.id} ({type.name})")
-
-
-log_buffer.flush()

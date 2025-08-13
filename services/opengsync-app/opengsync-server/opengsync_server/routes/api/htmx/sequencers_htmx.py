@@ -1,23 +1,17 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 
 from opengsync_db import PAGE_LIMIT, exceptions, models
 from opengsync_db.categories import HTTPResponse, UserRole
-from .... import db, forms, cache, htmx_route
+from .... import db, forms, cache
+from ....core import wrappers
 
 sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/hmtx/sequencers/")
 
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
-
-@htmx_route(sequencers_htmx, db=db)
+@wrappers.htmx_route(sequencers_htmx, db=db)
 @cache.cached(timeout=60, query_string=True)
-def get(page: int = 0):
+def get(current_user: models.User, page: int = 0):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -33,16 +27,16 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(sequencers_htmx, db=db, methods=["POST"])
-def create():
+@wrappers.htmx_route(sequencers_htmx, db=db, methods=["POST"])
+def create(current_user: models.User):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.models.SequencerForm(request.form).process_request()
 
 
-@htmx_route(sequencers_htmx, db=db, methods=["POST"])
-def update(sequencer_id: int):
+@wrappers.htmx_route(sequencers_htmx, db=db, methods=["POST"])
+def update(current_user: models.User, sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -54,8 +48,8 @@ def update(sequencer_id: int):
     )
 
 
-@htmx_route(sequencers_htmx, db=db)
-def delete(sequencer_id: int):
+@wrappers.htmx_route(sequencers_htmx, db=db)
+def delete(current_user: models.User, sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -76,8 +70,8 @@ def delete(sequencer_id: int):
     )
 
 
-@htmx_route(sequencers_htmx, db=db, methods=["POST"])
-def query():
+@wrappers.htmx_route(sequencers_htmx, db=db, methods=["POST"])
+def query(current_user: models.User, ):
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
 

@@ -1,5 +1,4 @@
 import json
-from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -9,21 +8,15 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, IndexType, KitType
 
-from .... import db, logger, cache, forms, htmx_route  # noqa F401
-from ....tools.spread_sheet_components import TextColumn
+from .... import db, logger, cache, forms
 from ....core import wrappers
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
-
+from ....tools.spread_sheet_components import TextColumn
 
 index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/api/hmtx/index_kits/")
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db)
-def get(page: int = 0):
+def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "identifier")
     sort_order = request.args.get("sort_order", "asc")
     descending = sort_order == "desc"
@@ -53,8 +46,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(index_kits_htmx, db=db)
-def table_query():
+@wrappers.htmx_route(index_kits_htmx, db=db)
+def table_query(current_user: models.User):
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
@@ -95,9 +88,9 @@ def table_query():
     )
 
 
-@htmx_route(index_kits_htmx, db=db)
+@wrappers.htmx_route(index_kits_htmx, db=db)
 @cache.cached(timeout=300, query_string=True)
-def get_adapters(index_kit_id: int, page: int = 0):
+def get_adapters(current_user: models.User, index_kit_id: int, page: int = 0):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -118,8 +111,8 @@ def get_adapters(index_kit_id: int, page: int = 0):
     )
 
 
-@htmx_route(index_kits_htmx, db=db)
-def render_table(index_kit_id: int):
+@wrappers.htmx_route(index_kits_htmx, db=db)
+def render_table(current_user: models.User, index_kit_id: int):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -144,8 +137,8 @@ def render_table(index_kit_id: int):
     )
 
 
-@htmx_route(index_kits_htmx, db=db)
-def get_form(form_type: str):
+@wrappers.htmx_route(index_kits_htmx, db=db)
+def get_form(current_user: models.User, form_type: str):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     if form_type == "edit":
@@ -169,8 +162,8 @@ def get_form(form_type: str):
     ).make_response()
 
 
-@htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
-def create():
+@wrappers.htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
+def create(current_user: models.User):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -183,8 +176,8 @@ def create():
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
-def edit(index_kit_id: int):
+@wrappers.htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
+def edit(current_user: models.User, index_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
@@ -199,8 +192,8 @@ def edit(index_kit_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
-def edit_barcodes(index_kit_id: int):
+@wrappers.htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
+def edit_barcodes(current_user: models.User, index_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     

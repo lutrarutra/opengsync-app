@@ -1,31 +1,23 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, render_template, url_for, abort, request
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from ... import db, logger, page_route  # noqa
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
-
+from ... import db, logger
+from ...core import wrappers
 seq_runs_page_bp = Blueprint("seq_runs_page", __name__)
 
 
-
-@page_route(seq_runs_page_bp, db=db)
-def seq_runs():
+@wrappers.page_route(seq_runs_page_bp, db=db)
+def seq_runs(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
     return render_template("seq_runs_page.html")
 
 
-@page_route(seq_runs_page_bp, db=db)
-def seq_run(seq_run_id: int):
+@wrappers.page_route(seq_runs_page_bp, db=db)
+def seq_run(current_user: models.User, seq_run_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

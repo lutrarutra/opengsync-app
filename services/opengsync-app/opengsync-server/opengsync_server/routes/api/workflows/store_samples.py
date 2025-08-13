@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from flask import Blueprint, request, abort, Response, flash, url_for
 from flask_htmx import make_response
@@ -7,19 +6,15 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, SampleStatus, LibraryStatus, PoolStatus, SeqRequestStatus, SubmissionType
 
-from .... import db, logger, htmx_route  # noqa
+from .... import db, logger
+from ....core import wrappers
 from ....forms import SelectSamplesForm
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 store_samples_workflow = Blueprint("store_samples_workflow", __name__, url_prefix="/api/workflows/store_samples/")
 
 
-@htmx_route(store_samples_workflow, db=db)
-def begin() -> Response:
+@wrappers.htmx_route(store_samples_workflow, db=db)
+def begin(current_user: models.User) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -37,8 +32,8 @@ def begin() -> Response:
     return form.make_response()
 
 
-@htmx_route(store_samples_workflow, db=db, methods=["POST"])
-def select():
+@wrappers.htmx_route(store_samples_workflow, db=db, methods=["POST"])
+def select(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

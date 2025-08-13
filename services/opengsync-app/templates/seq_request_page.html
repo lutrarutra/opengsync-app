@@ -445,7 +445,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.get_libraries', seq_request_id=seq_request.id) }}" hx-trigger="load" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_libraries', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

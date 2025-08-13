@@ -2,9 +2,9 @@ from typing import Callable, Literal, TypeVar, Any
 from functools import wraps
 import traceback
 
-from flask import Blueprint, Flask, abort, render_template, flash, current_app
+from flask import Blueprint, Flask, abort, render_template, flash, request
 from flask_htmx import make_response
-from flask_login import login_required as login_required_f
+from flask_login import login_required as login_required_f, current_user
 
 from opengsync_db import DBHandler, db_session
 from opengsync_db.categories import HTTPResponse
@@ -14,6 +14,7 @@ from .. import logger
 from ..core.LogBuffer import log_buffer
 from ..tools import utils, textgen
 from . import exceptions as serv_exceptions
+from ..core.runtime import runtime
 
 F = TypeVar("F", bound=Callable[..., Any])  # generic for wrapped functions
 
@@ -55,7 +56,16 @@ def _route_decorator(
 ) -> Callable[[F], F]:
     """Base decorator for all route types."""
     def decorator(fnc: F) -> F:
-        routes = utils.infer_route(fnc, base=route)
+        routes, current_user_required = utils.infer_route(fnc, base=route)
+
+        match current_user_required:
+            case "required":
+                if not login_required:
+                    logger.error(f"Route {fnc.__name__} requires current_user but login_required is False.")
+
+            case "optional":
+                if login_required:
+                    logger.error(f"Route {fnc.__name__} current_user is optional but login_required is True.")
 
         if login_required and db is None:
             raise ValueError("db must be provided if login_required is True")
@@ -63,16 +73,23 @@ def _route_decorator(
         if cache_timeout_seconds is not None:
             from .. import cache
             fnc = cache.cached(timeout=cache_timeout_seconds, query_string=cache_query_string, **(cache_kwargs or {}))(fnc)
-        if login_required:
-            fnc = login_required_f(fnc)  # type: ignore
-        if db is not None:
-            fnc = db_session(db)(fnc)  # type: ignore
 
         @wraps(fnc)
         def wrapper(*args, **kwargs):
-            log_buffer.start()
+            if debug:
+                log_buffer.start(str(request.url_rule))
+            else:
+                log_buffer.start()
+            if db is not None:
+                db.open_session()
+
+            _fnc = login_required_f(fnc) if login_required else fnc
+
             try:
-                return fnc(*args, **kwargs)
+                if current_user_required != "no":
+                    kwargs["current_user"] = current_user if current_user.is_authenticated else None
+                    
+                return _fnc(*args, **kwargs)
             except serv_exceptions.OpeNGSyncServerException as e:
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncServerException")
                 return response_handler(e)
@@ -80,13 +97,13 @@ def _route_decorator(
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncDBException")
                 return response_handler(e)
             except Exception as e:
-                if current_app.debug and response_handler.__name__ != "_htmx_handler":
+                if runtime.current_app.debug and response_handler.__name__ != "_htmx_handler":
                     raise e
                 _default_logger(blueprint, routes, args, kwargs, e, "Exception")
                 return response_handler(e)
             finally:
                 if db is not None and db._session:
-                    db.close_session(commit=False)
+                    db.close_session()
                 log_buffer.flush()
 
         if debug:

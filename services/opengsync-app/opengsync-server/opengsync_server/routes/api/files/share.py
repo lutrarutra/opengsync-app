@@ -61,7 +61,7 @@ class SharedFileBrowser:
         return None
 
 
-@wrappers.api_route(file_share_bp, db=db)
+@wrappers.api_route(file_share_bp, db=db, login_required=False)
 def validate(token: str):
     if (share_token := db.get_share_token(token)) is None:
         return "Token Not Found", HTTPResponse.NOT_FOUND.id

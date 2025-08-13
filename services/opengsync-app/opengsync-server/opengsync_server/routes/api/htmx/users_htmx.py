@@ -1,23 +1,18 @@
 import json
-from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, UserRole, SeqRequestStatus
-from .... import db, logger, htmx_route  # noqa F401
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
+from .... import db, logger  # noqa F401
+from ....core import wrappers
 
 users_htmx = Blueprint("users_htmx", __name__, url_prefix="/api/hmtx/users/")
 
 
-@htmx_route(users_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(users_htmx, db=db)
+def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -50,8 +45,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(users_htmx, db=db, methods=["POST"])
-def query():
+@wrappers.htmx_route(users_htmx, db=db, methods=["POST"])
+def query(current_user: models.User, ):
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
 
@@ -79,8 +74,8 @@ def query():
     )
 
 
-@htmx_route(users_htmx, db=db)
-def table_query():
+@wrappers.htmx_route(users_htmx, db=db)
+def table_query(current_user: models.User, ):
     if (word := request.args.get("last_name")) is not None:
         field_name = "last_name"
     elif (word := request.args.get("email")) is not None:
@@ -122,8 +117,8 @@ def table_query():
     )
 
 
-@htmx_route(users_htmx, db=db)
-def get_projects(user_id: int, page: int = 0):
+@wrappers.htmx_route(users_htmx, db=db)
+def get_projects(current_user: models.User, user_id: int, page: int = 0):
     if (user := db.get_user(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -146,8 +141,8 @@ def get_projects(user_id: int, page: int = 0):
     )
 
 
-@htmx_route(users_htmx, db=db)
-def get_seq_requests(user_id: int, page: int = 0):
+@wrappers.htmx_route(users_htmx, db=db)
+def get_seq_requests(current_user: models.User, user_id: int, page: int = 0):
     if (user := db.get_user(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -182,8 +177,8 @@ def get_seq_requests(user_id: int, page: int = 0):
     )
 
 
-@htmx_route(users_htmx, db=db)
-def query_seq_requests(user_id: int):
+@wrappers.htmx_route(users_htmx, db=db)
+def query_seq_requests(current_user: models.User, user_id: int):
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
@@ -229,8 +224,8 @@ def query_seq_requests(user_id: int):
     )
 
 
-@htmx_route(users_htmx, db=db)
-def get_affiliations(user_id: int, page: int = 0):
+@wrappers.htmx_route(users_htmx, db=db)
+def get_affiliations(current_user: models.User, user_id: int, page: int = 0):
     if (user := db.get_user(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

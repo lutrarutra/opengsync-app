@@ -2,17 +2,17 @@ from flask import Blueprint, render_template, url_for, abort, make_response, req
 
 from opengsync_db.categories import HTTPResponse
 
-from ... import db, page_route
-
+from ... import db
+from ...core import wrappers
 kits_page_bp = Blueprint("kits_page", __name__)
 
 
-@page_route(kits_page_bp, db=db)
+@wrappers.page_route(kits_page_bp, db=db)
 def kits():
     return render_template("kits_page.html")
 
 
-@page_route(kits_page_bp, db=db)
+@wrappers.page_route(kits_page_bp, db=db)
 def kit(kit_id: int):
     if (kit := db.get_kit(kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
@@ -27,12 +27,12 @@ def kit(kit_id: int):
     )
 
 
-@page_route(kits_page_bp, db=db)
+@wrappers.page_route(kits_page_bp, db=db)
 def index_kits():
     return render_template("index_kits_page.html")
 
 
-@page_route(kits_page_bp, db=db)
+@wrappers.page_route(kits_page_bp, db=db)
 def index_kit(index_kit_id: int):
     index_kit = db.get_index_kit(index_kit_id)
 
@@ -55,12 +55,12 @@ def index_kit(index_kit_id: int):
     )
 
 
-@page_route(kits_page_bp, db=db)
+@wrappers.page_route(kits_page_bp, db=db)
 def feature_kits():
     return render_template("feature_kits_page.html")
 
 
-@page_route(kits_page_bp, db=db)
+@wrappers.page_route(kits_page_bp, db=db)
 def feature_kit(feature_kit_id: int):
     feature_kit = db.get_feature_kit(feature_kit_id)
 
@@ -85,7 +85,7 @@ def feature_kit(feature_kit_id: int):
     )
 
 
-@page_route(kits_page_bp, db=db)
+@wrappers.page_route(kits_page_bp, db=db)
 def export_features(feature_kit_id: int):
     feature_kit = db.get_feature_kit(feature_kit_id)
     if feature_kit is None:

@@ -1,26 +1,19 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, render_template, url_for, abort, request
 
-from opengsync_db.models import User
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
-from ... import db, page_route
-
-if TYPE_CHECKING:
-    current_user: User = None   # type: ignore
-else:
-    from flask_login import current_user
-
+from ... import db
+from ...core import wrappers
 share_tokens_page_bp = Blueprint("share_tokens_page", __name__)
 
 
-@page_route(share_tokens_page_bp, db=db)
-def share_tokens():
+@wrappers.page_route(share_tokens_page_bp, db=db)
+def share_tokens(current_user: models.User):
     return render_template("share_tokens_page.html")
 
 
-@page_route(share_tokens_page_bp, db=db)
-def share_token(share_token_id):
+@wrappers.page_route(share_tokens_page_bp, db=db)
+def share_token(current_user: models.User, share_token_id: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

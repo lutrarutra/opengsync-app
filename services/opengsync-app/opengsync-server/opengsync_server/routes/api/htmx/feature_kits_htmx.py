@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING
-
 import pandas as pd
 
 from flask import Blueprint, render_template, request, abort, flash, url_for
@@ -8,20 +6,16 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, KitType
 
-from .... import db, logger, cache, htmx_route  # noqa: F401
+from .... import db, cache
+from ....core import wrappers
 from .... import forms
 from ....tools.spread_sheet_components import TextColumn
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 feature_kits_htmx = Blueprint("feature_kits_htmx", __name__, url_prefix="/api/hmtx/feature_kits/")
 
 
-@htmx_route(feature_kits_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(feature_kits_htmx, db=db)
+def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -44,8 +38,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(feature_kits_htmx, db=db, methods=["POST"])
-def query():
+@wrappers.htmx_route(feature_kits_htmx, db=db, methods=["POST"])
+def query(current_user: models.User):
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name, default="")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -64,8 +58,8 @@ def query():
     )
 
 
-@htmx_route(feature_kits_htmx, db=db)
-def table_query():
+@wrappers.htmx_route(feature_kits_htmx, db=db)
+def table_query(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -98,9 +92,9 @@ def table_query():
     )
 
 
-@htmx_route(feature_kits_htmx, db=db)
+@wrappers.htmx_route(feature_kits_htmx, db=db)
 @cache.cached(timeout=300, query_string=True)
-def get_features(feature_kit_id: int, page: int = 0):
+def get_features(current_user: models.User, feature_kit_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -124,8 +118,8 @@ def get_features(feature_kit_id: int, page: int = 0):
     )
 
 
-@htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
-def create():
+@wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
+def create(current_user: models.User):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -138,8 +132,8 @@ def create():
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
-def edit(feature_kit_id: int):
+@wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
+def edit(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
@@ -154,8 +148,8 @@ def edit(feature_kit_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
     
 
-@htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
-def edit_features(feature_kit_id: int):
+@wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
+def edit_features(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -174,8 +168,8 @@ def edit_features(feature_kit_id: int):
     return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@htmx_route(feature_kits_htmx, db=db, methods=["DELETE"])
-def delete(feature_kit_id: int):
+@wrappers.htmx_route(feature_kits_htmx, db=db, methods=["DELETE"])
+def delete(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -187,8 +181,8 @@ def delete(feature_kit_id: int):
     return make_response(redirect=url_for("kits_page.feature_kits"))
 
 
-@htmx_route(feature_kits_htmx, db=db)
-def render_table(feature_kit_id: int):
+@wrappers.htmx_route(feature_kits_htmx, db=db)
+def render_table(current_user: models.User, feature_kit_id: int):
     if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

@@ -1,5 +1,4 @@
 import json
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -10,19 +9,15 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus, SeqRequestStatus
 
-from .... import db, forms, logger, htmx_route  # noqa
+from .... import db, forms, logger
+from ....core import wrappers
 from ....tools.spread_sheet_components import TextColumn
-
-if TYPE_CHECKING:
-    current_user: models.User = None   # type: ignore
-else:
-    from flask_login import current_user
 
 projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/hmtx/projects/")
 
 
-@htmx_route(projects_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(projects_htmx, db=db)
+def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -78,8 +73,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(projects_htmx, db=db, methods=["POST"])
-def query():
+@wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
+def query(current_user: models.User, ):
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name, default="")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -111,13 +106,13 @@ def query():
     )
 
 
-@htmx_route(projects_htmx, db=db, methods=["POST"])
-def create():
+@wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
+def create(current_user: models.User, ):
     return forms.models.ProjectForm(formdata=request.form).process_request(user=current_user)
 
 
-@htmx_route(projects_htmx, db=db, methods=["POST"])
-def edit(project_id: int):
+@wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
+def edit(current_user: models.User, project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -131,8 +126,8 @@ def edit(project_id: int):
     )
 
 
-@htmx_route(projects_htmx, db=db, methods=["DELETE"])
-def delete(project_id: int):
+@wrappers.htmx_route(projects_htmx, db=db, methods=["DELETE"])
+def delete(current_user: models.User, project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -147,8 +142,8 @@ def delete(project_id: int):
     return make_response(redirect=url_for("projects_page.projects"))
 
 
-@htmx_route(projects_htmx, db=db, methods=["POST"])
-def complete(project_id: int):
+@wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
+def complete(current_user: models.User, project_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -165,8 +160,8 @@ def complete(project_id: int):
     return make_response(redirect=url_for("projects_page.project", project_id=project.id))
 
 
-@htmx_route(projects_htmx, db=db)
-def table_query():
+@wrappers.htmx_route(projects_htmx, db=db)
+def table_query(current_user: models.User, ):
     id = None
     title = None
     if (identifier := request.args.get("identifier", None)) is not None:
@@ -237,8 +232,8 @@ def table_query():
     )
 
 
-@htmx_route(projects_htmx, db=db)
-def get_seq_requests(project_id: int, page: int = 0):
+@wrappers.htmx_route(projects_htmx, db=db)
+def get_seq_requests(current_user: models.User, project_id: int, page: int = 0):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -279,8 +274,8 @@ def get_seq_requests(project_id: int, page: int = 0):
     )
         
 
-@htmx_route(projects_htmx, db=db)
-def get_samples(project_id: int, page: int = 0):
+@wrappers.htmx_route(projects_htmx, db=db)
+def get_samples(current_user: models.User, project_id: int, page: int = 0):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -316,8 +311,8 @@ def get_samples(project_id: int, page: int = 0):
     )
 
 
-@htmx_route(projects_htmx, db=db, methods=["POST"])
-def query_samples(project_id: int, field_name: str):
+@wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
+def query_samples(current_user: models.User, project_id: int, field_name: str):
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -350,8 +345,8 @@ def query_samples(project_id: int, field_name: str):
     )
 
 
-@htmx_route(projects_htmx, db=db)
-def get_sample_attributes(project_id: int):
+@wrappers.htmx_route(projects_htmx, db=db)
+def get_sample_attributes(current_user: models.User, project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -382,8 +377,8 @@ def get_sample_attributes(project_id: int):
     )
 
 
-@htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
-def edit_sample_attributes(project_id: int):
+@wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
+def edit_sample_attributes(current_user: models.User, project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -401,8 +396,8 @@ def edit_sample_attributes(project_id: int):
     return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@htmx_route(projects_htmx, db=db)
-def get_recent_projects():
+@wrappers.htmx_route(projects_htmx, db=db)
+def get_recent_projects(current_user: models.User):
     status_in = None
     if current_user.is_insider():
         status_in = [
@@ -424,8 +419,8 @@ def get_recent_projects():
     )
 
 
-@htmx_route(projects_htmx, db=db)
-def get_software(project_id: int):
+@wrappers.htmx_route(projects_htmx, db=db)
+def get_software(current_user: models.User, project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -444,8 +439,8 @@ def get_software(project_id: int):
     )
 
 
-@htmx_route(projects_htmx, db=db)
-def overview(project_id: int):
+@wrappers.htmx_route(projects_htmx, db=db)
+def overview(current_user: models.User, project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 

@@ -1,6 +1,5 @@
 import os
 import openpyxl
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -11,18 +10,13 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger, htmx_route  # noqa
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
-
+from .... import db, logger
+from ....core import wrappers
 files_htmx = Blueprint("files_htmx", __name__, url_prefix="/api/hmtx/files/")
 
 
-@htmx_route(files_htmx, db=db)
-def render_xlsx(file_id: int):
+@wrappers.htmx_route(files_htmx, db=db)
+def render_xlsx(current_user: models.User, file_id: int):
     if (file := db.get_file(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

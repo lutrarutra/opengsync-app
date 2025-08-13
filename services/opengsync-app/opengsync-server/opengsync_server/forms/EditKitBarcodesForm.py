@@ -7,7 +7,7 @@ from wtforms import BooleanField
 from opengsync_db import models
 from opengsync_db.categories import IndexType, BarcodeType
 
-from .. import db, logger, update_index_kits  # noqa
+from .. import db, logger  # noqa
 from ..tools import utils
 from ..tools.spread_sheet_components import TextColumn, DuplicateCellValue, MissingCellValue, SpreadSheetColumn
 from .HTMXFlaskForm import HTMXFlaskForm
@@ -132,7 +132,7 @@ class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
                 type=BarcodeType.INDEX_I5,
             )
 
-        update_index_kits(db, current_app.config["APP_DATA_FOLDER"], types=[IndexType.DUAL_INDEX])
+        utils.update_index_kits(db, current_app.config["APP_DATA_FOLDER"], types=[IndexType.DUAL_INDEX])
         flash("Changes saved!", "success")
         db.refresh(self.index_kit)
         return make_response(redirect=(url_for("kits_page.index_kit", index_kit_id=self.index_kit.id)))
@@ -228,7 +228,7 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
                 type=BarcodeType.INDEX_I7,
             )
         
-        update_index_kits(db, current_app.config["APP_DATA_FOLDER"], types=[IndexType.SINGLE_INDEX])
+        utils.update_index_kits(db, current_app.config["APP_DATA_FOLDER"], types=[IndexType.SINGLE_INDEX])
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("kits_page.index_kit", index_kit_id=self.index_kit.id)))
     
@@ -329,7 +329,7 @@ class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
                     type=BarcodeType.INDEX_I7,
                 )
         
-        update_index_kits(db, current_app.config["APP_DATA_FOLDER"], types=[IndexType.TENX_ATAC_INDEX])
+        utils.update_index_kits(db, current_app.config["APP_DATA_FOLDER"], types=[IndexType.TENX_ATAC_INDEX])
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("kits_page.index_kit", index_kit_id=self.index_kit.id)))
         

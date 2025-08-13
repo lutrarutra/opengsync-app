@@ -1,18 +1,14 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from flask import Blueprint, request, abort, Request
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, PoolStatus, LibraryStatus, SampleStatus
 
-from .... import db, logger, htmx_route  # noqa
+from .... import db
+from ....core import wrappers
 from ....forms.workflows import qubit_measure as wff
 from ....forms import SelectSamplesForm
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 qubit_measure_workflow = Blueprint("qubit_measure_workflow", __name__, url_prefix="/api/workflows/qubit_measure/")
 
@@ -53,8 +49,8 @@ def get_context(request: Request) -> dict:
     return context
 
 
-@htmx_route(qubit_measure_workflow, db=db)
-def begin():
+@wrappers.htmx_route(qubit_measure_workflow, db=db)
+def begin(current_user: models.User, ):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -72,8 +68,8 @@ def begin():
     return form.make_response()
 
 
-@htmx_route(qubit_measure_workflow, db=db, methods=["POST"])
-def select():
+@wrappers.htmx_route(qubit_measure_workflow, db=db, methods=["POST"])
+def select(current_user: models.User, ):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -101,8 +97,8 @@ def select():
     return complete_qubit_measure_form.make_response()
 
 
-@htmx_route(qubit_measure_workflow, db=db, methods=["POST"])
-def complete(uuid: str):
+@wrappers.htmx_route(qubit_measure_workflow, db=db, methods=["POST"])
+def complete(current_user: models.User, uuid: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
         

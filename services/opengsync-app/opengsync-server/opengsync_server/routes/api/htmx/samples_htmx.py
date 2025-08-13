@@ -1,23 +1,20 @@
 import json
-from typing import Optional, TYPE_CHECKING
 
 from flask import Blueprint, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT, DBHandler
 from opengsync_db.categories import HTTPResponse, UserRole, SampleStatus
-from .... import db, logger, forms, htmx_route
 
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
+from .... import db, logger, forms
+from ....core import wrappers
+
 
 samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/hmtx/samples/")
 
 
-@htmx_route(samples_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(samples_htmx, db=db)
+def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -54,8 +51,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(samples_htmx, db=db, methods=["DELETE"])
-def delete(sample_id: int):
+@wrappers.htmx_route(samples_htmx, db=db, methods=["DELETE"])
+def delete(current_user: models.User, sample_id: int):
     if (sample := db.get_sample(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -79,8 +76,8 @@ def delete(sample_id: int):
     )
 
 
-@htmx_route(samples_htmx, db=db, methods=["GET", "POST"])
-def edit(sample_id: int):
+@wrappers.htmx_route(samples_htmx, db=db, methods=["GET", "POST"])
+def edit(current_user: models.User, sample_id: int):
     if (sample := db.get_sample(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -95,8 +92,8 @@ def edit(sample_id: int):
     return forms.models.SampleForm(sample, request.form).process_request()
 
 
-@htmx_route(samples_htmx, db=db, methods=["POST"])
-def query():
+@wrappers.htmx_route(samples_htmx, db=db, methods=["POST"])
+def query(current_user: models.User, ):
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -117,8 +114,8 @@ def query():
     )
 
 
-@htmx_route(samples_htmx, db=db)
-def table_query():
+@wrappers.htmx_route(samples_htmx, db=db)
+def table_query(current_user: models.User, ):
     if (word := request.args.get("name", None)) is not None:
         field_name = "name"
     elif (word := request.args.get("id", None)) is not None:
@@ -136,7 +133,7 @@ def table_query():
     
     def __get_samples(
         session: DBHandler, word: str | int, field_name: str,
-        seq_request_id: Optional[int], project_id: Optional[int],
+        seq_request_id: int | None, project_id: int | None,
     ) -> list[models.Sample]:
         samples: list[models.Sample] = []
         if field_name == "name":
@@ -215,8 +212,8 @@ def table_query():
     )
     
 
-@htmx_route(samples_htmx, db=db)
-def get_libraries(sample_id: int):
+@wrappers.htmx_route(samples_htmx, db=db)
+def get_libraries(current_user: models.User, sample_id: int):
     if (sample := db.get_sample(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -238,8 +235,8 @@ def get_libraries(sample_id: int):
     )
 
 
-@htmx_route(samples_htmx, db=db)
-def get_plate(sample_id: int):
+@wrappers.htmx_route(samples_htmx, db=db)
+def get_plate(current_user: models.User, sample_id: int):
     raise NotImplementedError()
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -255,8 +252,8 @@ def get_plate(sample_id: int):
     )
 
 
-@htmx_route(samples_htmx, db=db)
-def browse(workflow: str, page: int = 0):
+@wrappers.htmx_route(samples_htmx, db=db)
+def browse(current_user: models.User, workflow: str, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -308,8 +305,8 @@ def browse(workflow: str, page: int = 0):
     )
 
 
-@htmx_route(samples_htmx, db=db)
-def browse_query(workflow: str):
+@wrappers.htmx_route(samples_htmx, db=db)
+def browse_query(current_user: models.User, workflow: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -359,8 +356,8 @@ def browse_query(workflow: str):
     )
 
 
-@htmx_route(samples_htmx, db=db)
-def select_all(workflow: str):
+@wrappers.htmx_route(samples_htmx, db=db)
+def select_all(current_user: models.User, workflow: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

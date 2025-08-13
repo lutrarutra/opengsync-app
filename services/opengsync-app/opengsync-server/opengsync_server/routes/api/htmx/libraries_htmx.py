@@ -1,5 +1,4 @@
 import json
-from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -9,19 +8,15 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, LibraryType, LibraryStatus, AssayType, MUXType
 
-from .... import db, forms, logger, htmx_route  # noqa
+from .... import db, forms, logger
+from ....core import wrappers
 from ....tools.spread_sheet_components import TextColumn
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/hmtx/libraries/")
 
 
-@htmx_route(libraries_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(libraries_htmx, db=db)
+def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -64,8 +59,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(libraries_htmx, db=db, methods=["POST"])
-def edit(library_id):
+@wrappers.htmx_route(libraries_htmx, db=db, methods=["POST"])
+def edit(current_user: models.User, library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     if not library.is_editable() and not current_user.is_insider():
@@ -74,8 +69,8 @@ def edit(library_id):
     return forms.models.LibraryForm(library=library, formdata=request.form).process_request()
 
 
-@htmx_route(libraries_htmx, db=db, methods=["POST"])
-def query():
+@wrappers.htmx_route(libraries_htmx, db=db, methods=["POST"])
+def query(current_user: models.User):
     field_name = next(iter(request.args.keys()))
     if (word := request.form.get(field_name, default="")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -93,8 +88,8 @@ def query():
     )
 
 
-@htmx_route(libraries_htmx, db=db)
-def get_features(library_id: int, page: int = 0):
+@wrappers.htmx_route(libraries_htmx, db=db)
+def get_features(current_user: models.User, library_id: int, page: int = 0):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -117,8 +112,8 @@ def get_features(library_id: int, page: int = 0):
     )
 
 
-@htmx_route(libraries_htmx, db=db)
-def render_feature_table(library_id: int):
+@wrappers.htmx_route(libraries_htmx, db=db)
+def render_feature_table(current_user: models.User, library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -152,8 +147,8 @@ def render_feature_table(library_id: int):
     )
 
 
-@htmx_route(libraries_htmx, db=db)
-def get_spatial_annotation(library_id: int):
+@wrappers.htmx_route(libraries_htmx, db=db)
+def get_spatial_annotation(current_user: models.User, library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -166,8 +161,8 @@ def get_spatial_annotation(library_id: int):
     return make_response(render_template("components/library-spatial-annotation.html", library=library))
 
 
-@htmx_route(libraries_htmx, db=db)
-def table_query():
+@wrappers.htmx_route(libraries_htmx, db=db)
+def table_query(current_user: models.User):
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
@@ -228,8 +223,8 @@ def table_query():
     )
 
 
-@htmx_route(libraries_htmx, db=db)
-def get_samples(library_id: int, page: int = 0):
+@wrappers.htmx_route(libraries_htmx, db=db)
+def get_samples(current_user: models.User, library_id: int, page: int = 0):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -256,8 +251,8 @@ def get_samples(library_id: int, page: int = 0):
     )
 
 
-@htmx_route(libraries_htmx, db=db)
-def reads_tab(library_id: int):
+@wrappers.htmx_route(libraries_htmx, db=db)
+def reads_tab(current_user: models.User, library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -269,8 +264,8 @@ def reads_tab(library_id: int):
     return make_response(render_template("components/library-reads.html", library=library))
 
 
-@htmx_route(libraries_htmx, db=db)
-def browse(workflow: str, page: int = 0):
+@wrappers.htmx_route(libraries_htmx, db=db)
+def browse(current_user: models.User, workflow: str, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -360,8 +355,8 @@ def browse(workflow: str, page: int = 0):
     )
 
 
-@htmx_route(libraries_htmx, db=db)
-def browse_query(workflow: str):
+@wrappers.htmx_route(libraries_htmx, db=db)
+def browse_query(current_user: models.User, workflow: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -460,8 +455,8 @@ def browse_query(workflow: str):
     )
 
 
-@htmx_route(libraries_htmx, db=db)
-def select_all(workflow: str):
+@wrappers.htmx_route(libraries_htmx, db=db)
+def select_all(current_user: models.User, workflow: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -531,8 +526,8 @@ def select_all(workflow: str):
     return form.make_response(libraries=libraries)
 
 
-@htmx_route(libraries_htmx, db=db, methods=["DELETE"])
-def remove_sample(library_id: int):
+@wrappers.htmx_route(libraries_htmx, db=db, methods=["DELETE"])
+def remove_sample(current_user: models.User, library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -557,8 +552,8 @@ def remove_sample(library_id: int):
     return make_response(redirect=url_for("libraries_page.library", library_id=library.id))
 
 
-@htmx_route(libraries_htmx, db=db)
-def get_mux_table(library_id: int):
+@wrappers.htmx_route(libraries_htmx, db=db)
+def get_mux_table(current_user: models.User, library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -617,8 +612,8 @@ def get_mux_table(library_id: int):
     )
 
 
-@htmx_route(libraries_htmx, db=db)
-def get_todo_libraries():
+@wrappers.htmx_route(libraries_htmx, db=db)
+def get_todo_libraries(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -647,8 +642,8 @@ def get_todo_libraries():
     )
 
 
-@htmx_route(libraries_htmx, db=db)
-def get_assay_type_todo_libraries(assay_type_id: int):
+@wrappers.htmx_route(libraries_htmx, db=db)
+def get_assay_type_todo_libraries(current_user: models.User, assay_type_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

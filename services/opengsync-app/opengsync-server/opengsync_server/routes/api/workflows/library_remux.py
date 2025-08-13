@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, request, abort
 
 from opengsync_db import models
@@ -10,16 +8,11 @@ from .... import db, logger  # noqa
 from ....forms.workflows import remux as forms
 from ....core import wrappers
 
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user  # noqa
-
 library_remux_workflow = Blueprint("library_remux_workflow", __name__, url_prefix="/api/workflows/reseq/")
 
 
 @wrappers.htmx_route(library_remux_workflow, db=db)
-def begin(library_id: int):
+def begin(current_user: models.User, library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -38,7 +31,7 @@ def begin(library_id: int):
     
 
 @wrappers.htmx_route(library_remux_workflow, db=db, methods=["POST"])
-def parse_flex_annotation(library_id: int):
+def parse_flex_annotation(current_user: models.User, library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -51,7 +44,7 @@ def parse_flex_annotation(library_id: int):
 
 
 @wrappers.htmx_route(library_remux_workflow, db=db, methods=["POST"])
-def parse_flex_abc_annotation(library_id: int):
+def parse_flex_abc_annotation(current_user: models.User, library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

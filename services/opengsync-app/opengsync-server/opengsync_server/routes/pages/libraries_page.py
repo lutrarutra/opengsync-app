@@ -1,26 +1,20 @@
-from typing import TYPE_CHECKING
 from flask import Blueprint, render_template, abort, url_for, request
 
-from opengsync_db.models import User
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from ... import db, forms, page_route
-
-if TYPE_CHECKING:
-    current_user: User = None   # type: ignore
-else:
-    from flask_login import current_user
-
+from ... import db, forms
+from ...core import wrappers
 libraries_page_bp = Blueprint("libraries_page", __name__)
 
 
-@page_route(libraries_page_bp, db=db)
-def libraries():
+@wrappers.page_route(libraries_page_bp, db=db)
+def libraries(current_user: models.User):
     return render_template("libraries_page.html")
 
 
-@page_route(libraries_page_bp, db=db)
-def library(library_id):
+@wrappers.page_route(libraries_page_bp, db=db)
+def library(current_user: models.User, library_id: int):
     if (library := db.get_library(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

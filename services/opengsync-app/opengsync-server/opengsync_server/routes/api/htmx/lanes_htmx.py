@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 
@@ -9,16 +7,11 @@ from opengsync_db.categories import HTTPResponse
 from .... import db, forms, logger  # noqa
 from ....core import wrappers
 
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
-
 lanes_htmx = Blueprint("lanes_htmx", __name__, url_prefix="/api/hmtx/lanes/")
 
 
 @wrappers.htmx_route(lanes_htmx, db=db)
-def browse(workflow: str, page: int = 0):
+def browse(current_user: models.User, workflow: str, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

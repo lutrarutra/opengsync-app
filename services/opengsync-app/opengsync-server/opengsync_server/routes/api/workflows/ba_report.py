@@ -1,18 +1,14 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from flask import Blueprint, request, abort, Request
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, PoolStatus, LibraryStatus, SampleStatus
 
-from .... import db, logger, htmx_route  # noqa
+from .... import db, logger  # noqa
 from ....forms.workflows import ba_report as wff
 from ....forms import SelectSamplesForm
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
+from ....core import wrappers
 
 ba_report_workflow = Blueprint("ba_report_workflow", __name__, url_prefix="/api/workflows/ba_report/")
 
@@ -61,8 +57,8 @@ def get_context(request: Request) -> dict:
     return context
 
 
-@htmx_route(ba_report_workflow, db=db)
-def begin():
+@wrappers.htmx_route(ba_report_workflow, db=db)
+def begin(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -80,8 +76,8 @@ def begin():
     return form.make_response()
 
 
-@htmx_route(ba_report_workflow, db=db, methods=["POST"])
-def select():
+@wrappers.htmx_route(ba_report_workflow, db=db, methods=["POST"])
+def select(current_user: models.User, ):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -113,8 +109,8 @@ def select():
     return complete_ba_report_form.make_response()
 
 
-@htmx_route(ba_report_workflow, db=db, methods=["POST"])
-def complete(uuid: str):
+@wrappers.htmx_route(ba_report_workflow, db=db, methods=["POST"])
+def complete(current_user: models.User, uuid: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     return wff.CompleteBAReportForm(uuid=uuid, formdata=request.form | request.files).process_request(user=current_user)

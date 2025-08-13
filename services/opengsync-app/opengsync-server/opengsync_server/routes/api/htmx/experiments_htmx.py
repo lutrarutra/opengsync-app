@@ -1,6 +1,6 @@
 import os
 import json
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 import pandas as pd
 
@@ -10,18 +10,14 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, ExperimentStatus, ExperimentWorkFlow, ProjectStatus
 
-from .... import db, forms, logger, htmx_route
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
+from .... import db, forms, logger
+from ....core import wrappers
 
 experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/hmtx/experiments/")
 
 
-@htmx_route(experiments_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -64,8 +60,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(experiments_htmx, db=db)
-def get_form(form_type: Literal["create", "edit"]):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -93,16 +89,16 @@ def get_form(form_type: Literal["create", "edit"]):
     return forms.models.ExperimentForm(form_type=form_type, current_user=current_user).make_response()
 
 
-@htmx_route(experiments_htmx, db=db, methods=["POST"])
-def create():
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
+def create(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.models.ExperimentForm(formdata=request.form, form_type="create").process_request()
 
 
-@htmx_route(experiments_htmx, methods=["POST"], db=db)
-def edit(experiment_id: int):
+@wrappers.htmx_route(experiments_htmx, methods=["POST"], db=db)
+def edit(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -114,8 +110,8 @@ def edit(experiment_id: int):
     )
 
 
-@htmx_route(experiments_htmx, methods=["DELETE"], db=db)
-def delete(experiment_id: int):
+@wrappers.htmx_route(experiments_htmx, methods=["DELETE"], db=db)
+def delete(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -135,8 +131,8 @@ def delete(experiment_id: int):
     )
 
 
-@htmx_route(experiments_htmx, db=db, methods=["POST"])
-def query():
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
+def query(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -154,8 +150,8 @@ def query():
     )
 
 
-@htmx_route(experiments_htmx, db=db)
-def render_lane_sample_pooling_tables(experiment_id: int, file_id: int):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: int, file_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
         
@@ -188,8 +184,8 @@ def render_lane_sample_pooling_tables(experiment_id: int, file_id: int):
     )
 
 
-@htmx_route(experiments_htmx, db=db)
-def table_query():
+@wrappers.htmx_route(experiments_htmx, db=db)
+def table_query(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -234,8 +230,8 @@ def table_query():
     )
                      
 
-@htmx_route(experiments_htmx, db=db, methods=["POST"])
-def lane_pool(experiment_id: int, pool_id: int, lane_num: int):
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
+def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_num: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -266,8 +262,8 @@ def lane_pool(experiment_id: int, pool_id: int, lane_num: int):
     )
 
 
-@htmx_route(experiments_htmx, db=db, methods=["DELETE"])
-def unlane_pool(experiment_id: int, pool_id: int, lane_num: int):
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
+def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_num: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -298,8 +294,8 @@ def unlane_pool(experiment_id: int, pool_id: int, lane_num: int):
     )
 
 
-@htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
-def comment_form(experiment_id: int):
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
+def comment_form(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -316,8 +312,8 @@ def comment_form(experiment_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
     
 
-@htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
-def file_form(experiment_id: int):
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
+def file_form(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -334,8 +330,8 @@ def file_form(experiment_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@htmx_route(experiments_htmx, db=db, methods=["DELETE"])
-def delete_file(experiment_id: int, file_id: int):
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
+def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -358,8 +354,8 @@ def delete_file(experiment_id: int, file_id: int):
     return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment.id))
 
 
-@htmx_route(experiments_htmx, db=db, methods=["POST"])
-def add_comment(experiment_id: int):
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
+def add_comment(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -369,8 +365,8 @@ def add_comment(experiment_id: int):
     return forms.comment.ExperimentCommentForm(experiment=experiment, formdata=request.form).process_request(user=current_user)
 
 
-@htmx_route(experiments_htmx, db=db, methods=["DELETE"])
-def remove_pool(experiment_id: int):
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
+def remove_pool(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -398,8 +394,8 @@ def remove_pool(experiment_id: int):
     )
     
 
-@htmx_route(experiments_htmx, db=db)
-def overview(experiment_id: int):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def overview(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -505,8 +501,8 @@ def overview(experiment_id: int):
     )
 
 
-@htmx_route(experiments_htmx, db=db)
-def get_pools(experiment_id: int, page: int = 0):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def get_pools(current_user: models.User, experiment_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -544,8 +540,8 @@ def get_pools(experiment_id: int, page: int = 0):
     )
 
 
-@htmx_route(experiments_htmx, db=db)
-def get_projects(experiment_id: int, page: int = 0):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def get_projects(current_user: models.User, experiment_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -585,8 +581,8 @@ def get_projects(experiment_id: int, page: int = 0):
     )
 
 
-@htmx_route(experiments_htmx, db=db)
-def get_libraries(experiment_id: int, page: int = 0):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def get_libraries(current_user: models.User, experiment_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -615,8 +611,8 @@ def get_libraries(experiment_id: int, page: int = 0):
     )
 
 
-@htmx_route(experiments_htmx, db=db)
-def query_libraries(experiment_id: int):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def query_libraries(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -636,8 +632,8 @@ def query_libraries(experiment_id: int):
     )
 
 
-@htmx_route(experiments_htmx, db=db)
-def get_comments(experiment_id: int):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def get_comments(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -652,8 +648,8 @@ def get_comments(experiment_id: int):
     )
 
 
-@htmx_route(experiments_htmx, db=db)
-def get_files(experiment_id: int):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def get_files(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -669,8 +665,8 @@ def get_files(experiment_id: int):
     )
 
 
-@htmx_route(experiments_htmx, db=db)
-def get_pool_dilutions(experiment_id: int, page: int = 0):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def get_pool_dilutions(current_user: models.User, experiment_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -693,8 +689,8 @@ def get_pool_dilutions(experiment_id: int, page: int = 0):
     )
 
 
-@htmx_route(experiments_htmx, db=db)
-def get_recent_experiments():
+@wrappers.htmx_route(experiments_htmx, db=db)
+def get_recent_experiments(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

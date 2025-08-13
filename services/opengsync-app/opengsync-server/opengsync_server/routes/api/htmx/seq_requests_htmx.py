@@ -1,9 +1,9 @@
 import os
 import json
 from io import BytesIO
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
-from flask import Blueprint, url_for, render_template, flash, abort, request, Response, current_app
+from flask import Blueprint, url_for, render_template, flash, abort, request, Response
 from flask_htmx import make_response
 import pandas as pd
 
@@ -13,19 +13,17 @@ from opengsync_db.categories import (
     SampleStatus, SubmissionType, PoolStatus, ProjectStatus
 )
 from opengsync_db.core import exceptions
-from .... import db, forms, logger, htmx_route
 
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
+from .... import db, forms, logger
+from ....core import wrappers
+from ....core.runtime import runtime
 
 
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/hmtx/seq_requests/")
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -74,8 +72,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def get_form(form_type: Literal["create", "edit"]):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
     if form_type not in ["create", "edit"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -105,8 +103,8 @@ def get_form(form_type: Literal["create", "edit"]):
     return forms.models.SeqRequestForm(form_type=form_type, current_user=current_user).make_response()
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def export(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def export(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -157,8 +155,8 @@ def export(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def export_libraries(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def export_libraries(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -176,8 +174,8 @@ def export_libraries(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
-def edit(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def edit(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -191,8 +189,8 @@ def edit(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
-def delete(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
+def delete(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -209,8 +207,8 @@ def delete(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
-def archive(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def archive(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -228,8 +226,8 @@ def archive(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
-def unarchive(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def unarchive(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -248,8 +246,8 @@ def unarchive(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
-def submit_request(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
+def submit_request(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -272,13 +270,13 @@ def submit_request(seq_request_id: int):
         return form.process_request(user=current_user)
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
-def create():
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def create(current_user: models.User, ):
     return forms.models.SeqRequestForm(form_type="create", formdata=request.form).process_request(user=current_user, seq_request=None)
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
-def upload_auth_form(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def upload_auth_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -294,8 +292,8 @@ def upload_auth_form(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
-def comment_form(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
+def comment_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -315,7 +313,7 @@ def comment_form(seq_request_id: int):
 
 
 @seq_requests_htmx.route("file_form", methods=["GET", "POST"])
-def file_form(seq_request_id: int):
+def file_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -334,8 +332,8 @@ def file_form(seq_request_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
-def delete_file(seq_request_id: int, file_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
+def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -350,7 +348,7 @@ def delete_file(seq_request_id: int, file_id: int):
     if file not in seq_request.files:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    file_path = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
     db.delete_file(file_id=file.id)
@@ -360,8 +358,8 @@ def delete_file(seq_request_id: int, file_id: int):
     return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request_id))
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
-def remove_auth_form(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
+def remove_auth_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -379,7 +377,7 @@ def remove_auth_form(seq_request_id: int):
         
     file = seq_request.seq_auth_form_file
 
-    filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    filepath = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(filepath):
         os.remove(filepath)
     db.delete_file(file_id=file.id)
@@ -392,8 +390,8 @@ def remove_auth_form(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
-def remove_library(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
+def remove_library(current_user: models.User, seq_request_id: int):
     if (library_id := request.args.get("library_id")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -431,8 +429,8 @@ def remove_library(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
-def remove_sample(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
+def remove_sample(current_user: models.User, seq_request_id: int):
     if (sample_id := request.args.get("sample_id")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -469,8 +467,8 @@ def remove_sample(seq_request_id: int):
     )
         
 
-@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
-def remove_all_libraries(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
+def remove_all_libraries(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -493,8 +491,8 @@ def remove_all_libraries(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def table_query():
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def table_query(current_user: models.User):
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
@@ -545,8 +543,8 @@ def table_query():
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
-def process_request(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def process_request(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -560,8 +558,8 @@ def process_request(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
-def add_share_email(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def add_share_email(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -575,8 +573,8 @@ def add_share_email(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
-def remove_share_email(seq_request_id: int, email: str):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
+def remove_share_email(current_user: models.User, seq_request_id: int, email: str):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -599,8 +597,8 @@ def remove_share_email(seq_request_id: int, email: str):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def overview(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def overview(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -728,8 +726,8 @@ def overview(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def get_libraries(seq_request_id: int, page: int = 0):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def get_libraries(current_user: models.User, seq_request_id: int, page: int = 0):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -778,8 +776,8 @@ def get_libraries(seq_request_id: int, page: int = 0):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def get_projects(seq_request_id: int, page: int = 0):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def get_projects(current_user: models.User, seq_request_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -819,8 +817,8 @@ def get_projects(seq_request_id: int, page: int = 0):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def query_libraries(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def query_libraries(current_user: models.User, seq_request_id: int):
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
@@ -882,8 +880,8 @@ def query_libraries(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def get_samples(seq_request_id: int, page: int = 0):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def get_samples(current_user: models.User, seq_request_id: int, page: int = 0):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -908,8 +906,8 @@ def get_samples(seq_request_id: int, page: int = 0):
     )
     
 
-@htmx_route(seq_requests_htmx, db=db)
-def get_pools(seq_request_id: int, page: int = 0):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def get_pools(current_user: models.User, seq_request_id: int, page: int = 0):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -936,8 +934,8 @@ def get_pools(seq_request_id: int, page: int = 0):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def get_comments(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def get_comments(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -954,8 +952,8 @@ def get_comments(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def get_files(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def get_files(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -973,8 +971,8 @@ def get_files(seq_request_id: int):
     )
 
 
-@htmx_route(seq_requests_htmx, db=db, methods=["POST"])
-def clone(seq_request_id: int, method: Literal["pooled", "indexed", "raw"]):
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def clone(current_user: models.User, seq_request_id: int, method: Literal["pooled", "indexed", "raw"]):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -990,8 +988,8 @@ def clone(seq_request_id: int, method: Literal["pooled", "indexed", "raw"]):
     return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=cloned_request.id))
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def store_samples(seq_request_id: int):
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def store_samples(current_user: models.User, seq_request_id: int):
     if (seq_request := db.get_seq_request(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -1026,8 +1024,8 @@ def store_samples(seq_request_id: int):
     return form.make_response()
 
 
-@htmx_route(seq_requests_htmx, db=db)
-def get_recent_seq_requests():
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def get_recent_seq_requests(current_user: models.User):
     if (sort_by := request.args.get("sort_by")) is not None:
         if sort_by not in ["timestamp_submitted_utc", "id"]:
             return abort(HTTPResponse.BAD_REQUEST.id)
