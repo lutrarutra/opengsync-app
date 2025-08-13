@@ -120,7 +120,6 @@ class DBHandler():
             raise RuntimeError("Database initialization failed") from e
 
     def open_session(self, autoflush: bool = False) -> None:
-        self._logger.opt(depth=1).error("Opening database session...")
         if self._session is not None:
             self.warn("Session is already open")
             return

@@ -4,7 +4,7 @@ import openpyxl
 import numpy as np
 import pandas as pd
 
-from flask import Blueprint, render_template, abort, current_app
+from flask import Blueprint, render_template, abort
 from flask_htmx import make_response
 
 from opengsync_db import models
@@ -12,6 +12,8 @@ from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger
 from ....core import wrappers
+from ....core.runtime import runtime
+
 files_htmx = Blueprint("files_htmx", __name__, url_prefix="/api/hmtx/files/")
 
 
@@ -24,7 +26,7 @@ def render_xlsx(current_user: models.User, file_id: int):
         if not db.file_permissions_check(user_id=current_user.id, file_id=file_id):
             return abort(HTTPResponse.FORBIDDEN.id)
 
-    filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    filepath = os.path.join(runtime.current_app.media_folder, file.path)
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
         return abort(HTTPResponse.NOT_FOUND.id)

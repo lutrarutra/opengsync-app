@@ -9,7 +9,7 @@ import openpyxl
 from openpyxl import styles as openpyxl_styles
 from openpyxl.utils import get_column_letter
 
-from flask import Blueprint, render_template, request, abort, flash, url_for, current_app, Response
+from flask import Blueprint, render_template, request, abort, flash, url_for, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
@@ -17,6 +17,7 @@ from opengsync_db.categories import HTTPResponse, LabProtocol, PoolStatus, Libra
 
 from .... import db, forms, logger
 from ....core import wrappers
+from ....core.runtime import runtime
 from ....tools.spread_sheet_components import TextColumn
 
 
@@ -287,12 +288,12 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
     
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if current_app.static_folder is None:
+
+    if runtime.current_app.static_folder is None:
         logger.error("Static folder not set")
         raise ValueError("Static folder not set")
-    
-    filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", lab_prep.protocol.prep_file_name)
+
+    filepath = os.path.join(runtime.current_app.static_folder, "resources", "templates", "library_prep", lab_prep.protocol.prep_file_name)
 
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
@@ -433,8 +434,8 @@ def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
     
     if file not in lab_prep.files:
         return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    file_path = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+
+    file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
     db.delete_file(file_id=file.id)
@@ -549,7 +550,7 @@ def get_mux_table(current_user: models.User, lab_prep_id: int):
         df = df.drop(columns=["read"])
         
     columns = []
-    for i, col in enumerate(df.columns):
+    for col in df.columns:
         columns.append(
             TextColumn(
                 col,

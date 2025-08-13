@@ -20,6 +20,7 @@ class EditKitFeaturesForm(HTMXFlaskForm):
 
     columns: list[SpreadSheetColumn] = [
         TextColumn("name", "Name", 250, max_length=models.Feature.name.type.length, min_length=3, required=True),
+        TextColumn("identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=False),
         TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, required=True, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, required=True, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
         TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, required=True, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
@@ -79,8 +80,9 @@ class EditKitFeaturesForm(HTMXFlaskForm):
             return self.make_response()
 
         self.feature_kit = db.remove_all_features_from_kit(self.feature_kit.id)
-        for idx, row in self.df.iterrows():
+        for _, row in self.df.iterrows():
             db.create_feature(
+                identifier=row["identifier"] if pd.notna(row["identifier"]) else None,
                 name=row["name"],
                 sequence=row["sequence"],
                 pattern=row["pattern"],

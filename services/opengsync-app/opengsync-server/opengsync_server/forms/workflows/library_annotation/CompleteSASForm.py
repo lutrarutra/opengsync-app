@@ -1,9 +1,8 @@
 import os
-from typing import Optional
 
 import pandas as pd
 
-from flask import Response, url_for, flash, current_app
+from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
@@ -14,6 +13,7 @@ from opengsync_db.categories import (
 
 from .... import db, logger, tools
 from ...MultiStepForm import MultiStepForm
+from ....core.runtime import runtime
 
 
 class CompleteSASForm(MultiStepForm):
@@ -356,8 +356,9 @@ class CompleteSASForm(MultiStepForm):
 
         if self.feature_table is not None:
             custom_features = self.feature_table[self.feature_table["feature_id"].isna()]
-            for (feature, pattern, read, sequence), _df in custom_features.groupby(["feature", "pattern", "read", "sequence"]):
+            for (identifier, feature, pattern, read, sequence), _df in custom_features.groupby(["identifier", "feature", "pattern", "read", "sequence"], dropna=False):
                 feature = db.create_feature(
+                    identifier=identifier if pd.notna(identifier) else None,
                     name=feature,
                     sequence=sequence,
                     pattern=pattern,
@@ -411,7 +412,7 @@ class CompleteSASForm(MultiStepForm):
         flash(f"Added {self.library_table.shape[0]} libraries to sequencing request.", "success")
         logger.info(f"{self.uuid}: added libraries to sequencing request.")
 
-        newdir = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LIBRARY_ANNOTATION.dir, str(self.seq_request.id))
+        newdir = os.path.join(runtime.current_app.media_folder, FileType.LIBRARY_ANNOTATION.dir, str(self.seq_request.id))
         os.makedirs(newdir, exist_ok=True)
         self.complete(os.path.join(newdir, f"{self.uuid}.msf"))
 

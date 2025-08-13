@@ -2,13 +2,14 @@ from dataclasses import dataclass
 from pathlib import Path
 import mimetypes
 
-from flask import Blueprint, current_app, render_template, Response, send_from_directory
+from flask import Blueprint, render_template, Response, send_from_directory
 
 from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger, DEBUG
 from ....core import wrappers
 from ....tools import utils
+from ....core.runtime import runtime
 
 file_share_bp = Blueprint("file_share", __name__, url_prefix="/api/files/")
 
@@ -84,7 +85,7 @@ def rclone(token: str, subpath: Path = Path()):
     if share_token.is_expired:
         return "Token expired", HTTPResponse.BAD_REQUEST.id
     
-    SHARE_ROOT = Path(current_app.config["SHARE_ROOT"])
+    SHARE_ROOT = Path(runtime.current_app.share_root)
 
     browser = SharedFileBrowser([path.path for path in share_token.paths], SHARE_ROOT)
 
@@ -118,7 +119,7 @@ def browse(token: str, subpath: Path = Path()):
     if share_token.is_expired:
         return "Token expired", HTTPResponse.BAD_REQUEST.id
     
-    SHARE_ROOT = Path(current_app.config["SHARE_ROOT"])
+    SHARE_ROOT = Path(runtime.current_app.share_root)
 
     browser = SharedFileBrowser([path.path for path in share_token.paths], SHARE_ROOT)
 

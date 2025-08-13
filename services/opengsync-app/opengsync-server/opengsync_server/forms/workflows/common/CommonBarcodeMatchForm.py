@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-from flask import current_app, url_for
+from flask import url_for
 from wtforms import SelectField, RadioField
 from wtforms.validators import Optional as OptionalValidator
 
@@ -12,6 +12,7 @@ from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa F401
 from ...MultiStepForm import MultiStepForm
+from ....core.runtime import runtime
 
 
 class CommonBarcodeMatchForm(MultiStepForm):
@@ -42,7 +43,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
-        return (
+        return bool(
             current_step.tables["barcode_table"]["kit_i7"].isna().all() or
             current_step.tables["barcode_table"]["kit_i5"].isna().all()
         )
@@ -121,7 +122,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         self._context["barcodes"] = pd.DataFrame(columns=["kit_id", "kit"])
 
     def single_index_prepare(self):
-        path = os.path.join(current_app.config["APP_DATA_FOLDER"], "kits", f"{IndexType.SINGLE_INDEX.id}.pkl")
+        path = os.path.join(runtime.current_app.app_data_folder, "kits", f"{IndexType.SINGLE_INDEX.id}.pkl")
         if not os.path.exists(path):
             logger.warning(f"Singe-index barcode file not found: {path}")
             barcodes = pd.DataFrame(columns=["kit_id", "kit", "sequence_i7"])
@@ -160,7 +161,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         self._context["barcodes"] = barcodes
         
     def dual_index_prepare(self):
-        path = os.path.join(current_app.config["APP_DATA_FOLDER"], "kits", f"{IndexType.DUAL_INDEX.id}.pkl")
+        path = os.path.join(runtime.current_app.app_data_folder, "kits", f"{IndexType.DUAL_INDEX.id}.pkl")
         if not os.path.exists(path):
             logger.warning(f"Dual index barcode file not found: {path}")
             barcodes = pd.DataFrame(columns=["kit_id", "kit", "sequence_i7", "sequence_i5"])

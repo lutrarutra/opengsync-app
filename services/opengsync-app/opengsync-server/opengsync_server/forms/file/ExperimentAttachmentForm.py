@@ -2,12 +2,14 @@ import os
 import uuid
 from typing import Optional
 
-from flask import Response, flash, url_for, current_app
+from flask import Response, flash, url_for
 from flask_htmx import make_response
 from wtforms import SelectField
 
 from opengsync_db import models
 from opengsync_db.categories import FileType
+
+from ...core.runtime import runtime
 from .FileInputForm import FileInputForm
 from ... import db, logger
 
@@ -39,7 +41,7 @@ class ExperimentAttachmentForm(FileInputForm):
         filename, extension = os.path.splitext(self.file.data.filename)
 
         _uuid = uuid.uuid4().hex
-        filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file_type.dir, f"{_uuid}{extension}")
+        filepath = os.path.join(runtime.current_app.media_folder, file_type.dir, f"{_uuid}{extension}")
         self.file.data.save(filepath)
         size_bytes = os.stat(filepath).st_size
 

@@ -1,5 +1,4 @@
 import os
-import uuid
 
 import pandas as pd
 import pytz
@@ -16,6 +15,7 @@ from opengsync_db import DBHandler
 
 from .core.LogBuffer import log_buffer
 from .tools import RedisMSFFileCache
+from .core.FileHandler import FileHandler
 
 DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
 
@@ -45,3 +45,4 @@ serializer = URLSafeTimedSerializer(SECRET_KEY)
 db = DBHandler(logger=logger, expire_on_commit=True)
 cache = Cache()
 msf_cache = RedisMSFFileCache()
+file_handler = FileHandler()

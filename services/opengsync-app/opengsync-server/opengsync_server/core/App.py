@@ -9,7 +9,7 @@ from flask_htmx import make_response as make_htmx_response
 
 from opengsync_db import categories, models, TIMEZONE
 
-from .. import logger, log_buffer, cache, msf_cache, DEBUG, SECRET_KEY, htmx, bcrypt, login_manager, mail, db
+from .. import logger, log_buffer, cache, msf_cache, DEBUG, SECRET_KEY, htmx, bcrypt, login_manager, mail, db, file_handler
 from ..tools import spread_sheet_components as ssc
 from ..tools.utils import WeekTimeWindow
 from ..routes import api, pages
@@ -50,6 +50,13 @@ class App(Flask):
         self.uploads_folder = tools.io.mkdir(os.path.join(self.root_folder, "uploads"))
         self.app_data_folder = tools.io.mkdir(os.path.join(self.root_folder, "app_data"))
         self.share_root = "/usr/src/app/share"
+        file_handler.init_app(
+            media_folder=self.media_folder,
+            uploads_folder=self.uploads_folder,
+            app_data_folder=self.app_data_folder,
+            share_root=self.share_root
+        )
+        
         self.debug = DEBUG
         self.timezone = TIMEZONE
 

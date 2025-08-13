@@ -4,20 +4,21 @@ from typing import Literal
 
 import pandas as pd
 
-from flask import Blueprint, url_for, render_template, flash, abort, request, current_app
+from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, ExperimentStatus, ExperimentWorkFlow, ProjectStatus
 
 from .... import db, forms, logger
+from ....core.runtime import runtime
 from ....core import wrappers
 
 experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/hmtx/experiments/")
 
 
 @wrappers.htmx_route(experiments_htmx, db=db)
-def get(current_user: models.User, page: int = 0):
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -160,8 +161,8 @@ def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: 
         
     if (file := db.get_file(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-    
-    filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+
+    filepath = os.path.join(runtime.current_app.media_folder, file.path)
     df = pd.read_csv(filepath, sep="\t")
 
     if "lane" not in df.columns:
@@ -344,7 +345,7 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     if file not in experiment.files:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    file_path = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
     db.delete_file(file_id=file.id)

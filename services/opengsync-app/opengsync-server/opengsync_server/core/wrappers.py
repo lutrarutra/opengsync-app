@@ -6,7 +6,7 @@ from flask import Blueprint, Flask, abort, render_template, flash, request
 from flask_htmx import make_response
 from flask_login import login_required as login_required_f, current_user
 
-from opengsync_db import DBHandler, db_session
+from opengsync_db import DBHandler
 from opengsync_db.categories import HTTPResponse
 from opengsync_db import exceptions as db_exceptions
 
