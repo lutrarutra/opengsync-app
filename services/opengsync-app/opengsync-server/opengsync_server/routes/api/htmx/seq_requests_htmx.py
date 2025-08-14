@@ -1034,8 +1034,8 @@ def get_recent_seq_requests(current_user: models.User):
             )
 
         seq_requests, _ = db.get_seq_requests(
-            status_in=[SeqRequestStatus.ACCEPTED, SeqRequestStatus.SAMPLES_RECEIVED, SeqRequestStatus.DATA_PROCESSING],
-            custom_query=__order_by_status_and_time
+            status_in=[SeqRequestStatus.ACCEPTED, SeqRequestStatus.SAMPLES_RECEIVED, SeqRequestStatus.PREPARED, SeqRequestStatus.DATA_PROCESSING],
+            custom_query=__order_by_status_and_time, limit=None
         )
     else:
         seq_requests, _ = db.get_seq_requests(

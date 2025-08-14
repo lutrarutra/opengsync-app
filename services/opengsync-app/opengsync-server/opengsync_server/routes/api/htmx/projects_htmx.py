@@ -403,13 +403,11 @@ def get_recent_projects(current_user: models.User):
         status_in = [
             ProjectStatus.PROCESSING,
             ProjectStatus.SEQUENCED,
-            ProjectStatus.DELIVERED,
         ]
 
     projects, _ = db.get_projects(
         user_id=current_user.id if not current_user.is_insider() else None,
-        sort_by="id", limit=15,
-        status_in=status_in, descending=True
+        sort_by="id", limit=30, status_in=status_in, descending=True
     )
 
     return make_response(

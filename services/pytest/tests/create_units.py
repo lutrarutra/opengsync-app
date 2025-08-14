@@ -93,6 +93,7 @@ def create_pool(db: DBHandler, user: models.User, seq_request: models.SeqRequest
 def create_feature(db: DBHandler, kit: models.FeatureKit | None = None) -> models.Feature:
     _uuid = str(uuid.uuid1())[:10]
     return db.create_feature(
+        identifier=None,
         name=_uuid,
         sequence=_uuid,
         pattern="pattern",
