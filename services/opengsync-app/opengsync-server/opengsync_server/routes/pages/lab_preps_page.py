@@ -9,7 +9,7 @@ lab_preps_page_bp = Blueprint("lab_preps_page", __name__)
 
 
 @wrappers.page_route(lab_preps_page_bp, db=db)
-def lab_preps(current_user: models.User, ):
+def lab_preps(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

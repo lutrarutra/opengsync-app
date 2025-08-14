@@ -74,7 +74,7 @@ def get(current_user: models.User, page: int = 0):
 
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
-def query(current_user: models.User, ):
+def query(current_user: models.User):
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name, default="")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -107,7 +107,7 @@ def query(current_user: models.User, ):
 
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
-def create(current_user: models.User, ):
+def create(current_user: models.User):
     return forms.models.ProjectForm(formdata=request.form).process_request(user=current_user)
 
 
@@ -161,7 +161,7 @@ def complete(current_user: models.User, project_id: int):
 
 
 @wrappers.htmx_route(projects_htmx, db=db)
-def table_query(current_user: models.User, ):
+def table_query(current_user: models.User):
     id = None
     title = None
     if (identifier := request.args.get("identifier", None)) is not None:
@@ -396,7 +396,7 @@ def edit_sample_attributes(current_user: models.User, project_id: int):
     return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@wrappers.htmx_route(projects_htmx, db=db)
+@wrappers.htmx_route(projects_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get_recent_projects(current_user: models.User):
     status_in = None
     if current_user.is_insider():

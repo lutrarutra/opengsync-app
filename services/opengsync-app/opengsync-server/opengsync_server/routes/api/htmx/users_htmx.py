@@ -46,7 +46,7 @@ def get(current_user: models.User, page: int = 0):
 
 
 @wrappers.htmx_route(users_htmx, db=db, methods=["POST"])
-def query(current_user: models.User, ):
+def query():
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
 
@@ -75,7 +75,7 @@ def query(current_user: models.User, ):
 
 
 @wrappers.htmx_route(users_htmx, db=db)
-def table_query(current_user: models.User, ):
+def table_query():
     if (word := request.args.get("last_name")) is not None:
         field_name = "last_name"
     elif (word := request.args.get("email")) is not None:

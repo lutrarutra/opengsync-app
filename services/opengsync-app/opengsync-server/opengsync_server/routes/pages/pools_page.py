@@ -10,7 +10,7 @@ pools_page_bp = Blueprint("pools_page", __name__)
 
 
 @wrappers.page_route(pools_page_bp, db=db)
-def pools(current_user: models.User, ):
+def pools():
     return render_template("pools_page.html")
 
 

@@ -82,7 +82,7 @@ def previous(current_user: models.User, uuid: str):
 
 
 @wrappers.htmx_route(reindex_workflow, db=db)
-def begin(current_user: models.User, ) -> Response:
+def begin(current_user: models.User) -> Response:
     try:
         context = get_context(current_user, request.args)
     except ValueError:

@@ -11,9 +11,8 @@ from ....core import wrappers
 seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/api/hmtx/seq_run/")
 
 
-@wrappers.htmx_route(seq_runs_htmx, db=db)
-@cache.cached(timeout=60, query_string=True)
-def get(current_user: models.User, page: int = 0):
+@wrappers.htmx_route(seq_runs_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "run_folder")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"

@@ -195,13 +195,13 @@ def get_seq_requests(
     submission_type: Optional[SubmissionTypeEnum] = None,
     submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
     show_drafts: bool = True,
-    sort_by: Optional[str] = None, descending: bool = False,
     user_id: int | None = None,
     project_id: int | None = None,
     group_id: int | None = None,
-    limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    count_pages: bool = False,
     custom_query: Callable[[Query], Query] | None = None,
+    limit: int | None = PAGE_LIMIT, offset: int | None = None,
+    sort_by: str | None = None, descending: bool = False,
+    count_pages: bool = False,
 ) -> tuple[list[models.SeqRequest], int | None]:
 
     if not (persist_session := self._session is not None):

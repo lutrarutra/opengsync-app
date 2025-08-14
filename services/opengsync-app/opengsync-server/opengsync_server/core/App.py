@@ -156,12 +156,11 @@ class App(Flask):
                     flash(msg, category="info")
                 return render_template("test.html")
             
-        @wrappers.page_route(self, login_required=False)
-        @cache.cached(timeout=1500)
+        @wrappers.page_route(self, login_required=False, cache_timeout_seconds=360, cache_type="global")
         def help():
             return render_template("help.html")
         
-        @wrappers.page_route(self, db=db, route="/")
+        @wrappers.page_route(self, db=db, route="/", cache_timeout_seconds=30, cache_type="user")
         def dashboard(current_user: models.User):
             if not current_user.is_authenticated:
                 return redirect(url_for("auth_page.auth", next=url_for("dashboard")))
@@ -170,8 +169,7 @@ class App(Flask):
                 return render_template("dashboard-insider.html")
             return render_template("dashboard-user.html")
 
-        @wrappers.page_route(self, db=db)
-        @cache.cached(timeout=60)
+        @wrappers.page_route(self, db=db, cache_timeout_seconds=60, cache_type="user")
         def pdf_file(file_id: int, current_user: models.User):
             if (file := db.get_file(file_id)) is None:
                 return abort(categories.HTTPResponse.NOT_FOUND.id)
@@ -196,8 +194,7 @@ class App(Flask):
             response.headers["Content-Disposition"] = "inline; filename=auth_form.pdf"
             return response
         
-        @wrappers.page_route(self, db=db)
-        @cache.cached(timeout=60)
+        @wrappers.page_route(self, db=db, cache_timeout_seconds=60, cache_type="user")
         def img_file(file_id: int, current_user: models.User):
             if (file := db.get_file(file_id)) is None:
                 return abort(categories.HTTPResponse.NOT_FOUND.id)
@@ -222,8 +219,7 @@ class App(Flask):
             response.headers["Content-Disposition"] = "inline; filename={file.name}"
             return response
         
-        @wrappers.page_route(self, db=db)
-        @cache.cached(timeout=60)
+        @wrappers.page_route(self, db=db, cache_timeout_seconds=60, cache_type="user")
         def download_file(file_id: int, current_user: models.User):
             if (file := db.get_file(file_id)) is None:
                 return abort(categories.HTTPResponse.NOT_FOUND.id)

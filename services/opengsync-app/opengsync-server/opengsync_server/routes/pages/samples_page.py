@@ -8,7 +8,7 @@ samples_page_bp = Blueprint("samples_page", __name__)
 
 
 @wrappers.page_route(samples_page_bp, db=db)
-def samples(current_user: models.User, ):
+def samples():
     return render_template("samples_page.html")
 
 

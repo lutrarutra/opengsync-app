@@ -38,7 +38,7 @@ def get_context(current_user: models.User, args: dict) -> dict:
 
 
 @wrappers.htmx_route(reseq_workflow, db=db)
-def begin(current_user: models.User, ) -> Response:
+def begin(current_user: models.User) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:
@@ -56,7 +56,7 @@ def begin(current_user: models.User, ) -> Response:
 
 
 @wrappers.htmx_route(reseq_workflow, db=db, methods=["POST"])
-def select(current_user: models.User, ) -> Response:
+def select(current_user: models.User) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:

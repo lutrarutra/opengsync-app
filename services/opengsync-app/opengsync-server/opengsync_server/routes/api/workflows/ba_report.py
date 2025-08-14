@@ -77,7 +77,7 @@ def begin(current_user: models.User):
 
 
 @wrappers.htmx_route(ba_report_workflow, db=db, methods=["POST"])
-def select(current_user: models.User, ):
+def select(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 

@@ -189,7 +189,7 @@ def remove_library(current_user: models.User, pool_id: int):
 
 
 @wrappers.htmx_route(pools_htmx, db=db)
-def table_query(current_user: models.User, ):
+def table_query():
     if (word := request.args.get("name", None)) is not None:
         field_name = "name"
     elif (word := request.args.get("id", None)) is not None:
@@ -220,7 +220,7 @@ def table_query(current_user: models.User, ):
 
 
 @wrappers.htmx_route(pools_htmx, methods=["POST"], db=db)
-def query(current_user: models.User, ):
+def query():
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
 
@@ -475,8 +475,8 @@ def browse_query(current_user: models.User, workflow: str):
     )
 
 
-@wrappers.htmx_route(pools_htmx, db=db)
-def get_recent_pools(current_user: models.User, ):
+@wrappers.htmx_route(pools_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
+def get_recent_pools(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

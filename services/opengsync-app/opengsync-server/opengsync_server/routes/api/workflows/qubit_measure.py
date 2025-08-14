@@ -50,7 +50,7 @@ def get_context(request: Request) -> dict:
 
 
 @wrappers.htmx_route(qubit_measure_workflow, db=db)
-def begin(current_user: models.User, ):
+def begin(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -69,7 +69,7 @@ def begin(current_user: models.User, ):
 
 
 @wrappers.htmx_route(qubit_measure_workflow, db=db, methods=["POST"])
-def select(current_user: models.User, ):
+def select(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 

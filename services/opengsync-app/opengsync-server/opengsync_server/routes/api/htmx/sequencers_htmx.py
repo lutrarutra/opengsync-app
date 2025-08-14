@@ -3,14 +3,13 @@ from flask_htmx import make_response
 
 from opengsync_db import PAGE_LIMIT, exceptions, models
 from opengsync_db.categories import HTTPResponse, UserRole
-from .... import db, forms, cache
+from .... import db, forms
 from ....core import wrappers
 
 sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/hmtx/sequencers/")
 
 
-@wrappers.htmx_route(sequencers_htmx, db=db)
-@cache.cached(timeout=60, query_string=True)
+@wrappers.htmx_route(sequencers_htmx, db=db, cache_timeout_seconds=60, cache_type="user")
 def get(current_user: models.User, page: int = 0):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -71,7 +70,7 @@ def delete(current_user: models.User, sequencer_id: int):
 
 
 @wrappers.htmx_route(sequencers_htmx, db=db, methods=["POST"])
-def query(current_user: models.User, ):
+def query():
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
 

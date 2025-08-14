@@ -88,9 +88,8 @@ def table_query(current_user: models.User):
     )
 
 
-@wrappers.htmx_route(index_kits_htmx, db=db)
-@cache.cached(timeout=300, query_string=True)
-def get_adapters(current_user: models.User, index_kit_id: int, page: int = 0):
+@wrappers.htmx_route(index_kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
+def get_adapters(index_kit_id: int, page: int = 0):
     if (index_kit := db.get_index_kit(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

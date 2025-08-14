@@ -93,7 +93,7 @@ def edit(current_user: models.User, sample_id: int):
 
 
 @wrappers.htmx_route(samples_htmx, db=db, methods=["POST"])
-def query(current_user: models.User, ):
+def query(current_user: models.User):
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -115,7 +115,7 @@ def query(current_user: models.User, ):
 
 
 @wrappers.htmx_route(samples_htmx, db=db)
-def table_query(current_user: models.User, ):
+def table_query(current_user: models.User):
     if (word := request.args.get("name", None)) is not None:
         field_name = "name"
     elif (word := request.args.get("id", None)) is not None:

@@ -52,6 +52,7 @@ def _route_decorator(
     response_handler: Callable[[Exception], Any],
     cache_timeout_seconds: int | None,
     cache_query_string: bool,
+    cache_type: Literal["user", "insider", "global"],
     cache_kwargs: dict[str, Any] | None,
 ) -> Callable[[F], F]:
     """Base decorator for all route types."""
@@ -72,7 +73,34 @@ def _route_decorator(
 
         if cache_timeout_seconds is not None:
             from .. import cache
-            fnc = cache.cached(timeout=cache_timeout_seconds, query_string=cache_query_string, **(cache_kwargs or {}))(fnc)
+            
+            def user_cache_key() -> str:
+                query_string = ""
+                user_id = current_user.id if current_user.is_authenticated else "anon"
+                if cache_query_string and request.args:
+                    args = request.args
+                    sorted_args = sorted((k, v) for k, v in args.items())
+                    query_string = "?" + "&".join(f"{k}={v}" for k, v in sorted_args)
+                key = f"view/{user_id}{request.path}{query_string}"
+                return key
+            
+            def insider_cache_key() -> str:
+                if current_user.is_authenticated and not current_user.is_insider():
+                    return user_cache_key()
+                query_string = ""
+                if cache_query_string and request.args:
+                    args = request.args
+                    sorted_args = sorted((k, v) for k, v in args.items())
+                    query_string = "?" + "&".join(f"{k}={v}" for k, v in sorted_args)
+                key = f"view/insider{request.path}{query_string}"
+                return key
+            
+            fnc = cache.cached(
+                timeout=cache_timeout_seconds,
+                query_string=cache_query_string if cache_type == "global" else False,
+                key_prefix=user_cache_key if cache_type == "user" else insider_cache_key if cache_type == "insider" else "view/%s",  # type: ignore
+                **(cache_kwargs or {})
+            )(fnc)
 
         @wraps(fnc)
         def wrapper(*args, **kwargs):
@@ -138,11 +166,25 @@ def page_route(
     login_required: bool = True,
     debug: bool = False,
     cache_timeout_seconds: int | None = None,
-    cache_query_string: bool = False,
+    cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
+    cache_type: Literal["user", "global"] = "user",
     strict_slashes: bool = True,
 ) -> Callable[[F], F]:
-    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _page_handler, cache_timeout_seconds, cache_query_string, cache_kwargs)
+    return _route_decorator(
+        blueprint=blueprint,
+        route=route,
+        methods=methods,
+        db=db,
+        login_required=login_required,
+        debug=debug,
+        strict_slashes=strict_slashes,
+        response_handler=_page_handler,
+        cache_timeout_seconds=cache_timeout_seconds,
+        cache_query_string=cache_query_string,
+        cache_type=cache_type,
+        cache_kwargs=cache_kwargs,
+    )
 
 
 def htmx_route(
@@ -153,11 +195,25 @@ def htmx_route(
     login_required: bool = True,
     debug: bool = False,
     cache_timeout_seconds: int | None = None,
-    cache_query_string: bool = False,
+    cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
+    cache_type: Literal["user", "insider", "global"] = "user",
     strict_slashes: bool = True,
 ) -> Callable[[F], F]:
-    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _htmx_handler, cache_timeout_seconds, cache_query_string, cache_kwargs)
+    return _route_decorator(
+        blueprint=blueprint,
+        route=route,
+        methods=methods,
+        db=db,
+        login_required=login_required,
+        debug=debug,
+        strict_slashes=strict_slashes,
+        response_handler=_htmx_handler,
+        cache_timeout_seconds=cache_timeout_seconds,
+        cache_query_string=cache_query_string,
+        cache_type=cache_type,
+        cache_kwargs=cache_kwargs,
+    )
 
 
 def api_route(
@@ -168,8 +224,22 @@ def api_route(
     login_required: bool = False,
     debug: bool = False,
     cache_timeout_seconds: int | None = None,
-    cache_query_string: bool = False,
+    cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
+    cache_type: Literal["user", "insider", "global"] = "user",
     strict_slashes: bool = True,
 ) -> Callable[[F], F]:
-    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _api_handler, cache_timeout_seconds, cache_query_string, cache_kwargs)
+    return _route_decorator(
+        blueprint=blueprint,
+        route=route,
+        methods=methods,
+        db=db,
+        login_required=login_required,
+        debug=debug,
+        strict_slashes=strict_slashes,
+        response_handler=_api_handler,
+        cache_timeout_seconds=cache_timeout_seconds,
+        cache_query_string=cache_query_string,
+        cache_type=cache_type,
+        cache_kwargs=cache_kwargs,
+    )

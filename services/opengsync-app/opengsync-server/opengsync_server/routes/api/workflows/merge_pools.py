@@ -62,7 +62,7 @@ def begin(current_user: models.User) -> Response:
 
 
 @wrappers.htmx_route(merge_pools_workflow, db=db, methods=["POST"])
-def select(current_user: models.User, ) -> Response:
+def select(current_user: models.User) -> Response:
     try:
         context = get_context(current_user, request.args)
     except ValueError:

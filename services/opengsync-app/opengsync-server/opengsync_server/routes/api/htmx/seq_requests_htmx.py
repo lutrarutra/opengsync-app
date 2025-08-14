@@ -22,7 +22,7 @@ from ....core.runtime import runtime
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/hmtx/seq_requests/")
 
 
-@wrappers.htmx_route(seq_requests_htmx, db=db)
+@wrappers.htmx_route(seq_requests_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -271,7 +271,7 @@ def submit_request(current_user: models.User, seq_request_id: int):
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
-def create(current_user: models.User, ):
+def create(current_user: models.User):
     return forms.models.SeqRequestForm(form_type="create", formdata=request.form).process_request(user=current_user, seq_request=None)
 
 
@@ -1024,20 +1024,26 @@ def store_samples(current_user: models.User, seq_request_id: int):
     return form.make_response()
 
 
-@wrappers.htmx_route(seq_requests_htmx, db=db)
+@wrappers.htmx_route(seq_requests_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get_recent_seq_requests(current_user: models.User):
-    if (sort_by := request.args.get("sort_by")) is not None:
-        if sort_by not in ["timestamp_submitted_utc", "id"]:
-            return abort(HTTPResponse.BAD_REQUEST.id)
-    else:
-        sort_by = "timestamp_submitted_utc"
+    if current_user.is_insider():
+        def __order_by_status_and_time(q):
+            return q.order_by(
+                models.SeqRequest.status_id,
+                models.SeqRequest.timestamp_submitted_utc.desc()
+            )
 
-    seq_requests, _ = db.get_seq_requests(
-        user_id=None if current_user.is_insider() else current_user.id,
-        sort_by=sort_by, descending=True,
-        show_drafts=False if current_user.is_insider() else True,
-    )
+        seq_requests, _ = db.get_seq_requests(
+            status_in=[SeqRequestStatus.ACCEPTED, SeqRequestStatus.SAMPLES_RECEIVED, SeqRequestStatus.DATA_PROCESSING],
+            custom_query=__order_by_status_and_time
+        )
+    else:
+        seq_requests, _ = db.get_seq_requests(
+            user_id=current_user.id,
+            sort_by="timestamp_submitted_utc",
+            descending=True,
+        )
 
     return make_response(
-        render_template("components/dashboard/seq_requests-list.html", seq_requests=seq_requests, sort_by=sort_by)
+        render_template("components/dashboard/seq_requests-list.html", seq_requests=seq_requests)
     )

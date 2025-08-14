@@ -690,7 +690,7 @@ def get_pool_dilutions(current_user: models.User, experiment_id: int, page: int 
     )
 
 
-@wrappers.htmx_route(experiments_htmx, db=db)
+@wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get_recent_experiments(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

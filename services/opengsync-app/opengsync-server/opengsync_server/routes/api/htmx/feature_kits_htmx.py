@@ -92,9 +92,8 @@ def table_query(current_user: models.User):
     )
 
 
-@wrappers.htmx_route(feature_kits_htmx, db=db)
-@cache.cached(timeout=300, query_string=True)
-def get_features(current_user: models.User, feature_kit_id: int, page: int = 0):
+@wrappers.htmx_route(feature_kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
+def get_features(feature_kit_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
