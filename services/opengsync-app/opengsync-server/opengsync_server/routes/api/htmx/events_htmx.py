@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, abort
 from flask_htmx import make_response
@@ -7,20 +6,14 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, forms, logger, cache  # noqa
+from .... import db, logger  # noqa
 from ....core import wrappers
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 events_htmx = Blueprint("events_htmx", __name__, url_prefix="/api/hmtx/events/")
 
 
-@wrappers.htmx_route(events_htmx, db=db)
-@cache.cached(timeout=60, query_string=True)
-def render_calendar_month(year: int | None = None, month: int | None = None):
+@wrappers.htmx_route(events_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
+def render_calendar_month(current_user: models.User, year: int | None = None, month: int | None = None):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:
@@ -62,8 +55,8 @@ def render_calendar_month(year: int | None = None, month: int | None = None):
     ))
 
 
-@wrappers.htmx_route(events_htmx, db=db)
-def render_calendar_week(year: int | None = None, week: int | None = None):
+@wrappers.htmx_route(events_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
+def render_calendar_week(current_user: models.User, year: int | None = None, week: int | None = None):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:
@@ -110,8 +103,8 @@ def render_calendar_week(year: int | None = None, week: int | None = None):
     ))
 
 
-@wrappers.htmx_route(events_htmx, db=db)
-def render_calendar_day(year: int | None = None, month: int | None = None, day: int | None = None):
+@wrappers.htmx_route(events_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
+def render_calendar_day(current_user: models.User, year: int | None = None, month: int | None = None, day: int | None = None):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:

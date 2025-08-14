@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 class Feature(Base):
     __tablename__ = "feature"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
+    identifier: Mapped[str | None] = mapped_column(sa.String(64), nullable=True, index=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
     sequence: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True)
     pattern: Mapped[str] = mapped_column(sa.String(32), nullable=False)

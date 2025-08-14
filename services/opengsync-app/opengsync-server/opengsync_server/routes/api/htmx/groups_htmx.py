@@ -1,4 +1,3 @@
-from typing import TYPE_CHECKING
 import json
 
 from flask import Blueprint, render_template, abort, request, url_for, flash
@@ -7,18 +6,14 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, AffiliationType, UserRole, ProjectStatus
 
-from .... import db, forms, htmx_route
-
-if TYPE_CHECKING:
-    current_user: models.User = None   # type: ignore
-else:
-    from flask_login import current_user
+from .... import db, forms
+from ....core import wrappers
 
 groups_htmx = Blueprint("groups_htmx", __name__, url_prefix="/api/hmtx/groups/")
 
 
-@htmx_route(groups_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(groups_htmx, db=db)
+def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -44,8 +39,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(groups_htmx, db=db, methods=["POST"])
-def query():
+@wrappers.htmx_route(groups_htmx, db=db, methods=["POST"])
+def query(current_user: models.User):
     if (field_name := next(iter(request.form.keys()))) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -68,13 +63,13 @@ def query():
     )
 
 
-@htmx_route(groups_htmx, db=db, methods=["POST"])
-def create():
+@wrappers.htmx_route(groups_htmx, db=db, methods=["POST"])
+def create(current_user: models.User):
     return forms.models.GroupForm(request.form).process_request(user=current_user)
 
 
-@htmx_route(groups_htmx, db=db, methods=["POST"])
-def edit(group_id: int):
+@wrappers.htmx_route(groups_htmx, db=db, methods=["POST"])
+def edit(current_user: models.User, group_id: int):
     if (group := db.get_group(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -87,8 +82,8 @@ def edit(group_id: int):
     return forms.models.GroupForm(request.form, group=group).process_request(user=current_user)
 
 
-@htmx_route(groups_htmx, db=db)
-def get_users(group_id: int, page: int = 0):
+@wrappers.htmx_route(groups_htmx, db=db)
+def get_users(current_user: models.User, group_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "affiliation_type_id")
     sort_order = request.args.get("sort_order", "asc")
     descending = sort_order == "desc"
@@ -114,8 +109,8 @@ def get_users(group_id: int, page: int = 0):
     )
 
 
-@htmx_route(groups_htmx, db=db, methods=["DELETE"])
-def remove_user(group_id: int):
+@wrappers.htmx_route(groups_htmx, db=db, methods=["DELETE"])
+def remove_user(current_user: models.User, group_id: int):
     if (_ := db.get_group(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -145,8 +140,8 @@ def remove_user(group_id: int):
     return make_response(redirect=url_for("groups_page.group", group_id=group_id))
 
 
-@htmx_route(groups_htmx, db=db, methods=["GET", "POST"])
-def add_user(group_id: int):
+@wrappers.htmx_route(groups_htmx, db=db, methods=["GET", "POST"])
+def add_user(current_user: models.User, group_id: int):
     if (group := db.get_group(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -166,8 +161,8 @@ def add_user(group_id: int):
         return abort(HTTPResponse.BAD_REQUEST.id)
 
 
-@htmx_route(groups_htmx, db=db)
-def get_seq_requests(group_id: int, page: int = 0):
+@wrappers.htmx_route(groups_htmx, db=db)
+def get_seq_requests(current_user: models.User, group_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -188,8 +183,8 @@ def get_seq_requests(group_id: int, page: int = 0):
     )
 
 
-@htmx_route(groups_htmx, db=db)
-def get_projects(group_id: int, page: int = 0):
+@wrappers.htmx_route(groups_htmx, db=db)
+def get_projects(current_user: models.User, group_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"

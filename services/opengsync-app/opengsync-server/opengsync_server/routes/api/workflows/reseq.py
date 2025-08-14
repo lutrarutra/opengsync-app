@@ -1,24 +1,18 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, request, abort, Response
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger, htmx_route  # noqa
+from .... import db
+from ....core import wrappers
 from ....forms.workflows import reseq as forms
 from ....forms import SelectSamplesForm
 from ....core import exceptions
 
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user  # noqa
-
 reseq_workflow = Blueprint("reseq_workflow", __name__, url_prefix="/api/workflows/reseq/")
 
 
-def get_context(args: dict) -> dict:
+def get_context(current_user: models.User, args: dict) -> dict:
     context = {}
     if (seq_request_id := args.get("seq_request_id")) is not None:
         seq_request_id = int(seq_request_id)
@@ -43,12 +37,12 @@ def get_context(args: dict) -> dict:
     return context
 
 
-@htmx_route(reseq_workflow, db=db)
-def begin() -> Response:
+@wrappers.htmx_route(reseq_workflow, db=db)
+def begin(current_user: models.User) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:
-        context = get_context(request.args)
+        context = get_context(current_user, request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     except exceptions.OpeNGSyncServerException as e:
@@ -61,12 +55,12 @@ def begin() -> Response:
     return form.make_response()
 
 
-@htmx_route(reseq_workflow, db=db, methods=["POST"])
-def select() -> Response:
+@wrappers.htmx_route(reseq_workflow, db=db, methods=["POST"])
+def select(current_user: models.User) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     try:
-        context = get_context(request.args)
+        context = get_context(current_user, request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     except exceptions.OpeNGSyncServerException as e:
@@ -93,8 +87,8 @@ def select() -> Response:
     return next_form.make_response()
 
 
-@htmx_route(reseq_workflow, db=db, methods=["POST"])
-def reseq(uuid: str) -> Response:
+@wrappers.htmx_route(reseq_workflow, db=db, methods=["POST"])
+def reseq(current_user: models.User, uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 

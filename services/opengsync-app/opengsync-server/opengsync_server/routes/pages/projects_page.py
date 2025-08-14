@@ -1,19 +1,19 @@
 from flask import Blueprint, render_template, abort, url_for, request
-from flask_login import current_user
 
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
-from ... import db, forms, page_route
-
+from ... import db, forms
+from ...core import wrappers
 projects_page_bp = Blueprint("projects_page", __name__)
 
 
-@page_route(projects_page_bp, db=db)
-def projects():
+@wrappers.page_route(projects_page_bp, db=db)
+def projects(current_user: models.User):
     return render_template("projects_page.html", form=forms.models.ProjectForm())
 
 
-@page_route(projects_page_bp, db=db)
-def project(project_id):
+@wrappers.page_route(projects_page_bp, db=db)
+def project(current_user: models.User, project_id: int):
     if (project := db.get_project(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

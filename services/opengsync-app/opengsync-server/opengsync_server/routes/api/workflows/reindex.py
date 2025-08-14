@@ -1,4 +1,3 @@
-from typing import TYPE_CHECKING
 
 from flask import Blueprint, request, abort, Response
 
@@ -6,21 +5,17 @@ from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
 from ....core import exceptions
-from .... import db, logger, htmx_route  # noqa
+from .... import db, logger
+from ....core import wrappers
 from ....forms.workflows import reindex as forms
 from ....forms import SelectSamplesForm
 from ....tools import utils
 from ....forms.MultiStepForm import MultiStepForm
 
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user  # noqa
-
 reindex_workflow = Blueprint("reindex_workflow", __name__, url_prefix="/api/workflows/reindex/")
 
 
-def get_context(args: dict) -> dict:
+def get_context(current_user: models.User, args: dict) -> dict:
     context = {}
     if (seq_request_id := args.get("seq_request_id")) is not None:
         seq_request_id = int(seq_request_id)
@@ -51,10 +46,10 @@ def get_context(args: dict) -> dict:
     return context
 
 
-@htmx_route(reindex_workflow, db=db)
-def previous(uuid: str):
+@wrappers.htmx_route(reindex_workflow, db=db)
+def previous(current_user: models.User, uuid: str):
     try:
-        context = get_context(request.args)
+        context = get_context(current_user, request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     except exceptions.OpeNGSyncServerException as e:
@@ -86,10 +81,10 @@ def previous(uuid: str):
     return prev_step.make_response()
 
 
-@htmx_route(reindex_workflow, db=db)
-def begin() -> Response:
+@wrappers.htmx_route(reindex_workflow, db=db)
+def begin(current_user: models.User) -> Response:
     try:
-        context = get_context(request.args)
+        context = get_context(current_user, request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     except exceptions.OpeNGSyncServerException as e:
@@ -102,10 +97,10 @@ def begin() -> Response:
     return form.make_response()
 
 
-@htmx_route(reindex_workflow, db=db, methods=["POST"])
-def select():
+@wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
+def select(current_user: models.User):
     try:
-        context = get_context(request.args)
+        context = get_context(current_user, request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     except exceptions.OpeNGSyncServerException as e:
@@ -135,10 +130,10 @@ def select():
     return next_form.make_response()
 
 
-@htmx_route(reindex_workflow, db=db, methods=["POST"])
-def upload_barcode_form(uuid: str):
+@wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
+def upload_barcode_form(current_user: models.User, uuid: str):
     try:
-        context = get_context(request.args)
+        context = get_context(current_user, request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     except exceptions.OpeNGSyncServerException as e:
@@ -153,10 +148,10 @@ def upload_barcode_form(uuid: str):
     return form.process_request()
 
 
-@htmx_route(reindex_workflow, db=db, methods=["POST"])
-def upload_tenx_atac_barcode_form(uuid: str):
+@wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
+def upload_tenx_atac_barcode_form(current_user: models.User, uuid: str):
     try:
-        context = get_context(request.args)
+        context = get_context(current_user, request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     except exceptions.OpeNGSyncServerException as e:
@@ -171,10 +166,10 @@ def upload_tenx_atac_barcode_form(uuid: str):
     return form.process_request()
 
 
-@htmx_route(reindex_workflow, db=db, methods=["POST"])
-def map_index_kits(uuid: str):
+@wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
+def map_index_kits(current_user: models.User, uuid: str):
     try:
-        context = get_context(request.args)
+        context = get_context(current_user, request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     except exceptions.OpeNGSyncServerException as e:
@@ -189,10 +184,10 @@ def map_index_kits(uuid: str):
     return form.process_request()
 
 
-@htmx_route(reindex_workflow, db=db, methods=["POST"])
-def barcode_match(uuid: str):
+@wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
+def barcode_match(current_user: models.User, uuid: str):
     try:
-        context = get_context(request.args)
+        context = get_context(current_user, request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     except exceptions.OpeNGSyncServerException as e:
@@ -206,10 +201,10 @@ def barcode_match(uuid: str):
     ).process_request()
 
 
-@htmx_route(reindex_workflow, db=db, methods=["POST"])
-def complete_reindex(uuid: str):
+@wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
+def complete_reindex(current_user: models.User, uuid: str):
     try:
-        context = get_context(request.args)
+        context = get_context(current_user, request.args)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     except exceptions.OpeNGSyncServerException as e:

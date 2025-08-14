@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 import pandas as pd
 
@@ -13,12 +13,6 @@ from .... import logger, db  # noqa F401
 from ....tools import utils
 from ...MultiStepForm import MultiStepForm, StepFile
 from .BarcodeInputForm import BarcodeInputForm
-
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 
 class PoolMappingSubForm(FlaskForm):

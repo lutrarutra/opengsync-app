@@ -1,24 +1,18 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, request, abort, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger, htmx_route  # noqa
+from .... import db, logger
+from ....core import wrappers
 from ....forms import SelectSamplesForm
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 select_experiment_pools_workflow = Blueprint("select_experiment_pools_workflow", __name__, url_prefix="/api/workflows/select_experiment_pools/")
 
 
-@htmx_route(select_experiment_pools_workflow, db=db)
-def begin(experiment_id: int):
+@wrappers.htmx_route(select_experiment_pools_workflow, db=db)
+def begin(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -30,8 +24,8 @@ def begin(experiment_id: int):
     return form.make_response()
 
 
-@htmx_route(select_experiment_pools_workflow, db=db, methods=["POST"])
-def select():
+@wrappers.htmx_route(select_experiment_pools_workflow, db=db, methods=["POST"])
+def select(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 

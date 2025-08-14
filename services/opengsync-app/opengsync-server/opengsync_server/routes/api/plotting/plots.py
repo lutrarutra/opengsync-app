@@ -1,4 +1,3 @@
-from typing import TYPE_CHECKING
 import json
 
 from flask import Blueprint, request, abort, url_for
@@ -10,12 +9,8 @@ import plotly.graph_objects as go
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
-from .... import db, htmx_route
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
+from .... import db
+from ....core import wrappers
 
 plots_api = Blueprint("plots_api", __name__, url_prefix="/api/plots/")
 
@@ -27,8 +22,8 @@ def _add_traces(to_figure, from_figure):
     return to_figure
 
 
-@htmx_route(plots_api, db=db, methods=["POST"])
-def experiment_library_reads(experiment_id: int):
+@wrappers.htmx_route(plots_api, db=db, methods=["POST"])
+def experiment_library_reads(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.BAD_REQUEST.id)
     

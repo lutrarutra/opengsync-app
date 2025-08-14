@@ -1,24 +1,19 @@
 import json
-from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, IndexType, KitType
-from .... import db, logger, cache, forms, htmx_route  # noqa F401
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
+from .... import db, logger, cache, forms
+from ....core import wrappers
 
 
 kits_htmx = Blueprint("kits_htmx", __name__, url_prefix="/api/hmtx/kits/")
 
 
-@htmx_route(kits_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(kits_htmx, db=db)
+def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "identifier")
     sort_order = request.args.get("sort_order", "asc")
     descending = sort_order == "desc"
@@ -48,8 +43,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(kits_htmx, db=db)
-def table_query():
+@wrappers.htmx_route(kits_htmx, db=db)
+def table_query(current_user: models.User):
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
@@ -90,8 +85,8 @@ def table_query():
     )
 
 
-@htmx_route(kits_htmx, db=db, methods=["GET", "POST"])
-def edit(kit_id: int):
+@wrappers.htmx_route(kits_htmx, db=db, methods=["GET", "POST"])
+def edit(current_user: models.User, kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     if (index_kit := db.get_kit(kit_id)) is None:
@@ -106,8 +101,8 @@ def edit(kit_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@htmx_route(kits_htmx, db=db, methods=["DELETE"])
-def delete(kit_id: int):
+@wrappers.htmx_route(kits_htmx, db=db, methods=["DELETE"])
+def delete(current_user: models.User, kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     

@@ -1,23 +1,17 @@
 import json
-from typing import TYPE_CHECKING
 
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, RunStatus
-from .... import db, logger, cache, htmx_route  # noqa F401
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
+from .... import db, logger, cache  # noqa F401
+from ....core import wrappers
 
 seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/api/hmtx/seq_run/")
 
 
-@htmx_route(seq_runs_htmx, db=db)
-@cache.cached(timeout=60, query_string=True)
+@wrappers.htmx_route(seq_runs_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get(page: int = 0):
     sort_by = request.args.get("sort_by", "run_folder")
     sort_order = request.args.get("sort_order", "desc")
@@ -42,8 +36,8 @@ def get(page: int = 0):
     ))
 
 
-@htmx_route(seq_runs_htmx, db=db)
-def table_query():
+@wrappers.htmx_route(seq_runs_htmx, db=db)
+def table_query(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

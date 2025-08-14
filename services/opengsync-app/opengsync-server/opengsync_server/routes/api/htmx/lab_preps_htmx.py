@@ -1,7 +1,7 @@
 import os
 import io
 import json
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 import pandas as pd
 
@@ -9,26 +9,23 @@ import openpyxl
 from openpyxl import styles as openpyxl_styles
 from openpyxl.utils import get_column_letter
 
-from flask import Blueprint, render_template, request, abort, flash, url_for, current_app, Response
+from flask import Blueprint, render_template, request, abort, flash, url_for, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus
 
-from .... import db, forms, logger, htmx_route  # noqa
+from .... import db, forms, logger
+from ....core import wrappers
+from ....core.runtime import runtime
 from ....tools.spread_sheet_components import TextColumn
 
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 lab_preps_htmx = Blueprint("lab_preps_htmx", __name__, url_prefix="/api/hmtx/lab_preps/")
 
 
-@htmx_route(lab_preps_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(lab_preps_htmx, db=db)
+def get(current_user: models.User, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -68,8 +65,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(lab_preps_htmx, db=db)
-def table_query():
+@wrappers.htmx_route(lab_preps_htmx, db=db)
+def table_query(current_user: models.User):
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
@@ -121,8 +118,8 @@ def table_query():
     )
 
 
-@htmx_route(lab_preps_htmx, db=db)
-def get_form(form_type: Literal["create", "edit"]):
+@wrappers.htmx_route(lab_preps_htmx, db=db)
+def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -150,8 +147,8 @@ def get_form(form_type: Literal["create", "edit"]):
     return forms.models.LabPrepForm(form_type=form_type).make_response()
 
 
-@htmx_route(lab_preps_htmx, db=db, methods=["POST"])
-def create():
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
+def create(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -159,8 +156,8 @@ def create():
     return form.process_request(current_user)
 
 
-@htmx_route(lab_preps_htmx, db=db, methods=["POST"])
-def edit(lab_prep_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
+def edit(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -171,8 +168,8 @@ def edit(lab_prep_id: int):
     return form.process_request(current_user)
 
 
-@htmx_route(lab_preps_htmx, db=db, methods=["POST"])
-def complete(lab_prep_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
+def complete(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -200,8 +197,8 @@ def complete(lab_prep_id: int):
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
 
 
-@htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
-def delete(lab_prep_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
+def delete(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -217,8 +214,8 @@ def delete(lab_prep_id: int):
     return make_response(redirect=url_for("lab_preps_page.lab_preps"))
 
 
-@htmx_route(lab_preps_htmx, db=db, methods=["POST"])
-def uncomplete(lab_prep_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
+def uncomplete(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -232,8 +229,8 @@ def uncomplete(lab_prep_id: int):
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
 
 
-@htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
-def remove_library(lab_prep_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
+def remove_library(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -257,8 +254,8 @@ def remove_library(lab_prep_id: int):
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
 
 
-@htmx_route(lab_preps_htmx, db=db)
-def get_libraries(lab_prep_id: int, page: int = 0):
+@wrappers.htmx_route(lab_preps_htmx, db=db)
+def get_libraries(current_user: models.User, lab_prep_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -281,8 +278,8 @@ def get_libraries(lab_prep_id: int, page: int = 0):
     )
 
 
-@htmx_route(lab_preps_htmx, db=db, methods=["GET"])
-def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -> Response:
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET"])
+def download_template(current_user: models.User, lab_prep_id: int, direction: Literal["rows", "columns"]) -> Response:
     if direction not in ("rows", "columns"):
         return abort(HTTPResponse.BAD_REQUEST.id)
     
@@ -291,12 +288,12 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
     
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if current_app.static_folder is None:
+
+    if runtime.current_app.static_folder is None:
         logger.error("Static folder not set")
         raise ValueError("Static folder not set")
-    
-    filepath = os.path.join(current_app.static_folder, "resources", "templates", "library_prep", lab_prep.protocol.prep_file_name)
+
+    filepath = os.path.join(runtime.current_app.static_folder, "resources", "templates", "library_prep", lab_prep.protocol.prep_file_name)
 
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
@@ -365,8 +362,8 @@ def download_template(lab_prep_id: int, direction: Literal["rows", "columns"]) -
     )
 
 
-@htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
-def prep_table_upload_form(lab_prep_id: int) -> Response:
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
+def prep_table_upload_form(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -381,8 +378,8 @@ def prep_table_upload_form(lab_prep_id: int) -> Response:
         return form.process_request(user=current_user)
     
 
-@htmx_route(lab_preps_htmx, db=db)
-def get_pools(lab_prep_id: int, page: int = 0):
+@wrappers.htmx_route(lab_preps_htmx, db=db)
+def get_pools(current_user: models.User, lab_prep_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -407,8 +404,8 @@ def get_pools(lab_prep_id: int, page: int = 0):
     )
 
 
-@htmx_route(lab_preps_htmx, db=db)
-def get_files(lab_prep_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db)
+def get_files(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -424,8 +421,8 @@ def get_files(lab_prep_id: int):
     )
 
 
-@htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
-def delete_file(lab_prep_id: int, file_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
+def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -437,8 +434,8 @@ def delete_file(lab_prep_id: int, file_id: int):
     
     if file not in lab_prep.files:
         return abort(HTTPResponse.BAD_REQUEST.id)
-    
-    file_path = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+
+    file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
     db.delete_file(file_id=file.id)
@@ -448,8 +445,8 @@ def delete_file(lab_prep_id: int, file_id: int):
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
 
 
-@htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
-def file_form(lab_prep_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
+def file_form(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -466,8 +463,8 @@ def file_form(lab_prep_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
     
 
-@htmx_route(lab_preps_htmx, db=db)
-def plates_tab(lab_prep_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db)
+def plates_tab(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -477,8 +474,8 @@ def plates_tab(lab_prep_id: int):
     return make_response(render_template("components/plates.html", plates=lab_prep.plates, from_page=f"lab_prep@{lab_prep.id}"))
     
 
-@htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
-def comment_form(lab_prep_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
+def comment_form(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -495,8 +492,8 @@ def comment_form(lab_prep_id: int):
         return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
 
 
-@htmx_route(lab_preps_htmx, db=db)
-def get_comments(lab_prep_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db)
+def get_comments(current_user: models.User, lab_prep_id: int):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -511,8 +508,8 @@ def get_comments(lab_prep_id: int):
     )
 
 
-@htmx_route(lab_preps_htmx, db=db)
-def get_mux_table(lab_prep_id: int):
+@wrappers.htmx_route(lab_preps_htmx, db=db)
+def get_mux_table(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -553,7 +550,7 @@ def get_mux_table(lab_prep_id: int):
         df = df.drop(columns=["read"])
         
     columns = []
-    for i, col in enumerate(df.columns):
+    for col in df.columns:
         columns.append(
             TextColumn(
                 col,

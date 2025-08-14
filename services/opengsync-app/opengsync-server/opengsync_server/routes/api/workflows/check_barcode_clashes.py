@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING
-
 import pandas as pd
 
 from flask import Blueprint, request, abort
@@ -7,20 +5,16 @@ from flask import Blueprint, request, abort
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger, htmx_route
+from .... import db, logger
 from ....forms.workflows import check_barcode_clashes as wff
 from ....forms import SelectSamplesForm
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
+from ....core import wrappers
 
 check_barcode_clashes_workflow = Blueprint("check_barcode_clashes_workflow", __name__, url_prefix="/api/workflows/check_barcode_clashes/")
 
 
-@htmx_route(check_barcode_clashes_workflow, db=db)
-def begin():
+@wrappers.htmx_route(check_barcode_clashes_workflow, db=db)
+def begin(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -34,7 +28,7 @@ def begin():
     return form.make_response()
 
 
-@htmx_route(check_barcode_clashes_workflow, db=db, methods=["POST"])
+@wrappers.htmx_route(check_barcode_clashes_workflow, db=db, methods=["POST"])
 def select():
     form: SelectSamplesForm = SelectSamplesForm("check_barcode_clashes", formdata=request.form)
 
@@ -88,8 +82,8 @@ def select():
     return wff.CheckBarcodeClashesForm(libraries_df).process_request()
 
 
-@htmx_route(check_barcode_clashes_workflow, db=db)
-def check_experiment_barcode_clashes(experiment_id: int):
+@wrappers.htmx_route(check_barcode_clashes_workflow, db=db)
+def check_experiment_barcode_clashes(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -122,8 +116,8 @@ def check_experiment_barcode_clashes(experiment_id: int):
     return wff.CheckBarcodeClashesForm(library_df, groupby="lane").process_request()
 
 
-@htmx_route(check_barcode_clashes_workflow, db=db)
-def check_seq_request_barcode_clashes(seq_request_id: int):
+@wrappers.htmx_route(check_barcode_clashes_workflow, db=db)
+def check_seq_request_barcode_clashes(current_user: models.User, seq_request_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

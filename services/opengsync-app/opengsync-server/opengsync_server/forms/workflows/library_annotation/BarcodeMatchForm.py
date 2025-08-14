@@ -1,4 +1,4 @@
-from flask import Response, current_app
+from flask import Response
 
 from opengsync_db import models
 

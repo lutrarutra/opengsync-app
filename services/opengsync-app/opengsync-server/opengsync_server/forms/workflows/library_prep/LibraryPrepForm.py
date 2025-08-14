@@ -4,7 +4,7 @@ from uuid import uuid4
 import numpy as np
 import pandas as pd
 
-from flask import Response, current_app, url_for, flash
+from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models, to_utc
@@ -12,6 +12,7 @@ from opengsync_db.categories import FileType, LibraryStatus
 
 from .... import logger, db  # noqa F401
 from ....core import exceptions
+from ....core.runtime import runtime
 from ...HTMXFlaskForm import HTMXFlaskForm
 from ....forms.SpreadsheetFile import SpreadsheetFile
 from ....tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue, TextColumn, FloatColumn, IntegerColumn
@@ -109,7 +110,7 @@ class LibraryPrepForm(HTMXFlaskForm):
             return self.make_response()
         
         hash = str(uuid4())
-        path = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LIBRARY_PREP_FILE.dir, f"{hash}.xlsx")
+        path = os.path.join(runtime.current_app.media_folder, FileType.LIBRARY_PREP_FILE.dir, f"{hash}.xlsx")
         self.table.file.data.save(path)
         size_bytes = os.path.getsize(path)
 

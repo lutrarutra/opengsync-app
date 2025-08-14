@@ -7,7 +7,7 @@ from flask import Response, url_for
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, FeatureType
 
-from .... import db, logger, tools  # noqa
+from .... import tools  # noqa
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
@@ -26,6 +26,7 @@ class FeatureAnnotationForm(MultiStepForm):
     columns = [
         DropdownColumn("sample_name", "Sample Name", 170, choices=[], required=False),
         TextColumn("kit", "Kit", 170, max_length=64),
+        TextColumn("identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=False),
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length),
         TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length),
@@ -34,7 +35,7 @@ class FeatureAnnotationForm(MultiStepForm):
 
     @staticmethod
     def is_applicable(previous_form: MultiStepForm) -> bool:
-        return previous_form.tables["library_table"]["library_type_id"].isin([LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id]).any()
+        return bool(previous_form.tables["library_table"]["library_type_id"].isin([LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id]).any())
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
@@ -76,9 +77,13 @@ class FeatureAnnotationForm(MultiStepForm):
         kit_feature = pd.notna(df["kit"])
         custom_feature = pd.notna(df["feature"]) & pd.notna(df["sequence"]) & pd.notna(df["pattern"]) & pd.notna(df["read"])
         invalid_feature = pd.notna(df["kit"]) & (pd.notna(df["sequence"]) | pd.notna(df["pattern"]) | pd.notna(df["read"]))
+        duplicate_identifier = pd.notna(df["identifier"]) & df.duplicated(subset=["identifier", "sample_name"], keep=False)
         duplicated = df.duplicated(keep=False)
 
         for i, (idx, row) in enumerate(df.iterrows()):
+            if duplicate_identifier.at[idx]:
+                self.spreadsheet.add_error(idx, "identifier", DuplicateCellValue("duplicate feature definition"))
+                
             if duplicated.at[idx]:
                 self.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue("duplicate feature definition"))
                 self.spreadsheet.add_error(idx, "kit", DuplicateCellValue("duplicate feature definition"))
@@ -166,6 +171,7 @@ class FeatureAnnotationForm(MultiStepForm):
             "kit_id": [],
             "feature": [],
             "sequence": [],
+            "identifier": [],
             "pattern": [],
             "read": [],
             "feature_id": [],
@@ -173,12 +179,15 @@ class FeatureAnnotationForm(MultiStepForm):
         abc_libraries_df = library_table[(library_table["library_type_id"] == LibraryType.TENX_ANTIBODY_CAPTURE.id) | (library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id)]
 
         def add_feature(
-            library_name: str, feature_name: str,
+            library_name: str,
+            identifier: str,
+            feature_name: str,
             sequence: str, pattern: str, read: str,
             kit_name: Optional[str],
             kit_id: int | None = None,
             feature_id: int | None = None
         ):
+            feature_data["identifier"].append(identifier)
             feature_data["library_name"].append(library_name)
             feature_data["kit_id"].append(kit_id)
             feature_data["feature_id"].append(feature_id)
@@ -193,6 +202,7 @@ class FeatureAnnotationForm(MultiStepForm):
                 for library_name in abc_libraries_df["library_name"]:
                     add_feature(
                         library_name=library_name,
+                        identifier=row["identifier"],
                         kit_name=row["kit"],
                         feature_name=row["feature"],
                         sequence=row["sequence"],
@@ -202,6 +212,7 @@ class FeatureAnnotationForm(MultiStepForm):
             else:
                 add_feature(
                     library_name=row["library_name"],
+                    identifier=row["identifier"],
                     kit_name=row["kit"],
                     feature_name=row["feature"],
                     sequence=row["sequence"],

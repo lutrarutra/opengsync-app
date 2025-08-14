@@ -1,15 +1,16 @@
 from flask import Blueprint, render_template, request, abort
 from flask_htmx import make_response
 
-from opengsync_db import PAGE_LIMIT
+from opengsync_db import PAGE_LIMIT, models
 from opengsync_db.categories import HTTPResponse, IndexType
-from .... import db, logger, forms, htmx_route  # noqa
 
+from .... import db, forms
+from ....core import wrappers
 barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/api/hmtx/barcodes/")
 
 
-@htmx_route(barcodes_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(barcodes_htmx, db=db)
+def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -25,8 +26,8 @@ def get(page: int = 0):
     )
 
 
-@htmx_route(barcodes_htmx, "query_index_kits", db=db, methods=["POST"])
-def query_index_kits():
+@wrappers.htmx_route(barcodes_htmx, "query_index_kits", db=db, methods=["POST"])
+def query_index_kits(current_user: models.User):
     field_name = next(iter(request.form.keys()))
 
     if (index_type_id_in := request.args.get("index_type_id_in")) is not None:
@@ -51,8 +52,8 @@ def query_index_kits():
     )
 
 
-@htmx_route(barcodes_htmx, "query_barcode_sequences", db=db, methods=["GET", "POST"])
-def query_barcode_sequences():
+@wrappers.htmx_route(barcodes_htmx, "query_barcode_sequences", db=db, methods=["GET", "POST"])
+def query_barcode_sequences(current_user: models.User):
     if request.method == "GET":
         form = forms.QueryBarcodeSequencesForm()
         return form.make_response()

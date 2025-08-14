@@ -1,18 +1,12 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, request, abort, Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, LibraryStatus, LibraryType, LabProtocol
 
-from .... import db, logger, htmx_route  # noqa
+from .... import db
+from ....core import wrappers
 from ....forms.SelectSamplesForm import SelectSamplesForm
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 library_prep_workflow = Blueprint("library_prep_workflow", __name__, url_prefix="/api/workflows/library_prep/")
 
@@ -25,8 +19,8 @@ args: dict = dict(
 )
 
 
-@htmx_route(library_prep_workflow, db=db)
-def begin(lab_prep_id: int) -> Response:
+@wrappers.htmx_route(library_prep_workflow, db=db)
+def begin(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -43,8 +37,8 @@ def begin(lab_prep_id: int) -> Response:
     return form.make_response()
 
 
-@htmx_route(library_prep_workflow, db=db, methods=["POST"])
-def select(lab_prep_id: int) -> Response:
+@wrappers.htmx_route(library_prep_workflow, db=db, methods=["POST"])
+def select(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

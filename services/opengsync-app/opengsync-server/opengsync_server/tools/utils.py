@@ -1,3 +1,4 @@
+import os
 from typing import Optional, Union, TypeVar, Sequence, Callable, get_type_hints, Literal, get_origin, get_args
 from types import NoneType, UnionType
 from pathlib import Path
@@ -8,7 +9,7 @@ import inspect
 
 import pandas as pd
 
-from opengsync_db import models, exceptions, DBHandler
+from opengsync_db import models, exceptions, DBHandler, categories
 from .. import logger
 
 from .WeekTimeWindow import WeekTimeWindow
@@ -113,12 +114,14 @@ def check_indices(df: pd.DataFrame, groupby: str | None = None) -> pd.DataFrame:
     return df
 
 
-def parse_time_windows(s: str) -> list[WeekTimeWindow]:
+def parse_time_windows(data: list[dict]) -> list[WeekTimeWindow]:
     from datetime import time
     windows = []
-    for entry in s.split(";"):
-        weekday, time_range = entry.split("@")
-        start_time, end_time = time_range.split("-")
+    for entry in data:
+        weekday = entry["weekday"]
+        start_time = entry["start_time"]
+        end_time = entry["end_time"]
+        
         try:
             weekday = int(weekday)
         except ValueError:
@@ -387,8 +390,8 @@ def __generate_routes(base: str, parts: list[tuple[str, str]], defaults: dict[st
     return routes
 
 
-def infer_route(func: Callable, base: str | None = None) -> list[tuple[str, dict[str, int | str | None]]]:
-    sig = inspect.signature(func)
+def infer_route(func: Callable, base: str | None = None) -> tuple[list[tuple[str, dict[str, int | str | None]]], Literal["required", "optional", "no"]]:
+    parameters = dict(inspect.signature(func).parameters)
     hints = get_type_hints(func)
     base = base or func.__name__
     base = base.lstrip("/").rstrip("/")
@@ -397,7 +400,17 @@ def infer_route(func: Callable, base: str | None = None) -> list[tuple[str, dict
     defaults: dict[str, int | str | None] = {}
     routes = []
 
-    for name, param in sig.parameters.items():
+    current_user_required = "no"
+    try:
+        if (param := parameters.pop("current_user")) is not None:
+            if (type_hint := hints.get("current_user", None)) == models.User:
+                current_user_required = "required"
+            elif get_origin(type_hint) == UnionType:
+                current_user_required = "optional"
+    except KeyError:
+        pass
+
+    for name, param in parameters.items():
         type_hint = hints.get(name, str)
         origin = get_origin(type_hint)
         args = get_args(type_hint)
@@ -429,7 +442,7 @@ def infer_route(func: Callable, base: str | None = None) -> list[tuple[str, dict
         elif type_hint == Path:
             converter = "path"
         else:
-            raise ValueError(f"Unsupported type hint: {type_hint}, {origin}")
+            raise ValueError(f"Unsupported type hint: {type_hint} ({name}), {origin}")
 
         if param.default != inspect.Parameter.empty:
             defaults[name] = param.default
@@ -441,7 +454,29 @@ def infer_route(func: Callable, base: str | None = None) -> list[tuple[str, dict
     for route, defs in __generate_routes(base, parts, defaults):
         routes.append((route, defs))
         
-    return routes
+    return routes, current_user_required
+
+
+def update_index_kits(
+    db: DBHandler, app_data_folder: str,
+    types: list[categories.IndexTypeEnum] = categories.IndexType.as_list()
+):
+    import pandas as pd
+
+    if not os.path.exists(os.path.join(app_data_folder, "kits")):
+        os.makedirs(os.path.join(app_data_folder, "kits"))
+    for type in types:
+        res = []
+        for kit in db.get_index_kits(limit=None, sort_by="id", descending=True, type_in=[type])[0]:
+            df = db.get_index_kit_barcodes_df(kit.id, per_index=True)
+            df["kit_id"] = kit.id
+            df["kit"] = kit.identifier
+            res.append(df)
+
+        if len(res) == 0:
+            continue
+
+        pd.concat(res).to_pickle(os.path.join(app_data_folder, "kits", f"{type.id}.pkl"))
 
 
 def is_browser_friendly(mimetype: str | None) -> bool:

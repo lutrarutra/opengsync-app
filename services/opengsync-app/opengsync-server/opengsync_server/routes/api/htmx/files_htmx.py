@@ -1,28 +1,24 @@
 import os
 import openpyxl
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
-from flask import Blueprint, render_template, abort, current_app
+from flask import Blueprint, render_template, abort
 from flask_htmx import make_response
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger, htmx_route  # noqa
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
+from .... import db, logger
+from ....core import wrappers
+from ....core.runtime import runtime
 
 files_htmx = Blueprint("files_htmx", __name__, url_prefix="/api/hmtx/files/")
 
 
-@htmx_route(files_htmx, db=db)
-def render_xlsx(file_id: int):
+@wrappers.htmx_route(files_htmx, db=db)
+def render_xlsx(current_user: models.User, file_id: int):
     if (file := db.get_file(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -30,7 +26,7 @@ def render_xlsx(file_id: int):
         if not db.file_permissions_check(user_id=current_user.id, file_id=file_id):
             return abort(HTTPResponse.FORBIDDEN.id)
 
-    filepath = os.path.join(current_app.config["MEDIA_FOLDER"], file.path)
+    filepath = os.path.join(runtime.current_app.media_folder, file.path)
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
         return abort(HTTPResponse.NOT_FOUND.id)

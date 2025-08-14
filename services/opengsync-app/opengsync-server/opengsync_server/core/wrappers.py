@@ -2,11 +2,11 @@ from typing import Callable, Literal, TypeVar, Any
 from functools import wraps
 import traceback
 
-from flask import Blueprint, Flask, abort, render_template, flash, current_app
+from flask import Blueprint, Flask, abort, render_template, flash, request
 from flask_htmx import make_response
-from flask_login import login_required as login_required_f
+from flask_login import login_required as login_required_f, current_user
 
-from opengsync_db import DBHandler, db_session
+from opengsync_db import DBHandler
 from opengsync_db.categories import HTTPResponse
 from opengsync_db import exceptions as db_exceptions
 
@@ -14,6 +14,7 @@ from .. import logger
 from ..core.LogBuffer import log_buffer
 from ..tools import utils, textgen
 from . import exceptions as serv_exceptions
+from ..core.runtime import runtime
 
 F = TypeVar("F", bound=Callable[..., Any])  # generic for wrapped functions
 
@@ -51,28 +52,72 @@ def _route_decorator(
     response_handler: Callable[[Exception], Any],
     cache_timeout_seconds: int | None,
     cache_query_string: bool,
+    cache_type: Literal["user", "insider", "global"],
     cache_kwargs: dict[str, Any] | None,
 ) -> Callable[[F], F]:
     """Base decorator for all route types."""
     def decorator(fnc: F) -> F:
-        routes = utils.infer_route(fnc, base=route)
+        routes, current_user_required = utils.infer_route(fnc, base=route)
+
+        match current_user_required:
+            case "required":
+                if not login_required:
+                    logger.error(f"Route {fnc.__name__} requires current_user but login_required is False.")
+
+            case "optional":
+                if login_required:
+                    logger.error(f"Route {fnc.__name__} current_user is optional but login_required is True.")
 
         if login_required and db is None:
             raise ValueError("db must be provided if login_required is True")
 
         if cache_timeout_seconds is not None:
             from .. import cache
-            fnc = cache.cached(timeout=cache_timeout_seconds, query_string=cache_query_string, **(cache_kwargs or {}))(fnc)
-        if login_required:
-            fnc = login_required_f(fnc)  # type: ignore
-        if db is not None:
-            fnc = db_session(db)(fnc)  # type: ignore
+            
+            def user_cache_key() -> str:
+                query_string = ""
+                user_id = current_user.id if current_user.is_authenticated else "anon"
+                if cache_query_string and request.args:
+                    args = request.args
+                    sorted_args = sorted((k, v) for k, v in args.items())
+                    query_string = "?" + "&".join(f"{k}={v}" for k, v in sorted_args)
+                key = f"view/{user_id}{request.path}{query_string}"
+                return key
+            
+            def insider_cache_key() -> str:
+                if current_user.is_authenticated and not current_user.is_insider():
+                    return user_cache_key()
+                query_string = ""
+                if cache_query_string and request.args:
+                    args = request.args
+                    sorted_args = sorted((k, v) for k, v in args.items())
+                    query_string = "?" + "&".join(f"{k}={v}" for k, v in sorted_args)
+                key = f"view/insider{request.path}{query_string}"
+                return key
+            
+            fnc = cache.cached(
+                timeout=cache_timeout_seconds,
+                query_string=cache_query_string if cache_type == "global" else False,
+                key_prefix=user_cache_key if cache_type == "user" else insider_cache_key if cache_type == "insider" else "view/%s",  # type: ignore
+                **(cache_kwargs or {})
+            )(fnc)
 
         @wraps(fnc)
         def wrapper(*args, **kwargs):
-            log_buffer.start()
+            if debug:
+                log_buffer.start(str(request.url_rule))
+            else:
+                log_buffer.start()
+            if db is not None:
+                db.open_session()
+
+            _fnc = login_required_f(fnc) if login_required else fnc
+
             try:
-                return fnc(*args, **kwargs)
+                if current_user_required != "no":
+                    kwargs["current_user"] = current_user if current_user.is_authenticated else None
+                    
+                return _fnc(*args, **kwargs)
             except serv_exceptions.OpeNGSyncServerException as e:
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncServerException")
                 return response_handler(e)
@@ -80,13 +125,13 @@ def _route_decorator(
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncDBException")
                 return response_handler(e)
             except Exception as e:
-                if current_app.debug and response_handler.__name__ != "_htmx_handler":
+                if runtime.current_app.debug and response_handler.__name__ != "_htmx_handler":
                     raise e
                 _default_logger(blueprint, routes, args, kwargs, e, "Exception")
                 return response_handler(e)
             finally:
                 if db is not None and db._session:
-                    db.close_session(commit=False)
+                    db.close_session()
                 log_buffer.flush()
 
         if debug:
@@ -121,11 +166,25 @@ def page_route(
     login_required: bool = True,
     debug: bool = False,
     cache_timeout_seconds: int | None = None,
-    cache_query_string: bool = False,
+    cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
+    cache_type: Literal["user", "global"] = "user",
     strict_slashes: bool = True,
 ) -> Callable[[F], F]:
-    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _page_handler, cache_timeout_seconds, cache_query_string, cache_kwargs)
+    return _route_decorator(
+        blueprint=blueprint,
+        route=route,
+        methods=methods,
+        db=db,
+        login_required=login_required,
+        debug=debug,
+        strict_slashes=strict_slashes,
+        response_handler=_page_handler,
+        cache_timeout_seconds=cache_timeout_seconds,
+        cache_query_string=cache_query_string,
+        cache_type=cache_type,
+        cache_kwargs=cache_kwargs,
+    )
 
 
 def htmx_route(
@@ -136,11 +195,25 @@ def htmx_route(
     login_required: bool = True,
     debug: bool = False,
     cache_timeout_seconds: int | None = None,
-    cache_query_string: bool = False,
+    cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
+    cache_type: Literal["user", "insider", "global"] = "user",
     strict_slashes: bool = True,
 ) -> Callable[[F], F]:
-    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _htmx_handler, cache_timeout_seconds, cache_query_string, cache_kwargs)
+    return _route_decorator(
+        blueprint=blueprint,
+        route=route,
+        methods=methods,
+        db=db,
+        login_required=login_required,
+        debug=debug,
+        strict_slashes=strict_slashes,
+        response_handler=_htmx_handler,
+        cache_timeout_seconds=cache_timeout_seconds,
+        cache_query_string=cache_query_string,
+        cache_type=cache_type,
+        cache_kwargs=cache_kwargs,
+    )
 
 
 def api_route(
@@ -151,8 +224,22 @@ def api_route(
     login_required: bool = False,
     debug: bool = False,
     cache_timeout_seconds: int | None = None,
-    cache_query_string: bool = False,
+    cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
+    cache_type: Literal["user", "insider", "global"] = "user",
     strict_slashes: bool = True,
 ) -> Callable[[F], F]:
-    return _route_decorator(blueprint, route, methods, db, login_required, debug, strict_slashes, _api_handler, cache_timeout_seconds, cache_query_string, cache_kwargs)
+    return _route_decorator(
+        blueprint=blueprint,
+        route=route,
+        methods=methods,
+        db=db,
+        login_required=login_required,
+        debug=debug,
+        strict_slashes=strict_slashes,
+        response_handler=_api_handler,
+        cache_timeout_seconds=cache_timeout_seconds,
+        cache_query_string=cache_query_string,
+        cache_type=cache_type,
+        cache_kwargs=cache_kwargs,
+    )

@@ -1,23 +1,23 @@
 from flask import Blueprint, render_template, abort, url_for, request
-from flask_login import current_user
 
+from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, LibraryStatus
 
-from ... import db, page_route  # noqa
-
+from ... import db
+from ...core import wrappers
 lab_preps_page_bp = Blueprint("lab_preps_page", __name__)
 
 
-@page_route(lab_preps_page_bp, db=db)
-def lab_preps():
+@wrappers.page_route(lab_preps_page_bp, db=db)
+def lab_preps(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
     return render_template("lab_preps_page.html")
 
 
-@page_route(lab_preps_page_bp, db=db)
-def lab_prep(lab_prep_id: int):
+@wrappers.page_route(lab_preps_page_bp, db=db)
+def lab_prep(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

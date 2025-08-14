@@ -1,12 +1,13 @@
 import os
 import pandas as pd
 
-from flask import url_for, current_app
+from flask import url_for
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, IndexType
 
 from ....core import exceptions
+from ....core.runtime import runtime
 from .... import logger, db  # noqa F401
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue
 from .... import logger, tools, db  # noqa F401
@@ -44,7 +45,7 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
-        return (current_step.tables["library_table"]["library_type_id"] == LibraryType.TENX_SC_ATAC.id).any()
+        return bool((current_step.tables["library_table"]["library_type_id"] == LibraryType.TENX_SC_ATAC.id).any())
 
     def __init__(
         self,
@@ -83,7 +84,7 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
                 
                 library_table = utils.get_barcode_table(db, self.lab_prep.libraries)
                 if self.lab_prep.prep_file is not None:
-                    prep_table = pd.read_excel(os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path), "prep_table")  # type: ignore
+                    prep_table = pd.read_excel(os.path.join(runtime.current_app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
                     prep_table = prep_table.dropna(subset=["library_id", "library_name"]).rename(columns={"kit_i7": "kit", "name_i7": "name"})
                     self.library_table = prep_table[[col.label for col in self.columns if col.label in prep_table.columns]]
                     self.library_table["library_type_id"] = library_table.set_index(self.index_col).loc[self.library_table["library_id"], "library_type_id"].values

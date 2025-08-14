@@ -3,7 +3,7 @@ import uuid
 
 import pandas as pd
 
-from flask import Response, flash, url_for, current_app
+from flask import Response, flash, url_for
 from flask_wtf.file import FileField, FileAllowed
 from flask_htmx import make_response
 from wtforms.validators import NumberRange, DataRequired
@@ -14,6 +14,7 @@ from opengsync_db import models
 from opengsync_db.categories import PoolStatus, FileType, LibraryStatus
 
 from .... import db, logger  # noqa
+from ....core.runtime import runtime
 from ...MultiStepForm import MultiStepForm
 
 
@@ -128,7 +129,7 @@ class CompleteBAReportForm(MultiStepForm):
         filename, extension = os.path.splitext(self.file.data.filename)
         
         _uuid = uuid.uuid4().hex
-        new_path = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.BIOANALYZER_REPORT.dir, f"{_uuid}{extension}")
+        new_path = os.path.join(runtime.current_app.media_folder, FileType.BIOANALYZER_REPORT.dir, f"{_uuid}{extension}")
         self.file.data.save(new_path)
         size_bytes = os.stat(new_path).st_size
 

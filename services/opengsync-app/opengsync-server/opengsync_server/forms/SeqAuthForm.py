@@ -1,7 +1,7 @@
 import os
 from typing import Optional
 
-from flask import Response, url_for, flash, current_app
+from flask import Response, url_for, flash
 from flask_htmx import make_response
 from wtforms import FileField
 from wtforms.validators import DataRequired
@@ -9,7 +9,9 @@ from flask_wtf.file import FileAllowed
 
 from opengsync_db.categories import FileType
 from opengsync_db import models
+
 from .. import logger, db
+from ..core.runtime import runtime
 from .HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -57,7 +59,7 @@ class SeqAuthForm(HTMXFlaskForm):
             size_bytes=self.size_bytes,
             seq_request_id=self.seq_request.id,
         )
-        filepath = os.path.join(current_app.config["MEDIA_FOLDER"], db_file.path)
+        filepath = os.path.join(runtime.current_app.media_folder, db_file.path)
         self.file.data.save(filepath)
 
         flash("Authorization form uploaded!", "success")

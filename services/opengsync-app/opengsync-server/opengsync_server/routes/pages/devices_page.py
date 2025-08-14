@@ -1,14 +1,15 @@
 from flask import Blueprint, render_template, url_for, abort
-from flask_login import current_user
 
+from opengsync_db import models
 from opengsync_db.categories import UserRole, HTTPResponse
-from ... import forms, db, page_route
 
+from ... import forms, db
+from ...core import wrappers
 devices_page_bp = Blueprint("devices_page", __name__)
 
 
-@page_route(devices_page_bp, db=db)
-def devices():
+@wrappers.page_route(devices_page_bp, db=db)
+def devices(current_user: models.User):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -16,8 +17,8 @@ def devices():
     return render_template("devices_page.html", form=sequencer_form,)
 
 
-@page_route(devices_page_bp, db=db)
-def sequencer(sequencer_id: int):
+@wrappers.page_route(devices_page_bp, db=db)
+def sequencer(current_user: models.User, sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
     

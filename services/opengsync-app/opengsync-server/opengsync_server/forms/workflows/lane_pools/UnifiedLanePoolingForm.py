@@ -3,7 +3,7 @@ import uuid
 
 import pandas as pd
 
-from flask import Response, current_app, flash, url_for
+from flask import Response, flash, url_for
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, FieldList, FormField, IntegerField
@@ -13,6 +13,7 @@ from opengsync_db import models
 from opengsync_db.categories import FileType
 
 from .... import db, logger
+from ....core.runtime import runtime
 from ...HTMXFlaskForm import HTMXFlaskForm
 
 DEFAULT_TARGET_NM = 3.0
@@ -153,12 +154,12 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
                 break
             
         if old_file:
+            os.remove(os.path.join(runtime.current_app.media_folder, old_file.path))
             db.delete_file(file_id=old_file.id)
-            os.remove(os.path.join(current_app.config["MEDIA_FOLDER"], old_file.path))
             logger.info(f"Old file '{old_file.path}' removed.")
 
         _uuid = uuid.uuid4().hex
-        filepath = os.path.join(current_app.config["MEDIA_FOLDER"], FileType.LANE_POOLING_TABLE.dir, f"{_uuid}.tsv")
+        filepath = os.path.join(runtime.current_app.media_folder, FileType.LANE_POOLING_TABLE.dir, f"{_uuid}.tsv")
         df.to_csv(filepath, sep="\t", index=False)
         size_bytes = os.stat(filepath).st_size
 

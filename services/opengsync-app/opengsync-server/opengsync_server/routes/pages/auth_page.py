@@ -1,13 +1,15 @@
 from flask import Blueprint, render_template, redirect, request, url_for, flash
-from flask_login import current_user
 
 from opengsync_db import models
-from ... import forms, db, logger, serializer, page_route  # noqa
+
+from ... import forms, db, serializer
+from ...core import wrappers
+from ... import logger
 
 auth_page_bp = Blueprint("auth_page", __name__)
 
 
-@page_route(auth_page_bp, db=db, login_required=False)
+@wrappers.page_route(auth_page_bp, db=db, login_required=False)
 def reset_password(token: str):
     if (data := models.User.verify_reset_token(token=token, serializer=serializer)) is None:
         flash("Token expired or invalid.", "error")
@@ -32,16 +34,16 @@ def reset_password(token: str):
     )
 
 
-@page_route(auth_page_bp, db=db, login_required=False)
-def auth():
+@wrappers.page_route(auth_page_bp, db=db, login_required=False)
+def auth(current_user: models.User | None):
     dest = request.args.get("next", "/")
-    if current_user.is_authenticated:
-        return redirect(url_for("users_page.user"))
+    if current_user:
+        return redirect(url_for("users_page.user", user_id=current_user.id))
 
     return render_template("auth_page.html", next=dest)
 
 
-@page_route(auth_page_bp, db=db, login_required=False)
+@wrappers.page_route(auth_page_bp, db=db, login_required=False)
 def register(token: str):
     complete_registration_form = forms.auth.CompleteRegistrationForm()
 

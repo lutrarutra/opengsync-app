@@ -8,9 +8,9 @@ from wtforms.validators import Optional as OptionalValidator
 from opengsync_db import models, to_utc
 from opengsync_db.categories import EventType
 
-from .. import db, logger, sample_submission_windows  # noqa F401
+from .. import db, logger  # noqa F401
 from .HTMXFlaskForm import HTMXFlaskForm
-
+from ..core.runtime import runtime
 
 
 class SubmitSeqRequestForm(HTMXFlaskForm):
@@ -24,7 +24,7 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
         super().__init__(formdata=formdata)
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
-        self._context["sample_submission_windows"] = sample_submission_windows
+        self._context["sample_submission_windows"] = runtime.current_app.sample_submission_windows
 
     def validate(self) -> bool:
         if not super().validate():
@@ -44,10 +44,10 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
             if self.sample_submission_time.data < datetime.now():
                 self.sample_submission_time.errors = ("Sample submission time cannot be in the past.",)
                 return False
-            
-            if sample_submission_windows is not None:
+
+            if runtime.current_app.sample_submission_windows is not None:
                 is_valid = False
-                for window in sample_submission_windows:
+                for window in runtime.current_app.sample_submission_windows:
                     if window.contains(self.sample_submission_time.data):
                         is_valid = True
                         break

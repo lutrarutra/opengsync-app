@@ -1,24 +1,18 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, request, abort, Response
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger, htmx_route  # noqa
+from .... import db, logger
+from ....core import wrappers
 from ....forms.workflows import library_pooling as forms
 from ....forms.MultiStepForm import MultiStepForm
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 library_pooling_workflow = Blueprint("library_pooling_workflow", __name__, url_prefix="/api/workflows/library_pooling/")
 
 
-@htmx_route(library_pooling_workflow, db=db)
-def begin(lab_prep_id: int) -> Response:
+@wrappers.htmx_route(library_pooling_workflow, db=db)
+def begin(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -29,8 +23,8 @@ def begin(lab_prep_id: int) -> Response:
     return form.make_response()
 
 
-@htmx_route(library_pooling_workflow, db=db)
-def previous(lab_prep_id: int, uuid: str):
+@wrappers.htmx_route(library_pooling_workflow, db=db)
+def previous(current_user: models.User, lab_prep_id: int, uuid: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -49,8 +43,8 @@ def previous(lab_prep_id: int, uuid: str):
     return prev_step.make_response()
 
 
-@htmx_route(library_pooling_workflow, db=db, methods=["POST"])
-def upload_barcode_form(lab_prep_id: int, uuid: str) -> Response:
+@wrappers.htmx_route(library_pooling_workflow, db=db, methods=["POST"])
+def upload_barcode_form(current_user: models.User, lab_prep_id: int, uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -61,8 +55,8 @@ def upload_barcode_form(lab_prep_id: int, uuid: str) -> Response:
     return form.process_request()
 
 
-@htmx_route(library_pooling_workflow, db=db, methods=["POST"])
-def map_index_kits(lab_prep_id: int, uuid: str) -> Response:
+@wrappers.htmx_route(library_pooling_workflow, db=db, methods=["POST"])
+def map_index_kits(current_user: models.User, lab_prep_id: int, uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -73,8 +67,8 @@ def map_index_kits(lab_prep_id: int, uuid: str) -> Response:
     return form.process_request()
 
 
-@htmx_route(library_pooling_workflow, db=db, methods=["POST"])
-def barcode_match(lab_prep_id: int, uuid: str):
+@wrappers.htmx_route(library_pooling_workflow, db=db, methods=["POST"])
+def barcode_match(current_user: models.User, lab_prep_id: int, uuid: str):
     if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -84,8 +78,8 @@ def barcode_match(lab_prep_id: int, uuid: str):
     ).process_request()
 
 
-@htmx_route(library_pooling_workflow, db=db, methods=["POST"])
-def complete_pooling(lab_prep_id: int, uuid: str) -> Response:
+@wrappers.htmx_route(library_pooling_workflow, db=db, methods=["POST"])
+def complete_pooling(current_user: models.User, lab_prep_id: int, uuid: str) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

@@ -4,29 +4,25 @@ from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 from ... import db
 from ...core import wrappers
-samples_page_bp = Blueprint("samples_page", __name__)
+share_tokens_page_bp = Blueprint("share_tokens_page", __name__)
 
 
-@wrappers.page_route(samples_page_bp, db=db)
-def samples():
-    return render_template("samples_page.html")
+@wrappers.page_route(share_tokens_page_bp, db=db)
+def share_tokens(current_user: models.User):
+    return render_template("share_tokens_page.html")
 
 
-@wrappers.page_route(samples_page_bp, db=db)
-def sample(current_user: models.User, sample_id: int):
-    if (sample := db.get_sample(sample_id)) is None:
+@wrappers.page_route(share_tokens_page_bp, db=db)
+def share_token(current_user: models.User, share_token_id: str):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (share_token := db.get_share_token(share_token_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if not current_user.is_insider() and sample.owner_id != current_user.id:
-        affiliation = db.get_user_sample_access_type(user_id=current_user.id, sample_id=sample.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-    
-    is_editable = sample.is_editable()
-
     path_list = [
-        ("Samples", url_for("samples_page.samples")),
-        (f"Sample {sample_id}", ""),
+        ("share_tokens", url_for("share_tokens_page.share_tokens")),
+        (f"Share {share_token_id}", ""),
     ]
     if (_from := request.args.get("from", None)) is not None:
         page, id = _from.split("@")
@@ -34,23 +30,22 @@ def sample(current_user: models.User, sample_id: int):
             path_list = [
                 ("Libraries", url_for("libraries_page.libraries")),
                 (f"Library {id}", url_for("libraries_page.library", library_id=id)),
-                (f"Sample {sample_id}", ""),
+                (f"share_token {share_token_id}", ""),
             ]
         elif page == "project":
             path_list = [
                 ("Projects", url_for("projects_page.projects")),
                 (f"Project {id}", url_for("projects_page.project", project_id=id)),
-                (f"Sample {sample_id}", ""),
+                (f"share_token {share_token_id}", ""),
             ]
         elif page == "seq_request":
             path_list = [
                 ("Requests", url_for("seq_requests_page.seq_requests")),
                 (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
-                (f"Sample {sample_id}", ""),
+                (f"share_token {share_token_id}", ""),
             ]
 
     return render_template(
-        "sample_page.html",
-        path_list=path_list, sample=sample,
-        is_editable=is_editable
+        "share_token_page.html",
+        path_list=path_list, share_token=share_token,
     )

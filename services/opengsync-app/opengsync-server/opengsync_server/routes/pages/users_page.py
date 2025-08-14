@@ -1,30 +1,24 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, render_template, url_for, abort, request
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from ... import db, page_route, logger  # noqa: F401
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
+from ... import db, logger  # noqa: F401
+from ...core import wrappers
 
 users_page_bp = Blueprint("users_page", __name__)
 
 
-@page_route(users_page_bp, db=db)
-def users():
+@wrappers.page_route(users_page_bp, db=db, cache_timeout_seconds=60)
+def users(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
     return render_template("users_page.html")
 
 
-@page_route(users_page_bp, db=db)
-def user(user_id: int | None = None):
+@wrappers.page_route(users_page_bp, db=db, cache_timeout_seconds=60)
+def user(current_user: models.User, user_id: int | None = None):
     if user_id is None:
         user_id = current_user.id
 

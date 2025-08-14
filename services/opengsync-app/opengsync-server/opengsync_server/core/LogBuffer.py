@@ -4,10 +4,10 @@ from datetime import datetime
 import json  # Add this import
 
 DEFAULT_FMT = """{time}:
------------------------- [BEGIN LOG] ------------------------
+------------------------ [ BEGIN {session_name}] ------------------------
 
 {message}
------------------------- [ END LOG ] ------------------------
+------------------------ [ END {session_name}] ------------------------
 """
 
 
@@ -20,6 +20,7 @@ class LogBuffer:
         self.stdout = stdout
         self.log_dir = log_dir
         self.buffer: list[str] | None = None
+        self.session_name: str | None = None
         self.src_prefix = os.path.dirname(os.path.abspath(__file__)).removesuffix("/opengsync_server/core")
         print(f"LogBuffer initialized with src_prefix: {self.src_prefix}", flush=True)
 
@@ -31,9 +32,10 @@ class LogBuffer:
             self.buffer = [message]
             self.flush()
 
-    def start(self):
+    def start(self, name: str | None = None):
         """Enable buffering."""
         self.buffer = []
+        self.session_name = name
 
     def parse_record(self, record: dict) -> str:
         text = record.get("text", "")
@@ -67,6 +69,7 @@ class LogBuffer:
             level="INFO",
             time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             message="".join(formatted_messages),  # Combine with origins
+            session_name=self.session_name or "unknown"
         )
         
         if self.stdout:

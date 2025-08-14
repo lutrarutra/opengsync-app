@@ -4,13 +4,14 @@ import pandas as pd
 import openpyxl
 from openpyxl.utils import get_column_letter
 
-from flask import Response, url_for, flash, current_app
+from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
 from opengsync_db.categories import PoolType, SeqRequestStatus, LibraryStatus, LibraryType, IndexType
 
 from .... import logger, db, tools
+from ....core.runtime import runtime
 from ....core import exceptions
 from ...MultiStepForm import MultiStepForm
 
@@ -150,7 +151,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 )
         
         if self.lab_prep.prep_file is not None:
-            path = os.path.join(current_app.config["MEDIA_FOLDER"], self.lab_prep.prep_file.path)
+            path = os.path.join(runtime.current_app.media_folder, self.lab_prep.prep_file.path)
             wb = openpyxl.load_workbook(path)
             active_sheet = wb["prep_table"]
             
@@ -174,7 +175,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = ";".join([str(s) for s in df["kit_i5"] if pd.notna(s)])
                 active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = index_well
 
-            logger.debug(f"Overwriting existing file: {os.path.join(current_app.config['MEDIA_FOLDER'], self.lab_prep.prep_file.path)}")
+            logger.debug(f"Overwriting existing file: {os.path.join(runtime.current_app.media_folder, self.lab_prep.prep_file.path)}")
             wb.save(path)
 
         for request_id in request_ids:

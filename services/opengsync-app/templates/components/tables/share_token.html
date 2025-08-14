@@ -1,0 +1,53 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="share_token-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col" class="col-1">UUID</th>
+                {{
+                    table_col(
+                        table_container_id='share_token-table', column_name='Expiration', column_var='expiration',
+                        sort_url='share_tokens_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='share_token-table', column_name='Owner', column_var='owner_id',
+                        sort_url='share_tokens_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='share_token-table', column_name='Valid Min', column_var='time_valid_min',
+                        sort_url='share_tokens_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='share_token-table', column_name='# Paths', column_var='num_paths',
+                        sort_url='share_tokens_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for share_token in share_tokens %}
+            <tr>
+                <th scope="row">-</th>
+                <td>
+                    {% if share_token.is_expired %}🔴{% else %}🟢{% endif %}
+                    {{ share_token.expiration | format_datetime }}
+                </td>
+                <td><a href="{{ url_for('users_page.user', user_id=share_token.owner_id) }}">{{ share_token.owner.name }}{% if current_user.id == share_token.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
+                <td>{{ share_token.time_valid_min }}</td>
+                <td>{{ share_token.num_paths }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("share_token-table-spinner") }}
+    {{ pagination("share_token-table", "share_tokens_htmx.get", n_pages, active_page) }}
+</div>

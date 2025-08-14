@@ -12,6 +12,7 @@ from .. import exceptions
 
 def create_feature(
     self: "DBHandler",
+    identifier: str | None,
     name: str,
     sequence: str,
     pattern: str,
@@ -44,6 +45,7 @@ def create_feature(
                 raise exceptions.NotUniqueValue("Duplicate names not allowed in CMO kits")
 
     feature = models.Feature(
+        identifier=identifier.strip() if identifier else None,
         name=name.strip(),
         sequence=sequence.strip(),
         pattern=pattern.strip(),

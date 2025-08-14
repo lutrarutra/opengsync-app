@@ -1,23 +1,17 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, request, abort
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger, htmx_route  # noqa
+from .... import db
+from ....core import wrappers
 from ....forms.workflows import load_flow_cell as wff
-
-if TYPE_CHECKING:
-    current_user: models.User = None    # type: ignore
-else:
-    from flask_login import current_user
 
 load_flow_cell_workflow = Blueprint("load_flow_cell_workflow", __name__, url_prefix="/api/workflows/load_flow_cell/")
 
 
-@htmx_route(load_flow_cell_workflow, db=db)
-def begin(experiment_id: int):
+@wrappers.htmx_route(load_flow_cell_workflow, db=db)
+def begin(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -32,8 +26,8 @@ def begin(experiment_id: int):
     return form.make_response()
 
 
-@htmx_route(load_flow_cell_workflow, db=db, methods=["POST"])
-def load(experiment_id: int):
+@wrappers.htmx_route(load_flow_cell_workflow, db=db, methods=["POST"])
+def load(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     

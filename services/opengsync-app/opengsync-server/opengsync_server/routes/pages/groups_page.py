@@ -1,28 +1,21 @@
-from typing import TYPE_CHECKING
-
 from flask import Blueprint, render_template, abort, url_for, request
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, UserRole, AffiliationType
 
-from ... import db, forms, logger, page_route  # noqa
-
-if TYPE_CHECKING:
-    current_user: models.User = None  # type: ignore
-else:
-    from flask_login import current_user
-
+from ... import db, forms, logger
+from ...core import wrappers
 groups_page_bp = Blueprint("groups_page", __name__)
 
 
-@page_route(groups_page_bp, db=db)
-def groups():
+@wrappers.page_route(groups_page_bp, db=db)
+def groups(current_user: models.User):
     group_form = forms.models.GroupForm()
     return render_template("groups_page.html", group_form=group_form)
 
 
-@page_route(groups_page_bp, db=db)
-def group(group_id: int):
+@wrappers.page_route(groups_page_bp, db=db)
+def group(current_user: models.User, group_id: int):
     if (group := db.get_group(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     

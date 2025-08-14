@@ -158,7 +158,8 @@ def update_statuses(db: DBHandler):
     db.flush()
 
     for seq_request in db.get_seq_requests(
-        status=categories.SeqRequestStatus.PREPARED, custom_query=__find_sequenced_seq_requests, limit=None
+        status_in=[categories.SeqRequestStatus.ACCEPTED, categories.SeqRequestStatus.SAMPLES_RECEIVED, categories.SeqRequestStatus.PREPARED],
+        custom_query=__find_sequenced_seq_requests, limit=None
     )[0]:
         seq_request.status = categories.SeqRequestStatus.DATA_PROCESSING
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
