@@ -1,73 +1,14 @@
 import math
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
 
-from opengsync_db import models
-
-if TYPE_CHECKING:
-    from ..DBHandler import DBHandler
+from ... import models
 from .. import exceptions
+from ..DBBlueprint import DBBlueprint
 from ... import PAGE_LIMIT
 from ...categories import AffiliationType, AffiliationTypeEnum, GroupTypeEnum
-
-
-def create_group(
-    self: "DBHandler", name: str, user_id: int, type: GroupTypeEnum, flush: bool = True
-) -> models.Group:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if self.session.query(models.Group).where(
-        models.Group.name == name
-    ).first() is not None:
-        raise exceptions.NotUniqueValue(f"Group with name {name} already exists")
-    
-    group = models.Group(
-        name=name.strip(),
-        type_id=type.id
-    )
-    group.user_links = [models.links.UserAffiliation(
-        user_id=user_id,
-        affiliation_type_id=AffiliationType.OWNER.id
-    )]
-
-    self.session.add(group)
-
-    if flush:
-        self.flush()
-
-    if not persist_session:
-        self.close_session()
-
-    return group
-
-
-def get_group(self: "DBHandler", group_id: int) -> models.Group | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    res = self.session.get(models.Group, group_id)
-
-    if not persist_session:
-        self.close_session()
-        
-    return res
-
-
-def get_group_by_name(self: "DBHandler", name: str) -> models.Group | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    res = self.session.query(models.Group).where(
-        models.Group.name == name
-    ).first()
-
-    if not persist_session:
-        self.close_session()
-
-    return res
 
 
 def where(
@@ -89,184 +30,182 @@ def where(
     return query
 
 
-def get_groups(
-    self: "DBHandler",
-    user_id: Optional[int], type: Optional[GroupTypeEnum] = None,
-    limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    type_in: Optional[list[GroupTypeEnum]] = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-    count_pages: bool = False
-) -> tuple[list[models.Group], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+class GroupBP(DBBlueprint):
+    @DBBlueprint.transaction
+    def create(
+        self, name: str, user_id: int, type: GroupTypeEnum, flush: bool = True
+    ) -> models.Group:
 
-    query = self.session.query(models.Group)
-    query = where(query, user_id=user_id, type=type, type_in=type_in)
+        if self.db.session.query(models.Group).where(
+            models.Group.name == name
+        ).first() is not None:
+            raise exceptions.NotUniqueValue(f"Group with name {name} already exists")
+        
+        group = models.Group(
+            name=name.strip(),
+            type_id=type.id
+        )
+        group.user_links = [models.links.UserAffiliation(
+            user_id=user_id,
+            affiliation_type_id=AffiliationType.OWNER.id
+        )]
 
-    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        self.db.session.add(group)
 
-    if sort_by is not None:
-        attr = getattr(models.Group, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
+        if flush:
+            self.db.flush()
+        return group
 
-    if limit is not None:
-        query = query.limit(limit)
-    if offset is not None:
-        query = query.offset(offset)
+    @DBBlueprint.transaction
+    def get(self, group_id: int) -> models.Group | None:
+        res = self.db.session.get(models.Group, group_id)
+        return res
 
-    res = query.all()
+    @DBBlueprint.transaction
+    def get_with_name(self, name: str) -> models.Group | None:
+        res = self.db.session.query(models.Group).where(
+            models.Group.name == name
+        ).first()
+        return res
 
-    if not persist_session:
-        self.close_session()
+    @DBBlueprint.transaction
+    def find(
+        self,
+        user_id: Optional[int], type: Optional[GroupTypeEnum] = None,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        type_in: Optional[list[GroupTypeEnum]] = None,
+        sort_by: Optional[str] = None, descending: bool = False,
+        count_pages: bool = False
+    ) -> tuple[list[models.Group], int | None]:
+        query = self.db.session.query(models.Group)
+        query = where(query, user_id=user_id, type=type, type_in=type_in)
 
-    return res, n_pages
+        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
+        if sort_by is not None:
+            attr = getattr(models.Group, sort_by)
+            if descending:
+                attr = attr.desc()
+            query = query.order_by(attr)
 
-def query_groups(
-    self: "DBHandler", name: str, user_id: int | None = None, type: Optional[GroupTypeEnum] = None,
-    limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    type_in: Optional[list[GroupTypeEnum]] = None,
-) -> list[models.Group]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+        if limit is not None:
+            query = query.limit(limit)
+        if offset is not None:
+            query = query.offset(offset)
 
-    query = self.session.query(models.Group)
-    query = where(query, user_id=user_id, type=type, type_in=type_in)
+        res = query.all()
+        return res, n_pages
 
-    query = query.order_by(
-        sa.func.similarity(models.Group.name, name).desc()
-    )
+    @DBBlueprint.transaction
+    def query(
+        self, name: str, user_id: int | None = None, type: Optional[GroupTypeEnum] = None,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        type_in: Optional[list[GroupTypeEnum]] = None,
+    ) -> list[models.Group]:
+        query = self.db.session.query(models.Group)
+        query = where(query, user_id=user_id, type=type, type_in=type_in)
 
-    if limit is not None:
-        query = query.limit(limit)
-    if offset is not None:
-        query = query.offset(offset)
+        query = query.order_by(
+            sa.func.similarity(models.Group.name, name).desc()
+        )
 
-    groups = query.all()
+        if limit is not None:
+            query = query.limit(limit)
+        if offset is not None:
+            query = query.offset(offset)
 
-    if not persist_session:
-        self.close_session()
+        groups = query.all()
+        return groups
 
-    return groups
+    @DBBlueprint.transaction
+    def get_user_affiliation(self, user_id: int, group_id: int) -> models.links.UserAffiliation | None:
+        # FIXME: sa.exists()
+        res = self.db.session.query(models.links.UserAffiliation).where(
+            models.links.UserAffiliation.user_id == user_id,
+            models.links.UserAffiliation.group_id == group_id
+        ).first()
+        return res
 
+    @DBBlueprint.transaction
+    def get_affiliations(
+        self, group_id: int, type: Optional[GroupTypeEnum] = None,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        type_in: Optional[list[GroupTypeEnum]] = None,
+        sort_by: Optional[str] = None, descending: bool = False,
+        count_pages: bool = False
+    ) -> tuple[list[models.links.UserAffiliation], int | None]:
+        query = self.db.session.query(models.links.UserAffiliation).where(
+            models.links.UserAffiliation.group_id == group_id
+        )
 
-def get_group_user_affiliation(self: "DBHandler", user_id: int, group_id: int) -> models.links.UserAffiliation | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+        if type is not None:
+            query = query.where(models.links.UserAffiliation.affiliation_type_id == type.id)
 
-    res = self.session.query(models.links.UserAffiliation).where(
-        models.links.UserAffiliation.user_id == user_id,
-        models.links.UserAffiliation.group_id == group_id
-    ).first()
+        if type_in is not None:
+            query = query.where(models.links.UserAffiliation.affiliation_type_id.in_([t.id for t in type_in]))
 
-    if not persist_session:
-        self.close_session()
+        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
-    return res
+        if sort_by is not None:
+            attr = getattr(models.links.UserAffiliation, sort_by)
+            if descending:
+                attr = attr.desc()
+            query = query.order_by(attr)
 
+        if limit is not None:
+            query = query.limit(limit)
 
-def get_group_affiliations(
-    self: "DBHandler", group_id: int, type: Optional[GroupTypeEnum] = None,
-    limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    type_in: Optional[list[GroupTypeEnum]] = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-    count_pages: bool = False
-) -> tuple[list[models.links.UserAffiliation], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+        if offset is not None:
+            query = query.offset(offset)
+
+        affiliations = query.all()
+        return affiliations, n_pages
+
+    @DBBlueprint.transaction
+    def update(self, group: models.Group) -> models.Group:
+        self.db.session.add(group)
+        return group
+
+    @DBBlueprint.transaction
+    def add_user(self, user_id: int, group_id: int, affiliation_type: AffiliationTypeEnum) -> models.Group:
+
+        if (group := self.db.session.get(models.Group, group_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
+        
+        if self.db.session.query(models.links.UserAffiliation).where(
+            models.links.UserAffiliation.user_id == user_id,
+            models.links.UserAffiliation.group_id == group_id
+        ).first() is not None:
+            raise exceptions.NotUniqueValue(f"User {user_id} is already in group {group_id}")
+
+        group.user_links.append(models.links.UserAffiliation(
+            user_id=user_id,
+            group_id=group_id,
+            affiliation_type_id=affiliation_type.id
+        ))
+
+        self.db.session.add(group)
+        return group
+
+    @DBBlueprint.transaction
+    def remove_user(self, user_id: int, group_id: int) -> models.Group:
+        if (group := self.db.session.get(models.Group, group_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
+        
+        if (affiliation := self.db.session.query(models.links.UserAffiliation).where(
+            models.links.UserAffiliation.user_id == user_id,
+            models.links.UserAffiliation.group_id == group_id
+        ).first()) is None:
+            raise exceptions.ElementDoesNotExist(f"User {user_id} is not in group {group_id}")
+
+        group.user_links.remove(affiliation)
+        self.db.session.delete(affiliation)
+
+        self.db.session.add(group)
+        return group
     
-    query = self.session.query(models.links.UserAffiliation).where(
-        models.links.UserAffiliation.group_id == group_id
-    )
-
-    if type is not None:
-        query = query.where(models.links.UserAffiliation.affiliation_type_id == type.id)
-
-    if type_in is not None:
-        query = query.where(models.links.UserAffiliation.affiliation_type_id.in_([t.id for t in type_in]))
-
-    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
-
-    if sort_by is not None:
-        attr = getattr(models.links.UserAffiliation, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
-
-    if limit is not None:
-        query = query.limit(limit)
-
-    if offset is not None:
-        query = query.offset(offset)
-
-    affiliations = query.all()
-
-    if not persist_session:
-        self.close_session()
-
-    return affiliations, n_pages
-
-
-def update_group(self: "DBHandler", group: models.Group) -> models.Group:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    self.session.add(group)
-
-    if not persist_session:
-        self.close_session()
-
-    return group
-
-
-def add_user_to_group(self: "DBHandler", user_id: int, group_id: int, affiliation_type: AffiliationTypeEnum) -> models.Group:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-    
-    if (group := self.session.get(models.Group, group_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
-    
-    if self.session.query(models.links.UserAffiliation).where(
-        models.links.UserAffiliation.user_id == user_id,
-        models.links.UserAffiliation.group_id == group_id
-    ).first() is not None:
-        raise exceptions.NotUniqueValue(f"User {user_id} is already in group {group_id}")
-
-    group.user_links.append(models.links.UserAffiliation(
-        user_id=user_id,
-        group_id=group_id,
-        affiliation_type_id=affiliation_type.id
-    ))
-
-    self.session.add(group)
-
-    if not persist_session:
-        self.close_session()
-
-    return group
-
-
-def remove_user_from_group(self: "DBHandler", user_id: int, group_id: int) -> models.Group:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-    
-    if (group := self.session.get(models.Group, group_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
-    
-    if (affiliation := self.session.query(models.links.UserAffiliation).where(
-        models.links.UserAffiliation.user_id == user_id,
-        models.links.UserAffiliation.group_id == group_id
-    ).first()) is None:
-        raise exceptions.ElementDoesNotExist(f"User {user_id} is not in group {group_id}")
-
-    group.user_links.remove(affiliation)
-    self.session.delete(affiliation)
-
-    self.session.add(group)
-
-    if not persist_session:
-        self.close_session()
-
-    return group
+    @DBBlueprint.transaction
+    def __getitem__(self, group_id: int) -> models.Group:
+        if (group := self.db.session.get(models.Group, group_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Group with id {group_id} does not exist")
+        return group

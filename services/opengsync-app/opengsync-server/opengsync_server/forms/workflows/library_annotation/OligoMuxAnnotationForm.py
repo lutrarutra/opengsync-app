@@ -167,7 +167,7 @@ class OligoMuxAnnotationForm(MultiStepForm):
         sample_table = pd.DataFrame(sample_data)
         sample_table["sample_id"] = None
         if (project_id := self.metadata.get("project_id")) is not None:
-            if (project := db.get_project(project_id)) is None:
+            if (project := db.projects.get(project_id)) is None:
                 logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
                 raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
             

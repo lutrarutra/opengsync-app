@@ -21,10 +21,10 @@ def seq_run(current_user: models.User, seq_run_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (seq_run := db.get_seq_run(seq_run_id)) is None:
+    if (seq_run := db.seq_runs.get(seq_run_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    experiment = db.get_experiment(name=seq_run.experiment_name)
+    experiment = db.experiments.get(name=seq_run.experiment_name)
     path_list = [
         ("Runs", url_for("seq_runs_page.seq_runs")),
         (f"Run {seq_run.id}", ""),

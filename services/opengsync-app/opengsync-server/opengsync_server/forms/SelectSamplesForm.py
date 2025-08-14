@@ -251,7 +251,7 @@ class SelectSamplesForm(MultiStepForm):
             lane_data["avg_fragment_size"] = []
 
         for sample_id in self.sample_ids:
-            if (sample := db.get_sample(sample_id)) is None:
+            if (sample := db.samples.get(sample_id)) is None:
                 logger.error(f"Sample {sample_id} not found")
                 raise ValueError(f"Sample {sample_id} not found")
             
@@ -264,7 +264,7 @@ class SelectSamplesForm(MultiStepForm):
                 sample_data["avg_fragment_size"].append(sample.avg_fragment_size)
 
         for library_id in self.library_ids:
-            if (library := db.get_library(library_id)) is None:
+            if (library := db.libraries.get(library_id)) is None:
                 logger.error(f"Library {library_id} not found")
                 raise ValueError(f"Library {library_id} not found")
 
@@ -277,7 +277,7 @@ class SelectSamplesForm(MultiStepForm):
                 library_data["avg_fragment_size"].append(library.avg_fragment_size)
 
         for pool_id in self.pool_ids:
-            if (pool := db.get_pool(pool_id)) is None:
+            if (pool := db.pools.get(pool_id)) is None:
                 logger.error(f"Pool {pool_id} not found")
                 raise ValueError(f"Pool {pool_id} not found")
 
@@ -290,7 +290,7 @@ class SelectSamplesForm(MultiStepForm):
                 pool_data["avg_fragment_size"].append(pool.avg_fragment_size)
 
         for lane_id in self.lane_ids:
-            if (lane := db.get_lane(lane_id)) is None:
+            if (lane := db.lanes.get((lane_id)) is None:
                 logger.error(f"Lane {lane_id} not found")
                 raise ValueError(f"Lane {lane_id} not found")
 
@@ -340,7 +340,7 @@ class SelectSamplesForm(MultiStepForm):
     def get_libraries(self) -> list[models.Library]:
         libraries = []
         for _, row in self.library_table.iterrows():
-            if (library := db.get_library(int(row["id"]))) is None:
+            if (library := db.libraries.get(int(row["id"]))) is None:
                 logger.error(f"Library {library} not found in database")
                 raise Exception("Library not found in database")
             libraries.append(library)
@@ -350,7 +350,7 @@ class SelectSamplesForm(MultiStepForm):
     def get_samples(self) -> list[models.Sample]:
         samples = []
         for _, row in self.sample_table.iterrows():
-            if (sample := db.get_sample(int(row["id"]))) is None:
+            if (sample := db.samples.get(int(row["id"]))) is None:
                 logger.error(f"Sample {sample} not found in database")
                 raise Exception("Sample not found in database")
             samples.append(sample)
@@ -360,7 +360,7 @@ class SelectSamplesForm(MultiStepForm):
     def get_pools(self) -> list[models.Pool]:
         pools = []
         for _, row in self.pool_table.iterrows():
-            if (pool := db.get_pool(int(row["id"]))) is None:
+            if (pool := db.pools.get(int(row["id"]))) is None:
                 logger.error(f"Pool {pool} not found in database")
                 raise Exception("Pool not found in database")
             pools.append(pool)
@@ -370,7 +370,7 @@ class SelectSamplesForm(MultiStepForm):
     def get_lanes(self) -> list[models.Lane]:
         lanes = []
         for _, row in self.lane_table.iterrows():
-            if (lane := db.get_lane(int(row["id"]))) is None:
+            if (lane := db.lanes.get_lane((int(row["id"]))) is None:
                 logger.error(f"Lane {lane} not found in database")
                 raise Exception("Lane not found in database")
             lanes.append(lane)

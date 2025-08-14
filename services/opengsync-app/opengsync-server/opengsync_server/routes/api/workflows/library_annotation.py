@@ -34,7 +34,7 @@ def begin(current_user: models.User, seq_request_id: int, workflow_type: Literal
     if workflow_type not in ["raw", "pooled", "tech"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if workflow_type == "pooled":
@@ -48,7 +48,7 @@ def begin(current_user: models.User, seq_request_id: int, workflow_type: Literal
             return abort(HTTPResponse.BAD_REQUEST.id)
 
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -58,11 +58,11 @@ def begin(current_user: models.User, seq_request_id: int, workflow_type: Literal
 
 @wrappers.htmx_route(library_annotation_workflow, db=db)
 def previous(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -83,11 +83,11 @@ def select_project(current_user: models.User, seq_request_id: int, workflow_type
     if workflow_type not in ["tech", "raw", "pooled"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -99,11 +99,11 @@ def select_project(current_user: models.User, seq_request_id: int, workflow_type
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST", "GET"])
 def define_pools(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -115,11 +115,11 @@ def define_pools(current_user: models.User, seq_request_id: int, uuid: str):
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def upload_barcode_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -128,11 +128,11 @@ def upload_barcode_form(current_user: models.User, seq_request_id: int, uuid: st
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def upload_tenx_atac_barcode_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -141,11 +141,11 @@ def upload_tenx_atac_barcode_form(current_user: models.User, seq_request_id: int
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def barcode_match(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -154,11 +154,11 @@ def barcode_match(current_user: models.User, seq_request_id: int, uuid: str):
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def map_index_kits(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -167,11 +167,11 @@ def map_index_kits(current_user: models.User, seq_request_id: int, uuid: str):
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_assay_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
@@ -183,11 +183,11 @@ def parse_table(current_user: models.User, seq_request_id: int, uuid: str, form_
     if form_type not in ["pooled", "raw", "tech", "tech-multiplexed"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -205,11 +205,11 @@ def parse_table(current_user: models.User, seq_request_id: int, uuid: str, form_
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_ocm_reference(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -218,11 +218,11 @@ def parse_ocm_reference(current_user: models.User, seq_request_id: int, uuid: st
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_cmo_reference(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -231,11 +231,11 @@ def parse_cmo_reference(current_user: models.User, seq_request_id: int, uuid: st
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def annotate_features(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -244,11 +244,11 @@ def annotate_features(current_user: models.User, seq_request_id: int, uuid: str)
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def map_feature_kits(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -257,11 +257,11 @@ def map_feature_kits(current_user: models.User, seq_request_id: int, uuid: str):
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_visium_reference(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -270,11 +270,11 @@ def parse_visium_reference(current_user: models.User, seq_request_id: int, uuid:
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_openst_annotation(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -283,11 +283,11 @@ def parse_openst_annotation(current_user: models.User, seq_request_id: int, uuid
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_flex_annotation(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -296,11 +296,11 @@ def parse_flex_annotation(current_user: models.User, seq_request_id: int, uuid: 
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_sas_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -309,11 +309,11 @@ def parse_sas_form(current_user: models.User, seq_request_id: int, uuid: str):
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def complete(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     

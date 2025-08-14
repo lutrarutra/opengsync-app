@@ -15,11 +15,11 @@ def seq_requests():
 
 @wrappers.page_route(seq_requests_page_bp, db=db)
 def seq_request(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests[seq_request_id]) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 

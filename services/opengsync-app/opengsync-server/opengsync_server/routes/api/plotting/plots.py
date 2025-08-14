@@ -27,13 +27,13 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     request_args = request.get_json()
     width = request_args.get("width", 700)
     
-    df = db.get_experiment_seq_qualities_df(experiment_id)
+    df = db.pd.get_experiment_seq_qualities(experiment_id)
     if len(df) == 0:
         return make_response()
 

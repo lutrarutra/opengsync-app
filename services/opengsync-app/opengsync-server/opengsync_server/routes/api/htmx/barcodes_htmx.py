@@ -15,7 +15,7 @@ def get(current_user: models.User, page: int = 0):
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
 
-    barcodes, n_pages = db.get_barcodes(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, count_pages=True)
+    barcodes, n_pages = db.barcodes.find(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, count_pages=True)
 
     return make_response(
         render_template(
@@ -41,7 +41,7 @@ def query_index_kits(current_user: models.User):
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    results = db.query_index_kits(word, index_type_in=index_type_in)
+    results = db.index_kits.query(word, index_type_in=index_type_in)
 
     return make_response(
         render_template(

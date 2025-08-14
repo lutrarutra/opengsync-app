@@ -98,17 +98,17 @@ class CompleteQubitMeasureForm(MultiStepForm):
         metadata = self.metadata.copy()
 
         for sub_form in self.library_fields:
-            if (library := db.get_library(sub_form.obj_id.data)) is None:
+            if (library := db.libraries.get(sub_form.obj_id.data)) is None:
                 logger.error(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
             
             library.qubit_concentration = sub_form.qubit_concentration.data
-            library = db.update_library(library)
+            library = db.libraries.update(library)
 
             library_table.loc[library_table["id"] == library.id, "qubit_concentration"] = library.qubit_concentration
 
         for sub_form in self.pool_fields:
-            if (pool := db.get_pool(sub_form.obj_id.data)) is None:
+            if (pool := db.pools.get(sub_form.obj_id.data)) is None:
                 logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
             
@@ -122,17 +122,17 @@ class CompleteQubitMeasureForm(MultiStepForm):
             if pool.status == PoolStatus.ACCEPTED:
                 pool.status = PoolStatus.STORED
 
-            pool = db.update_pool(pool)
+            pool = db.pools.update(pool)
 
             pool_table.loc[pool_table["id"] == pool.id, "qubit_concentration"] = pool.qubit_concentration
 
         for sub_form in self.lane_fields:
-            if (lane := db.get_lane(sub_form.obj_id.data)) is None:
+            if (lane := db.lanes.get((sub_form.obj_id.data)) is None:
                 logger.error(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
             
             lane.original_qubit_concentration = sub_form.qubit_concentration.data
-            lane = db.update_lane(lane)
+            lane = db.lanes.update(lane)
 
             lane_table.loc[lane_table["id"] == lane.id, "qubit_concentration"] = lane.original_qubit_concentration
 

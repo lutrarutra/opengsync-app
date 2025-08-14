@@ -30,7 +30,7 @@ class SamplePoolingForm(HTMXFlaskForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
 
-        sample_table = db.get_lab_prep_samples_df(self.lab_prep.id)
+        sample_table = db.pd.get_lab_prep_samples(self.lab_prep.id)
         self.sample_table = sample_table[sample_table["mux_type"].notna()]
         self.mux_table = self.sample_table[["sample_id", "sample_name", "sample_pool"]].drop_duplicates()
 
@@ -63,13 +63,13 @@ class SamplePoolingForm(HTMXFlaskForm):
         old_libraries: dict[int, models.Library] = dict()
 
         for library_id in self.sample_table["library_id"].unique():
-            if (library := db.get_library(int(library_id))) is None:
+            if (library := db.libraries.get(int(library_id))) is None:
                 logger.error(f"Library {library_id} not found.")
                 raise exceptions.ElementDoesNotExist(f"Library {library_id} not found.")
             
             old_libraries[library.id] = library
             library.sample_links.clear()
-            library = db.update_library(library)
+            library = db.libraries.update(library)
             db.flush()
             db.refresh(library)
         
@@ -79,7 +79,7 @@ class SamplePoolingForm(HTMXFlaskForm):
             old_library = old_libraries[int(library_id)]
             library_name = f"{new_sample_pool}_{old_library.type.identifier}"
             if (new_library := libraries.get(library_name)) is None:
-                new_library = db.create_library(
+                new_library = db.libraries.create(
                     name=library_name,
                     sample_name=new_sample_pool,
                     library_type=old_library.type,
@@ -97,14 +97,14 @@ class SamplePoolingForm(HTMXFlaskForm):
                 libraries[library_name] = new_library
 
             new_library.features = old_library.features
-            new_library = db.update_library(new_library)
+            new_library = db.libraries.update(new_library)
 
             for _, row in _df.iterrows():
-                if (sample := db.get_sample(int(row["sample_id"]))) is None:
+                if (sample := db.samples.get(int(row["sample_id"]))) is None:
                     logger.error(f"Sample {row['sample_id']} not found.")
                     raise Exception(f"Sample {row['sample_id']} not found.")
 
-                db.link_sample_library(
+                db.links.link_sample_library(
                     sample_id=sample.id,
                     library_id=new_library.id,
                     mux=row["mux"],
@@ -115,7 +115,7 @@ class SamplePoolingForm(HTMXFlaskForm):
         for library in self.lab_prep.libraries:
             db.refresh(library)
             if len(library.sample_links) == 0:
-                db.delete_library(library.id)
+                db.libraries.delete(library.id)
 
         flash("Sample pool annotation processed successfully.", "success")
         return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))

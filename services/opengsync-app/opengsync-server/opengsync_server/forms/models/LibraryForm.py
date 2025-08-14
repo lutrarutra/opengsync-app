@@ -60,7 +60,7 @@ class LibraryForm(HTMXFlaskForm):
         self.library.mux_type = MUXType.get(self.mux_type.data) if self.mux_type.data != -1 else None
         self.library.nuclei_isolation = self.nuclei_isolation.data
 
-        self.library = db.update_library(self.library)
+        self.library = db.libraries.update(self.library)
         
         flash(f"Updated library '{self.library.name}'.", "success")
 

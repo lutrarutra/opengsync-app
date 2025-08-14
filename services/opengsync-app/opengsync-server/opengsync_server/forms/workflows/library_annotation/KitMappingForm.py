@@ -62,11 +62,11 @@ class KitMappingForm(MultiStepForm):
                 if pd.isna(raw_kit_label := row["name"]):
                     selected_kit = None
                 elif feature_kit_search_field.selected.data is None:
-                    selected_kit = next(iter(db.query_kits(raw_kit_label, limit=1, kit_type=KitType.FEATURE_KIT)), None)
+                    selected_kit = next(iter(db.kits.query(raw_kit_label, limit=1, kit_type=KitType.FEATURE_KIT)), None)
                     feature_kit_search_field.selected.data = selected_kit.id if selected_kit else None
                     feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
                 else:
-                    selected_kit = db.get_feature_kit(feature_kit_search_field.selected.data)
+                    selected_kit = db.feature_kits.get(feature_kit_search_field.selected.data)
                     feature_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
     
     def validate(self) -> bool:
@@ -85,7 +85,7 @@ class KitMappingForm(MultiStepForm):
                 feature_kit_search_field.selected.errors = ("Not valid feature kit selected")
                 return False
             
-            if (_ := db.get_feature_kit(kit_id)) is None:
+            if (_ := db.feature_kits.get(kit_id)) is None:
                 logger.error(f"Feature kit with ID {kit_id} not found.")
                 raise Exception()
             
@@ -93,7 +93,7 @@ class KitMappingForm(MultiStepForm):
                 if pd.isna(feature_name := row["feature"]):
                     continue
                 
-                if len(_ := db.get_features_from_kit_by_feature_name(feature_name, kit_id)) == 0:
+                if len(_ := db.features.get_from_kit_by_name(feature_name, kit_id)) == 0:
                     feature_kit_search_field.selected.errors = (f"Unknown feature '{feature_name}' does not belong to this feature kit.",)
                     return False
 
@@ -142,12 +142,12 @@ class KitMappingForm(MultiStepForm):
                 )
                 continue
 
-            if (kit := db.get_feature_kit(kit_id)) is None:
+            if (kit := db.feature_kits.get(kit_id)) is None:
                 logger.error(f"Feature kit with ID {kit_id} not found.")
                 raise Exception()
             
             if pd.isna(feature_name := row["feature"]):
-                features, _ = db.get_features(feature_kit_id=kit_id, limit=None)
+                features, _ = db.features.find(feature_kit_id=kit_id, limit=None)
                 for feature in features:
                     if pd.isna(library_name := row["library_name"]):
                         for library_name in abc_libraries_df["library_name"]:
@@ -173,7 +173,7 @@ class KitMappingForm(MultiStepForm):
                             read=feature.read
                         )
             else:
-                for feature in db.get_features_from_kit_by_feature_name(feature_name, kit_id):
+                for feature in db.features.get_from_kit_by_name(feature_name, kit_id):
                     if pd.isna(row["library_name"]):
                         for library_name in abc_libraries_df["library_name"]:
                             add_feature(
@@ -240,11 +240,11 @@ class KitMappingForm(MultiStepForm):
                     read=row["read"],
                 )
             else:
-                if (kit := db.get_feature_kit(int(kit_id))) is None:
+                if (kit := db.feature_kits.get(int(kit_id))) is None:
                     logger.error(f"Feature kit with ID {kit_id} not found.")
                     raise Exception(f"Feature kit with ID {kit_id} not found.")
                 
-                for feature in db.get_features_from_kit_by_feature_name(row["feature"], kit_id):
+                for feature in db.features.get_from_kit_by_name(row["feature"], kit_id):
                     add_oligo(
                         demux_name=row["demux_name"],
                         sample_name=row["sample_name"],

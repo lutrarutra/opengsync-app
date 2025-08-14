@@ -63,7 +63,7 @@ class BarcodeInputForm(CommonBarcodeInputForm):
                     _id = None
 
                 if _id is not None:
-                    if (library := db.get_library(_id)) is None:
+                    if (library := db.libraries.get(_id)) is None:
                         self.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
                     elif library.name != row["library_name"]:
                         self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))

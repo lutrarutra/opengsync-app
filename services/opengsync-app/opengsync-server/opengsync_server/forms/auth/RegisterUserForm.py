@@ -26,7 +26,7 @@ class RegisterUserForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        if db.get_user_by_email(self.email.data):  # type: ignore
+        if db.users.get_with_email(self.email.data):  # type: ignore
             self.email.errors = ("Email already registered.",)
             return False
 

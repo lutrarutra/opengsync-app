@@ -18,7 +18,7 @@ def begin(current_user: models.User, lab_prep_id: int, mux_type_id: int):
     if not (mux_type := MUXType.get(mux_type_id)):
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if mux_type == MUXType.TENX_OLIGO:
@@ -35,7 +35,7 @@ def begin(current_user: models.User, lab_prep_id: int, mux_type_id: int):
 
 @wrappers.htmx_route(mux_prep_workflow, db=db, methods=["GET", "POST"])
 def sample_pooling(lab_prep_id: int):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -46,7 +46,7 @@ def sample_pooling(lab_prep_id: int):
 
 @wrappers.htmx_route(mux_prep_workflow, db=db, methods=["POST"])
 def parse_oligo_mux_annotation(lab_prep_id: int, uuid: str):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.OligoMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
@@ -54,7 +54,7 @@ def parse_oligo_mux_annotation(lab_prep_id: int, uuid: str):
 
 @wrappers.htmx_route(mux_prep_workflow, db=db, methods=["POST"])
 def parse_flex_annotation(lab_prep_id: int, uuid: str):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.FlexMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
@@ -62,7 +62,7 @@ def parse_flex_annotation(lab_prep_id: int, uuid: str):
 
 @wrappers.htmx_route(mux_prep_workflow, db=db, methods=["POST"])
 def parse_flex_abc_annotation(lab_prep_id: int, uuid: str):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.FlexABCForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
@@ -70,7 +70,7 @@ def parse_flex_abc_annotation(lab_prep_id: int, uuid: str):
 
 @wrappers.htmx_route(mux_prep_workflow, db=db, methods=["POST"])
 def parse_ocm_annotation(lab_prep_id: int, uuid: str):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.OCMMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()

@@ -17,7 +17,7 @@ def share_token(current_user: models.User, share_token_id: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (share_token := db.get_share_token(share_token_id)) is None:
+    if (share_token := db.shares.get(share_token_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     path_list = [

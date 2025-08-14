@@ -28,7 +28,7 @@ def get(page: int = 0):
         if len(status_in) == 0:
             status_in = None
 
-    seq_runs, n_pages = db.get_seq_runs(offset=offset, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True)
+    seq_runs, n_pages = db.seq_runs.find(offset=offset, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True)
     
     return make_response(render_template(
         "components/tables/seq_run.html", seq_runs=seq_runs, n_pages=n_pages,
@@ -50,11 +50,11 @@ def table_query(current_user: models.User):
     
     seq_runs = []
     if field_name == "experiment_name":
-        seq_runs = db.query_seq_runs(word)
+        seq_runs = db.seq_runs.query(word)
 
     elif field_name == "id":
         try:
-            if (seq_run := db.get_seq_run(int(word))) is not None:
+            if (seq_run := db.seq_runs.get(int(word))) is not None:
                 seq_runs.append(seq_run)
         except ValueError:
             pass

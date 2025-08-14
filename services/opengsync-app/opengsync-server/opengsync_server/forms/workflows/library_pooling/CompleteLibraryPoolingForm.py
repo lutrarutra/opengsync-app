@@ -45,13 +45,13 @@ class CompleteLibraryPoolingForm(MultiStepForm):
         
         barcode_table = self.tables["barcode_table"]
         
-        lab_prep_libraries = db.get_lab_prep_libraries_df(self.lab_prep.id)
+        lab_prep_libraries = db.pd.get_lab_prep_libraries(self.lab_prep.id)
         barcode_table["old_pool_id"] = lab_prep_libraries.set_index("library_id").loc[barcode_table["library_id"], "pool_id"].values
         barcode_table["experiment_id"] = None
 
         for pool in self.lab_prep.pools:
             barcode_table.loc[barcode_table["old_pool_id"] == pool.id, "experiment_id"] = pool.experiment_id
-            db.delete_pool(pool.id)
+            db.pools.delete(pool.id)
 
         barcode_table["selected"] = ~barcode_table["pool"].astype(str).str.strip().str.lower().isin(["x", "t"])
         selected_libraries = barcode_table[barcode_table["selected"]].copy()
@@ -69,13 +69,13 @@ class CompleteLibraryPoolingForm(MultiStepForm):
         pools = {}
         if len(selected_libraries["pool"].unique()) > 1:
             for pool_suffix, _df in selected_libraries.groupby("pool"):
-                pools[pool_suffix] = db.create_pool(
+                pools[pool_suffix] = db.pools.create(
                     name=f"{self.lab_prep.name}_{pool_suffix}", pool_type=PoolType.INTERNAL,
                     contact_email=user.email, contact_name=user.name, owner_id=user.id,
                     lab_prep_id=self.lab_prep.id, experiment_id=experiment_mappings.get(pool_suffix, None),
                 )
         elif len(selected_libraries) > 0:
-            pools["1"] = db.create_pool(
+            pools["1"] = db.pools.create(
                 name=self.lab_prep.name, pool_type=PoolType.INTERNAL,
                 contact_email=user.email, contact_name=user.name, owner_id=user.id,
                 lab_prep_id=self.lab_prep.id, experiment_id=experiment_mappings.get("1", None)
@@ -91,7 +91,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
             if str(pool).strip().lower() == "t":
                 continue
             
-            if (library := db.get_library(library_id)) is None:
+            if (library := db.libraries.get(library_id)) is None:
                 logger.error(f"{self.uuid}: Library {library_id} not found")
                 raise ValueError(f"{self.uuid}: Library {library_id} not found")
 
@@ -118,16 +118,16 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                     logger.error(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
                     raise exceptions.InternalServerErrorException(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
             
-            library = db.remove_library_indices(library_id=library.id)
+            library = db.libraries.remove_indices(library_id=library.id)
             request_ids.add(library.seq_request_id)
             library.index_type = index_type
             library.pool_id = None
             library.status = LibraryStatus.POOLED if str(pool).strip().lower() != "x" else LibraryStatus.FAILED
             library.pool_id = None
-            library = db.update_library(library)
+            library = db.libraries.update(library)
             
             if str(pool).strip().lower() != "x":
-                library = db.add_library_to_pool(library_id=library.id, pool_id=pools[pool].id)
+                library = db.libraries.add_to_pool(library_id=library.id, pool_id=pools[pool].id)
 
             if index_type == IndexType.TENX_ATAC_INDEX:
                 if len(df) != 4:
@@ -140,7 +140,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 if pool == "x" and pd.isna(row["sequence_i7"]):
                     continue
                 
-                library = db.add_library_index(
+                library = db.libraries.add_index(
                     library_id=library.id,
                     index_kit_i7_id=int(row["kit_i7_id"]) if pd.notna(row["kit_i7_id"]) else None,
                     index_kit_i5_id=int(row["kit_i5_id"]) if pd.notna(row["kit_i5_id"]) else None,
@@ -162,7 +162,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 column_mapping[column_name] = col
             
             for i, ((library_id, pool, index_type_id, index_well), df) in enumerate(barcode_table.groupby(["library_id", "pool", "index_type_id", "index_well"], dropna=False)):
-                if (library := db.get_library(int(library_id))) is None:
+                if (library := db.libraries.get(int(library_id))) is None:
                     logger.error(f"{self.uuid}: Library {library_id} not found")
                     raise ValueError(f"{self.uuid}: Library {library_id} not found")
 
@@ -179,7 +179,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
             wb.save(path)
 
         for request_id in request_ids:
-            if (seq_request := db.get_seq_request(request_id)) is None:
+            if (seq_request := db.seq_requests.get(request_id)) is None:
                 logger.error(f"{self.uuid}: SeqRequest {request_id} not found")
                 raise ValueError(f"{self.uuid}: SeqRequest {request_id} not found")
             
@@ -189,7 +189,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
 
             if prepared and seq_request.status == SeqRequestStatus.ACCEPTED:
                 seq_request.status = SeqRequestStatus.PREPARED
-                seq_request = db.update_seq_request(seq_request)
+                seq_request = db.seq_requests.update(seq_request)
 
         self.complete()
         flash("Library Indexing completed!", "success")

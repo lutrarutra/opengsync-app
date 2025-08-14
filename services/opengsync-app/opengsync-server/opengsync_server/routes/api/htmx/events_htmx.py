@@ -29,7 +29,7 @@ def render_calendar_month(current_user: models.User, year: int | None = None, mo
     start_date = start_date - timedelta(days=start_date.weekday())
     end_date = end_date + timedelta(days=6 - end_date.weekday())
 
-    events, _ = db.get_events(
+    events, _ = db.events.find(
         start_date=start_date, end_date=end_date, limit=None,
         sort_by="timestamp_utc", descending=False,
     )
@@ -69,7 +69,7 @@ def render_calendar_week(current_user: models.User, year: int | None = None, wee
     except TypeError:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    events, _ = db.get_events(
+    events, _ = db.events.find(
         start_date=start_date, end_date=end_date, limit=None,
         sort_by="timestamp_utc", descending=False,
     )
@@ -119,7 +119,7 @@ def render_calendar_day(current_user: models.User, year: int | None = None, mont
     except TypeError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    events, _ = db.get_events(
+    events, _ = db.events.find(
         start_date=start_date, end_date=end_date, limit=None,
         sort_by="timestamp_utc", descending=False,
     )

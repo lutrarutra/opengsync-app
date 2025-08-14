@@ -5,75 +5,11 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Query
 
 if TYPE_CHECKING:
-    from ..DBHandler import DBHandler
     from ..units import Quantity
 
+from ..DBBlueprint import DBBlueprint
 from ... import models, PAGE_LIMIT
 from ...categories import ReadTypeEnum, RunStatusEnum, ExperimentStatusEnum
-
-
-def create_seq_run(
-    self: "DBHandler", experiment_name: str, status: RunStatusEnum, instrument_name: str,
-    run_folder: str, flowcell_id: str, read_type: ReadTypeEnum,
-    r1_cycles: Optional[int], i1_cycles: Optional[int], r2_cycles: Optional[int], i2_cycles: Optional[int],
-    quantities: Optional[dict[str, "Quantity"]] = None, rta_version: Optional[str] = None, recipe_version: Optional[str] = None,
-    side: Optional[str] = None, flowcell_mode: Optional[str] = None,
-    flush: bool = True
-) -> models.SeqRun:
-    
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    seq_run = models.SeqRun(
-        experiment_name=experiment_name.strip(),
-        status_id=status.id,
-        instrument_name=instrument_name.strip(),
-        run_folder=run_folder.strip(),
-        flowcell_id=flowcell_id.strip(),
-        read_type_id=read_type.id,
-        rta_version=rta_version.strip() if rta_version else None,
-        recipe_version=recipe_version.strip() if recipe_version else None,
-        side=side.strip() if side else None,
-        flowcell_mode=flowcell_mode.strip() if flowcell_mode else None,
-        r1_cycles=r1_cycles,
-        r2_cycles=r2_cycles,
-        i1_cycles=i1_cycles,
-        i2_cycles=i2_cycles,
-    )
-
-    if quantities is not None:
-        for key, value in quantities.items():
-            seq_run.set_quantity(key, value)
-
-    self.session.add(seq_run)
-
-    if flush:
-        self.flush()
-
-    if not persist_session:
-        self.close_session()
-
-    return seq_run
-
-
-def get_seq_run(self: "DBHandler", id: int | None = None, experiment_name: Optional[str] = None) -> models.SeqRun | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if id is not None and experiment_name is None:
-        seq_run = self.session.get(models.SeqRun, id)
-
-    elif experiment_name is not None and id is None:
-        seq_run = self.session.query(models.SeqRun).where(
-            models.SeqRun.experiment_name == experiment_name
-        ).first()
-    else:
-        raise ValueError("Either 'id' or 'experiment_name' must be provided.")
-
-    if not persist_session:
-        self.close_session()
-
-    return seq_run
 
 
 def where(
@@ -109,76 +45,105 @@ def where(
     return query
 
 
-def get_seq_runs(
-    self: "DBHandler",
-    status: Optional[RunStatusEnum] = None,
-    status_in: Optional[list[RunStatusEnum]] = None,
-    experiment_status: Optional[ExperimentStatusEnum] = None,
-    experiment_status_in: Optional[list[ExperimentStatusEnum]] = None,
-    custom_query: Callable[[Query], Query] | None = None,
-    limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-    count_pages: bool = False
-) -> tuple[list[models.SeqRun], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+class SeqRunBP(DBBlueprint):
+    @DBBlueprint.transaction
+    def create(
+        self, experiment_name: str, status: RunStatusEnum, instrument_name: str,
+        run_folder: str, flowcell_id: str, read_type: ReadTypeEnum,
+        r1_cycles: Optional[int], i1_cycles: Optional[int], r2_cycles: Optional[int], i2_cycles: Optional[int],
+        quantities: Optional[dict[str, "Quantity"]] = None, rta_version: Optional[str] = None, recipe_version: Optional[str] = None,
+        side: Optional[str] = None, flowcell_mode: Optional[str] = None,
+        flush: bool = True
+    ) -> models.SeqRun:
+        seq_run = models.SeqRun(
+            experiment_name=experiment_name.strip(),
+            status_id=status.id,
+            instrument_name=instrument_name.strip(),
+            run_folder=run_folder.strip(),
+            flowcell_id=flowcell_id.strip(),
+            read_type_id=read_type.id,
+            rta_version=rta_version.strip() if rta_version else None,
+            recipe_version=recipe_version.strip() if recipe_version else None,
+            side=side.strip() if side else None,
+            flowcell_mode=flowcell_mode.strip() if flowcell_mode else None,
+            r1_cycles=r1_cycles,
+            r2_cycles=r2_cycles,
+            i1_cycles=i1_cycles,
+            i2_cycles=i2_cycles,
+        )
 
-    query = self.session.query(models.SeqRun)
-    query = where(
-        query,
-        status=status,
-        status_in=status_in,
-        experiment_status=experiment_status,
-        experiment_status_in=experiment_status_in,
-        custom_query=custom_query
-    )
-    
-    if sort_by is not None:
-        attr = getattr(models.SeqRun, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
+        if quantities is not None:
+            for key, value in quantities.items():
+                seq_run.set_quantity(key, value)
 
-    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        self.db.session.add(seq_run)
 
-    seq_runs = query.limit(limit).offset(offset).all()
+        if flush:
+            self.db.flush()
+        return seq_run
 
-    if not persist_session:
-        self.close_session()
+    @DBBlueprint.transaction
+    def get(self, id: int | None = None, experiment_name: Optional[str] = None) -> models.SeqRun | None:
+        if id is not None and experiment_name is None:
+            seq_run = self.db.session.get(models.SeqRun, id)
 
-    return seq_runs, n_pages
+        elif experiment_name is not None and id is None:
+            seq_run = self.db.session.query(models.SeqRun).where(
+                models.SeqRun.experiment_name == experiment_name
+            ).first()
+        else:
+            raise ValueError("Either 'id' or 'experiment_name' must be provided.")
+        return seq_run
 
+    @DBBlueprint.transaction
+    def find(
+        self,
+        status: Optional[RunStatusEnum] = None,
+        status_in: Optional[list[RunStatusEnum]] = None,
+        experiment_status: Optional[ExperimentStatusEnum] = None,
+        experiment_status_in: Optional[list[ExperimentStatusEnum]] = None,
+        custom_query: Callable[[Query], Query] | None = None,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        sort_by: Optional[str] = None, descending: bool = False,
+        count_pages: bool = False
+    ) -> tuple[list[models.SeqRun], int | None]:
+        query = self.db.session.query(models.SeqRun)
+        query = where(
+            query,
+            status=status,
+            status_in=status_in,
+            experiment_status=experiment_status,
+            experiment_status_in=experiment_status_in,
+            custom_query=custom_query
+        )
+        
+        if sort_by is not None:
+            attr = getattr(models.SeqRun, sort_by)
+            if descending:
+                attr = attr.desc()
+            query = query.order_by(attr)
 
-def update_seq_run(
-    self: "DBHandler", seq_run: models.SeqRun,
-) -> models.SeqRun:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
-    self.session.add(seq_run)
+        seq_runs = query.limit(limit).offset(offset).all()
+        return seq_runs, n_pages
 
-    if not persist_session:
-        self.close_session()
+    @DBBlueprint.transaction
+    def update(
+        self, seq_run: models.SeqRun,
+    ) -> models.SeqRun:
+        self.db.session.add(seq_run)
+        return seq_run
 
-    return seq_run
+    @DBBlueprint.transaction
+    def query(self, word: str, limit: int | None = PAGE_LIMIT) -> list[models.SeqRun]:
+        query = self.db.session.query(models.SeqRun)
+        query = query.order_by(
+            sa.func.similarity(models.SeqRun.experiment_name, word).desc()
+        )
 
+        if limit is not None:
+            query = query.limit(limit)
 
-def query_seq_runs(self: "DBHandler", word: str, limit: int | None = PAGE_LIMIT) -> list[models.SeqRun]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.SeqRun)
-    
-    query = query.order_by(
-        sa.func.similarity(models.SeqRun.experiment_name, word).desc()
-    )
-
-    if limit is not None:
-        query = query.limit(limit)
-
-    seq_runs = query.all()
-
-    if not persist_session:
-        self.close_session()
-
-    return seq_runs
+        seq_runs = query.all()
+        return seq_runs

@@ -14,11 +14,11 @@ def samples():
 
 @wrappers.page_route(samples_page_bp, db=db)
 def sample(current_user: models.User, sample_id: int):
-    if (sample := db.get_sample(sample_id)) is None:
+    if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and sample.owner_id != current_user.id:
-        affiliation = db.get_user_sample_access_type(user_id=current_user.id, sample_id=sample.id)
+        affiliation = db.samples.get_access_type(user_id=current_user.id, sample_id=sample.id)
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     

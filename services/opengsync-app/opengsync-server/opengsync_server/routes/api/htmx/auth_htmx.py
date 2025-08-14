@@ -49,7 +49,7 @@ def change_password(current_user: models.User, user_id: int):
     if current_user.id != user_id and not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (user := db.get_user(user_id)) is None:
+    if (user := db.users.get(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -60,7 +60,7 @@ def change_password(current_user: models.User, user_id: int):
 
 @wrappers.htmx_route(auth_htmx, db=db)
 def reset_password_email(current_user: models.User, user_id: int):
-    if (user := db.get_user(user_id)) is None:
+    if (user := db.users.get(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if current_user.role != UserRole.ADMIN and current_user.id != user_id:

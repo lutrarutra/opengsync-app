@@ -124,11 +124,11 @@ class CommonIndexKitMappingForm(MultiStepForm):
                 index_kit_search_field.selected.data = int(row["kit_id"])
 
             if index_kit_search_field.selected.data is None:
-                selected_kit = next(iter(db.query_index_kits(str(row["label"]), limit=1, index_type_in=index_type_in)), None)
+                selected_kit = next(iter(db.index_kits.query(str(row["label"]), limit=1, index_type_in=index_type_in)), None)
                 index_kit_search_field.selected.data = selected_kit.id if selected_kit else None
                 index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
             else:
-                selected_kit = db.get_index_kit(index_kit_search_field.selected.data)
+                selected_kit = db.index_kits.get(index_kit_search_field.selected.data)
                 index_kit_search_field.search_bar.data = selected_kit.search_name() if selected_kit else None
 
     def fill_previous_form(self, previous_form: StepFile):
@@ -150,11 +150,11 @@ class CommonIndexKitMappingForm(MultiStepForm):
                 logger.error(f"Index kit not found for {entry.raw_label.data}")
                 raise dbe.ElementDoesNotExist()
             
-            if (kit := db.get_index_kit(kit_id)) is None:
+            if (kit := db.index_kits.get(kit_id)) is None:
                 index_kit_search_field.selected.errors = (f"Index kit {kit_id} not found",)
                 return False
             
-            if len(kit_df := db.get_index_kit_barcodes_df(kit_id, per_adapter=False)) == 0:
+            if len(kit_df := db.pd.get_index_kit_barcodes(kit_id, per_adapter=False)) == 0:
                 logger.error(f"No barcodes found for index kit {kit_id}")
                 raise dbe.LinkDoesNotExist()
             
@@ -197,11 +197,11 @@ class CommonIndexKitMappingForm(MultiStepForm):
             kit_label = kit_row["label"]
             kit_id = int(kit_row["kit_id"])
 
-            if (kit := db.get_index_kit(kit_id)) is None:
+            if (kit := db.index_kits.get(kit_id)) is None:
                 logger.error(f"Index kit {kit_id} not found")
                 raise dbe.ElementDoesNotExist(f"Index kit {kit_id} not found")
 
-            if len(kit_df := db.get_index_kit_barcodes_df(kit_id, per_adapter=False, per_index=True)) == 0:
+            if len(kit_df := db.pd.get_index_kit_barcodes(kit_id, per_adapter=False, per_index=True)) == 0:
                 logger.error(f"No barcodes found for index kit {kit_id}")
                 raise dbe.LinkDoesNotExist()
             

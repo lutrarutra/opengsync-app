@@ -148,7 +148,7 @@ def parse_metrics(run_folder: str) -> dict[str, units.Quantity]:
 def process_run_folder(illumina_run_folder: str, db: DBHandler):
     logs = [f"Processing run folder: {illumina_run_folder}"]
     
-    active_runs, _ = db.get_seq_runs(
+    active_runs, _ = db.seq_runs.find(
         status_in=[RunStatus.FINISHED, RunStatus.RUNNING],
         limit=None
     )
@@ -164,7 +164,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                     pool.status = PoolStatus.SEQUENCED
                     for library in pool.libraries:
                         library.status = LibraryStatus.SEQUENCED
-            run = db.update_seq_run(run)
+            run = db.seq_runs.update(run)
             active_runs[run.experiment_name] = run
             logs.append(f"Archived: {run.experiment_name} ({run.run_folder})")
     
@@ -188,7 +188,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 if status > run.status:
                     logs.append(f"Updating run folder name to {run_name}.")
                     run.run_folder = run_name
-                    run = db.update_seq_run(run)
+                    run = db.seq_runs.update(run)
                     parsed_data = parse_run_folder(run_folder)
                 else:
                     logs.append("Skipping update due to lower status.")
@@ -225,19 +225,19 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             for key, value in metrics.items():
                 run.set_quantity(key, value)
 
-            run = db.update_seq_run(run)
+            run = db.seq_runs.update(run)
             active_runs[experiment_name] = run
             logs.append("Updated!")
         else:
             metrics = parse_metrics(run_folder)
 
             # If for some reason the run is Archived while the data is still in the run folder
-            if (seq_run := db.get_seq_run(experiment_name=experiment_name)) is not None:
+            if (seq_run := db.seq_runs.get(experiment_name=experiment_name)) is not None:
                 seq_run.status = status
-                seq_run = db.update_seq_run(seq_run)
+                seq_run = db.seq_runs.update(seq_run)
                 continue
                     
-            run = db.create_seq_run(
+            run = db.seq_runs.create(
                 experiment_name=experiment_name,
                 status=status,
                 run_folder=run_name,
@@ -263,7 +263,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.SEQUENCING
             
-            run = db.update_seq_run(run)
+            run = db.seq_runs.update(run)
 
             active_runs[experiment_name] = run
             logs.append("Added!")

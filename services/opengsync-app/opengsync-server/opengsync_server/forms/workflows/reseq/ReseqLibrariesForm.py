@@ -49,10 +49,10 @@ class ReseqLibrariesForm(MultiStepForm):
             return self.make_response()
         
         for _, row in self.library_table.iterrows():
-            if (library := db.get_library(row["library_id"])) is None:
+            if (library := db.libraries.get(row["library_id"])) is None:
                 logger.error(f"{self.uuid}: Library with ID {row['library_id']} not found")
                 raise exceptions.ElementDoesNotExist(f"{self.uuid}: Library with ID {row['library_id']} not found")
-            db.clone_library(
+            db.libraries.clone(
                 library_id=library.id,
                 indexed=True if self.reprep_type.data == "indexed" else False,
                 seq_request_id=library.seq_request_id,
@@ -62,13 +62,13 @@ class ReseqLibrariesForm(MultiStepForm):
         flash("Libraries Cloned!", "success")
         
         if (seq_request_id := self.metadata.get("seq_request_id")) is not None:
-            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
                 logger.error(f"{self.uuid}: SeqRequest not found")
                 raise ValueError(f"{self.uuid}: SeqRequest not found")
             return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
             
         if (lab_prep_id := self.metadata.get("lab_prep_id")) is not None:
-            if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+            if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
                 logger.error(f"{self.uuid}: LabPrep not found")
                 raise ValueError(f"{self.uuid}: LabPrep not found")
             return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep.id))

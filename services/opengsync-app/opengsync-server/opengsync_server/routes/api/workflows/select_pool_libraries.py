@@ -16,7 +16,7 @@ def begin(current_user: models.User, pool_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
         
     form = SelectSamplesForm(
@@ -39,7 +39,7 @@ def select(current_user: models.User, pool_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     form = SelectSamplesForm(
@@ -59,7 +59,7 @@ def select(current_user: models.User, pool_id: int) -> Response:
     
     library_ids = form.library_table["id"].unique().tolist()
     for library_id in library_ids:
-        if (library := db.get_library(int(library_id))) is None:
+        if (library := db.libraries.get(int(library_id))) is None:
             logger.error(f"Library with ID {library_id} not found in pool {pool_id}.")
             raise exceptions.ElementDoesNotExist(f"Library with ID {library_id} does not exist.")
         
@@ -67,7 +67,7 @@ def select(current_user: models.User, pool_id: int) -> Response:
             logger.error(f"Library {library_id} is already in a pool.")
             raise exceptions.LinkAlreadyExists(f"Library {library_id} is already in a pool.")
     
-        db.add_library_to_pool(library_id=library.id, pool_id=pool.id, flush=False)
+        db.libraries.add_to_pool(library_id=library.id, pool_id=pool.id, flush=False)
 
     db.flush()
     flash("Libraries added to pool!", "success")

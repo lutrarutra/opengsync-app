@@ -1,87 +1,67 @@
 import math
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from sqlalchemy.sql.operators import and_
 
-if TYPE_CHECKING:
-    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from .. import exceptions
+from ..DBBlueprint import DBBlueprint
 
 
-def create_adapter(
-    self: "DBHandler", index_kit_id: int,
-    well: Optional[str] = None, flush: bool = True
-) -> models.Adapter:
-    
-    if not (persist_session := self._session is not None):
-        self.open_session()
+class AdapterBP(DBBlueprint):
+    @DBBlueprint.transaction
+    def create(
+        self, index_kit_id: int,
+        well: Optional[str] = None, flush: bool = True
+    ) -> models.Adapter:
+        if well is not None:
+            if self.db.session.query(models.Adapter).where(
+                and_(
+                    models.Adapter.well == well,
+                    models.Adapter.index_kit_id == index_kit_id
+                )
+            ).first():
+                raise exceptions.NotUniqueValue(f"Adapter with plate_well '{well}', already exists.")
 
-    if well is not None:
-        if self.session.query(models.Adapter).where(
-            and_(
-                models.Adapter.well == well,
-                models.Adapter.index_kit_id == index_kit_id
-            )
-        ).first():
-            raise exceptions.NotUniqueValue(f"Adapter with plate_well '{well}', already exists.")
+        adapter = models.Adapter(well=well, index_kit_id=index_kit_id,)
+        self.db.session.add(adapter)
 
-    adapter = models.Adapter(well=well, index_kit_id=index_kit_id,)
-    self.session.add(adapter)
+        if flush:
+            self.db.flush()
 
-    if flush:
-        self.flush()
+        return adapter
 
-    if not persist_session:
-        self.close_session()
+    @DBBlueprint.transaction
+    def get(self, id: int) -> models.Adapter | None:
+        res = self.db.session.get(models.Adapter, id)
+        return res
 
-    return adapter
+    @DBBlueprint.transaction
+    def find(
+        self, index_kit_id: int | None = None,
+        sort_by: Optional[str] = None, descending: bool = False,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        count_pages: bool = False
+    ) -> tuple[list[models.Adapter], int | None]:
+        query = self.db.session.query(models.Adapter)
 
+        if index_kit_id is not None:
+            query = query.where(models.Adapter.index_kit_id == index_kit_id)
 
-def get_adapter(self: "DBHandler", id: int) -> models.Adapter | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
-    res = self.session.get(models.Adapter, id)
+        if sort_by is not None:
+            attr = getattr(models.Adapter, sort_by)
+            if descending:
+                attr = attr.desc()
+            query = query.order_by(attr)
 
-    if not persist_session:
-        self.close_session()
+        if limit is not None:
+            query = query.limit(limit)
 
-    return res
+        if offset is not None:
+            query = query.offset(offset)
 
+        res = query.all()
 
-def get_adapters(
-    self: "DBHandler", index_kit_id: int | None = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-    limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    count_pages: bool = False
-) -> tuple[list[models.Adapter], int | None]:
-    
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.Adapter)
-
-    if index_kit_id is not None:
-        query = query.where(models.Adapter.index_kit_id == index_kit_id)
-
-    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
-
-    if sort_by is not None:
-        attr = getattr(models.Adapter, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
-
-    if limit is not None:
-        query = query.limit(limit)
-
-    if offset is not None:
-        query = query.offset(offset)
-
-    res = query.all()
-
-    if not persist_session:
-        self.close_session()
-
-    return res, n_pages
+        return res, n_pages

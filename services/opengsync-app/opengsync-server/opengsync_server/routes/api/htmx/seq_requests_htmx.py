@@ -53,7 +53,7 @@ def get(current_user: models.User, page: int = 0):
 
     user_id = current_user.id if not current_user.is_insider() else None
 
-    seq_requests, n_pages = db.get_seq_requests(
+    seq_requests, n_pages = db.seq_requests.find(
         offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
         submission_type_in=submission_type_in,
         show_drafts=True, status_in=status_in, count_pages=True
@@ -86,11 +86,11 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
         if form_type != "edit":
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        if (seq_request := db.seq_requests.get(seq_request_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
         if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-            affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+            affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
             if affiliation is None:
                 return abort(HTTPResponse.FORBIDDEN.id)
         
@@ -105,11 +105,11 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def export(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -137,8 +137,8 @@ def export(current_user: models.User, seq_request_id: int):
         
     metadata_df = pd.DataFrame.from_records(metadata).T
 
-    libraries_df = db.get_seq_request_libraries_df(seq_request_id, include_indices=True)
-    features_df = db.get_seq_request_features_df(seq_request_id)
+    libraries_df = db.pd.get_seq_request_libraries(seq_request_id, include_indices=True)
+    features_df = db.pd.get_seq_request_features(seq_request_id)
 
     bytes_io = BytesIO()
     # TODO: export features, CMOs, VISIUM metadata, etc...
@@ -157,16 +157,16 @@ def export(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def export_libraries(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
     file_name = f"libraries_{seq_request.id}.tsv"
-    libraries_df = db.get_seq_request_libraries_df(seq_request_id=seq_request_id, include_indices=True)
+    libraries_df = db.pd.get_seq_request_libraries(seq_request_id=seq_request_id, include_indices=True)
 
     return Response(
         libraries_df.to_csv(sep="\t", index=False), mimetype="text/csv",
@@ -176,11 +176,11 @@ def export_libraries(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def edit(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -191,15 +191,15 @@ def edit(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
-    db.delete_seq_request(seq_request_id)
+    db.seq_requests.delete(seq_request_id)
 
     flash(f"Deleted sequencing request '{seq_request.name}'", "success")
     return make_response(
@@ -209,16 +209,16 @@ def delete(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def archive(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
     seq_request.status = SeqRequestStatus.ARCHIVED
-    seq_request = db.update_seq_request(seq_request)
+    seq_request = db.seq_requests.update(seq_request)
     flash(f"Archived sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Archived sequencing request '{seq_request.name}'")
     return make_response(
@@ -228,7 +228,7 @@ def archive(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def unarchive(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider():
@@ -236,7 +236,7 @@ def unarchive(current_user: models.User, seq_request_id: int):
     
     seq_request.status = SeqRequestStatus.DRAFT
     seq_request.timestamp_submitted_utc = None
-    seq_request = db.update_seq_request(seq_request)
+    seq_request = db.seq_requests.update(seq_request)
 
     flash(f"Unarchived sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Unarchived sequencing request '{seq_request.name}'")
@@ -248,14 +248,14 @@ def unarchive(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def submit_request(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if seq_request.status != SeqRequestStatus.DRAFT:
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -277,11 +277,11 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def upload_auth_form(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -294,11 +294,11 @@ def upload_auth_form(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def comment_form(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -314,11 +314,11 @@ def comment_form(current_user: models.User, seq_request_id: int):
 
 @seq_requests_htmx.route("file_form", methods=["GET", "POST"])
 def file_form(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
@@ -334,15 +334,15 @@ def file_form(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (file := db.get_file(file_id)) is None:
+    if (file := db.files.get((file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if file not in seq_request.files:
@@ -351,7 +351,7 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
     file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
-    db.delete_file(file_id=file.id)
+    db.files.delete_file((file_id=file.id)
 
     logger.info(f"Deleted file '{file.name}' from request (id='{seq_request_id}')")
     flash(f"Deleted file '{file.name}' from request.", "success")
@@ -360,14 +360,14 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_auth_form(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if seq_request.seq_auth_form_file is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
@@ -380,7 +380,7 @@ def remove_auth_form(current_user: models.User, seq_request_id: int):
     filepath = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(filepath):
         os.remove(filepath)
-    db.delete_file(file_id=file.id)
+    db.files.delete_file((file_id=file.id)
 
     flash("Authorization form removed!", "success")
     logger.debug(f"Removed sequencing authorization form for sequencing request '{seq_request.name}'")
@@ -395,11 +395,11 @@ def remove_library(current_user: models.User, seq_request_id: int):
     if (library_id := request.args.get("library_id")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -412,10 +412,10 @@ def remove_library(current_user: models.User, seq_request_id: int):
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (library := db.get_library(library_id)) is None:
+    if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
         
-    db.delete_library(library_id)
+    db.libraries.delete(library_id)
 
     flash(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'")
@@ -434,11 +434,11 @@ def remove_sample(current_user: models.User, seq_request_id: int):
     if (sample_id := request.args.get("sample_id")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -451,14 +451,14 @@ def remove_sample(current_user: models.User, seq_request_id: int):
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (sample := db.get_sample(sample_id)) is None:
+    if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     for library_link in sample.library_links:
         if library_link.library.seq_request_id != seq_request_id:
             continue
         
-        db.delete_library(library_link.library.id)
+        db.libraries.delete(library_link.library.id)
 
     flash(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'")
@@ -469,11 +469,11 @@ def remove_sample(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_all_libraries(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
@@ -481,7 +481,7 @@ def remove_all_libraries(current_user: models.User, seq_request_id: int):
         return abort(HTTPResponse.FORBIDDEN.id)
 
     for library in seq_request.libraries:
-        db.delete_library(library.id)
+        db.libraries.delete(library.id)
 
     flash(f"Removed all libraries from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed all libraries from sequencing request '{seq_request.name}'")
@@ -518,11 +518,11 @@ def table_query(current_user: models.User):
 
     seq_requests: list[models.SeqRequest] = []
     if field_name == "name":
-        seq_requests = db.query_seq_requests(name=word, user_id=user_id, status_in=status_in)
+        seq_requests = db.seq_requests.query(name=word, user_id=user_id, status_in=status_in)
     elif field_name == "id":
         try:
             _id = int(word)
-            if (seq_request := db.get_seq_request(_id)) is not None:
+            if (seq_request := db.seq_requests.get(_id)) is not None:
                 if user_id is None or seq_request.requestor_id == user_id:
                     seq_requests = [seq_request]
                 if status_in is not None and seq_request.status not in status_in:
@@ -530,9 +530,9 @@ def table_query(current_user: models.User):
         except ValueError:
             pass
     elif field_name == "requestor_id":
-        seq_requests = db.query_seq_requests(requestor=word, user_id=user_id, status_in=status_in)
+        seq_requests = db.seq_requests.query(requestor=word, user_id=user_id, status_in=status_in)
     elif field_name == "group_id":
-        seq_requests = db.query_seq_requests(group=word, user_id=user_id, status_in=status_in)
+        seq_requests = db.seq_requests.query(group=word, user_id=user_id, status_in=status_in)
 
     return make_response(
         render_template(
@@ -545,11 +545,11 @@ def table_query(current_user: models.User):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def process_request(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -560,11 +560,11 @@ def process_request(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def add_share_email(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -575,19 +575,19 @@ def add_share_email(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_share_email(current_user: models.User, seq_request_id: int, email: str):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if len(seq_request.delivery_email_links) == 1:
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
     try:
-        db.remove_seq_request_share_email(seq_request_id, email)
+        db.seq_requests.remove_share_email(seq_request_id, email)
     except exceptions.ElementDoesNotExist:
         return abort(HTTPResponse.NOT_FOUND.id)
 
@@ -599,17 +599,17 @@ def remove_share_email(current_user: models.User, seq_request_id: int, email: st
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def overview(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
     LINK_WIDTH_UNIT = 1
 
-    samples, _ = db.get_samples(seq_request_id=seq_request_id, limit=None)
+    samples, _ = db.samples.find(seq_request_id=seq_request_id, limit=None)
     
     nodes = []
     links = []
@@ -728,11 +728,11 @@ def overview(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_libraries(current_user: models.User, seq_request_id: int, page: int = 0):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -761,7 +761,7 @@ def get_libraries(current_user: models.User, seq_request_id: int, page: int = 0)
         if len(type_in) == 0:
             type_in = None
 
-    libraries, n_pages = db.get_libraries(
+    libraries, n_pages = db.libraries.find(
         offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending,
         status_in=status_in, type_in=type_in, count_pages=True
     )
@@ -789,7 +789,7 @@ def get_projects(current_user: models.User, seq_request_id: int, page: int = 0):
     if sort_by not in models.Project.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if (status_in := request.args.get("status_id_in")) is not None:
@@ -802,7 +802,7 @@ def get_projects(current_user: models.User, seq_request_id: int, page: int = 0):
         if len(status_in) == 0:
             status_in = None
     
-    projects, n_pages = db.get_projects(
+    projects, n_pages = db.projects.find(
         offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending, count_pages=True,
         status_in=status_in
     )
@@ -826,11 +826,11 @@ def query_libraries(current_user: models.User, seq_request_id: int):
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if seq_request.requestor_id != current_user.id and not current_user.is_insider():
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -856,11 +856,11 @@ def query_libraries(current_user: models.User, seq_request_id: int):
 
     libraries: list[models.Library] = []
     if field_name == "name":
-        libraries = db.query_libraries(name=word, seq_request_id=seq_request_id, status_in=status_in, type_in=type_in)
+        libraries = db.libraries.query(name=word, seq_request_id=seq_request_id, status_in=status_in, type_in=type_in)
     elif field_name == "id":
         try:
             _id = int(word)
-            if (library := db.get_library(_id)) is not None:
+            if (library := db.libraries.get(_id)) is not None:
                 if library.seq_request_id == seq_request_id:
                     libraries = [library]
                 if status_in is not None and library.status not in status_in:
@@ -882,11 +882,11 @@ def query_libraries(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_samples(current_user: models.User, seq_request_id: int, page: int = 0):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -895,7 +895,7 @@ def get_samples(current_user: models.User, seq_request_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    samples, n_pages = db.get_samples(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending, count_pages=True)
+    samples, n_pages = db.samples.find(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending, count_pages=True)
 
     return make_response(
         render_template(
@@ -908,11 +908,11 @@ def get_samples(current_user: models.User, seq_request_id: int, page: int = 0):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_pools(current_user: models.User, seq_request_id: int, page: int = 0):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -921,7 +921,7 @@ def get_pools(current_user: models.User, seq_request_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    pools, n_pages = db.get_pools(
+    pools, n_pages = db.pools.find(
         seq_request_id=seq_request_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True
     )
 
@@ -936,11 +936,11 @@ def get_pools(current_user: models.User, seq_request_id: int, page: int = 0):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_comments(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -954,11 +954,11 @@ def get_comments(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_files(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -973,7 +973,7 @@ def get_files(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def clone(current_user: models.User, seq_request_id: int, method: Literal["pooled", "indexed", "raw"]):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if method not in {"pooled", "indexed", "raw"}:
@@ -982,7 +982,7 @@ def clone(current_user: models.User, seq_request_id: int, method: Literal["poole
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    cloned_request = db.clone_seq_request(seq_request_id=seq_request.id, method=method)
+    cloned_request = db.seq_requests.clone(seq_request_id=seq_request.id, method=method)
 
     flash("Request cloned", "success")
     return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=cloned_request.id))
@@ -990,7 +990,7 @@ def clone(current_user: models.User, seq_request_id: int, method: Literal["poole
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def store_samples(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider():
@@ -1033,12 +1033,12 @@ def get_recent_seq_requests(current_user: models.User):
                 models.SeqRequest.timestamp_submitted_utc.desc()
             )
 
-        seq_requests, _ = db.get_seq_requests(
+        seq_requests, _ = db.seq_requests.find(
             status_in=[SeqRequestStatus.ACCEPTED, SeqRequestStatus.SAMPLES_RECEIVED, SeqRequestStatus.PREPARED, SeqRequestStatus.DATA_PROCESSING],
             custom_query=__order_by_status_and_time, limit=None
         )
     else:
-        seq_requests, _ = db.get_seq_requests(
+        seq_requests, _ = db.seq_requests.find(
             user_id=current_user.id,
             sort_by="timestamp_submitted_utc",
             descending=True,

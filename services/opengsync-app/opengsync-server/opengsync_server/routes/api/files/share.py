@@ -64,7 +64,7 @@ class SharedFileBrowser:
 
 @wrappers.api_route(file_share_bp, db=db, login_required=False)
 def validate(token: str):
-    if (share_token := db.get_share_token(token)) is None:
+    if (share_token := db.shares.get(token)) is None:
         return "Token Not Found", HTTPResponse.NOT_FOUND.id
     
     if share_token.is_expired:
@@ -79,7 +79,7 @@ def rclone(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
 
-    if (share_token := db.get_share_token(token)) is None:
+    if (share_token := db.shares.get(token)) is None:
         return "Token Not Found", HTTPResponse.NOT_FOUND.id
     
     if share_token.is_expired:
@@ -113,7 +113,7 @@ def browse(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
 
-    if (share_token := db.get_share_token(token)) is None:
+    if (share_token := db.shares.get(token)) is None:
         return "Token Not Found", HTTPResponse.NOT_FOUND.id
     
     if share_token.is_expired:

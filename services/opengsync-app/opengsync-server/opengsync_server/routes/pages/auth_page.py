@@ -16,7 +16,7 @@ def reset_password(token: str):
         return redirect(url_for("auth_page.auth"))
     
     user_id, email, hash = data
-    if (user := db.get_user(user_id)) is None:
+    if (user := db.users.get(user_id)) is None:
         flash("Token expired or invalid.", "error")
         return redirect(url_for("auth_page.auth"))
     
@@ -52,7 +52,7 @@ def register(token: str):
         return redirect(url_for("auth_page.auth"))
     
     email, user_role = data
-    if (_ := db.get_user_by_email(email)) is not None:
+    if (_ := db.users.get_with_email(email)) is not None:
         flash("Email already registered.", "warning")
         return redirect(url_for("auth_page.auth"))
 

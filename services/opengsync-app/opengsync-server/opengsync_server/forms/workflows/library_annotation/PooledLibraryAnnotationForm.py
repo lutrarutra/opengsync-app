@@ -79,7 +79,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
         duplicate_sample_libraries = df.duplicated(subset=["sample_name", "library_type"])
         
-        seq_request_samples = db.get_seq_request_samples_df(self.seq_request.id)
+        seq_request_samples = db.pd.get_seq_request_samples(self.seq_request.id)
 
         for i, (idx, row) in enumerate(df.iterrows()):
             if duplicate_sample_libraries.at[idx]:
@@ -156,7 +156,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         df["sample_id"] = None
         if self.metadata["project_id"] is None:
             return df
-        if (project := db.get_project(self.metadata["project_id"])) is None:
+        if (project := db.projects.get(self.metadata["project_id"])) is None:
             logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
             raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
         
@@ -221,7 +221,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         sample_table["sample_id"] = None
 
         if (project_id := self.metadata.get("project_id")) is not None:
-            if (project := db.get_project(project_id)) is None:
+            if (project := db.projects.get(project_id)) is None:
                 logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
                 raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
             

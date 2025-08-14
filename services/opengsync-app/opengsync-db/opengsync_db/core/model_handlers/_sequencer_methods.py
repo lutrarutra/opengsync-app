@@ -1,167 +1,110 @@
 import math
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 import sqlalchemy as sa
 
-if TYPE_CHECKING:
-    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from ...categories import SequencerModelEnum
+from ..DBBlueprint import DBBlueprint
 from .. import exceptions
 
 
-def create_sequencer(
-    self: "DBHandler", name: str,
-    model: SequencerModelEnum,
-    ip: Optional[str] = None,
-    flush: bool = True
-) -> models.Sequencer:
-    
-    if not (persist_session := self._session is not None):
-        self.open_session()
+class SequencerBP(DBBlueprint):
+    @DBBlueprint.transaction
+    def create(
+        self, name: str,
+        model: SequencerModelEnum,
+        ip: Optional[str] = None,
+        flush: bool = True
+    ) -> models.Sequencer:
+        if self.db.session.query(models.Sequencer).where(
+            models.Sequencer.name == name
+        ).first() is not None:
+            raise exceptions.NotUniqueValue(f"Sequencer with name '{name}' already exists.")
+        
+        sequencer = models.Sequencer(
+            name=name.strip(),
+            model_id=model.id,
+            ip=ip.strip() if ip else None
+        )
 
-    if self.session.query(models.Sequencer).where(
-        models.Sequencer.name == name
-    ).first() is not None:
-        raise exceptions.NotUniqueValue(f"Sequencer with name '{name}' already exists.")
-    
-    sequencer = models.Sequencer(
-        name=name.strip(),
-        model_id=model.id,
-        ip=ip.strip() if ip else None
-    )
+        self.db.session.add(sequencer)
 
-    self.session.add(sequencer)
+        if flush:
+            self.db.flush()
+        return sequencer
 
-    if flush:
-        self.flush()
+    @DBBlueprint.transaction
+    def get(self, sequencer_id: int) -> models.Sequencer | None:
+        sequencer = self.db.session.get(models.Sequencer, sequencer_id)
+        return sequencer
 
-    if not persist_session:
-        self.close_session()
+    @DBBlueprint.transaction
+    def find(
+        self, limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        count_pages: bool = False
+    ) -> tuple[list[models.Sequencer], int | None]:
+        query = self.db.session.query(models.Sequencer)
 
-    return sequencer
+        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
+        if offset is not None:
+            query = query.offset(offset)
 
-def get_sequencer(self: "DBHandler", sequencer_id: int) -> models.Sequencer | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+        if limit is not None:
+            query = query.limit(limit)
 
-    sequencer = self.session.get(models.Sequencer, sequencer_id)
+        sequencers = query.all()
+        return sequencers, n_pages
 
-    if not persist_session:
-        self.close_session()
+    @DBBlueprint.transaction
+    def count(self) -> int:
+        count = self.db.session.query(models.Sequencer).count()
+        return count
 
-    return sequencer
+    @DBBlueprint.transaction
+    def update(self, sequencer: models.Sequencer) -> models.Sequencer:
+        self.db.session.add(sequencer)
+        return sequencer
 
+    @DBBlueprint.transaction
+    def get_with_name(self, name: str) -> models.Sequencer | None:
+        sequencer = self.db.session.query(models.Sequencer).where(
+            models.Sequencer.name == name
+        ).first()
+        return sequencer
 
-def get_sequencers(
-    self: "DBHandler", limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    count_pages: bool = False
-) -> tuple[list[models.Sequencer], int | None]:
-    
-    if not (persist_session := self._session is not None):
-        self.open_session()
+    @DBBlueprint.transaction
+    def delete(self, sequencer_id: int, flush: bool = True):
+        sequencer = self.db.session.get(models.Sequencer, sequencer_id)
+        if not sequencer:
+            raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
+        
+        if self.db.session.query(models.Experiment).where(
+            models.Experiment.sequencer_id == sequencer_id
+        ).first() is not None:
+            raise exceptions.ElementIsReferenced(f"Sequencer with id {sequencer_id} is referenced by an experiment.")
+        
+        self.db.session.delete(sequencer)
 
-    query = self.session.query(models.Sequencer)
+        if flush:
+            self.db.flush()
 
-    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+    @DBBlueprint.transaction
+    def query(
+        self, word: str, limit: int | None = PAGE_LIMIT
+    ) -> list[models.Sequencer]:
+        query = self.db.session.query(models.Sequencer).order_by(
+            sa.func.similarity(
+                models.Sequencer.name, word
+            ).desc()
+        )
 
-    if offset is not None:
-        query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
 
-    if limit is not None:
-        query = query.limit(limit)
-
-    sequencers = query.all()
-
-    if not persist_session:
-        self.close_session()
-
-    return sequencers, n_pages
-
-
-def get_num_sequencers(self) -> int:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    count = self.session.query(models.Sequencer).count()
-
-    if not persist_session:
-        self.close_session()
-
-    return count
-
-
-def update_sequencer(self: "DBHandler", sequencer: models.Sequencer) -> models.Sequencer:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-    
-    self.session.add(sequencer)
-
-    if not persist_session:
-        self.close_session()
-
-    return sequencer
-
-
-def get_sequencer_by_name(self: "DBHandler", name: str) -> models.Sequencer | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    sequencer = self.session.query(models.Sequencer).where(
-        models.Sequencer.name == name
-    ).first()
-
-    if not persist_session:
-        self.close_session()
-
-    return sequencer
+        res = query.all()
+        return res
 
 
-def delete_sequencer(self: "DBHandler", sequencer_id: int, flush: bool = True):
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    sequencer = self.session.get(models.Sequencer, sequencer_id)
-    if not sequencer:
-        raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
-    
-    if self.session.query(models.Experiment).where(
-        models.Experiment.sequencer_id == sequencer_id
-    ).first() is not None:
-        raise exceptions.ElementIsReferenced(f"Sequencer with id {sequencer_id} is referenced by an experiment.")
-    
-    self.session.delete(sequencer)
-
-    if flush:
-        self.flush()
-
-    if not persist_session:
-        self.close_session()
-    
-
-def query_sequencers(
-    self: "DBHandler", word: str, limit: int | None = PAGE_LIMIT
-) -> list[models.Sequencer]:
-    
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.Sequencer).order_by(
-        sa.func.similarity(
-            models.Sequencer.name, word
-        ).desc()
-    )
-
-    if limit is not None:
-        query = query.limit(limit)
-
-    res = query.all()
-
-    if not persist_session:
-        self.close_session()
-
-    return res
-
-
-    
+        

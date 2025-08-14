@@ -42,7 +42,7 @@ login_manager = LoginManager()
 mail = Mail()
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
-db = DBHandler(logger=logger, expire_on_commit=True)
+db = DBHandler(logger=logger, expire_on_commit=True, auto_open=False)
 cache = Cache()
 msf_cache = RedisMSFFileCache()
 file_handler = FileHandler()

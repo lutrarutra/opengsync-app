@@ -18,7 +18,7 @@ def get(current_user: models.User, page: int = 0):
     
     share_tokens: list[models.ShareToken] = []
 
-    share_tokens, n_pages = db.get_share_tokens(
+    share_tokens, n_pages = db.shares.find(
         offset=offset, sort_by=sort_by, descending=descending, count_pages=True,
         owner=current_user if not current_user.is_insider() else None
     )

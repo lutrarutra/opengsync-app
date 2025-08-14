@@ -40,7 +40,6 @@ services:
             test: ["CMD", "curl", "-f", "http://opengsync-app:${OPENGSYNC_PORT}/status"]
             interval: 10s
             timeout: 10s
-            retries: 5
         command: "sh ./entrypoint.sh"
 
     # scheduler:

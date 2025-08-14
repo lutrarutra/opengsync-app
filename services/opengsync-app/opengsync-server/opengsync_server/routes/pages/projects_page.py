@@ -14,11 +14,11 @@ def projects(current_user: models.User):
 
 @wrappers.page_route(projects_page_bp, db=db)
 def project(current_user: models.User, project_id: int):
-    if (project := db.get_project(project_id)) is None:
+    if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 

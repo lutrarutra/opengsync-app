@@ -1,179 +1,136 @@
 import math
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 import sqlalchemy as sa
-
-if TYPE_CHECKING:
-    from ..DBHandler import DBHandler
 
 from ...categories import IndexTypeEnum, LabProtocolEnum, KitType
 from ... import models, PAGE_LIMIT
 from .. import exceptions
+from ..DBBlueprint import DBBlueprint
 
 
-def create_index_kit(
-    self: "DBHandler", identifier: str, name: str,
-    supported_protocols: list[LabProtocolEnum],
-    type: IndexTypeEnum,
-    flush: bool = True
-) -> models.IndexKit:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+class IndexKitBP(DBBlueprint):
+    @DBBlueprint.transaction
+    def create(
+        self, identifier: str, name: str,
+        supported_protocols: list[LabProtocolEnum],
+        type: IndexTypeEnum,
+        flush: bool = True
+    ) -> models.IndexKit:
+        if self.db.session.query(models.IndexKit).where(models.IndexKit.name == name).first():
+            raise exceptions.NotUniqueValue(f"index_kit with name '{name}', already exists.")
 
-    if self.session.query(models.IndexKit).where(models.IndexKit.name == name).first():
-        raise exceptions.NotUniqueValue(f"index_kit with name '{name}', already exists.")
+        seq_kit = models.IndexKit(
+            identifier=identifier.strip(),
+            name=name.strip(),
+            type_id=type.id,
+            kit_type_id=KitType.INDEX_KIT.id,
+            supported_protocol_ids=[p.id for p in supported_protocols]
+        )
+        self.db.session.add(seq_kit)
 
-    seq_kit = models.IndexKit(
-        identifier=identifier.strip(),
-        name=name.strip(),
-        type_id=type.id,
-        kit_type_id=KitType.INDEX_KIT.id,
-        supported_protocol_ids=[p.id for p in supported_protocols]
-    )
-    self.session.add(seq_kit)
+        if flush:
+            self.db.flush()
 
-    if flush:
-        self.flush()
+        return seq_kit
 
-    if not persist_session:
-        self.close_session()
-    return seq_kit
+    @DBBlueprint.transaction
+    def get(self, id: int) -> models.IndexKit | None:
+        res = self.db.session.get(models.IndexKit, id)
+        return res
 
+    @DBBlueprint.transaction
+    def get_with_name(self, name: str) -> models.IndexKit | None:
+        res = self.db.session.query(models.IndexKit).where(models.IndexKit.name == name).first()
+        return res
 
-def get_index_kit(self: "DBHandler", id: int) -> models.IndexKit | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+    @DBBlueprint.transaction
+    def get_with_identifier(
+        self, identifier: str
+    ) -> models.IndexKit | None:
+        res = self.db.session.query(models.IndexKit).where(models.IndexKit.identifier == identifier).first()
+        return res
 
-    res = self.session.get(models.IndexKit, id)
+    @DBBlueprint.transaction
+    def query(
+        self, word: str, limit: int | None = PAGE_LIMIT, index_type: Optional[IndexTypeEnum] = None,
+        index_type_in: Optional[list[IndexTypeEnum]] = None
+    ) -> list[models.IndexKit]:
+        query = self.db.session.query(models.IndexKit)
+        query = query.where(models.IndexKit.kit_type_id == KitType.INDEX_KIT.id)
 
-    if not persist_session:
-        self.close_session()
+        if index_type is not None:
+            query = query.where(models.IndexKit.type_id == index_type.id)
 
-    return res
+        if index_type_in is not None:
+            query = query.where(models.IndexKit.type_id.in_([t.id for t in index_type_in]))
 
+        query = query.order_by(
+            sa.func.similarity(models.IndexKit.identifier + ' ' + models.IndexKit.name, word).desc()
+        )
 
-def get_index_kit_by_name(self: "DBHandler", name: str) -> models.IndexKit | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+        if limit is not None:
+            query = query.limit(limit)
 
-    res = self.session.query(models.IndexKit).where(models.IndexKit.name == name).first()
+        res = query.all()
+        return res
 
-    if not persist_session:
-        self.close_session()
-    return res
+    @DBBlueprint.transaction
+    def remove_all_barcodes(
+        self, index_kit_id: int, flush: bool = True
+    ) -> models.IndexKit:
+        if (index_kit := self.db.session.get(models.IndexKit, index_kit_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"IndexKit with id '{index_kit_id}' not found.")
+        
+        for adapter in index_kit.adapters:
+            for barcode in adapter.barcodes_i7:
+                self.db.session.delete(barcode)
+                
+            for barcode in adapter.barcodes_i5:
+                self.db.session.delete(barcode)
 
+            self.db.session.delete(adapter)
 
-def get_index_kit_by_identifier(
-    self: "DBHandler", identifier: str
-) -> models.IndexKit | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+        if flush:
+            self.db.flush()
+        return index_kit
 
-    res = self.session.query(models.IndexKit).where(models.IndexKit.identifier == identifier).first()
+    @DBBlueprint.transaction
+    def find(
+        self, type_in: Optional[list[IndexTypeEnum]] = None,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        sort_by: Optional[str] = None, descending: bool = False,
+        count_pages: bool = False
+    ) -> tuple[list[models.IndexKit], int | None]:
+        query = self.db.session.query(models.IndexKit)
 
-    if not persist_session:
-        self.close_session()
-    return res
+        if type_in is not None:
+            query = query.where(models.IndexKit.type_id.in_([t.id for t in type_in]))
 
+        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
-def query_index_kits(
-    self: "DBHandler", word: str, limit: int | None = PAGE_LIMIT, index_type: Optional[IndexTypeEnum] = None,
-    index_type_in: Optional[list[IndexTypeEnum]] = None
-) -> list[models.IndexKit]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+        if sort_by is not None:
+            attr = getattr(models.IndexKit, sort_by)
+            if descending:
+                attr = attr.desc()
+            query = query.order_by(attr)
 
-    query = self.session.query(models.IndexKit)
-    query = query.where(models.IndexKit.kit_type_id == KitType.INDEX_KIT.id)
+        if offset is not None:
+            query = query.offset(offset)
 
-    if index_type is not None:
-        query = query.where(models.IndexKit.type_id == index_type.id)
+        if limit is not None:
+            query = query.limit(limit)
 
-    if index_type_in is not None:
-        query = query.where(models.IndexKit.type_id.in_([t.id for t in index_type_in]))
+        res = query.all()
+        return res, n_pages
 
-    query = query.order_by(
-        sa.func.similarity(models.IndexKit.identifier + ' ' + models.IndexKit.name, word).desc()
-    )
+    @DBBlueprint.transaction
+    def update(self, index_kit: models.IndexKit) -> models.IndexKit:
+        self.db.session.add(index_kit)
+        return index_kit
 
-    if limit is not None:
-        query = query.limit(limit)
-
-    res = query.all()
-
-    if not persist_session:
-        self.close_session()
-    return res
-
-
-def remove_all_barcodes_from_kit(
-    self: "DBHandler", index_kit_id: int, flush: bool = True
-) -> models.IndexKit:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (index_kit := self.session.get(models.IndexKit, index_kit_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"IndexKit with id '{index_kit_id}' not found.")
-    
-    for adapter in index_kit.adapters:
-        for barcode in adapter.barcodes_i7:
-            self.session.delete(barcode)
-            
-        for barcode in adapter.barcodes_i5:
-            self.session.delete(barcode)
-
-        self.session.delete(adapter)
-
-    if flush:
-        self.flush()
-
-    if not persist_session:
-        self.close_session()
-    return index_kit
-
-
-def get_index_kits(
-    self: "DBHandler", type_in: Optional[list[IndexTypeEnum]] = None,
-    limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-    count_pages: bool = False
-) -> tuple[list[models.IndexKit], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.IndexKit)
-
-    if type_in is not None:
-        query = query.where(models.IndexKit.type_id.in_([t.id for t in type_in]))
-
-    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
-
-    if sort_by is not None:
-        attr = getattr(models.IndexKit, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
-
-    if offset is not None:
-        query = query.offset(offset)
-
-    if limit is not None:
-        query = query.limit(limit)
-
-    res = query.all()
-
-    if not persist_session:
-        self.close_session()
-
-    return res, n_pages
-
-
-def update_index_kit(self: "DBHandler", index_kit: models.IndexKit) -> models.IndexKit:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    self.session.add(index_kit)
-
-    if not persist_session:
-        self.close_session()
-    return index_kit
+    @DBBlueprint.transaction
+    def __getitem__(self, id: int) -> models.IndexKit:
+        if (index_kit := self.db.session.get(models.IndexKit, id)) is None:
+            raise exceptions.ElementDoesNotExist(f"IndexKit with id '{id}' not found.")
+        return index_kit

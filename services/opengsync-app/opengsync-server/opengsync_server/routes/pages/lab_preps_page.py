@@ -21,7 +21,7 @@ def lab_prep(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     can_be_completed = len(lab_prep.libraries) > 0

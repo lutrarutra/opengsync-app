@@ -29,7 +29,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
     
-    lanes, n_pages = db.get_lanes(
+    lanes, n_pages = db.lanes.get(s(
         sort_by=sort_by, descending=descending, offset=offset, experiment_id=experiment_id, count_pages=True
     )
 

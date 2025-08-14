@@ -19,20 +19,20 @@ def test_library_features_links(db: DBHandler):
 
     for _ in range(NUM_CUSTOM_FEATURES):
         feature = create_feature(db)
-        db.link_feature_library(feature_id=feature.id, library_id=library_1.id)
-        db.link_feature_library(feature_id=feature.id, library_id=library_2.id)
-        db.link_feature_library(feature_id=feature.id, library_id=library_3.id)
+        db.links.link_feature_library(feature_id=feature.id, library_id=library_1.id)
+        db.links.link_feature_library(feature_id=feature.id, library_id=library_2.id)
+        db.links.link_feature_library(feature_id=feature.id, library_id=library_3.id)
 
     kit = create_feature_kit(db)
     for _ in range(NUM_KIT_FEATURES):
         feature = create_feature(db, kit=kit)
-        db.link_feature_library(feature_id=feature.id, library_id=library_1.id)
+        db.links.link_feature_library(feature_id=feature.id, library_id=library_1.id)
 
-    db.link_features_library(
+    db.links.link_features_library(
         feature_ids=[f.id for f in kit.features],
         library_id=library_2.id
     )
-    db.link_features_library(
+    db.links.link_features_library(
         feature_ids=[f.id for f in kit.features],
         library_id=library_3.id
     )
@@ -47,9 +47,9 @@ def test_library_features_links(db: DBHandler):
     assert library_2.num_features == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
     assert library_3.num_features == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
 
-    db.delete_library(library_1.id)
-    assert len(db.get_features(limit=None)[0]) == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
-    db.delete_library(library_2.id)
-    assert len(db.get_features(limit=None)[0]) == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
-    db.delete_library(library_3.id)
-    assert len(db.get_features(limit=None)[0]) == NUM_KIT_FEATURES
+    db.libraries.delete(library_1.id)
+    assert len(db.features.get(s(limit=None)[0]) == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
+    db.libraries.delete(library_2.id)
+    assert len(db.features.get_feature(s(limit=None)[0]) == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
+    db.libraries.delete(library_3.id)
+    assert len(db.features.get_feature(s(limit=None)[0]) == NUM_KIT_FEATURES

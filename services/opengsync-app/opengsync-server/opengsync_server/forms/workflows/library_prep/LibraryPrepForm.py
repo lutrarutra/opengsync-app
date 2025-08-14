@@ -115,13 +115,13 @@ class LibraryPrepForm(HTMXFlaskForm):
         size_bytes = os.path.getsize(path)
 
         for plate in self.lab_prep.plates:
-            db.delete_plate(plate.id)
+            db.plates.delete(plate.id)
 
         db.refresh(self.lab_prep)
 
         for plate, _df in self.df.groupby("plate", dropna=False):
             if pd.isna(plate):
-                plate = db.create_plate(
+                plate = db.plates.create(
                     name=f"P-{self.lab_prep.name}",
                     num_cols=12, num_rows=8,
                     owner_id=user.id
@@ -132,7 +132,7 @@ class LibraryPrepForm(HTMXFlaskForm):
                 except ValueError:
                     pass
                 
-                plate = db.create_plate(
+                plate = db.plates.create(
                     name=f"P-{self.lab_prep.name}-{plate}",
                     num_cols=12, num_rows=8,
                     owner_id=user.id
@@ -143,7 +143,7 @@ class LibraryPrepForm(HTMXFlaskForm):
                     continue
 
                 library_id = int(library_id)
-                if (library := db.get_library(library_id)) is None:
+                if (library := db.libraries.get(library_id)) is None:
                     logger.error(f"Library {library_id} not found")
                     raise ValueError(f"Library {library_id} not found")
                 
@@ -151,23 +151,23 @@ class LibraryPrepForm(HTMXFlaskForm):
                 
                 if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
                     library.status = LibraryStatus.FAILED
-                    library = db.update_library(library)
+                    library = db.libraries.update(library)
                 
                 if pd.notna(row["lib_conc_ng_ul"]):
-                    if (library := db.get_library(library_id)) is None:
+                    if (library := db.libraries.get(library_id)) is None:
                         logger.error(f"Library {library_id} not found")
                         raise ValueError(f"Library {library_id} not found")
                     
                     library.qubit_concentration = float(row["lib_conc_ng_ul"])
-                    library = db.update_library(library)
+                    library = db.libraries.update(library)
                     db.flush()
 
                 well_idx = plate.get_well_idx(row["plate_well"].strip())
-                plate = db.add_library_to_plate(plate_id=plate.id, library_id=library_id, well_idx=well_idx)
+                plate = db.plates.add_library(plate_id=plate.id, library_id=library_id, well_idx=well_idx)
             
             self.lab_prep.plates.append(plate)
         
-        self.lab_prep = db.update_lab_prep(self.lab_prep)
+        self.lab_prep = db.lab_preps.update(self.lab_prep)
 
         if self.lab_prep.prep_file is not None:
             size_bytes = os.path.getsize(path)
@@ -175,7 +175,7 @@ class LibraryPrepForm(HTMXFlaskForm):
             self.lab_prep.prep_file.size_bytes = size_bytes
             self.lab_prep.prep_file.timestamp_utc = to_utc(db.timestamp())
         else:
-            db.create_file(
+            db.files.create((
                 name=f"{self.lab_prep.name}_prep",
                 type=FileType.LIBRARY_PREP_FILE,
                 extension=".xlsx",
@@ -185,7 +185,7 @@ class LibraryPrepForm(HTMXFlaskForm):
                 lab_prep_id=self.lab_prep.id
             )
 
-        self.lab_prep = db.update_lab_prep(self.lab_prep)
+        self.lab_prep = db.lab_preps.update(self.lab_prep)
 
         flash("Table saved!", "success")
         return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))

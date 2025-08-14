@@ -26,7 +26,7 @@ def get(current_user: models.User, page: int = 0):
     else:
         user_id = None
 
-    groups, n_pages = db.get_groups(
+    groups, n_pages = db.groups.find(
         user_id=user_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True
     )
 
@@ -54,7 +54,7 @@ def query(current_user: models.User):
     else:
         user_id = current_user.id if not current_user.is_insider() else None
     
-    groups = db.query_groups(name=query, user_id=user_id)
+    groups = db.groups.query(name=query, user_id=user_id)
     return make_response(
         render_template(
             "components/search_select_results.html",
@@ -70,11 +70,11 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(groups_htmx, db=db, methods=["POST"])
 def edit(current_user: models.User, group_id: int):
-    if (group := db.get_group(group_id)) is None:
+    if (group := db.groups.get(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider():
-        if (affiliation := db.get_group_user_affiliation(user_id=current_user.id, group_id=group_id)) is None:
+        if (affiliation := db.groups.get_user_affiliation(user_id=current_user.id, group_id=group_id)) is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         if affiliation.affiliation_type != AffiliationType.OWNER:
             return abort(HTTPResponse.FORBIDDEN.id)
@@ -89,14 +89,14 @@ def get_users(current_user: models.User, group_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
 
-    if (group := db.get_group(group_id)) is None:
+    if (group := db.groups.get(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    affiliations, n_pages = db.get_group_affiliations(
+    affiliations, n_pages = db.groups.get_affiliations(
         group_id=group_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True
     )
 
-    affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=group_id)
+    affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=group_id)
     can_edit = current_user.role == UserRole.ADMIN or (affiliation is not None and affiliation.affiliation_type == AffiliationType.OWNER)
     can_add_users = current_user.is_insider() or (affiliation is not None and affiliation.affiliation_type in (AffiliationType.OWNER, AffiliationType.MANAGER))
 
@@ -111,7 +111,7 @@ def get_users(current_user: models.User, group_id: int, page: int = 0):
 
 @wrappers.htmx_route(groups_htmx, db=db, methods=["DELETE"])
 def remove_user(current_user: models.User, group_id: int):
-    if (_ := db.get_group(group_id)) is None:
+    if (_ := db.groups.get(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if (user_id := request.args.get("user_id")) is None:
@@ -123,30 +123,30 @@ def remove_user(current_user: models.User, group_id: int):
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if not current_user.is_insider():
-        if (affiliation := db.get_group_user_affiliation(user_id=current_user.id, group_id=group_id)) is None:
+        if (affiliation := db.groups.get_user_affiliation(user_id=current_user.id, group_id=group_id)) is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         if affiliation.affiliation_type not in (AffiliationType.OWNER, AffiliationType.MANAGER):
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (affiliation := db.get_group_user_affiliation(user_id=user_id, group_id=group_id)) is None:
+    if (affiliation := db.groups.get_user_affiliation(user_id=user_id, group_id=group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if affiliation.affiliation_type == AffiliationType.OWNER:
         flash("Owner cannot be removed", "warning")
         return make_response(redirect=url_for("groups_page.group", group_id=group_id))
     
-    db.remove_user_from_group(user_id=user_id, group_id=group_id)
+    db.groups.remove_user(user_id=user_id, group_id=group_id)
     flash("User removed from group", "success")
     return make_response(redirect=url_for("groups_page.group", group_id=group_id))
 
 
 @wrappers.htmx_route(groups_htmx, db=db, methods=["GET", "POST"])
 def add_user(current_user: models.User, group_id: int):
-    if (group := db.get_group(group_id)) is None:
+    if (group := db.groups.get(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider():
-        if (affiliation := db.get_group_user_affiliation(user_id=current_user.id, group_id=group_id)) is None:
+        if (affiliation := db.groups.get_user_affiliation(user_id=current_user.id, group_id=group_id)) is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         if affiliation.affiliation_type not in (AffiliationType.OWNER, AffiliationType.MANAGER):
             return abort(HTTPResponse.FORBIDDEN.id)
@@ -168,10 +168,10 @@ def get_seq_requests(current_user: models.User, group_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
 
-    if (group := db.get_group(group_id)) is None:
+    if (group := db.groups.get(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    seq_requests, n_pages = db.get_seq_requests(
+    seq_requests, n_pages = db.seq_requests.find(
         group_id=group_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True
     )
 
@@ -190,7 +190,7 @@ def get_projects(current_user: models.User, group_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
 
-    if (group := db.get_group(group_id)) is None:
+    if (group := db.groups.get(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if (status_in := request.args.get("status_id_in")) is not None:
@@ -203,7 +203,7 @@ def get_projects(current_user: models.User, group_id: int, page: int = 0):
         if len(status_in) == 0:
             status_in = None
 
-    projects, n_pages = db.get_projects(
+    projects, n_pages = db.projects.find(
         group_id=group_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True,
         status_in=status_in
     )

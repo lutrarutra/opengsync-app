@@ -21,7 +21,7 @@ class LabPrepCommentForm(CommentForm):
         if not self.validate():
             return self.make_response()
         
-        db.create_comment(
+        db.comments.create((
             text=self.comment.data,  # type: ignore
             author_id=user.id,
             lab_prep_id=self.lab_prep.id

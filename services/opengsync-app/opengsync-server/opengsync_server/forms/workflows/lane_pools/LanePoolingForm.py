@@ -52,7 +52,7 @@ class LanePoolingForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
 
     def prepare(self):
-        df = db.get_experiment_laned_pools_df(experiment_id=self.experiment.id)
+        df = db.lanes.get_experiment_lane(d_pools_df(experiment_id=self.experiment.id)
         df["dilutions"] = None
         df["sub_form_idx"] = None
 
@@ -74,7 +74,7 @@ class LanePoolingForm(HTMXFlaskForm):
                 sample_sub_form.m_reads.data = row["num_m_reads"]
                 df.at[idx, "sub_form_idx"] = counter
 
-                if (pool := db.get_pool(row["pool_id"])) is None:
+                if (pool := db.pools.get(row["pool_id"])) is None:
                     logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
                     raise ValueError(f"Pool with id {row['pool_id']} does not exist")
                 
@@ -104,7 +104,7 @@ class LanePoolingForm(HTMXFlaskForm):
             return self.make_response()
         
         for lane_sub_form in self.lane_sub_forms:
-            if (lane := db.get_experiment_lane(
+            if (lane := db.lanes.get_experiment_lane((
                 experiment_id=self.experiment.id,
                 lane_num=lane_sub_form.lane.data
             )) is None:
@@ -113,7 +113,7 @@ class LanePoolingForm(HTMXFlaskForm):
 
             lane.target_molarity = lane_sub_form.target_concentration.data
             lane.total_volume_ul = lane_sub_form.target_total_volume.data
-            lane = db.update_lane(lane)
+            lane = db.lanes.update(lane)
 
         data = {
             "lane": [],
@@ -128,7 +128,7 @@ class LanePoolingForm(HTMXFlaskForm):
             "dilution": [],
         }
         for pool_reads_form in self.sample_sub_forms:
-            if (link := db.get_laned_pool_link(
+            if (link := db.lanes.get(d_pool_link(
                 experiment_id=self.experiment.id,
                 lane_num=pool_reads_form.lane.data,
                 pool_id=pool_reads_form.pool_id.data
@@ -141,12 +141,12 @@ class LanePoolingForm(HTMXFlaskForm):
                 link.dilution_id = None
                 pool_reads_form.dilution.data = "Orig."
             else:
-                if (dilution := db.get_pool_dilution(link.pool_id, pool_reads_form.dilution.data)) is None:
+                if (dilution := db.pools.get_dilution(link.pool_id, pool_reads_form.dilution.data)) is None:
                     logger.error(f"lane_pools_workflow: PoolDilution with pool_id {link.pool_id} and identifier {pool_reads_form.dilution.data} does not exist")
                     raise ValueError(f"PoolDilution with pool_id '{link.pool_id}' and identifier '{pool_reads_form.dilution.data}' does not exist")
                 link.dilution_id = dilution.id
 
-            link = db.update_laned_pool_link(link)
+            link = db.lanes.update_lane(d_pool_link(link)
 
             data["lane"].append(link.lane.number)
             data["pool"].append(link.pool.name)
@@ -179,7 +179,7 @@ class LanePoolingForm(HTMXFlaskForm):
                 break
             
         if old_file:
-            db.delete_file(file_id=old_file.id)
+            db.files.delete_file((file_id=old_file.id)
             os.remove(os.path.join(runtime.current_app.media_folder, old_file.path))
             logger.info(f"Old file '{old_file.path}' removed.")
 
@@ -188,7 +188,7 @@ class LanePoolingForm(HTMXFlaskForm):
         df.to_csv(filepath, sep="\t", index=False)
         size_bytes = os.stat(filepath).st_size
 
-        db_file = db.create_file(
+        db_file = db.files.create_file((
             name=filename,
             uuid=_uuid,
             size_bytes=size_bytes,
@@ -197,7 +197,7 @@ class LanePoolingForm(HTMXFlaskForm):
             uploader_id=user.id,
             experiment_id=self.experiment.id
         )
-        _ = db.create_comment(
+        _ = db.comments.create_comment((
             author_id=user.id,
             file_id=db_file.id,
             text="Added file for pooling ratios",

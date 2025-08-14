@@ -228,11 +228,11 @@ class CommonBarcodeMatchForm(MultiStepForm):
             logger.debug(f"Selected i7 kit: {selected_i7}")
             rc_i7 = selected_i7.endswith(" (Reverse Complement)") if selected_i7 else False
 
-            if (kit_i7 := db.get_index_kit(kit_i7_id)) is None:
+            if (kit_i7 := db.index_kits.get(kit_i7_id)) is None:
                 logger.error(f"Invalid i7 kit ID: {kit_i7_id}")
                 raise Exception(f"Invalid i7 kit ID: {kit_i7_id}")
             
-            if len(kit_i7_df := db.get_index_kit_barcodes_df(kit_i7.id, per_index=True)) == 0:
+            if len(kit_i7_df := db.pd.get_index_kit_barcodes(kit_i7.id, per_index=True)) == 0:
                 logger.error(f"No barcodes found for i7 kit ID: {kit_i7_id}")
                 raise Exception(f"No barcodes found for i7 kit ID: {kit_i7_id}")
             
@@ -254,10 +254,10 @@ class CommonBarcodeMatchForm(MultiStepForm):
                 kit_i5 = kit_i7  # type: ignore
                 kit_i5_df = kit_i7_df  # type: ignore
             else:
-                if (kit_i5 := db.get_index_kit(kit_i5_id)) is None:
+                if (kit_i5 := db.index_kits.get(kit_i5_id)) is None:
                     logger.error(f"Invalid i5 kit ID: {kit_i5_id}")
                     raise Exception(f"Invalid i5 kit ID: {kit_i5_id}")
-                if len(kit_i5_df := db.get_index_kit_barcodes_df(kit_i5.id, per_index=True)) == 0:
+                if len(kit_i5_df := db.pd.get_index_kit_barcodes(kit_i5.id, per_index=True)) == 0:
                     logger.error(f"No barcodes found for i5 kit ID: {kit_i5_id}")
                     raise Exception(f"No barcodes found for i5 kit ID: {kit_i5_id}")
                 

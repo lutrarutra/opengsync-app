@@ -16,7 +16,7 @@ def pools():
 
 @wrappers.page_route(pools_page_bp, db=db)
 def pool(current_user: models.User, pool_id: int):
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:

@@ -49,10 +49,10 @@ def get(current_user: models.User, page: int = 0):
         if user_id != current_user.id and not current_user.is_insider():
             return abort(HTTPResponse.FORBIDDEN.id)
         
-        if (user := db.get_user(user_id)) is None:
+        if (user := db.users.get(user_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
-        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True, status_in=status_in)
+        projects, n_pages = db.projects.find(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True, status_in=status_in)
         context["user"] = user
     else:
         template = "components/tables/project.html"
@@ -60,7 +60,7 @@ def get(current_user: models.User, page: int = 0):
             user_id = current_user.id
         else:
             user_id = None
-        projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True, status_in=status_in)
+        projects, n_pages = db.projects.find(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True, status_in=status_in)
 
     return make_response(
         render_template(
@@ -90,12 +90,12 @@ def query(current_user: models.User):
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        if (_ := db.get_group(group_id)) is None:
+        if (_ := db.groups.get(group_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
         _user_id = None
             
-    results = db.query_projects(identifier_title=word, user_id=_user_id, group_id=group_id)
+    results = db.projects.query(identifier_title=word, user_id=_user_id, group_id=group_id)
 
     return make_response(
         render_template(
@@ -113,11 +113,11 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
 def edit(current_user: models.User, project_id: int):
-    if (project := db.get_project(project_id)) is None:
+    if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -128,7 +128,7 @@ def edit(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, project_id: int):
-    if (project := db.get_project(project_id)) is None:
+    if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if project.owner_id != current_user.id and not current_user.is_insider():
@@ -137,7 +137,7 @@ def delete(current_user: models.User, project_id: int):
     if project.num_samples > 0:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    db.delete_project(project_id)
+    db.projects.delete(project_id)
     flash(f"Deleted project {project.title}.", "success")
     return make_response(redirect=url_for("projects_page.projects"))
 
@@ -147,7 +147,7 @@ def complete(current_user: models.User, project_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (project := db.get_project(project_id)) is None:
+    if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     for library in project.libraries:
@@ -156,7 +156,7 @@ def complete(current_user: models.User, project_id: int):
             return make_response(redirect=url_for("projects_page.project", project_id=project_id))
             
     project.status = ProjectStatus.DELIVERED
-    project = db.update_project(project)
+    project = db.projects.update(project)
     return make_response(redirect=url_for("projects_page.project", project_id=project.id))
 
 
@@ -186,7 +186,7 @@ def table_query(current_user: models.User):
         projects: list[models.Project] = []
         if id is not None:
             try:
-                if (project := db.get_project(id)) is not None:
+                if (project := db.projects.get(id)) is not None:
                     if user_id is not None:
                         if project.owner_id == user_id:
                             projects = [project]
@@ -195,7 +195,7 @@ def table_query(current_user: models.User):
             except ValueError:
                 pass
         else:
-            projects = db.query_projects(title=title, identifier=identifier, user_id=user_id)
+            projects = db.projects.query(title=title, identifier=identifier, user_id=user_id)
 
         return projects
     
@@ -208,7 +208,7 @@ def table_query(current_user: models.User):
             user_id = int(user_id)
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
-        if (user := db.get_user(user_id)) is None:
+        if (user := db.users.get(user_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
             
         context["user"] = user
@@ -234,11 +234,11 @@ def table_query(current_user: models.User):
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_seq_requests(current_user: models.User, project_id: int, page: int = 0):
-    if (project := db.get_project(project_id)) is None:
+    if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -260,7 +260,7 @@ def get_seq_requests(current_user: models.User, project_id: int, page: int = 0):
         if len(status_in) == 0:
             status_in = None
     
-    seq_requests, n_pages = db.get_seq_requests(
+    seq_requests, n_pages = db.seq_requests.find(
         offset=offset, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True
     )
     return make_response(
@@ -276,11 +276,11 @@ def get_seq_requests(current_user: models.User, project_id: int, page: int = 0):
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_samples(current_user: models.User, project_id: int, page: int = 0):
-    if (project := db.get_project(project_id)) is None:
+    if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -299,7 +299,7 @@ def get_samples(current_user: models.User, project_id: int, page: int = 0):
         if len(status_in) == 0:
             status_in = None
 
-    samples, n_pages = db.get_samples(offset=offset, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True)
+    samples, n_pages = db.samples.find(offset=offset, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True)
 
     return make_response(
         render_template(
@@ -316,20 +316,20 @@ def query_samples(current_user: models.User, project_id: int, field_name: str):
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (project := db.get_project(project_id)) is None:
+    if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
     samples = []
     if field_name == "name":
-        samples = db.query_samples(word, project_id=project_id)
+        samples = db.samples.query(word, project_id=project_id)
     elif field_name == "id":
         try:
-            if (sample := db.get_sample(int(word))) is not None:
+            if (sample := db.samples.get(int(word))) is not None:
                 if sample.project_id == project_id:
                     samples = [sample]
         except ValueError:
@@ -347,15 +347,15 @@ def query_samples(current_user: models.User, project_id: int, field_name: str):
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_sample_attributes(current_user: models.User, project_id: int):
-    if (project := db.get_project(project_id)) is None:
+    if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    df = db.get_project_samples_df(project_id=project_id).rename(columns={"sample_id": "id", "sample_name": "name"})
+    df = db.pd.get_project_samples(project_id=project_id).rename(columns={"sample_id": "id", "sample_name": "name"})
 
     columns = []
     for i, col in enumerate(df.columns):
@@ -379,11 +379,11 @@ def get_sample_attributes(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def edit_sample_attributes(current_user: models.User, project_id: int):
-    if (project := db.get_project(project_id)) is None:
+    if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -405,7 +405,7 @@ def get_recent_projects(current_user: models.User):
             ProjectStatus.SEQUENCED,
         ]
 
-    projects, _ = db.get_projects(
+    projects, _ = db.projects.find(
         user_id=current_user.id if not current_user.is_insider() else None,
         sort_by="id", limit=30, status_in=status_in, descending=True
     )
@@ -419,11 +419,11 @@ def get_recent_projects(current_user: models.User):
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_software(current_user: models.User, project_id: int):
-    if (project := db.get_project(project_id)) is None:
+    if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -439,15 +439,15 @@ def get_software(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def overview(current_user: models.User, project_id: int):
-    if (project := db.get_project(project_id)) is None:
+    if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
-    df = db.get_project_libraries_df(project_id=project_id)
+    df = db.pd.get_project_libraries(project_id=project_id)
 
     LINK_WIDTH_UNIT = 0.5
 

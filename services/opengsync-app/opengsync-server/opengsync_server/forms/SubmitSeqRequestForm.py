@@ -64,16 +64,16 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
         
         if self.sample_submission_time.data is not None:
             if self.seq_request.sample_submission_event is None:
-                self.seq_request.sample_submission_event = db.create_event(
+                self.seq_request.sample_submission_event = db.events.create(
                     title=f"Sample Submission: {self.seq_request.name}",
                     timestamp_utc=to_utc(self.sample_submission_time.data),
                     type=EventType.SAMPLE_SUBMISSION, user_id=user.id,
                 )
             else:
                 self.seq_request.sample_submission_event.timestamp_utc = to_utc(self.sample_submission_time.data)
-            self.seq_request = db.update_seq_request(self.seq_request)
+            self.seq_request = db.seq_requests.update(self.seq_request)
 
-        self.seq_request = db.submit_seq_request(seq_request_id=self.seq_request.id)
+        self.seq_request = db.seq_requests.submit(seq_request_id=self.seq_request.id)
 
         flash(f"Submitted sequencing request '{self.seq_request.name}'", "success")
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),)

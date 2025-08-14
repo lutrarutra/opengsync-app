@@ -1,71 +1,13 @@
 import math
-from typing import Optional, TYPE_CHECKING, Callable
+from typing import Optional, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
 
-if TYPE_CHECKING:
-    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 from ...categories import ExperimentWorkFlowEnum, ExperimentStatusEnum, ExperimentWorkFlow
-
-
-def create_experiment(
-    self: "DBHandler", name: str, workflow: ExperimentWorkFlowEnum, status: ExperimentStatusEnum,
-    sequencer_id: int, r1_cycles: int, i1_cycles: int, operator_id: int,
-    r2_cycles: int | None = None, i2_cycles: int | None = None, flush: bool = True
-) -> models.Experiment:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if self.session.get(models.Sequencer, sequencer_id) is None:
-        raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
-
-    experiment = models.Experiment(
-        name=name.strip(),
-        sequencer_id=sequencer_id,
-        workflow_id=workflow.id,
-        r1_cycles=r1_cycles,
-        r2_cycles=r2_cycles,
-        i1_cycles=i1_cycles,
-        i2_cycles=i2_cycles,
-        status_id=status.id,
-        operator_id=operator_id,
-    )
-
-    for lane_num in range(1, workflow.flow_cell_type.num_lanes + 1):
-        lane = models.Lane(number=lane_num, experiment_id=experiment.id)
-        experiment.lanes.append(lane)
-
-    self.session.add(experiment)
-
-    if flush:
-        self.flush()
-
-    if not persist_session:
-        self.close_session()
-
-    return experiment
-
-
-def get_experiment(self: "DBHandler", id: int | None = None, name: Optional[str] = None) -> models.Experiment | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if id is not None and name is None:
-        experiment = self.session.get(models.Experiment, id)
-    elif name is not None and id is None:
-        experiment = self.session.query(models.Experiment).where(
-            models.Experiment.name == name
-        ).first()
-    else:
-        raise ValueError("Either 'id' or 'name' must be provided, not both.")
-
-    if not persist_session:
-        self.close_session()
-
-    return experiment
+from ..DBBlueprint import DBBlueprint
 
 
 def where(
@@ -90,142 +32,170 @@ def where(
     return query
 
 
-def get_experiments(
-    self: "DBHandler",
-    status: Optional[ExperimentStatusEnum] = None,
-    status_in: Optional[list[ExperimentStatusEnum]] = None,
-    workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
-    custom_query: Callable[[Query], Query] | None = None,
-    limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-    count_pages: bool = False
-) -> tuple[list[models.Experiment], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+class ExperimentBP(DBBlueprint):
+    @DBBlueprint.transaction
+    def create(
+        self, name: str, workflow: ExperimentWorkFlowEnum, status: ExperimentStatusEnum,
+        sequencer_id: int, r1_cycles: int, i1_cycles: int, operator_id: int,
+        r2_cycles: int | None = None, i2_cycles: int | None = None, flush: bool = True
+    ) -> models.Experiment:
 
-    query = self.session.query(models.Experiment)
-    query = where(
-        query,
-        status=status,
-        status_in=status_in,
-        workflow_in=workflow_in,
-        custom_query=custom_query,
-    )
+        if self.db.session.get(models.Sequencer, sequencer_id) is None:
+            raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
 
-    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        experiment = models.Experiment(
+            name=name.strip(),
+            sequencer_id=sequencer_id,
+            workflow_id=workflow.id,
+            r1_cycles=r1_cycles,
+            r2_cycles=r2_cycles,
+            i1_cycles=i1_cycles,
+            i2_cycles=i2_cycles,
+            status_id=status.id,
+            operator_id=operator_id,
+        )
 
-    if sort_by is not None:
-        attr = getattr(models.Experiment, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
+        for lane_num in range(1, workflow.flow_cell_type.num_lanes + 1):
+            lane = models.Lane(number=lane_num, experiment_id=experiment.id)
+            experiment.lanes.append(lane)
 
-    if offset is not None:
-        query = query.offset(offset)
+        self.db.session.add(experiment)
 
-    if limit is not None:
-        query = query.limit(limit)
+        if flush:
+            self.db.flush()
 
-    experiments = query.all()
+        return experiment
 
-    if not persist_session:
-        self.close_session()
+    @DBBlueprint.transaction
+    def get(self, id: int | None = None, name: Optional[str] = None) -> models.Experiment | None:
 
-    return experiments, n_pages
+        if id is not None and name is None:
+            experiment = self.db.session.get(models.Experiment, id)
+        elif name is not None and id is None:
+            experiment = self.db.session.query(models.Experiment).where(
+                models.Experiment.name == name
+            ).first()
+        else:
+            raise ValueError("Either 'id' or 'name' must be provided, not both.")
 
+        return experiment
 
-def get_num_experiments(self: "DBHandler") -> int:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+    @DBBlueprint.transaction
+    def find(
+        self,
+        status: Optional[ExperimentStatusEnum] = None,
+        status_in: Optional[list[ExperimentStatusEnum]] = None,
+        workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
+        custom_query: Callable[[Query], Query] | None = None,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        sort_by: Optional[str] = None, descending: bool = False,
+        count_pages: bool = False
+    ) -> tuple[list[models.Experiment], int | None]:
 
-    res = self.session.query(models.Experiment).count()
-    if not persist_session:
-        self.close_session()
-    return res
+        query = self.db.session.query(models.Experiment)
+        query = where(
+            query,
+            status=status,
+            status_in=status_in,
+            workflow_in=workflow_in,
+            custom_query=custom_query,
+        )
 
+        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
-def delete_experiment(self: "DBHandler", experiment_id: int, flush: bool = True):
-    if not (persist_session := self._session is not None):
-        self.open_session()
-    
-    if (experiment := self.session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+        if sort_by is not None:
+            attr = getattr(models.Experiment, sort_by)
+            if descending:
+                attr = attr.desc()
+            query = query.order_by(attr)
 
-    self.session.delete(experiment)
+        if offset is not None:
+            query = query.offset(offset)
 
-    if flush:
-        self.flush()
+        if limit is not None:
+            query = query.limit(limit)
 
-    if not persist_session:
-        self.close_session()
+        experiments = query.all()
 
+        return experiments, n_pages
 
-def update_experiment(self: "DBHandler", experiment: models.Experiment) -> models.Experiment:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+    @DBBlueprint.transaction
+    def delete(self, experiment_id: int, flush: bool = True):
+        if (experiment := self.db.session.get(models.Experiment, experiment_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
 
-    if (prev_workflow_id := self.session.query(models.Experiment.workflow_id).where(
-        models.Experiment.id == experiment.id,
-    ).first()) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment.id} does not exist")
-    
-    prev_workflow = ExperimentWorkFlow.get(prev_workflow_id[0])
+        self.db.session.delete(experiment)
 
-    if experiment.workflow != prev_workflow:
-        workflow = experiment.workflow
-        experiment.workflow = workflow
+        if flush:
+            self.db.flush()
 
-        if prev_workflow.flow_cell_type.num_lanes > workflow.flow_cell_type.num_lanes:
-            lanes = experiment.lanes.copy()
-            for lane in lanes:
-                if lane.number > experiment.flowcell_type.num_lanes:
-                    self.delete_lane(lane.id)
+    @DBBlueprint.transaction
+    def update(self, experiment: models.Experiment) -> models.Experiment:
 
-        elif prev_workflow.flow_cell_type.num_lanes < workflow.flow_cell_type.num_lanes:
-            for lane_num in range(workflow.flow_cell_type.num_lanes - prev_workflow.flow_cell_type.num_lanes + 1, workflow.flow_cell_type.num_lanes + 1):
-                if lane_num in [lane.number for lane in experiment.lanes]:
-                    raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
-                lane = models.Lane(number=lane_num, experiment_id=experiment.id)
-                self.session.add(lane)
-            
-        if experiment.workflow.combined_lanes:
-            lps = set([(link.lane_id, link.pool_id) for link in experiment.laned_pool_links])
-            for lane in experiment.lanes:
-                for pool in experiment.pools:
-                    if (lane.id, pool.id) not in lps:
-                        lane = self.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
+        if (prev_workflow_id := self.db.session.query(models.Experiment.workflow_id).where(
+            models.Experiment.id == experiment.id,
+        ).first()) is None:
+            raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment.id} does not exist")
         
-    self.session.add(experiment)
+        prev_workflow = ExperimentWorkFlow.get(prev_workflow_id[0])
 
-    if not persist_session:
-        self.close_session()
+        if experiment.workflow != prev_workflow:
+            workflow = experiment.workflow
+            experiment.workflow = workflow
 
-    return experiment
+            if prev_workflow.flow_cell_type.num_lanes > workflow.flow_cell_type.num_lanes:
+                lanes = experiment.lanes.copy()
+                for lane in lanes:
+                    if lane.number > experiment.flowcell_type.num_lanes:
+                        self.delete_lane(lane.id)
 
+            elif prev_workflow.flow_cell_type.num_lanes < workflow.flow_cell_type.num_lanes:
+                for lane_num in range(workflow.flow_cell_type.num_lanes - prev_workflow.flow_cell_type.num_lanes + 1, workflow.flow_cell_type.num_lanes + 1):
+                    if lane_num in [lane.number for lane in experiment.lanes]:
+                        raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
+                    lane = models.Lane(number=lane_num, experiment_id=experiment.id)
+                    self.db.session.add(lane)
+                
+            if experiment.workflow.combined_lanes:
+                lps = set([(link.lane_id, link.pool_id) for link in experiment.laned_pool_links])
+                for lane in experiment.lanes:
+                    for pool in experiment.pools:
+                        if (lane.id, pool.id) not in lps:
+                            lane = self.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
+            
+        self.db.session.add(experiment)
 
-def query_experiments(
-    self: "DBHandler", word: str,
-    workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
-    limit: int | None = PAGE_LIMIT
-) -> list[models.Experiment]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+        return experiment
 
-    query = self.session.query(models.Experiment)
+    @DBBlueprint.transaction
+    def query(
+        self, word: str,
+        workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
+        limit: int | None = PAGE_LIMIT
+    ) -> list[models.Experiment]:
 
-    if workflow_in is not None:
-        query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
+        query = self.db.session.query(models.Experiment)
 
-    query = query.order_by(
-        sa.func.similarity(models.Experiment.name, word).desc()
-    )
+        if workflow_in is not None:
+            query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
 
-    if limit is not None:
-        query = query.limit(limit)
+        query = query.order_by(
+            sa.func.similarity(models.Experiment.name, word).desc()
+        )
 
-    experiments = query.all()
+        if limit is not None:
+            query = query.limit(limit)
 
-    if not persist_session:
-        self.close_session()
+        experiments = query.all()
 
-    return experiments
+        return experiments
+    
+    @DBBlueprint.transaction
+    def __getitem__(self, key: int | str) -> models.Experiment:
+        if isinstance(key, str):
+            if (experiment := self.get(name=key)) is None:
+                raise exceptions.ElementDoesNotExist(f"Experiment with name '{key}' does not exist")
+        else:
+            if (experiment := self.get(id=key)) is None:
+                raise exceptions.ElementDoesNotExist(f"Experiment with id {key} does not exist")
+        return experiment

@@ -1,264 +1,209 @@
 import math
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 import sqlalchemy as sa
 
 from opengsync_db import models
 
-if TYPE_CHECKING:
-    from ..DBHandler import DBHandler
+
 from .. import exceptions
+from ..DBBlueprint import DBBlueprint
 from ... import PAGE_LIMIT
 from ...categories import UserRole, UserRoleEnum, AffiliationTypeEnum
 
 
-def create_user(
-    self: "DBHandler", email: str,
-    first_name: str,
-    last_name: str,
-    hashed_password: str,
-    role: UserRoleEnum,
-    flush: bool = True
-) -> models.User:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+class UserBP(DBBlueprint):
+    @DBBlueprint.transaction
+    def create(
+        self, email: str,
+        first_name: str,
+        last_name: str,
+        hashed_password: str,
+        role: UserRoleEnum,
+        flush: bool = True
+    ) -> models.User:
+        if self.db.session.query(models.User).where(
+            models.User.email == email
+        ).first() is not None:
+            raise exceptions.NotUniqueValue(f"User with email {email} already exists")
 
-    if self.session.query(models.User).where(
-        models.User.email == email
-    ).first() is not None:
-        raise exceptions.NotUniqueValue(f"User with email {email} already exists")
-
-    user = models.User(
-        email=email.strip(),
-        first_name=first_name.strip(),
-        last_name=last_name.strip(),
-        password=hashed_password,
-        role_id=role.id,
-    )
-    self.session.add(user)
-    
-    if flush:
-        self.flush()
-
-    if not persist_session:
-        self.close_session()
-    return user
-
-
-def get_user(self: "DBHandler", user_id: int) -> models.User | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    res = self.session.get(models.User, user_id)
-
-    if not persist_session:
-        self.close_session()
+        user = models.User(
+            email=email.strip(),
+            first_name=first_name.strip(),
+            last_name=last_name.strip(),
+            password=hashed_password,
+            role_id=role.id,
+        )
+        self.db.session.add(user)
         
-    return res
+        if flush:
+            self.db.flush()
+        return user
 
+    @DBBlueprint.transaction
+    def get(self, user_id: int) -> models.User | None:
+        res = self.db.session.get(models.User, user_id)
+        return res
 
-def get_user_by_email(self: "DBHandler", email: str) -> models.User | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+    @DBBlueprint.transaction
+    def get_with_email(self, email: str) -> models.User | None:
+        user = self.db.session.query(models.User).where(
+            models.User.email == email
+        ).first()
+        return user
 
-    user = self.session.query(models.User).where(
-        models.User.email == email
-    ).first()
+    @DBBlueprint.transaction
+    def find(
+        self, limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        role_in: Optional[list[UserRoleEnum]] = None,
+        sort_by: Optional[str] = None, descending: bool = False,
+        group_id: int | None = None, exclude_group_id: int | None = None,
+        count_pages: bool = False
+    ) -> tuple[list[models.User], int | None]:
+        query = self.db.session.query(models.User)
 
-    if not persist_session:
-        self.close_session()
-    return user
+        if role_in is not None:
+            role_ids = [role.id for role in role_in]
+            query = query.where(
+                models.User.role_id.in_(role_ids)
+            )
 
+        if group_id is not None:
+            query = query.join(
+                models.links.UserAffiliation,
+                models.links.UserAffiliation.user_id == models.User.id
+            ).where(
+                models.links.UserAffiliation.group_id == group_id
+            )
 
-def get_users(
-    self: "DBHandler", limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    role_in: Optional[list[UserRoleEnum]] = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-    group_id: int | None = None, exclude_group_id: int | None = None,
-    count_pages: bool = False
-) -> tuple[list[models.User], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+        if exclude_group_id is not None:
+            query = query.join(
+                models.links.UserAffiliation,
+                models.links.UserAffiliation.user_id == models.User.id
+            ).where(
+                models.links.UserAffiliation.group_id != exclude_group_id
+            )
+            
+        if sort_by is not None:
+            attr = getattr(models.User, sort_by)
+            if descending:
+                attr = attr.desc()
+            query = query.order_by(attr)
 
-    query = self.session.query(models.User)
+        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
-    if role_in is not None:
-        role_ids = [role.id for role in role_in]
-        query = query.where(
-            models.User.role_id.in_(role_ids)
+        if offset is not None:
+            query = query.offset(offset)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        users = query.all()
+
+        return users, n_pages
+
+    @DBBlueprint.transaction
+    def update(self, user: models.User) -> models.User:
+        self.db.session.add(user)
+        return user
+
+    @DBBlueprint.transaction
+    def delete(self, user_id: int, flush: bool = True) -> None:
+        if (user := self.db.session.get(models.User, user_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
+
+        self.db.session.delete(user)
+        if flush:
+            self.db.flush()
+
+    @DBBlueprint.transaction
+    def query(
+        self, word: str, role_in: Optional[list[UserRoleEnum]] = None,
+        only_insiders: bool = False, limit: int | None = PAGE_LIMIT
+    ) -> list[models.User]:
+        query = self.db.session.query(models.User)
+
+        if only_insiders:
+            query = query.where(
+                models.User.role_id != UserRole.CLIENT.id
+            )
+
+        if role_in is not None:
+            query = query.where(
+                models.User.role_id.in_([role.id for role in role_in])
+            )
+
+        query = query.order_by(
+            sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, word).desc()
         )
 
-    if group_id is not None:
-        query = query.join(
-            models.links.UserAffiliation,
-            models.links.UserAffiliation.user_id == models.User.id
-        ).where(
-            models.links.UserAffiliation.group_id == group_id
+        if limit is not None:
+            query = query.limit(limit)
+
+        users = query.all()
+        return users
+
+    @DBBlueprint.transaction
+    def query_with_email(
+        self, word: str, role_in: Optional[list[UserRoleEnum]] = None, limit: int | None = PAGE_LIMIT
+    ) -> list[models.User]:
+        query = self.db.session.query(models.User)
+
+        if role_in is not None:
+            query = query.where(
+                models.User.role_id.in_([role.id for role in role_in])
+            )
+
+        query = query.order_by(
+            sa.func.similarity(models.User.email, word).desc(),
         )
 
-    if exclude_group_id is not None:
-        query = query.join(
-            models.links.UserAffiliation,
-            models.links.UserAffiliation.user_id == models.User.id
-        ).where(
-            models.links.UserAffiliation.group_id != exclude_group_id
-        )
-        
-    if sort_by is not None:
-        attr = getattr(models.User, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
+        if limit is not None:
+            query = query.limit(limit)
 
-    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        users = query.all()
+        return users
 
-    if offset is not None:
-        query = query.offset(offset)
-
-    if limit is not None:
-        query = query.limit(limit)
-
-    users = query.all()
-
-    if not persist_session:
-        self.close_session()
-    return users, n_pages
-
-
-def get_num_users(self: "DBHandler") -> int:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    res = self.session.query(models.User).count()
-    
-    if not persist_session:
-        self.close_session()
-    return res
-
-
-def update_user(
-    self: "DBHandler", user: models.User
-) -> models.User:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    self.session.add(user)
-
-    if not persist_session:
-        self.close_session()
-    return user
-
-
-def delete_user(self: "DBHandler", user_id: int, flush: bool = True) -> None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (user := self.session.get(models.User, user_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
-
-    self.session.delete(user)
-    if flush:
-        self.flush()
-
-    if not persist_session:
-        self.close_session()
-
-
-def query_users(
-    self: "DBHandler", word: str, role_in: Optional[list[UserRoleEnum]] = None,
-    only_insiders: bool = False, limit: int | None = PAGE_LIMIT
-) -> list[models.User]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.User)
-
-    if only_insiders:
-        query = query.where(
-            models.User.role_id != UserRole.CLIENT.id
+    @DBBlueprint.transaction
+    def get_affiliations(
+        self, user_id: int, limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        sort_by: Optional[str] = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None,
+        count_pages: bool = False
+    ) -> tuple[list[models.links.UserAffiliation], int | None]:
+        query = self.db.session.query(models.links.UserAffiliation).where(
+            models.links.UserAffiliation.user_id == user_id
         )
 
-    if role_in is not None:
-        query = query.where(
-            models.User.role_id.in_([role.id for role in role_in])
-        )
+        if affiliation_type is not None:
+            query = query.where(
+                models.links.UserAffiliation.affiliation_type_id == affiliation_type.id
+            )
 
-    query = query.order_by(
-        sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, word).desc()
-    )
+        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
-    if limit is not None:
-        query = query.limit(limit)
+        if sort_by is not None:
+            attr = getattr(models.links.UserAffiliation, sort_by)
+            if descending:
+                attr = attr.desc()
+            query = query.order_by(attr)
 
-    users = query.all()
+        if limit is not None:
+            query = query.limit(limit)
+        if offset is not None:
+            query = query.offset(offset)
 
-    if not persist_session:
-        self.close_session()
+        res = query.all()
+        return res, n_pages
 
-    return users
-
-
-def query_users_by_email(
-    self: "DBHandler", word: str, role_in: Optional[list[UserRoleEnum]] = None, limit: int | None = PAGE_LIMIT
-) -> list[models.User]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.User)
-
-    if role_in is not None:
-        query = query.where(
-            models.User.role_id.in_([role.id for role in role_in])
-        )
-
-    query = query.order_by(
-        sa.func.similarity(models.User.email, word).desc(),
-    )
-
-    if limit is not None:
-        query = query.limit(limit)
-
-    users = query.all()
-
-    if not persist_session:
-        self.close_session()
-
-    return users
-
-
-def get_user_affiliations(
-    self: "DBHandler", user_id: int, limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    sort_by: Optional[str] = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None,
-    count_pages: bool = False
-) -> tuple[list[models.links.UserAffiliation], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.links.UserAffiliation).where(
-        models.links.UserAffiliation.user_id == user_id
-    )
-
-    if affiliation_type is not None:
-        query = query.where(
-            models.links.UserAffiliation.affiliation_type_id == affiliation_type.id
-        )
-
-    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
-
-    if sort_by is not None:
-        attr = getattr(models.links.UserAffiliation, sort_by)
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(attr)
-
-    if limit is not None:
-        query = query.limit(limit)
-    if offset is not None:
-        query = query.offset(offset)
-
-    res = query.all()
-
-    if not persist_session:
-        self.close_session()
-
-    return res, n_pages
+    @DBBlueprint.transaction
+    def __getitem__(self, key: int | str) -> models.User:
+        if isinstance(key, int):
+            if (user := self.get(key)) is None:
+                raise exceptions.ElementDoesNotExist(f"User with id {key} does not exist")
+            return user
+        elif isinstance(key, str):
+            if (user := self.get_with_email(key)) is None:
+                raise exceptions.ElementDoesNotExist(f"User with email {key} does not exist")
+            return user
+        else:
+            raise TypeError(f"Key must be int or str, got {type(key).__name__}")

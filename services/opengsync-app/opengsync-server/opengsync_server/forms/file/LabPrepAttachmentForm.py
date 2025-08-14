@@ -47,7 +47,7 @@ class LabPrepAttachmentForm(FileInputForm):
         self.file.data.save(filepath)
         size_bytes = os.stat(filepath).st_size
 
-        db_file = db.create_file(
+        db_file = db.files.create((
             name=filename,
             type=file_type,
             extension=extension,
@@ -58,7 +58,7 @@ class LabPrepAttachmentForm(FileInputForm):
         )
 
         if self.comment.data and self.comment.data.strip() != "":
-            _ = db.create_comment(
+            _ = db.comments.create_comment((
                 text=self.comment.data,
                 author_id=user.id,
                 file_id=db_file.id,

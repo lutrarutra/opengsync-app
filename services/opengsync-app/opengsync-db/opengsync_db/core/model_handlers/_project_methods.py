@@ -1,69 +1,14 @@
 import math
-from typing import Optional, TYPE_CHECKING, Callable
+from typing import Optional, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
 from sqlalchemy import or_
 
-if TYPE_CHECKING:
-    from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
 from ...categories import ProjectStatus, ProjectStatusEnum
 from .. import exceptions
-
-
-def create_project(
-    self: "DBHandler",
-    title: str, description: str, owner_id: int,
-    identifier: str | None = None,
-    group_id: int | None = None,
-    status: ProjectStatusEnum = ProjectStatus.DRAFT,
-    flush: bool = True
-) -> models.Project:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if group_id is not None:
-        if self.session.get(models.Group, group_id) is not None:
-            raise exceptions.ElementDoesNotExist(f"Group with id {group_id} does not exist")
-
-    project = models.Project(
-        identifier=identifier,
-        title=title.strip(),
-        description=description.strip(),
-        owner_id=owner_id,
-        group_id=group_id,
-        status_id=status.id,
-    )
-
-    self.session.add(project)
-    
-    if flush:
-        self.flush()
-
-    if not persist_session:
-        self.close_session()
-        
-    return project
-
-
-def get_project(self: "DBHandler", project_id: int | None = None, identifier: str | None = None) -> models.Project | None:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if project_id is None and identifier is None:
-        raise ValueError("Either project_id or identifier must be provided")
-    
-    if project_id is not None:
-        res = self.session.get(models.Project, project_id)
-    else:
-        res = self.session.query(models.Project).filter(
-            models.Project.identifier == identifier
-        ).first()
-    
-    if not persist_session:
-        self.close_session()
-    return res
+from ..DBBlueprint import DBBlueprint
 
 
 def where(
@@ -126,120 +71,150 @@ def where(
     return query
 
 
-def get_projects(
-    self: "DBHandler",
-    seq_request_id: int | None = None,
-    experiment_id: int | None = None,
-    group_id: int | None = None,
-    status: Optional[ProjectStatusEnum] = None,
-    status_in: Optional[list[ProjectStatusEnum]] = None,
-    user_id: int | None = None,
-    limit: int | None = PAGE_LIMIT, offset: int | None = None,
-    sort_by: Optional[str] = None, descending: bool = False,
-    count_pages: bool = False,
-    custom_query: Callable[[Query], Query] | None = None,
-) -> tuple[list[models.Project], int | None]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
+class ProjectBP(DBBlueprint):
+    @DBBlueprint.transaction
+    def create(
+        self,
+        title: str, description: str, owner_id: int,
+        identifier: str | None = None,
+        group_id: int | None = None,
+        status: ProjectStatusEnum = ProjectStatus.DRAFT,
+        flush: bool = True
+    ) -> models.Project:
+        if group_id is not None:
+            if self.db.session.get(models.Group, group_id) is not None:
+                raise exceptions.ElementDoesNotExist(f"Group with id {group_id} does not exist")
 
-    query = self.session.query(models.Project)
-    query = where(
-        query, seq_request_id=seq_request_id,
-        group_id=group_id, status=status,
-        status_in=status_in, user_id=user_id, experiment_id=experiment_id,
-        custom_query=custom_query
-    )
-
-    if sort_by is not None:
-        attr = getattr(models.Project, sort_by)
-
-        if descending:
-            attr = attr.desc()
-        query = query.order_by(sa.nulls_last(attr))
-
-    n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
-
-    if offset is not None:
-        query = query.offset(offset)
-
-    if limit is not None:
-        query = query.limit(limit)
-
-    projects = query.all()
-
-    if not persist_session:
-        self.close_session()
-    return projects, n_pages
-
-
-def delete_project(self: "DBHandler", project_id: int, flush: bool = True):
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    if (project := self.session.get(models.Project, project_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
-
-    self.session.delete(project)
-
-    if flush:
-        self.flush()
-
-    if not persist_session:
-        self.close_session()
-
-
-def update_project(self: "DBHandler", project: models.Project) -> models.Project:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    self.session.add(project)
-
-    if not persist_session:
-        self.close_session()
-    return project
-
-
-def query_projects(
-    self: "DBHandler",
-    identifier: str | None = None,
-    title: str | None = None,
-    identifier_title: str | None = None,
-    seq_request_id: int | None = None,
-    group_id: int | None = None,
-    status: Optional[ProjectStatusEnum] = None,
-    status_in: Optional[list[ProjectStatusEnum]] = None,
-    user_id: int | None = None,
-    limit: int | None = PAGE_LIMIT,
-) -> list[models.Project]:
-    if not (persist_session := self._session is not None):
-        self.open_session()
-
-    query = self.session.query(models.Project)
-    query = where(
-        query, seq_request_id=seq_request_id,
-        group_id=group_id, status=status,
-        status_in=status_in, user_id=user_id
-    )
-    
-    if identifier is None and title is None and identifier_title is None:
-        raise ValueError("Either identifier or title must be provided")
-    if identifier is not None:
-        query = query.order_by(sa.nulls_last(sa.func.similarity(models.Project.identifier, identifier).desc()))
-    elif title is not None:
-        query = query.order_by(sa.func.similarity(models.Project.title, title).desc())
-    elif identifier_title is not None:
-        query = query.order_by(
-            sa.nulls_last(sa.func.greatest(
-                sa.func.similarity(models.Project.title, identifier_title),
-                sa.func.similarity(models.Project.identifier, identifier_title)
-            ).desc())
+        project = models.Project(
+            identifier=identifier,
+            title=title.strip(),
+            description=description.strip(),
+            owner_id=owner_id,
+            group_id=group_id,
+            status_id=status.id,
         )
 
-    if limit is not None:
-        query = query.limit(limit)
+        self.db.session.add(project)
+        
+        if flush:
+            self.db.flush()
 
-    res = query.all()
+        return project
+    
+    @DBBlueprint.transaction
+    def get(self, project_id: int | None = None, identifier: str | None = None) -> models.Project | None:
+        if project_id is None and identifier is None:
+            raise ValueError("Either project_id or identifier must be provided")
+        
+        if project_id is not None:
+            res = self.db.session.get(models.Project, project_id)
+        else:
+            res = self.db.session.query(models.Project).filter(models.Project.identifier == identifier).first()
 
-    if not persist_session:
-        self.close_session()
-    return res
+        return res
+    
+    @DBBlueprint.transaction
+    def find(
+        self,
+        seq_request_id: int | None = None,
+        experiment_id: int | None = None,
+        group_id: int | None = None,
+        status: Optional[ProjectStatusEnum] = None,
+        status_in: Optional[list[ProjectStatusEnum]] = None,
+        user_id: int | None = None,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        sort_by: Optional[str] = None, descending: bool = False,
+        count_pages: bool = False,
+        custom_query: Callable[[Query], Query] | None = None,
+    ) -> tuple[list[models.Project], int | None]:
+        query = self.db.session.query(models.Project)
+        query = where(
+            query, seq_request_id=seq_request_id,
+            group_id=group_id, status=status,
+            status_in=status_in, user_id=user_id, experiment_id=experiment_id,
+            custom_query=custom_query
+        )
+
+        if sort_by is not None:
+            attr = getattr(models.Project, sort_by)
+
+            if descending:
+                attr = attr.desc()
+            query = query.order_by(sa.nulls_last(attr))
+
+        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+
+        if offset is not None:
+            query = query.offset(offset)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        projects = query.all()
+
+        return projects, n_pages
+    
+    @DBBlueprint.transaction
+    def delete(self, project_id: int, flush: bool = True):
+        if (project := self.db.session.get(models.Project, project_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
+
+        self.db.session.delete(project)
+
+        if flush:
+            self.db.flush()
+
+    @DBBlueprint.transaction
+    def update(self, project: models.Project) -> models.Project:
+        self.db.session.add(project)
+        return project
+
+    @DBBlueprint.transaction
+    def query(
+        self,
+        identifier: str | None = None,
+        title: str | None = None,
+        identifier_title: str | None = None,
+        seq_request_id: int | None = None,
+        group_id: int | None = None,
+        status: Optional[ProjectStatusEnum] = None,
+        status_in: Optional[list[ProjectStatusEnum]] = None,
+        user_id: int | None = None,
+        limit: int | None = PAGE_LIMIT,
+    ) -> list[models.Project]:
+        query = self.db.session.query(models.Project)
+        query = where(
+            query, seq_request_id=seq_request_id,
+            group_id=group_id, status=status,
+            status_in=status_in, user_id=user_id
+        )
+        
+        if identifier is None and title is None and identifier_title is None:
+            raise ValueError("Either identifier or title must be provided")
+        if identifier is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.Project.identifier, identifier).desc()))
+        elif title is not None:
+            query = query.order_by(sa.func.similarity(models.Project.title, title).desc())
+        elif identifier_title is not None:
+            query = query.order_by(
+                sa.nulls_last(sa.func.greatest(
+                    sa.func.similarity(models.Project.title, identifier_title),
+                    sa.func.similarity(models.Project.identifier, identifier_title)
+                ).desc())
+            )
+        if limit is not None:
+            query = query.limit(limit)
+
+        res = query.all()
+        return res
+
+    @DBBlueprint.transaction
+    def __getitem__(self, id: int | str) -> models.Project:
+        if isinstance(id, str):
+            if (project := self.get(identifier=id)) is None:
+                raise exceptions.ElementDoesNotExist(f"Project with identifier '{id}' does not exist")
+        else:
+            if (project := self.get(project_id=id)) is None:
+                raise exceptions.ElementDoesNotExist(f"Project with id {id} does not exist")
+            
+        return project

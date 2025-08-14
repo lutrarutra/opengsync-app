@@ -20,7 +20,7 @@ class LoginForm(HTMXFlaskForm):
             return False
         
         # invalid email
-        if (user := db.get_user_by_email(self.email.data)) is None:  # type: ignore
+        if (user := db.users.get_with_email(self.email.data)) is None:  # type: ignore
             self.email.errors = ("Invalid email or password.",)
             self.password.errors = ("Invalid email or password.",)
             return False
@@ -37,7 +37,7 @@ class LoginForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        user = db.get_user_by_email(self.email.data)  # type: ignore
+        user = db.users.get_with_email(self.email.data)  # type: ignore
         login_user(user)
 
         flash("Login successful.", "success")

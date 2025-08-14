@@ -55,11 +55,11 @@ class FeatureKitForm(HTMXFlaskForm):
                 return False
         
         if self.form_type == "create":
-            if (_kit := db.get_kit(identifier=self.identifier.data)) is not None:
+            if (_kit := db.kits.get(identifier=self.identifier.data)) is not None:
                 self.identifier.errors = ("Index kit with this identifier already exists.",)
                 return False
             
-            if (_kit := db.get_kit(name=self.name.data)) is not None:
+            if (_kit := db.kits.get(name=self.name.data)) is not None:
                 self.name.errors = ("Index kit with this name already exists.",)
                 return False
         elif self.form_type == "edit":
@@ -67,12 +67,12 @@ class FeatureKitForm(HTMXFlaskForm):
                 logger.error("Index kit is not set.")
                 raise ValueError("Index kit is not set.")
             
-            if (_kit := db.get_kit(identifier=self.identifier.data)) is not None:
+            if (_kit := db.kits.get(identifier=self.identifier.data)) is not None:
                 if _kit.id != self.feature_kit.id:
                     self.identifier.errors = ("Index kit with this identifier already exists.",)
                     return False
             
-            if (_kit := db.get_kit(name=self.name.data)) is not None:
+            if (_kit := db.kits.get(name=self.name.data)) is not None:
                 if _kit.id != self.feature_kit.id:
                     self.name.errors = ("Index kit with this name already exists.",)
                     return False
@@ -93,12 +93,12 @@ class FeatureKitForm(HTMXFlaskForm):
         self.feature_kit.name = self.name.data  # type: ignore
         self.feature_kit.identifier = self.identifier.data  # type: ignore
         self.feature_kit.type_id = self.feature_type_id.data  # type: ignore
-        self.feature_kit = db.update_feature_kit(self.feature_kit)
+        self.feature_kit = db.feature_kits.update(self.feature_kit)
         flash("Index kit updated successfully.", "success")
         return make_response(redirect=url_for("kits_page.feature_kit", feature_kit_id=self.feature_kit.id))
         
     def __create_feature_kit(self) -> Response:
-        feature_kit = db.create_feature_kit(
+        feature_kit = db.feature_kits.create(
             name=self.name.data,  # type: ignore
             identifier=self.identifier.data,  # type: ignore
             type=FeatureType.get(self.feature_type_id.data),

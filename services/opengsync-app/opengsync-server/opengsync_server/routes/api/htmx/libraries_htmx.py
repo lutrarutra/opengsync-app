@@ -42,7 +42,7 @@ def get(current_user: models.User, page: int = 0):
         if len(type_in) == 0:
             type_in = None
     
-    libraries, n_pages = db.get_libraries(
+    libraries, n_pages = db.libraries.find(
         offset=offset,
         user_id=current_user.id if not current_user.is_insider() else None,
         sort_by=sort_by, descending=descending,
@@ -61,7 +61,7 @@ def get(current_user: models.User, page: int = 0):
 
 @wrappers.htmx_route(libraries_htmx, db=db, methods=["POST"])
 def edit(current_user: models.User, library_id: int):
-    if (library := db.get_library(library_id)) is None:
+    if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     if not library.is_editable() and not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -76,9 +76,9 @@ def query(current_user: models.User):
         return abort(HTTPResponse.BAD_REQUEST.id)
 
     if not current_user.is_insider():
-        results = db.query_libraries(name=word, user_id=current_user.id)
+        results = db.libraries.query(name=word, user_id=current_user.id)
     else:
-        results = db.query_libraries(name=word)
+        results = db.libraries.query(name=word)
 
     return make_response(
         render_template(
@@ -90,7 +90,7 @@ def query(current_user: models.User):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_features(current_user: models.User, library_id: int, page: int = 0):
-    if (library := db.get_library(library_id)) is None:
+    if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and library.owner_id != current_user.id:
@@ -101,7 +101,7 @@ def get_features(current_user: models.User, library_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    features, n_pages = db.get_features(offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True)
+    features, n_pages = db.features.get(s(offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -114,13 +114,13 @@ def get_features(current_user: models.User, library_id: int, page: int = 0):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def render_feature_table(current_user: models.User, library_id: int):
-    if (library := db.get_library(library_id)) is None:
+    if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and library.owner_id != current_user.id:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    df = db.get_library_features_df(library_id=library.id)
+    df = db.pd.get_library_features_df(library_id=library.id)
     df = df.drop(columns=["feature_type", "feature_type_id", "feature_kit_id"])
 
     columns = []
@@ -149,7 +149,7 @@ def render_feature_table(current_user: models.User, library_id: int):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_spatial_annotation(current_user: models.User, library_id: int):
-    if (library := db.get_library(library_id)) is None:
+    if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and library.owner_id != current_user.id:
@@ -196,11 +196,11 @@ def table_query(current_user: models.User):
 
     libraries: list[models.Library] = []
     if field_name == "name":
-        libraries = db.query_libraries(name=word, user_id=user_id, status_in=status_in, type_in=type_in)
+        libraries = db.libraries.query(name=word, user_id=user_id, status_in=status_in, type_in=type_in)
     elif field_name == "id":
         try:
             _id = int(word)
-            if (library := db.get_library(_id)) is not None:
+            if (library := db.libraries.get(_id)) is not None:
                 libraries = [library]
                 if user_id is not None:
                     if library.owner_id != user_id:
@@ -212,7 +212,7 @@ def table_query(current_user: models.User):
         except ValueError:
             pass
     elif field_name == "owner_id":
-        libraries = db.query_libraries(owner=word, user_id=user_id, status_in=status_in, type_in=type_in)
+        libraries = db.libraries.query(owner=word, user_id=user_id, status_in=status_in, type_in=type_in)
 
     return make_response(
         render_template(
@@ -225,11 +225,11 @@ def table_query(current_user: models.User):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_samples(current_user: models.User, library_id: int, page: int = 0):
-    if (library := db.get_library(library_id)) is None:
+    if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.get_user_library_access_type(user_id=current_user.id, library_id=library.id)
+        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -238,7 +238,7 @@ def get_samples(current_user: models.User, library_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
     
-    samples, n_pages = db.get_samples(
+    samples, n_pages = db.samples.find(
         offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True
     )
 
@@ -253,11 +253,11 @@ def get_samples(current_user: models.User, library_id: int, page: int = 0):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def reads_tab(current_user: models.User, library_id: int):
-    if (library := db.get_library(library_id)) is None:
+    if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.get_user_library_access_type(user_id=current_user.id, library_id=library.id)
+        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -298,7 +298,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
-            if (experiment := db.get_experiment(experiment_id)) is None:
+            if (experiment := db.experiments.get(experiment_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["experiment_id"] = experiment.id
         except ValueError:
@@ -307,7 +307,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["seq_request_id"] = seq_request.id
         except ValueError:
@@ -316,7 +316,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
     if (pool_id := request.args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
-            if (pool := db.get_pool(pool_id)) is None:
+            if (pool := db.pools.get(pool_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["pool_id"] = pool.id
         except ValueError:
@@ -325,13 +325,13 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
     if (lab_prep_id := request.args.get("lab_prep_id")) is not None:
         try:
             lab_prep_id = int(lab_prep_id)
-            if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+            if (lab_prep := db.lab_preps.get_lab_prep(lab_prep_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["lab_prep"] = lab_prep
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
     
-    libraries, n_pages = db.get_libraries(
+    libraries, n_pages = db.libraries.find(
         sort_by=sort_by, descending=descending, offset=offset,
         seq_request_id=seq_request_id,
         experiment_id=experiment_id,
@@ -374,7 +374,7 @@ def browse_query(current_user: models.User, workflow: str):
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
-            if (experiment := db.get_experiment(experiment_id)) is None:
+            if (experiment := db.experiments.get(experiment_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["experiment_id"] = experiment.id
         except ValueError:
@@ -383,7 +383,7 @@ def browse_query(current_user: models.User, workflow: str):
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["seq_request_id"] = seq_request.id
         except ValueError:
@@ -392,7 +392,7 @@ def browse_query(current_user: models.User, workflow: str):
     if (pool_id := request.args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
-            if (pool := db.get_pool(pool_id)) is None:
+            if (pool := db.pools.get(pool_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["pool_id"] = pool.id
         except ValueError:
@@ -420,14 +420,14 @@ def browse_query(current_user: models.User, workflow: str):
 
     libraries: list[models.Library] = []
     if field_name == "name":
-        libraries = db.query_libraries(
+        libraries = db.libraries.query(
             name=word, status_in=status_in, type_in=type_in, experiment_id=experiment_id,
             seq_request_id=seq_request_id, pool_id=pool_id,
         )
     elif field_name == "id":
         try:
             _id = int(word)
-            if (library := db.get_library(_id)) is not None:
+            if (library := db.libraries.get(_id)) is not None:
                 libraries = [library]
                 if status_in is not None and library.status not in status_in:
                     libraries = []
@@ -439,7 +439,7 @@ def browse_query(current_user: models.User, workflow: str):
         except ValueError:
             pass
     elif field_name == "owner_id":
-        libraries = db.query_libraries(
+        libraries = db.libraries.query(
             owner=word, status_in=status_in, type_in=type_in, experiment_id=experiment_id,
             seq_request_id=seq_request_id, pool_id=pool_id,
         )
@@ -484,7 +484,7 @@ def select_all(current_user: models.User, workflow: str):
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
-            if (experiment := db.get_experiment(experiment_id)) is None:
+            if (experiment := db.experiments.get(experiment_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["experiment"] = experiment
         except ValueError:
@@ -493,7 +493,7 @@ def select_all(current_user: models.User, workflow: str):
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["seq_request"] = seq_request
         except ValueError:
@@ -502,7 +502,7 @@ def select_all(current_user: models.User, workflow: str):
     if (pool_id := request.args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
-            if (pool := db.get_pool(pool_id)) is None:
+            if (pool := db.pools.get(pool_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["pool"] = pool
         except ValueError:
@@ -511,13 +511,13 @@ def select_all(current_user: models.User, workflow: str):
     if (lab_prep_id := request.args.get("lab_prep_id")) is not None:
         try:
             lab_prep_id = int(lab_prep_id)
-            if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+            if (lab_prep := db.lab_preps.get_lab_prep(lab_prep_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["lab_prep"] = lab_prep
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
 
-    libraries, _ = db.get_libraries(
+    libraries, _ = db.libraries.find(
         seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id, limit=None,
         pool_id=pool_id, in_lab_prep=False if workflow == "library_prep" else None,
     )
@@ -528,11 +528,11 @@ def select_all(current_user: models.User, workflow: str):
 
 @wrappers.htmx_route(libraries_htmx, db=db, methods=["DELETE"])
 def remove_sample(current_user: models.User, library_id: int):
-    if (library := db.get_library(library_id)) is None:
+    if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and library.owner_id != current_user.id:
-        affiliation = db.get_user_library_access_type(user_id=current_user.id, library_id=library.id)
+        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -543,10 +543,10 @@ def remove_sample(current_user: models.User, library_id: int):
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (sample := db.get_sample(sample_id)) is None:
+    if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.unlink_sample_library(sample_id=sample.id, library_id=library.id)
+    db.links.unlink_sample_library(sample_id=sample.id, library_id=library.id)
 
     flash("Sample removed from library successfully.", "success")
     return make_response(redirect=url_for("libraries_page.library", library_id=library.id))
@@ -554,11 +554,11 @@ def remove_sample(current_user: models.User, library_id: int):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_mux_table(current_user: models.User, library_id: int):
-    if (library := db.get_library(library_id)) is None:
+    if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.get_user_library_access_type(user_id=current_user.id, library_id=library.id)
+        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -617,7 +617,7 @@ def get_todo_libraries(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    libraries, _ = db.get_libraries(
+    libraries, _ = db.libraries.find(
         status_in=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED],
         limit=512
     )
@@ -652,7 +652,7 @@ def get_assay_type_todo_libraries(current_user: models.User, assay_type_id: int)
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    libraries, _ = db.get_libraries(
+    libraries, _ = db.libraries.find(
         status_in=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED],
         assay_type=assay_type, limit=512
     )

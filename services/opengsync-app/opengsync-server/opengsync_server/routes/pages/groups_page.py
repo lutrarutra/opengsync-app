@@ -16,7 +16,7 @@ def groups(current_user: models.User):
 
 @wrappers.page_route(groups_page_bp, db=db)
 def group(current_user: models.User, group_id: int):
-    if (group := db.get_group(group_id)) is None:
+    if (group := db.groups.get(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     path_list = [
@@ -44,7 +44,7 @@ def group(current_user: models.User, group_id: int):
                 (f"Group {group.id}", ""),
             ]
 
-    affiliation = db.get_group_user_affiliation(user_id=current_user.id, group_id=group_id)
+    affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=group_id)
 
     can_edit = current_user.role == UserRole.ADMIN or (affiliation is not None and affiliation.affiliation_type == AffiliationType.OWNER)
     can_add_users = current_user.is_insider() or (affiliation is not None and affiliation.affiliation_type in (AffiliationType.OWNER, AffiliationType.MANAGER))
