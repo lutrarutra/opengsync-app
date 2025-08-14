@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, KitType
 
-from .... import db, cache
+from .... import db
 from ....core import wrappers
 from .... import forms
 from ....tools.spread_sheet_components import TextColumn
@@ -14,8 +14,8 @@ from ....tools.spread_sheet_components import TextColumn
 feature_kits_htmx = Blueprint("feature_kits_htmx", __name__, url_prefix="/api/hmtx/feature_kits/")
 
 
-@wrappers.htmx_route(feature_kits_htmx, db=db)
-def get(current_user: models.User, page: int = 0):
+@wrappers.htmx_route(feature_kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -39,7 +39,7 @@ def get(current_user: models.User, page: int = 0):
 
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["POST"])
-def query(current_user: models.User):
+def query():
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name, default="")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -158,6 +158,8 @@ def edit_features(current_user: models.User, feature_kit_id: int):
     if request.method == "GET":
         return forms.EditKitFeaturesForm(feature_kit=feature_kit).make_response()
     elif request.method == "POST":
+        import time
+        time.sleep(5)
         form = forms.EditKitFeaturesForm(
             feature_kit=feature_kit,
             formdata=request.form

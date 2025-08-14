@@ -603,7 +603,7 @@ def get_index_kit_barcodes_df(self: "DBHandler", index_kit_id: int, per_adapter:
 
 def get_feature_kit_features_df(self: "DBHandler", feature_kit_id: int) -> pd.DataFrame:
     query = sa.select(
-        models.Feature.id.label("feature_id"), models.Feature.name.label("name"),
+        models.Feature.id.label("feature_id"), models.Feature.name.label("name"), models.Feature.identifier.label("identifier"),
         models.Feature.sequence.label("sequence"), models.Feature.pattern.label("pattern"), models.Feature.read.label("read"),
         models.Feature.type_id.label("type_id"),
         models.Feature.target_name.label("target_name"), models.Feature.target_id.label("target_id"),

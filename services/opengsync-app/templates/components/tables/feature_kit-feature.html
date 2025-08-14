@@ -7,6 +7,7 @@
             <tr>
                 <th scope="col" class="col-1">ID</th>
                 <th scope="col" class="col-2">Name</th>
+                <th scope="col" class="col-2">Identifier</th>
                 <th scope="col" class="col-2">Target Name</th>
                 <th scope="col" class="col-2">Target ID</th>
                 <th scope="col" class="col-2">Sequence</th>
@@ -20,6 +21,7 @@
             <tr>
                 <th scope="row">{{ feature.id }}</th>
                 <td>{{ feature.name }}</td>
+                <td>{{ feature.identifier or '' }}</td>
                 <td>{{ feature.target_name if feature.target_name }}</td>
                 <td>{{ feature.target_id if feature.target_id }}</td>
                 <td>{{ feature.sequence }}</td>

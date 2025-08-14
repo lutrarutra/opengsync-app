@@ -106,6 +106,8 @@ class TextColumn(SpreadSheetColumn):
             raise InvalidCellValue(f"Value for '{self.label}' is too long. Maximum length is {self.max_length}.")
         
         if self.validation_fnc is not None:
+            if self.clean_up_fnc is not None:
+                value = self.clean_up_fnc(value)
             if (error := self.validation_fnc(value)) is not None:
                 raise InvalidCellValue(f"Validation failed for '{self.label}': {error}")
 

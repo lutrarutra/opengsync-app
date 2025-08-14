@@ -26,7 +26,7 @@ class FeatureAnnotationForm(MultiStepForm):
     columns = [
         DropdownColumn("sample_name", "Sample Name", 170, choices=[], required=False),
         TextColumn("kit", "Kit", 170, max_length=64),
-        TextColumn("identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=False),
+        TextColumn("identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=False, unique=True, clean_up_fnc=tools.utils.normalize_to_ascii, validation_fnc=tools.utils.check_string),
         TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length),
         TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length),

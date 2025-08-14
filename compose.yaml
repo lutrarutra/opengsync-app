@@ -4,10 +4,11 @@ services:
         build: ./services/opengsync-app
         restart: always
         command: >
-            sh -c "opengsync-init-db && gunicorn -w 4 --bind 0.0.0.0:${OPENGSYNC_PORT} 'wsgi:create_app(static_folder=\"/usr/src/app/static\", template_folder=\"/usr/src/app/templates\", config_path=\"/usr/src/app/opengsync-server/opengsync.yaml\")'"
+            sh -c "opengsync-init-db && gunicorn -w 4 --bind 0.0.0.0:${OPENGSYNC_PORT} 'wsgi:create_app(static_folder=\"/usr/src/app/static\", template_folder=\"/usr/src/app/templates\", config_path=\"/usr/src/app/opengsync.yaml\")'"
         volumes:
             - ./services/opengsync-app/opengsync-server:/usr/src/app/opengsync-server
             - ./services/opengsync-app/templates:/usr/src/app/templates:ro
+            - ./services/opengsync-app/opengsync.yaml:/usr/src/app/opengsync.yaml:ro
             - ${UPLOADS_DIR}:/usr/src/app/uploads
             - ${DATA_DIR}/media:/usr/src/app/media
             - ${DATA_DIR}/logs/opengsync:/usr/src/app/logs

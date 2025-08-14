@@ -6,7 +6,7 @@ import sqlalchemy as sa
 if TYPE_CHECKING:
     from ..DBHandler import DBHandler
 from ... import models, PAGE_LIMIT
-from ...categories import FeatureTypeEnum, FeatureType
+from ...categories import FeatureTypeEnum
 from .. import exceptions
 
 
@@ -25,24 +25,6 @@ def create_feature(
 ) -> models.Feature:
     if not (persist_session := self._session is not None):
         self.open_session()
-
-    if feature_kit_id is not None:
-        if (kit := self.session.get(models.FeatureKit, feature_kit_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Feature kit with id {feature_kit_id} does not exist")
-        
-        if self.session.query(models.Feature).where(
-            models.Feature.sequence == sequence,
-            models.Feature.pattern == pattern,
-            models.Feature.read == read,
-            models.Feature.feature_kit_id == feature_kit_id
-        ).first():
-            raise exceptions.NotUniqueValue("Duplicate feature definition in kit")
-        if kit.kit_type == FeatureType.CMO:
-            if self.session.query(models.Feature).where(
-                models.Feature.name == name,
-                models.Feature.feature_kit_id == feature_kit_id
-            ).first():
-                raise exceptions.NotUniqueValue("Duplicate names not allowed in CMO kits")
 
     feature = models.Feature(
         identifier=identifier.strip() if identifier else None,

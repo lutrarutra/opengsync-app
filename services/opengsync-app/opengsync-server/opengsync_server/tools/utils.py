@@ -6,6 +6,8 @@ import itertools
 import difflib
 import string
 import inspect
+import unicodedata
+import re
 
 import pandas as pd
 
@@ -491,3 +493,23 @@ def is_browser_friendly(mimetype: str | None) -> bool:
             "application/json",
         }
     )
+
+
+def normalize_to_ascii(text: str) -> str:
+    GREEK_TO_ASCII = {
+        'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z',
+        'η': 'h', 'θ': 'th', 'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm',
+        'ν': 'n', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'ρ': 'r', 'σ': 's',
+        'ς': 's', 'τ': 't', 'υ': 'y', 'φ': 'f', 'χ': 'ch', 'ψ': 'ps',
+        'ω': 'o',
+        'Α': 'A', 'Β': 'B', 'Γ': 'G', 'Δ': 'D', 'Ε': 'E', 'Ζ': 'Z',
+        'Η': 'H', 'Θ': 'Th', 'Ι': 'I', 'Κ': 'K', 'Λ': 'L', 'Μ': 'M',
+        'Ν': 'N', 'Ξ': 'X', 'Ο': 'O', 'Π': 'P', 'Ρ': 'R', 'Σ': 'S',
+        'Τ': 'T', 'Υ': 'Y', 'Φ': 'F', 'Χ': 'Ch', 'Ψ': 'Ps', 'Ω': 'O'
+    }
+    text = "".join(GREEK_TO_ASCII.get(char, char) for char in text)
+    text = unicodedata.normalize("NFKD", text)
+    text = text.encode("ascii", "ignore").decode("ascii")
+    text = re.sub(r'[^a-zA-Z0-9 ]', '', text)
+    text = text.replace(' ', '_')
+    return text

@@ -267,15 +267,16 @@
             }
         });
 
-        $(document).on('click', 'button[hx-post], button[hx-get], button[hx-delete]', function () {
-            const $el = $(this);
-            if ($el.attr('_') && $el.attr('_').includes('htmx:confirm')) {
+        $(document).on('click', 'button[hx-post], button[hx-get], button[hx-delete], .submit-form-btn', function () {
+            if ($(this).attr('_') && $(this).attr('_').includes('htmx:confirm')) {
                 return;
             }
-            if ($el.prop('disabled')) return; // already disabled
-            $el.prop('disabled', true);
-            $el.data('was-disabled', true); // mark that we disabled it
-            document.body.classList.add("waiting");
+            if ($(this).prop('disabled')) return; // already disabled
+            $(this).prop('disabled', true);
+            $(this).data('was-disabled', true); // mark that we disabled it
+            if (!$(document.body).hasClass("waiting")) {
+                document.body.classList.add("waiting");
+            };
         });
 
         // Re-enable after HTMX request completes

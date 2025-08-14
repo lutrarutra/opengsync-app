@@ -9,7 +9,7 @@ if __name__ == "__main__":
     parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--static", type=str, default="/usr/src/app/static")
     parser.add_argument("--templates", type=str, default="/usr/src/app/templates")
-    parser.add_argument("--config", type=str, default="/usr/src/app/opengsync-server/opengsync.yaml")
+    parser.add_argument("--config", type=str, default="/usr/src/app/opengsync.yaml")
     args = parser.parse_args()
 
     app = App(

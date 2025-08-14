@@ -20,7 +20,7 @@ class EditKitFeaturesForm(HTMXFlaskForm):
 
     columns: list[SpreadSheetColumn] = [
         TextColumn("name", "Name", 250, max_length=models.Feature.name.type.length, min_length=3, required=True),
-        TextColumn("identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=False),
+        TextColumn("identifier", "Identifier", 150, max_length=models.Feature.identifier.type.length, required=False, unique=True, clean_up_fnc=utils.normalize_to_ascii, validation_fnc=utils.check_string),
         TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, required=True, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
         TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, required=True, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
         TextColumn("read", "Read", 100, max_length=models.Feature.read.type.length, required=True, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
@@ -33,13 +33,8 @@ class EditKitFeaturesForm(HTMXFlaskForm):
         self.feature_kit = feature_kit
         self._context["feature_kit"] = feature_kit
 
-        if formdata is None:
-            csrf_token = self.csrf_token._value()  # type: ignore
-        else:
-            csrf_token = formdata.get("csrf_token")
-
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=EditKitFeaturesForm.columns, csrf_token=csrf_token,
+            columns=EditKitFeaturesForm.columns, csrf_token=self._csrf_token,
             post_url=url_for("feature_kits_htmx.edit_features", feature_kit_id=feature_kit.id),
             formdata=formdata, df=self.__fill_form(), allow_new_rows=True
         )

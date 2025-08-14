@@ -61,28 +61,28 @@
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
-            data-bs-target="#features-tab" type="button" role="tab"
-            aria-controls="features-tab" aria-selected="true">
-            Features</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#table-tab" type="button" role="tab"
             aria-controls="table-tab" aria-selected="true">
             Table</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#features-tab" type="button" role="tab"
+            aria-controls="features-tab" aria-selected="true">
+            Features</button>
         </li>
     </ul>
 </div>
 
 <div class="page-content pt-2">
     <div class="tab-content">
-        <div class="tab-pane fade show active" id="features-tab" role="tabpanel" tabindex="0">
-            <div hx-get="{{ url_for('feature_kits_htmx.get_features', feature_kit_id=feature_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+        <div class="tab-pane fade show active" id="table-tab" role="tabpanel" tabindex="0">
+            <div hx-get="{{ url_for('feature_kits_htmx.render_table', feature_kit_id=feature_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="table-tab" role="tabpanel" tabindex="1">
-            <div hx-get="{{ url_for('feature_kits_htmx.render_table', feature_kit_id=feature_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+        <div class="tab-pane fade" id="features-tab" role="tabpanel" tabindex="1">
+            <div hx-get="{{ url_for('feature_kits_htmx.get_features', feature_kit_id=feature_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
