@@ -25,3 +25,11 @@ class UserRole(ExtendedEnum[UserRoleEnum], enum_type=UserRoleEnum):
     BIOINFORMATICIAN = UserRoleEnum(2, "Bioinformatician", "👨🏾‍💻", True)
     TECHNICIAN = UserRoleEnum(3, "Technician", "🧑🏽‍🔬", True)
     CLIENT = UserRoleEnum(4, "Client", "👶🏻", False)
+
+    @classmethod
+    def insiders(cls) -> list[UserRoleEnum]:
+        return [
+            cls.ADMIN,
+            cls.BIOINFORMATICIAN,
+            cls.TECHNICIAN
+        ]

@@ -106,9 +106,10 @@ def delete(current_user: models.User, kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (_ := db.get_kit(kit_id)) is None:
+    if (kit := db.get_kit(kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.delete_kit(id=kit_id)
+    db.delete_kit(kit)
+    
     flash("Index kit deleted successfully.", "success")
     return make_response(redirect=url_for("kits_page.kits"))

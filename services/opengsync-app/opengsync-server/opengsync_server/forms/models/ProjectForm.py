@@ -6,7 +6,7 @@ from wtforms import StringField, TextAreaField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import ProjectStatus
+from opengsync_db.categories import ProjectStatus, UserRole
 
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -106,6 +106,21 @@ class ProjectForm(HTMXFlaskForm):
             else:
                 if db.get_group_user_affiliation(user_id=user.id, group_id=group.id) is None:
                     self.group.search_bar.errors = ("You must be part of the group.",)
+                    return False
+                
+        if self.title.data:
+            if user.is_insider():
+                import sqlalchemy as sa
+                if db.session.query(models.Project.title).join(
+                    models.User,
+                    models.User.id == models.Project.owner_id
+                ).where(
+                    sa.and_(
+                        models.Project.id != (self.project.id if self.project else None),
+                        models.Project.title == self.title.data.strip(),
+                    )
+                ).first():
+                    self.title.errors = ("There is already a project with this name.",)
                     return False
         return True
     

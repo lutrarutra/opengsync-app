@@ -1,7 +1,7 @@
 from opengsync_db import DBHandler
 
 from .create_units import (
-    create_user, create_project, create_seq_request, create_sample, create_library,
+    create_user, create_seq_request, create_library,
     create_feature, create_feature_kit
 )  # noqa
 
@@ -53,5 +53,3 @@ def test_library_features_links(db: DBHandler):
     assert len(db.get_features(limit=None)[0]) == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
     db.delete_library(library_3.id)
     assert len(db.get_features(limit=None)[0]) == NUM_KIT_FEATURES
-
-    

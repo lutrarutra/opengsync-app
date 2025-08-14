@@ -6,6 +6,7 @@ from wtforms.validators import Optional as OptionalValidator, Length
 
 from opengsync_db import models
 from opengsync_server.forms.MultiStepForm import StepFile
+from opengsync_db.categories import UserRole
 
 from .... import db, logger  # noqa F401
 from ...SearchBar import OptionalSearchBar
@@ -76,6 +77,20 @@ class ProjectSelectForm(MultiStepForm):
             if self.project_title in [project.title for project in user.projects]:
                 self.new_project.errors = ("You already have a project with this name.",)
                 return False
+            
+        if self.new_project.data:
+            if user.is_insider():
+                import sqlalchemy as sa
+                if db.session.query(models.Project.title).join(
+                    models.User,
+                    models.User.id == models.Project.owner_id
+                ).where(
+                    sa.and_(
+                        models.Project.title == self.new_project.data.strip(),
+                    )
+                ).first():
+                    self.new_project.errors = ("There is already a project with this name.",)
+                    return False
 
         return validated
     

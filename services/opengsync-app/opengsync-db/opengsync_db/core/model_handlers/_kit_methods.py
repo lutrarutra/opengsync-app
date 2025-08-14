@@ -138,12 +138,16 @@ def update_kit(self, kit: models.Kit) -> models.Kit:
     return kit
 
 
-def delete_kit(self: "DBHandler", id: int, flush: bool = True):
+def delete_kit(self: "DBHandler", kit: models.Kit, flush: bool = True):
     if not (persist_session := self._session is not None):
         self.open_session()
 
-    if (kit := self.session.get(models.Kit, id)) is None:
-        raise ValueError(f"Kit with id {id} not found.")
+    self.session.query(models.Feature).where(
+        sa.and_(
+            models.Feature.feature_kit_id == kit.id,
+            ~sa.exists(models.links.LibraryFeatureLink.feature_id == models.Feature.id)
+        )
+    ).delete()
 
     self.session.delete(kit)
 

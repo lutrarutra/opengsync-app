@@ -174,16 +174,17 @@ def delete(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (_ := db.get_feature_kit(feature_kit_id)) is None:
+    if (kit := db.get_feature_kit(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.delete_kit(id=feature_kit_id)
+    db.delete_kit(kit)
+    
     flash("Index kit deleted successfully.", "success")
     return make_response(redirect=url_for("kits_page.feature_kits"))
 
 
 @wrappers.htmx_route(feature_kits_htmx, db=db)
-def render_table(current_user: models.User, feature_kit_id: int):
+def render_table(feature_kit_id: int):
     if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
