@@ -73,9 +73,8 @@ class LaneBP(DBBlueprint):
         return lanes, n_pages
 
     @DBBlueprint.transaction
-    def update(self, lane: models.Lane) -> models.Lane:
+    def update(self, lane: models.Lane):
         self.db.session.add(lane)
-        return lane
 
     @DBBlueprint.transaction
     def delete(self, lane_id: int, flush: bool = True):

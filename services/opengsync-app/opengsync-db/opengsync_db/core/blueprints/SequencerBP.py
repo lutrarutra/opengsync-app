@@ -63,9 +63,8 @@ class SequencerBP(DBBlueprint):
         return count
 
     @DBBlueprint.transaction
-    def update(self, sequencer: models.Sequencer) -> models.Sequencer:
+    def update(self, sequencer: models.Sequencer):
         self.db.session.add(sequencer)
-        return sequencer
 
     @DBBlueprint.transaction
     def get_with_name(self, name: str) -> models.Sequencer | None:

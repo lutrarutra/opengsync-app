@@ -4,7 +4,7 @@ from flask import Blueprint, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT, DBHandler
-from opengsync_db.categories import HTTPResponse, UserRole, SampleStatus
+from opengsync_db.categories import HTTPResponse, UserRole, SampleStatus, AccessType
 
 from .... import db, logger, forms
 from ....core import wrappers
@@ -56,13 +56,13 @@ def delete(current_user: models.User, sample_id: int):
     if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not sample.is_editable():
+    access_type = db.samples.get_access_type(sample, current_user)
+
+    if not sample.is_editable() and access_type < AccessType.INSIDER:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if not current_user.is_insider() and sample.owner_id != current_user.id:
-        affiliation = db.samples.get_access_type(user_id=current_user.id, sample_id=sample.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     db.samples.delete(sample_id)
 
@@ -80,12 +80,15 @@ def delete(current_user: models.User, sample_id: int):
 def edit(current_user: models.User, sample_id: int):
     if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    access_type = db.samples.get_access_type(sample, current_user)
 
-    if not current_user.is_insider() and sample.owner_id != current_user.id:
-        affiliation = db.samples.get_access_type(user_id=current_user.id, sample_id=sample.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
+    if not sample.is_editable() and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
     if request.method == "GET":
         return forms.models.SampleForm(sample).make_response()
     
@@ -216,11 +219,11 @@ def table_query(current_user: models.User):
 def get_libraries(current_user: models.User, sample_id: int):
     if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if not current_user.is_insider() and sample.owner_id != current_user.id:
-        affiliation = db.samples.get_access_type(user_id=current_user.id, sample_id=sample.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+
+    access_type = db.samples.get_access_type(sample, current_user)
+
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     libraries, n_pages = db.libraries.find(
         sample_id=sample_id, count_pages=True

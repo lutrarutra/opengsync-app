@@ -11,63 +11,64 @@ from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 
 
-def where(
-    query: Query,
-    user_id: int | None = None,
-    library_id: int | None = None,
-    experiment_id: int | None = None,
-    lab_prep_id: int | None = None,
-    seq_request_id: int | None = None,
-    associated_to_experiment: Optional[bool] = None,
-    status: Optional[PoolStatusEnum] = None,
-    status_in: Optional[list[PoolStatusEnum]] = None,
-    type_in: Optional[list[PoolTypeEnum]] = None,
-    custom_query: Callable[[Query], Query] | None = None,
-) -> Query:
-    if user_id is not None:
-        query = query.where(
-            models.Pool.owner_id == user_id
-        )
-
-    if library_id is not None:
-        query = query.where(
-            sa.exists().where(
-                (models.Library.pool_id == models.Pool.id) &
-                (models.Library.id == library_id)
-            )
-        )
-
-    if experiment_id is not None:
-        query = query.where(models.Pool.experiment_id == experiment_id)
-
-    if seq_request_id is not None:
-        query = query.where(models.Pool.seq_request_id == seq_request_id)
-
-    if lab_prep_id is not None:
-        query = query.where(models.Pool.lab_prep_id == lab_prep_id)
-
-    if status is not None:
-        query = query.where(models.Pool.status_id == status.id)
-
-    if status_in is not None:
-        query = query.where(models.Pool.status_id.in_([s.id for s in status_in]))
-
-    if type_in is not None:
-        query = query.where(models.Pool.type_id.in_([t.id for t in type_in]))
-
-    if associated_to_experiment is not None:
-        if associated_to_experiment:
-            query = query.where(models.Pool.experiment_id.isnot(None))
-        else:
-            query = query.where(models.Pool.experiment_id.is_(None))
-
-    if custom_query is not None:
-        query = custom_query(query)
-
-    return query
-
-
 class PoolBP(DBBlueprint):
+    @classmethod
+    def where(
+        cls,
+        query: Query,
+        user_id: int | None = None,
+        library_id: int | None = None,
+        experiment_id: int | None = None,
+        lab_prep_id: int | None = None,
+        seq_request_id: int | None = None,
+        associated_to_experiment: Optional[bool] = None,
+        status: Optional[PoolStatusEnum] = None,
+        status_in: Optional[list[PoolStatusEnum]] = None,
+        type_in: Optional[list[PoolTypeEnum]] = None,
+        custom_query: Callable[[Query], Query] | None = None,
+    ) -> Query:
+        if user_id is not None:
+            query = query.where(
+                models.Pool.owner_id == user_id
+            )
+
+        if library_id is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.Library.pool_id == models.Pool.id) &
+                    (models.Library.id == library_id)
+                )
+            )
+
+        if experiment_id is not None:
+            query = query.where(models.Pool.experiment_id == experiment_id)
+
+        if seq_request_id is not None:
+            query = query.where(models.Pool.seq_request_id == seq_request_id)
+
+        if lab_prep_id is not None:
+            query = query.where(models.Pool.lab_prep_id == lab_prep_id)
+
+        if status is not None:
+            query = query.where(models.Pool.status_id == status.id)
+
+        if status_in is not None:
+            query = query.where(models.Pool.status_id.in_([s.id for s in status_in]))
+
+        if type_in is not None:
+            query = query.where(models.Pool.type_id.in_([t.id for t in type_in]))
+
+        if associated_to_experiment is not None:
+            if associated_to_experiment:
+                query = query.where(models.Pool.experiment_id.isnot(None))
+            else:
+                query = query.where(models.Pool.experiment_id.is_(None))
+
+        if custom_query is not None:
+            query = custom_query(query)
+
+        return query
+
     @DBBlueprint.transaction
     def create(
         self, name: str,
@@ -155,7 +156,7 @@ class PoolBP(DBBlueprint):
 
         query = self.db.session.query(models.Pool)
 
-        query = where(
+        query = PoolBP.where(
             query,
             user_id=user_id,
             library_id=library_id,
@@ -197,9 +198,8 @@ class PoolBP(DBBlueprint):
             self.db.flush()
 
     @DBBlueprint.transaction
-    def update(self, pool: models.Pool,) -> models.Pool:
+    def update(self, pool: models.Pool):
         self.db.session.add(pool)
-        return pool
 
     @DBBlueprint.transaction
     def dilute(

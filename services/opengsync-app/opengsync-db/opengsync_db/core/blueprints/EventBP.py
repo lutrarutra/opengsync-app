@@ -71,9 +71,8 @@ class EventBP(DBBlueprint):
         return events, n_pages
 
     @DBBlueprint.transaction
-    def update(self, event: models.Event) -> models.Event:
+    def update(self, event: models.Event):
         self.db.session.add(event)
-        return event
 
     @DBBlueprint.transaction
     def delete(self, event_id: int, flush: bool = True):

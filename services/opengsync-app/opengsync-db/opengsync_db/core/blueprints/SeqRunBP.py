@@ -12,40 +12,41 @@ from ... import models, PAGE_LIMIT
 from ...categories import ReadTypeEnum, RunStatusEnum, ExperimentStatusEnum
 
 
-def where(
-    query: Query,
-    status: Optional[RunStatusEnum] = None,
-    status_in: Optional[list[RunStatusEnum]] = None,
-    experiment_status: Optional[ExperimentStatusEnum] = None,
-    experiment_status_in: Optional[list[ExperimentStatusEnum]] = None,
-    custom_query: Callable[[Query], Query] | None = None,
-) -> Query:
-
-    if status is not None:
-        query = query.where(models.SeqRun.status_id == status.id)
-
-    if status_in is not None:
-        query = query.where(models.SeqRun.status_id.in_([s.id for s in status_in]))
-
-    if experiment_status is not None or experiment_status_in is not None:
-        query = query.join(
-            models.Experiment,
-            models.Experiment.name == models.SeqRun.experiment_name,
-        )
-
-        if experiment_status is not None:
-            query = query.where(models.Experiment.status_id == experiment_status.id)
-            
-        if experiment_status_in is not None:
-            query = query.where(models.Experiment.status_id.in_([s.id for s in experiment_status_in]))
-
-    if custom_query is not None:
-        query = custom_query(query)
-
-    return query
-
-
 class SeqRunBP(DBBlueprint):
+    @classmethod
+    def where(
+        cls,
+        query: Query,
+        status: Optional[RunStatusEnum] = None,
+        status_in: Optional[list[RunStatusEnum]] = None,
+        experiment_status: Optional[ExperimentStatusEnum] = None,
+        experiment_status_in: Optional[list[ExperimentStatusEnum]] = None,
+        custom_query: Callable[[Query], Query] | None = None,
+    ) -> Query:
+
+        if status is not None:
+            query = query.where(models.SeqRun.status_id == status.id)
+
+        if status_in is not None:
+            query = query.where(models.SeqRun.status_id.in_([s.id for s in status_in]))
+
+        if experiment_status is not None or experiment_status_in is not None:
+            query = query.join(
+                models.Experiment,
+                models.Experiment.name == models.SeqRun.experiment_name,
+            )
+
+            if experiment_status is not None:
+                query = query.where(models.Experiment.status_id == experiment_status.id)
+                
+            if experiment_status_in is not None:
+                query = query.where(models.Experiment.status_id.in_([s.id for s in experiment_status_in]))
+
+        if custom_query is not None:
+            query = custom_query(query)
+
+        return query
+
     @DBBlueprint.transaction
     def create(
         self, experiment_name: str, status: RunStatusEnum, instrument_name: str,
@@ -108,7 +109,7 @@ class SeqRunBP(DBBlueprint):
         count_pages: bool = False
     ) -> tuple[list[models.SeqRun], int | None]:
         query = self.db.session.query(models.SeqRun)
-        query = where(
+        query = SeqRunBP.where(
             query,
             status=status,
             status_in=status_in,
@@ -129,11 +130,8 @@ class SeqRunBP(DBBlueprint):
         return seq_runs, n_pages
 
     @DBBlueprint.transaction
-    def update(
-        self, seq_run: models.SeqRun,
-    ) -> models.SeqRun:
+    def update(self, seq_run: models.SeqRun):
         self.db.session.add(seq_run)
-        return seq_run
 
     @DBBlueprint.transaction
     def query(self, word: str, limit: int | None = PAGE_LIMIT) -> list[models.SeqRun]:

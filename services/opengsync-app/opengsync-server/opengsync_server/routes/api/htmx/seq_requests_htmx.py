@@ -10,7 +10,7 @@ import pandas as pd
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import (
     HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType,
-    SampleStatus, SubmissionType, PoolStatus, ProjectStatus
+    SampleStatus, SubmissionType, PoolStatus, ProjectStatus, AccessType
 )
 from opengsync_db.core import exceptions
 
@@ -89,11 +89,8 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
         if (seq_request := db.seq_requests.get(seq_request_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
-        if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-            affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-            if affiliation is None:
-                return abort(HTTPResponse.FORBIDDEN.id)
-        
+        if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+            return abort(HTTPResponse.FORBIDDEN.id)
         return forms.models.SeqRequestForm(form_type=form_type, seq_request=seq_request).make_response()
     
     # seq_request_id must be provided if form_type is "edit"
@@ -108,10 +105,8 @@ def export(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     file_name = f"request_{seq_request_id}.xlsx"
 
@@ -159,11 +154,9 @@ def export(current_user: models.User, seq_request_id: int):
 def export_libraries(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+        
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
         
     file_name = f"libraries_{seq_request.id}.tsv"
     libraries_df = db.pd.get_seq_request_libraries(seq_request_id=seq_request_id, include_indices=True)
@@ -178,11 +171,14 @@ def export_libraries(current_user: models.User, seq_request_id: int):
 def edit(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
 
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.models.SeqRequestForm(form_type="edit", formdata=request.form).process_request(
         seq_request=seq_request, user=current_user
@@ -193,11 +189,14 @@ def edit(current_user: models.User, seq_request_id: int):
 def delete(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
 
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.ADMIN:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     db.seq_requests.delete(seq_request_id)
 
@@ -212,10 +211,10 @@ def archive(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+
+    if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     seq_request.status = SeqRequestStatus.ARCHIVED
     db.seq_requests.update(seq_request)
@@ -254,13 +253,13 @@ def submit_request(current_user: models.User, seq_request_id: int):
     if seq_request.status != SeqRequestStatus.DRAFT:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-    
-        if not seq_request.is_submittable():
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if not seq_request.is_submittable():
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     if request.method == "GET":
         form = forms.SubmitSeqRequestForm(seq_request=seq_request)
@@ -280,11 +279,14 @@ def upload_auth_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-    
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    if seq_request.status == SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
     return forms.SeqAuthForm(
         seq_request=seq_request, formdata=request.form | request.files
     ).process_request(
@@ -297,10 +299,10 @@ def comment_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     if request.method == "GET":
         form = forms.comment.SeqRequestCommentForm(seq_request=seq_request)
@@ -317,10 +319,10 @@ def file_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
         
     if request.method == "GET":
         form = forms.file.SeqRequestAttachmentForm(seq_request=seq_request)
@@ -337,11 +339,14 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
     if (file := db.files.get(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
@@ -366,10 +371,13 @@ def remove_auth_form(current_user: models.User, seq_request_id: int):
     if seq_request.seq_auth_form_file is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
         
     if seq_request.status != SeqRequestStatus.DRAFT:
         if not current_user.is_insider():
@@ -398,10 +406,13 @@ def remove_library(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if not current_user.is_insider():
         if seq_request.status != SeqRequestStatus.DRAFT:
@@ -437,14 +448,13 @@ def remove_sample(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
-    if not current_user.is_insider():
-        if seq_request.status != SeqRequestStatus.DRAFT:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
         
     try:
         sample_id = int(sample_id)
@@ -472,12 +482,12 @@ def remove_all_libraries(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
-    if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider():
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
         return abort(HTTPResponse.FORBIDDEN.id)
 
     for library in seq_request.libraries:
@@ -545,13 +555,11 @@ def table_query(current_user: models.User):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def process_request(current_user: models.User, seq_request_id: int):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-    
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.ProcessRequestForm(formdata=request.form).process_request(
         seq_request=seq_request, user=current_user
@@ -562,11 +570,11 @@ def process_request(current_user: models.User, seq_request_id: int):
 def add_share_email(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.SeqRequestShareEmailForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -581,10 +589,10 @@ def remove_share_email(current_user: models.User, seq_request_id: int, email: st
     if len(seq_request.delivery_email_links) == 1:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    
+    if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
         
     try:
         db.seq_requests.remove_share_email(seq_request_id, email)
@@ -602,10 +610,10 @@ def overview(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     LINK_WIDTH_UNIT = 1
 
@@ -731,10 +739,9 @@ def get_libraries(current_user: models.User, seq_request_id: int, page: int = 0)
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -792,6 +799,11 @@ def get_projects(current_user: models.User, seq_request_id: int, page: int = 0):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
@@ -803,8 +815,8 @@ def get_projects(current_user: models.User, seq_request_id: int, page: int = 0):
             status_in = None
     
     projects, n_pages = db.projects.find(
-        offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending, count_pages=True,
-        status_in=status_in
+        offset=offset, seq_request_id=seq_request_id, sort_by=sort_by,
+        descending=descending, count_pages=True, status_in=status_in
     )
 
     return make_response(
@@ -829,10 +841,10 @@ def query_libraries(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if seq_request.requestor_id != current_user.id and not current_user.is_insider():
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
@@ -885,10 +897,9 @@ def get_samples(current_user: models.User, seq_request_id: int, page: int = 0):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -911,10 +922,9 @@ def get_pools(current_user: models.User, seq_request_id: int, page: int = 0):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -939,10 +949,9 @@ def get_comments(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return make_response(
         render_template(
@@ -957,10 +966,9 @@ def get_files(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return make_response(
         render_template(
@@ -973,14 +981,14 @@ def get_files(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def clone(current_user: models.User, seq_request_id: int, method: Literal["pooled", "indexed", "raw"]):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if method not in {"pooled", "indexed", "raw"}:
         return abort(HTTPResponse.BAD_REQUEST.id)
-
-    if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
 
     cloned_request = db.seq_requests.clone(seq_request_id=seq_request.id, method=method)
 
@@ -990,11 +998,11 @@ def clone(current_user: models.User, seq_request_id: int, method: Literal["poole
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def store_samples(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
-
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        return abort(HTTPResponse.NOT_FOUND.id)
 
     if seq_request.submission_type == SubmissionType.RAW_SAMPLES:
         form: forms.SelectSamplesForm = forms.SelectSamplesForm(

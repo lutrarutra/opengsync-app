@@ -4,7 +4,6 @@ from typing import Optional, Literal, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
-from sqlalchemy.sql.operators import or_
 
 from ... import to_utc
 from ... import models, PAGE_LIMIT
@@ -18,79 +17,79 @@ from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 
 
-def where(
-    query: Query, status: Optional[SeqRequestStatusEnum] = None,
-    status_in: Optional[list[SeqRequestStatusEnum]] = None,
-    submission_type: Optional[SubmissionTypeEnum] = None,
-    submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
-    show_drafts: bool = True, user_id: int | None = None,
-    project_id: int | None = None,
-    group_id: int | None = None,
-    custom_query: Callable[[Query], Query] | None = None,
-) -> Query:
-    if status is not None:
-        query = query.where(
-            models.SeqRequest.status_id == status.id
-        )
-
-    if submission_type is not None:
-        query = query.where(
-            models.SeqRequest.submission_type_id == submission_type.id
-        )
-
-    if user_id is not None:
-        query = query.join(
-            models.links.UserAffiliation,
-            models.links.UserAffiliation.group_id == models.SeqRequest.group_id,
-            isouter=True
-        ).where(
-            or_(
-                models.links.UserAffiliation.user_id == user_id,
-                models.SeqRequest.requestor_id == user_id,
-            )
-        )
-
-    if status_in is not None:
-        status_ids = [status.id for status in status_in]
-        query = query.where(
-            models.SeqRequest.status_id.in_(status_ids)  # type: ignore
-        )
-    
-    if submission_type_in is not None:
-        submission_type_ids = [submission_type.id for submission_type in submission_type_in]
-        query = query.where(
-            models.SeqRequest.submission_type_id.in_(submission_type_ids)  # type: ignore
-        )
-
-    if not show_drafts:
-        query = query.where(
-            or_(
-                models.SeqRequest.status_id != SeqRequestStatus.DRAFT.id,
-                models.SeqRequest.requestor_id == user_id
-            )
-        )
-
-    if group_id is not None:
-        query = query.where(models.SeqRequest.group_id == group_id)
-
-    if project_id is not None:
-        query = query.where(
-            sa.exists().where(
-                (models.Sample.project_id == models.Project.id) &
-                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
-                (models.Library.id == models.links.SampleLibraryLink.library_id) &
-                (models.Library.seq_request_id == models.SeqRequest.id) &
-                (models.Project.id == project_id)
-            )
-        )
-
-    if custom_query is not None:
-        query = custom_query(query)
-
-    return query
-
-
 class SeqRequestBP(DBBlueprint):
+    @classmethod
+    def where(
+        cls,
+        query: Query, status: Optional[SeqRequestStatusEnum] = None,
+        status_in: Optional[list[SeqRequestStatusEnum]] = None,
+        submission_type: Optional[SubmissionTypeEnum] = None,
+        submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
+        show_drafts: bool = True, user_id: int | None = None,
+        project_id: int | None = None,
+        group_id: int | None = None,
+        custom_query: Callable[[Query], Query] | None = None,
+    ) -> Query:
+        if status is not None:
+            query = query.where(
+                models.SeqRequest.status_id == status.id
+            )
+
+        if submission_type is not None:
+            query = query.where(
+                models.SeqRequest.submission_type_id == submission_type.id
+            )
+
+        if user_id is not None:
+            query = query.where(
+                sa.or_(
+                    models.SeqRequest.requestor_id == user_id,
+                    sa.exists().where(
+                        (models.links.UserAffiliation.user_id == user_id) &
+                        (models.links.UserAffiliation.group_id == models.SeqRequest.group_id)
+                    ),
+                )
+            )
+
+        if status_in is not None:
+            status_ids = [status.id for status in status_in]
+            query = query.where(
+                models.SeqRequest.status_id.in_(status_ids)  # type: ignore
+            )
+        
+        if submission_type_in is not None:
+            submission_type_ids = [submission_type.id for submission_type in submission_type_in]
+            query = query.where(
+                models.SeqRequest.submission_type_id.in_(submission_type_ids)  # type: ignore
+            )
+
+        if not show_drafts:
+            query = query.where(
+                sa.or_(
+                    models.SeqRequest.status_id != SeqRequestStatus.DRAFT.id,
+                    models.SeqRequest.requestor_id == user_id
+                )
+            )
+
+        if group_id is not None:
+            query = query.where(models.SeqRequest.group_id == group_id)
+
+        if project_id is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.Sample.project_id == models.Project.id) &
+                    (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                    (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                    (models.Library.seq_request_id == models.SeqRequest.id) &
+                    (models.Project.id == project_id)
+                )
+            )
+
+        if custom_query is not None:
+            query = custom_query(query)
+
+        return query
+
     @DBBlueprint.transaction
     def create(
         self,
@@ -192,7 +191,7 @@ class SeqRequestBP(DBBlueprint):
         count_pages: bool = False,
     ) -> tuple[list[models.SeqRequest], int | None]:
         query = self.db.session.query(models.SeqRequest)
-        query = where(
+        query = SeqRequestBP.where(
             query, status_in=status_in, submission_type_in=submission_type_in, submission_type=submission_type,
             show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status, project_id=project_id,
             custom_query=custom_query
@@ -236,9 +235,8 @@ class SeqRequestBP(DBBlueprint):
         return seq_request
 
     @DBBlueprint.transaction
-    def update(self, seq_request: models.SeqRequest) -> models.SeqRequest:
+    def update(self, seq_request: models.SeqRequest):
         self.db.session.add(seq_request)
-        return seq_request
 
     @DBBlueprint.transaction
     def delete(self, seq_request_id: int, flush: bool = True) -> None:
@@ -272,7 +270,7 @@ class SeqRequestBP(DBBlueprint):
     ) -> list[models.SeqRequest]:
         query = self.db.session.query(models.SeqRequest)
 
-        query = where(query, status_in=status_in, show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status)
+        query = SeqRequestBP.where(query, status_in=status_in, show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status)
 
         if name is not None:
             query = query.order_by(
@@ -397,22 +395,25 @@ class SeqRequestBP(DBBlueprint):
         return seq_request
 
     @DBBlueprint.transaction
-    def get_access_type(self, seq_request_id: int, user_id: int) -> AccessTypeEnum | None:
-        access_type: Optional[AccessTypeEnum] = None
+    def get_access_type(self, seq_request: models.SeqRequest, user: models.User) -> AccessTypeEnum:
+        if user.is_admin():
+            return AccessType.ADMIN
+        if user.is_insider():
+            return AccessType.INSIDER
+        if user == seq_request.requestor:
+            return AccessType.OWNER
 
-        if (seq_request := self.db.session.get(models.SeqRequest, seq_request_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
-        
-        if seq_request.requestor_id == user_id:
-            access_type = AccessType.OWNER
-        elif seq_request.group_id is not None:
-            if self.db.session.query(models.links.UserAffiliation).where(
-                models.links.UserAffiliation.user_id == user_id,
-                models.links.UserAffiliation.group_id == seq_request.group_id
-            ).first() is not None:
-                access_type = AccessType.EDIT
+        has_access: bool = self.db.session.query(
+            sa.exists().where(
+                (models.links.UserAffiliation.user_id == user.id) &
+                (models.links.UserAffiliation.group_id == seq_request.group_id)
+            )
+        ).scalar()
 
-        return access_type
+        if has_access:
+            return AccessType.EDIT
+
+        return AccessType.NONE
 
     @DBBlueprint.transaction
     def clone(self, seq_request_id: int, method: Literal["pooled", "indexed", "raw"]) -> models.SeqRequest:

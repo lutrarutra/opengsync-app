@@ -11,7 +11,7 @@
         </div>
         <div class="page-controls">
             <span
-            {% if not is_editable and not current_user.is_insider() %}
+            {% if not sample.is_editable() and not current_user.is_insider() %}
             {{ tooltip('Sample is not editable after one of its libraries is submitted.') }}
             {% endif %}>
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" 
@@ -22,11 +22,11 @@
                 </button>
             </span>
             <span
-            {% if not is_editable %}
+            {% if not sample.is_editable() %}
             {{ tooltip('Sample is not editable after it is added to library.', category='danger') }}
             {% endif %}>
                 <button class="btn btn-danger"
-                {% if is_editable %}
+                {% if sample.is_editable() %}
                 hx-delete="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" 
                     _="on htmx:confirm(issueRequest)
                     halt the event
@@ -39,7 +39,7 @@
                     })
                     if result.isConfirmed issueRequest()"
                 {% endif %}
-                {% if not is_editable %}disabled{% endif %}>
+                {% if not sample.is_editable() %}disabled{% endif %}>
                     Delete Sample
                 </button>
             </span>

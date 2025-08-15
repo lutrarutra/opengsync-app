@@ -10,62 +10,63 @@ from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 
 
-def where(
-    query: Query, user_id: int | None = None,
-    project_id: int | None = None,
-    library_id: int | None = None,
-    pool_id: int | None = None,
-    seq_request_id: int | None = None,
-    status: Optional[SampleStatusEnum] = None,
-    status_in: Optional[list[SampleStatusEnum]] = None,
-    custom_query: Callable[[Query], Query] | None = None,
-) -> Query:
-    if seq_request_id is not None:
-        query = query.where(
-            sa.exists().where(
-                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
-                (models.Library.id == models.links.SampleLibraryLink.library_id) &
-                (models.Library.seq_request_id == seq_request_id)
-            )
-        )
-
-    if user_id is not None:
-        query = query.where(models.Sample.owner_id == user_id)
-
-    if project_id is not None:
-        query = query.where(models.Sample.project_id == project_id)
-
-    if library_id is not None:
-        query = query.where(
-            sa.exists().where(
-                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
-                (models.Library.id == models.links.SampleLibraryLink.library_id) &
-                (models.Library.id == library_id)
-            )
-        )
-
-    if pool_id is not None:
-        query = query.where(
-            sa.exists().where(
-                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
-                (models.Library.id == models.links.SampleLibraryLink.library_id) &
-                (models.Library.pool_id == pool_id)
-            )
-        )
-
-    if status is not None:
-        query = query.where(models.Sample.status_id == status.id)
-
-    if status_in is not None:
-        query = query.where(models.Sample.status_id.in_([s.id for s in status_in]))
-
-    if custom_query is not None:
-        query = custom_query(query)
-
-    return query
-
-
 class SampleBP(DBBlueprint):
+    @classmethod
+    def where(
+        cls,
+        query: Query, user_id: int | None = None,
+        project_id: int | None = None,
+        library_id: int | None = None,
+        pool_id: int | None = None,
+        seq_request_id: int | None = None,
+        status: Optional[SampleStatusEnum] = None,
+        status_in: Optional[list[SampleStatusEnum]] = None,
+        custom_query: Callable[[Query], Query] | None = None,
+    ) -> Query:
+        if seq_request_id is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                    (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                    (models.Library.seq_request_id == seq_request_id)
+                )
+            )
+
+        if user_id is not None:
+            query = query.where(models.Sample.owner_id == user_id)
+
+        if project_id is not None:
+            query = query.where(models.Sample.project_id == project_id)
+
+        if library_id is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                    (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                    (models.Library.id == library_id)
+                )
+            )
+
+        if pool_id is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                    (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                    (models.Library.pool_id == pool_id)
+                )
+            )
+
+        if status is not None:
+            query = query.where(models.Sample.status_id == status.id)
+
+        if status_in is not None:
+            query = query.where(models.Sample.status_id.in_([s.id for s in status_in]))
+
+        if custom_query is not None:
+            query = custom_query(query)
+
+        return query
+
     @DBBlueprint.transaction
     def create(
         self, name: str, owner_id: int, project_id: int,
@@ -107,7 +108,7 @@ class SampleBP(DBBlueprint):
     ) -> tuple[list[models.Sample], int | None]:
 
         query = self.db.session.query(models.Sample)
-        query = where(
+        query = SampleBP.where(
             query, user_id=user_id, project_id=project_id, library_id=library_id,
             pool_id=pool_id, seq_request_id=seq_request_id, status=status, status_in=status_in,
             custom_query=custom_query
@@ -130,9 +131,8 @@ class SampleBP(DBBlueprint):
         return samples, n_pages
 
     @DBBlueprint.transaction
-    def update(self, sample: models.Sample) -> models.Sample:
+    def update(self, sample: models.Sample):
         self.db.session.add(sample)
-        return sample
 
     @DBBlueprint.transaction
     def delete(self, sample_id: int, flush: bool = True):
@@ -171,7 +171,7 @@ class SampleBP(DBBlueprint):
         limit: int | None = PAGE_LIMIT
     ) -> list[models.Sample]:
         query = self.db.session.query(models.Sample)
-        query = where(
+        query = SampleBP.where(
             query, user_id=user_id, project_id=project_id, library_id=library_id,
             pool_id=pool_id, seq_request_id=seq_request_id, status=status, status_in=status_in
         )
@@ -234,26 +234,29 @@ class SampleBP(DBBlueprint):
         return sample
 
     @DBBlueprint.transaction
-    def get_access_type(self, sample_id: int, user_id: int) -> AccessTypeEnum | None:
-        if (sample := self.db.session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
+    def get_access_type(self, sample: models.Sample, user: models.User) -> AccessTypeEnum:
+        if user.is_admin():
+            return AccessType.ADMIN
+        if user.is_insider():
+            return AccessType.INSIDER
+        if user == sample.owner:
+            return AccessType.OWNER
         
-        access_type: Optional[AccessTypeEnum] = None
+        affiliation_exists: bool = self.db.session.query(
+            sa.exists().where(
+                (models.links.UserAffiliation.user_id == user.id) &
+                (models.SeqRequest.group_id == models.links.UserAffiliation.group_id) &
+                (models.Library.seq_request_id == models.SeqRequest.id) &
+                (models.links.SampleLibraryLink.sample_id == sample.id) &
+                (models.links.SampleLibraryLink.library_id == models.Library.id)
+            )
+        ).scalar()
 
-        if sample.owner_id == user_id:
-            access_type = AccessType.OWNER
-        elif sample.library_links:
-            for link in sample.library_links:
-                if link.library.owner_id == user_id:
-                    access_type = AccessType.EDIT
-                    break
-                elif link.library.seq_request.group_id is not None:
-                    if self.db.groups.get_user_affiliation(user_id, link.library.seq_request.group_id) is not None:
-                        access_type = AccessType.EDIT
-                        break
-        
-        return access_type
-    
+        if affiliation_exists:
+            return AccessType.EDIT
+
+        return AccessType.NONE
+
     @DBBlueprint.transaction
     def is_in_seq_request(
         self, sample_id: int, seq_request_id: int

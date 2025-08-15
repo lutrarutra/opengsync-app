@@ -66,9 +66,8 @@ class FeatureKitBP(DBBlueprint):
         return feature_kits, n_pages
 
     @DBBlueprint.transaction
-    def update(self, feature_kit: models.FeatureKit) -> models.FeatureKit:
+    def update(self, feature_kit: models.FeatureKit):
         self.db.session.add(feature_kit)
-        return feature_kit
 
     @DBBlueprint.transaction
     def delete(self, kit: models.FeatureKit, flush: bool = True):

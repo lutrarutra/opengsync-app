@@ -161,11 +161,8 @@ class LabPrepBP(DBBlueprint):
         return prep_number
 
     @DBBlueprint.transaction
-    def update(
-        self, lab_prep: models.LabPrep
-    ) -> models.LabPrep:
+    def update(self, lab_prep: models.LabPrep):
         self.db.session.add(lab_prep)
-        return lab_prep
 
     @DBBlueprint.transaction
     def add_library(

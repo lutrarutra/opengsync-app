@@ -10,29 +10,30 @@ from ...categories import ExperimentWorkFlowEnum, ExperimentStatusEnum, Experime
 from ..DBBlueprint import DBBlueprint
 
 
-def where(
-    query: Query,
-    status: Optional[ExperimentStatusEnum] = None,
-    status_in: Optional[list[ExperimentStatusEnum]] = None,
-    workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
-    custom_query: Callable[[Query], Query] | None = None,
-) -> Query:
-    if status is not None:
-        query = query.where(models.Experiment.status_id == status.id)
-
-    if status_in is not None:
-        query = query.where(models.Experiment.status_id.in_([s.id for s in status_in]))
-
-    if workflow_in is not None:
-        query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
-
-    if custom_query is not None:
-        query = custom_query(query)
-
-    return query
-
-
 class ExperimentBP(DBBlueprint):
+    @classmethod
+    def where(
+        cls,
+        query: Query,
+        status: Optional[ExperimentStatusEnum] = None,
+        status_in: Optional[list[ExperimentStatusEnum]] = None,
+        workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
+        custom_query: Callable[[Query], Query] | None = None,
+    ) -> Query:
+        if status is not None:
+            query = query.where(models.Experiment.status_id == status.id)
+
+        if status_in is not None:
+            query = query.where(models.Experiment.status_id.in_([s.id for s in status_in]))
+
+        if workflow_in is not None:
+            query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
+
+        if custom_query is not None:
+            query = custom_query(query)
+
+        return query
+    
     @DBBlueprint.transaction
     def create(
         self, name: str, workflow: ExperimentWorkFlowEnum, status: ExperimentStatusEnum,
@@ -93,7 +94,7 @@ class ExperimentBP(DBBlueprint):
     ) -> tuple[list[models.Experiment], int | None]:
 
         query = self.db.session.query(models.Experiment)
-        query = where(
+        query = ExperimentBP.where(
             query,
             status=status,
             status_in=status_in,
@@ -131,7 +132,6 @@ class ExperimentBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def update(self, experiment: models.Experiment):
-
         if (prev_workflow_id := self.db.session.query(models.Experiment.workflow_id).where(
             models.Experiment.id == experiment.id,
         ).first()) is None:

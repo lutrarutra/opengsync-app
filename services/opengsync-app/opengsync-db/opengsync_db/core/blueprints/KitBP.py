@@ -94,9 +94,8 @@ class KitBP(DBBlueprint):
         return res
 
     @DBBlueprint.transaction
-    def update(self, kit: models.Kit) -> models.Kit:
+    def update(self, kit: models.Kit):
         self.db.session.add(kit)
-        return kit
 
     @DBBlueprint.transaction
     def delete(self, kit: models.Kit, flush: bool = True):

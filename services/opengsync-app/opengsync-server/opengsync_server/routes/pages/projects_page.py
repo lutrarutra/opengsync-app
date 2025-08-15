@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, abort, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
+from opengsync_db.categories import HTTPResponse, AccessType
 from ... import db, forms
 from ...core import wrappers
 projects_page_bp = Blueprint("projects_page", __name__)
@@ -17,10 +17,9 @@ def project(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
         ("Projects", url_for("projects_page.projects")),

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, abort, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
+from opengsync_db.categories import HTTPResponse, AccessType
 
 from ... import forms, db
 from ...core import wrappers
@@ -18,10 +18,8 @@ def seq_request(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests[seq_request_id]) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
         ("Requests", url_for("seq_requests_page.seq_requests")),

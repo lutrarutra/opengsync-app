@@ -125,9 +125,8 @@ class IndexKitBP(DBBlueprint):
         return res, n_pages
 
     @DBBlueprint.transaction
-    def update(self, index_kit: models.IndexKit) -> models.IndexKit:
+    def update(self, index_kit: models.IndexKit):
         self.db.session.add(index_kit)
-        return index_kit
 
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.IndexKit:

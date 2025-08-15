@@ -15,82 +15,83 @@ from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 
 
-def where(
-    query: Query,
-    user_id: int | None = None, sample_id: int | None = None,
-    experiment_id: int | None = None, seq_request_id: int | None = None,
-    assay_type: Optional[AssayTypeEnum] = None,
-    pool_id: int | None = None, lab_prep_id: int | None = None,
-    in_lab_prep: Optional[bool] = None,
-    project_id: int | None = None,
-    type_in: Optional[list[LibraryTypeEnum]] = None,
-    status_in: Optional[list[LibraryStatusEnum]] = None,
-    pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
-    custom_query: Callable[[Query], Query] | None = None,
-) -> Query:
-    if user_id is not None:
-        query = query.where(models.Library.owner_id == user_id)
-
-    if seq_request_id is not None:
-        query = query.where(models.Library.seq_request_id == seq_request_id)
-
-    if sample_id is not None:
-        query = query.where(
-            sa.exists().where(
-                (models.links.SampleLibraryLink.sample_id == sample_id) &
-                (models.Library.id == models.links.SampleLibraryLink.library_id)
-            )
-        )
-
-    if project_id is not None:
-        query = query.where(
-            sa.exists().where(
-                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
-                (models.Library.id == models.links.SampleLibraryLink.library_id) &
-                (models.Sample.project_id == project_id)
-            )
-        )
-
-    if experiment_id is not None:
-        query = query.where(models.Library.experiment_id == experiment_id)
-
-    if pooled is not None:
-        if pooled:
-            query = query.where(models.Library.pool_id.is_not(None))
-        else:
-            query = query.where(models.Library.pool_id.is_(None))
-
-    if status is not None:
-        query = query.where(models.Library.status_id == status.id)
-
-    if pool_id is not None:
-        query = query.where(models.Library.pool_id == pool_id)
-
-    if assay_type is not None:
-        query = query.where(models.Library.assay_type_id == assay_type.id)
-
-    if lab_prep_id is not None:
-        query = query.where(models.Library.lab_prep_id == lab_prep_id)
-
-    if in_lab_prep is not None:
-        if in_lab_prep:
-            query = query.where(models.Library.lab_prep_id != None) # noqa
-        else:
-            query = query.where(models.Library.lab_prep_id == None) # noqa
-
-    if type_in is not None:
-        query = query.where(models.Library.type_id.in_([t.id for t in type_in]))
-
-    if status_in is not None:
-        query = query.where(models.Library.status_id.in_([s.id for s in status_in]))
-
-    if custom_query is not None:
-        query = custom_query(query)
-
-    return query
-
-
 class LibraryBP(DBBlueprint):
+    @classmethod
+    def where(
+        cls,
+        query: Query,
+        user_id: int | None = None, sample_id: int | None = None,
+        experiment_id: int | None = None, seq_request_id: int | None = None,
+        assay_type: Optional[AssayTypeEnum] = None,
+        pool_id: int | None = None, lab_prep_id: int | None = None,
+        in_lab_prep: Optional[bool] = None,
+        project_id: int | None = None,
+        type_in: Optional[list[LibraryTypeEnum]] = None,
+        status_in: Optional[list[LibraryStatusEnum]] = None,
+        pooled: Optional[bool] = None, status: Optional[LibraryStatusEnum] = None,
+        custom_query: Callable[[Query], Query] | None = None,
+    ) -> Query:
+        if user_id is not None:
+            query = query.where(models.Library.owner_id == user_id)
+
+        if seq_request_id is not None:
+            query = query.where(models.Library.seq_request_id == seq_request_id)
+
+        if sample_id is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.links.SampleLibraryLink.sample_id == sample_id) &
+                    (models.Library.id == models.links.SampleLibraryLink.library_id)
+                )
+            )
+
+        if project_id is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                    (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                    (models.Sample.project_id == project_id)
+                )
+            )
+
+        if experiment_id is not None:
+            query = query.where(models.Library.experiment_id == experiment_id)
+
+        if pooled is not None:
+            if pooled:
+                query = query.where(models.Library.pool_id.is_not(None))
+            else:
+                query = query.where(models.Library.pool_id.is_(None))
+
+        if status is not None:
+            query = query.where(models.Library.status_id == status.id)
+
+        if pool_id is not None:
+            query = query.where(models.Library.pool_id == pool_id)
+
+        if assay_type is not None:
+            query = query.where(models.Library.assay_type_id == assay_type.id)
+
+        if lab_prep_id is not None:
+            query = query.where(models.Library.lab_prep_id == lab_prep_id)
+
+        if in_lab_prep is not None:
+            if in_lab_prep:
+                query = query.where(models.Library.lab_prep_id != None) # noqa
+            else:
+                query = query.where(models.Library.lab_prep_id == None) # noqa
+
+        if type_in is not None:
+            query = query.where(models.Library.type_id.in_([t.id for t in type_in]))
+
+        if status_in is not None:
+            query = query.where(models.Library.status_id.in_([s.id for s in status_in]))
+
+        if custom_query is not None:
+            query = custom_query(query)
+
+        return query
+
     @DBBlueprint.transaction
     def create(
         self,
@@ -191,7 +192,7 @@ class LibraryBP(DBBlueprint):
     ) -> tuple[list[models.Library], int | None]:
 
         query = self.db.session.query(models.Library)
-        query = where(
+        query = LibraryBP.where(
             query,
             user_id=user_id, sample_id=sample_id, experiment_id=experiment_id,
             seq_request_id=seq_request_id, assay_type=assay_type,
@@ -256,7 +257,6 @@ class LibraryBP(DBBlueprint):
     def update(self, library: models.Library):
         self.db.session.add(library)
 
-    @DBBlueprint.transaction
     def get_number_of_cloned_libraries(self, original_library_id: int) -> int:
         count = self.db.session.query(models.Library).where(
             models.Library.original_library_id == original_library_id
@@ -284,7 +284,7 @@ class LibraryBP(DBBlueprint):
     ) -> list[models.Library]:
         query = self.db.session.query(models.Library)
 
-        query = where(
+        query = LibraryBP.where(
             query,
             user_id=user_id, sample_id=sample_id, experiment_id=experiment_id,
             seq_request_id=seq_request_id, assay_type=assay_type,

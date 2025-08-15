@@ -98,11 +98,8 @@ class FeatureBP(DBBlueprint):
             self.db.flush()
 
     @DBBlueprint.transaction
-    def update(
-        self, feature: models.Feature
-    ) -> models.Feature:
+    def update(self, feature: models.Feature):
         self.db.session.add(feature)
-        return feature
 
     @DBBlueprint.transaction
     def get_from_kit_by_name(

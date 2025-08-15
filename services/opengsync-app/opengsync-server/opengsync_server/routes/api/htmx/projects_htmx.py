@@ -7,7 +7,7 @@ from flask import Blueprint, url_for, render_template, flash, abort, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus, SeqRequestStatus
+from opengsync_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus, SeqRequestStatus, AccessType
 
 from .... import db, forms, logger
 from ....core import wrappers
@@ -116,10 +116,13 @@ def edit(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.projects.get_access_type(project, current_user)
+
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.models.ProjectForm(project=project, formdata=request.form).process_request(
         user=current_user
@@ -131,7 +134,12 @@ def delete(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if project.owner_id != current_user.id and not current_user.is_insider():
+    access_type = db.projects.get_access_type(project, current_user)
+
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
+    if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
         return abort(HTTPResponse.FORBIDDEN.id)
 
     if project.num_samples > 0:
@@ -236,6 +244,10 @@ def table_query(current_user: models.User):
 def get_seq_requests(current_user: models.User, project_id: int, page: int = 0):
     if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     if not current_user.is_insider() and project.owner_id != current_user.id:
         affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
@@ -279,10 +291,9 @@ def get_samples(current_user: models.User, project_id: int, page: int = 0):
     if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -319,10 +330,9 @@ def query_samples(current_user: models.User, project_id: int, field_name: str):
     if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     samples = []
     if field_name == "name":
@@ -350,10 +360,9 @@ def get_sample_attributes(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     df = db.pd.get_project_samples(project_id=project_id).rename(columns={"sample_id": "id", "sample_name": "name"})
 
@@ -381,12 +390,13 @@ def get_sample_attributes(current_user: models.User, project_id: int):
 def edit_sample_attributes(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-
-    if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
     
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
     if request.method == "GET":
         form = forms.SampleAttributeTableForm(project)
         return form.make_response()
@@ -401,8 +411,7 @@ def get_recent_projects(current_user: models.User):
     status_in = None
     if current_user.is_insider():
         status_in = [
-            ProjectStatus.PROCESSING,
-            ProjectStatus.SEQUENCED,
+            ProjectStatus.PROCESSING, ProjectStatus.SEQUENCED,
         ]
 
     projects, _ = db.projects.find(
@@ -422,11 +431,10 @@ def get_software(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     software = project.software or {}
     return make_response(
         render_template(
@@ -442,10 +450,9 @@ def overview(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
         
     df = db.pd.get_project_libraries(project_id=project_id)
 

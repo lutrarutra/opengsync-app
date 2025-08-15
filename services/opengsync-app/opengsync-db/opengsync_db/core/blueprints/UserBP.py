@@ -103,9 +103,8 @@ class UserBP(DBBlueprint):
         return users, n_pages
 
     @DBBlueprint.transaction
-    def update(self, user: models.User) -> models.User:
+    def update(self, user: models.User):
         self.db.session.add(user)
-        return user
 
     @DBBlueprint.transaction
     def delete(self, user_id: int, flush: bool = True) -> None:

@@ -19,11 +19,8 @@ class LinkBP(DBBlueprint):
         return link
 
     @DBBlueprint.transaction
-    def update_sample_library_link(
-        self, link: models.links.SampleLibraryLink,
-    ) -> models.links.SampleLibraryLink:
+    def update_sample_library_link(self, link: models.links.SampleLibraryLink):
         self.db.session.add(link)
-        return link
 
     @DBBlueprint.transaction
     def link_sample_library(
@@ -294,8 +291,6 @@ class LinkBP(DBBlueprint):
         ).first()
         return link
 
-    def update_laned_pool_link(
-        self, link: models.links.LanePoolLink,
-    ) -> models.links.LanePoolLink:
+    @DBBlueprint.transaction
+    def update_laned_pool_link(self, link: models.links.LanePoolLink):
         self.db.session.add(link)
-        return link
