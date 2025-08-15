@@ -23,7 +23,7 @@ def create_user(db: DBHandler) -> models.User:
 
 def create_project(db: DBHandler, user: models.User) -> models.Project:
     _uuid = str(uuid.uuid1())
-    return db.libraries.create_project(
+    return db.projects.create(
         title=_uuid,
         description=_uuid,
         owner_id=user.id,
@@ -107,7 +107,7 @@ def create_feature_kit(
     df: DBHandler,
 ) -> models.FeatureKit:
     _uuid = str(uuid.uuid1())
-    return df.create_feature_kit(
+    return df.feature_kits.create(
         name=_uuid,
         identifier=_uuid[:10],
         type=FeatureType.ANTIBODY
@@ -142,7 +142,7 @@ def create_file(
 ) -> models.File:
     _uuid = str(uuid.uuid1())
 
-    return db.files.create((
+    return db.files.create(
         name=_uuid,
         type=FileType.CUSTOM,
         extension=".txt",
@@ -160,7 +160,7 @@ def create_group(
     user: models.User,
 ) -> models.Group:
     _uuid = str(uuid.uuid1())
-    return db.groups.create_group(
+    return db.groups.create(
         name=_uuid,
         user_id=user.id,
         type=GroupType.COLLABORATION

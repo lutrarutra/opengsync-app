@@ -51,7 +51,7 @@ class SeqAuthForm(HTMXFlaskForm):
 
         filename, extension = os.path.splitext(self.file.data.filename)
 
-        db_file = db.files.create((
+        db_file = db.files.create(
             name=filename,
             type=FileType.SEQ_AUTH_FORM,
             extension=extension,

@@ -103,7 +103,7 @@ def get_features(feature_kit_id: int, page: int = 0):
         return abort(HTTPResponse.BAD_REQUEST.id)
         
     feature_kit = db.feature_kits.get(feature_kit_id)
-    features, n_pages = db.features.get(s(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
+    features, n_pages = db.features.find(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -135,7 +135,7 @@ def create(current_user: models.User):
 def edit(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
-    if (feature_kit := db.feature_kits.get_feature_kit(feature_kit_id)) is None:
+    if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -152,7 +152,7 @@ def edit_features(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (feature_kit := db.feature_kits.get_feature_kit(feature_kit_id)) is None:
+    if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -172,10 +172,10 @@ def delete(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (kit := db.feature_kits.get_feature_kit(feature_kit_id)) is None:
+    if (kit := db.feature_kits.get(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.kits.delete_kit(kit)
+    db.feature_kits.delete(kit)
 
     flash("Index kit deleted successfully.", "success")
     return make_response(redirect=url_for("kits_page.feature_kits"))
@@ -183,10 +183,10 @@ def delete(current_user: models.User, feature_kit_id: int):
 
 @wrappers.htmx_route(feature_kits_htmx, db=db)
 def render_table(feature_kit_id: int):
-    if (feature_kit := db.feature_kits.get_feature_kit(feature_kit_id)) is None:
+    if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    df = db.pd.get_feature_kit_features_df(feature_kit_id=feature_kit.id)
+    df = db.pd.get_feature_kit_features(feature_kit_id=feature_kit.id)
     df = df.drop(columns=["type", "type_id"])
 
     columns = []

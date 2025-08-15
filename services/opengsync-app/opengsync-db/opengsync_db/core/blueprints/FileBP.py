@@ -79,7 +79,8 @@ class FileBP(DBBlueprint):
         uploader_id: int | None = None,
         experiment_id: int | None = None,
         seq_request_id: int | None = None,
-        lab_prep_id: int | None = None
+        lab_prep_id: int | None = None,
+        limit: int | None = None,
     ) -> list[models.File]:
         query = self.db.session.query(models.File)
         if uploader_id:
@@ -91,6 +92,9 @@ class FileBP(DBBlueprint):
         if lab_prep_id is not None:
             query = query.where(models.File.lab_prep_id == lab_prep_id)
 
+        if limit is not None:
+            query = query.limit(limit)
+    
         res = query.all()
 
         return res

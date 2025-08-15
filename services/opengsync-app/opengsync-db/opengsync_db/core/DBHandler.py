@@ -21,32 +21,32 @@ class DBHandler():
         self.__needs_commit = False
         self.auto_open = auto_open
 
-        from .model_handlers._seq_request_methods import SeqRequestBP
-        from .model_handlers._library_methods import LibraryBP
-        from .model_handlers._project_methods import ProjectBP
-        from .model_handlers._experiment_methods import ExperimentBP
-        from .model_handlers._sample_methods import SampleBP
-        from .model_handlers._pool_methods import PoolBP
-        from .model_handlers._user_methods import UserBP
-        from .model_handlers._index_kit_methods import IndexKitBP
-        from .model_handlers._contact_methods import ContactBP
-        from .model_handlers._lane_methods import LaneBP
-        from .model_handlers._feature_methods import FeatureBP
-        from .model_handlers._feature_kit_methods import FeatureKitBP
-        from .model_handlers._sequencer_methods import SequencerBP
-        from .model_handlers._adapter_methods import AdapterBP
-        from .model_handlers._plate_methods import PlateBP
-        from .model_handlers._barcode_methods import BarcodeBP
-        from .model_handlers._lab_prep_methods import LabPrepBP
-        from .model_handlers._kit_methods import KitBP
-        from .model_handlers._link_methods import LinkBP
-        from .model_handlers._file_methods import FileBP
-        from .model_handlers._comment_methods import CommentBP
-        from .model_handlers._seq_run_methods import SeqRunBP
-        from .model_handlers._event_methods import EventBP
-        from .model_handlers._group_methods import GroupBP
-        from .model_handlers._share_methods import ShareBP
-        from .pd_handler import PDBlueprint
+        from .blueprints.SeqRequestBP import SeqRequestBP
+        from .blueprints.LibraryBP import LibraryBP
+        from .blueprints.ProjectBP import ProjectBP
+        from .blueprints.ExperimentBP import ExperimentBP
+        from .blueprints.SampleBP import SampleBP
+        from .blueprints.PoolBP import PoolBP
+        from .blueprints.UserBP import UserBP
+        from .blueprints.IndexKitBP import IndexKitBP
+        from .blueprints.ContactBP import ContactBP
+        from .blueprints.LaneBP import LaneBP
+        from .blueprints.FeatureBP import FeatureBP
+        from .blueprints.FeatureKitBP import FeatureKitBP
+        from .blueprints.SequencerBP import SequencerBP
+        from .blueprints.AdapterBP import AdapterBP
+        from .blueprints.PlateBP import PlateBP
+        from .blueprints.BarcodeBP import BarcodeBP
+        from .blueprints.LabPrepBP import LabPrepBP
+        from .blueprints.KitBP import KitBP
+        from .blueprints.LinkBP import LinkBP
+        from .blueprints.FileBP import FileBP
+        from .blueprints.CommentBP import CommentBP
+        from .blueprints.SeqRunBP import SeqRunBP
+        from .blueprints.EventBP import EventBP
+        from .blueprints.GroupBP import GroupBP
+        from .blueprints.ShareBP import ShareBP
+        from .blueprints.PandasBP import PandasBP
 
         self.seq_requests = SeqRequestBP("seq_requests", self)
         self.libraries = LibraryBP("libraries", self)
@@ -73,7 +73,7 @@ class DBHandler():
         self.events = EventBP("events", self)
         self.groups = GroupBP("groups", self)
         self.shares = ShareBP("shares", self)
-        self.pd = PDBlueprint("pd", self)
+        self.pd = PandasBP("pd", self)
 
     def connect(
         self, user: str, password: str, host: str, db: str = "opengsync_db", port: Union[str, int] = 5432
@@ -180,11 +180,13 @@ class DBHandler():
             return
         self._session = DBHandler.Session(autoflush=autoflush)
 
-    def close_session(self, commit: bool = True, rollback: bool = False) -> None:
+    def close_session(self, commit: bool = True, rollback: bool = False) -> bool:
+        """ returns True if db was modified """
+        modified = False
         if self._session is None:
             self.warn("Session is already closed or was never opened.")
-            return
-       
+            return False
+
         if commit and not rollback:
             if self.__needs_commit or self.session.dirty or self.session.new or self.session.deleted:
                 try:
@@ -193,14 +195,16 @@ class DBHandler():
                     self.error("Commit failed: - rolling back transaction.")
                     self.session.rollback()
                     raise
+                self.__needs_commit = False
+                modified = True
         elif rollback:
             self.info("Rolling back transaction...")
             self.session.rollback()
         else:
             if not commit and self.__needs_commit:
                 self.warn("Session was not committed, but changes were made. This may lead to data loss.")
-
         self._session = DBHandler.Session.remove()
+        return modified
 
     def rollback(self) -> None:
         if self._session is None:

@@ -151,7 +151,7 @@ class LibraryPrepForm(HTMXFlaskForm):
                 
                 if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
                     library.status = LibraryStatus.FAILED
-                    library = db.libraries.update(library)
+                    db.libraries.update(library)
                 
                 if pd.notna(row["lib_conc_ng_ul"]):
                     if (library := db.libraries.get(library_id)) is None:
@@ -159,7 +159,7 @@ class LibraryPrepForm(HTMXFlaskForm):
                         raise ValueError(f"Library {library_id} not found")
                     
                     library.qubit_concentration = float(row["lib_conc_ng_ul"])
-                    library = db.libraries.update(library)
+                    db.libraries.update(library)
                     db.flush()
 
                 well_idx = plate.get_well_idx(row["plate_well"].strip())
@@ -167,7 +167,7 @@ class LibraryPrepForm(HTMXFlaskForm):
             
             self.lab_prep.plates.append(plate)
         
-        self.lab_prep = db.lab_preps.update(self.lab_prep)
+        db.lab_preps.update(self.lab_prep)
 
         if self.lab_prep.prep_file is not None:
             size_bytes = os.path.getsize(path)
@@ -175,7 +175,7 @@ class LibraryPrepForm(HTMXFlaskForm):
             self.lab_prep.prep_file.size_bytes = size_bytes
             self.lab_prep.prep_file.timestamp_utc = to_utc(db.timestamp())
         else:
-            db.files.create((
+            db.files.create(
                 name=f"{self.lab_prep.name}_prep",
                 type=FileType.LIBRARY_PREP_FILE,
                 extension=".xlsx",
@@ -185,7 +185,7 @@ class LibraryPrepForm(HTMXFlaskForm):
                 lab_prep_id=self.lab_prep.id
             )
 
-        self.lab_prep = db.lab_preps.update(self.lab_prep)
+        db.lab_preps.update(self.lab_prep)
 
         flash("Table saved!", "success")
         return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))

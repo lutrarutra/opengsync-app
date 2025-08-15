@@ -178,7 +178,7 @@ def complete(current_user: models.User, lab_prep_id: int):
     
     for pool in lab_prep.pools:
         pool.status = PoolStatus.STORED
-        pool = db.pools.update(pool)
+        db.pools.update(pool)
 
     for library in lab_prep.libraries:
         is_prepared = True
@@ -188,10 +188,10 @@ def complete(current_user: models.User, lab_prep_id: int):
                 break
         if is_prepared:
             library.seq_request.status = SeqRequestStatus.PREPARED
-            library = db.libraries.update(library)
+            db.libraries.update(library)
 
     lab_prep.status = PrepStatus.COMPLETED
-    lab_prep = db.lab_preps.update(lab_prep)
+    db.lab_preps.update(lab_prep)
 
     flash("Lab prep completed!", "success")
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
@@ -223,7 +223,7 @@ def uncomplete(current_user: models.User, lab_prep_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     lab_prep.status = PrepStatus.PREPARING
-    lab_prep = db.lab_preps.update(lab_prep)
+    db.lab_preps.update(lab_prep)
 
     flash("Lab prep completed!", "success")
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
@@ -429,7 +429,7 @@ def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if (file := db.files.get((file_id)) is None:
+    if (file := db.files.get(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if file not in lab_prep.files:
@@ -438,7 +438,7 @@ def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
     file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
-    db.files.delete_file((file_id=file.id)
+    db.files.delete(file_id=file.id)
 
     logger.info(f"Deleted file '{file.name}' from prep (id='{lab_prep_id}')")
     flash(f"Deleted file '{file.name}' from prep.", "success")
@@ -516,7 +516,7 @@ def get_mux_table(current_user: models.User, lab_prep_id: int):
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    df = db.pd.get_lab_prep_samples_df(lab_prep.id)
+    df = db.pd.get_lab_prep_samples(lab_prep.id)
 
     mux_table = {
         "sample_name": [],

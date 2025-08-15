@@ -138,7 +138,7 @@ class CompleteBAReportForm(MultiStepForm):
                 logger.error(f"{self.uuid}: lab_prep_id {lab_prep_id} not found")
                 raise ValueError(f"{self.uuid}: lab_prep_id {lab_prep_id} not found")
 
-        ba_file = db.files.create((
+        ba_file = db.files.create(
             name=filename,
             extension=extension,
             size_bytes=size_bytes,
@@ -161,7 +161,7 @@ class CompleteBAReportForm(MultiStepForm):
             
             sample.avg_fragment_size = sub_form.avg_fragment_size.data
             sample.ba_report = ba_file
-            sample = db.samples.update(sample)
+            db.samples.update(sample)
 
             sample_table.loc[sample_table["id"] == sample.id, "avg_fragment_size"] = sample.avg_fragment_size
 
@@ -173,7 +173,7 @@ class CompleteBAReportForm(MultiStepForm):
             library.avg_fragment_size = sub_form.avg_fragment_size.data
             library.ba_report_id = ba_file.id
                             
-            library = db.libraries.update(library)
+            db.libraries.update(library)
 
             library_table.loc[library_table["id"] == library.id, "avg_fragment_size"] = library.avg_fragment_size
 
@@ -193,17 +193,17 @@ class CompleteBAReportForm(MultiStepForm):
             if pool.status == PoolStatus.ACCEPTED:
                 pool.status = PoolStatus.STORED
 
-            pool = db.pools.update(pool)
+            db.pools.update(pool)
             pool_table.loc[pool_table["id"] == pool.id, "avg_fragment_size"] = pool.avg_fragment_size
 
         for sub_form in self.lane_fields:
-            if (lane := db.lanes.get((sub_form.obj_id.data)) is None:
+            if (lane := db.lanes.get(sub_form.obj_id.data)) is None:
                 logger.error(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
             
             lane.avg_fragment_size = sub_form.avg_fragment_size.data
             lane.ba_report_id = ba_file.id
-            lane = db.lanes.update(lane)
+            db.lanes.update(lane)
 
             lane_table.loc[lane_table["id"] == lane.id, "avg_fragment_size"] = lane.avg_fragment_size
 

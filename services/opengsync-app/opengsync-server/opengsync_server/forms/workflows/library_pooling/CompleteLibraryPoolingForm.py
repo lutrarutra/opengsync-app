@@ -124,7 +124,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
             library.pool_id = None
             library.status = LibraryStatus.POOLED if str(pool).strip().lower() != "x" else LibraryStatus.FAILED
             library.pool_id = None
-            library = db.libraries.update(library)
+            db.libraries.update(library)
             
             if str(pool).strip().lower() != "x":
                 library = db.libraries.add_to_pool(library_id=library.id, pool_id=pools[pool].id)
@@ -189,7 +189,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
 
             if prepared and seq_request.status == SeqRequestStatus.ACCEPTED:
                 seq_request.status = SeqRequestStatus.PREPARED
-                seq_request = db.seq_requests.update(seq_request)
+                db.seq_requests.update(seq_request)
 
         self.complete()
         flash("Library Indexing completed!", "success")

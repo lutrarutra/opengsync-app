@@ -132,12 +132,12 @@ def table_query(current_user: models.User):
         _user_id = None
     
     def __get_samples(
-        session: DBHandler, word: str | int, field_name: str,
+        word: str | int, field_name: str,
         seq_request_id: int | None, project_id: int | None,
     ) -> list[models.Sample]:
         samples: list[models.Sample] = []
         if field_name == "name":
-            samples = session.query_samples(
+            samples = db.samples.query(
                 str(word),
                 project_id=project_id, user_id=_user_id,
                 seq_request_id=seq_request_id
@@ -147,7 +147,7 @@ def table_query(current_user: models.User):
                 _id = int(word)
             except ValueError:
                 return []
-            if (sample := session.get_sample(_id)) is not None:
+            if (sample := db.samples.get(_id)) is not None:
                 samples = [sample]
                 if _user_id is not None:
                     if sample.owner_id == _user_id:
@@ -160,7 +160,7 @@ def table_query(current_user: models.User):
                         samples = []
                 
                 if seq_request_id is not None:
-                    if session.is_sample_in_seq_request(sample.id, seq_request_id):
+                    if db.samples.is_in_seq_request(sample.id, seq_request_id):
                         samples = [sample]
                     else:
                         samples = []
@@ -182,7 +182,7 @@ def table_query(current_user: models.User):
         if (project := db.projects.get(project_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
             
-        samples = __get_samples(db, word, field_name, project_id=project_id, seq_request_id=None)
+        samples = __get_samples(word, field_name, project_id=project_id, seq_request_id=None)
         context["project"] = project
     
     elif (seq_request_id := request.args.get("seq_request_id", None)) is not None:
@@ -195,11 +195,11 @@ def table_query(current_user: models.User):
         if (seq_request := db.seq_requests.get(seq_request_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
-        samples = __get_samples(db, word, field_name, project_id=None, seq_request_id=seq_request_id)
+        samples = __get_samples(word, field_name, project_id=None, seq_request_id=seq_request_id)
         context["seq_request"] = seq_request
     else:
         template = "components/tables/sample.html"
-        samples = __get_samples(db, word, field_name, project_id=None, seq_request_id=None)
+        samples = __get_samples(word, field_name, project_id=None, seq_request_id=None)
 
     return make_response(
         render_template(

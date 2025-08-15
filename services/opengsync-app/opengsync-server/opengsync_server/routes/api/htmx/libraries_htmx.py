@@ -101,7 +101,7 @@ def get_features(current_user: models.User, library_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    features, n_pages = db.features.get(s(offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True)
+    features, n_pages = db.features.find(offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -120,7 +120,7 @@ def render_feature_table(current_user: models.User, library_id: int):
     if not current_user.is_insider() and library.owner_id != current_user.id:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    df = db.pd.get_library_features_df(library_id=library.id)
+    df = db.pd.get_library_features(library_id=library.id)
     df = df.drop(columns=["feature_type", "feature_type_id", "feature_kit_id"])
 
     columns = []
@@ -325,7 +325,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
     if (lab_prep_id := request.args.get("lab_prep_id")) is not None:
         try:
             lab_prep_id = int(lab_prep_id)
-            if (lab_prep := db.lab_preps.get_lab_prep(lab_prep_id)) is None:
+            if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["lab_prep"] = lab_prep
         except ValueError:
@@ -511,7 +511,7 @@ def select_all(current_user: models.User, workflow: str):
     if (lab_prep_id := request.args.get("lab_prep_id")) is not None:
         try:
             lab_prep_id = int(lab_prep_id)
-            if (lab_prep := db.lab_preps.get_lab_prep(lab_prep_id)) is None:
+            if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["lab_prep"] = lab_prep
         except ValueError:

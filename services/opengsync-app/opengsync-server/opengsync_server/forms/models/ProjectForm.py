@@ -125,7 +125,7 @@ class ProjectForm(HTMXFlaskForm):
         return True
     
     def __create_new_project(self, user_id: int) -> Response:
-        project = db.libraries.create_project(
+        project = db.projects.create(
             identifier=self.identifier.data,
             title=self.title.data,  # type: ignore
             description=self.description.data,  # type: ignore
@@ -151,7 +151,7 @@ class ProjectForm(HTMXFlaskForm):
         self.project.status = ProjectStatus.get(self.status.data)
         self.project.group_id = self.group.selected.data
 
-        self.project = db.projects.update(project=self.project)
+        db.projects.update(project=self.project)
 
         flash(f"Updated project {self.project.title}.", "success")
 

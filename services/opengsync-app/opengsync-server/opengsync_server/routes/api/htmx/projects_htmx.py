@@ -16,7 +16,7 @@ from ....tools.spread_sheet_components import TextColumn
 projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/hmtx/projects/")
 
 
-@wrappers.htmx_route(projects_htmx, db=db)
+@wrappers.htmx_route(projects_htmx, db=db, cache_timeout_seconds=360, cache_type="insider")
 def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -156,7 +156,7 @@ def complete(current_user: models.User, project_id: int):
             return make_response(redirect=url_for("projects_page.project", project_id=project_id))
             
     project.status = ProjectStatus.DELIVERED
-    project = db.projects.update(project)
+    db.projects.update(project)
     return make_response(redirect=url_for("projects_page.project", project_id=project.id))
 
 

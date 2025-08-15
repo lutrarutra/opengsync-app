@@ -85,11 +85,11 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
             else:
                 loaded = False
 
-            lane = db.lanes.update(lane)
+            db.lanes.update(lane)
 
         if loaded:
             self.experiment.status = ExperimentStatus.LOADED
-            self.experiment = db.experiments.update(self.experiment)
+            db.experiments.update(self.experiment)
 
         flash("Saved!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
@@ -166,7 +166,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
         for i, (_, row) in enumerate(df.iterrows()):
             entry = self.input_fields[i]
             
-            if (lane := db.lanes.get((entry.lane_id.data)) is None:
+            if (lane := db.lanes.get(entry.lane_id.data)) is None:
                 raise ValueError(f"Lane with id {row['id']} not found")
             
             lane.target_molarity = entry.target_molarity.data
@@ -175,13 +175,13 @@ class LoadFlowCellForm(HTMXFlaskForm):
             lane.phi_x = entry.phi_x.data
             if (lane.total_volume_ul is not None) and (lane.target_molarity is not None) and (lane.original_molarity is not None):
                 lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane.original_molarity  # type: ignore
-            lane = db.lanes.update(lane)
+            db.lanes.update(lane)
             all_lanes_loaded = all_lanes_loaded and lane.is_loaded()
             logger.debug(f"Lane {lane.id} loaded: {lane.is_loaded()}")
 
         if all_lanes_loaded:
             self.experiment.status = ExperimentStatus.LOADED
-            self.experiment = db.experiments.update(self.experiment)
+            db.experiments.update(self.experiment)
 
         flash("Saved!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

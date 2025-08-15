@@ -93,7 +93,7 @@ class IndexKitForm(HTMXFlaskForm):
         self.index_kit.name = self.name.data  # type: ignore
         self.index_kit.identifier = self.identifier.data  # type: ignore
         self.index_kit.type_id = self.index_type_id.data  # type: ignore
-        self.index_kit = db.index_kits.update(self.index_kit)
+        db.index_kits.update(self.index_kit)
         flash("Index kit updated successfully.", "success")
         return make_response(redirect=url_for("kits_page.index_kit", index_kit_id=self.index_kit.id))
         

@@ -13,7 +13,7 @@ db_name = os.environ["POSTGRES_DB"]
 
 @pytest.fixture(scope="session")  # type: ignore
 def _db():
-    db = DBHandler()
+    db = DBHandler(auto_open=False, expire_on_commit=True)
     db.connect(user=db_user, password=db_password, host=db_host, port=db_port, db=db_name)
     Base.metadata.drop_all(db._engine)
     db.create_tables()

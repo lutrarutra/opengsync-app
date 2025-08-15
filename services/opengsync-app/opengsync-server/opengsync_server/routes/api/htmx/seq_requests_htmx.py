@@ -218,7 +218,7 @@ def archive(current_user: models.User, seq_request_id: int):
             return abort(HTTPResponse.FORBIDDEN.id)
     
     seq_request.status = SeqRequestStatus.ARCHIVED
-    seq_request = db.seq_requests.update(seq_request)
+    db.seq_requests.update(seq_request)
     flash(f"Archived sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Archived sequencing request '{seq_request.name}'")
     return make_response(
@@ -236,7 +236,7 @@ def unarchive(current_user: models.User, seq_request_id: int):
     
     seq_request.status = SeqRequestStatus.DRAFT
     seq_request.timestamp_submitted_utc = None
-    seq_request = db.seq_requests.update(seq_request)
+    db.seq_requests.update(seq_request)
 
     flash(f"Unarchived sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Unarchived sequencing request '{seq_request.name}'")
@@ -342,7 +342,7 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (file := db.files.get((file_id)) is None:
+    if (file := db.files.get(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if file not in seq_request.files:
@@ -351,7 +351,7 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
     file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
-    db.files.delete_file((file_id=file.id)
+    db.files.delete(file_id=file.id)
 
     logger.info(f"Deleted file '{file.name}' from request (id='{seq_request_id}')")
     flash(f"Deleted file '{file.name}' from request.", "success")
@@ -367,7 +367,7 @@ def remove_auth_form(current_user: models.User, seq_request_id: int):
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
@@ -380,7 +380,7 @@ def remove_auth_form(current_user: models.User, seq_request_id: int):
     filepath = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(filepath):
         os.remove(filepath)
-    db.files.delete_file((file_id=file.id)
+    db.files.delete(file_id=file.id)
 
     flash("Authorization form removed!", "success")
     logger.debug(f"Removed sequencing authorization form for sequencing request '{seq_request.name}'")
@@ -399,7 +399,7 @@ def remove_library(current_user: models.User, seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -438,7 +438,7 @@ def remove_sample(current_user: models.User, seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -473,7 +473,7 @@ def remove_all_libraries(current_user: models.User, seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
@@ -549,7 +549,7 @@ def process_request(current_user: models.User, seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -564,7 +564,7 @@ def add_share_email(current_user: models.User, seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -582,7 +582,7 @@ def remove_share_email(current_user: models.User, seq_request_id: int, email: st
         return abort(HTTPResponse.FORBIDDEN.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
         
@@ -603,7 +603,7 @@ def overview(current_user: models.User, seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -732,7 +732,7 @@ def get_libraries(current_user: models.User, seq_request_id: int, page: int = 0)
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -830,7 +830,7 @@ def query_libraries(current_user: models.User, seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if seq_request.requestor_id != current_user.id and not current_user.is_insider():
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -886,7 +886,7 @@ def get_samples(current_user: models.User, seq_request_id: int, page: int = 0):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -912,7 +912,7 @@ def get_pools(current_user: models.User, seq_request_id: int, page: int = 0):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
     
@@ -940,7 +940,7 @@ def get_comments(current_user: models.User, seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 
@@ -958,7 +958,7 @@ def get_files(current_user: models.User, seq_request_id: int):
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_group_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
+        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 

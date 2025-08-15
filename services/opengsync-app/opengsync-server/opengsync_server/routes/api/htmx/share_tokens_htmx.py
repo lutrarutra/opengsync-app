@@ -2,14 +2,13 @@ from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, UserRole
-from .... import db, logger
+from .... import db
 from ....core import wrappers
 
 share_tokens_htmx = Blueprint("share_tokens_htmx", __name__, url_prefix="/api/hmtx/share_tokens/")
 
 
-@wrappers.htmx_route(share_tokens_htmx, db=db)
+@wrappers.htmx_route(share_tokens_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "created_utc")
     sort_order = request.args.get("sort_order", "desc")

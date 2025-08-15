@@ -66,7 +66,7 @@ def select(current_user: models.User):
             if library_link.library.seq_request.status == SeqRequestStatus.ACCEPTED:
                 if library_link.library.seq_request.id not in check_request_ids:
                     check_request_ids.append(library_link.library.seq_request.id)
-        sample = db.samples.update(sample)
+        db.samples.update(sample)
 
     for i, row in form.library_table.iterrows():
         if (library := db.libraries.get(row["id"])) is None:
@@ -82,7 +82,7 @@ def select(current_user: models.User):
             library.status = LibraryStatus.STORED
         
         library.timestamp_stored_utc = datetime.now()
-        library = db.libraries.update(library)
+        db.libraries.update(library)
 
     for i, row in form.pool_table.iterrows():
         if (pool := db.pools.get(row["id"])) is None:
@@ -94,7 +94,7 @@ def select(current_user: models.User):
 
         pool.status = PoolStatus.STORED
         pool.timestamp_stored_utc = datetime.now()
-        pool = db.pools.update(pool)
+        db.pools.update(pool)
 
     for _srid in check_request_ids:
         if (seq_request := db.seq_requests.get(_srid)) is None:
@@ -109,7 +109,7 @@ def select(current_user: models.User):
                     break
             if all_samples_stored:
                 seq_request.status = SeqRequestStatus.SAMPLES_RECEIVED
-                seq_request = db.seq_requests.update(seq_request)
+                db.seq_requests.update(seq_request)
 
         elif seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
             all_pools_stored = True
@@ -119,7 +119,7 @@ def select(current_user: models.User):
                     break
             if all_pools_stored:
                 seq_request.status = SeqRequestStatus.PREPARED
-                seq_request = db.seq_requests.update(seq_request)
+                db.seq_requests.update(seq_request)
 
         elif seq_request.submission_type == SubmissionType.UNPOOLED_LIBRARIES:
             all_libraries_stored = True
@@ -129,7 +129,7 @@ def select(current_user: models.User):
                     break
             if all_libraries_stored:
                 seq_request.status = SeqRequestStatus.SAMPLES_RECEIVED
-                seq_request = db.seq_requests.update(seq_request)
+                db.seq_requests.update(seq_request)
 
     flash("Samples Stored!", "success")
     if seq_request is not None:

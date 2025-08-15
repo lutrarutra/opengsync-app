@@ -71,12 +71,9 @@ class FeatureKitBP(DBBlueprint):
         return feature_kit
 
     @DBBlueprint.transaction
-    def delete(self, feature_kit_id: int, flush: bool = True):
-        if (feature_kit := self.db.session.get(models.FeatureKit, feature_kit_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Feature kit with id '{feature_kit_id}', not found.")
-        
-        self.db.session.delete(feature_kit)
-        self.delete_orphan_features()
+    def delete(self, kit: models.FeatureKit, flush: bool = True):
+        self.db.session.delete(kit)
+        self.db.features.delete_orphan()
 
         if flush:
             self.db.flush()

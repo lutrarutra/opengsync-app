@@ -164,7 +164,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                     pool.status = PoolStatus.SEQUENCED
                     for library in pool.libraries:
                         library.status = LibraryStatus.SEQUENCED
-            run = db.seq_runs.update(run)
+            db.seq_runs.update(run)
             active_runs[run.experiment_name] = run
             logs.append(f"Archived: {run.experiment_name} ({run.run_folder})")
     
@@ -188,7 +188,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 if status > run.status:
                     logs.append(f"Updating run folder name to {run_name}.")
                     run.run_folder = run_name
-                    run = db.seq_runs.update(run)
+                    db.seq_runs.update(run)
                     parsed_data = parse_run_folder(run_folder)
                 else:
                     logs.append("Skipping update due to lower status.")
@@ -225,7 +225,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             for key, value in metrics.items():
                 run.set_quantity(key, value)
 
-            run = db.seq_runs.update(run)
+            db.seq_runs.update(run)
             active_runs[experiment_name] = run
             logs.append("Updated!")
         else:
@@ -234,7 +234,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             # If for some reason the run is Archived while the data is still in the run folder
             if (seq_run := db.seq_runs.get(experiment_name=experiment_name)) is not None:
                 seq_run.status = status
-                seq_run = db.seq_runs.update(seq_run)
+                db.seq_runs.update(seq_run)
                 continue
                     
             run = db.seq_runs.create(
@@ -263,7 +263,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.SEQUENCING
             
-            run = db.seq_runs.update(run)
+            db.seq_runs.update(run)
 
             active_runs[experiment_name] = run
             logs.append("Added!")

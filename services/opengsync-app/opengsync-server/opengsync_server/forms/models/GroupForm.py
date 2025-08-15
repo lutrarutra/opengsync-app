@@ -65,7 +65,7 @@ class GroupForm(HTMXFlaskForm):
         group.name = self.name.data  # type: ignore
         group.type = GroupType.get(self.group_type.data)
 
-        group = db.groups.update(group)
+        db.groups.update(group)
 
         logger.debug(f"Updated group {group.name}.")
         flash(f"Updated group {group.name}.", "success")

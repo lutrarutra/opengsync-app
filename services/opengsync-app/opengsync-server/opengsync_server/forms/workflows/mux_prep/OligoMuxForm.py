@@ -114,7 +114,7 @@ class OligoMuxForm(MultiStepForm):
                 elif duplicate_kit_feature.at[idx]:
                     self.spreadsheet.add_error(idx, "feature", DuplicateCellValue("Duplicate 'Kit' + 'Feature' specified in same pool."))
                 else:
-                    if len(features := db.features.get(s_from_kit_by_feature_name(row["feature"], kit.id)) == 0:
+                    if len(features := db.features.get_from_kit_by_name(row["feature"], kit.id)) == 0:
                         self.spreadsheet.add_error(idx, "feature", InvalidCellValue(f"Feature '{row['feature']}' not found in '{kit.name}'."))
                     else:
                         feature = features[0]
@@ -200,7 +200,7 @@ class OligoMuxForm(MultiStepForm):
                 },
             )
             new_library.features = old_library.features
-            new_library = db.libraries.update(new_library)
+            db.libraries.update(new_library)
 
         for old_library_id in old_libraries:
             db.libraries.delete(old_library_id, delete_orphan_samples=False)

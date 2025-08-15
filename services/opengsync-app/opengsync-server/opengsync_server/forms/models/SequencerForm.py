@@ -75,7 +75,7 @@ class SequencerForm(HTMXFlaskForm):
         sequencer.name = self.name.data  # type: ignore
         sequencer.ip = self.ip_address.data
         sequencer.model = SequencerModel.get(self.model.data)
-        sequencer = db.sequencers.update(sequencer)
+        db.sequencers.update(sequencer)
 
         flash("Sequencer updated.", "success")
         return make_response(redirect=url_for("devices_page.sequencer", sequencer_id=sequencer.id))

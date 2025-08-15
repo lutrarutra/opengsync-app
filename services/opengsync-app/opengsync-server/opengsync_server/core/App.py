@@ -160,7 +160,7 @@ class App(Flask):
         def help():
             return render_template("help.html")
         
-        @wrappers.page_route(self, db=db, route="/", cache_timeout_seconds=30, cache_type="user")
+        @wrappers.page_route(self, db=db, route="/", cache_timeout_seconds=360, cache_type="user")
         def dashboard(current_user: models.User):
             if not current_user.is_authenticated:
                 return redirect(url_for("auth_page.auth", next=url_for("dashboard")))
@@ -171,11 +171,11 @@ class App(Flask):
 
         @wrappers.page_route(self, db=db, cache_timeout_seconds=60, cache_type="user")
         def pdf_file(file_id: int, current_user: models.User):
-            if (file := db.files.get((file_id)) is None:
+            if (file := db.files.get(file_id)) is None:
                 return abort(categories.HTTPResponse.NOT_FOUND.id)
             
             if file.uploader_id != current_user.id and not current_user.is_insider():
-                if not db.files.file_permissions_check((user_id=current_user.id, file_id=file_id):
+                if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
                     return abort(categories.HTTPResponse.FORBIDDEN.id)
             
             if file.extension != ".pdf":
@@ -195,12 +195,12 @@ class App(Flask):
             return response
         
         @wrappers.page_route(self, db=db, cache_timeout_seconds=60, cache_type="user")
-        def img_file(file_id: int, current_user: models.User):
-            if (file := db.files.get_file((file_id)) is None:
+        def img_file(current_user: models.User, file_id: int):
+            if (file := db.files.get(file_id)) is None:
                 return abort(categories.HTTPResponse.NOT_FOUND.id)
             
             if file.uploader_id != current_user.id and not current_user.is_insider():
-                if not db.files.file_permissions_check((user_id=current_user.id, file_id=file_id):
+                if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
                     return abort(categories.HTTPResponse.FORBIDDEN.id)
             
             if file.extension not in [".png", ".jpg", ".jpeg"]:
@@ -221,11 +221,11 @@ class App(Flask):
         
         @wrappers.page_route(self, db=db, cache_timeout_seconds=60, cache_type="user")
         def download_file(file_id: int, current_user: models.User):
-            if (file := db.files.get_file((file_id)) is None:
+            if (file := db.files.get(file_id)) is None:
                 return abort(categories.HTTPResponse.NOT_FOUND.id)
             
             if file.uploader_id != current_user.id and not current_user.is_insider():
-                if not db.files.file_permissions_check((user_id=current_user.id, file_id=file_id):
+                if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
                     return abort(categories.HTTPResponse.FORBIDDEN.id)
 
             filepath = os.path.join(self.config["MEDIA_FOLDER"], file.path)

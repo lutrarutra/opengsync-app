@@ -130,7 +130,7 @@ class ExperimentBP(DBBlueprint):
             self.db.flush()
 
     @DBBlueprint.transaction
-    def update(self, experiment: models.Experiment) -> models.Experiment:
+    def update(self, experiment: models.Experiment):
 
         if (prev_workflow_id := self.db.session.query(models.Experiment.workflow_id).where(
             models.Experiment.id == experiment.id,
@@ -147,7 +147,7 @@ class ExperimentBP(DBBlueprint):
                 lanes = experiment.lanes.copy()
                 for lane in lanes:
                     if lane.number > experiment.flowcell_type.num_lanes:
-                        self.delete_lane(lane.id)
+                        self.db.lanes.delete(lane.id)
 
             elif prev_workflow.flow_cell_type.num_lanes < workflow.flow_cell_type.num_lanes:
                 for lane_num in range(workflow.flow_cell_type.num_lanes - prev_workflow.flow_cell_type.num_lanes + 1, workflow.flow_cell_type.num_lanes + 1):
@@ -161,11 +161,9 @@ class ExperimentBP(DBBlueprint):
                 for lane in experiment.lanes:
                     for pool in experiment.pools:
                         if (lane.id, pool.id) not in lps:
-                            lane = self.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
+                            lane = self.db.links.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
             
         self.db.session.add(experiment)
-
-        return experiment
 
     @DBBlueprint.transaction
     def query(

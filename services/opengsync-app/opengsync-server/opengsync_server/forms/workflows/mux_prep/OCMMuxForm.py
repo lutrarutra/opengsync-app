@@ -151,7 +151,7 @@ class OCMMuxForm(MultiStepForm):
                 mux={"barcode": row["mux_barcode"]},
             )
             new_library.features = old_library.features
-            new_library = db.libraries.update(new_library)
+            db.libraries.update(new_library)
 
         for old_library_id in old_libraries:
             db.libraries.delete(old_library_id, delete_orphan_samples=False)

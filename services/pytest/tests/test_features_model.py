@@ -48,8 +48,8 @@ def test_library_features_links(db: DBHandler):
     assert library_3.num_features == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
 
     db.libraries.delete(library_1.id)
-    assert len(db.features.get(s(limit=None)[0]) == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
+    assert len(db.features.find(limit=None)[0]) == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
     db.libraries.delete(library_2.id)
-    assert len(db.features.get_feature(s(limit=None)[0]) == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
+    assert len(db.features.find(limit=None)[0]) == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
     db.libraries.delete(library_3.id)
-    assert len(db.features.get_feature(s(limit=None)[0]) == NUM_KIT_FEATURES
+    assert len(db.features.find(limit=None)[0]) == NUM_KIT_FEATURES

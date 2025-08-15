@@ -69,7 +69,7 @@ class SamplePoolingForm(HTMXFlaskForm):
             
             old_libraries[library.id] = library
             library.sample_links.clear()
-            library = db.libraries.update(library)
+            db.libraries.update(library)
             db.flush()
             db.refresh(library)
         
@@ -97,7 +97,7 @@ class SamplePoolingForm(HTMXFlaskForm):
                 libraries[library_name] = new_library
 
             new_library.features = old_library.features
-            new_library = db.libraries.update(new_library)
+            db.libraries.update(new_library)
 
             for _, row in _df.iterrows():
                 if (sample := db.samples.get(int(row["sample_id"]))) is None:

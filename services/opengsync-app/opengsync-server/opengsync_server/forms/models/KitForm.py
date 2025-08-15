@@ -88,7 +88,7 @@ class KitForm(HTMXFlaskForm):
         
         self.kit.name = self.name.data  # type: ignore
         self.kit.identifier = self.identifier.data  # type: ignore
-        self.kit = db.kits.update(self.kit)
+        db.kits.update(self.kit)
         flash("Kit updated successfully.", "success")
         return make_response(redirect=url_for("kits_page.kit", kit_id=self.kit.id))
         

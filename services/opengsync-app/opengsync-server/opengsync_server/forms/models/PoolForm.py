@@ -109,7 +109,7 @@ class PoolForm(HTMXFlaskForm):
         self.pool.contact.email = self.contact_email.data  # type: ignore
         self.pool.contact.phone = self.contact_phone.data  # type: ignore
 
-        self.pool = db.pools.update(self.pool)
+        db.pools.update(self.pool)
 
         return self.pool
 
@@ -161,7 +161,7 @@ class PoolForm(HTMXFlaskForm):
                 timestamp_utc=dilution.timestamp_utc
             ))
 
-        pool = db.pools.update(pool)
+        db.pools.update(pool)
         db.flush()
         db.refresh(pool)
 

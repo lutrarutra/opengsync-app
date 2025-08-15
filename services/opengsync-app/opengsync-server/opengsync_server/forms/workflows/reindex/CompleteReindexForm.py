@@ -78,7 +78,7 @@ class CompleteReindexForm(MultiStepForm):
                     index_type = IndexType.DUAL_INDEX
 
             library.index_type = index_type
-            library = db.libraries.update(library)
+            db.libraries.update(library)
 
             for j in range(max(len(seq_i7s), len(seq_i5s))):
                 library = db.libraries.add_index(

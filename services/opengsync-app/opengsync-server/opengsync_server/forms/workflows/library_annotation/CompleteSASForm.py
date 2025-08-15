@@ -174,7 +174,7 @@ class CompleteSASForm(MultiStepForm):
                 logger.error(f"{self.uuid}: Project with id {project_id} not found.")
                 raise ValueError(f"Project with id {project_id} not found.")
         else:
-            project = db.libraries.create_project(
+            project = db.projects.create(
                 title=self.metadata["project_title"],
                 description=self.metadata["project_description"],
                 owner_id=user.id,
@@ -302,7 +302,7 @@ class CompleteSASForm(MultiStepForm):
                         index_type = IndexType.DUAL_INDEX
 
                 library.index_type = index_type
-                library = db.libraries.update(library)
+                db.libraries.update(library)
 
                 for _, barcode_row in library_barcodes.iterrows():
                     if int(barcode_row["index_type_id"]) != index_type.id:
@@ -376,33 +376,33 @@ class CompleteSASForm(MultiStepForm):
         if self.comment_table is not None:
             for _, comment_row in self.comment_table.iterrows():
                 if comment_row["context"] == "visium_instructions":
-                    db.comments.create((
+                    db.comments.create(
                         text=f"Visium data instructions: {comment_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif comment_row["context"] == "custom_genome_reference":
-                    db.comments.create_comment((
+                    db.comments.create(
                         text=f"Custom genome reference: {comment_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif comment_row["context"] == "assay_tech_selection":
-                    db.comments.create_comment((
+                    db.comments.create(
                         text=f"Additional info from assay selection: {comment_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif comment_row["context"] == "i7_option":
-                    db.comments.create_comment((
+                    db.comments.create(
                         text=comment_row['text'],
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif comment_row["context"] == "i5_option":
-                    db.comments.create_comment((
+                    db.comments.create(
                         text=comment_row['text'],
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 else:
                     logger.warning(f"Unknown comment context: {comment_row['context']}")
-                    db.comments.create_comment((
+                    db.comments.create(
                         text=comment_row["context"].replace("_", " ").capitalize() + ": " + comment_row["text"],
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )

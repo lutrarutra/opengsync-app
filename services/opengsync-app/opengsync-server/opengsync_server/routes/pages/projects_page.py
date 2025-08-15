@@ -8,7 +8,7 @@ projects_page_bp = Blueprint("projects_page", __name__)
 
 
 @wrappers.page_route(projects_page_bp, db=db)
-def projects(current_user: models.User):
+def projects():
     return render_template("projects_page.html", form=forms.models.ProjectForm())
 
 

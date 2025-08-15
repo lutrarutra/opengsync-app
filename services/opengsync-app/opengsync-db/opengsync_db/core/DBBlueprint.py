@@ -29,7 +29,6 @@ class DBBlueprint:
                 if not persist_session:
                     self.db.open_session()
 
-                # Note: We pass 'self' as first argument to instance methods
                 result = func(self, *args, **kwargs)
 
                 if not persist_session:

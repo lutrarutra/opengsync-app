@@ -159,7 +159,7 @@ def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: 
     if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
         
-    if (file := db.files.get((file_id)) is None:
+    if (file := db.files.get(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     filepath = os.path.join(runtime.current_app.media_folder, file.path)
@@ -245,7 +245,7 @@ def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_
     if lane_num > experiment.num_lanes or lane_num < 1:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (_ := db.lanes.get_experiment_lane((experiment_id=experiment_id, lane_num=lane_num)) is None:
+    if (_ := db.lanes.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     db.links.add_pool_to_lane(
@@ -277,7 +277,7 @@ def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lan
     if lane_num > experiment.num_lanes or lane_num < 1:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (_ := db.lanes.get_experiment_lane((experiment_id=experiment_id, lane_num=lane_num)) is None:
+    if (_ := db.lanes.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     db.links.remove_pool_from_lane(
@@ -339,7 +339,7 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if (file := db.files.get_file((file_id)) is None:
+    if (file := db.files.get(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if file not in experiment.files:
@@ -348,7 +348,7 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
-    db.files.delete_file((file_id=file.id)
+    db.files.delete(file_id=file.id)
 
     logger.info(f"Deleted file '{file.name}' from experiment (id='{experiment_id}')")
     flash(f"Deleted file '{file.name}' from experiment.", "success")
@@ -385,7 +385,7 @@ def remove_pool(current_user: models.User, experiment_id: int):
     if (_ := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    db.links.unlink_pool_experiment((experiment_id=experiment_id, pool_id=pool_id)
+    db.links.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
 
     logger.info(f"Removed pool (id='{pool_id}') from experiment (id='{experiment_id}')")
     flash("Removed pool from experiment.", "success")

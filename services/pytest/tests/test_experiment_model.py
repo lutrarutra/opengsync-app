@@ -13,7 +13,7 @@ def test_experiment_lanes(db: DBHandler):
 
     NUM_LIBRARIES = 10
     NUM_POOLS = 5
-    PREV_NUM_LANES = len(db.lanes.get(s(limit=None)[0])
+    PREV_NUM_LANES = len(db.lanes.find(limit=None)[0])
 
     libraries = []
 
@@ -41,7 +41,7 @@ def test_experiment_lanes(db: DBHandler):
     experiment = create_experiment(db, user, ExperimentWorkFlow.NOVASEQ_6K_S4_XP)
 
     assert ExperimentWorkFlow.NOVASEQ_6K_S4_XP.flow_cell_type.num_lanes == experiment.num_lanes
-    assert experiment.num_lanes == len(db.lanes.get_lane(s(limit=None)[0]) - PREV_NUM_LANES
+    assert experiment.num_lanes == len(db.lanes.find(limit=None)[0]) - PREV_NUM_LANES
 
     for pool in pools:
         db.links.link_pool_experiment(experiment.id, pool.id)
@@ -103,9 +103,9 @@ def test_experiment_lanes(db: DBHandler):
 
     # Decrease number of lanes
     experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_6K_S2_XP.id
-    experiment = db.experiments.update(experiment)
+    db.experiments.update(experiment)
     db.refresh(experiment)
-    assert len(db.lanes.get_lane(s(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_6K_S2_XP.flow_cell_type.num_lanes
+    assert len(db.lanes.find(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_6K_S2_XP.flow_cell_type.num_lanes
 
     experiment = db.experiments.get(experiment.id)
     db.refresh(experiment)
@@ -116,10 +116,10 @@ def test_experiment_lanes(db: DBHandler):
 
     # Increase number of lanes
     experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_6K_S4_XP.id
-    experiment = db.experiments.update(experiment)
+    db.experiments.update(experiment)
     db.flush()
     db.refresh(experiment)
-    assert len(db.lanes.get_lane(s(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_6K_S4_XP.flow_cell_type.num_lanes
+    assert len(db.lanes.find(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_6K_S4_XP.flow_cell_type.num_lanes
 
     experiment = db.experiments.get(experiment.id)
     db.refresh(experiment)
@@ -130,10 +130,10 @@ def test_experiment_lanes(db: DBHandler):
 
     # STD workflow - combined lanes
     experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_6K_S4_STD.id
-    experiment = db.experiments.update(experiment)
+    db.experiments.update(experiment)
     db.flush()
     db.refresh(experiment)
-    assert len(db.lanes.get_lane(s(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_6K_S4_STD.flow_cell_type.num_lanes
+    assert len(db.lanes.find(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_6K_S4_STD.flow_cell_type.num_lanes
     experiment = db.experiments.get(experiment.id)
     db.refresh(experiment)
     assert experiment is not None
@@ -146,9 +146,9 @@ def test_experiment_lanes(db: DBHandler):
 
     # Decrease Lanes
     experiment.workflow_id = ExperimentWorkFlow.NOVASEQ_6K_S1_STD.id
-    experiment = db.experiments.update(experiment)
+    db.experiments.update(experiment)
 
-    assert len(db.lanes.get_lane(s(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_6K_S1_STD.flow_cell_type.num_lanes
+    assert len(db.lanes.find(limit=None)[0]) == PREV_NUM_LANES + ExperimentWorkFlow.NOVASEQ_6K_S1_STD.flow_cell_type.num_lanes
     experiment = db.experiments.get(experiment.id)
     db.refresh(experiment)
     assert experiment is not None
@@ -161,7 +161,7 @@ def test_experiment_lanes(db: DBHandler):
 
     # Delete experiment
     db.experiments.delete(experiment.id)
-    assert len(db.lanes.get_lane(s(limit=None)[0]) == PREV_NUM_LANES
+    assert len(db.lanes.find(limit=None)[0]) == PREV_NUM_LANES
 
     for pool in pools:
         db.refresh(pool)

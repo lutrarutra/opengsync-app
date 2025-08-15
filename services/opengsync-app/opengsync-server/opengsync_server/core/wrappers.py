@@ -56,6 +56,8 @@ def _route_decorator(
     cache_kwargs: dict[str, Any] | None,
 ) -> Callable[[F], F]:
     """Base decorator for all route types."""
+    from .. import cache
+
     def decorator(fnc: F) -> F:
         routes, current_user_required = utils.infer_route(fnc, base=route)
 
@@ -72,8 +74,6 @@ def _route_decorator(
             raise ValueError("db must be provided if login_required is True")
 
         if cache_timeout_seconds is not None:
-            from .. import cache
-            
             def user_cache_key() -> str:
                 query_string = ""
                 user_id = current_user.id if current_user.is_authenticated else "anon"
@@ -130,8 +130,9 @@ def _route_decorator(
                 _default_logger(blueprint, routes, args, kwargs, e, "Exception")
                 return response_handler(e)
             finally:
-                if db is not None and db._session:
-                    db.close_session()
+                if db is not None:
+                    if db.close_session():
+                        cache.clear()
                 log_buffer.flush()
 
         if debug:

@@ -46,7 +46,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
 
     def prepare(self):
-        df = db.lanes.get_experiment_lane(d_pools_df(self.experiment.id)
+        df = db.pd.get_experiment_laned_pools(self.experiment.id)
         df["original_qubit_concentration"] = df["qubit_concentration"]
         df["dilutions"] = None
 
@@ -105,9 +105,9 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         for lane in self.experiment.lanes:
             lane.target_molarity = self.target_molarity.data
             lane.total_volume_ul = self.target_total_volume.data
-            lane = db.lanes.update(lane)
+            db.lanes.update(lane)
             for pool_reads_form in self.sample_sub_forms:
-                if (link := db.lanes.get(d_pool_link(
+                if (link := db.links.get_laned_pool_link(
                     experiment_id=self.experiment.id,
                     lane_num=lane.number,
                     pool_id=pool_reads_form.pool_id.data
@@ -124,7 +124,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
                         logger.error(f"lane_pools_workflow: PoolDilution with pool_id {link.pool_id} and identifier {pool_reads_form.dilution.data} does not exist")
                         raise ValueError(f"PoolDilution with pool_id '{link.pool_id}' and identifier '{pool_reads_form.dilution.data}' does not exist")
                     link.dilution_id = dilution.id
-                link = db.lanes.update_lane(d_pool_link(link)
+                db.links.update_laned_pool_link(link)
 
                 data["lane"].append(lane.number)
                 data["pool"].append(link.pool.name)
@@ -155,7 +155,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             
         if old_file:
             os.remove(os.path.join(runtime.current_app.media_folder, old_file.path))
-            db.files.delete_file((file_id=old_file.id)
+            db.files.delete(file_id=old_file.id)
             logger.info(f"Old file '{old_file.path}' removed.")
 
         _uuid = uuid.uuid4().hex
@@ -163,7 +163,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         df.to_csv(filepath, sep="\t", index=False)
         size_bytes = os.stat(filepath).st_size
 
-        db_file = db.files.create_file((
+        db_file = db.files.create(
             name=filename,
             uuid=_uuid,
             size_bytes=size_bytes,
@@ -172,7 +172,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             uploader_id=user.id,
             experiment_id=self.experiment.id
         )
-        _ = db.comments.create_comment((
+        _ = db.comments.create(
             author_id=user.id,
             file_id=db_file.id,
             text="Added file for pooling ratios",

@@ -99,25 +99,6 @@ class LinkBP(DBBlueprint):
         return links, n_pages
 
     @DBBlueprint.transaction
-    def is_sample_in_seq_request(
-        self, sample_id: int, seq_request_id: int
-    ) -> bool:
-        
-        query = self.db.session.query(models.Sample)
-
-        query = query.join(
-            models.links.SampleLibraryLink,
-            models.links.SampleLibraryLink.sample_id == sample_id,
-        ).join(
-            models.Library,
-            models.Library.id == models.links.SampleLibraryLink.library_id,
-        ).where(
-            models.Library.seq_request_id == seq_request_id,
-        )
-        res = query.first() is not None
-        return res
-
-    @DBBlueprint.transaction
     def link_feature_library(self, feature_id: int, library_id: int):
         if (feature := self.db.session.get(models.Feature, feature_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Feature with id {feature_id} does not exist")

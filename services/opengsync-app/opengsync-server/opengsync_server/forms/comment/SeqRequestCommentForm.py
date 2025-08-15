@@ -18,7 +18,7 @@ class SeqRequestCommentForm(CommentForm):
         if not self.validate():
             return self.make_response()
         
-        db.comments.create((
+        db.comments.create(
             text=self.comment.data,  # type: ignore
             author_id=user.id,
             seq_request_id=self.seq_request.id

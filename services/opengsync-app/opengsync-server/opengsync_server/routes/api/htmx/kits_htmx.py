@@ -5,15 +5,15 @@ from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, IndexType, KitType
-from .... import db, logger, cache, forms
+from .... import db, logger, forms
 from ....core import wrappers
 
 
 kits_htmx = Blueprint("kits_htmx", __name__, url_prefix="/api/hmtx/kits/")
 
 
-@wrappers.htmx_route(kits_htmx, db=db)
-def get(current_user: models.User, page: int = 0):
+@wrappers.htmx_route(kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "identifier")
     sort_order = request.args.get("sort_order", "asc")
     descending = sort_order == "desc"
@@ -44,7 +44,7 @@ def get(current_user: models.User, page: int = 0):
 
 
 @wrappers.htmx_route(kits_htmx, db=db)
-def table_query(current_user: models.User):
+def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:

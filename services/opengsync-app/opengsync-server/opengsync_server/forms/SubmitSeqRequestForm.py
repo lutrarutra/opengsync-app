@@ -71,7 +71,7 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
                 )
             else:
                 self.seq_request.sample_submission_event.timestamp_utc = to_utc(self.sample_submission_time.data)
-            self.seq_request = db.seq_requests.update(self.seq_request)
+            db.seq_requests.update(self.seq_request)
 
         self.seq_request = db.seq_requests.submit(seq_request_id=self.seq_request.id)
 

@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, url_for, abort, request
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse
 
-from ... import db, logger
+from ... import db
 from ...core import wrappers
 seq_runs_page_bp = Blueprint("seq_runs_page", __name__)
 

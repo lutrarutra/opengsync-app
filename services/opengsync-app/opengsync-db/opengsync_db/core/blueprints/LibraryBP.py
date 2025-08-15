@@ -250,20 +250,17 @@ class LibraryBP(DBBlueprint):
         if flush:
             self.db.flush()
 
-        self.delete_orphan_features(flush=flush)
+        self.db.features.delete_orphan(flush=flush)
 
     @DBBlueprint.transaction
-    def update(self, library: models.Library) -> models.Library:
+    def update(self, library: models.Library):
         self.db.session.add(library)
-        return library
 
     @DBBlueprint.transaction
     def get_number_of_cloned_libraries(self, original_library_id: int) -> int:
-
         count = self.db.session.query(models.Library).where(
             models.Library.original_library_id == original_library_id
         ).count()
-
         return count
 
     @DBBlueprint.transaction
@@ -484,14 +481,14 @@ class LibraryBP(DBBlueprint):
         )
 
         for sample_link in library.sample_links:
-            self.link_sample_library(
+            self.db.links.link_sample_library(
                 sample_id=sample_link.sample_id,
                 library_id=cloned_library.id,
                 mux=sample_link.mux if sample_link.mux is not None else None,
             )
 
         for feature in library.features:
-            self.link_feature_library(
+            self.db.links.link_feature_library(
                 feature_id=feature.id,
                 library_id=cloned_library.id
             )

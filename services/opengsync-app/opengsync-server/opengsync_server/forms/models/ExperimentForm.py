@@ -100,7 +100,7 @@ class ExperimentForm(HTMXFlaskForm):
         experiment.operator_id = self.operator.selected.data
         experiment.status = status
 
-        experiment = db.experiments.update(experiment)
+        db.experiments.update(experiment)
 
         flash(f"Edited experiment '{experiment.name}'.", "success")
 

@@ -11,8 +11,11 @@ from ....core import wrappers
 users_htmx = Blueprint("users_htmx", __name__, url_prefix="/api/hmtx/users/")
 
 
-@wrappers.htmx_route(users_htmx, db=db)
-def get(page: int = 0):
+@wrappers.htmx_route(users_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
+def get(current_user: models.User, page: int = 0):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -46,7 +49,10 @@ def get(page: int = 0):
 
 
 @wrappers.htmx_route(users_htmx, db=db, methods=["POST"])
-def query():
+def query(current_user: models.User):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
 
@@ -75,7 +81,10 @@ def query():
 
 
 @wrappers.htmx_route(users_htmx, db=db)
-def table_query():
+def table_query(current_user: models.User):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     if (word := request.args.get("last_name")) is not None:
         field_name = "last_name"
     elif (word := request.args.get("email")) is not None:

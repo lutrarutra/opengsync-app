@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, PoolStatus, LibraryStatus, PoolType
 
-from .... import db, forms, logger
+from .... import db, forms
 from ....core import wrappers
 pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/api/hmtx/pools/")
 
@@ -182,7 +182,7 @@ def remove_library(current_user: models.User, pool_id: int):
     library.pool_id = None
     if library.status == LibraryStatus.POOLED:
         library.status = LibraryStatus.STORED
-    library = db.libraries.update(library)
+    db.libraries.update(library)
 
     flash("Library removed from pool", "success")
     return make_response(redirect=url_for("pools_page.pool", pool_id=pool_id))

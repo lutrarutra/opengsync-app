@@ -66,16 +66,16 @@ def test_mux_links(db: DBHandler):
 
 def test_files(db: DBHandler):
     seq_request = create_seq_request(db, create_user(db))
-    NUM_FILES = len(db.files.get(s())
+    NUM_FILES = len(db.files.find(limit=None))
     file = create_file(db, seq_request=seq_request)
-    assert len(db.files.get_file(s()) == NUM_FILES + 1
+    assert len(db.files.find(limit=None)) == NUM_FILES + 1
     create_file(db, seq_request=seq_request)
     create_file(db, seq_request=seq_request)
-    assert len(db.files.get_file(s()) == NUM_FILES + 3
-    db.files.delete_file((file.id)
-    assert len(db.files.get_file(s()) == NUM_FILES + 2
+    assert len(db.files.find(limit=None)) == NUM_FILES + 3
+    db.files.delete(file.id)
+    assert len(db.files.find(limit=None)) == NUM_FILES + 2
     db.seq_requests.delete(seq_request.id)
-    assert len(db.files.get_file(s()) == NUM_FILES
+    assert len(db.files.find(limit=None)) == NUM_FILES
 
 
 def test_group_affiliations(db: DBHandler):

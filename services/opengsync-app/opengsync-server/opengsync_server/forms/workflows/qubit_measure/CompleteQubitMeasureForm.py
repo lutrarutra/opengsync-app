@@ -103,7 +103,7 @@ class CompleteQubitMeasureForm(MultiStepForm):
                 raise ValueError(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
             
             library.qubit_concentration = sub_form.qubit_concentration.data
-            library = db.libraries.update(library)
+            db.libraries.update(library)
 
             library_table.loc[library_table["id"] == library.id, "qubit_concentration"] = library.qubit_concentration
 
@@ -122,17 +122,17 @@ class CompleteQubitMeasureForm(MultiStepForm):
             if pool.status == PoolStatus.ACCEPTED:
                 pool.status = PoolStatus.STORED
 
-            pool = db.pools.update(pool)
+            db.pools.update(pool)
 
             pool_table.loc[pool_table["id"] == pool.id, "qubit_concentration"] = pool.qubit_concentration
 
         for sub_form in self.lane_fields:
-            if (lane := db.lanes.get((sub_form.obj_id.data)) is None:
+            if (lane := db.lanes.get(sub_form.obj_id.data)) is None:
                 logger.error(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
             
             lane.original_qubit_concentration = sub_form.qubit_concentration.data
-            lane = db.lanes.update(lane)
+            db.lanes.update(lane)
 
             lane_table.loc[lane_table["id"] == lane.id, "qubit_concentration"] = lane.original_qubit_concentration
 

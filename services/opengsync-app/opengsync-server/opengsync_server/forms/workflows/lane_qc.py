@@ -108,7 +108,7 @@ class QCLanesForm(HTMXFlaskForm):
             return self.make_response()
         
         for sub_form in self.input_fields:
-            if (lane := db.lanes.get((sub_form.lane_id.data)) is None:
+            if (lane := db.lanes.get(sub_form.lane_id.data)) is None:
                 logger.error(f"Lane with id {sub_form.lane_id.data} not found")
                 raise ValueError(f"Lane with id {sub_form.lane_id.data} not found")
                 
@@ -116,7 +116,7 @@ class QCLanesForm(HTMXFlaskForm):
             lane.avg_fragment_size = sub_form.avg_fragment_size.data
             lane.phi_x = sub_form.phi_x.data
 
-            lane = db.lanes.update(lane)
+            db.lanes.update(lane)
 
         flash("Flow cell loaded successfully", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

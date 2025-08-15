@@ -84,7 +84,7 @@ def test_library_feature_link(db: DBHandler):
     NUM_LIBRARIES = 10
     NUM_FEATURES = 10
 
-    num_prev_features = len(db.features.get(s(limit=None)[0])
+    num_prev_features = len(db.features.find(limit=None)[0])
     num_prev_libraries = len(db.libraries.find(limit=None)[0])
 
     features = []
@@ -99,17 +99,17 @@ def test_library_feature_link(db: DBHandler):
         for feature in features:
             db.links.link_feature_library(feature.id, library.id)
 
-    assert len(db.features.get_feature(s(limit=None)[0]) == num_prev_features + NUM_FEATURES
+    assert len(db.features.find(limit=None)[0]) == num_prev_features + NUM_FEATURES
     assert len(db.libraries.find(limit=None)[0]) == num_prev_libraries + NUM_LIBRARIES
 
     db.libraries.delete(libraries[0].id)
 
-    assert len(db.features.get_feature(s(limit=None)[0]) == num_prev_features + NUM_FEATURES
+    assert len(db.features.find(limit=None)[0]) == num_prev_features + NUM_FEATURES
     assert len(db.libraries.find(limit=None)[0]) == num_prev_libraries + NUM_LIBRARIES - 1
 
     db.seq_requests.delete(seq_request.id)
 
-    assert len(db.features.get_feature(s(limit=None)[0]) == num_prev_features
+    assert len(db.features.find(limit=None)[0]) == num_prev_features
     assert len(db.libraries.find(limit=None)[0]) == num_prev_libraries
 
 
@@ -154,7 +154,7 @@ def test_experiment_link(db: DBHandler):
     assert len(experiment.pools) == 2
     assert len(experiment.libraries) == 2
 
-    db.links.unlink_pool_experiment((
+    db.links.unlink_pool_experiment(
         pool_id=pool_1.id,
         experiment_id=experiment.id,
     )
@@ -164,7 +164,7 @@ def test_experiment_link(db: DBHandler):
     assert len(experiment.pools) == 1
     assert len(experiment.libraries) == 1
 
-    db.links.unlink_pool_experiment((
+    db.links.unlink_pool_experiment(
         pool_id=pool_2.id,
         experiment_id=experiment.id,
     )

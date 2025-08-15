@@ -3,12 +3,12 @@ import pandas as pd
 import sqlalchemy as sa
 from sqlalchemy.sql.operators import and_  # noqa: F401
 
-from .. import models
-from .. import categories
-from .DBBlueprint import DBBlueprint
+from ... import models
+from ... import categories
+from ..DBBlueprint import DBBlueprint
 
 
-class PDBlueprint(DBBlueprint):
+class PandasBP(DBBlueprint):
     @DBBlueprint.transaction
     def get_experiment_libraries(
         self, experiment_id: int,

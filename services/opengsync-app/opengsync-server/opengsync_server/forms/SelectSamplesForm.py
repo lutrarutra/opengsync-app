@@ -290,7 +290,7 @@ class SelectSamplesForm(MultiStepForm):
                 pool_data["avg_fragment_size"].append(pool.avg_fragment_size)
 
         for lane_id in self.lane_ids:
-            if (lane := db.lanes.get((lane_id)) is None:
+            if (lane := db.lanes.get(lane_id)) is None:
                 logger.error(f"Lane {lane_id} not found")
                 raise ValueError(f"Lane {lane_id} not found")
 
@@ -370,7 +370,7 @@ class SelectSamplesForm(MultiStepForm):
     def get_lanes(self) -> list[models.Lane]:
         lanes = []
         for _, row in self.lane_table.iterrows():
-            if (lane := db.lanes.get_lane((int(row["id"]))) is None:
+            if (lane := db.lanes.get(int(row["id"]))) is None:
                 logger.error(f"Lane {lane} not found in database")
                 raise Exception("Lane not found in database")
             lanes.append(lane)

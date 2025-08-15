@@ -47,7 +47,7 @@ class ResetPasswordForm(HTMXFlaskForm):
         
         hashed_password = bcrypt.generate_password_hash(self.password.data).decode("utf-8")
         user.password = hashed_password
-        user = db.users.update(user)
+        db.users.update(user)
         logger.info(f"Password reset for {user.email}")
         flash("Password updated!", "success")
         return make_response(redirect=url_for("auth_page.auth"))

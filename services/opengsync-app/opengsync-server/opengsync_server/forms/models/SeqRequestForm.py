@@ -375,7 +375,7 @@ class SeqRequestForm(HTMXFlaskForm):
         seq_request.billing_contact.address = self.billing_form.billing_address.data
         seq_request.billing_code = self.billing_form.billing_code.data
 
-        seq_request = db.seq_requests.update(seq_request)
+        db.seq_requests.update(seq_request)
 
         flash(f"Updated sequencing request '{seq_request.name}'", "success")
         logger.info(f"Updated sequencing request '{seq_request.name}'")

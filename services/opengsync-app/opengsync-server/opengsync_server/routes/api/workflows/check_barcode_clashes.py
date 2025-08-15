@@ -66,7 +66,7 @@ def select():
                 library_data["sequence_i5"].append(index.sequence_i5)
 
     for _, row in form.lane_table.iterrows():
-        if (lane := db.lanes.get((int(row["id"]))) is None:
+        if (lane := db.lanes.get(int(row["id"]))) is None:
             logger.error(f"Lane {lane} not found in database")
             raise Exception("Lane not found in database")
 

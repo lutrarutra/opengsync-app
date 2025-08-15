@@ -248,11 +248,30 @@ class SampleBP(DBBlueprint):
                     access_type = AccessType.EDIT
                     break
                 elif link.library.seq_request.group_id is not None:
-                    if self.get_group_user_affiliation(user_id, link.library.seq_request.group_id) is not None:
+                    if self.db.groups.get_user_affiliation(user_id, link.library.seq_request.group_id) is not None:
                         access_type = AccessType.EDIT
                         break
         
         return access_type
+    
+    @DBBlueprint.transaction
+    def is_in_seq_request(
+        self, sample_id: int, seq_request_id: int
+    ) -> bool:
+        
+        query = self.db.session.query(models.Sample)
+
+        query = query.join(
+            models.links.SampleLibraryLink,
+            models.links.SampleLibraryLink.sample_id == sample_id,
+        ).join(
+            models.Library,
+            models.Library.id == models.links.SampleLibraryLink.library_id,
+        ).where(
+            models.Library.seq_request_id == seq_request_id,
+        )
+        res = query.first() is not None
+        return res
     
     @DBBlueprint.transaction
     def __getitem__(self, sample_id: int) -> models.Sample:
