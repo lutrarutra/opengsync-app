@@ -17,12 +17,10 @@ class RegisterUserForm(HTMXFlaskForm):
     email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.User.email.type.length)])  # type: ignore
     role = SelectField("Role", choices=UserRole.as_selectable(), default=UserRole.CLIENT.id, validators=[OptionalValidator()], coerce=int)
 
-    def __init__(self, user: models.User | None, formdata: dict[str, str] | None = None):
+    def __init__(self, formdata: dict[str, str] | None = None):
         super().__init__(formdata)
-        self._context["user"] = user
-        self.user = user
 
-    def validate(self) -> bool:
+    def validate(self, user: models.User | None) -> bool:
         if not super().validate():
             return False
         
@@ -35,7 +33,7 @@ class RegisterUserForm(HTMXFlaskForm):
                 self.role.errors = ("Invalid role.",)
                 return False
 
-            elif self.user is None or self.user.role != UserRole.ADMIN:
+            elif user is None or user.role != UserRole.ADMIN:
                 if user_role != UserRole.CLIENT:
                     self.role.errors = ("You don't have permissions to create user with this role",)
                     return False
@@ -46,8 +44,8 @@ class RegisterUserForm(HTMXFlaskForm):
             
         return True
     
-    def process_request(self) -> Response:
-        if not self.validate():
+    def process_request(self, user: models.User | None) -> Response:
+        if not self.validate(user):
             return self.make_response()
         
         email = self.email.data.strip()  # type: ignore

@@ -11,7 +11,7 @@ from opengsync_db.categories import FileType
 
 from .FileInputForm import FileInputForm
 from ... import db, logger
-from ...core.runtime import runtime
+from ...core.RunTime import runtime
 
 
 class SeqRequestAttachmentForm(FileInputForm):

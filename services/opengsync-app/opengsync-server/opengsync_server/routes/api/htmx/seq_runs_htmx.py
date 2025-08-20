@@ -5,7 +5,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, RunStatus
-from .... import db, logger, cache  # noqa F401
+from .... import db, logger, route_cache  # noqa F401
 from ....core import wrappers
 
 seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/api/hmtx/seq_run/")

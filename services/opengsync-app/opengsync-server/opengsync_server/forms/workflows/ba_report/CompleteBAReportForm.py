@@ -14,7 +14,7 @@ from opengsync_db import models
 from opengsync_db.categories import PoolStatus, FileType, LibraryStatus
 
 from .... import db, logger  # noqa
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 from ...MultiStepForm import MultiStepForm
 
 

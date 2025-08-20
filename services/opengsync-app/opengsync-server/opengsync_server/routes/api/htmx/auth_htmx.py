@@ -5,6 +5,7 @@ from flask_login import logout_user
 
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, UserRole
+
 from .... import db, forms, logger, mail, serializer, EMAIL_SENDER
 from ....core import wrappers
 
@@ -32,11 +33,11 @@ def logout(current_user: models.User | None):
     return make_response(redirect=url_for("dashboard"))
 
 
-@wrappers.htmx_route(auth_htmx, db=db, methods=["GET", "POST"])
-def register():
+@wrappers.htmx_route(auth_htmx, db=db, methods=["GET", "POST"], login_required=False)
+def register(current_user: models.User | None):
     if request.method == "GET":
-        return forms.auth.RegisterUserForm(user=None).make_response()
-    return forms.auth.RegisterUserForm(user=None, formdata=request.form).process_request()
+        return forms.auth.RegisterUserForm().make_response()
+    return forms.auth.RegisterUserForm(formdata=request.form).process_request(user=current_user)
     
 
 @wrappers.htmx_route(auth_htmx, db=db, login_required=False, methods=["POST"])

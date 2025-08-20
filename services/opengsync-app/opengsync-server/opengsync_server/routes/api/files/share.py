@@ -9,7 +9,7 @@ from opengsync_db.categories import HTTPResponse
 from .... import db, logger, DEBUG
 from ....core import wrappers
 from ....tools import utils
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 
 file_share_bp = Blueprint("file_share", __name__, url_prefix="/api/files/")
 

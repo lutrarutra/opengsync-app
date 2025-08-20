@@ -4,17 +4,37 @@ from uuid import uuid4
 
 import pandas as pd
 
-from flask import Flask, render_template, redirect, request, url_for, session, abort, make_response, flash
-from flask_htmx import make_response as make_htmx_response
+from flask import (
+    Flask,
+    redirect,
+    request,
+    url_for,
+)
 
+from flask_session import Session
+from flask_session.base import ServerSideSession
 from opengsync_db import categories, models, TIMEZONE
 
-from .. import logger, log_buffer, cache, msf_cache, DEBUG, SECRET_KEY, htmx, bcrypt, login_manager, mail, db, file_handler
+from .. import (
+    logger,
+    log_buffer,
+    route_cache,
+    msf_cache,
+    flash_cache,
+    session_cache,
+    DEBUG,
+    SECRET_KEY,
+    htmx,
+    bcrypt,
+    login_manager,
+    mail,
+    db,
+    file_handler,
+)
 from ..tools import spread_sheet_components as ssc
 from ..tools.utils import WeekTimeWindow
 from ..routes import api, pages
 from .. import tools
-from . import wrappers
 
 
 class App(Flask):
@@ -64,11 +84,11 @@ class App(Flask):
         logger.info(f"UPLOADS_FOLDER: {self.uploads_folder}")
         logger.info(f"APP_DATA_FOLDER: {self.app_data_folder}")
 
-        if (REDIS_PORT := os.environ["REDIS_PORT"]) is None:
-            raise ValueError("REDIS_PORT env-variable not set")
+        REDIS_PORT = int(os.environ["REDIS_PORT"])
         
-        cache.init_app(self, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": f"redis://redis-cache:{REDIS_PORT}/0"})
-        msf_cache.connect("redis-cache", int(REDIS_PORT), 0)
+        route_cache.init_app(self, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": f"redis://redis-cache:{REDIS_PORT}/0"})
+        msf_cache.connect("redis-cache", REDIS_PORT, 1)
+        flash_cache.connect("redis-cache", REDIS_PORT, 2)
 
         for file_type in categories.FileType.as_list():
             if file_type.dir is None:
@@ -87,6 +107,14 @@ class App(Flask):
 
         self.config["MAIL_USERNAME"] = os.environ["EMAIL_USER"]
         self.config["MAIL_PASSWORD"] = os.environ["EMAIL_PASS"]
+
+        self.config["SESSION_TYPE"] = "redis"
+        self.config["SESSION_PERMANENT"] = False
+        self.config["SESSION_USE_SIGNER"] = True
+        self.config["SESSION_COOKIE_SECURE"] = False  # Set to True if your application is served over HTTPS
+        self.config["SESSION_REDIS"] = session_cache
+
+        Session(self)
 
         htmx.init_app(self)
         bcrypt.init_app(self)
@@ -114,132 +142,12 @@ class App(Flask):
 
         self.lab_protocol_start_number = data["lab_protocol_start_number"]
 
-        if self.debug:
-            import traceback
-            from . import exceptions
-
-            @self.errorhandler(Exception)
-            def handle_exception(e: Exception):
-                exc = e
-                if e.__cause__:
-                    exc = e.__cause__
-                exc_tb = traceback.TracebackException(type(exc), exc, exc.__traceback__)
-                for frame in exc_tb.stack:
-                    try:
-                        frame.filename = frame.filename.replace("/usr/src/app/", "")
-                    except Exception:
-                        pass
-                    
-                logger.error("".join(exc_tb.format()))
-                log_buffer.flush()
-                if isinstance(e, exceptions.HTMXException):
-                    return make_htmx_response(render_template("errors/htmx_traceback.html", exc=exc_tb), 200, retarget="#debug-modal")
-                return make_response(render_template("errors/traceback.html", exc=exc_tb))
-
         @login_manager.user_loader
         def load_user(user_id: int) -> models.User | None:
             if (user := db.users.get(user_id)) is None:
                 logger.error(f"User not found: {user_id}")
                 return None
             return user
-        
-        if self.debug:
-            @wrappers.page_route(self, db=db)
-            def test(current_user: models.User):
-                logger.info(current_user)
-                if tools.textgen is not None:
-                    msg = tools.textgen.generate(
-                        "You need to write in 1-2 sentences make a joke to greet user to my web self. \
-                        Only raw text, no special characters (only punctuation , or . or !), no markdown, no code blocks, no quotes, no emojis, no links, no hashtags, no mentions. \
-                        Just the joke text."
-                    )
-                    flash(msg, category="info")
-                return render_template("test.html")
-            
-        @wrappers.page_route(self, login_required=False, cache_timeout_seconds=360, cache_type="global")
-        def help():
-            return render_template("help.html")
-        
-        @wrappers.page_route(self, db=db, route="/", cache_timeout_seconds=360, cache_type="user")
-        def dashboard(current_user: models.User):
-            if not current_user.is_authenticated:
-                return redirect(url_for("auth_page.auth", next=url_for("dashboard")))
-            
-            if current_user.is_insider():
-                return render_template("dashboard-insider.html")
-            return render_template("dashboard-user.html")
-
-        @wrappers.page_route(self, db=db, cache_timeout_seconds=60, cache_type="user")
-        def pdf_file(file_id: int, current_user: models.User):
-            if (file := db.files.get(file_id)) is None:
-                return abort(categories.HTTPResponse.NOT_FOUND.id)
-            
-            if file.uploader_id != current_user.id and not current_user.is_insider():
-                if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
-                    return abort(categories.HTTPResponse.FORBIDDEN.id)
-            
-            if file.extension != ".pdf":
-                return abort(categories.HTTPResponse.BAD_REQUEST.id)
-
-            filepath = os.path.join(self.config["MEDIA_FOLDER"], file.path)
-            if not os.path.exists(filepath):
-                logger.error(f"File not found: {filepath}")
-                return abort(categories.HTTPResponse.NOT_FOUND.id)
-            
-            with open(filepath, "rb") as f:
-                data = f.read()
-
-            response = make_response(data)
-            response.headers["Content-Type"] = "application/pdf"
-            response.headers["Content-Disposition"] = "inline; filename=auth_form.pdf"
-            return response
-        
-        @wrappers.page_route(self, db=db, cache_timeout_seconds=60, cache_type="user")
-        def img_file(current_user: models.User, file_id: int):
-            if (file := db.files.get(file_id)) is None:
-                return abort(categories.HTTPResponse.NOT_FOUND.id)
-            
-            if file.uploader_id != current_user.id and not current_user.is_insider():
-                if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
-                    return abort(categories.HTTPResponse.FORBIDDEN.id)
-            
-            if file.extension not in [".png", ".jpg", ".jpeg"]:
-                return abort(categories.HTTPResponse.BAD_REQUEST.id)
-
-            filepath = os.path.join(self.config["MEDIA_FOLDER"], file.path)
-            if not os.path.exists(filepath):
-                logger.error(f"File not found: {filepath}")
-                return abort(categories.HTTPResponse.NOT_FOUND.id)
-            
-            with open(filepath, "rb") as f:
-                data = f.read()
-
-            response = make_response(data)
-            response.headers["Content-Type"] = f"image/{file.extension[1:]}"
-            response.headers["Content-Disposition"] = "inline; filename={file.name}"
-            return response
-        
-        @wrappers.page_route(self, db=db, cache_timeout_seconds=60, cache_type="user")
-        def download_file(file_id: int, current_user: models.User):
-            if (file := db.files.get(file_id)) is None:
-                return abort(categories.HTTPResponse.NOT_FOUND.id)
-            
-            if file.uploader_id != current_user.id and not current_user.is_insider():
-                if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
-                    return abort(categories.HTTPResponse.FORBIDDEN.id)
-
-            filepath = os.path.join(self.config["MEDIA_FOLDER"], file.path)
-            if not os.path.exists(filepath):
-                logger.error(f"File not found: {filepath}")
-                return abort(categories.HTTPResponse.NOT_FOUND.id)
-            
-            with open(filepath, "rb") as f:
-                data = f.read()
-
-            response = make_response(data)
-            response.headers["Content-Type"] = "application/octet-stream"
-            response.headers["Content-Disposition"] = f"attachment; filename={file.name}{file.extension}"
-            return response
         
         @login_manager.unauthorized_handler
         def unauthorized():
@@ -287,18 +195,13 @@ class App(Flask):
                 notna=pd.notna,
             )
         
-        @self.before_request
-        def before_request():
-            session["from_url"] = request.referrer
-
-        @wrappers.page_route(self, login_required=False)
-        def status():
-            return make_response("OK", 200)
-        
         db.open_session()
         tools.utils.update_index_kits(db, self.app_data_folder)
         db.close_session()
-        
+
+        with self.app_context():
+            from ..routes import core_routes  # noqa
+
         self.register_blueprint(api.htmx.samples_htmx)
         self.register_blueprint(api.htmx.projects_htmx)
         self.register_blueprint(api.htmx.experiments_htmx)
@@ -361,3 +264,10 @@ class App(Flask):
         self.register_blueprint(pages.share_tokens_page_bp)
 
         log_buffer.flush()
+
+    def no_context_render_template(self, template_name: str, **context: dict) -> str:
+        return self.jinja_env.get_template(template_name).render(**context)
+    
+    def consume_flashes(self, session: ServerSideSession) -> list[tuple[str, str]]:
+        flashes = session.pop("_flashes") if "_flashes" in session else []
+        return flashes

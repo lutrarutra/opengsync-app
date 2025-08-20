@@ -10,7 +10,7 @@ from .... import db, logger
 from ....forms.workflows import library_annotation as forms
 from ....forms.MultiStepForm import MultiStepForm
 from ....core import wrappers
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 
 library_annotation_workflow = Blueprint("library_annotation_workflow", __name__, url_prefix="/api/workflows/library_annotation/")
 

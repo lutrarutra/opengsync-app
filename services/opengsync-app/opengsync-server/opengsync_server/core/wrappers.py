@@ -14,7 +14,7 @@ from .. import logger
 from ..core.LogBuffer import log_buffer
 from ..tools import utils, textgen
 from . import exceptions as serv_exceptions
-from ..core.runtime import runtime
+from .RunTime import runtime
 
 F = TypeVar("F", bound=Callable[..., Any])  # generic for wrapped functions
 
@@ -56,7 +56,7 @@ def _route_decorator(
     cache_kwargs: dict[str, Any] | None,
 ) -> Callable[[F], F]:
     """Base decorator for all route types."""
-    from .. import cache
+    from .. import route_cache, flash_cache
 
     def decorator(fnc: F) -> F:
         routes, current_user_required = utils.infer_route(fnc, base=route)
@@ -95,7 +95,7 @@ def _route_decorator(
                 key = f"view/insider{request.path}{query_string}"
                 return key
             
-            fnc = cache.cached(
+            fnc = route_cache.cached(
                 timeout=cache_timeout_seconds,
                 query_string=cache_query_string if cache_type == "global" else False,
                 key_prefix=user_cache_key if cache_type == "user" else insider_cache_key if cache_type == "insider" else "view/%s",  # type: ignore
@@ -112,11 +112,11 @@ def _route_decorator(
                 db.open_session()
 
             _fnc = login_required_f(fnc) if login_required else fnc
+            
+            if current_user_required != "no":
+                kwargs["current_user"] = current_user if current_user.is_authenticated else None
 
             try:
-                if current_user_required != "no":
-                    kwargs["current_user"] = current_user if current_user.is_authenticated else None
-                    
                 return _fnc(*args, **kwargs)
             except serv_exceptions.OpeNGSyncServerException as e:
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncServerException")
@@ -132,7 +132,12 @@ def _route_decorator(
             finally:
                 if db is not None:
                     if db.close_session():
-                        cache.clear()
+                        route_cache.clear()
+
+                if (msgs := runtime.current_app.consume_flashes(runtime.session)):
+                    if runtime.session.sid:
+                        flash_cache.add(runtime.session.sid, msgs)
+
                 log_buffer.flush()
 
         if debug:

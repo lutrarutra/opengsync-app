@@ -10,7 +10,7 @@ from opengsync_db.categories import EventType
 
 from .. import db, logger  # noqa F401
 from .HTMXFlaskForm import HTMXFlaskForm
-from ..core.runtime import runtime
+from ..core.RunTime import runtime
 
 
 class SubmitSeqRequestForm(HTMXFlaskForm):

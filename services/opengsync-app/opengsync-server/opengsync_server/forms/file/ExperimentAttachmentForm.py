@@ -9,7 +9,7 @@ from wtforms import SelectField
 from opengsync_db import models
 from opengsync_db.categories import FileType
 
-from ...core.runtime import runtime
+from ...core.RunTime import runtime
 from .FileInputForm import FileInputForm
 from ... import db, logger
 

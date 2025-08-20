@@ -7,7 +7,7 @@ from opengsync_db import models
 from opengsync_db.categories import LibraryType, IndexType
 
 from ....core import exceptions
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 from .... import logger, tools, db  # noqa F401
 from ....tools import utils
 from ...MultiStepForm import MultiStepForm, StepFile

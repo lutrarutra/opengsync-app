@@ -10,6 +10,7 @@ from opengsync_db import models
 
 from ... import logger, db, bcrypt
 from ..HTMXFlaskForm import HTMXFlaskForm
+from ...core.RunTime import runtime
 
 
 class ChangePasswordForm(HTMXFlaskForm):
@@ -44,8 +45,8 @@ class ChangePasswordForm(HTMXFlaskForm):
         self.user.password = hashed_password
         db.users.update(self.user)
         logger.info(f"Password changed for user {self.user.email}")
-        flash("Password Changed Successfully!", "success")
         logout_user()
+        flash("Password Changed Successfully!", "success")
         return make_response(redirect=url_for("auth_page.auth"))
 
     

@@ -1,4 +1,4 @@
-{% with infos = get_flashed_messages(category_filter=["info", "message"]) %}
+{% with infos = flashes["info"] %}
 {% if infos %}
 <div id="info-alert" class="alert alert-primary d-flex align-items-center" role="alert">
     <div class="alert-content">
@@ -13,7 +13,7 @@
 {% endif %}
 {% endwith %}
 
-{% with successes = get_flashed_messages(category_filter=["success"]) %}
+{% with successes = flashes["success"] %}
 {% if successes %}
 <div class="alert alert-success d-flex align-items-center" role="alert">
     <div class="alert-content">
@@ -28,7 +28,7 @@
 {% endif %}
 {% endwith %}
 
-{% with warnings = get_flashed_messages(category_filter=["warning"]) %}
+{% with warnings = flashes["warning"] %}
 {% if warnings %}
 <div class="alert alert-warning d-flex align-items-center" role="alert">
     <div class="alert-content">
@@ -43,7 +43,7 @@
 {% endif %}
 {% endwith %}
 
-{% with errors = get_flashed_messages(category_filter=["error", "danger"]) %}
+{% with errors = flashes["error"] %}
 {% if errors %}
 <div class="alert alert-danger d-flex align-items-center" role="alert">
     <div class="alert-content">

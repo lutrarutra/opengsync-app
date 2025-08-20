@@ -17,7 +17,7 @@ from opengsync_db.categories import HTTPResponse, LabProtocol, PoolStatus, Libra
 
 from .... import db, forms, logger
 from ....core import wrappers
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 from ....tools.spread_sheet_components import TextColumn
 
 

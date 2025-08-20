@@ -12,7 +12,7 @@ from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa F401
 from ...MultiStepForm import MultiStepForm
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 
 
 class CommonBarcodeMatchForm(MultiStepForm):

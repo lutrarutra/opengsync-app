@@ -13,7 +13,7 @@ from opengsync_db.categories import (
 
 from .... import db, logger, tools
 from ...MultiStepForm import MultiStepForm
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 
 
 class CompleteSASForm(MultiStepForm):

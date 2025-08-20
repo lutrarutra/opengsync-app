@@ -13,7 +13,7 @@ from opengsync_db import models
 from opengsync_db.categories import FileType
 
 from .... import db, logger
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 from ...HTMXFlaskForm import HTMXFlaskForm
 
 DEFAULT_TARGET_NM = 3.0

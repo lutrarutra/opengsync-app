@@ -16,7 +16,7 @@ from opengsync_db.core import exceptions
 
 from .... import db, forms, logger
 from ....core import wrappers
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 
 
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/api/hmtx/seq_requests/")
