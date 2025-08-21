@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, abort, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
+from opengsync_db.categories import HTTPResponse, AccessType
 
 from ... import db, forms
 from ...core import wrappers
@@ -9,7 +9,7 @@ libraries_page_bp = Blueprint("libraries_page", __name__)
 
 
 @wrappers.page_route(libraries_page_bp, db=db)
-def libraries(current_user: models.User):
+def libraries():
     return render_template("libraries_page.html")
 
 
@@ -18,10 +18,9 @@ def library(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
         ("Libraries", url_for("libraries_page.libraries")),

@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, abort, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, LibraryType, LibraryStatus, AssayType, MUXType
+from opengsync_db.categories import HTTPResponse, LibraryType, LibraryStatus, AssayType, MUXType, AccessType
 
 from .... import db, forms, logger
 from ....core import wrappers
@@ -228,10 +228,9 @@ def get_samples(current_user: models.User, library_id: int, page: int = 0):
     if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -256,10 +255,9 @@ def reads_tab(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return make_response(render_template("components/library-reads.html", library=library))
 
@@ -531,10 +529,11 @@ def remove_sample(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and library.owner_id != current_user.id:
-        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     if (sample_id := request.args.get("sample_id")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -557,10 +556,9 @@ def get_mux_table(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if library.mux_type is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
