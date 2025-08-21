@@ -1,7 +1,7 @@
 from flask import Blueprint, request, abort
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType
+from opengsync_db.categories import LibraryType, LibraryStatus, AccessType
 from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
@@ -16,10 +16,11 @@ def begin(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     if library.type == LibraryType.TENX_SC_GEX_FLEX:
         return forms.LibraryReMuxForm(library=library).make_response()
@@ -35,10 +36,11 @@ def parse_flex_annotation(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
         
     return forms.LibraryReMuxForm(library=library, formdata=request.form).process_request()
 
@@ -48,9 +50,10 @@ def parse_flex_abc_annotation(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
         
     return forms.LibraryReFlexABCForm(library=library, formdata=request.form).process_request()

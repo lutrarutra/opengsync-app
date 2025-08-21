@@ -436,25 +436,25 @@ class LibraryBP(DBBlueprint):
         return library
 
     @DBBlueprint.transaction
-    def get_access_type(
-        self, library_id: int, user_id: int
-    ) -> AccessTypeEnum | None:
+    def get_access_type(self, library: models.Library, user: models.User) -> AccessTypeEnum:
+        if user.is_admin():
+            return AccessType.ADMIN
+        if user.is_insider():
+            return AccessType.INSIDER
+        if library.owner_id == user.id:
+            return AccessType.OWNER
+        
+        has_access: bool = self.db.session.query(
+            sa.exists().where(
+                (models.links.UserAffiliation.user_id == user.id) &
+                (models.links.UserAffiliation.group_id == library.seq_request.group_id)
+            )
+        ).scalar()
 
-        if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+        if has_access:
+            return AccessType.EDIT
 
-        access_type: Optional[AccessTypeEnum] = None
-
-        if library.owner_id == user_id:
-            access_type = AccessType.OWNER
-        elif library.seq_request.group_id is not None:
-            if self.db.session.query(models.links.UserAffiliation).where(
-                models.links.UserAffiliation.user_id == user_id,
-                models.links.UserAffiliation.group_id == library.seq_request.group_id
-            ).first() is not None:
-                access_type = AccessType.EDIT
-
-        return access_type
+        return AccessType.NONE
 
     @DBBlueprint.transaction
     def clone(

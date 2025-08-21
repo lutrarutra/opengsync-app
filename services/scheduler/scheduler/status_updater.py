@@ -31,12 +31,10 @@ def __find_finished_libraries(q):
     return q.join(
         models.Experiment,
         models.Experiment.id == models.Library.experiment_id,
-    ).join(
-        models.SeqRun,
-        models.SeqRun.experiment_name == models.Experiment.name,
     ).where(
-        models.SeqRun.status_id.in_([
-            categories.RunStatus.FINISHED.id, categories.RunStatus.ARCHIVED.id,
+        models.Experiment.status_id.in_([
+            categories.ExperimentStatus.FINISHED.id,
+            categories.ExperimentStatus.ARCHIVED.id,
         ])
     )
 
@@ -45,12 +43,10 @@ def __find_sequenced_pools(q):
     return q.join(
         models.Experiment,
         models.Experiment.id == models.Pool.experiment_id,
-    ).join(
-        models.SeqRun,
-        models.SeqRun.experiment_name == models.Experiment.name,
     ).where(
-        models.SeqRun.status_id.in_([
-            categories.RunStatus.FINISHED.id, categories.RunStatus.ARCHIVED.id,
+        models.Experiment.status_id.in_([
+            categories.ExperimentStatus.FINISHED.id,
+            categories.ExperimentStatus.ARCHIVED.id,
         ])
     )
 
