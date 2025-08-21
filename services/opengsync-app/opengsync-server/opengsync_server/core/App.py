@@ -65,11 +65,11 @@ class App(Flask):
     
         super().__init__(__name__, static_folder=static_folder, template_folder=template_folder)
 
-        self.root_folder = os.path.dirname(os.path.abspath(os.path.join(__file__, "..")))
+        self.root_folder = "/usr/src/app/"
         self.media_folder = tools.io.mkdir(os.path.join(self.root_folder, "media"))
         self.uploads_folder = tools.io.mkdir(os.path.join(self.root_folder, "uploads"))
         self.app_data_folder = tools.io.mkdir(os.path.join(self.root_folder, "app_data"))
-        self.share_root = "/usr/src/app/share"
+        self.share_root = os.path.join(self.root_folder, "share")
         file_handler.init_app(
             media_folder=self.media_folder,
             uploads_folder=self.uploads_folder,

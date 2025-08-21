@@ -333,36 +333,25 @@ class PoolBP(DBBlueprint):
         return count
 
     @DBBlueprint.transaction
-    def get_access_type(self, pool_id: int, user_id: int) -> AccessTypeEnum | None:
+    def get_access_type(self, pool: models.Pool, user: models.User) -> AccessTypeEnum:
+        if user.is_admin():
+            return AccessType.ADMIN
+        if user.is_insider():
+            return AccessType.INSIDER
+        if pool.owner_id == user.id:
+            return AccessType.OWNER
 
-        if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
-        
-        access_type: Optional[AccessTypeEnum] = None
+        if pool.seq_request is not None:
+            has_access: bool = self.db.session.query(
+                sa.exists().where(
+                    (models.links.UserAffiliation.user_id == user.id) &
+                    (models.links.UserAffiliation.group_id == pool.seq_request.group_id)
+                )
+            ).scalar()
+            if has_access:
+                return AccessType.EDIT
 
-        if pool.owner_id == user_id:
-            access_type = AccessType.OWNER
-        else:
-            if pool.seq_request is not None and pool.seq_request.group_id is not None:
-                if self.db.session.query(models.links.UserAffiliation).where(
-                    models.links.UserAffiliation.user_id == user_id,
-                    models.links.UserAffiliation.group_id == pool.seq_request.group_id
-                ).first() is not None:
-                    access_type = AccessType.EDIT
-            else:
-                for library in pool.libraries:
-                    if library.owner_id == user_id:
-                        access_type = AccessType.EDIT
-                        break
-                    elif library.seq_request.group_id is not None:
-                        if self.db.session.query(models.links.UserAffiliation).where(
-                            models.links.UserAffiliation.user_id == user_id,
-                            models.links.UserAffiliation.group_id == library.seq_request.group_id
-                        ).first() is not None:
-                            access_type = AccessType.EDIT
-                            break
-                    
-        return access_type
+        return AccessType.NONE
 
     @DBBlueprint.transaction
     def clone(self, pool_id: int, status: PoolStatusEnum, seq_request_id: int | None = None) -> models.Pool:
