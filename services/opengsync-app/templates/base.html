@@ -189,8 +189,8 @@
             {% endif %}
         </div>
     </nav>
+    <div hx-get="{{ url_for('retrieve_flash_messages') }}" hx-trigger="load" hx-swap="innerHTML"></div>
     {% include "components/right_click_menu.html" %}
-    {% include "components/alerts.html" %}
     <div id="alert-container"></div>
     <div id="debug-container"></div>
     <div id="main-container">
@@ -213,6 +213,12 @@
             </div>
             <div id="right-margin">
             </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="sm-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="false" data-bs-backdrop="static">
+        <div class="modal-dialog modal-sm modal-fullscreen-sm-down modal-dialog-centered" id="sm-modal-content">
+            {{ spinner() }}
         </div>
     </div>
 

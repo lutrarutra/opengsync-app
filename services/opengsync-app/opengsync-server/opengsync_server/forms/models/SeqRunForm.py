@@ -62,14 +62,14 @@ class SeqRunForm(HTMXFlaskForm):
             self.status.errors = ("Invalid status",)
             return False
         
-        if db.get_seq_run(experiment_name=self.experiment_name.data) is not None:
+        if db.seq_runs.get(experiment_name=self.experiment_name.data) is not None:
             self.experiment_name.errors = ("experiment_name not unique",)
             return False
 
         return True
     
     def create_seq_run(self) -> models.SeqRun:
-        seq_run = db.create_seq_run(
+        seq_run = db.seq_runs.create(
             experiment_name=self.experiment_name.data,  # type: ignore
             status=RunStatus.get(int(self.status.data)),
             run_folder=self.run_folder.data,  # type: ignore
@@ -86,19 +86,19 @@ class SeqRunForm(HTMXFlaskForm):
             i2_cycles=self.i2_cycles.data,
         )
 
-        if (experiment := db.get_experiment(name=seq_run.experiment_name)) is not None:
+        if (experiment := db.experiments.get(name=seq_run.experiment_name)) is not None:
             if seq_run.status == RunStatus.FINISHED:
                 experiment.status = ExperimentStatus.FINISHED
-                db.update_experiment(experiment)
+                db.experiments.update(experiment)
             elif seq_run.status == RunStatus.FAILED:
                 experiment.status = ExperimentStatus.FAILED
-                db.update_experiment(experiment)
+                db.experiments.update(experiment)
             elif seq_run.status == RunStatus.RUNNING:
                 experiment.status = ExperimentStatus.SEQUENCING
-                db.update_experiment(experiment)
+                db.experiments.update(experiment)
             elif seq_run.status == RunStatus.ARCHIVED:
                 experiment.status = ExperimentStatus.ARCHIVED
-                db.update_experiment(experiment)
+                db.experiments.update(experiment)
 
         return seq_run
     
@@ -117,7 +117,7 @@ class SeqRunForm(HTMXFlaskForm):
         seq_run.i1_cycles = self.i1_cycles.data
         seq_run.i2_cycles = self.i2_cycles.data
 
-        return db.update_seq_run(seq_run)
+        return db.seq_runs.update(seq_run)
     
     def process_request(self, **context) -> Response:
         if not self.validate():

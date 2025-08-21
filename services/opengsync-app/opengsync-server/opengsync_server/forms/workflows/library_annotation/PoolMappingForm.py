@@ -123,7 +123,7 @@ class PoolMappingForm(MultiStepForm):
                     num_m_reads_requested=sub_form.num_m_reads_requested.data,
                 )
             # elif sub_form.existing_pool.selected.data:
-            #     if (pool := db.get_pool(int(sub_form.existing_pool.seleted.data))) is None:
+            #     if (pool := db.pools.get_pool(int(sub_form.existing_pool.seleted.data))) is None:
             #         logger.error(f"Pool with ID {sub_form.existing_pool.seleted.data} not found.")
             #         raise Exception(f"Pool with ID {sub_form.existing_pool.seleted.data} not found.")
             #     add_pool(

@@ -14,7 +14,7 @@ from opengsync_db import models
 from opengsync_db.categories import PoolStatus, FileType, LibraryStatus
 
 from .... import db, logger  # noqa
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 from ...MultiStepForm import MultiStepForm
 
 
@@ -134,11 +134,11 @@ class CompleteBAReportForm(MultiStepForm):
         size_bytes = os.stat(new_path).st_size
 
         if (lab_prep_id := metadata.get("lab_prep_id")) is not None:
-            if db.get_lab_prep(lab_prep_id) is None:
+            if db.lab_preps.get(lab_prep_id) is None:
                 logger.error(f"{self.uuid}: lab_prep_id {lab_prep_id} not found")
                 raise ValueError(f"{self.uuid}: lab_prep_id {lab_prep_id} not found")
 
-        ba_file = db.create_file(
+        ba_file = db.files.create(
             name=filename,
             extension=extension,
             size_bytes=size_bytes,
@@ -155,30 +155,30 @@ class CompleteBAReportForm(MultiStepForm):
         }
 
         for sub_form in self.sample_fields:
-            if (sample := db.get_sample(sub_form.obj_id.data)) is None:
+            if (sample := db.samples.get(sub_form.obj_id.data)) is None:
                 logger.error(f"{self.uuid}: Sample {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Sample {sub_form.obj_id.data} not found")
             
             sample.avg_fragment_size = sub_form.avg_fragment_size.data
             sample.ba_report = ba_file
-            sample = db.update_sample(sample)
+            db.samples.update(sample)
 
             sample_table.loc[sample_table["id"] == sample.id, "avg_fragment_size"] = sample.avg_fragment_size
 
         for sub_form in self.library_fields:
-            if (library := db.get_library(sub_form.obj_id.data)) is None:
+            if (library := db.libraries.get(sub_form.obj_id.data)) is None:
                 logger.error(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
             
             library.avg_fragment_size = sub_form.avg_fragment_size.data
             library.ba_report_id = ba_file.id
                             
-            library = db.update_library(library)
+            db.libraries.update(library)
 
             library_table.loc[library_table["id"] == library.id, "avg_fragment_size"] = library.avg_fragment_size
 
         for sub_form in self.pool_fields:
-            if (pool := db.get_pool(sub_form.obj_id.data)) is None:
+            if (pool := db.pools.get(sub_form.obj_id.data)) is None:
                 logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
             
@@ -193,17 +193,17 @@ class CompleteBAReportForm(MultiStepForm):
             if pool.status == PoolStatus.ACCEPTED:
                 pool.status = PoolStatus.STORED
 
-            pool = db.update_pool(pool)
+            db.pools.update(pool)
             pool_table.loc[pool_table["id"] == pool.id, "avg_fragment_size"] = pool.avg_fragment_size
 
         for sub_form in self.lane_fields:
-            if (lane := db.get_lane(sub_form.obj_id.data)) is None:
+            if (lane := db.lanes.get(sub_form.obj_id.data)) is None:
                 logger.error(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
             
             lane.avg_fragment_size = sub_form.avg_fragment_size.data
             lane.ba_report_id = ba_file.id
-            lane = db.update_lane(lane)
+            db.lanes.update(lane)
 
             lane_table.loc[lane_table["id"] == lane.id, "avg_fragment_size"] = lane.avg_fragment_size
 

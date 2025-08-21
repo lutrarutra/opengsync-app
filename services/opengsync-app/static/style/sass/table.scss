@@ -281,3 +281,10 @@ table.barcode-clashes-table tbody td.index-cell {
         border: 0;
     }
 }
+
+
+@media screen and (max-width: 768px) {
+    .table-container {
+        overflow: auto;
+    }
+}

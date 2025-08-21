@@ -11,8 +11,11 @@ from ....core import wrappers
 users_htmx = Blueprint("users_htmx", __name__, url_prefix="/api/hmtx/users/")
 
 
-@wrappers.htmx_route(users_htmx, db=db)
+@wrappers.htmx_route(users_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get(current_user: models.User, page: int = 0):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -30,7 +33,7 @@ def get(current_user: models.User, page: int = 0):
         if len(role_in) == 0:
             role_in = None
 
-    users, n_pages = db.get_users(
+    users, n_pages = db.users.find(
         offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending,
         role_in=role_in, count_pages=True
     )
@@ -46,7 +49,10 @@ def get(current_user: models.User, page: int = 0):
 
 
 @wrappers.htmx_route(users_htmx, db=db, methods=["POST"])
-def query():
+def query(current_user: models.User):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
 
@@ -64,7 +70,7 @@ def query():
             role_in = None
 
     only_insiders = request.args.get("only_insiders") == "True"
-    results = db.query_users(query, role_in=role_in, only_insiders=only_insiders)
+    results = db.users.query(query, role_in=role_in, only_insiders=only_insiders)
     
     return make_response(
         render_template(
@@ -75,7 +81,10 @@ def query():
 
 
 @wrappers.htmx_route(users_htmx, db=db)
-def table_query():
+def table_query(current_user: models.User):
+    if not current_user.is_insider():
+        return abort(HTTPResponse.FORBIDDEN.id)
+    
     if (word := request.args.get("last_name")) is not None:
         field_name = "last_name"
     elif (word := request.args.get("email")) is not None:
@@ -97,13 +106,13 @@ def table_query():
 
     users: list[models.User] = []
     if field_name == "last_name":
-        users = db.query_users(word, role_in=role_in)
+        users = db.users.query(word, role_in=role_in)
     elif field_name == "email":
-        users = db.query_users_by_email(word, role_in=role_in)
+        users = db.users.query_with_email(word, role_in=role_in)
     elif field_name == "id":
         try:
             _id = int(word)
-            if (user := db.get_user(_id)) is not None:
+            if (user := db.users.get(_id)) is not None:
                 users.append(user)
         except ValueError:
             pass
@@ -119,7 +128,7 @@ def table_query():
 
 @wrappers.htmx_route(users_htmx, db=db)
 def get_projects(current_user: models.User, user_id: int, page: int = 0):
-    if (user := db.get_user(user_id)) is None:
+    if (user := db.users.get(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if user.id != current_user.id and not current_user.is_insider():
@@ -130,7 +139,7 @@ def get_projects(current_user: models.User, user_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
     
-    projects, n_pages = db.get_projects(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True)
+    projects, n_pages = db.projects.find(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -143,7 +152,7 @@ def get_projects(current_user: models.User, user_id: int, page: int = 0):
 
 @wrappers.htmx_route(users_htmx, db=db)
 def get_seq_requests(current_user: models.User, user_id: int, page: int = 0):
-    if (user := db.get_user(user_id)) is None:
+    if (user := db.users.get(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if user.id != current_user.id and not current_user.is_insider():
@@ -164,7 +173,7 @@ def get_seq_requests(current_user: models.User, user_id: int, page: int = 0):
         if len(status_in) == 0:
             status_in = None
     
-    seq_requests, n_pages = db.get_seq_requests(
+    seq_requests, n_pages = db.seq_requests.find(
         offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True
     )
     
@@ -186,7 +195,7 @@ def query_seq_requests(current_user: models.User, user_id: int):
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (user := db.get_user(user_id)) is None:
+    if (user := db.users.get(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if user.id != current_user.id and not current_user.is_insider():
@@ -204,11 +213,11 @@ def query_seq_requests(current_user: models.User, user_id: int):
 
     seq_requests: list[models.SeqRequest] = []
     if field_name == "name":
-        seq_requests = db.query_seq_requests(word, user_id=user_id, status_in=status_in)
+        seq_requests = db.seq_requests.query(word, user_id=user_id, status_in=status_in)
     elif field_name == "id":
         try:
             _id = int(word)
-            if (seq_request := db.get_seq_request(_id)) is not None:
+            if (seq_request := db.seq_requests.get(_id)) is not None:
                 if seq_request.requestor_id == user_id:
                     seq_requests.append(seq_request)
         except ValueError:
@@ -226,7 +235,7 @@ def query_seq_requests(current_user: models.User, user_id: int):
 
 @wrappers.htmx_route(users_htmx, db=db)
 def get_affiliations(current_user: models.User, user_id: int, page: int = 0):
-    if (user := db.get_user(user_id)) is None:
+    if (user := db.users.get(user_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if user.id != current_user.id and not current_user.is_insider():
@@ -237,7 +246,7 @@ def get_affiliations(current_user: models.User, user_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
 
-    affiliations, n_pages = db.get_user_affiliations(
+    affiliations, n_pages = db.users.get_affiliations(
         offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True
     )
     

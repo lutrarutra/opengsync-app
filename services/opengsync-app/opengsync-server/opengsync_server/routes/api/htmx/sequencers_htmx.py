@@ -14,7 +14,7 @@ def get(current_user: models.User, page: int = 0):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    sequencers, n_pages = db.get_sequencers(offset=PAGE_LIMIT * page, count_pages=True)
+    sequencers, n_pages = db.sequencers.find(offset=PAGE_LIMIT * page, count_pages=True)
     
     return make_response(
         render_template(
@@ -39,7 +39,7 @@ def update(current_user: models.User, sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (sequencer := db.get_sequencer(sequencer_id)) is None:
+    if (sequencer := db.sequencers.get(sequencer_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.models.SequencerForm(request.form).process_request(
@@ -52,11 +52,11 @@ def delete(current_user: models.User, sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    if db.get_sequencer(sequencer_id) is None:
+    if db.sequencers.get(sequencer_id) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     try:
-        db.delete_sequencer(sequencer_id)
+        db.sequencers.delete(sequencer_id)
     except exceptions.ElementIsReferenced:
         flash("Sequencer is referenced by experiment(s) and cannot be deleted.", "error")
         return make_response(
@@ -77,7 +77,7 @@ def query():
     if query is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    results = db.query_sequencers(query)
+    results = db.sequencers.query(query)
     
     return make_response(
         render_template(

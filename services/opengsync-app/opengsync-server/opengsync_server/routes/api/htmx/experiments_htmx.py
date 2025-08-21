@@ -11,7 +11,7 @@ from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, ExperimentStatus, ExperimentWorkFlow, ProjectStatus
 
 from .... import db, forms, logger
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 from ....core import wrappers
 
 experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/hmtx/experiments/")
@@ -44,7 +44,7 @@ def get(page: int = 0):
         if len(workflow_in) == 0:
             workflow_in = None
 
-    experiments, n_pages = db.get_experiments(
+    experiments, n_pages = db.experiments.find(
         offset=offset, sort_by=sort_by, descending=descending,
         status_in=status_in, workflow_in=workflow_in, count_pages=True
     )
@@ -78,7 +78,7 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
         if form_type != "edit":
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        if (experiment := db.get_experiment(experiment_id)) is None:
+        if (experiment := db.experiments.get(experiment_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
         return forms.models.ExperimentForm(form_type=form_type, experiment=experiment).make_response()
@@ -103,7 +103,7 @@ def edit(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return forms.models.ExperimentForm(formdata=request.form, form_type="edit").process_request(
@@ -116,13 +116,13 @@ def delete(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not experiment.is_deleteable():
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    db.delete_experiment(experiment_id)
+    db.experiments.delete(experiment_id)
 
     logger.debug(f"Deleted experiment on flowcell '{experiment.name}'")
     flash(f"Deleted experiment on flowcell '{experiment.name}'.", "success")
@@ -141,7 +141,7 @@ def query(current_user: models.User):
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    results = db.query_experiments(word)
+    results = db.experiments.query(word)
 
     return make_response(
         render_template(
@@ -156,10 +156,10 @@ def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: 
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
         
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
         
-    if (file := db.get_file(file_id)) is None:
+    if (file := db.files.get(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     filepath = os.path.join(runtime.current_app.media_folder, file.path)
@@ -212,10 +212,10 @@ def table_query(current_user: models.User):
     
     experiments = []
     if field_name == "name":
-        experiments = db.query_experiments(word, workflow_in=workflow_in)
+        experiments = db.experiments.query(word, workflow_in=workflow_in)
     elif field_name == "id":
         try:
-            if (experiment := db.get_experiment(int(word))) is not None:
+            if (experiment := db.experiments.get(int(word))) is not None:
                 experiments = [experiment]
                 if workflow_in is not None and experiment.workflow not in workflow_in:
                     experiments = []
@@ -236,19 +236,19 @@ def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if lane_num > experiment.num_lanes or lane_num < 1:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (_ := db.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
+    if (_ := db.lanes.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.add_pool_to_lane(
+    db.links.add_pool_to_lane(
         experiment_id=experiment_id,
         pool_id=pool_id,
         lane_num=lane_num
@@ -268,19 +268,19 @@ def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lan
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if lane_num > experiment.num_lanes or lane_num < 1:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (_ := db.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
+    if (_ := db.lanes.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.remove_pool_from_lane(
+    db.links.remove_pool_from_lane(
         experiment_id=experiment_id,
         pool_id=pool_id,
         lane_num=lane_num,
@@ -300,7 +300,7 @@ def comment_form(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -318,7 +318,7 @@ def file_form(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -336,10 +336,10 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if (file := db.get_file(file_id)) is None:
+    if (file := db.files.get(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if file not in experiment.files:
@@ -348,7 +348,7 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
-    db.delete_file(file_id=file.id)
+    db.files.delete(file_id=file.id)
 
     logger.info(f"Deleted file '{file.name}' from experiment (id='{experiment_id}')")
     flash(f"Deleted file '{file.name}' from experiment.", "success")
@@ -360,7 +360,7 @@ def add_comment(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.comment.ExperimentCommentForm(experiment=experiment, formdata=request.form).process_request(user=current_user)
@@ -371,7 +371,7 @@ def remove_pool(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if (pool_id := request.args.get("pool_id")) is None:
@@ -382,10 +382,10 @@ def remove_pool(current_user: models.User, experiment_id: int):
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (_ := db.get_pool(pool_id)) is None:
+    if (_ := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    db.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
+    db.links.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
 
     logger.info(f"Removed pool (id='{pool_id}') from experiment (id='{experiment_id}')")
     flash("Removed pool from experiment.", "success")
@@ -400,12 +400,12 @@ def overview(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     LINK_WIDTH_UNIT = 1
     
-    df = db.get_experiment_libraries_df(experiment_id=experiment_id, include_indices=False, include_seq_request=True, collapse_lanes=False)
+    df = db.pd.get_experiment_libraries(experiment_id=experiment_id, include_indices=False, include_seq_request=True, collapse_lanes=False)
 
     if df.empty:
         return make_response(
@@ -517,10 +517,10 @@ def get_pools(current_user: models.User, experiment_id: int, page: int = 0):
     
     experiment_lanes: dict[int, list[int]] = {}
 
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    pools, _ = db.get_pools(
+    pools, _ = db.pools.find(
         offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
         limit=None
     )
@@ -554,7 +554,7 @@ def get_projects(current_user: models.User, experiment_id: int, page: int = 0):
     if sort_by not in models.Project.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if (status_in := request.args.get("status_id_in")) is not None:
@@ -567,7 +567,7 @@ def get_projects(current_user: models.User, experiment_id: int, page: int = 0):
         if len(status_in) == 0:
             status_in = None
     
-    projects, n_pages = db.get_projects(
+    projects, n_pages = db.projects.find(
         offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, count_pages=True,
         status_in=status_in
     )
@@ -595,10 +595,10 @@ def get_libraries(current_user: models.User, experiment_id: int, page: int = 0):
     if sort_by not in models.Library.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    libraries, n_pages = db.get_libraries(
+    libraries, n_pages = db.libraries.find(
         offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, count_pages=True
     )
 
@@ -620,10 +620,10 @@ def query_libraries(current_user: models.User, experiment_id: int):
     if (word := request.args.get("word")) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    libraries = db.query_libraries(experiment_id=experiment_id, name=word)
+    libraries = db.libraries.query(experiment_id=experiment_id, name=word)
 
     return make_response(
         render_template(
@@ -638,7 +638,7 @@ def get_comments(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return make_response(
@@ -654,7 +654,7 @@ def get_files(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return make_response(
@@ -671,7 +671,7 @@ def get_pool_dilutions(current_user: models.User, experiment_id: int, page: int 
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     sort_by = request.args.get("sort_by", "pool_id")
@@ -679,7 +679,7 @@ def get_pool_dilutions(current_user: models.User, experiment_id: int, page: int 
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    dilutions, _ = db.get_pool_dilutions(offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None)
+    dilutions, _ = db.pools.get_dilutions(offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None)
     
     return make_response(
         render_template(
@@ -701,7 +701,7 @@ def get_recent_experiments(current_user: models.User):
     else:
         sort_by = "name"
 
-    experiments, _ = db.get_experiments(sort_by=sort_by, descending=True)
+    experiments, _ = db.experiments.find(sort_by=sort_by, descending=True)
 
     return make_response(
         render_template("components/dashboard/experiments-list.html", experiments=experiments, sort_by=sort_by)

@@ -65,7 +65,7 @@ class ExperimentForm(HTMXFlaskForm):
             return False
         
         try:
-            if (e := db.get_experiment(name=self.name.data)) is not None:
+            if (e := db.experiments.get(name=self.name.data)) is not None:
                 if experiment is None or experiment.id != e.id:
                     self.name.errors = ("An experiment with this name already exists.",)
                     return False
@@ -100,7 +100,7 @@ class ExperimentForm(HTMXFlaskForm):
         experiment.operator_id = self.operator.selected.data
         experiment.status = status
 
-        experiment = db.update_experiment(experiment)
+        db.experiments.update(experiment)
 
         flash(f"Edited experiment '{experiment.name}'.", "success")
 
@@ -110,7 +110,7 @@ class ExperimentForm(HTMXFlaskForm):
         workflow = ExperimentWorkFlow.get(self.workflow.data)
         status = ExperimentStatus.get(self.status.data)
 
-        experiment = db.create_experiment(
+        experiment = db.experiments.create(
             name=self.name.data,  # type: ignore
             workflow=workflow,
             sequencer_id=self.sequencer.selected.data,

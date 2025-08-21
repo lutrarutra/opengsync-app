@@ -27,7 +27,7 @@ class SeqRequestShareEmailForm(HTMXFlaskForm):
             self.email.errors = ("Please enter an email address.",)
             return False
         
-        if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        if (seq_request := db.seq_requests.get(seq_request_id)) is None:
             logger.error(f"SeqRequest with id '{seq_request_id}' not found.")
             raise ValueError(f"SeqRequest with id '{seq_request_id}' not found.")
 
@@ -45,7 +45,7 @@ class SeqRequestShareEmailForm(HTMXFlaskForm):
         if not self.validate(seq_request_id=seq_request.id):
             return self.make_response(**context)
         
-        db.add_seq_request_share_email(seq_request_id=seq_request.id, email=self.email.data.strip())  # type: ignore
+        db.seq_requests.add_share_email(seq_request_id=seq_request.id, email=self.email.data.strip())  # type: ignore
 
         flash("Email added to the list.", "success")
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))

@@ -58,24 +58,24 @@ class ProcessRequestForm(HTMXFlaskForm):
         response_type = RequestResponse.get(self.response_type.data)
 
         if response_type == RequestResponse.ACCEPTED:
-            seq_request = db.process_seq_request(seq_request.id, SeqRequestStatus.ACCEPTED)
+            seq_request = db.seq_requests.process(seq_request.id, SeqRequestStatus.ACCEPTED)
             flash("Request accepted!", "success")
         elif response_type == RequestResponse.REJECTED:
-            seq_request = db.process_seq_request(seq_request.id, SeqRequestStatus.REJECTED)
+            seq_request = db.seq_requests.process(seq_request.id, SeqRequestStatus.REJECTED)
             flash("Request rejected!", "info")
         elif response_type == RequestResponse.PENDING_REVISION:
-            seq_request = db.process_seq_request(seq_request.id, SeqRequestStatus.DRAFT)
+            seq_request = db.seq_requests.process(seq_request.id, SeqRequestStatus.DRAFT)
             flash("Request pending revision!", "info")
         else:
             return abort(HTTPResponse.INTERNAL_SERVER_ERROR.id)
         
         if self.notification_comment.data:
-            _ = db.create_comment(
+            _ = db.comments.create(
                 text=f"Request {response_type.display_name}. Comment: {self.notification_comment.data}",
                 author_id=user.id, seq_request_id=seq_request.id
             )
         else:
-            _ = db.create_comment(
+            _ = db.comments.create(
                 text=f"Request {response_type.display_name}",
                 author_id=user.id, seq_request_id=seq_request.id
             )

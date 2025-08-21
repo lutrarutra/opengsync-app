@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, PoolStatus, LibraryStatus, PoolType
 
-from .... import db, forms, logger
+from .... import db, forms
 from ....core import wrappers
 pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/api/hmtx/pools/")
 
@@ -42,7 +42,7 @@ def get(current_user: models.User, page: int = 0):
         if len(type_in) == 0:
             type_in = None
 
-    pools, n_pages = db.get_pools(
+    pools, n_pages = db.pools.find(
         sort_by=sort_by, descending=descending,
         offset=offset, status_in=status_in, type_in=type_in, count_pages=True
     )
@@ -70,13 +70,13 @@ def delete(current_user: models.User, pool_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if len(pool.libraries) > 0:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    db.delete_pool(pool.id)
+    db.pools.delete(pool.id)
     flash("Pool deleted", "success")
     return make_response(redirect=url_for("pools_page.pools"))
 
@@ -86,7 +86,7 @@ def remove_libraries(current_user: models.User, pool_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if pool.status != PoolStatus.DRAFT:
@@ -97,7 +97,7 @@ def remove_libraries(current_user: models.User, pool_id: int):
         if library.status == LibraryStatus.POOLED:
             library.status = LibraryStatus.STORED
 
-    db.update_pool(pool)
+    db.pools.update(pool)
     
     flash("Libraries removed from pool", "success")
     return make_response(redirect=url_for("pools_page.pool", pool_id=pool_id))
@@ -121,7 +121,7 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"], po
         if pool_id is None:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        if (pool := db.get_pool(pool_id)) is None:
+        if (pool := db.pools.get(pool_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
         if not current_user.is_insider() and pool.owner_id != current_user.id:
@@ -133,7 +133,7 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"], po
 
 @wrappers.htmx_route(pools_htmx, methods=["POST"], db=db)
 def edit(current_user: models.User, pool_id: int):
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
@@ -146,7 +146,7 @@ def clone(current_user: models.User, pool_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -162,7 +162,7 @@ def remove_library(current_user: models.User, pool_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if (library_id := request.args.get("library_id")) is None:
@@ -173,7 +173,7 @@ def remove_library(current_user: models.User, pool_id: int):
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (library := db.get_library(library_id)) is None:
+    if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if library.pool_id != pool.id:
@@ -182,7 +182,7 @@ def remove_library(current_user: models.User, pool_id: int):
     library.pool_id = None
     if library.status == LibraryStatus.POOLED:
         library.status = LibraryStatus.STORED
-    library = db.update_library(library)
+    db.libraries.update(library)
 
     flash("Library removed from pool", "success")
     return make_response(redirect=url_for("pools_page.pool", pool_id=pool_id))
@@ -201,10 +201,10 @@ def table_query():
         return abort(HTTPResponse.BAD_REQUEST.id)
     
     if field_name == "name":
-        pools = db.query_pools(word)
+        pools = db.pools.query(word)
     elif field_name == "id":
         try:
-            pools = [db.get_pool(int(word))]
+            pools = [db.pools.get(int(word))]
         except ValueError:
             pools = []
     else:
@@ -243,7 +243,7 @@ def query():
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
 
-    results = db.query_pools(query, status_in=status_in, seq_request_id=seq_request_id)
+    results = db.pools.query(query, status_in=status_in, seq_request_id=seq_request_id)
     
     return make_response(
         render_template(
@@ -255,7 +255,7 @@ def query():
 
 @wrappers.htmx_route(pools_htmx, db=db)
 def get_libraries(current_user: models.User, pool_id: int, page: int = 0):
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
@@ -266,7 +266,7 @@ def get_libraries(current_user: models.User, pool_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    libraries, n_pages = db.get_libraries(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, count_pages=True)
+    libraries, n_pages = db.libraries.find(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -286,7 +286,7 @@ def query_libraries(current_user: models.User, pool_id: int):
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if pool.owner != current_user.id and not current_user.is_insider():
@@ -294,11 +294,11 @@ def query_libraries(current_user: models.User, pool_id: int):
 
     libraries: list[models.Library] = []
     if field_name == "name":
-        libraries = db.query_libraries(name=word, pool_id=pool_id)
+        libraries = db.libraries.query(name=word, pool_id=pool_id)
     elif field_name == "id":
         try:
             _id = int(word)
-            if (library := db.get_library(_id)) is not None:
+            if (library := db.libraries.get(_id)) is not None:
                 if library.pool_id == pool_id:
                     libraries.append(library)
         except ValueError:
@@ -317,7 +317,7 @@ def query_libraries(current_user: models.User, pool_id: int):
 def plate_pool(current_user: models.User, pool_id: int, form_type: Literal["create", "edit"]):
     if form_type not in ["create", "edit"]:
         return abort(HTTPResponse.BAD_REQUEST.id)
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
@@ -333,7 +333,7 @@ def plate_pool(current_user: models.User, pool_id: int, form_type: Literal["crea
 
 @wrappers.htmx_route(pools_htmx, db=db)
 def get_dilutions(current_user: models.User, pool_id: int, page: int = 0):
-    if (pool := db.get_pool(pool_id)) is None:
+    if (pool := db.pools.get(pool_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
@@ -344,7 +344,7 @@ def get_dilutions(current_user: models.User, pool_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    dilutions, _ = db.get_pool_dilutions(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, limit=None)
+    dilutions, _ = db.pools.get_dilutions(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, limit=None)
     
     return make_response(
         render_template(
@@ -396,7 +396,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
     
-    pools, n_pages = db.get_pools(
+    pools, n_pages = db.pools.find(
         sort_by=sort_by, descending=descending, offset=offset, status_in=status_in, experiment_id=experiment_id,
         seq_request_id=seq_request_id, associated_to_experiment=associated_to_experiment, count_pages=True
     )
@@ -442,14 +442,14 @@ def browse_query(current_user: models.User, workflow: str):
     
     pools: list[models.Pool] = []
     if field_name == "name":
-        pools = db.query_pools(word, experiment_id=experiment_id, seq_request_id=seq_request_id)
+        pools = db.pools.query(word, experiment_id=experiment_id, seq_request_id=seq_request_id)
     elif field_name == "id":
         try:
             _id = int(word)
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        if (pool := db.get_pool(pool_id=_id)) is not None:
+        if (pool := db.pools.get(pool_id=_id)) is not None:
             if pool.experiment_id == pool.id:
                 pools.append(pool)
     else:
@@ -480,7 +480,7 @@ def get_recent_pools(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    pools, _ = db.get_pools(
+    pools, _ = db.pools.find(
         status_in=[PoolStatus.STORED, PoolStatus.ACCEPTED], sort_by="id", descending=True,
         limit=15
     )

@@ -52,11 +52,11 @@ class CompleteReindexForm(MultiStepForm):
 
     def process_request(self) -> Response:
         for _, row in self.library_table.iterrows():
-            if (library := db.get_library(row["library_id"])) is None:
+            if (library := db.libraries.get(row["library_id"])) is None:
                 logger.error(f"{self.uuid}: Library {row['library_id']} not found")
                 raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
 
-            library = db.remove_library_indices(library_id=library.id)
+            library = db.libraries.remove_indices(library_id=library.id)
             df = self.barcode_table[self.barcode_table[self.index_col] == row[self.index_col]].copy()
 
             seq_i7s = df["sequence_i7"].values
@@ -78,10 +78,10 @@ class CompleteReindexForm(MultiStepForm):
                     index_type = IndexType.DUAL_INDEX
 
             library.index_type = index_type
-            library = db.update_library(library)
+            db.libraries.update(library)
 
             for j in range(max(len(seq_i7s), len(seq_i5s))):
-                library = db.add_library_index(
+                library = db.libraries.add_index(
                     library_id=library.id,
                     index_kit_i7_id=None,
                     index_kit_i5_id=None,

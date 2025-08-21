@@ -24,7 +24,7 @@ class QueryBarcodeSequencesForm(HTMXFlaskForm):
         
         sequence = sequence.upper()
         
-        fc_df = db.query_barcode_sequences_df(sequence, limit=30)
-        rc_df = db.query_barcode_sequences_df(models.Barcode.reverse_complement(sequence), limit=30)
+        fc_df = db.pd.query_barcode_sequences(sequence, limit=30)
+        rc_df = db.pd.query_barcode_sequences(models.Barcode.reverse_complement(sequence), limit=30)
 
         return make_response(render_template("components/barcode_results.html", fc_df=fc_df, rc_df=rc_df))

@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, IndexType, KitType
 
-from .... import db, logger, cache, forms
+from .... import db, logger, forms
 from ....core import wrappers
 from ....tools.spread_sheet_components import TextColumn
 
@@ -16,7 +16,7 @@ index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/api/hmtx/i
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db)
-def get(current_user: models.User, page: int = 0):
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "identifier")
     sort_order = request.args.get("sort_order", "asc")
     descending = sort_order == "desc"
@@ -34,7 +34,7 @@ def get(current_user: models.User, page: int = 0):
         if len(type_in) == 0:
             type_in = None
 
-    index_kits, n_pages = db.get_index_kits(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, type_in=type_in, count_pages=True)
+    index_kits, n_pages = db.index_kits.find(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, type_in=type_in, count_pages=True)
 
     return make_response(
         render_template(
@@ -47,7 +47,7 @@ def get(current_user: models.User, page: int = 0):
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db)
-def table_query(current_user: models.User):
+def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
@@ -71,14 +71,14 @@ def table_query(current_user: models.User):
     if field_name == "id":
         try:
             _id = int(word)
-            if (index_kit := db.get_index_kit(_id)) is not None:
+            if (index_kit := db.index_kits.get(_id)) is not None:
                 if type_in is None or index_kit.type in type_in:
                     index_kits.append(index_kit)
 
         except ValueError:
             pass
     elif field_name in ["name", "identifier"]:
-        index_kits = db.query_kits(word, kit_type=KitType.INDEX_KIT)
+        index_kits = db.kits.query(word, kit_type=KitType.INDEX_KIT)
 
     return make_response(
         render_template(
@@ -90,7 +90,7 @@ def table_query(current_user: models.User):
 
 @wrappers.htmx_route(index_kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
 def get_adapters(index_kit_id: int, page: int = 0):
-    if (index_kit := db.get_index_kit(index_kit_id)) is None:
+    if (index_kit := db.index_kits.get(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     sort_by = request.args.get("sort_by", "id")
@@ -98,7 +98,7 @@ def get_adapters(index_kit_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
 
-    adapters, n_pages = db.get_adapters(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
+    adapters, n_pages = db.adapters.find(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
 
     return make_response(
         render_template(
@@ -112,10 +112,10 @@ def get_adapters(index_kit_id: int, page: int = 0):
 
 @wrappers.htmx_route(index_kits_htmx, db=db)
 def render_table(current_user: models.User, index_kit_id: int):
-    if (index_kit := db.get_index_kit(index_kit_id)) is None:
+    if (index_kit := db.index_kits.get(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    df = db.get_index_kit_barcodes_df(index_kit_id, per_index=True)
+    df = db.pd.get_index_kit_barcodes(index_kit_id, per_index=True)
 
     columns = []
     for i, col in enumerate(df.columns):
@@ -148,7 +148,7 @@ def get_form(current_user: models.User, form_type: str):
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        if (index_kit := db.get_index_kit(index_kit_id)) is None:
+        if (index_kit := db.index_kits.get(index_kit_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
     elif form_type == "create":
         index_kit = None
@@ -179,7 +179,7 @@ def create(current_user: models.User):
 def edit(current_user: models.User, index_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
-    if (index_kit := db.get_index_kit(index_kit_id)) is None:
+    if (index_kit := db.index_kits.get(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -196,7 +196,7 @@ def edit_barcodes(current_user: models.User, index_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (index_kit := db.get_index_kit(index_kit_id)) is None:
+    if (index_kit := db.index_kits.get(index_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if index_kit.type == IndexType.TENX_ATAC_INDEX:

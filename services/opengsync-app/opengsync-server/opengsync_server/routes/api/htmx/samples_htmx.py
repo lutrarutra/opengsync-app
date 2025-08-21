@@ -4,7 +4,7 @@ from flask import Blueprint, url_for, render_template, flash, request, abort
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT, DBHandler
-from opengsync_db.categories import HTTPResponse, UserRole, SampleStatus
+from opengsync_db.categories import HTTPResponse, UserRole, SampleStatus, AccessType
 
 from .... import db, logger, forms
 from ....core import wrappers
@@ -35,7 +35,7 @@ def get(current_user: models.User, page: int = 0):
     
     samples: list[models.Sample] = []
 
-    samples, n_pages = db.get_samples(
+    samples, n_pages = db.samples.find(
         offset=offset,
         user_id=current_user.id if not current_user.is_insider() else None,
         sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True
@@ -53,18 +53,18 @@ def get(current_user: models.User, page: int = 0):
 
 @wrappers.htmx_route(samples_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, sample_id: int):
-    if (sample := db.get_sample(sample_id)) is None:
+    if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not sample.is_editable():
+    access_type = db.samples.get_access_type(sample, current_user)
+
+    if not sample.is_editable() and access_type < AccessType.INSIDER:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if not current_user.is_insider() and sample.owner_id != current_user.id:
-        affiliation = db.get_user_sample_access_type(user_id=current_user.id, sample_id=sample.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
-    db.delete_sample(sample_id)
+    db.samples.delete(sample_id)
 
     logger.info(f"Deleted sample {sample.name} (id: {sample.id})")
     flash(f"Deleted sample {sample.name} (id: {sample.id})", "success")
@@ -78,14 +78,17 @@ def delete(current_user: models.User, sample_id: int):
 
 @wrappers.htmx_route(samples_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, sample_id: int):
-    if (sample := db.get_sample(sample_id)) is None:
+    if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    access_type = db.samples.get_access_type(sample, current_user)
 
-    if not current_user.is_insider() and sample.owner_id != current_user.id:
-        affiliation = db.get_user_sample_access_type(user_id=current_user.id, sample_id=sample.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-        
+    if not sample.is_editable() and access_type < AccessType.INSIDER:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
+    if access_type < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
+
     if request.method == "GET":
         return forms.models.SampleForm(sample).make_response()
     
@@ -103,7 +106,7 @@ def query(current_user: models.User):
     else:
         _user_id = None
 
-    results = db.query_samples(word, user_id=_user_id)
+    results = db.samples.query(word, user_id=_user_id)
 
     return make_response(
         render_template(
@@ -132,12 +135,12 @@ def table_query(current_user: models.User):
         _user_id = None
     
     def __get_samples(
-        session: DBHandler, word: str | int, field_name: str,
+        word: str | int, field_name: str,
         seq_request_id: int | None, project_id: int | None,
     ) -> list[models.Sample]:
         samples: list[models.Sample] = []
         if field_name == "name":
-            samples = session.query_samples(
+            samples = db.samples.query(
                 str(word),
                 project_id=project_id, user_id=_user_id,
                 seq_request_id=seq_request_id
@@ -147,7 +150,7 @@ def table_query(current_user: models.User):
                 _id = int(word)
             except ValueError:
                 return []
-            if (sample := session.get_sample(_id)) is not None:
+            if (sample := db.samples.get(_id)) is not None:
                 samples = [sample]
                 if _user_id is not None:
                     if sample.owner_id == _user_id:
@@ -160,7 +163,7 @@ def table_query(current_user: models.User):
                         samples = []
                 
                 if seq_request_id is not None:
-                    if session.is_sample_in_seq_request(sample.id, seq_request_id):
+                    if db.samples.is_in_seq_request(sample.id, seq_request_id):
                         samples = [sample]
                     else:
                         samples = []
@@ -179,10 +182,10 @@ def table_query(current_user: models.User):
         except (ValueError, TypeError):
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        if (project := db.get_project(project_id)) is None:
+        if (project := db.projects.get(project_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
             
-        samples = __get_samples(db, word, field_name, project_id=project_id, seq_request_id=None)
+        samples = __get_samples(word, field_name, project_id=project_id, seq_request_id=None)
         context["project"] = project
     
     elif (seq_request_id := request.args.get("seq_request_id", None)) is not None:
@@ -192,14 +195,14 @@ def table_query(current_user: models.User):
         except (ValueError, TypeError):
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        if (seq_request := db.get_seq_request(seq_request_id)) is None:
+        if (seq_request := db.seq_requests.get(seq_request_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
-        samples = __get_samples(db, word, field_name, project_id=None, seq_request_id=seq_request_id)
+        samples = __get_samples(word, field_name, project_id=None, seq_request_id=seq_request_id)
         context["seq_request"] = seq_request
     else:
         template = "components/tables/sample.html"
-        samples = __get_samples(db, word, field_name, project_id=None, seq_request_id=None)
+        samples = __get_samples(word, field_name, project_id=None, seq_request_id=None)
 
     return make_response(
         render_template(
@@ -214,15 +217,15 @@ def table_query(current_user: models.User):
 
 @wrappers.htmx_route(samples_htmx, db=db)
 def get_libraries(current_user: models.User, sample_id: int):
-    if (sample := db.get_sample(sample_id)) is None:
+    if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+
+    access_type = db.samples.get_access_type(sample, current_user)
+
+    if access_type < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
-    if not current_user.is_insider() and sample.owner_id != current_user.id:
-        affiliation = db.get_user_sample_access_type(user_id=current_user.id, sample_id=sample.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-    
-    libraries, n_pages = db.get_libraries(
+    libraries, n_pages = db.libraries.find(
         sample_id=sample_id, count_pages=True
     )
     
@@ -241,7 +244,7 @@ def get_plate(current_user: models.User, sample_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (sample := db.get_sample(sample_id)) is None:
+    if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return make_response(
@@ -274,7 +277,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
     if (pool_id := request.args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
-            if (pool := db.get_pool(pool_id)) is None:
+            if (pool := db.pools.get(pool_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["pool_id"] = pool.id
         except ValueError:
@@ -290,7 +293,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
         if len(status_in) == 0:
             status_in = None
 
-    samples, n_pages = db.get_samples(
+    samples, n_pages = db.samples.find(
         seq_request_id=seq_request_id, status_in=status_in, offset=offset, sort_by=sort_by, descending=descending,
         pool_id=pool_id, count_pages=True
     )
@@ -328,7 +331,7 @@ def browse_query(current_user: models.User, workflow: str):
     if (pool_id := request.args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
-            if (pool := db.get_pool(pool_id)) is None:
+            if (pool := db.pools.get(pool_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["pool_id"] = pool.id
         except ValueError:
@@ -337,11 +340,11 @@ def browse_query(current_user: models.User, workflow: str):
     samples: list[models.Sample] = []
 
     if field_name == "name":
-        samples = db.query_samples(word=word, seq_request_id=seq_request_id, pool_id=pool_id)
+        samples = db.samples.query(word=word, seq_request_id=seq_request_id, pool_id=pool_id)
     elif field_name == "id":
         try:
             sample_id = int(word)
-            if (sample := db.get_sample(sample_id)) is not None:
+            if (sample := db.samples.get(sample_id)) is not None:
                 samples.append(sample)
         except ValueError:
             pass
@@ -365,7 +368,7 @@ def select_all(current_user: models.User, workflow: str):
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["seq_request"] = seq_request
         except ValueError:
@@ -381,7 +384,7 @@ def select_all(current_user: models.User, workflow: str):
         if len(status_in) == 0:
             status_in = None
 
-    samples, _ = db.get_samples(
+    samples, _ = db.samples.find(
         seq_request_id=seq_request_id, status_in=status_in, limit=None
     )
 

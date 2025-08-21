@@ -22,7 +22,7 @@ def begin(current_user: models.User) -> Response:
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["seq_request"] = seq_request
         except ValueError:
@@ -41,7 +41,7 @@ def select(current_user: models.User):
     if (seq_request_id := request.form.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["seq_request"] = seq_request
         except ValueError:
@@ -56,7 +56,7 @@ def select(current_user: models.User):
 
     check_request_ids = []
     for i, row in form.sample_table.iterrows():
-        if (sample := db.get_sample(row["id"])) is None:
+        if (sample := db.samples.get(row["id"])) is None:
             logger.error(f"Sample {row['id']} not found")
             raise ValueError(f"Sample {row['id']} not found")
             
@@ -66,10 +66,10 @@ def select(current_user: models.User):
             if library_link.library.seq_request.status == SeqRequestStatus.ACCEPTED:
                 if library_link.library.seq_request.id not in check_request_ids:
                     check_request_ids.append(library_link.library.seq_request.id)
-        sample = db.update_sample(sample)
+        db.samples.update(sample)
 
     for i, row in form.library_table.iterrows():
-        if (library := db.get_library(row["id"])) is None:
+        if (library := db.libraries.get(row["id"])) is None:
             logger.error(f"Library {row['id']} not found")
             raise ValueError(f"Library {row['id']} not found")
         
@@ -82,10 +82,10 @@ def select(current_user: models.User):
             library.status = LibraryStatus.STORED
         
         library.timestamp_stored_utc = datetime.now()
-        library = db.update_library(library)
+        db.libraries.update(library)
 
     for i, row in form.pool_table.iterrows():
-        if (pool := db.get_pool(row["id"])) is None:
+        if (pool := db.pools.get(row["id"])) is None:
             logger.error(f"Pool {row['id']} not found")
             raise ValueError(f"Pool {row['id']} not found")
         
@@ -94,10 +94,10 @@ def select(current_user: models.User):
 
         pool.status = PoolStatus.STORED
         pool.timestamp_stored_utc = datetime.now()
-        pool = db.update_pool(pool)
+        db.pools.update(pool)
 
     for _srid in check_request_ids:
-        if (seq_request := db.get_seq_request(_srid)) is None:
+        if (seq_request := db.seq_requests.get(_srid)) is None:
             logger.error(f"SeqRequest {_srid} not found")
             raise Exception(f"SeqRequest {_srid} not found")
         
@@ -109,7 +109,7 @@ def select(current_user: models.User):
                     break
             if all_samples_stored:
                 seq_request.status = SeqRequestStatus.SAMPLES_RECEIVED
-                seq_request = db.update_seq_request(seq_request)
+                db.seq_requests.update(seq_request)
 
         elif seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
             all_pools_stored = True
@@ -119,7 +119,7 @@ def select(current_user: models.User):
                     break
             if all_pools_stored:
                 seq_request.status = SeqRequestStatus.PREPARED
-                seq_request = db.update_seq_request(seq_request)
+                db.seq_requests.update(seq_request)
 
         elif seq_request.submission_type == SubmissionType.UNPOOLED_LIBRARIES:
             all_libraries_stored = True
@@ -129,7 +129,7 @@ def select(current_user: models.User):
                     break
             if all_libraries_stored:
                 seq_request.status = SeqRequestStatus.SAMPLES_RECEIVED
-                seq_request = db.update_seq_request(seq_request)
+                db.seq_requests.update(seq_request)
 
     flash("Samples Stored!", "success")
     if seq_request is not None:

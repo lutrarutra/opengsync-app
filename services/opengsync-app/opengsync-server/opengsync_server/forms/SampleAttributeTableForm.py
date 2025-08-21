@@ -26,7 +26,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         self.project = project
 
         self._context["project"] = project
-        df = db.get_project_samples_df(self.project.id)
+        df = db.pd.get_project_samples(self.project.id)
 
         columns = SampleAttributeTableForm.predefined_columns.copy()
 
@@ -70,7 +70,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
             return False
             
         for idx, row in df.iterrows():
-            if (sample := db.get_sample(row["sample_id"])) is None:
+            if (sample := db.samples.get(row["sample_id"])) is None:
                 self.spreadsheet.add_error(idx, "sample_id", InvalidCellValue(f"Sample with ID {row['id']} does not exist"))
                 continue
             
@@ -100,10 +100,10 @@ class SampleAttributeTableForm(HTMXFlaskForm):
                     continue
                 attribute_type = AttributeType.get_attribute_by_label(attribute_name)
                 if pd.isna(val := row[attribute_name]):
-                    if (_ := db.get_sample_attribute(sample_id=row["sample_id"], name=attribute_name)) is not None:
-                        db.delete_sample_attribute(sample_id=sample_id, name=attribute_name)
+                    if (_ := db.samples.get_attribute(sample_id=row["sample_id"], name=attribute_name)) is not None:
+                        db.samples.delete_attribute(sample_id=sample_id, name=attribute_name)
                 else:
-                    db.set_sample_attribute(sample_id=sample_id, name=attribute_name, value=val, type=attribute_type)
+                    db.samples.set_attribute(sample_id=sample_id, name=attribute_name, value=val, type=attribute_type)
 
         flash("Sample attributes updated", "success")
         return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-attributes-tab"))

@@ -13,7 +13,7 @@ from opengsync_db.categories import (
 
 from .... import db, logger, tools
 from ...MultiStepForm import MultiStepForm
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 
 
 class CompleteSASForm(MultiStepForm):
@@ -170,11 +170,11 @@ class CompleteSASForm(MultiStepForm):
             return self.make_response()
 
         if (project_id := self.metadata.get("project_id")) is not None:
-            if (project := db.get_project(project_id)) is None:
+            if (project := db.projects.get(project_id)) is None:
                 logger.error(f"{self.uuid}: Project with id {project_id} not found.")
                 raise ValueError(f"Project with id {project_id} not found.")
         else:
-            project = db.create_project(
+            project = db.projects.create(
                 title=self.metadata["project_title"],
                 description=self.metadata["project_description"],
                 owner_id=user.id,
@@ -186,11 +186,11 @@ class CompleteSASForm(MultiStepForm):
 
         for idx, library_row in self.sample_table.iterrows():
             if pd.notna(library_row["sample_id"]):
-                if (sample := db.get_sample(library_row["sample_id"])) is None:
+                if (sample := db.samples.get(library_row["sample_id"])) is None:
                     logger.error(f"{self.uuid}: Sample with id {library_row['sample_id']} not found.")
                     raise ValueError(f"Sample with id {library_row['sample_id']} not found.")
             else:
-                sample = db.create_sample(
+                sample = db.samples.create(
                     name=library_row["sample_name"],
                     project_id=project.id,
                     owner_id=user.id,
@@ -201,7 +201,7 @@ class CompleteSASForm(MultiStepForm):
             for attr in AttributeType.as_list():
                 attr_label = f"_attr_{attr.label}"
                 if attr_label in library_row.keys() and pd.notna(library_row[attr_label]):
-                    sample = db.set_sample_attribute(
+                    sample = db.samples.set_attribute(
                         sample_id=sample.id,
                         type=attr,
                         value=str(library_row[attr_label]),
@@ -210,7 +210,7 @@ class CompleteSASForm(MultiStepForm):
 
             for attr_label in custom_sample_attributes:
                 if attr_label in library_row.keys() and pd.notna(library_row[attr_label]):
-                    sample = db.set_sample_attribute(
+                    sample = db.samples.set_attribute(
                         sample_id=sample.id,
                         type=AttributeType.CUSTOM,
                         value=str(library_row[attr_label]),
@@ -226,11 +226,11 @@ class CompleteSASForm(MultiStepForm):
             
             for idx, library_row in self.pool_table.iterrows():
                 if pd.notna(library_row["pool_id"]):
-                    if (pool := db.get_pool(library_row["pool_id"])) is None:
+                    if (pool := db.pools.get(library_row["pool_id"])) is None:
                         logger.error(f"{self.uuid}: Pool with id {library_row['pool_id']} not found.")
                         raise ValueError(f"Pool with id {library_row['pool_id']} not found.")
                 else:
-                    pool = db.create_pool(
+                    pool = db.pools.create(
                         name=library_row["pool_name"],
                         owner_id=user.id,
                         seq_request_id=self.seq_request.id,
@@ -265,7 +265,7 @@ class CompleteSASForm(MultiStepForm):
 
             assay_type = AssayType.get(self.metadata["assay_type_id"])
 
-            library = db.create_library(
+            library = db.libraries.create(
                 name=library_row["library_name"],
                 sample_name=library_row["sample_name"],
                 seq_request_id=self.seq_request.id,
@@ -302,7 +302,7 @@ class CompleteSASForm(MultiStepForm):
                         index_type = IndexType.DUAL_INDEX
 
                 library.index_type = index_type
-                library = db.update_library(library)
+                db.libraries.update(library)
 
                 for _, barcode_row in library_barcodes.iterrows():
                     if int(barcode_row["index_type_id"]) != index_type.id:
@@ -310,7 +310,7 @@ class CompleteSASForm(MultiStepForm):
                         logger.warning(self.barcode_table)
                         logger.warning(self.library_table)
                         
-                    library = db.add_library_index(
+                    library = db.libraries.add_index(
                         library_id=library.id,
                         sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,
                         sequence_i5=barcode_row["sequence_i5"] if pd.notna(barcode_row["sequence_i5"]) else None,
@@ -350,14 +350,14 @@ class CompleteSASForm(MultiStepForm):
                 if len(sample_ids) != 1:
                     logger.error(f"{self.uuid}: Expected exactly one sample for name {pooling_row['sample_name']}, found {len(sample_ids)}.")
                     raise ValueError(f"Expected exactly one sample for name {pooling_row['sample_name']}, found {len(sample_ids)}.")
-                db.link_sample_library(sample_id=sample_ids[0], library_id=library.id, mux=mux)
+                db.links.link_sample_library(sample_id=sample_ids[0], library_id=library.id, mux=mux)
 
         self.library_table["library_id"] = self.library_table["library_id"].astype(int)
 
         if self.feature_table is not None:
             custom_features = self.feature_table[self.feature_table["feature_id"].isna()]
             for (identifier, feature, pattern, read, sequence), _df in custom_features.groupby(["identifier", "feature", "pattern", "read", "sequence"], dropna=False):
-                feature = db.create_feature(
+                feature = db.features.create(
                     identifier=identifier if pd.notna(identifier) else None,
                     name=feature,
                     sequence=sequence,
@@ -371,38 +371,38 @@ class CompleteSASForm(MultiStepForm):
             
             for _, library_row in self.library_table.iterrows():
                 if len(ids := self.feature_table[self.feature_table["library_name"] == library_row["library_name"]]["feature_id"].values.tolist()) > 0:
-                    db.link_features_library(feature_ids=ids, library_id=int(library_row["library_id"]))
+                    db.links.link_features_library(feature_ids=ids, library_id=int(library_row["library_id"]))
             
         if self.comment_table is not None:
             for _, comment_row in self.comment_table.iterrows():
                 if comment_row["context"] == "visium_instructions":
-                    db.create_comment(
+                    db.comments.create(
                         text=f"Visium data instructions: {comment_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif comment_row["context"] == "custom_genome_reference":
-                    db.create_comment(
+                    db.comments.create(
                         text=f"Custom genome reference: {comment_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif comment_row["context"] == "assay_tech_selection":
-                    db.create_comment(
+                    db.comments.create(
                         text=f"Additional info from assay selection: {comment_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif comment_row["context"] == "i7_option":
-                    db.create_comment(
+                    db.comments.create(
                         text=comment_row['text'],
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 elif comment_row["context"] == "i5_option":
-                    db.create_comment(
+                    db.comments.create(
                         text=comment_row['text'],
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 else:
                     logger.warning(f"Unknown comment context: {comment_row['context']}")
-                    db.create_comment(
+                    db.comments.create(
                         text=comment_row["context"].replace("_", " ").capitalize() + ": " + comment_row["text"],
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )

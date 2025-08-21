@@ -6,7 +6,7 @@ from wtforms import StringField, TextAreaField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import ProjectStatus, UserRole
+from opengsync_db.categories import ProjectStatus
 
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -76,7 +76,7 @@ class ProjectForm(HTMXFlaskForm):
                 return False
             
             if self.identifier.data:
-                if (db.get_project(identifier=self.identifier.data) is not None):
+                if (db.projects.get(identifier=self.identifier.data) is not None):
                     self.identifier.errors = ("Project with this identifier already exists.",)
                     return False
 
@@ -89,22 +89,22 @@ class ProjectForm(HTMXFlaskForm):
                         return False
                     
             if self.identifier.data:
-                if (prj := db.get_project(identifier=self.identifier.data)) is not None:
+                if (prj := db.projects.get(identifier=self.identifier.data)) is not None:
                     if prj.id != self.project.id:
                         self.identifier.errors = ("Project with this identifier already exists.",)
                         return False
                     
         if self.group.selected.data is not None:
-            if (group := db.get_group(self.group.selected.data)) is None:
+            if (group := db.groups.get(self.group.selected.data)) is None:
                 logger.error(f"Group with id {self.group.selected.data} does not exist.")
                 raise ValueError(f"Group with id {self.group.selected.data} does not exist.")
             
             if self.project is not None:
-                if db.get_group_user_affiliation(user_id=self.project.owner_id, group_id=group.id) is None:
+                if db.groups.get_user_affiliation(user_id=self.project.owner_id, group_id=group.id) is None:
                     self.group.search_bar.errors = ("Project owner must be part of the group.",)
                     return False
             else:
-                if db.get_group_user_affiliation(user_id=user.id, group_id=group.id) is None:
+                if db.groups.get_user_affiliation(user_id=user.id, group_id=group.id) is None:
                     self.group.search_bar.errors = ("You must be part of the group.",)
                     return False
                 
@@ -125,7 +125,7 @@ class ProjectForm(HTMXFlaskForm):
         return True
     
     def __create_new_project(self, user_id: int) -> Response:
-        project = db.create_project(
+        project = db.projects.create(
             identifier=self.identifier.data,
             title=self.title.data,  # type: ignore
             description=self.description.data,  # type: ignore
@@ -151,7 +151,7 @@ class ProjectForm(HTMXFlaskForm):
         self.project.status = ProjectStatus.get(self.status.data)
         self.project.group_id = self.group.selected.data
 
-        self.project = db.update_project(project=self.project)
+        db.projects.update(project=self.project)
 
         flash(f"Updated project {self.project.title}.", "success")
 

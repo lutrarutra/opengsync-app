@@ -290,7 +290,7 @@ class SeqRequestForm(HTMXFlaskForm):
             logger.error(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
             raise ValueError(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
 
-        user_requests, _ = db.get_seq_requests(user_id=user.id, limit=None)
+        user_requests, _ = db.seq_requests.find(user_id=user.id, limit=None)
         for request in user_requests:
             if seq_request is not None and seq_request.id == request.id:
                 continue
@@ -355,7 +355,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
         if self.bioinformatician_form.bioinformatician_name.data:
             if seq_request.bioinformatician_contact is None:
-                bioinformatician_contact = db.create_contact(
+                bioinformatician_contact = db.contacts.create_contact(
                     name=self.bioinformatician_form.bioinformatician_name.data,
                     email=self.bioinformatician_form.bioinformatician_email.data,
                     phone=self.bioinformatician_form.bioinformatician_phone.data,
@@ -375,7 +375,7 @@ class SeqRequestForm(HTMXFlaskForm):
         seq_request.billing_contact.address = self.billing_form.billing_address.data
         seq_request.billing_code = self.billing_form.billing_code.data
 
-        seq_request = db.update_seq_request(seq_request)
+        db.seq_requests.update(seq_request)
 
         flash(f"Updated sequencing request '{seq_request.name}'", "success")
         logger.info(f"Updated sequencing request '{seq_request.name}'")
@@ -385,26 +385,26 @@ class SeqRequestForm(HTMXFlaskForm):
         )
     
     def __create_new_request(self, user: models.User) -> Response:
-        contact_person = db.create_contact(
+        contact_person = db.contacts.create_contact(
             name=self.contact_form.contact_person_name.data,  # type: ignore
             email=self.contact_form.contact_person_email.data,
             phone=self.contact_form.contact_person_phone.data.replace(" ", "") if self.contact_form.contact_person_phone.data else None,
         )
 
-        billing_contact = db.create_contact(
+        billing_contact = db.contacts.create_contact(
             name=self.billing_form.billing_contact.data,  # type: ignore
             email=self.billing_form.billing_email.data,
             address=self.billing_form.billing_address.data,
             phone=self.billing_form.billing_phone.data.replace(" ", "") if self.billing_form.billing_phone.data else None
         )
 
-        organization_contact = db.create_contact(
+        organization_contact = db.contacts.create_contact(
             name=self.organization_form.organization_name.data,  # type: ignore
             address=self.organization_form.organization_address.data,
         )
 
         if self.bioinformatician_form.bioinformatician_name.data:
-            bioinformatician = db.create_contact(
+            bioinformatician = db.contacts.create_contact(
                 name=self.bioinformatician_form.bioinformatician_name.data,
                 email=self.bioinformatician_form.bioinformatician_email.data,
                 phone=self.bioinformatician_form.bioinformatician_phone.data.replace(" ", "") if self.bioinformatician_form.bioinformatician_phone.data else None
@@ -413,7 +413,7 @@ class SeqRequestForm(HTMXFlaskForm):
         else:
             bioinformatician_contact_id = None
 
-        seq_request = db.create_seq_request(
+        seq_request = db.seq_requests.create(
             name=self.basic_info_form.request_name.data,  # type: ignore
             group_id=self.basic_info_form.group.selected.data,
             description=self.basic_info_form.request_description.data,

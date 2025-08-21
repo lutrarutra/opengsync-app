@@ -11,7 +11,7 @@ from opengsync_db.categories import FileType
 from opengsync_db import models
 
 from .. import logger, db
-from ..core.runtime import runtime
+from ..core.RunTime import runtime
 from .HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -51,7 +51,7 @@ class SeqAuthForm(HTMXFlaskForm):
 
         filename, extension = os.path.splitext(self.file.data.filename)
 
-        db_file = db.create_file(
+        db_file = db.files.create(
             name=filename,
             type=FileType.SEQ_AUTH_FORM,
             extension=extension,

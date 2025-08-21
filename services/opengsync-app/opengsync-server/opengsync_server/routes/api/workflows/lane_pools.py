@@ -15,7 +15,7 @@ def begin(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if experiment.workflow.combined_lanes:
@@ -30,7 +30,7 @@ def lane_pools(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if experiment.workflow.combined_lanes:

@@ -1,4 +1,4 @@
-from flask import flash, Response
+from flask import flash, Response, url_for
 from flask_login import login_user
 from flask_htmx import make_response
 from wtforms import EmailField, PasswordField
@@ -6,6 +6,7 @@ from wtforms.validators import DataRequired, Email
 
 from ... import bcrypt, db, logger  # noqa
 from ..HTMXFlaskForm import HTMXFlaskForm
+from ...core import runtime
 
 
 class LoginForm(HTMXFlaskForm):
@@ -19,26 +20,27 @@ class LoginForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
+        return True
+
+    def process_request(self, dest: str | None = None) -> Response:
+        if not self.validate():
+            return self.make_response()
+        
         # invalid email
-        if (user := db.get_user_by_email(self.email.data)) is None:  # type: ignore
+        if (user := db.users.get_with_email(self.email.data)) is None:  # type: ignore
             self.email.errors = ("Invalid email or password.",)
             self.password.errors = ("Invalid email or password.",)
-            return False
+            return self.make_response()
 
         # invalid password
         if not bcrypt.check_password_hash(user.password, self.password.data):
             self.email.errors = ("Invalid email or password.",)
             self.password.errors = ("Invalid email or password.",)
-            return False
-        
-        return True
-
-    def process_request(self, dest: str = "/") -> Response:
-        if not self.validate():
             return self.make_response()
         
-        user = db.get_user_by_email(self.email.data)  # type: ignore
+        runtime.session.clear()
         login_user(user)
+        runtime.current_app.session_interface.regenerate(runtime.session)  # type: ignore
 
         flash("Login successful.", "success")
-        return make_response(redirect=dest)
+        return make_response(redirect=dest or url_for("dashboard"))

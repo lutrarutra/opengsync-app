@@ -32,7 +32,7 @@ class DilutePoolsForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
         self.experiment = experiment
         self._context["experiment"] = experiment
-        self.df = db.get_experiment_pools_df(experiment.id)
+        self.df = db.pd.get_experiment_pools(experiment.id)
         
     def prepare(self):
         self.df["molarity"] = self.df["qubit_concentration"] / (self.df["avg_fragment_size"] * 660) * 1_000_000
@@ -58,10 +58,10 @@ class DilutePoolsForm(HTMXFlaskForm):
             
             pool_id = int(entry.pool_id.data)
             
-            if db.get_pool(pool_id) is None:
+            if db.pools.get(pool_id) is None:
                 raise ValueError(f"Pool with id {row['id']} not found")
             
-            db.dilute_pool(pool_id, entry.qubit_after_dilution.data, user.id)
+            db.pools.dilute(pool_id, entry.qubit_after_dilution.data, user.id)
 
         flash("Dilution successful!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

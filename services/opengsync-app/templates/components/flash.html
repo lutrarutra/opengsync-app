@@ -1,0 +1,60 @@
+{% with infos = flashes["info"] %}
+{% if infos %}
+<div id="info-alert" class="alert alert-primary d-flex align-items-center" role="alert">
+    <div class="alert-content">
+        <div>
+            {% for info in infos %}
+            <div>{{ info }}</div>
+            {% endfor %}            
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+
+{% with successes = flashes["success"] %}
+{% if successes %}
+<div class="alert alert-success d-flex align-items-center" role="alert">
+    <div class="alert-content">
+        <div>
+            {% for success in successes %}
+            <div>{{ success }}</div>
+            {% endfor %}            
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+
+{% with warnings = flashes["warning"] %}
+{% if warnings %}
+<div class="alert alert-warning d-flex align-items-center" role="alert">
+    <div class="alert-content">
+        <div>
+            {% for warning in warnings %}
+            <div>{{ warning }}</div>
+            {% endfor %}            
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+
+{% with errors = flashes["error"] %}
+{% if errors %}
+<div class="alert alert-danger d-flex align-items-center" role="alert">
+    <div class="alert-content">
+        <div>
+            {% for error in errors %}
+            <div>{{ error }}</div>
+            {% endfor %}            
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+

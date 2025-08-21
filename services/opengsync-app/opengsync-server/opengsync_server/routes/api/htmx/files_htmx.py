@@ -12,18 +12,18 @@ from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger
 from ....core import wrappers
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 
 files_htmx = Blueprint("files_htmx", __name__, url_prefix="/api/hmtx/files/")
 
 
 @wrappers.htmx_route(files_htmx, db=db)
 def render_xlsx(current_user: models.User, file_id: int):
-    if (file := db.get_file(file_id)) is None:
+    if (file := db.files.get(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if not db.file_permissions_check(user_id=current_user.id, file_id=file_id):
+        if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
             return abort(HTTPResponse.FORBIDDEN.id)
 
     filepath = os.path.join(runtime.current_app.media_folder, file.path)

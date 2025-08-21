@@ -109,19 +109,19 @@ class PoolForm(HTMXFlaskForm):
         self.pool.contact.email = self.contact_email.data  # type: ignore
         self.pool.contact.phone = self.contact_phone.data  # type: ignore
 
-        self.pool = db.update_pool(self.pool)
+        db.pools.update(self.pool)
 
         return self.pool
 
     def __create_new_pool(self, user: models.User) -> models.Pool:
         if (contact_id := self.contact.selected.data) is not None:
-            if (contact := db.get_user(contact_id)) is None:
+            if (contact := db.users.get(contact_id)) is None:
                 logger.error(f"Contact {contact_id} not found")
                 raise ValueError(f"Contact {contact_id} not found")
             
         pool_type = PoolType.get(self.pool_type.data)
             
-        pool = db.create_pool(
+        pool = db.pools.create(
             name=self.name.data,  # type: ignore
             status=PoolStatus.get(self.status.data),
             num_m_reads_requested=self.num_m_reads_requested.data,
@@ -138,7 +138,7 @@ class PoolForm(HTMXFlaskForm):
             logger.error("Pool not passed as argument for clone form")
             raise ValueError("Pool not passed as argument for clone form")
         
-        pool = db.create_pool(
+        pool = db.pools.create(
             name=self.name.data,  # type: ignore
             status=PoolStatus.get(self.status.data),
             num_m_reads_requested=self.num_m_reads_requested.data,
@@ -161,15 +161,15 @@ class PoolForm(HTMXFlaskForm):
                 timestamp_utc=dilution.timestamp_utc
             ))
 
-        pool = db.update_pool(pool)
+        db.pools.update(pool)
         db.flush()
         db.refresh(pool)
 
         for library in self.pool.libraries:
-            clone_library = db.clone_library(
+            clone_library = db.libraries.clone(
                 library.id, seq_request_id=library.seq_request_id, indexed=True, status=LibraryStatus.POOLED
             )
-            clone_library = db.add_library_to_pool(library_id=clone_library.id, pool_id=pool.id)
+            clone_library = db.libraries.add_to_pool(library_id=clone_library.id, pool_id=pool.id)
             
         return pool
     

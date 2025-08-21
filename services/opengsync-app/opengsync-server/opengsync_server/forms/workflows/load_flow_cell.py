@@ -66,12 +66,12 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
         self._context["sequencing_molarity"] = sequencing_molarity
 
     def prepare(self):
-        df = db.get_experiment_lanes_df(self.experiment.id)
+        df = db.pd.get_experiment_lanes(self.experiment.id)
         self.__get_params(df)
     
     def process_request(self) -> Response:
         if not self.validate():
-            self._context["df"] = db.get_experiment_lanes_df(self.experiment.id)
+            self._context["df"] = db.pd.get_experiment_lanes(self.experiment.id)
             return self.make_response()
 
         loaded = True
@@ -85,11 +85,11 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
             else:
                 loaded = False
 
-            lane = db.update_lane(lane)
+            db.lanes.update(lane)
 
         if loaded:
             self.experiment.status = ExperimentStatus.LOADED
-            self.experiment = db.update_experiment(self.experiment)
+            db.experiments.update(self.experiment)
 
         flash("Saved!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
@@ -120,7 +120,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
         self._context["experiment"] = experiment
 
     def prepare(self):
-        df = db.get_experiment_lanes_df(self.experiment.id)
+        df = db.pd.get_experiment_lanes(self.experiment.id)
         df["lane_molarity"] = df["original_qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
 
         df["library_volume"] = None
@@ -154,7 +154,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
         self._context["df"] = df
     
     def process_request(self) -> Response:
-        df = db.get_experiment_lanes_df(self.experiment.id)
+        df = db.pd.get_experiment_lanes(self.experiment.id)
 
         if not self.validate():
             df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
@@ -166,7 +166,7 @@ class LoadFlowCellForm(HTMXFlaskForm):
         for i, (_, row) in enumerate(df.iterrows()):
             entry = self.input_fields[i]
             
-            if (lane := db.get_lane(entry.lane_id.data)) is None:
+            if (lane := db.lanes.get(entry.lane_id.data)) is None:
                 raise ValueError(f"Lane with id {row['id']} not found")
             
             lane.target_molarity = entry.target_molarity.data
@@ -175,13 +175,13 @@ class LoadFlowCellForm(HTMXFlaskForm):
             lane.phi_x = entry.phi_x.data
             if (lane.total_volume_ul is not None) and (lane.target_molarity is not None) and (lane.original_molarity is not None):
                 lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane.original_molarity  # type: ignore
-            lane = db.update_lane(lane)
+            db.lanes.update(lane)
             all_lanes_loaded = all_lanes_loaded and lane.is_loaded()
             logger.debug(f"Lane {lane.id} loaded: {lane.is_loaded()}")
 
         if all_lanes_loaded:
             self.experiment.status = ExperimentStatus.LOADED
-            self.experiment = db.update_experiment(self.experiment)
+            db.experiments.update(self.experiment)
 
         flash("Saved!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

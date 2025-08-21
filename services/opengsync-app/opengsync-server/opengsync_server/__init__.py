@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import pytz
+import redis
 from flask_htmx import HTMX
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
@@ -15,6 +16,7 @@ from opengsync_db import DBHandler
 
 from .core.LogBuffer import log_buffer
 from .tools import RedisMSFFileCache
+from .core.FlashCache import FlashCache
 from .core.FileHandler import FileHandler
 
 DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
@@ -42,7 +44,9 @@ login_manager = LoginManager()
 mail = Mail()
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
-db = DBHandler(logger=logger, expire_on_commit=True)
-cache = Cache()
+db = DBHandler(logger=logger, expire_on_commit=True, auto_open=False)
+route_cache = Cache()
 msf_cache = RedisMSFFileCache()
+session_cache = redis.Redis(host="redis-cache", port=int(os.environ["REDIS_PORT"]), db=3)
+flash_cache = FlashCache()
 file_handler = FileHandler()

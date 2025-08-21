@@ -40,7 +40,7 @@ class EditKitFeaturesForm(HTMXFlaskForm):
         )
 
     def __fill_form(self):
-        template = db.get_feature_kit_features_df(self.feature_kit.id)
+        template = db.pd.get_feature_kit_features(self.feature_kit.id)
         return template
 
     def validate(self) -> bool:
@@ -74,9 +74,9 @@ class EditKitFeaturesForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
 
-        self.feature_kit = db.remove_all_features_from_kit(self.feature_kit.id)
+        self.feature_kit = db.feature_kits.remove_all_features(self.feature_kit.id)
         for _, row in self.df.iterrows():
-            db.create_feature(
+            db.features.create(
                 identifier=row["identifier"] if pd.notna(row["identifier"]) else None,
                 name=row["name"],
                 sequence=row["sequence"],

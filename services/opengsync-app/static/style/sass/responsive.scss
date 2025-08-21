@@ -6,11 +6,14 @@
 
     #main {
         width: 100vw;
+        padding: 0;
+        margin: 0;
         #middle-container {
             width: 100vw !important;
+            padding: 0 !important;
+            margin: 0 !important;
         }
     }
-
 }
 
 @media screen and (max-width: 768px) {

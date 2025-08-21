@@ -152,7 +152,7 @@ class SeqRequest(Base):
         return self.seq_auth_form_file is not None
     
     def is_submittable(self) -> bool:
-        return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized()
+        return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0
     
     def timestamp_submitted_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
         if (ts := self.timestamp_submitted) is None:

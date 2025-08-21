@@ -31,7 +31,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
 
     def prepare(self):
-        df = db.get_experiment_lanes_df(self.experiment.id)
+        df = db.pd.get_experiment_lanes(self.experiment.id)
         df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
         df = df.drop(columns=["lane"]).reset_index(drop=True)
 
@@ -43,7 +43,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
     
     def process_request(self) -> Response:
         if not self.validate():
-            df = db.get_experiment_lanes_df(self.experiment.id)
+            df = db.pd.get_experiment_lanes(self.experiment.id)
             self._context["df"] = df
             return self.make_response()
 
@@ -52,7 +52,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
             lane.avg_fragment_size = self.avg_fragment_size.data
             lane.original_qubit_concentration = self.qubit_concentration.data
 
-            db.update_lane(lane)
+            db.lanes.update(lane)
 
         flash("Flow cell loaded successfully", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
@@ -81,7 +81,7 @@ class QCLanesForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
 
     def prepare(self):
-        df = db.get_experiment_lanes_df(self.experiment.id)
+        df = db.pd.get_experiment_lanes(self.experiment.id)
         df["qubit_concentration"] = df.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
 
         for i, (_, row) in enumerate(df.iterrows()):
@@ -103,12 +103,12 @@ class QCLanesForm(HTMXFlaskForm):
     
     def process_request(self) -> Response:
         if not self.validate():
-            df = db.get_experiment_lanes_df(self.experiment.id)
+            df = db.pd.get_experiment_lanes(self.experiment.id)
             self._context["df"] = df
             return self.make_response()
         
         for sub_form in self.input_fields:
-            if (lane := db.get_lane(sub_form.lane_id.data)) is None:
+            if (lane := db.lanes.get(sub_form.lane_id.data)) is None:
                 logger.error(f"Lane with id {sub_form.lane_id.data} not found")
                 raise ValueError(f"Lane with id {sub_form.lane_id.data} not found")
                 
@@ -116,7 +116,7 @@ class QCLanesForm(HTMXFlaskForm):
             lane.avg_fragment_size = sub_form.avg_fragment_size.data
             lane.phi_x = sub_form.phi_x.data
 
-            lane = db.update_lane(lane)
+            db.lanes.update(lane)
 
         flash("Flow cell loaded successfully", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

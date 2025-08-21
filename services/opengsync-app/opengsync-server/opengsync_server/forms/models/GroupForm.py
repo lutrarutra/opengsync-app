@@ -42,7 +42,7 @@ class GroupForm(HTMXFlaskForm):
 
         # Creating new group
         if group is None:
-            if db.get_group_by_name(self.name.data) is not None:
+            if db.groups.get_with_name(self.name.data) is not None:
                 self.name.errors = ("Group with this name already exists.",)
                 return False
         else:
@@ -51,7 +51,7 @@ class GroupForm(HTMXFlaskForm):
         return True
     
     def __create_new_group(self, user: models.User) -> Response:
-        group = db.create_group(
+        group = db.groups.create(
             name=self.name.data,  # type: ignore
             user_id=user.id,
             type=GroupType.get(self.group_type.data),
@@ -65,7 +65,7 @@ class GroupForm(HTMXFlaskForm):
         group.name = self.name.data  # type: ignore
         group.type = GroupType.get(self.group_type.data)
 
-        group = db.update_group(group)
+        db.groups.update(group)
 
         logger.debug(f"Updated group {group.name}.")
         flash(f"Updated group {group.name}.", "success")

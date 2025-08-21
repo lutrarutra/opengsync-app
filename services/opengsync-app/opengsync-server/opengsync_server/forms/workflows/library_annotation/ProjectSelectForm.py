@@ -39,7 +39,7 @@ class ProjectSelectForm(MultiStepForm):
         self.new_project.data = previous_form.metadata.get("project_title")
         if (project_id := previous_form.metadata.get("project_id")) is not None:
             self.existing_project.selected.data = project_id
-            self.existing_project.search_bar.data = project.title if (project := db.get_project(project_id)) is not None else None
+            self.existing_project.search_bar.data = project.title if (project := db.projects.get(project_id)) is not None else None
         self.project_description.data = previous_form.metadata.get("project_description")
     
     def validate(self, user: models.User) -> bool:

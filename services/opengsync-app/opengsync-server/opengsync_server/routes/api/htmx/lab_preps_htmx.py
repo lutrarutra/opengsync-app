@@ -17,7 +17,7 @@ from opengsync_db.categories import HTTPResponse, LabProtocol, PoolStatus, Libra
 
 from .... import db, forms, logger
 from ....core import wrappers
-from ....core.runtime import runtime
+from ....core.RunTime import runtime
 from ....tools.spread_sheet_components import TextColumn
 
 
@@ -54,7 +54,7 @@ def get(current_user: models.User, page: int = 0):
         if len(protocol_in) == 0:
             protocol_in = None
 
-    lab_preps, n_pages = db.get_lab_preps(
+    lab_preps, n_pages = db.lab_preps.find(
         status_in=status_in, protocol_in=protocol_in,
         offset=offset, limit=PAGE_LIMIT, sort_by=sort_by, descending=descending, count_pages=True
     )
@@ -98,16 +98,16 @@ def table_query(current_user: models.User):
 
     lab_preps: list[models.LabPrep] = []
     if field_name == "name":
-        lab_preps = db.query_lab_preps(name=word, protocol_in=protocol_in, status_in=status_in)
+        lab_preps = db.lab_preps.query(name=word, protocol_in=protocol_in, status_in=status_in)
     elif field_name == "id":
         try:
             _id = int(word)
-            if (lab_prep := db.get_lab_prep(_id)) is not None:
+            if (lab_prep := db.lab_preps.get(_id)) is not None:
                 lab_preps.append(lab_prep)
         except ValueError:
             pass
     elif field_name == "creator_id":
-        lab_preps = db.query_lab_preps(creator=word, protocol_in=protocol_in, status_in=status_in)
+        lab_preps = db.lab_preps.query(creator=word, protocol_in=protocol_in, status_in=status_in)
 
     return make_response(
         render_template(
@@ -135,7 +135,7 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
         if form_type != "edit":
             return abort(HTTPResponse.BAD_REQUEST.id)
         
-        if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+        if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
             return abort(HTTPResponse.NOT_FOUND.id)
         
         return forms.models.LabPrepForm(form_type=form_type, lab_prep=lab_prep).make_response()
@@ -161,7 +161,7 @@ def edit(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     form = forms.models.LabPrepForm(formdata=request.form, form_type="edit", lab_prep=lab_prep)
@@ -173,12 +173,12 @@ def complete(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     for pool in lab_prep.pools:
         pool.status = PoolStatus.STORED
-        pool = db.update_pool(pool)
+        db.pools.update(pool)
 
     for library in lab_prep.libraries:
         is_prepared = True
@@ -188,10 +188,10 @@ def complete(current_user: models.User, lab_prep_id: int):
                 break
         if is_prepared:
             library.seq_request.status = SeqRequestStatus.PREPARED
-            library = db.update_library(library)
+            db.libraries.update(library)
 
     lab_prep.status = PrepStatus.COMPLETED
-    lab_prep = db.update_lab_prep(lab_prep)
+    db.lab_preps.update(lab_prep)
 
     flash("Lab prep completed!", "success")
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
@@ -202,14 +202,14 @@ def delete(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if lab_prep.status != PrepStatus.PREPARING:
         flash("Cannot delete completed prep.", "warning")
         return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
     
-    db.delete_lab_prep(lab_prep_id=lab_prep.id)
+    db.lab_preps.delete(lab_prep_id=lab_prep.id)
     flash("Lab prep deleted!", "success")
     return make_response(redirect=url_for("lab_preps_page.lab_preps"))
 
@@ -219,11 +219,11 @@ def uncomplete(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     lab_prep.status = PrepStatus.PREPARING
-    lab_prep = db.update_lab_prep(lab_prep)
+    db.lab_preps.update(lab_prep)
 
     flash("Lab prep completed!", "success")
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
@@ -234,7 +234,7 @@ def remove_library(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if lab_prep.status != PrepStatus.PREPARING:
@@ -248,7 +248,7 @@ def remove_library(current_user: models.User, lab_prep_id: int):
     except ValueError:
         return abort(HTTPResponse.BAD_REQUEST.id)
     
-    db.remove_library_from_prep(lab_prep_id=lab_prep.id, library_id=library_id)
+    db.lab_preps.remove_library(lab_prep_id=lab_prep.id, library_id=library_id)
 
     flash("Library removed!", "success")
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
@@ -259,7 +259,7 @@ def get_libraries(current_user: models.User, lab_prep_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     sort_by = request.args.get("sort_by", "id")
@@ -267,7 +267,7 @@ def get_libraries(current_user: models.User, lab_prep_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    libraries, n_pages = db.get_libraries(offset=offset, lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending, count_pages=True)
+    libraries, n_pages = db.libraries.find(offset=offset, lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -286,7 +286,7 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     if runtime.current_app.static_folder is None:
@@ -367,7 +367,7 @@ def prep_table_upload_form(current_user: models.User, lab_prep_id: int) -> Respo
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -383,7 +383,7 @@ def get_pools(current_user: models.User, lab_prep_id: int, page: int = 0):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     sort_by = request.args.get("sort_by", "id")
@@ -391,7 +391,7 @@ def get_pools(current_user: models.User, lab_prep_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    pools, n_pages = db.get_pools(
+    pools, n_pages = db.pools.find(
         lab_prep_id=lab_prep_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True
     )
 
@@ -409,7 +409,7 @@ def get_files(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     return make_response(
@@ -426,10 +426,10 @@ def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if (file := db.get_file(file_id)) is None:
+    if (file := db.files.get(file_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if file not in lab_prep.files:
@@ -438,7 +438,7 @@ def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
     file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
-    db.delete_file(file_id=file.id)
+    db.files.delete(file_id=file.id)
 
     logger.info(f"Deleted file '{file.name}' from prep (id='{lab_prep_id}')")
     flash(f"Deleted file '{file.name}' from prep.", "success")
@@ -450,7 +450,7 @@ def file_form(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -468,7 +468,7 @@ def plates_tab(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return make_response(render_template("components/plates.html", plates=lab_prep.plates, from_page=f"lab_prep@{lab_prep.id}"))
@@ -479,7 +479,7 @@ def comment_form(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -494,7 +494,7 @@ def comment_form(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_comments(current_user: models.User, lab_prep_id: int):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider():
@@ -513,10 +513,10 @@ def get_mux_table(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    df = db.get_lab_prep_samples_df(lab_prep.id)
+    df = db.pd.get_lab_prep_samples(lab_prep.id)
 
     mux_table = {
         "sample_name": [],

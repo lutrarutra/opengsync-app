@@ -7,8 +7,8 @@ from .create_units import (
 
 
 def test_create_user(db: DBHandler):
-    old_users, _ = db.get_users(limit=None)
-    new_user = db.create_user(
+    old_users, _ = db.users.find(limit=None)
+    new_user = db.users.create(
         email="new@user.com",
         hashed_password="password",
         first_name="test",
@@ -21,12 +21,12 @@ def test_create_user(db: DBHandler):
     assert new_user.role == UserRole.ADMIN
     assert new_user.password == "password"
     
-    users, _ = db.get_users(limit=None)
+    users, _ = db.users.find(limit=None)
     assert len(users) == len(old_users) + 1
 
 
 def test_update_user(db: DBHandler):
-    user = db.create_user(email="user", hashed_password="password", first_name="test", last_name="user", role=UserRole.ADMIN)
+    user = db.users.create(email="user", hashed_password="password", first_name="test", last_name="user", role=UserRole.ADMIN)
     assert user.email == "user"
     assert user.first_name == "test"
     assert user.last_name == "user"
@@ -36,7 +36,7 @@ def test_update_user(db: DBHandler):
     user.role_id = UserRole.CLIENT.id
     user.email = "new_email@email.com"
     user.password = "updated_password"
-    user = db.update_user(user)
+    db.users.update(user)
 
     assert user.email == "new_email@email.com"
     assert user.role == UserRole.CLIENT
@@ -44,20 +44,20 @@ def test_update_user(db: DBHandler):
 
 
 def test_delete_user(db: DBHandler):
-    old_users, _ = db.get_users(limit=None)
-    user = db.create_user(email="user", hashed_password="password", first_name="test", last_name="user", role=UserRole.ADMIN)
-    users, _ = db.get_users(limit=None)
+    old_users, _ = db.users.find(limit=None)
+    user = db.users.create(email="user", hashed_password="password", first_name="test", last_name="user", role=UserRole.ADMIN)
+    users, _ = db.users.find(limit=None)
     assert len(old_users) + 1 == len(users)
-    db.delete_user(user.id)
+    db.users.delete(user.id)
     db.commit()
-    users, _ = db.get_users(limit=None)
+    users, _ = db.users.find(limit=None)
     assert len(old_users) == len(users)
 
 
 def test_user_links(db: DBHandler):
     user = create_user(db)
     project = create_project(db, user)
-    user = db.get_user(user.id)
+    user = db.users.get(user.id)
     assert user is not None
 
     assert len(user.projects) == 1
@@ -65,8 +65,8 @@ def test_user_links(db: DBHandler):
     assert user.num_projects == 1
 
     sample = create_sample(db, user, project)
-    user = db.get_user(user.id)
-    project = db.get_project(project.id)
+    user = db.users.get(user.id)
+    project = db.projects.get(project.id)
     assert user is not None
     assert project is not None
 
@@ -78,7 +78,7 @@ def test_user_links(db: DBHandler):
 
     seq_request = create_seq_request(db, user)
     
-    user = db.get_user(user.id)
+    user = db.users.get(user.id)
     assert user is not None
 
     assert len(user.requests) == 1
@@ -86,8 +86,8 @@ def test_user_links(db: DBHandler):
     assert user.num_seq_requests == 1
 
     library = create_library(db, user, seq_request)
-    user = db.get_user(user.id)
-    seq_request = db.get_seq_request(seq_request.id)
+    user = db.users.get(user.id)
+    seq_request = db.seq_requests.get(seq_request.id)
     assert user is not None
     assert seq_request is not None
 
@@ -97,10 +97,10 @@ def test_user_links(db: DBHandler):
     assert seq_request.libraries[0].id == library.id
     assert seq_request.num_libraries == 1
 
-    db.link_sample_library(sample.id, library.id)
+    db.links.link_sample_library(sample.id, library.id)
 
-    sample = db.get_sample(sample.id)
-    library = db.get_library(library.id)
+    sample = db.samples.get(sample.id)
+    library = db.libraries.get(library.id)
     assert sample is not None
     assert library is not None
 
@@ -113,21 +113,21 @@ def test_user_links(db: DBHandler):
 
     pool = create_pool(db, user, seq_request)
 
-    user = db.get_user(user.id)
+    user = db.users.get(user.id)
     assert user is not None
     assert len(user.pools) == 1
 
-    seq_request = db.get_seq_request(seq_request.id)
+    seq_request = db.seq_requests.get(seq_request.id)
     assert seq_request is not None
     assert len(seq_request.pools) == 1
     assert seq_request.pools[0].id == pool.id
 
-    db.add_library_to_pool(library.id, pool.id)
+    db.libraries.add_to_pool(library.id, pool.id)
 
-    library = db.get_library(library.id)
-    pool = db.get_pool(pool.id)
+    library = db.libraries.get(library.id)
+    pool = db.pools.get(pool.id)
     db.refresh(pool)
-    seq_request = db.get_seq_request(seq_request.id)
+    seq_request = db.seq_requests.get(seq_request.id)
     assert library is not None
     assert pool is not None
     assert seq_request is not None
@@ -138,29 +138,29 @@ def test_user_links(db: DBHandler):
     assert len(seq_request.pools) == 1
     assert seq_request.pools[0].id == pool.id
 
-    db.delete_library(library.id)
-    libraries, _ = db.get_libraries(limit=None)
+    db.libraries.delete(library.id)
+    libraries, _ = db.libraries.find(limit=None)
     assert len(libraries) == 0
-    samples, _ = db.get_samples(limit=None)
+    samples, _ = db.samples.find(limit=None)
     assert len(samples) == 0
 
-    db.delete_pool(pool.id)
-    pools, _ = db.get_pools(limit=None)
+    db.pools.delete(pool.id)
+    pools, _ = db.pools.find(limit=None)
     assert len(pools) == 0
 
-    seq_request = db.get_seq_request(seq_request.id)
+    seq_request = db.seq_requests.get(seq_request.id)
     db.refresh(seq_request)
     assert seq_request is not None
     assert seq_request.num_libraries == 0
     assert len(seq_request.libraries) == 0
     
-    project = db.get_project(project.id)
+    project = db.projects.get(project.id)
     db.refresh(project)
     assert project is not None
     assert project.num_samples == 0
     assert len(project.samples) == 0
     
-    user = db.get_user(user.id)
+    user = db.users.get(user.id)
     db.refresh(user)
     assert user is not None
     assert user.num_seq_requests == 1
@@ -171,11 +171,11 @@ def test_user_links(db: DBHandler):
     assert len(user.samples) == 0
     assert len(user.pools) == 0
 
-    db.delete_seq_request(seq_request.id)
-    seq_requests, _ = db.get_seq_requests(limit=None)
+    db.seq_requests.delete(seq_request.id)
+    seq_requests, _ = db.seq_requests.find(limit=None)
     assert len(seq_requests) == 0
 
-    user = db.get_user(user.id)
+    user = db.users.get(user.id)
     db.refresh(user)
     assert user is not None
     assert user.num_seq_requests == 0

@@ -33,7 +33,7 @@ class ResetPasswordForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response(**context)
 
-        if (user := db.get_user(user_id)) is None:
+        if (user := db.users.get(user_id)) is None:
             flash("User not found.", "danger")
             return self.make_response(**context)
         
@@ -47,7 +47,7 @@ class ResetPasswordForm(HTMXFlaskForm):
         
         hashed_password = bcrypt.generate_password_hash(self.password.data).decode("utf-8")
         user.password = hashed_password
-        user = db.update_user(user)
+        db.users.update(user)
         logger.info(f"Password reset for {user.email}")
         flash("Password updated!", "success")
         return make_response(redirect=url_for("auth_page.auth"))

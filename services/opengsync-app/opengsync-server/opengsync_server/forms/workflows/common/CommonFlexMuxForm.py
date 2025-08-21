@@ -57,7 +57,7 @@ class CommonFlexMuxForm(MultiStepForm):
                 logger.error("LabPrep must be provided for mux_prep workflow")
                 raise ValueError("LabPrep must be provided for mux_prep workflow")
             
-            self.sample_table = db.get_lab_prep_samples_df(self.lab_prep.id)
+            self.sample_table = db.pd.get_lab_prep_samples(self.lab_prep.id)
             self.flex_table = self.sample_table[
                 (self.sample_table["mux_type"].isin([MUXType.TENX_FLEX_PROBE])) &
                 (self.sample_table["library_type"].isin([LibraryType.TENX_SC_GEX_FLEX]))
@@ -140,11 +140,11 @@ class CommonFlexMuxForm(MultiStepForm):
     @classmethod
     def update_barcodes(cls, sample_table: pd.DataFrame):
         for (sample_id, library_id, barcode), _df in sample_table.groupby(["sample_id", "library_id", "mux_barcode"]):
-            if (link := db.get_sample_library_link(sample_id=int(sample_id), library_id=int(library_id))) is None:
+            if (link := db.links.get_sample_library_link(sample_id=int(sample_id), library_id=int(library_id))) is None:
                 logger.error(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
                 raise exceptions.ElementDoesNotExist(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
             
             if link.mux is None:
                 link.mux = {}
             link.mux["barcode"] = str(barcode)
-            db.update_sample_library_link(link)
+            db.links.update_sample_library_link(link)

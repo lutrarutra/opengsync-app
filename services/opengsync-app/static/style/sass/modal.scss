@@ -59,7 +59,7 @@
         }
         .footer-controls {
             gap: 10px;
-            width: 150px;
+            width: 100%;
             overflow-x: visible;
             display: flex;
             flex-direction: row;
@@ -100,6 +100,18 @@
             .tab-content {
                 height: 100%;
             }
+        }
+    }
+}
+
+.modal-sm, .modal-fullscreen-sm-down {
+    --bs-modal-max-width: 400px !important;
+    .modal-content {
+        .modal-header {
+            height: 60px;
+        }
+        .modal-footer {
+            height: 60px;
         }
     }
 }

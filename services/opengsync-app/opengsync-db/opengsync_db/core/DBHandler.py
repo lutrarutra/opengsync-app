@@ -13,13 +13,68 @@ from .. import models
 class DBHandler():
     Session: orm.scoped_session
 
-    def __init__(self, logger: Optional["loguru.Logger"] = None, expire_on_commit: bool = False) -> None:
+    def __init__(self, logger: Optional["loguru.Logger"] = None, expire_on_commit: bool = False, auto_open: bool = True) -> None:
         self._logger = logger
         self._session: orm.Session | None = None
         self._connection: sa.engine.Connection | None = None
         self.expire_on_commit = expire_on_commit
         self.__needs_commit = False
-        
+        self.auto_open = auto_open
+
+        from .blueprints.SeqRequestBP import SeqRequestBP
+        from .blueprints.LibraryBP import LibraryBP
+        from .blueprints.ProjectBP import ProjectBP
+        from .blueprints.ExperimentBP import ExperimentBP
+        from .blueprints.SampleBP import SampleBP
+        from .blueprints.PoolBP import PoolBP
+        from .blueprints.UserBP import UserBP
+        from .blueprints.IndexKitBP import IndexKitBP
+        from .blueprints.ContactBP import ContactBP
+        from .blueprints.LaneBP import LaneBP
+        from .blueprints.FeatureBP import FeatureBP
+        from .blueprints.FeatureKitBP import FeatureKitBP
+        from .blueprints.SequencerBP import SequencerBP
+        from .blueprints.AdapterBP import AdapterBP
+        from .blueprints.PlateBP import PlateBP
+        from .blueprints.BarcodeBP import BarcodeBP
+        from .blueprints.LabPrepBP import LabPrepBP
+        from .blueprints.KitBP import KitBP
+        from .blueprints.LinkBP import LinkBP
+        from .blueprints.FileBP import FileBP
+        from .blueprints.CommentBP import CommentBP
+        from .blueprints.SeqRunBP import SeqRunBP
+        from .blueprints.EventBP import EventBP
+        from .blueprints.GroupBP import GroupBP
+        from .blueprints.ShareBP import ShareBP
+        from .blueprints.PandasBP import PandasBP
+
+        self.seq_requests = SeqRequestBP("seq_requests", self)
+        self.libraries = LibraryBP("libraries", self)
+        self.projects = ProjectBP("projects", self)
+        self.experiments = ExperimentBP("experiments", self)
+        self.samples = SampleBP("samples", self)
+        self.pools = PoolBP("pools", self)
+        self.users = UserBP("users", self)
+        self.index_kits = IndexKitBP("index_kits", self)
+        self.contacts = ContactBP("contacts", self)
+        self.lanes = LaneBP("lanes", self)
+        self.features = FeatureBP("features", self)
+        self.feature_kits = FeatureKitBP("feature_kits", self)
+        self.sequencers = SequencerBP("sequencers", self)
+        self.adapters = AdapterBP("adapters", self)
+        self.plates = PlateBP("plates", self)
+        self.barcodes = BarcodeBP("barcodes", self)
+        self.lab_preps = LabPrepBP("lab_preps", self)
+        self.kits = KitBP("kits", self)
+        self.links = LinkBP("links", self)
+        self.files = FileBP("files", self)
+        self.comments = CommentBP("comments", self)
+        self.seq_runs = SeqRunBP("seq_runs", self)
+        self.events = EventBP("events", self)
+        self.groups = GroupBP("groups", self)
+        self.shares = ShareBP("shares", self)
+        self.pd = PandasBP("pd", self)
+
     def connect(
         self, user: str, password: str, host: str, db: str = "opengsync_db", port: Union[str, int] = 5432
     ) -> None:
@@ -125,11 +180,13 @@ class DBHandler():
             return
         self._session = DBHandler.Session(autoflush=autoflush)
 
-    def close_session(self, commit: bool = True, rollback: bool = False) -> None:
+    def close_session(self, commit: bool = True, rollback: bool = False) -> bool:
+        """ returns True if db was modified """
+        modified = False
         if self._session is None:
             self.warn("Session is already closed or was never opened.")
-            return
-       
+            return False
+
         if commit and not rollback:
             if self.__needs_commit or self.session.dirty or self.session.new or self.session.deleted:
                 try:
@@ -138,14 +195,16 @@ class DBHandler():
                     self.error("Commit failed: - rolling back transaction.")
                     self.session.rollback()
                     raise
+                self.__needs_commit = False
+                modified = True
         elif rollback:
             self.info("Rolling back transaction...")
             self.session.rollback()
         else:
             if not commit and self.__needs_commit:
                 self.warn("Session was not committed, but changes were made. This may lead to data loss.")
-
         self._session = DBHandler.Session.remove()
+        return modified
 
     def rollback(self) -> None:
         if self._session is None:
@@ -164,175 +223,3 @@ class DBHandler():
             self.close_session()
         self.close_connection()
         self._engine.dispose()
-
-    from .model_handlers._project_methods import (
-        create_project, get_project, get_projects,
-        update_project, delete_project,
-        query_projects
-    )
-
-    from .model_handlers._experiment_methods import (
-        create_experiment, get_experiment, get_experiments,
-        update_experiment, delete_experiment,
-        get_num_experiments, query_experiments
-    )
-
-    from .model_handlers._sample_methods import (
-        create_sample, get_sample, get_samples,
-        delete_sample, update_sample, query_samples,
-        set_sample_attribute, get_sample_attribute,
-        get_user_sample_access_type, delete_sample_attribute
-    )
-
-    from .model_handlers._pool_methods import (
-        create_pool, get_pool, get_pools,
-        delete_pool, update_pool, query_pools, dilute_pool,
-        get_pool_dilution, get_pool_dilutions, get_user_pool_access_type,
-        clone_pool, get_number_of_cloned_pools, merge_pools
-    )
-
-    from .model_handlers._library_methods import (
-        get_libraries, get_library, create_library,
-        update_library, query_libraries, delete_library,
-        add_library_to_pool, set_library_seq_quality, add_library_index,
-        remove_library_indices, get_user_library_access_type, clone_library,
-        get_number_of_cloned_libraries
-    )
-
-    from .model_handlers._user_methods import (
-        create_user, get_user, get_users,
-        delete_user, update_user,
-        get_user_by_email, get_num_users,
-        query_users, query_users_by_email,
-        get_user_affiliations
-    )
-
-    from .model_handlers._index_kit_methods import (
-        create_index_kit, get_index_kit, get_index_kits,
-        get_index_kit_by_name, update_index_kit,
-        remove_all_barcodes_from_kit, get_index_kit_by_identifier,
-        query_index_kits
-    )
-
-    from .model_handlers._seq_request_methods import (
-        create_seq_request, get_seq_request,
-        get_seq_requests, delete_seq_request, update_seq_request,
-        query_seq_requests, submit_seq_request,
-        add_seq_request_share_email, remove_seq_request_share_email,
-        process_seq_request, get_user_seq_request_access_type, clone_seq_request
-    )
-
-    from .model_handlers._contact_methods import (
-        create_contact, update_contact
-    )
-
-    from .model_handlers._lane_methods import (
-        create_lane, get_lane, get_lanes, update_lane, get_experiment_lane,
-        delete_lane
-    )
-
-    from .model_handlers._feature_methods import (
-        create_feature, get_feature, get_features,
-        delete_feature, update_feature, get_features_from_kit_by_feature_name,
-        delete_orphan_features
-    )
-
-    from .model_handlers._feature_kit_methods import (
-        create_feature_kit, get_feature_kit, get_feature_kits,
-        get_feature_kit_by_name, update_feature_kit,
-        remove_all_features_from_kit
-    )
-
-    from .model_handlers._sequencer_methods import (
-        create_sequencer, get_sequencer, get_sequencers,
-        get_num_sequencers, delete_sequencer, get_sequencer_by_name,
-        update_sequencer, query_sequencers
-    )
-
-    from .model_handlers._adapter_methods import (
-        create_adapter, get_adapter, get_adapters
-    )
-
-    from .model_handlers._plate_methods import (
-        create_plate, get_plate, get_plates,
-        delete_plate, add_sample_to_plate, add_library_to_plate, clear_plate,
-        get_plate_sample
-    )
-
-    from .model_handlers._barcode_methods import (
-        create_barcode, get_barcode, get_barcodes, query_barcode_sequences
-    )
-
-    from .model_handlers._lab_prep_methods import (
-        create_lab_prep, get_lab_prep, get_lab_preps, get_next_protocol_number,
-        update_lab_prep, add_library_to_prep, remove_library_from_prep, query_lab_preps,
-        delete_lab_prep
-    )
-
-    from .model_handlers._kit_methods import (
-        create_kit, get_kit, get_kits, query_kits, get_kit_by_name, delete_kit,
-        update_kit
-    )
-
-    from .model_handlers._link_methods import (
-        get_sample_library_link,
-        get_sample_library_links,
-        get_laned_pool_link,
-        update_sample_library_link,
-
-        add_pool_to_lane,
-        remove_pool_from_lane,
-
-        update_laned_pool_link,
-
-        link_features_library,
-        link_feature_library,
-        link_sample_library,
-        link_pool_experiment,
-
-        is_sample_in_seq_request,
-
-        unlink_sample_library,
-        unlink_feature_library,
-        unlink_pool_experiment,
-    )
-
-    from .model_handlers._file_methods import (
-        create_file, get_file, get_files, file_permissions_check, delete_file
-    )
-
-    from .model_handlers._comment_methods import (
-        create_comment, delete_comment, get_comments, get_comment,
-    )
-
-    from .model_handlers._seq_run_methods import (
-        create_seq_run, get_seq_run, get_seq_runs, update_seq_run, query_seq_runs
-    )
-
-    from .model_handlers._event_methods import (
-        create_event, get_event, get_events, update_event, delete_event
-    )
-
-    from .model_handlers._group_methods import (
-        create_group, get_group, get_groups, update_group,
-        query_groups, add_user_to_group, remove_user_from_group,
-        get_group_user_affiliation, get_group_affiliations,
-        get_group_by_name
-    )
-
-    from .pd_handler import (
-        get_experiment_libraries_df, get_experiment_pools_df,
-        get_experiment_lanes_df, get_experiment_laned_pools_df,
-        get_pool_libraries_df, get_seq_request_libraries_df,
-        get_seq_requestor_df, get_seq_request_share_emails_df,
-        get_library_features_df, get_library_samples_df, get_experiment_seq_qualities_df,
-        get_plate_df, get_seq_request_samples_df, get_index_kit_barcodes_df,
-        get_experiment_barcodes_df, get_feature_kit_features_df, get_seq_request_features_df,
-        get_project_samples_df, get_lab_prep_libraries_df,
-        get_lab_prep_samples_df, query_barcode_sequences_df, get_flowcell_df,
-        get_library_mux_table_df, get_project_libraries_df,
-    )
-
-    from .model_handlers._share_methods import (
-        create_share_token, get_share_tokens, get_share_token
-    )

@@ -26,7 +26,7 @@ def user(current_user: models.User, user_id: int | None = None):
         if user_id != current_user.id:
             return abort(HTTPResponse.FORBIDDEN.id)
         
-    if (user := db.get_user(user_id)) is None:
+    if (user := db.users.get(user_id)) is None:
         return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
@@ -79,8 +79,8 @@ def user(current_user: models.User, user_id: int | None = None):
                 (f"User {user_id}", ""),
             ]
             
-    projects, _ = db.get_projects(user_id=user_id, limit=None)
-    seq_requests, _ = db.get_seq_requests(user_id=user_id, limit=None)
+    projects, _ = db.projects.find(user_id=user_id, limit=None)
+    seq_requests, _ = db.seq_requests.find(user_id=user_id, limit=None)
     return render_template(
         "user_page.html", user=user, path_list=path_list,
         projects=projects, seq_requests=seq_requests

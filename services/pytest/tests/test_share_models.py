@@ -12,6 +12,6 @@ def test_share_models(db: DBHandler):
     )
 
     db.session.add(token)
-    db.session.flush()
+    db.flush()
 
     assert token.uuid is not None

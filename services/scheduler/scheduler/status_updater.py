@@ -92,17 +92,17 @@ def __find_finished_seq_requests(q):
 def update_statuses(db: DBHandler):
     logs = ["Checking statuses.."]
 
-    for run in db.get_seq_runs(
+    for run in db.seq_runs.find(
         status=categories.RunStatus.RUNNING, limit=None
     )[0]:
         if run.experiment is not None:
             run.experiment.status = categories.ExperimentStatus.SEQUENCING
             logs.append(f"Updating experiment {run.experiment.id} status to {run.experiment.status}")
-            run = db.update_seq_run(run)
+            db.seq_runs.update(run)
 
     db.flush()
 
-    for experiment in db.get_experiments(
+    for experiment in db.experiments.find(
         limit=None, custom_query=__find_finished_experiments,
         status_in=[
             categories.ExperimentStatus.DRAFT,
@@ -120,11 +120,11 @@ def update_statuses(db: DBHandler):
             else:
                 continue
             logs.append(f"Updating experiment {experiment.id} status to {experiment.status}")
-            experiment = db.update_experiment(experiment)
+            db.experiments.update(experiment)
 
     db.flush()
 
-    for library in db.get_libraries(
+    for library in db.libraries.find(
         status_in=[
             categories.LibraryStatus.POOLED, categories.LibraryStatus.STORED, categories.LibraryStatus.PREPARING,
             categories.LibraryStatus.ACCEPTED, categories.LibraryStatus.SUBMITTED, categories.LibraryStatus.DRAFT,
@@ -133,54 +133,54 @@ def update_statuses(db: DBHandler):
         if library.experiment is not None:
             library.status = categories.LibraryStatus.SEQUENCED
             logs.append(f"Updating library {library.id} status to {library.status}")
-            library = db.update_library(library)
+            db.libraries.update(library)
     
     db.flush()
 
-    for sample in db.get_samples(
+    for sample in db.samples.find(
         status=categories.SampleStatus.WAITING_DELIVERY, limit=None,
         custom_query=__find_stored_samples,
     )[0]:
         sample.status = categories.SampleStatus.STORED
         logs.append(f"Updating sample {sample.id} status to {sample.status}")
-        sample = db.update_sample(sample)
+        db.samples.update(sample)
 
     db.flush()
 
-    for pool in db.get_pools(
+    for pool in db.pools.find(
         status_in=[categories.PoolStatus.ACCEPTED, categories.PoolStatus.STORED],
         custom_query=__find_sequenced_pools, limit=None
     )[0]:
         pool.status = categories.PoolStatus.SEQUENCED
         logs.append(f"Updating pool {pool.id} status to {pool.status}")
-        pool = db.update_pool(pool)
+        db.pools.update(pool)
 
     db.flush()
 
-    for seq_request in db.get_seq_requests(
+    for seq_request in db.seq_requests.find(
         status_in=[categories.SeqRequestStatus.ACCEPTED, categories.SeqRequestStatus.SAMPLES_RECEIVED, categories.SeqRequestStatus.PREPARED],
         custom_query=__find_sequenced_seq_requests, limit=None
     )[0]:
         seq_request.status = categories.SeqRequestStatus.DATA_PROCESSING
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
-        seq_request = db.update_seq_request(seq_request)
+        db.seq_requests.update(seq_request)
 
     db.flush()
 
-    for project in db.get_projects(
+    for project in db.projects.find(
         status=categories.ProjectStatus.PROCESSING, custom_query=__find_sequenced_projects, limit=None
     )[0]:
         project.status = categories.ProjectStatus.SEQUENCED
-        project = db.update_project(project)
+        db.projects.update(project)
         logs.append(f"Updating project {project.id} status to {project.status}")
 
     db.flush()
 
-    for seq_request in db.get_seq_requests(
+    for seq_request in db.seq_requests.find(
         status=categories.SeqRequestStatus.DATA_PROCESSING, custom_query=__find_finished_seq_requests, limit=None
     )[0]:
         seq_request.status = categories.SeqRequestStatus.FINISHED
-        seq_request = db.update_seq_request(seq_request)
+        db.seq_requests.update(seq_request)
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
 
     logger.info("\n".join(logs))

@@ -37,7 +37,7 @@ class OCMMuxForm(MultiStepForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
 
-        self.sample_table = db.get_lab_prep_samples_df(lab_prep.id)
+        self.sample_table = db.pd.get_lab_prep_samples(lab_prep.id)
         self.sample_table = self.sample_table[(self.sample_table["mux_type"].isin([MUXType.TENX_ON_CHIP]))]
         self.mux_table = self.sample_table.drop_duplicates(subset=["sample_name", "sample_pool"], keep="first")
 
@@ -115,20 +115,20 @@ class OCMMuxForm(MultiStepForm):
         old_libraries: list[int] = []
         
         for _, row in self.sample_table.iterrows():
-            if (old_library := db.get_library(int(row["library_id"]))) is None:
+            if (old_library := db.libraries.get(int(row["library_id"]))) is None:
                 logger.error(f"Library {row['library_id']} not found.")
                 raise Exception(f"Library {row['library_id']} not found.")
             
             if old_library.id not in old_libraries:
                 old_libraries.append(old_library.id)
             
-            if (sample := db.get_sample(int(row["sample_id"]))) is None:
+            if (sample := db.samples.get(int(row["sample_id"]))) is None:
                 logger.error(f"Sample {row['sample_id']} not found.")
                 raise Exception(f"Sample {row['sample_id']} not found.")
             
             lib = f"{row['new_sample_pool']}_{old_library.type.identifier}"
             if lib not in libraries.keys():
-                new_library = db.create_library(
+                new_library = db.libraries.create(
                     name=lib,
                     sample_name=row["new_sample_pool"],
                     library_type=old_library.type,
@@ -145,16 +145,16 @@ class OCMMuxForm(MultiStepForm):
             else:
                 new_library = libraries[lib]
 
-            db.link_sample_library(
+            db.links.link_sample_library(
                 sample_id=sample.id,
                 library_id=new_library.id,
                 mux={"barcode": row["mux_barcode"]},
             )
             new_library.features = old_library.features
-            new_library = db.update_library(new_library)
+            db.libraries.update(new_library)
 
         for old_library_id in old_libraries:
-            db.delete_library(old_library_id, delete_orphan_samples=False)
+            db.libraries.delete(old_library_id, delete_orphan_samples=False)
 
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id)))

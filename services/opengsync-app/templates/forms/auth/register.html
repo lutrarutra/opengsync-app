@@ -2,7 +2,7 @@
 
 <div class="modal-content" id="register-form">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >Register User</h1>
+        <h1 class="modal-title fs-5" >Register</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
@@ -16,9 +16,7 @@
             {% endif %}
         </form>
     </div>
-    <div class="modal-footer" id="popup-footer">
-        <div class="text-nowrap text-muted footer-id"></div>
-        <div class="footer-info"></div>
+    <div class="modal-footer">
         <div class="footer-controls">
             <button type="button"  class="btn btn-success"
             hx-include="#register-form" hx-target="#register-form" hx-swap="outerHTML"

@@ -22,7 +22,7 @@ def sequencer(current_user: models.User, sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (sequencer := db.get_sequencer(sequencer_id)) is None:
+    if (sequencer := db.sequencers.get(sequencer_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     sequencer_form = forms.models.SequencerForm(sequencer=sequencer)

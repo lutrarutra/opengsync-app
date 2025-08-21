@@ -12,7 +12,7 @@ from opengsync_db.categories import (
 
 def create_user(db: DBHandler) -> models.User:
     _uuid = str(uuid.uuid1())
-    return db.create_user(
+    return db.users.create(
         email=f"{_uuid}@email.com",
         first_name=_uuid,
         last_name=_uuid,
@@ -23,7 +23,7 @@ def create_user(db: DBHandler) -> models.User:
 
 def create_project(db: DBHandler, user: models.User) -> models.Project:
     _uuid = str(uuid.uuid1())
-    return db.create_project(
+    return db.projects.create(
         title=_uuid,
         description=_uuid,
         owner_id=user.id,
@@ -32,7 +32,7 @@ def create_project(db: DBHandler, user: models.User) -> models.Project:
 
 def create_contact(db: DBHandler) -> models.Contact:
     _uuid = str(uuid.uuid1())
-    return db.create_contact(
+    return db.contacts.create_contact(
         name=_uuid,
     )
 
@@ -41,7 +41,7 @@ def create_seq_request(db: DBHandler, user: models.User) -> models.SeqRequest:
     _uuid = str(uuid.uuid1())
     contact = create_contact(db)
     organization = create_contact(db)
-    return db.create_seq_request(
+    return db.seq_requests.create(
         name=_uuid,
         data_delivery_mode=DataDeliveryMode.ALIGNMENT,
         description=_uuid,
@@ -57,7 +57,7 @@ def create_seq_request(db: DBHandler, user: models.User) -> models.SeqRequest:
 
 def create_sample(db: DBHandler, user: models.User, project: models.Project) -> models.Sample:
     _uuid = str(uuid.uuid1())
-    return db.create_sample(
+    return db.samples.create(
         name=_uuid,
         owner_id=user.id,
         project_id=project.id,
@@ -67,7 +67,7 @@ def create_sample(db: DBHandler, user: models.User, project: models.Project) -> 
 
 def create_library(db: DBHandler, user: models.User, seq_request: models.SeqRequest) -> models.Library:
     _uuid = str(uuid.uuid1())
-    return db.create_library(
+    return db.libraries.create(
         name=_uuid,
         sample_name=_uuid,
         owner_id=user.id,
@@ -80,7 +80,7 @@ def create_library(db: DBHandler, user: models.User, seq_request: models.SeqRequ
 
 def create_pool(db: DBHandler, user: models.User, seq_request: models.SeqRequest) -> models.Pool:
     _uuid = str(uuid.uuid1())
-    return db.create_pool(
+    return db.pools.create(
         name=_uuid,
         owner_id=user.id,
         contact_name=_uuid,
@@ -92,7 +92,7 @@ def create_pool(db: DBHandler, user: models.User, seq_request: models.SeqRequest
 
 def create_feature(db: DBHandler, kit: models.FeatureKit | None = None) -> models.Feature:
     _uuid = str(uuid.uuid1())[:10]
-    return db.create_feature(
+    return db.features.create(
         identifier=None,
         name=_uuid,
         sequence=_uuid,
@@ -107,7 +107,7 @@ def create_feature_kit(
     df: DBHandler,
 ) -> models.FeatureKit:
     _uuid = str(uuid.uuid1())
-    return df.create_feature_kit(
+    return df.feature_kits.create(
         name=_uuid,
         identifier=_uuid[:10],
         type=FeatureType.ANTIBODY
@@ -115,7 +115,7 @@ def create_feature_kit(
 
 
 def create_sequencer(db: DBHandler) -> models.Sequencer:
-    return db.create_sequencer(
+    return db.sequencers.create(
         name="sequencer",
         model=SequencerModel.NOVA_SEQ_6000,
     )
@@ -123,7 +123,7 @@ def create_sequencer(db: DBHandler) -> models.Sequencer:
 
 def create_experiment(db: DBHandler, user: models.User, workflow: ExperimentWorkFlowEnum) -> models.Experiment:
     _uuid = str(uuid.uuid1())
-    return db.create_experiment(
+    return db.experiments.create(
         name=_uuid[:5],
         workflow=workflow,
         status=ExperimentStatus.DRAFT,
@@ -142,7 +142,7 @@ def create_file(
 ) -> models.File:
     _uuid = str(uuid.uuid1())
 
-    return db.create_file(
+    return db.files.create(
         name=_uuid,
         type=FileType.CUSTOM,
         extension=".txt",
@@ -160,7 +160,7 @@ def create_group(
     user: models.User,
 ) -> models.Group:
     _uuid = str(uuid.uuid1())
-    return db.create_group(
+    return db.groups.create(
         name=_uuid,
         user_id=user.id,
         type=GroupType.COLLABORATION

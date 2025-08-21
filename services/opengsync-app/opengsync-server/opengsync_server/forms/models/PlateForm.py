@@ -46,7 +46,7 @@ class PlateForm(HTMXFlaskForm):
         
         flipped = self.orientation.data == "flipped"
 
-        plate = db.create_plate(
+        plate = db.plates.create(
             name=self.name.data,  # type: ignore
             num_cols=self.num_cols.data,  # type: ignore
             num_rows=self.num_rows.data,  # type: ignore
@@ -57,9 +57,9 @@ class PlateForm(HTMXFlaskForm):
             return plate.get_well(i, flipped=flipped)
 
         if self.pool is not None:
-            libraries, _ = db.get_libraries(pool_id=self.pool.id, limit=None, sort_by="id")
+            libraries, _ = db.libraries.find(pool_id=self.pool.id, limit=None, sort_by="id")
             for i, library in enumerate(libraries):
-                db.add_library_to_plate(
+                db.plates.add_library(
                     plate_id=plate.id, library_id=library.id, well_idx=i
                 )
 

@@ -15,11 +15,11 @@ def libraries(current_user: models.User):
 
 @wrappers.page_route(libraries_page_bp, db=db)
 def library(current_user: models.User, library_id: int):
-    if (library := db.get_library(library_id)) is None:
+    if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if not current_user.is_insider() and not library.owner_id != current_user.id:
-        affiliation = db.get_user_library_access_type(user_id=current_user.id, library_id=library.id)
+        affiliation = db.libraries.get_access_type(user_id=current_user.id, library_id=library.id)
         if affiliation is None:
             return abort(HTTPResponse.FORBIDDEN.id)
 

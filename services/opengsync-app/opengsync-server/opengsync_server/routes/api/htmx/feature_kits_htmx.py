@@ -23,7 +23,7 @@ def get(page: int = 0):
     if sort_by not in models.FeatureKit.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    feature_kits, n_pages = db.get_feature_kits(
+    feature_kits, n_pages = db.feature_kits.find(
         offset=PAGE_LIMIT * page,
         sort_by=sort_by, descending=descending, count_pages=True
     )
@@ -47,7 +47,7 @@ def query():
     if (word := request.form.get(field_name)) is None:
         return abort(HTTPResponse.BAD_REQUEST.id)
 
-    results = db.query_kits(word, kit_type=KitType.FEATURE_KIT)
+    results = db.kits.query(word, kit_type=KitType.FEATURE_KIT)
 
     return make_response(
         render_template(
@@ -72,14 +72,14 @@ def table_query(current_user: models.User):
 
     feature_kits = []
     if field_name == "name":
-        feature_kits = db.query_kits(word, kit_type=KitType.FEATURE_KIT)
+        feature_kits = db.kits.query(word, kit_type=KitType.FEATURE_KIT)
     elif field_name == "id":
         try:
             _id = int(word)
         except ValueError:
             return abort(HTTPResponse.BAD_REQUEST.id)
 
-        if (feature_kit := db.get_feature_kit(_id)) is not None:
+        if (feature_kit := db.feature_kits.get(_id)) is not None:
             feature_kits.append(feature_kit)
     else:
         return abort(HTTPResponse.BAD_REQUEST.id)
@@ -102,8 +102,8 @@ def get_features(feature_kit_id: int, page: int = 0):
     if sort_by not in models.Feature.sortable_fields:
         return abort(HTTPResponse.BAD_REQUEST.id)
         
-    feature_kit = db.get_feature_kit(feature_kit_id)
-    features, n_pages = db.get_features(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
+    feature_kit = db.feature_kits.get(feature_kit_id)
+    features, n_pages = db.features.find(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
     
     return make_response(
         render_template(
@@ -135,7 +135,7 @@ def create(current_user: models.User):
 def edit(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
-    if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
+    if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -152,14 +152,12 @@ def edit_features(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
+    if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
         return forms.EditKitFeaturesForm(feature_kit=feature_kit).make_response()
     elif request.method == "POST":
-        import time
-        time.sleep(5)
         form = forms.EditKitFeaturesForm(
             feature_kit=feature_kit,
             formdata=request.form
@@ -174,21 +172,21 @@ def delete(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (kit := db.get_feature_kit(feature_kit_id)) is None:
+    if (kit := db.feature_kits.get(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.delete_kit(kit)
-    
+    db.feature_kits.delete(kit)
+
     flash("Index kit deleted successfully.", "success")
     return make_response(redirect=url_for("kits_page.feature_kits"))
 
 
 @wrappers.htmx_route(feature_kits_htmx, db=db)
 def render_table(feature_kit_id: int):
-    if (feature_kit := db.get_feature_kit(feature_kit_id)) is None:
+    if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    df = db.get_feature_kit_features_df(feature_kit_id=feature_kit.id)
+    df = db.pd.get_feature_kit_features(feature_kit_id=feature_kit.id)
     df = df.drop(columns=["type", "type_id"])
 
     columns = []

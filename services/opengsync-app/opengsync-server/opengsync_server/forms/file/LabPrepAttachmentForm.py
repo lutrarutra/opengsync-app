@@ -11,7 +11,7 @@ from opengsync_db.categories import FileType
 
 from .FileInputForm import FileInputForm
 from ... import db, logger
-from ...core.runtime import runtime
+from ...core.RunTime import runtime
 
 
 class LabPrepAttachmentForm(FileInputForm):
@@ -47,7 +47,7 @@ class LabPrepAttachmentForm(FileInputForm):
         self.file.data.save(filepath)
         size_bytes = os.stat(filepath).st_size
 
-        db_file = db.create_file(
+        db_file = db.files.create(
             name=filename,
             type=file_type,
             extension=extension,
@@ -58,7 +58,7 @@ class LabPrepAttachmentForm(FileInputForm):
         )
 
         if self.comment.data and self.comment.data.strip() != "":
-            _ = db.create_comment(
+            _ = db.comments.create(
                 text=self.comment.data,
                 author_id=user.id,
                 file_id=db_file.id,

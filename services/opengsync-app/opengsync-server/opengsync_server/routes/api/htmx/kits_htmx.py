@@ -5,15 +5,15 @@ from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import HTTPResponse, IndexType, KitType
-from .... import db, logger, cache, forms
+from .... import db, logger, forms
 from ....core import wrappers
 
 
 kits_htmx = Blueprint("kits_htmx", __name__, url_prefix="/api/hmtx/kits/")
 
 
-@wrappers.htmx_route(kits_htmx, db=db)
-def get(current_user: models.User, page: int = 0):
+@wrappers.htmx_route(kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
+def get(page: int = 0):
     sort_by = request.args.get("sort_by", "identifier")
     sort_order = request.args.get("sort_order", "asc")
     descending = sort_order == "desc"
@@ -31,7 +31,7 @@ def get(current_user: models.User, page: int = 0):
         if len(type_in) == 0:
             type_in = None
 
-    kits, n_pages = db.get_kits(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, count_pages=True)
+    kits, n_pages = db.kits.find(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, count_pages=True)
 
     return make_response(
         render_template(
@@ -44,7 +44,7 @@ def get(current_user: models.User, page: int = 0):
 
 
 @wrappers.htmx_route(kits_htmx, db=db)
-def table_query(current_user: models.User):
+def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
@@ -68,14 +68,14 @@ def table_query(current_user: models.User):
     if field_name == "id":
         try:
             _id = int(word)
-            if (kit := db.get_kit(_id)) is not None:
+            if (kit := db.kits.get(_id)) is not None:
                 if type_in is None or kit.kit_type in type_in:
                     kits.append(kit)
 
         except ValueError:
             pass
     elif field_name in ["name", "identifier"]:
-        kits = db.query_kits(word)
+        kits = db.kits.query(word)
 
     return make_response(
         render_template(
@@ -89,7 +89,7 @@ def table_query(current_user: models.User):
 def edit(current_user: models.User, kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
-    if (index_kit := db.get_kit(kit_id)) is None:
+    if (index_kit := db.kits.get(kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if request.method == "GET":
@@ -106,10 +106,10 @@ def delete(current_user: models.User, kit_id: int):
     if not current_user.is_admin():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (kit := db.get_kit(kit_id)) is None:
+    if (kit := db.kits.get(kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    db.delete_kit(kit)
+    db.kits.delete(kit)
     
     flash("Index kit deleted successfully.", "success")
     return make_response(redirect=url_for("kits_page.kits"))

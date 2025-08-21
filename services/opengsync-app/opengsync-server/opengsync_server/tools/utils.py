@@ -316,7 +316,7 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
 
             for (kit_i7_id, name_i7), seqs_i7 in library.adapters_i7().items():
                 if kit_i7_id is not None:
-                    if (kit_i7 := db.get_index_kit(kit_i7_id)) is None:
+                    if (kit_i7 := db.index_kits.get(kit_i7_id)) is None:
                         logger.error(f"Index kit {kit_i7_id} not found in database")
                         raise exceptions.ElementDoesNotExist("Index kit not found in database")
                     kit_i7 = kit_i7.identifier
@@ -331,7 +331,7 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
             sequences_i5 = []
             for (kit_i5_id, name_i5), seqs_i5 in library.adapters_i5().items():
                 if kit_i5_id is not None:
-                    if (kit_i5 := db.get_index_kit(kit_i5_id)) is None:
+                    if (kit_i5 := db.index_kits.get(kit_i5_id)) is None:
                         logger.error(f"Index kit {kit_i5_id} not found in database")
                         raise exceptions.ElementDoesNotExist("Index kit not found in database")
                     kit_i5 = kit_i5.identifier
@@ -469,8 +469,8 @@ def update_index_kits(
         os.makedirs(os.path.join(app_data_folder, "kits"))
     for type in types:
         res = []
-        for kit in db.get_index_kits(limit=None, sort_by="id", descending=True, type_in=[type])[0]:
-            df = db.get_index_kit_barcodes_df(kit.id, per_index=True)
+        for kit in db.index_kits.find(limit=None, sort_by="id", descending=True, type_in=[type])[0]:
+            df = db.pd.get_index_kit_barcodes(kit.id, per_index=True)
             df["kit_id"] = kit.id
             df["kit"] = kit.identifier
             res.append(df)
@@ -495,7 +495,7 @@ def is_browser_friendly(mimetype: str | None) -> bool:
     )
 
 
-def normalize_to_ascii(text: str) -> str:
+def normalize_to_ascii(text: str, allow_special_characters: list[str] = ["_", ".", "-"]) -> str:
     GREEK_TO_ASCII = {
         'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z',
         'η': 'h', 'θ': 'th', 'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm',
@@ -510,6 +510,8 @@ def normalize_to_ascii(text: str) -> str:
     text = "".join(GREEK_TO_ASCII.get(char, char) for char in text)
     text = unicodedata.normalize("NFKD", text)
     text = text.encode("ascii", "ignore").decode("ascii")
-    text = re.sub(r'[^a-zA-Z0-9 ]', '', text)
-    text = text.replace(' ', '_')
+    if ' ' not in allow_special_characters:
+        text = text.replace(' ', '_')
+    allowed_pattern = re.escape("".join(allow_special_characters))
+    text = re.sub(rf"[^a-zA-Z0-9 {allowed_pattern}]", '', text)
     return text

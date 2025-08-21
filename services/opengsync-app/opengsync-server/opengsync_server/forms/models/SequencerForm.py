@@ -41,12 +41,12 @@ class SequencerForm(HTMXFlaskForm):
         
         # Editing existing sequencer
         if sequencer is not None:
-            if (_ := db.get_sequencer(sequencer.id)) is None:
+            if (_ := db.sequencers.get(sequencer.id)) is None:
                 logger.error(f"Sequencer with id {sequencer.id} does not exist.")
                 return False
             
             if self.name.data is not None:
-                if (temp := db.get_sequencer_by_name(self.name.data)) is not None:
+                if (temp := db.sequencers.get_with_name(self.name.data)) is not None:
                     if temp.id != sequencer.id:
                         self.name.errors = ("You already have a sequencer with this name.",)
                         return False
@@ -54,14 +54,14 @@ class SequencerForm(HTMXFlaskForm):
         # Creating new sequencer
         else:
             if self.name.data is not None:
-                if db.get_sequencer_by_name(self.name.data) is not None:
+                if db.sequencers.get_with_name(self.name.data) is not None:
                     self.name.errors = ("You already have a sequencer with this name.",)
                     return False
 
         return True
     
     def __create_new_sequencer(self) -> Response:
-        sequencer = db.create_sequencer(
+        sequencer = db.sequencers.create(
             name=self.name.data,  # type: ignore
             model=SequencerModel.get(self.model.data),
             ip=self.ip_address.data,
@@ -75,7 +75,7 @@ class SequencerForm(HTMXFlaskForm):
         sequencer.name = self.name.data  # type: ignore
         sequencer.ip = self.ip_address.data
         sequencer.model = SequencerModel.get(self.model.data)
-        sequencer = db.update_sequencer(sequencer)
+        db.sequencers.update(sequencer)
 
         flash("Sequencer updated.", "success")
         return make_response(redirect=url_for("devices_page.sequencer", sequencer_id=sequencer.id))

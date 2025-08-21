@@ -39,7 +39,7 @@ class CompleteRegistrationForm(HTMXFlaskForm):
 
         hashed_password = bcrypt.generate_password_hash(self.password.data).decode("utf-8")
 
-        user = db.create_user(
+        user = db.users.create(
             email=email,
             hashed_password=hashed_password,
             first_name=self.first_name.data,  # type: ignore

@@ -75,10 +75,10 @@ class LabPrepForm(HTMXFlaskForm):
         self.lab_prep.assay_type = AssayType.get(self.assay_type.data)
 
         flash("Changes saved!", "success")
-        return db.update_lab_prep(self.lab_prep)
+        return db.lab_preps.update(self.lab_prep)
 
     def __create_lab_prep(self, user: models.User) -> models.LabPrep:
-        lab_prep = db.create_lab_prep(
+        lab_prep = db.lab_preps.create(
             name=self.name.data,
             protocol=LabProtocol.get(self.protocol.data),
             creator_id=user.id,

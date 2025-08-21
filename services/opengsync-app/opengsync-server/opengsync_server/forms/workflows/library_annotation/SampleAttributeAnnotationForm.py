@@ -58,7 +58,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
             df[col.label] = ""
 
         for _, row in sample_table[sample_table["sample_id"].notna()].iterrows():
-            if (sample := db.get_sample(sample_id=int(row["sample_id"]))) is None:
+            if (sample := db.samples.get(sample_id=int(row["sample_id"]))) is None:
                 logger.warning(f"Sample with ID {row['sample_id']} not found in the database.")
                 raise ValueError(f"Sample with ID {row['sample_id']} not found in the database.")
             

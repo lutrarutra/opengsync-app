@@ -8,7 +8,7 @@ from opengsync_db import models
 from opengsync_db.categories import IndexType, BarcodeType
 
 from .. import db, logger  # noqa
-from ..core.runtime import runtime
+from ..core.RunTime import runtime
 from ..tools import utils
 from ..tools.spread_sheet_components import TextColumn, DuplicateCellValue, MissingCellValue, SpreadSheetColumn
 from .HTMXFlaskForm import HTMXFlaskForm
@@ -46,7 +46,7 @@ class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=EditDualIndexKitBarcodesForm.columns, csrf_token=csrf_token,
             post_url="", formdata=formdata,
-            df=db.get_index_kit_barcodes_df(self.index_kit.id, per_index=True),
+            df=db.pd.get_index_kit_barcodes(self.index_kit.id, per_index=True),
             allow_new_rows=True
         )
 
@@ -109,23 +109,23 @@ class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        self.index_kit = db.remove_all_barcodes_from_kit(self.index_kit.id)
+        self.index_kit = db.index_kits.remove_all_barcodes(self.index_kit.id)
         self.df["barcode_i7_id"] = None
         self.df["barcode_i5_id"] = None
 
         for idx, row in self.df.iterrows():
-            adapter = db.create_adapter(
+            adapter = db.adapters.create(
                 index_kit_id=self.index_kit.id,
                 well=row["well"],
             )
-            db.create_barcode(
+            db.barcodes.create(
                 name=row["name_i7"],
                 sequence=row["sequence_i7"] if not self.rc_sequence_i7.data else models.Barcode.reverse_complement(row["sequence_i7"]),
                 well=row["well"],
                 adapter_id=adapter.id,
                 type=BarcodeType.INDEX_I7,
             )
-            db.create_barcode(
+            db.barcodes.create(
                 name=row["name_i5"],
                 sequence=row["sequence_i5"] if not self.rc_sequence_i5.data else models.Barcode.reverse_complement(row["sequence_i5"]),
                 well=row["well"],
@@ -167,7 +167,7 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
             post_url="", formdata=formdata,
-            df=db.get_index_kit_barcodes_df(self.index_kit.id, per_index=True),
+            df=db.pd.get_index_kit_barcodes(self.index_kit.id, per_index=True),
             allow_new_rows=True
         )
 
@@ -214,14 +214,14 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        self.index_kit = db.remove_all_barcodes_from_kit(self.index_kit.id)
+        self.index_kit = db.index_kits.remove_all_barcodes(self.index_kit.id)
 
         for _, row in self.df.iterrows():
-            adapter = db.create_adapter(
+            adapter = db.adapters.create(
                 index_kit_id=self.index_kit.id,
                 well=row["well"],
             )
-            db.create_barcode(
+            db.barcodes.create(
                 name=row["name"],
                 sequence=row["sequence_i7"] if not self.rc_sequence.data else models.Barcode.reverse_complement(row["sequence_i7"]),
                 well=row["well"],
@@ -265,7 +265,7 @@ class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=csrf_token,
             post_url="", formdata=formdata,
-            df=db.get_index_kit_barcodes_df(self.index_kit.id, per_index=True),
+            df=db.pd.get_index_kit_barcodes(self.index_kit.id, per_index=True),
             allow_new_rows=True
         )
 
@@ -314,15 +314,15 @@ class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        self.index_kit = db.remove_all_barcodes_from_kit(self.index_kit.id)
+        self.index_kit = db.index_kits.remove_all_barcodes(self.index_kit.id)
 
         for idx, row in self.df.iterrows():
-            adapter = db.create_adapter(
+            adapter = db.adapters.create(
                 index_kit_id=self.index_kit.id,
                 well=row["well"],
             )
             for i in range(4):
-                db.create_barcode(
+                db.barcodes.create(
                     name=row["name"],
                     sequence=row[f"sequence_{i + 1}"] if not self.rc_sequence.data else models.Barcode.reverse_complement(row[f"sequence_{i + 1}"]),
                     well=row["well"],

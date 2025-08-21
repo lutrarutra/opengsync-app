@@ -24,7 +24,7 @@ def get_context(request: Request) -> dict:
     if (seq_request_id := args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            if (seq_request := db.get_seq_request(seq_request_id)) is None:
+            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["seq_request"] = seq_request
         except ValueError:
@@ -32,7 +32,7 @@ def get_context(request: Request) -> dict:
     if (experiment_id := args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
-            if (experiment := db.get_experiment(experiment_id)) is None:
+            if (experiment := db.experiments.get(experiment_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["experiment"] = experiment
         except ValueError:
@@ -40,7 +40,7 @@ def get_context(request: Request) -> dict:
     if (pool_id := args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
-            if (pool := db.get_pool(pool_id)) is None:
+            if (pool := db.pools.get(pool_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["pool"] = pool
         except ValueError:
@@ -48,7 +48,7 @@ def get_context(request: Request) -> dict:
     if (lab_prep_id := args.get("lab_prep_id")) is not None:
         try:
             lab_prep_id = int(lab_prep_id)
-            if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+            if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
                 return abort(HTTPResponse.NOT_FOUND.id)
             context["lab_prep"] = lab_prep
         except ValueError:

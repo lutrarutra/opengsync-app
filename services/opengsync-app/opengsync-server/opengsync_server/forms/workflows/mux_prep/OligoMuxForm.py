@@ -41,7 +41,7 @@ class OligoMuxForm(MultiStepForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
 
-        self.sample_table = db.get_lab_prep_samples_df(lab_prep.id)
+        self.sample_table = db.pd.get_lab_prep_samples(lab_prep.id)
         self.sample_table = self.sample_table[self.sample_table["mux_type"].isin([MUXType.TENX_OLIGO])]
         self.mux_table = self.sample_table.drop_duplicates(subset=["sample_name", "sample_pool"], keep="first")
 
@@ -89,7 +89,7 @@ class OligoMuxForm(MultiStepForm):
 
         kit: models.FeatureKit | None = None
         if (kit_id := self.kit.selected.data) is not None:
-            if (kit := db.get_feature_kit(kit_id)) is None:
+            if (kit := db.feature_kits.get(kit_id)) is None:
                 logger.error(f"Unknown feature kit id {kit_id}")
                 self.kit.search_bar.errors = ("Unknown feature kit id",)
                 return False
@@ -114,7 +114,7 @@ class OligoMuxForm(MultiStepForm):
                 elif duplicate_kit_feature.at[idx]:
                     self.spreadsheet.add_error(idx, "feature", DuplicateCellValue("Duplicate 'Kit' + 'Feature' specified in same pool."))
                 else:
-                    if len(features := db.get_features_from_kit_by_feature_name(row["feature"], kit.id)) == 0:
+                    if len(features := db.features.get_from_kit_by_name(row["feature"], kit.id)) == 0:
                         self.spreadsheet.add_error(idx, "feature", InvalidCellValue(f"Feature '{row['feature']}' not found in '{kit.name}'."))
                     else:
                         feature = features[0]
@@ -161,20 +161,20 @@ class OligoMuxForm(MultiStepForm):
         old_libraries: list[int] = []
         
         for _, row in self.sample_table.iterrows():
-            if (old_library := db.get_library(int(row["library_id"]))) is None:
+            if (old_library := db.libraries.get(int(row["library_id"]))) is None:
                 logger.error(f"Library {row['library_id']} not found.")
                 raise Exception(f"Library {row['library_id']} not found.")
             
             if old_library.id not in old_libraries:
                 old_libraries.append(old_library.id)
             
-            if (sample := db.get_sample(int(row["sample_id"]))) is None:
+            if (sample := db.samples.get(int(row["sample_id"]))) is None:
                 logger.error(f"Sample {row['sample_id']} not found.")
                 raise Exception(f"Sample {row['sample_id']} not found.")
             
             lib = f"{row['new_sample_pool']}_{old_library.type.identifier}"
             if lib not in libraries.keys():
-                new_library = db.create_library(
+                new_library = db.libraries.create(
                     name=lib,
                     sample_name=row["new_sample_pool"],
                     library_type=old_library.type,
@@ -191,7 +191,7 @@ class OligoMuxForm(MultiStepForm):
             else:
                 new_library = libraries[lib]
 
-            db.link_sample_library(
+            db.links.link_sample_library(
                 sample_id=sample.id, library_id=new_library.id,
                 mux={
                     "barcode": row["mux_barcode"],
@@ -200,10 +200,10 @@ class OligoMuxForm(MultiStepForm):
                 },
             )
             new_library.features = old_library.features
-            new_library = db.update_library(new_library)
+            db.libraries.update(new_library)
 
         for old_library_id in old_libraries:
-            db.delete_library(old_library_id, delete_orphan_samples=False)
+            db.libraries.delete(old_library_id, delete_orphan_samples=False)
 
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id)))

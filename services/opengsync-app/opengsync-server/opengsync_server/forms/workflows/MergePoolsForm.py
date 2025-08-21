@@ -43,14 +43,14 @@ class MergePoolsForm(MultiStepForm):
         context = super().get_context(**context)
         dfs = []
         for pool_id in self.pool_table["id"].tolist():
-            if (pool := db.get_pool(int(pool_id))) is None:
+            if (pool := db.pools.get(int(pool_id))) is None:
                 logger.error(f"Pool {pool_id} not found")
                 raise exceptions.ElementDoesNotExist(f"Pool {pool_id} not found")
             
             if pool.num_m_reads_requested is not None:
                 num_m_reads_requested += pool.num_m_reads_requested
 
-            df = db.get_pool_libraries_df(pool_id=pool.id)
+            df = db.pd.get_pool_libraries(pool_id=pool.id)
             df["pool_id"] = pool.id
             df["pool_name"] = pool.name
             dfs.append(df)
@@ -86,7 +86,7 @@ class MergePoolsForm(MultiStepForm):
             return self.make_response()
         
         if (contact_id := self.contact.selected.data) is not None:
-            if (contact := db.get_user(contact_id)) is None:
+            if (contact := db.users.get(contact_id)) is None:
                 logger.error(f"Contact {contact_id} not found")
                 raise exceptions.ElementDoesNotExist(f"Contact {contact_id} not found")
         else:
@@ -94,7 +94,7 @@ class MergePoolsForm(MultiStepForm):
             
         pool_type = PoolType.get(self.pool_type.data)
             
-        pool = db.create_pool(
+        pool = db.pools.create(
             name=self.name.data,  # type: ignore
             status=PoolStatus.get(self.status.data),
             num_m_reads_requested=self.num_m_reads_requested.data,
@@ -105,7 +105,7 @@ class MergePoolsForm(MultiStepForm):
             contact_phone=self.contact_phone.data  # type: ignore
         )
 
-        pool = db.merge_pools(
+        pool = db.pools.merge(
             merged_pool_id=pool.id,
             pool_ids=self.pool_table["id"].tolist(),
         )

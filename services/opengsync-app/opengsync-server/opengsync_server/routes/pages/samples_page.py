@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, url_for, abort, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
+from opengsync_db.categories import HTTPResponse, AccessType
 from ... import db
 from ...core import wrappers
 samples_page_bp = Blueprint("samples_page", __name__)
@@ -14,15 +14,11 @@ def samples():
 
 @wrappers.page_route(samples_page_bp, db=db)
 def sample(current_user: models.User, sample_id: int):
-    if (sample := db.get_sample(sample_id)) is None:
+    if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
-
-    if not current_user.is_insider() and sample.owner_id != current_user.id:
-        affiliation = db.get_user_sample_access_type(user_id=current_user.id, sample_id=sample.id)
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
-    
-    is_editable = sample.is_editable()
+        
+    if db.samples.get_access_type(sample, current_user) < AccessType.VIEW:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     path_list = [
         ("Samples", url_for("samples_page.samples")),
@@ -49,8 +45,4 @@ def sample(current_user: models.User, sample_id: int):
                 (f"Sample {sample_id}", ""),
             ]
 
-    return render_template(
-        "sample_page.html",
-        path_list=path_list, sample=sample,
-        is_editable=is_editable
-    )
+    return render_template("sample_page.html", path_list=path_list, sample=sample)

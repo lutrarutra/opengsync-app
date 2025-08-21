@@ -43,7 +43,7 @@ def select():
     }
 
     for _, row in form.library_table.iterrows():
-        if (library := db.get_library(int(row["id"]))) is None:
+        if (library := db.libraries.get(int(row["id"]))) is None:
             logger.error(f"Library {library} not found in database")
             raise Exception("Library not found in database")
         
@@ -54,7 +54,7 @@ def select():
             library_data["sequence_i5"].append(index.sequence_i5)
 
     for _, row in form.pool_table.iterrows():
-        if (pool := db.get_pool(int(row["id"]))) is None:
+        if (pool := db.pools.get(int(row["id"]))) is None:
             logger.error(f"Pool {pool} not found in database")
             raise Exception("Pool not found in database")
 
@@ -66,7 +66,7 @@ def select():
                 library_data["sequence_i5"].append(index.sequence_i5)
 
     for _, row in form.lane_table.iterrows():
-        if (lane := db.get_lane(int(row["id"]))) is None:
+        if (lane := db.lanes.get(int(row["id"]))) is None:
             logger.error(f"Lane {lane} not found in database")
             raise Exception("Lane not found in database")
 
@@ -87,7 +87,7 @@ def check_experiment_barcode_clashes(current_user: models.User, experiment_id: i
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (experiment := db.get_experiment(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     library_data = {
@@ -121,7 +121,7 @@ def check_seq_request_barcode_clashes(current_user: models.User, seq_request_id:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (seq_request := db.get_seq_request(seq_request_id)) is None:
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     library_data = {

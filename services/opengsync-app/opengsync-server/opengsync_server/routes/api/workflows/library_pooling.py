@@ -16,7 +16,7 @@ def begin(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     form = forms.BarcodeInputForm(lab_prep=lab_prep, uuid=None, formdata=None)
@@ -28,7 +28,7 @@ def previous(current_user: models.User, lab_prep_id: int, uuid: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     if (response := MultiStepForm.pop_last_step("library_pooling", uuid)) is None:
@@ -48,7 +48,7 @@ def upload_barcode_form(current_user: models.User, lab_prep_id: int, uuid: str) 
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     form = forms.BarcodeInputForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form)
@@ -60,7 +60,7 @@ def map_index_kits(current_user: models.User, lab_prep_id: int, uuid: str) -> Re
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     form = forms.IndexKitMappingForm(lab_prep=lab_prep, uuid=uuid, formdata=request.form)
@@ -69,7 +69,7 @@ def map_index_kits(current_user: models.User, lab_prep_id: int, uuid: str) -> Re
 
 @wrappers.htmx_route(library_pooling_workflow, db=db, methods=["POST"])
 def barcode_match(current_user: models.User, lab_prep_id: int, uuid: str):
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     return forms.BarcodeMatchForm(
@@ -83,7 +83,7 @@ def complete_pooling(current_user: models.User, lab_prep_id: int, uuid: str) -> 
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     form = forms.CompleteLibraryPoolingForm(lab_prep=lab_prep, uuid=uuid, formdata=request.form)

@@ -24,7 +24,7 @@ def begin(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
 
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     _args = args.copy()
@@ -42,7 +42,7 @@ def select(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
     
-    if (lab_prep := db.get_lab_prep(lab_prep_id)) is None:
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
     _args = args.copy()
@@ -57,7 +57,7 @@ def select(current_user: models.User, lab_prep_id: int) -> Response:
         return form.make_response()
 
     for _, row in form.library_table.iterrows():
-        lab_prep = db.add_library_to_prep(
+        lab_prep = db.lab_preps.add_library(
             lab_prep_id=lab_prep_id,
             library_id=row["id"],
         )

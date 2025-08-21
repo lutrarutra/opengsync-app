@@ -53,7 +53,7 @@ class SampleForm(HTMXFlaskForm):
         self.sample.name = self.name.data  # type: ignore
         self.sample.status_id = self.status.data
        
-        self.sample = db.update_sample(self.sample)
+        db.samples.update(self.sample)
 
         flash("Changes saved!", "success")
         return make_response(

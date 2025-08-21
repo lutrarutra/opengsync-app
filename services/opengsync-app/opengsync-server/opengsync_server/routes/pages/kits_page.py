@@ -14,7 +14,7 @@ def kits():
 
 @wrappers.page_route(kits_page_bp, db=db)
 def kit(kit_id: int):
-    if (kit := db.get_kit(kit_id)) is None:
+    if (kit := db.kits.get(kit_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
     path_list = [
@@ -34,7 +34,7 @@ def index_kits():
 
 @wrappers.page_route(kits_page_bp, db=db)
 def index_kit(index_kit_id: int):
-    index_kit = db.get_index_kit(index_kit_id)
+    index_kit = db.index_kits.get(index_kit_id)
 
     path_list = [
         ("Index Kits", url_for("kits_page.index_kits")),
@@ -62,7 +62,7 @@ def feature_kits():
 
 @wrappers.page_route(kits_page_bp, db=db)
 def feature_kit(feature_kit_id: int):
-    feature_kit = db.get_feature_kit(feature_kit_id)
+    feature_kit = db.feature_kits.get(feature_kit_id)
 
     path_list = [
         ("Feature Kits", url_for("kits_page.feature_kits")),
@@ -87,11 +87,11 @@ def feature_kit(feature_kit_id: int):
 
 @wrappers.page_route(kits_page_bp, db=db)
 def export_features(feature_kit_id: int):
-    feature_kit = db.get_feature_kit(feature_kit_id)
+    feature_kit = db.feature_kits.get(feature_kit_id)
     if feature_kit is None:
         return abort(HTTPResponse.NOT_FOUND.id)
 
-    features_df = db.get_feature_kit_features_df(feature_kit_id=feature_kit_id)
+    features_df = db.pd.get_feature_kit_features(feature_kit_id=feature_kit_id)
     features_df["feature_type"] = features_df["type"].apply(lambda x: x.modality)
 
     response = make_response(features_df.to_csv(index=False))

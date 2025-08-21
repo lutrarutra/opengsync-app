@@ -62,7 +62,7 @@ class DefineSamplesForm(MultiStepForm):
 
         sample_name_counts = df["sample_name"].value_counts()
 
-        seq_request_samples = db.get_seq_request_samples_df(self.seq_request.id)
+        seq_request_samples = db.pd.get_seq_request_samples(self.seq_request.id)
 
         selected_library_types = [t.abbreviation for t in self.assay_type.library_types]
         if self.antibody_capture:
@@ -170,7 +170,7 @@ class DefineSamplesForm(MultiStepForm):
         sample_table["sample_id"] = None
 
         if (project_id := self.metadata.get("project_id")) is not None:
-            if (project := db.get_project(project_id)) is None:
+            if (project := db.projects.get(project_id)) is None:
                 logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
                 raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
             
