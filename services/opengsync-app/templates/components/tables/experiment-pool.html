@@ -18,10 +18,10 @@
                     table_col(
                         table_container_id='experiment-pool-table', column_name='Pool Name', column_var='name',
                         sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2
+                        sort_by=sort_by, sort_order=sort_order, col_size=3
                     )
                 }}
-                <th scope="col" class="col-2">Lanes</th>
+                <th scope="col" class="col-3">Lanes</th>
                 {{
                     table_col(
                         table_container_id='experiment-pool-table', column_name='Status', column_var='status_id',
@@ -29,6 +29,8 @@
                         sort_by=sort_by, sort_order=sort_order,col_size=1,
                     )
                 }}
+                <th class="col-2" scope="col"># Reads</th>
+                <th class="col-1" scope="col" {{ tooltip("Sample molarity of the pool") }}>Molarity</th>
                 {{
                     table_col(
                         table_container_id='experiment-pool-table', column_name='Owner', column_var='owner_id',
@@ -45,9 +47,6 @@
                         col_size=1,
                     )
                 }}
-                <th class="col-1" scope="col">Library Size</th>
-                <th class="col-1" scope="col" {{ tooltip("Sample molarity of the pool") }}>Molarity</th>
-                <th class="col-2" scope="col"># Reads</th>
             </tr>
         </thead>
         <tbody>
@@ -93,12 +92,10 @@
                     {% endif %}
                 </td>
                 <td>{{ pool.status.icon }} {{ pool.status.name }}</td>
-                <td><a href="{{ url_for('users_page.user', user_id=pool.owner_id, from='experiment@' + experiment.id | string) }}">{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></a></td>
-                <td>{{ pool.num_libraries }}</td>
-                <td class="avg_fragment_size-col">
-                    <div class="quantity-container">
-                        <div class="value">{{ pool.avg_fragment_size if pool.avg_fragment_size }}</div>
-                        <div class="unit">bp</div>
+                <td>
+                    <div class="quantity-container" {{ tooltip("Planned / Requested") }}>
+                        <div class="value">{{ pool.reads_planned() | int }}/{{ pool.num_m_reads_requested | int if pool.num_m_reads_requested }}</div>
+                        <div class="unit">M</div>
                     </div>
                 </td>
                 <td class="nm_total-col">
@@ -107,12 +104,8 @@
                         <div class="unit">nM</div>
                     </div>
                 </td>
-                <td>
-                    <div class="quantity-container" {{ tooltip("Planned / Requested") }}>
-                        <div class="value">{{ pool.reads_planned() | int }}/{{ pool.num_m_reads_requested | int if pool.num_m_reads_requested }}</div>
-                        <div class="unit">M</div>
-                    </div>
-                </td>
+                <td><a href="{{ url_for('users_page.user', user_id=pool.owner_id, from='experiment@' + experiment.id | string) }}">{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></a></td>
+                <td>{{ pool.num_libraries }}</td>
             </tr>
             {% endfor %}
         </tbody>

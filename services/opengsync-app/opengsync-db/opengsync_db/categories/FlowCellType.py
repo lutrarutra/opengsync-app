@@ -26,6 +26,6 @@ class FlowCellType(ExtendedEnum[FlowCellTypeEnum], enum_type=FlowCellTypeEnum):
     MISEQ_MICRO_V2 = FlowCellTypeEnum(12, "MiSeq Micro v2", "Illumina", 1, 4)
     MISEQ_NANO_V2 = FlowCellTypeEnum(13, "MiSeq Nano v2", "Illumina", 1, 1)
 
-    NOVASEQ_X_1B_ILLUMINA = FlowCellTypeEnum(100, "NovaSeq X 1.5B", "Illumina", 8, 200)
+    NOVASEQ_X_1B_ILLUMINA = FlowCellTypeEnum(100, "NovaSeq X 1.5B", "Illumina", 2, 200)
     NOVASEQ_X_10B_ILLUMINA = FlowCellTypeEnum(101, "NovaSeq X 10B", "Illumina", 8, 1250)
     NOVASEQ_X_25B_ILLUMINA = FlowCellTypeEnum(102, "NovaSeq X 25B", "Illumina", 8, 3250)
