@@ -122,7 +122,7 @@ class SpreadsheetInput(FlaskForm):
         
         self._data = self.__df.replace(np.nan, "").values.tolist()
 
-        if len(self.errors) > 0:
+        if len(self._errors) > 0:
             return False
 
         return True

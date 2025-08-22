@@ -98,6 +98,10 @@ class FileBP(DBBlueprint):
         res = query.all()
 
         return res
+    
+    @DBBlueprint.transaction
+    def update(self, file: models.File):
+        self.db.session.add(file)
 
     @DBBlueprint.transaction
     def permissions_check(self, user_id: int, file_id: int) -> bool:

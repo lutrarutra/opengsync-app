@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
+
 from .... import db
 from ....core import wrappers
 
