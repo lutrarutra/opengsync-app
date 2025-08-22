@@ -3,18 +3,18 @@ from flask import Blueprint, render_template, abort, url_for, request
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, UserRole, AffiliationType
 
-from ... import db, forms, logger
+from ... import db, forms
 from ...core import wrappers
 groups_page_bp = Blueprint("groups_page", __name__)
 
 
-@wrappers.page_route(groups_page_bp, db=db)
-def groups(current_user: models.User):
+@wrappers.page_route(groups_page_bp, db=db, cache_timeout_seconds=360)
+def groups():
     group_form = forms.models.GroupForm()
     return render_template("groups_page.html", group_form=group_form)
 
 
-@wrappers.page_route(groups_page_bp, db=db)
+@wrappers.page_route(groups_page_bp, db=db, cache_timeout_seconds=360)
 def group(current_user: models.User, group_id: int):
     if (group := db.groups.get(group_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

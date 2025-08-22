@@ -3,12 +3,12 @@ from flask import Blueprint, render_template, url_for, abort, request
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, FileType
 
-from ... import db, logger
+from ... import db
 from ...core import wrappers
 experiments_page_bp = Blueprint("experiments_page", __name__)
 
 
-@wrappers.page_route(experiments_page_bp, db=db)
+@wrappers.page_route(experiments_page_bp, db=db, cache_timeout_seconds=360)
 def experiments(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -16,7 +16,7 @@ def experiments(current_user: models.User):
     return render_template("experiments_page.html")
 
 
-@wrappers.page_route(experiments_page_bp, db=db)
+@wrappers.page_route(experiments_page_bp, db=db, cache_timeout_seconds=360)
 def experiment(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

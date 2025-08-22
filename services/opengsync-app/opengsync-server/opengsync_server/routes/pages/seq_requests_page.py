@@ -8,12 +8,12 @@ from ...core import wrappers
 seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
 
 
-@wrappers.page_route(seq_requests_page_bp, db=db)
+@wrappers.page_route(seq_requests_page_bp, db=db, cache_timeout_seconds=360)
 def seq_requests():
     return render_template("seq_requests_page.html")
 
 
-@wrappers.page_route(seq_requests_page_bp, db=db)
+@wrappers.page_route(seq_requests_page_bp, db=db, cache_timeout_seconds=360)
 def seq_request(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests[seq_request_id]) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

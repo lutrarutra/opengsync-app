@@ -151,7 +151,7 @@ class Experiment(Base):
         ).scalar()
     
     @hybrid_property
-    def num_projects(self) -> int:  # type: ignore[override]    
+    def num_projects(self) -> int:  # type: ignore[override]
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_projects' attribute.")
         

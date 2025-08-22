@@ -7,12 +7,12 @@ from ...core import wrappers
 samples_page_bp = Blueprint("samples_page", __name__)
 
 
-@wrappers.page_route(samples_page_bp, db=db)
+@wrappers.page_route(samples_page_bp, db=db, cache_timeout_seconds=360)
 def samples():
     return render_template("samples_page.html")
 
 
-@wrappers.page_route(samples_page_bp, db=db)
+@wrappers.page_route(samples_page_bp, db=db, cache_timeout_seconds=360)
 def sample(current_user: models.User, sample_id: int):
     if (sample := db.samples.get(sample_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

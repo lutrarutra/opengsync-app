@@ -7,12 +7,12 @@ from ...core import wrappers
 share_tokens_page_bp = Blueprint("share_tokens_page", __name__)
 
 
-@wrappers.page_route(share_tokens_page_bp, db=db)
-def share_tokens(current_user: models.User):
+@wrappers.page_route(share_tokens_page_bp, db=db, cache_timeout_seconds=360)
+def share_tokens():
     return render_template("share_tokens_page.html")
 
 
-@wrappers.page_route(share_tokens_page_bp, db=db)
+@wrappers.page_route(share_tokens_page_bp, db=db, cache_timeout_seconds=360)
 def share_token(current_user: models.User, share_token_id: str):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)

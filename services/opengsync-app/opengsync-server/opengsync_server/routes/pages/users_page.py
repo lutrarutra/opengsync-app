@@ -17,7 +17,7 @@ def users(current_user: models.User):
     return render_template("users_page.html")
 
 
-@wrappers.page_route(users_page_bp, db=db, cache_timeout_seconds=None)
+@wrappers.page_route(users_page_bp, db=db, cache_timeout_seconds=360)
 def user(current_user: models.User, user_id: int | None = None):
     if user_id is None:
         user_id = current_user.id

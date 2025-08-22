@@ -8,7 +8,7 @@ from ...core import wrappers
 seq_runs_page_bp = Blueprint("seq_runs_page", __name__)
 
 
-@wrappers.page_route(seq_runs_page_bp, db=db)
+@wrappers.page_route(seq_runs_page_bp, db=db, cache_timeout_seconds=60)
 def seq_runs(current_user: models.User):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
@@ -16,7 +16,7 @@ def seq_runs(current_user: models.User):
     return render_template("seq_runs_page.html")
 
 
-@wrappers.page_route(seq_runs_page_bp, db=db)
+@wrappers.page_route(seq_runs_page_bp, db=db, cache_timeout_seconds=60)
 def seq_run(current_user: models.User, seq_run_id: int):
     if not current_user.is_insider():
         return abort(HTTPResponse.FORBIDDEN.id)
