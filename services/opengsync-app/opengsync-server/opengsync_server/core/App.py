@@ -246,6 +246,7 @@ class App(Flask):
         self.register_blueprint(api.workflows.merge_pools_workflow)
         self.register_blueprint(api.workflows.select_pool_libraries_workflow)
         self.register_blueprint(api.workflows.library_remux_workflow)
+        self.register_blueprint(api.workflows.relib_workflow)
 
         self.register_blueprint(pages.samples_page_bp)
         self.register_blueprint(pages.projects_page_bp)

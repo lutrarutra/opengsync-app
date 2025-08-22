@@ -74,7 +74,7 @@ def validate(token: str):
     return "OK", HTTPResponse.OK.id
 
 
-@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60 if not DEBUG else None)
+@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60 if not DEBUG else None, cache_type="global", cache_query_string=True)
 def rclone(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
@@ -108,7 +108,7 @@ def rclone(token: str, subpath: Path = Path()):
     )
 
 
-@wrappers.page_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60 if not DEBUG else None)
+@wrappers.page_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60 if not DEBUG else None, cache_type="global", cache_query_string=True)
 def browse(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)

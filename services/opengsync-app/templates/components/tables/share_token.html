@@ -36,7 +36,7 @@
         <tbody>
             {% for share_token in share_tokens %}
             <tr>
-                <th scope="row">-</th>
+                <th scope="row"><i class="bi bi-shield-lock"></i></th>
                 <td>
                     {% if share_token.is_expired %}🔴{% else %}🟢{% endif %}
                     {{ share_token.expiration | format_datetime }}

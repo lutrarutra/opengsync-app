@@ -169,11 +169,12 @@ class LibraryPrepForm(HTMXFlaskForm):
         
         db.lab_preps.update(self.lab_prep)
 
-        if self.lab_prep.prep_file is not None:
+        if (file := self.lab_prep.prep_file) is not None:
             size_bytes = os.path.getsize(path)
-            self.lab_prep.prep_file.uuid = hash
-            self.lab_prep.prep_file.size_bytes = size_bytes
-            self.lab_prep.prep_file.timestamp_utc = to_utc(db.timestamp())
+            file.uuid = hash
+            file.size_bytes = size_bytes
+            file.timestamp_utc = to_utc(db.timestamp())
+            db.files.update(file)
         else:
             db.files.create(
                 name=f"{self.lab_prep.name}_prep",

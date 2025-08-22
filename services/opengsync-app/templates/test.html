@@ -1,4 +1,5 @@
 {% from "components/spreadsheet.jinja2" import spreadsheet %}
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 
 {% extends "base.html" %}
 {% block content %}
@@ -43,8 +44,16 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary">Save changes</button>
+                <div class="text-nowrap text-muted footer-id">
+                </div>
+                <div class="footer-info">
+                    {{ spreadsheet_error_legend() }}
+                </div>
+                <div class="footer-controls">
+                    <button class="btn btn-success" type="button" id="submit-spreadsheet-btn">
+                        Submit
+                    </button>
+                </div>
             </div>
         </div>
     </div>

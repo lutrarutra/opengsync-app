@@ -4,7 +4,7 @@ from typing import Literal
 from flask import Blueprint, request, abort, send_file
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, SubmissionType
+from opengsync_db.categories import HTTPResponse, SubmissionType, AccessType
 
 from .... import db, logger
 from ....forms.workflows import library_annotation as forms
@@ -47,10 +47,8 @@ def begin(current_user: models.User, seq_request_id: int, workflow_type: Literal
         if seq_request.submission_type != SubmissionType.RAW_SAMPLES:
             return abort(HTTPResponse.BAD_REQUEST.id)
 
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     form = forms.ProjectSelectForm(workflow_type=workflow_type, seq_request=seq_request)
     return form.make_response()
@@ -61,10 +59,8 @@ def previous(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if (response := MultiStepForm.pop_last_step("library_annotation", uuid)) is None:
         logger.error("Failed to pop last step")
@@ -86,10 +82,8 @@ def select_project(current_user: models.User, seq_request_id: int, workflow_type
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if request.method == "GET":
         forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type)
@@ -102,10 +96,8 @@ def define_pools(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if request.method == "GET":
         return forms.PoolMappingForm(uuid=uuid, seq_request=seq_request).make_response()
@@ -118,10 +110,8 @@ def upload_barcode_form(current_user: models.User, seq_request_id: int, uuid: st
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.BarcodeInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -131,10 +121,8 @@ def upload_tenx_atac_barcode_form(current_user: models.User, seq_request_id: int
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.TENXATACBarcodeInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -144,10 +132,8 @@ def barcode_match(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.BarcodeMatchForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -157,10 +143,8 @@ def map_index_kits(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.IndexKitMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -170,10 +154,8 @@ def parse_assay_form(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
         
     return forms.SelectAssayForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -186,10 +168,8 @@ def parse_table(current_user: models.User, seq_request_id: int, uuid: str, form_
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     if form_type == "pooled":
         form = forms.PooledLibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
@@ -208,10 +188,8 @@ def parse_ocm_reference(current_user: models.User, seq_request_id: int, uuid: st
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.OCMAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -221,10 +199,8 @@ def parse_cmo_reference(current_user: models.User, seq_request_id: int, uuid: st
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.OligoMuxAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -234,10 +210,8 @@ def annotate_features(current_user: models.User, seq_request_id: int, uuid: str)
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.FeatureAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -247,10 +221,8 @@ def map_feature_kits(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
 
     return forms.KitMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -260,10 +232,8 @@ def parse_visium_reference(current_user: models.User, seq_request_id: int, uuid:
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.VisiumAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -273,10 +243,8 @@ def parse_openst_annotation(current_user: models.User, seq_request_id: int, uuid
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.OpenSTAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -286,10 +254,8 @@ def parse_flex_annotation(current_user: models.User, seq_request_id: int, uuid: 
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.FlexAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -299,10 +265,8 @@ def parse_sas_form(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     return forms.SampleAttributeAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
@@ -312,10 +276,8 @@ def complete(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
     
-    if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-        if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        return abort(HTTPResponse.FORBIDDEN.id)
     
     form = forms.CompleteSASForm(uuid=uuid, formdata=request.form, seq_request=seq_request)
     return form.process_request(user=current_user)

@@ -21,9 +21,9 @@ class HTMXFlaskForm(FlaskForm, metaclass=ABCHTMXFlaskForm):
         super().__init__(formdata=formdata, **kwargs)
         self.formdata = formdata if formdata is not None else dict()
         if (csrf_token := self.formdata.get("csrf_token")) is None:
-            self._csrf_token = self.csrf_token._value()  # type: ignore
+            self._csrf_token: str = self.csrf_token._value()  # type: ignore
         else:
-            self._csrf_token = csrf_token
+            self._csrf_token: str = csrf_token
         self._context = {}
 
     @abstractmethod

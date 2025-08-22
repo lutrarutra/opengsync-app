@@ -17,3 +17,4 @@ from .reseq import reseq_workflow  # noqa: F401
 from .merge_pools import merge_pools_workflow  # noqa: F401
 from .select_pool_libraries import select_pool_libraries_workflow  # noqa: F401
 from .library_remux import library_remux_workflow  # noqa: F401
+from .relib import relib_workflow  # noqa: F401

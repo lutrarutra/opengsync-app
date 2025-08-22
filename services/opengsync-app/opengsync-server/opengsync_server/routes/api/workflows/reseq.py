@@ -1,7 +1,7 @@
 from flask import Blueprint, request, abort, Response
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
+from opengsync_db.categories import HTTPResponse, AccessType
 
 from .... import db
 from ....core import wrappers
@@ -18,10 +18,8 @@ def get_context(current_user: models.User, args: dict) -> dict:
         seq_request_id = int(seq_request_id)
         if (seq_request := db.seq_requests.get(seq_request_id)) is None:
             raise exceptions.NotFoundException()
-        if not current_user.is_insider() and seq_request.requestor_id != current_user.id:
-            affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=seq_request.group_id) if seq_request.group_id else None
-            if affiliation is None:
-                raise exceptions.NoPermissionsException()
+        if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+            raise exceptions.NoPermissionsException()
         context["seq_request"] = seq_request
         
     elif (lab_prep_id := args.get("lab_prep_id")) is not None:
