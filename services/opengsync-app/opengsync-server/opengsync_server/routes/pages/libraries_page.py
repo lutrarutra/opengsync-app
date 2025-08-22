@@ -8,12 +8,12 @@ from ...core import wrappers
 libraries_page_bp = Blueprint("libraries_page", __name__)
 
 
-@wrappers.page_route(libraries_page_bp, db=db)
+@wrappers.page_route(libraries_page_bp, db=db, cache_timeout_seconds=360)
 def libraries():
     return render_template("libraries_page.html")
 
 
-@wrappers.page_route(libraries_page_bp, db=db)
+@wrappers.page_route(libraries_page_bp, db=db, cache_timeout_seconds=360)
 def library(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         return abort(HTTPResponse.NOT_FOUND.id)

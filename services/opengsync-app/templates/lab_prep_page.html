@@ -100,7 +100,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
             data-bs-target="#lab_prep-libraries-tab" type="button" role="tab"
-            aria-controls="lab_prep-libraries-tab" aria-selected="true">Libraries</button>
+            aria-controls="lab_prep-libraries-tab" aria-selected="true">Libraries ({{ lab_prep.num_libraries }})</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -110,7 +110,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#lab_prep-pools-tab" type="button" role="tab"
-            aria-controls="lab_prep-pools-tab" aria-selected="true">Pools</button>
+            aria-controls="lab_prep-pools-tab" aria-selected="true">Pools ({{ lab_prep.num_pools }})</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -122,9 +122,8 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#plate-tab" type="button" role="tab"
-            aria-controls="plate-tab" aria-selected="false"
-            {% if lab_prep.plates | length == 0 %}disabled{% endif %}>
-            Plates</button>
+            aria-controls="plate-tab" aria-selected="false">
+            Plates ({{ lab_prep.num_plates }})</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -137,13 +136,13 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#files-tab" type="button" role="tab"
             aria-controls="files-tab" aria-selected="true"
-            id="files-tab-btn">Files</button>
+            id="files-tab-btn">Files ({{ lab_prep.num_files }})</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#comments-tab" type="button" role="tab"
             aria-controls="comments-tab" aria-selected="true"
-            id="comments-tab-btn">Comments</button>
+            id="comments-tab-btn">Comments ({{ lab_prep.num_comments }})</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"

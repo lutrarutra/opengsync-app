@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
+from sqlalchemy import orm
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -90,7 +91,13 @@ class User(Base, UserMixin):
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]
-        return len(self.samples)
+        if "samples" in orm.attributes.instance_state(self).unloaded:
+            return len(self.samples)
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_samples' attribute.")
+        
+        from .Sample import Sample
+        return session.query(sa.func.count(Sample.id)).filter(Sample.owner_id == self.id).scalar()
     
     @num_samples.expression
     def num_samples(cls) -> sa.ScalarSelect[int]:
@@ -103,7 +110,14 @@ class User(Base, UserMixin):
     
     @hybrid_property
     def num_seq_requests(self) -> int:  # type: ignore[override]
-        return len(self.requests)
+        if "requests" in orm.attributes.instance_state(self).unloaded:
+            return len(self.requests)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_seq_requests' attribute.")
+        
+        from .SeqRequest import SeqRequest
+        return session.query(sa.func.count(SeqRequest.id)).filter(SeqRequest.requestor_id == self.id).scalar()
     
     @num_seq_requests.expression
     def num_seq_requests(cls) -> sa.ScalarSelect[int]:
@@ -116,7 +130,12 @@ class User(Base, UserMixin):
 
     @hybrid_property
     def num_projects(self) -> int:  # type: ignore[override]
-        return len(self.projects)
+        if "projects" in orm.attributes.instance_state(self).unloaded:
+            return len(self.projects)
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_projects' attribute.")
+        from .Project import Project
+        return session.query(sa.func.count(Project.id)).filter(Project.owner_id == self.id).scalar()
     
     @num_projects.expression
     def num_projects(cls) -> sa.ScalarSelect[int]:
@@ -125,6 +144,23 @@ class User(Base, UserMixin):
             sa.func.count(Project.id)
         ).where(
             Project.owner_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_affiliations(self) -> int:  # type: ignore[override]
+        if "affiliations" in orm.attributes.instance_state(self).unloaded:
+            return len(self.affiliations)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_affiliations' attribute.")
+        return session.query(sa.func.count(links.UserAffiliation.group_id)).filter(links.UserAffiliation.user_id == self.id).scalar()
+    
+    @num_affiliations.expression
+    def num_affiliations(cls) -> sa.ScalarSelect[int]:
+        return sa.select(
+            sa.func.count(links.UserAffiliation.group_id)
+        ).where(
+            links.UserAffiliation.user_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     def is_insider(self) -> bool:

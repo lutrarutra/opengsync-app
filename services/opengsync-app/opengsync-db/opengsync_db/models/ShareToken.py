@@ -4,6 +4,7 @@ from datetime import datetime
 from datetime import timezone, timedelta
 
 import sqlalchemy as sa
+from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -29,7 +30,14 @@ class ShareToken(Base):
 
     @hybrid_property
     def num_paths(self) -> int:  # type: ignore[override]
-        return len(self.paths)
+        if "paths" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.paths)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_paths' attribute.")
+        
+        from .SharePath import SharePath
+        return session.query(sa.func.count(SharePath.id)).filter(SharePath.uuid == self.uuid).scalar()
     
     @num_paths.expression
     def num_paths(cls) -> sa.ScalarSelect[int]:

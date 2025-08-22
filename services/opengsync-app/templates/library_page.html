@@ -50,7 +50,7 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-samples-tab" type="button" role="tab"
             aria-controls="library-samples-tab" aria-selected="true">
-            Samples</button>
+            Samples ({{ library.num_samples }})</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -71,7 +71,7 @@
             data-bs-target="#library-abc-tab" type="button" role="tab"
             aria-controls="library-abc-tab" aria-selected="true"
             {% if library.type not in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %}disabled{% endif %}>
-            Feature Capture
+            Feature Capture{% if library.type in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %} ({{ library.num_features }}){% endif %}
             </button>
         </li>
         <li class="nav-item" role="presentation">

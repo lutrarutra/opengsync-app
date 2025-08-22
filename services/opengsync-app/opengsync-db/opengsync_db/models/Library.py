@@ -3,6 +3,7 @@ from datetime import datetime
 from dataclasses import dataclass
 
 import sqlalchemy as sa
+from sqlalchemy import orm
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -98,7 +99,21 @@ class Library(Base):
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]
-        return len(self.sample_links)
+        if "sample_links" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.sample_links)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_samples' attribute.")
+        
+        from .Sample import Sample
+        return session.query(sa.func.count(Sample.id)).where(
+            sa.exists().where(
+                sa.and_(
+                    Sample.id == links.SampleLibraryLink.sample_id,
+                    links.SampleLibraryLink.library_id == self.id
+                )
+            )
+        ).scalar()
     
     @num_samples.expression
     def num_samples(cls) -> sa.ScalarSelect[int]:
@@ -106,14 +121,30 @@ class Library(Base):
         return sa.select(
             sa.func.count(Sample.id)
         ).where(
-            Sample.id == links.SampleLibraryLink.sample_id
-        ).where(
-            links.SampleLibraryLink.library_id == cls.id
+            sa.exists().where(
+                sa.and_(
+                    Sample.id == links.SampleLibraryLink.sample_id,
+                    links.SampleLibraryLink.library_id == cls.id
+                )
+            )
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @hybrid_property
     def num_features(self) -> int:  # type: ignore[override]
-        return len(self.features)
+        if "features" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.features)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_features' attribute.")
+        from .Feature import Feature
+        return session.query(sa.func.count(Feature.id)).where(
+            sa.exists().where(
+                sa.and_(
+                    Feature.id == links.LibraryFeatureLink.feature_id,
+                    links.LibraryFeatureLink.library_id == self.id
+                )
+            )
+        ).scalar()
 
     @num_features.expression
     def num_features(cls) -> sa.ScalarSelect[int]:
@@ -121,9 +152,12 @@ class Library(Base):
         return sa.select(
             sa.func.count(Feature.id)
         ).where(
-            Feature.id == links.LibraryFeatureLink.feature_id
-        ).where(
-            links.LibraryFeatureLink.library_id == cls.id
+            sa.exists().where(
+                sa.and_(
+                    Feature.id == links.LibraryFeatureLink.feature_id,
+                    links.LibraryFeatureLink.library_id == cls.id
+                )
+            )
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @property

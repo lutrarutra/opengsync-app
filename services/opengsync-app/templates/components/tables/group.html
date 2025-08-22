@@ -15,13 +15,25 @@
                 {{
                     table_col(
                         table_container_id='group-table', column_name='Name', column_var='name',
-                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=7
+                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=4
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='group-table', column_name='Type', column_var='type_id',
-                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=4,
+                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='group-table', column_name='# Requests', column_var='num_seq_requests',
+                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='group-table', column_name='# Projects', column_var='num_projects',
+                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
             </tr>
@@ -32,6 +44,8 @@
                 <th scope="row">{{ group.id }}</th>
                 <td><a href="{{ url_for('groups_page.group', group_id=group.id) }}">{{ group.name }}</a></td>
                 <td>{{ group.type.icon }} {{ group.type.name }}</td>
+                <td>{{ group.num_seq_requests }}</td>
+                <td>{{ group.num_projects }}</td>
             </tr>
             {% endfor %}
         </tbody>

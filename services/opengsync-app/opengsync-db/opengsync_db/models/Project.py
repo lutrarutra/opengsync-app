@@ -3,6 +3,7 @@ from datetime import datetime
 from datetime import timezone
 
 import sqlalchemy as sa
+from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
@@ -48,7 +49,7 @@ class Project(Base):
     owner: Mapped["User"] = relationship("User", back_populates="projects", lazy="joined")
 
     group_id: Mapped[int | None] = mapped_column(sa.ForeignKey("group.id"), nullable=True)
-    group: Mapped["Group | None"] = relationship("Group", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
+    group: Mapped["Group | None"] = relationship("Group", back_populates="projects", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
 
     __software: Mapped[dict[str, dict] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="software")
 
@@ -56,7 +57,13 @@ class Project(Base):
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]
-        return len(self.samples)
+        if "samples" in orm.attributes.instance_state(self).unloaded:
+            return len(self.samples)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_samples' attribute.")
+        from .Sample import Sample
+        return session.query(sa.func.count(Sample.id)).filter(Sample.project_id == self.id).scalar()
     
     @num_samples.expression
     def num_samples(cls) -> sa.ScalarSelect[int]:

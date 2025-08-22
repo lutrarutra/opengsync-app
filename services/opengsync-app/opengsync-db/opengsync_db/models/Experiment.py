@@ -3,6 +3,8 @@ from datetime import timezone
 from typing import Optional, TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
+from sqlalchemy import orm
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
@@ -55,6 +57,137 @@ class Experiment(Base):
     laned_pool_links: Mapped[list[links.LanePoolLink]] = relationship("LanePoolLink", lazy="select", cascade="delete, delete-orphan")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp_created_utc", "timestamp_finished_utc", "status_id", "sequencer_id", "flowcell_type_id", "workflow_id"]
+
+    @hybrid_property
+    def num_pools(self) -> int:  # type: ignore[override]
+        if "pools" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.pools)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_pools' attribute.")
+        from .Pool import Pool
+        return session.query(sa.func.count(Pool.id)).filter(Pool.experiment_id == self.id).scalar()  # type: ignore[arg-type]
+    
+    @num_pools.expression
+    def num_pools(cls) -> sa.ScalarSelect[int]:
+        from .Pool import Pool
+        return sa.select(
+            sa.func.count(Pool.id)
+        ).where(
+            Pool.experiment_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_libraries(self) -> int:  # type: ignore[override]
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.libraries)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_libraries' attribute.")
+        from .Library import Library
+        return session.query(sa.func.count(Library.id)).filter(Library.experiment_id == self.id).scalar()
+    
+    @num_libraries.expression
+    def num_libraries(cls) -> sa.ScalarSelect[int]:
+        from .Library import Library
+        return sa.select(
+            sa.func.count(Library.id)
+        ).where(
+            Library.experiment_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_files(self) -> int:  # type: ignore[override]
+        if "files" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.files)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_files' attribute.")
+        from .File import File
+        return session.query(sa.func.count(File.id)).filter(File.experiment_id == self.id).count()
+    
+    @num_files.expression
+    def num_files(cls) -> sa.ScalarSelect[int]:
+        from .File import File
+        return sa.select(
+            sa.func.count(sa.distinct(File.id))
+        ).where(
+            File.experiment_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_comments(self) -> int:  # type: ignore[override]
+        if "comments" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.comments)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_comments' attribute.")
+        from .Comment import Comment
+        return session.query(sa.func.count(Comment.id)).filter(Comment.experiment_id == self.id).scalar()
+    
+    @num_comments.expression
+    def num_comments(cls) -> sa.ScalarSelect[int]:
+        from .Comment import Comment
+        return sa.select(
+            sa.func.count(Comment.id)
+        ).where(
+            Comment.experiment_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @property
+    def num_dilutions(self) -> int:
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_dilutions' attribute.")
+        
+        from .Pool import Pool
+        from .PoolDilution import PoolDilution
+        return session.query(sa.func.count(PoolDilution.id)).where(
+            sa.exists().where(
+                sa.and_(
+                    PoolDilution.pool_id == Pool.id,
+                    Pool.experiment_id == self.id
+                )
+            )
+        ).scalar()
+    
+    @hybrid_property
+    def num_projects(self) -> int:  # type: ignore[override]
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_projects' attribute.")
+        
+        from .Project import Project
+        from .Sample import Sample
+        from .Library import Library
+
+        return session.query(sa.func.count(Project.id)).where(
+            sa.exists().where(
+                sa.and_(
+                    Sample.project_id == Project.id,
+                    links.SampleLibraryLink.sample_id == Sample.id,
+                    Library.id == links.SampleLibraryLink.library_id,
+                    Library.experiment_id == self.id,
+                )
+            )
+        ).scalar()
+    
+    @num_projects.expression
+    def num_projects(cls) -> sa.ScalarSelect[int]:
+        from .Project import Project
+        from .Sample import Sample
+        from .Library import Library
+
+        return sa.select(
+            sa.func.count(Project.id)
+        ).where(
+            sa.exists().where(
+                sa.and_(
+                    Sample.project_id == Project.id,
+                    links.SampleLibraryLink.sample_id == Sample.id,
+                    Library.id == links.SampleLibraryLink.library_id,
+                    Library.experiment_id == cls.id,
+                )
+            )
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
     def status(self) -> ExperimentStatusEnum:

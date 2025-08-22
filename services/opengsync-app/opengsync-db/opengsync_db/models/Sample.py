@@ -3,6 +3,7 @@ from datetime import datetime
 from dataclasses import dataclass
 
 import sqlalchemy as sa
+from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
@@ -81,7 +82,21 @@ class Sample(Base):
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
-        return len(self.library_links)
+        if "library_links" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.library_links)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_libraries' attribute.")
+        
+        from .Library import Library
+        return session.query(sa.func.count(Library.id)).where(
+            sa.exists().where(
+                sa.and_(
+                    Library.id == links.SampleLibraryLink.library_id,
+                    links.SampleLibraryLink.sample_id == self.id
+                )
+            )
+        ).scalar()
     
     @num_libraries.expression
     def num_libraries(cls) -> sa.ScalarSelect[int]:
@@ -89,9 +104,12 @@ class Sample(Base):
         return sa.select(
             sa.func.count(Library.id)
         ).where(
-            Library.id == links.SampleLibraryLink.library_id
-        ).where(
-            links.SampleLibraryLink.sample_id == cls.id
+            sa.exists().where(
+                sa.and_(
+                    Library.id == links.SampleLibraryLink.library_id,
+                    links.SampleLibraryLink.sample_id == cls.id
+                )
+            )
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property

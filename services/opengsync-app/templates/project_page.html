@@ -63,7 +63,7 @@
             <button class="nav-link active" data-bs-toggle="tab"
             data-bs-target="#project-samples-tab" type="button" role="tab"
             aria-controls="project-samples-tab" aria-selected="true">
-            Samples</button>
+            Samples ({{ project.num_samples }})</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -94,7 +94,7 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#project-software-tab" type="button" role="tab"
             aria-controls="project-software-tab" aria-selected="false">
-            Software</button>
+            Software ({{ project.software | length }})</button>
         </li>
     </ul>
 </div>
