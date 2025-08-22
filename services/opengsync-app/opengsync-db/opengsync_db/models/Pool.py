@@ -2,6 +2,7 @@ from typing import Optional, TYPE_CHECKING, ClassVar
 from datetime import datetime
 
 import sqlalchemy as sa
+from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -78,7 +79,13 @@ class Pool(Base):
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
-        return len(self.libraries)
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.libraries)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
+        from .Library import Library
+        return session.query(sa.func.count(Library.id)).filter(Library.pool_id == self.id).scalar()
     
     @num_libraries.expression
     def num_libraries(cls) -> sa.ScalarSelect[int]:

@@ -1,10 +1,16 @@
 import sqlalchemy as sa
+from sqlalchemy import orm
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 from . import links
 from ..categories import GroupType, GroupTypeEnum
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .Project import Project
+    from .SeqRequest import SeqRequest
 
 class Group(Base):
     __tablename__ = "group"
@@ -14,6 +20,48 @@ class Group(Base):
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     user_links: Mapped[list[links.UserAffiliation]] = relationship("UserAffiliation", back_populates="group", lazy="select", cascade="all, save-update, merge")
+    projects: Mapped[list["Project"]] = relationship("Project", back_populates="group", lazy="select")
+    seq_requests: Mapped[list["SeqRequest"]] = relationship("SeqRequest", back_populates="group", lazy="select")
+
+    @hybrid_property
+    def num_projects(self) -> int:  # type: ignore[override]
+        if "projects" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.projects)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_projects' attribute.")
+        
+        from .Project import Project
+        return session.query(sa.func.count(Project.id)).filter(Project.group_id == self.id).scalar()
+    
+    @num_projects.expression
+    def num_projects(cls) -> sa.ScalarSelect[int]:
+        from .Project import Project
+        return sa.select(
+            sa.func.count(Project.id)
+        ).where(
+            Project.group_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_seq_requests(self) -> int:  # type: ignore[override]
+        if "seq_requests" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.seq_requests)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_seq_requests' attribute.")
+        
+        from .SeqRequest import SeqRequest
+        return session.query(sa.func.count(SeqRequest.id)).filter(SeqRequest.group_id == self.id).scalar()
+    
+    @num_seq_requests.expression
+    def num_seq_requests(cls) -> sa.ScalarSelect[int]:
+        from .SeqRequest import SeqRequest
+        return sa.select(
+            sa.func.count(SeqRequest.id)
+        ).where(
+            SeqRequest.group_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
     def type(self) -> GroupTypeEnum:

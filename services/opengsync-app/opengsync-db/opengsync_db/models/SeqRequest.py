@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
+from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -49,7 +50,7 @@ class SeqRequest(Base):
     requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="joined", foreign_keys=[requestor_id])
 
     group_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("group.id"), nullable=True)
-    group: Mapped[Optional["Group"]] = relationship("Group", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
+    group: Mapped[Optional["Group"]] = relationship("Group", back_populates="seq_requests", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
 
     bioinformatician_contact_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("contact.id"), nullable=True)
     bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="select", foreign_keys=[bioinformatician_contact_id], cascade="save-update, merge")
@@ -83,7 +84,14 @@ class SeqRequest(Base):
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
-        return len(self.libraries)
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.libraries)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_libraries.")
+
+        from .Library import Library
+        return session.query(sa.func.count(Library.id)).filter(Library.seq_request_id == self.id).scalar()
     
     @num_libraries.expression
     def num_libraries(cls) -> sa.ScalarSelect[int]:
@@ -92,6 +100,98 @@ class SeqRequest(Base):
             sa.func.count(Library.id)
         ).where(
             Library.seq_request_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_pools(self) -> int:  # type: ignore[override]
+        if "pools" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.pools)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_pools.")
+        from .Pool import Pool
+        return session.query(sa.func.count(Pool.id)).filter(Pool.seq_request_id == self.id).scalar()
+    
+    @num_pools.expression
+    def num_pools(cls) -> sa.ScalarSelect[int]:
+        from .Pool import Pool
+        return sa.select(
+            sa.func.count(Pool.id)
+        ).where(
+            Pool.seq_request_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_samples(self) -> int:  # type: ignore[override]
+        if "samples" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.samples)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_samples.")
+        from .Sample import Sample
+        from .Library import Library
+        return session.query(sa.func.count(Sample.id)).where(
+            sa.exists().where(
+                sa.and_(
+                    links.SampleLibraryLink.sample_id == Sample.id,
+                    Library.id == links.SampleLibraryLink.library_id,
+                    Library.seq_request_id == self.id
+                )
+            )
+        ).scalar()
+    
+    @num_samples.expression
+    def num_samples(cls) -> sa.ScalarSelect[int]:
+        from .Sample import Sample
+        from .Library import Library
+        return sa.select(
+            sa.func.count(Sample.id)
+        ).where(
+            sa.exists().where(
+                sa.and_(
+                    links.SampleLibraryLink.sample_id == Sample.id,
+                    Library.id == links.SampleLibraryLink.library_id,
+                    Library.seq_request_id == cls.id
+                )
+            )
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_comments(self) -> int:  # type: ignore[override]
+        if "comments" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.comments)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_comments.")
+        from .Comment import Comment
+        return session.query(sa.func.count(Comment.id)).filter(Comment.seq_request_id == self.id).scalar()
+    
+    @num_comments.expression
+    def num_comments(cls) -> sa.ScalarSelect[int]:
+        from .Comment import Comment
+        return sa.select(
+            sa.func.count(Comment.id)
+        ).where(
+            Comment.seq_request_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_files(self) -> int:  # type: ignore[override]
+        if "files" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.files)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_files.")
+        from .File import File
+        return session.query(sa.func.count(File.id)).filter(File.seq_request_id == self.id).scalar()
+    
+    @num_files.expression
+    def num_files(cls) -> sa.ScalarSelect[int]:
+        from .File import File
+        return sa.select(
+            sa.func.count(File.id)
+        ).where(
+            File.seq_request_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property

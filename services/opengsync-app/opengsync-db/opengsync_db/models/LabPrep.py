@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sa
+from sqlalchemy import orm
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from opengsync_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, FileType, AssayTypeEnum, AssayType
@@ -42,6 +44,106 @@ class LabPrep(Base):
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="lab_prep", lazy="select")
     files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
+
+    @hybrid_property
+    def num_libraries(self) -> int:  # type: ignore[override]
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.libraries)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
+        
+        from .Library import Library
+        return session.query(sa.func.count(Library.id)).filter(Library.lab_prep_id == self.id).scalar()
+    
+    @num_libraries.expression
+    def num_libraries(cls) -> sa.ScalarSelect[int]:
+        from .Library import Library
+        return sa.select(
+            sa.func.count(Library.id)
+        ).where(
+            Library.lab_prep_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_pools(self) -> int:  # type: ignore[override]
+        if "pools" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.pools)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_pools' attribute.")
+        
+        from .Pool import Pool
+        return session.query(sa.func.count(Pool.id)).filter(Pool.lab_prep_id == self.id).scalar()
+    
+    @num_pools.expression
+    def num_pools(cls) -> sa.ScalarSelect[int]:
+        from .Pool import Pool
+        return sa.select(
+            sa.func.count(Pool.id)
+        ).where(
+            Pool.lab_prep_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_files(self) -> int:  # type: ignore[override]
+        if "files" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.files)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_files' attribute.")
+        
+        from .File import File
+        return session.query(sa.func.count(File.id)).filter(File.lab_prep_id == self.id).scalar()
+    
+    @num_files.expression
+    def num_files(cls) -> sa.ScalarSelect[int]:
+        from .File import File
+        return sa.select(
+            sa.func.count(File.id)
+        ).where(
+            File.lab_prep_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_comments(self) -> int:  # type: ignore[override]
+        if "comments" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.comments)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_comments' attribute.")
+        
+        from .Comment import Comment
+        return session.query(sa.func.count(Comment.id)).filter(Comment.lab_prep_id == self.id).scalar()
+    
+    @num_comments.expression
+    def num_comments(cls) -> sa.ScalarSelect[int]:
+        from .Comment import Comment
+        return sa.select(
+            sa.func.count(Comment.id)
+        ).where(
+            Comment.lab_prep_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_plates(self) -> int:  # type: ignore[override]
+        if "plates" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.plates)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_plates' attribute.")
+        
+        from .Plate import Plate
+        return session.query(sa.func.count(Plate.id)).filter(Plate.lab_prep_id == self.id).scalar()
+    
+    @num_plates.expression
+    def num_plates(cls) -> sa.ScalarSelect[int]:
+        from .Plate import Plate
+        return sa.select(
+            sa.func.count(Plate.id)
+        ).where(
+            Plate.lab_prep_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @property
     def protocol(self) -> LabProtocolEnum:

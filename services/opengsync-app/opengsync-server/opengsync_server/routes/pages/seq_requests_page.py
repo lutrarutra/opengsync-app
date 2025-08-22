@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, abort, url_for, request
 from opengsync_db import models
 from opengsync_db.categories import HTTPResponse, AccessType
 
-from ... import forms, db
+from ... import forms, db, logger
 from ...core import wrappers
 seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
 
@@ -17,6 +17,10 @@ def seq_requests():
 def seq_request(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests[seq_request_id]) is None:
         return abort(HTTPResponse.NOT_FOUND.id)
+    
+    from sqlalchemy import orm
+    logger.debug(seq_request.num_libraries)
+    logger.debug("libraries" in orm.attributes.instance_state(seq_request).unloaded)
 
     if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.VIEW:
         return abort(HTTPResponse.FORBIDDEN.id)
