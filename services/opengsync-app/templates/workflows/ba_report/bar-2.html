@@ -1,0 +1,81 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+
+<div class="modal-content" id="ba_report-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Bio Analyzer Report</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body" id="ba_report-form">
+        <div class="row gap-3">
+            <div id="left-list" class="list-group col">
+                {% for idx, row in form.sample_table.iterrows() %}
+                <li class="list-group-item" data-idx="{{ idx }}">
+                    {{ row["name"] }}
+                </li>
+                {% endfor %}
+            </div>
+            <div id="right-list" class="list-group col">
+                {% for idx, row in form.excel_table.iterrows() %}
+                <li class="list-group-item" data-idx="{{ idx }}" data-name="{{ row['sample_name'] }}" data-value="{{ row['avg_fragment_size'] }}">
+                    {{ row["sample_name"] }} {{ row["avg_fragment_size"] }}bp
+                </li>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.uuid }}            
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" id="submit-ba_report-form-btn">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>
+<style>
+    .list-group li.highlight {
+        background-color: #00adcc70;
+        border: 2px dashed #00adcc70;
+        margin: 2px 0;
+    }
+</style>
+<script>
+    window.onbeforeunload = function() {
+        return "Data will be lost if you leave the page, are you sure?";
+    };
+
+    $(document).ready(function() {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js";
+        script.onload = function() {
+            const left_sortable = new Sortable(document.getElementById("left-list"), {
+                animation: 150, swap: true, swapClass: "highlight",
+            });
+            const right_sortable = new Sortable(document.getElementById("right-list"), {
+                animation: 150, swap: true, swapClass: "highlight",
+            });
+        };
+        document.head.appendChild(script);
+        
+        $("#submit-ba_report-form-btn").on("click", function() {
+            htmx.ajax("POST", "{{ url_for('ba_report_workflow.parse_sample_order', uuid=form.uuid) }}", {
+                "target": "#ba_report-form-container",
+                "swap": "outerHTML",
+                "values": {
+                    "csrf_token": "{{ form._csrf_token }}",
+                    "left_order": JSON.stringify(Array.from($("#left-list li")).map(li => parseInt($(li).data("idx")))),
+                    "right_order": JSON.stringify(Array.from($("#right-list li")).map(li => ({
+                        "name": $(li).data("name"),
+                        "value": parseInt($(li).data("value"))
+                    }))),
+                }
+            })
+
+        });
+    });
+
+</script>

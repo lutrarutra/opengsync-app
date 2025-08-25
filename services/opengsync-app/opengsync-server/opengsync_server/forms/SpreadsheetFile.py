@@ -1,4 +1,4 @@
-import uuid
+from uuid_extensions import uuid7str
 import string
 from typing import Optional, Hashable
 
@@ -40,7 +40,7 @@ class SpreadsheetFile(FlaskForm):
         self.sheet_name = sheet_name
         self.post_url = post_url
         self.csrf_token = csrf_token
-        self.id = uuid.uuid4().hex
+        self.id = uuid7str()
         self._data = None
         self.col_title_map = dict([(col.name, col.label) for col in self.columns.values()])
         self.cell_errors: dict[str, list[tuple[int, str]]] = {}

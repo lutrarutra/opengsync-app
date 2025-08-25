@@ -4,7 +4,6 @@ from .experiments_page import experiments_page_bp  # noqa: F401
 from .libraries_page import libraries_page_bp  # noqa: F401
 from .auth_page import auth_page_bp  # noqa: F401
 from .users_page import users_page_bp  # noqa: F401
-from .error_pages import errors_bp  # noqa: F401
 from .seq_requests_page import seq_requests_page_bp  # noqa: F401
 from .devices_page import devices_page_bp  # noqa: F401
 from .pools_page import pools_page_bp  # noqa: F401

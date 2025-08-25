@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, abort, url_for, request
+from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, UserRole, AffiliationType
+from opengsync_db.categories import UserRole, AffiliationType
 
 from ... import db, forms
-from ...core import wrappers
+from ...core import wrappers, exceptions
 groups_page_bp = Blueprint("groups_page", __name__)
 
 
@@ -17,7 +17,7 @@ def groups():
 @wrappers.page_route(groups_page_bp, db=db, cache_timeout_seconds=360)
 def group(current_user: models.User, group_id: int):
     if (group := db.groups.get(group_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     path_list = [
         ("Groups", url_for("groups_page.groups")),

@@ -1,11 +1,10 @@
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse
 
 from .... import db, forms, logger  # noqa
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 lanes_htmx = Blueprint("lanes_htmx", __name__, url_prefix="/api/hmtx/lanes/")
 
@@ -13,7 +12,7 @@ lanes_htmx = Blueprint("lanes_htmx", __name__, url_prefix="/api/hmtx/lanes/")
 @wrappers.htmx_route(lanes_htmx, db=db)
 def browse(current_user: models.User, workflow: str, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     context = {}
     
@@ -22,7 +21,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
             experiment_id = int(experiment_id)
             context["experiment_id"] = experiment_id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")

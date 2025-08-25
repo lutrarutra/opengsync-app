@@ -1,9 +1,7 @@
-from flask import Blueprint, render_template, url_for, abort, make_response, request
-
-from opengsync_db.categories import HTTPResponse
+from flask import Blueprint, render_template, url_for, make_response, request
 
 from ... import db
-from ...core import wrappers
+from ...core import wrappers, exceptions
 kits_page_bp = Blueprint("kits_page", __name__)
 
 
@@ -15,7 +13,7 @@ def kits():
 @wrappers.page_route(kits_page_bp, db=db, cache_timeout_seconds=360)
 def kit(kit_id: int):
     if (kit := db.kits.get(kit_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     path_list = [
         ("Kits", url_for("kits_page.kits")),
@@ -89,7 +87,7 @@ def feature_kit(feature_kit_id: int):
 def export_features(feature_kit_id: int):
     feature_kit = db.feature_kits.get(feature_kit_id)
     if feature_kit is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     features_df = db.pd.get_feature_kit_features(feature_kit_id=feature_kit_id)
     features_df["feature_type"] = features_df["type"].apply(lambda x: x.modality)

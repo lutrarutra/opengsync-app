@@ -1,13 +1,12 @@
-from flask import Blueprint, request, abort, Response
+from flask import Blueprint, request, Response
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, PoolStatus, PoolType, AccessType
+from opengsync_db.categories import PoolStatus, PoolType, AccessType
 
 from .... import db
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....forms import SelectSamplesForm
 from ....forms.workflows.MergePoolsForm import MergePoolsForm
-from ....core import exceptions
 
 
 merge_pools_workflow = Blueprint("merge_pools_workflow", __name__, url_prefix="/api/workflows/merge_pools/")
@@ -31,19 +30,14 @@ def get_context(current_user: models.User, args: dict) -> dict:
 
     if not current_user.is_insider():
         if "seq_request" not in context:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
         
     return context
 
 
 @wrappers.htmx_route(merge_pools_workflow, db=db)
 def begin(current_user: models.User) -> Response:
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+    context = get_context(current_user, request.args)
         
     form = SelectSamplesForm(
         "merge_pools",
@@ -61,12 +55,7 @@ def begin(current_user: models.User) -> Response:
 
 @wrappers.htmx_route(merge_pools_workflow, db=db, methods=["POST"])
 def select(current_user: models.User) -> Response:
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+    context = get_context(current_user, request.args)
 
     form: SelectSamplesForm = SelectSamplesForm(
         "merge_pools", formdata=request.form, context=context,

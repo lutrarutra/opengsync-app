@@ -2,14 +2,14 @@ import json
 
 import pandas as pd
 
-from flask import Blueprint, render_template, request, abort, flash, url_for
+from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, LibraryType, LibraryStatus, AssayType, MUXType, AccessType
+from opengsync_db.categories import LibraryType, LibraryStatus, AssayType, MUXType, AccessType
 
 from .... import db, forms, logger
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....tools.spread_sheet_components import TextColumn
 
 libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/api/hmtx/libraries/")
@@ -27,7 +27,7 @@ def get(current_user: models.User, page: int = 0):
         try:
             status_in = [LibraryStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -37,7 +37,7 @@ def get(current_user: models.User, page: int = 0):
         try:
             type_in = [LibraryType.get(int(type_)) for type_ in type_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(type_in) == 0:
             type_in = None
@@ -62,9 +62,9 @@ def get(current_user: models.User, page: int = 0):
 @wrappers.htmx_route(libraries_htmx, db=db, methods=["POST"])
 def edit(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     if not library.is_editable() and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return forms.models.LibraryForm(library=library, formdata=request.form).process_request()
 
@@ -73,7 +73,7 @@ def edit(current_user: models.User, library_id: int):
 def query(current_user: models.User):
     field_name = next(iter(request.args.keys()))
     if (word := request.form.get(field_name, default="")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     if not current_user.is_insider():
         results = db.libraries.query(name=word, user_id=current_user.id)
@@ -91,10 +91,10 @@ def query(current_user: models.User):
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_features(current_user: models.User, library_id: int, page: int = 0):
     if (library := db.libraries.get(library_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider() and library.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -115,10 +115,10 @@ def get_features(current_user: models.User, library_id: int, page: int = 0):
 @wrappers.htmx_route(libraries_htmx, db=db)
 def render_feature_table(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider() and library.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     df = db.pd.get_library_features(library_id=library.id)
     df = df.drop(columns=["feature_type", "feature_type_id", "feature_kit_id"])
@@ -150,13 +150,13 @@ def render_feature_table(current_user: models.User, library_id: int):
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_spatial_annotation(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider() and library.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if library.type not in LibraryType.get_spatial_library_types():
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     return make_response(render_template("components/library-spatial-annotation.html", library=library))
 
@@ -170,7 +170,7 @@ def table_query(current_user: models.User):
     elif (word := request.args.get("owner_id")) is not None:
         field_name = "owner_id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     user_id = current_user.id if not current_user.is_insider() else None
 
@@ -179,7 +179,7 @@ def table_query(current_user: models.User):
         try:
             status_in = [LibraryStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -189,7 +189,7 @@ def table_query(current_user: models.User):
         try:
             type_in = [LibraryType.get(int(type_)) for type_ in type_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(type_in) == 0:
             type_in = None
@@ -226,11 +226,11 @@ def table_query(current_user: models.User):
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_samples(current_user: models.User, library_id: int, page: int = 0):
     if (library := db.libraries.get(library_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.libraries.get_access_type(user=current_user, library=library)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -253,11 +253,11 @@ def get_samples(current_user: models.User, library_id: int, page: int = 0):
 @wrappers.htmx_route(libraries_htmx, db=db)
 def reads_tab(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.libraries.get_access_type(user=current_user, library=library)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     return make_response(render_template("components/library-reads.html", library=library))
 
@@ -265,7 +265,7 @@ def reads_tab(current_user: models.User, library_id: int):
 @wrappers.htmx_route(libraries_htmx, db=db)
 def browse(current_user: models.User, workflow: str, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -278,7 +278,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
         try:
             status_in = [LibraryStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -288,7 +288,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
         try:
             type_in = [LibraryType.get(int(type_)) for type_ in type_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(type_in) == 0:
             type_in = None
@@ -297,37 +297,37 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
         try:
             experiment_id = int(experiment_id)
             if (experiment := db.experiments.get(experiment_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["experiment_id"] = experiment.id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
             if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["seq_request_id"] = seq_request.id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (pool_id := request.args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
             if (pool := db.pools.get(pool_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["pool_id"] = pool.id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (lab_prep_id := request.args.get("lab_prep_id")) is not None:
         try:
             lab_prep_id = int(lab_prep_id)
             if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["lab_prep"] = lab_prep
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
     libraries, n_pages = db.libraries.find(
         sort_by=sort_by, descending=descending, offset=offset,
@@ -356,7 +356,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
 @wrappers.htmx_route(libraries_htmx, db=db)
 def browse_query(current_user: models.User, workflow: str):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (word := request.args.get("name")) is not None:
         field_name = "name"
@@ -365,7 +365,7 @@ def browse_query(current_user: models.User, workflow: str):
     elif (word := request.args.get("owner_id")) is not None:
         field_name = "owner_id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     context = {}
     
@@ -373,35 +373,35 @@ def browse_query(current_user: models.User, workflow: str):
         try:
             experiment_id = int(experiment_id)
             if (experiment := db.experiments.get(experiment_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["experiment_id"] = experiment.id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
             if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["seq_request_id"] = seq_request.id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (pool_id := request.args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
             if (pool := db.pools.get(pool_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["pool_id"] = pool.id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [LibraryStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -411,7 +411,7 @@ def browse_query(current_user: models.User, workflow: str):
         try:
             type_in = [LibraryType.get(int(type_)) for type_ in type_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(type_in) == 0:
             type_in = None
@@ -456,7 +456,7 @@ def browse_query(current_user: models.User, workflow: str):
 @wrappers.htmx_route(libraries_htmx, db=db)
 def select_all(current_user: models.User, workflow: str):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     context = {}
     if (status_in := request.args.get("status_id_in")) is not None:
@@ -464,7 +464,7 @@ def select_all(current_user: models.User, workflow: str):
         try:
             status_in = [LibraryStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -474,7 +474,7 @@ def select_all(current_user: models.User, workflow: str):
         try:
             type_in = [LibraryType.get(int(type_)) for type_ in type_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(type_in) == 0:
             type_in = None
@@ -483,37 +483,37 @@ def select_all(current_user: models.User, workflow: str):
         try:
             experiment_id = int(experiment_id)
             if (experiment := db.experiments.get(experiment_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["experiment"] = experiment
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
             if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["seq_request"] = seq_request
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (pool_id := request.args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
             if (pool := db.pools.get(pool_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["pool"] = pool
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (lab_prep_id := request.args.get("lab_prep_id")) is not None:
         try:
             lab_prep_id = int(lab_prep_id)
             if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["lab_prep"] = lab_prep
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
 
     libraries, _ = db.libraries.find(
         seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id, limit=None,
@@ -527,23 +527,23 @@ def select_all(current_user: models.User, workflow: str):
 @wrappers.htmx_route(libraries_htmx, db=db, methods=["DELETE"])
 def remove_sample(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.libraries.get_access_type(user=current_user, library=library)
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if (sample_id := request.args.get("sample_id")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     try:
         sample_id = int(sample_id)
     except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (sample := db.samples.get(sample_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     db.links.unlink_sample_library(sample_id=sample.id, library_id=library.id)
 
@@ -554,14 +554,14 @@ def remove_sample(current_user: models.User, library_id: int):
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_mux_table(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.libraries.get_access_type(user=current_user, library=library)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if library.mux_type is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     mux_data = {
         "sample_name": [],
@@ -613,7 +613,7 @@ def get_mux_table(current_user: models.User, library_id: int):
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_todo_libraries(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     libraries, _ = db.libraries.find(
         status_in=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED],
@@ -643,12 +643,12 @@ def get_todo_libraries(current_user: models.User):
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_assay_type_todo_libraries(current_user: models.User, assay_type_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     try:
         assay_type = AssayType.get(assay_type_id)
     except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     libraries, _ = db.libraries.find(
         status_in=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED],

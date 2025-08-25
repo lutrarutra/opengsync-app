@@ -1,13 +1,13 @@
 import json
 
-from flask import Blueprint, render_template, abort, request, url_for, flash
+from flask import Blueprint, render_template, request, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, AffiliationType, UserRole, ProjectStatus
+from opengsync_db.categories import AffiliationType, UserRole, ProjectStatus
 
 from .... import db, forms
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 groups_htmx = Blueprint("groups_htmx", __name__, url_prefix="/api/hmtx/groups/")
 
@@ -42,7 +42,7 @@ def get(current_user: models.User, page: int = 0):
 @wrappers.htmx_route(groups_htmx, db=db, methods=["POST"])
 def query(current_user: models.User):
     if (field_name := next(iter(request.form.keys()))) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     query = request.form[field_name]
     
@@ -50,7 +50,7 @@ def query(current_user: models.User):
         try:
             user_id = int(user_id)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     else:
         user_id = current_user.id if not current_user.is_insider() else None
     
@@ -71,13 +71,13 @@ def create(current_user: models.User):
 @wrappers.htmx_route(groups_htmx, db=db, methods=["POST"])
 def edit(current_user: models.User, group_id: int):
     if (group := db.groups.get(group_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider():
         if (affiliation := db.groups.get_user_affiliation(user_id=current_user.id, group_id=group_id)) is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
         if affiliation.affiliation_type != AffiliationType.OWNER:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
 
     return forms.models.GroupForm(request.form, group=group).process_request(user=current_user)
 
@@ -90,7 +90,7 @@ def get_users(current_user: models.User, group_id: int, page: int = 0):
     offset = page * PAGE_LIMIT
 
     if (group := db.groups.get(group_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     affiliations, n_pages = db.groups.get_affiliations(
         group_id=group_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True
@@ -112,24 +112,24 @@ def get_users(current_user: models.User, group_id: int, page: int = 0):
 @wrappers.htmx_route(groups_htmx, db=db, methods=["DELETE"])
 def remove_user(current_user: models.User, group_id: int):
     if (_ := db.groups.get(group_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if (user_id := request.args.get("user_id")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     try:
         user_id = int(user_id)
     except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if not current_user.is_insider():
         if (affiliation := db.groups.get_user_affiliation(user_id=current_user.id, group_id=group_id)) is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
         if affiliation.affiliation_type not in (AffiliationType.OWNER, AffiliationType.MANAGER):
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
     
     if (affiliation := db.groups.get_user_affiliation(user_id=user_id, group_id=group_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if affiliation.affiliation_type == AffiliationType.OWNER:
         flash("Owner cannot be removed", "warning")
@@ -143,13 +143,13 @@ def remove_user(current_user: models.User, group_id: int):
 @wrappers.htmx_route(groups_htmx, db=db, methods=["GET", "POST"])
 def add_user(current_user: models.User, group_id: int):
     if (group := db.groups.get(group_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider():
         if (affiliation := db.groups.get_user_affiliation(user_id=current_user.id, group_id=group_id)) is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
         if affiliation.affiliation_type not in (AffiliationType.OWNER, AffiliationType.MANAGER):
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
         return forms.AddUserToGroupForm(group=group).make_response()
@@ -158,7 +158,7 @@ def add_user(current_user: models.User, group_id: int):
         return forms.AddUserToGroupForm(group=group, formdata=request.form).process_request()
     
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
 
 @wrappers.htmx_route(groups_htmx, db=db)
@@ -169,7 +169,7 @@ def get_seq_requests(current_user: models.User, group_id: int, page: int = 0):
     offset = page * PAGE_LIMIT
 
     if (group := db.groups.get(group_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     seq_requests, n_pages = db.seq_requests.find(
         group_id=group_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True
@@ -191,14 +191,14 @@ def get_projects(current_user: models.User, group_id: int, page: int = 0):
     offset = page * PAGE_LIMIT
 
     if (group := db.groups.get(group_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [ProjectStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None

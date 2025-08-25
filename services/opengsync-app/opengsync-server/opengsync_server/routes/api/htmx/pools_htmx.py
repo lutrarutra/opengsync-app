@@ -2,21 +2,21 @@ import json
 from typing import Literal
 
 
-from flask import Blueprint, render_template, request, abort, flash, url_for
+from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, PoolStatus, LibraryStatus, PoolType
+from opengsync_db.categories import PoolStatus, LibraryStatus, PoolType
 
 from .... import db, forms
-from ....core import wrappers
+from ....core import wrappers, exceptions
 pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/api/hmtx/pools/")
 
 
 @wrappers.htmx_route(pools_htmx, db=db)
 def get(current_user: models.User, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -28,7 +28,7 @@ def get(current_user: models.User, page: int = 0):
         try:
             status_in = [PoolStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -37,7 +37,7 @@ def get(current_user: models.User, page: int = 0):
         try:
             type_in = [PoolType.get(int(type)) for type in type_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
 
         if len(type_in) == 0:
             type_in = None
@@ -59,7 +59,7 @@ def get(current_user: models.User, page: int = 0):
 @wrappers.htmx_route(pools_htmx, methods=["POST"], db=db)
 def create(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     form = forms.models.PoolForm("create", formdata=request.form)
     return form.process_request(user=current_user)
@@ -68,13 +68,13 @@ def create(current_user: models.User):
 @wrappers.htmx_route(pools_htmx, methods=["DELETE"], db=db)
 def delete(current_user: models.User, pool_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if len(pool.libraries) > 0:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     db.pools.delete(pool.id)
     flash("Pool deleted", "success")
@@ -84,13 +84,13 @@ def delete(current_user: models.User, pool_id: int):
 @wrappers.htmx_route(pools_htmx, methods=["DELETE"], db=db)
 def remove_libraries(current_user: models.User, pool_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if pool.status != PoolStatus.DRAFT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     for library in pool.libraries:
         library.pool_id = None
@@ -106,11 +106,11 @@ def remove_libraries(current_user: models.User, pool_id: int):
 @wrappers.htmx_route(pools_htmx, db=db)
 def get_form(current_user: models.User, form_type: Literal["create", "edit"], pool_id: int | None = None):
     if form_type not in ["create", "edit"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if form_type == "create":
         if pool_id is not None:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         form = forms.models.PoolForm("create")
         form.contact.selected.data = current_user.id
@@ -119,13 +119,13 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"], po
     
     if form_type == "edit":
         if pool_id is None:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if (pool := db.pools.get(pool_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
         
         if not current_user.is_insider() and pool.owner_id != current_user.id:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
         
         form = forms.models.PoolForm("edit", pool=pool)
         return form.make_response()
@@ -134,20 +134,20 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"], po
 @wrappers.htmx_route(pools_htmx, methods=["POST"], db=db)
 def edit(current_user: models.User, pool_id: int):
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     return forms.models.PoolForm("edit", pool=pool, formdata=request.form).process_request(user=current_user)
 
 
 @wrappers.htmx_route(pools_htmx, methods=["GET", "POST"], db=db)
 def clone(current_user: models.User, pool_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if request.method == "GET":
         form = forms.models.PoolForm("clone", pool=pool)
@@ -160,24 +160,24 @@ def clone(current_user: models.User, pool_id: int):
 @wrappers.htmx_route(pools_htmx, methods=["DELETE"], db=db)
 def remove_library(current_user: models.User, pool_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if (library_id := request.args.get("library_id")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     try:
         library_id = int(library_id)
     except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (library := db.libraries.get(library_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if library.pool_id != pool.id:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     library.pool_id = None
     if library.status == LibraryStatus.POOLED:
@@ -195,10 +195,10 @@ def table_query():
     elif (word := request.args.get("id", None)) is not None:
         field_name = "id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if word is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if field_name == "name":
         pools = db.pools.query(word)
@@ -208,7 +208,7 @@ def table_query():
         except ValueError:
             pools = []
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     return make_response(
         render_template(
@@ -225,14 +225,14 @@ def query():
     query = request.form.get(field_name)
 
     if query is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [PoolStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -241,7 +241,7 @@ def query():
         try:
             seq_request_id = int(seq_request_id)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
 
     results = db.pools.query(query, status_in=status_in, seq_request_id=seq_request_id)
     
@@ -256,10 +256,10 @@ def query():
 @wrappers.htmx_route(pools_htmx, db=db)
 def get_libraries(current_user: models.User, pool_id: int, page: int = 0):
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -284,13 +284,13 @@ def query_libraries(current_user: models.User, pool_id: int):
     elif (word := request.args.get("id")) is not None:
         field_name = "id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if pool.owner != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     libraries: list[models.Library] = []
     if field_name == "name":
@@ -316,12 +316,12 @@ def query_libraries(current_user: models.User, pool_id: int):
 @wrappers.htmx_route(pools_htmx, db=db, methods=["GET", "POST"])
 def plate_pool(current_user: models.User, pool_id: int, form_type: Literal["create", "edit"]):
     if form_type not in ["create", "edit"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     form = forms.models.PlateForm(form_type=form_type, pool=pool, formdata=request.form)
     
@@ -334,10 +334,10 @@ def plate_pool(current_user: models.User, pool_id: int, form_type: Literal["crea
 @wrappers.htmx_route(pools_htmx, db=db)
 def get_dilutions(current_user: models.User, pool_id: int, page: int = 0):
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -358,7 +358,7 @@ def get_dilutions(current_user: models.User, pool_id: int, page: int = 0):
 @wrappers.htmx_route(pools_htmx, db=db)
 def browse(current_user: models.User, workflow: str, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     context = {}
     
@@ -367,21 +367,21 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
             experiment_id = int(experiment_id)
             context["experiment_id"] = experiment_id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
             context["seq_request_id"] = seq_request_id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [PoolStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -415,14 +415,14 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
 @wrappers.htmx_route(pools_htmx, db=db)
 def browse_query(current_user: models.User, workflow: str):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
         field_name = "id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     context = {}
     
@@ -431,14 +431,14 @@ def browse_query(current_user: models.User, workflow: str):
             experiment_id = int(experiment_id)
             context["experiment_id"] = experiment_id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
             context["seq_request_id"] = seq_request_id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
     pools: list[models.Pool] = []
     if field_name == "name":
@@ -447,20 +447,20 @@ def browse_query(current_user: models.User, workflow: str):
         try:
             _id = int(word)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if (pool := db.pools.get(pool_id=_id)) is not None:
             if pool.experiment_id == pool.id:
                 pools.append(pool)
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [PoolStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -478,7 +478,7 @@ def browse_query(current_user: models.User, workflow: str):
 @wrappers.htmx_route(pools_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get_recent_pools(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     pools, _ = db.pools.find(
         status_in=[PoolStatus.STORED, PoolStatus.ACCEPTED], sort_by="id", descending=True,

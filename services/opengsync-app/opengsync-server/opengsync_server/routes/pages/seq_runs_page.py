@@ -1,17 +1,16 @@
-from flask import Blueprint, render_template, url_for, abort, request
+from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
 
 from ... import db
-from ...core import wrappers
+from ...core import wrappers, exceptions
 seq_runs_page_bp = Blueprint("seq_runs_page", __name__)
 
 
 @wrappers.page_route(seq_runs_page_bp, db=db, cache_timeout_seconds=60)
 def seq_runs(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return render_template("seq_runs_page.html")
 
@@ -19,10 +18,10 @@ def seq_runs(current_user: models.User):
 @wrappers.page_route(seq_runs_page_bp, db=db, cache_timeout_seconds=60)
 def seq_run(current_user: models.User, seq_run_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (seq_run := db.seq_runs.get(seq_run_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     experiment = db.experiments.get(name=seq_run.experiment_name)
     path_list = [

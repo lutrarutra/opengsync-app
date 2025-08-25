@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template, url_for, abort, request
+from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
+
 from ... import db
-from ...core import wrappers
+from ...core import wrappers, exceptions
 share_tokens_page_bp = Blueprint("share_tokens_page", __name__)
 
 
@@ -15,10 +15,10 @@ def share_tokens():
 @wrappers.page_route(share_tokens_page_bp, db=db, cache_timeout_seconds=360)
 def share_token(current_user: models.User, share_token_id: str):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (share_token := db.shares.get(share_token_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     path_list = [
         ("share_tokens", url_for("share_tokens_page.share_tokens")),

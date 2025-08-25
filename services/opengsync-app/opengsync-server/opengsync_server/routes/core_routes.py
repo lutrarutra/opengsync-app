@@ -4,14 +4,14 @@ from flask import (
     render_template,
     request,
     session,
-    abort,
     make_response,
     flash
 )
 from flask_htmx import make_response as make_htmx_response
 
-from opengsync_db import categories, models
+from opengsync_db import models
 
+from ..core import exceptions
 from .. import db, logger, flash_cache
 from ..core import wrappers
 from ..core.RunTime import runtime
@@ -50,22 +50,22 @@ def dashboard(current_user: models.User):
     return render_template("dashboard-user.html")
 
 
-@wrappers.page_route(runtime.current_app, db=db)
+@wrappers.resource_route(runtime.current_app, db=db)
 def pdf_file(file_id: int, current_user: models.User):
     if (file := db.files.get(file_id)) is None:
-        return abort(categories.HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if file.uploader_id != current_user.id and not current_user.is_insider():
         if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
-            return abort(categories.HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
     
     if file.extension != ".pdf":
-        return abort(categories.HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
-    filepath = os.path.join(runtime.current_app.config["MEDIA_FOLDER"], file.path)
+    filepath = os.path.join(runtime.current_app.media_folder, file.path)
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
-        return abort(categories.HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException("File not found")
     
     with open(filepath, "rb") as f:
         data = f.read()
@@ -76,22 +76,22 @@ def pdf_file(file_id: int, current_user: models.User):
     return response
 
 
-@wrappers.page_route(runtime.current_app, db=db)
+@wrappers.resource_route(runtime.current_app, db=db)
 def img_file(current_user: models.User, file_id: int):
     if (file := db.files.get(file_id)) is None:
-        return abort(categories.HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if file.uploader_id != current_user.id and not current_user.is_insider():
         if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
-            return abort(categories.HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
     
     if file.extension not in [".png", ".jpg", ".jpeg"]:
-        return abort(categories.HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
-    filepath = os.path.join(runtime.current_app.config["MEDIA_FOLDER"], file.path)
+    filepath = os.path.join(runtime.current_app.media_folder, file.path)
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
-        return abort(categories.HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     with open(filepath, "rb") as f:
         data = f.read()
@@ -102,19 +102,19 @@ def img_file(current_user: models.User, file_id: int):
     return response
 
 
-@wrappers.page_route(runtime.current_app, db=db)
+@wrappers.resource_route(runtime.current_app, db=db)
 def download_file(file_id: int, current_user: models.User):
     if (file := db.files.get(file_id)) is None:
-        return abort(categories.HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if file.uploader_id != current_user.id and not current_user.is_insider():
         if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
-            return abort(categories.HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
 
-    filepath = os.path.join(runtime.current_app.config["MEDIA_FOLDER"], file.path)
+    filepath = os.path.join(runtime.current_app.media_folder, file.path)
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
-        return abort(categories.HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     with open(filepath, "rb") as f:
         data = f.read()

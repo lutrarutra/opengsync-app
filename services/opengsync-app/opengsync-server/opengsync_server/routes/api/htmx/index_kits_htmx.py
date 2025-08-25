@@ -2,14 +2,14 @@ import json
 
 import pandas as pd
 
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, IndexType, KitType
+from opengsync_db.categories import IndexType, KitType
 
 from .... import db, logger, forms
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....tools.spread_sheet_components import TextColumn
 
 index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/api/hmtx/index_kits/")
@@ -22,14 +22,14 @@ def get(page: int = 0):
     descending = sort_order == "desc"
 
     if sort_by not in models.IndexKit.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (type_in := request.args.get("type_id_in")) is not None:
         type_in = json.loads(type_in)
         try:
             type_in = [IndexType.get(int(status)) for status in type_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(type_in) == 0:
             type_in = None
@@ -55,14 +55,14 @@ def table_query():
     elif (word := request.args.get("identifier")) is not None:
         field_name = "identifier"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (type_in := request.args.get("type_id_in")) is not None:
         type_in = json.loads(type_in)
         try:
             type_in = [IndexType.get(int(status)) for status in type_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(type_in) == 0:
             type_in = None
@@ -91,7 +91,7 @@ def table_query():
 @wrappers.htmx_route(index_kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
 def get_adapters(index_kit_id: int, page: int = 0):
     if (index_kit := db.index_kits.get(index_kit_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -113,7 +113,7 @@ def get_adapters(index_kit_id: int, page: int = 0):
 @wrappers.htmx_route(index_kits_htmx, db=db)
 def render_table(current_user: models.User, index_kit_id: int):
     if (index_kit := db.index_kits.get(index_kit_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     df = db.pd.get_index_kit_barcodes(index_kit_id, per_index=True)
 
@@ -139,21 +139,21 @@ def render_table(current_user: models.User, index_kit_id: int):
 @wrappers.htmx_route(index_kits_htmx, db=db)
 def get_form(current_user: models.User, form_type: str):
     if not current_user.is_admin():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     if form_type == "edit":
         if (index_kit_id := request.args.get("index_kit_id")) is None:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         try:
             index_kit_id = int(index_kit_id)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if (index_kit := db.index_kits.get(index_kit_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
     elif form_type == "create":
         index_kit = None
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     return forms.models.IndexKitForm(
         form_type=form_type,
@@ -164,7 +164,7 @@ def get_form(current_user: models.User, form_type: str):
 @wrappers.htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
     if not current_user.is_admin():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
         return forms.models.IndexKitForm(form_type="create").make_response()
@@ -172,15 +172,15 @@ def create(current_user: models.User):
         form = forms.models.IndexKitForm(form_type="create", formdata=request.form)
         return form.process_request()
     else:
-        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+        raise exceptions.MethodNotAllowedException()
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, index_kit_id: int):
     if not current_user.is_admin():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     if (index_kit := db.index_kits.get(index_kit_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if request.method == "GET":
         return forms.models.IndexKitForm(form_type="edit", index_kit=index_kit).make_response()
@@ -188,16 +188,16 @@ def edit(current_user: models.User, index_kit_id: int):
         form = forms.models.IndexKitForm(form_type="edit", formdata=request.form, index_kit=index_kit)
         return form.process_request()
     else:
-        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+        raise exceptions.MethodNotAllowedException()
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
 def edit_barcodes(current_user: models.User, index_kit_id: int):
     if not current_user.is_admin():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (index_kit := db.index_kits.get(index_kit_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if index_kit.type == IndexType.TENX_ATAC_INDEX:
         cls = forms.EditKitTENXATACBarcodesForm
@@ -207,7 +207,7 @@ def edit_barcodes(current_user: models.User, index_kit_id: int):
         cls = forms.EditSingleIndexKitBarcodesForm
     else:
         logger.error(f"Unknown index kit type {index_kit.type}")
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if request.method == "GET":
         return cls(index_kit=index_kit).make_response()
@@ -218,4 +218,4 @@ def edit_barcodes(current_user: models.User, index_kit_id: int):
         )
         return form.process_request()
     
-    return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+    raise exceptions.MethodNotAllowedException()

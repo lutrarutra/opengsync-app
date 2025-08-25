@@ -1,11 +1,11 @@
-from flask import Blueprint, abort, Response, url_for, request, flash
+from flask import Blueprint, Response, url_for, request, flash
 from flask_htmx import make_response
 
-from opengsync_db import models, exceptions
-from opengsync_db.categories import HTTPResponse, LibraryStatus
+from opengsync_db import models, exceptions as db_exceptions
+from opengsync_db.categories import LibraryStatus
 
 from .... import db, logger
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....forms import SelectSamplesForm
 
 select_pool_libraries_workflow = Blueprint("select_pool_libraries_workflow", __name__, url_prefix="/api/workflows/select_pool_libraries/")
@@ -14,10 +14,10 @@ select_pool_libraries_workflow = Blueprint("select_pool_libraries_workflow", __n
 @wrappers.htmx_route(select_pool_libraries_workflow, db=db)
 def begin(current_user: models.User, pool_id: int) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
         
     form = SelectSamplesForm(
         "select_pool_libraries",
@@ -37,10 +37,10 @@ def begin(current_user: models.User, pool_id: int) -> Response:
 @wrappers.htmx_route(select_pool_libraries_workflow, db=db, methods=["POST"])
 def select(current_user: models.User, pool_id: int) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     form = SelectSamplesForm(
         "select_pool_libraries",
@@ -59,15 +59,7 @@ def select(current_user: models.User, pool_id: int) -> Response:
     
     library_ids = form.library_table["id"].unique().tolist()
     for library_id in library_ids:
-        if (library := db.libraries.get(int(library_id))) is None:
-            logger.error(f"Library with ID {library_id} not found in pool {pool_id}.")
-            raise exceptions.ElementDoesNotExist(f"Library with ID {library_id} does not exist.")
-        
-        if library.pool_id is not None:
-            logger.error(f"Library {library_id} is already in a pool.")
-            raise exceptions.LinkAlreadyExists(f"Library {library_id} is already in a pool.")
-    
-        db.libraries.add_to_pool(library_id=library.id, pool_id=pool.id, flush=False)
+        db.libraries.add_to_pool(library_id=int(library_id), pool_id=pool.id, flush=False)
 
     db.flush()
     flash("Libraries added to pool!", "success")

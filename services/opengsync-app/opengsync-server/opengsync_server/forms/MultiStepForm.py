@@ -1,8 +1,8 @@
 import os
 import datetime
 from typing import Optional, Any, OrderedDict
-from uuid import uuid4
 from dataclasses import dataclass
+from uuid_extensions import uuid7str
 
 import pickle
 import pandas as pd
@@ -39,7 +39,7 @@ class MultiStepForm(HTMXFlaskForm):
     def __init__(self, workflow: str, uuid: str | None, formdata: dict | None, step_name: str, step_args: dict):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         if uuid is None:
-            uuid = str(uuid4())
+            uuid = uuid7str()
 
         self.step_name = step_name
         self.step_args = step_args

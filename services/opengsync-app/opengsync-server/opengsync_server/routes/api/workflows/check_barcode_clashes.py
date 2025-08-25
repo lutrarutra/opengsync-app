@@ -1,14 +1,13 @@
 import pandas as pd
 
-from flask import Blueprint, request, abort
+from flask import Blueprint, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger
 from ....forms.workflows import check_barcode_clashes as wff
 from ....forms import SelectSamplesForm
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 check_barcode_clashes_workflow = Blueprint("check_barcode_clashes_workflow", __name__, url_prefix="/api/workflows/check_barcode_clashes/")
 
@@ -16,7 +15,7 @@ check_barcode_clashes_workflow = Blueprint("check_barcode_clashes_workflow", __n
 @wrappers.htmx_route(check_barcode_clashes_workflow, db=db)
 def begin(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     form = SelectSamplesForm(
         workflow="check_barcode_clashes",
@@ -85,10 +84,10 @@ def select():
 @wrappers.htmx_route(check_barcode_clashes_workflow, db=db)
 def check_experiment_barcode_clashes(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     library_data = {
         "library_id": [],
@@ -119,10 +118,10 @@ def check_experiment_barcode_clashes(current_user: models.User, experiment_id: i
 @wrappers.htmx_route(check_barcode_clashes_workflow, db=db)
 def check_seq_request_barcode_clashes(current_user: models.User, seq_request_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     library_data = {
         "library_id": [],

@@ -1,13 +1,12 @@
-from flask import Blueprint, request, abort, Response
+from flask import Blueprint, request, Response
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, AccessType
+from opengsync_db.categories import AccessType
 
 from .... import db
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....forms.workflows import reseq as forms
 from ....forms import SelectSamplesForm
-from ....core import exceptions
 
 reseq_workflow = Blueprint("reseq_workflow", __name__, url_prefix="/api/workflows/reseq/")
 
@@ -30,7 +29,7 @@ def get_context(current_user: models.User, args: dict) -> dict:
 
     if not current_user.is_insider():
         if "seq_request" not in context:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
         
     return context
 
@@ -38,13 +37,8 @@ def get_context(current_user: models.User, args: dict) -> dict:
 @wrappers.htmx_route(reseq_workflow, db=db)
 def begin(current_user: models.User) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+        raise exceptions.NoPermissionsException()
+    context = get_context(current_user, request.args)
         
     form = SelectSamplesForm(
         "reseq", context=context,
@@ -56,13 +50,8 @@ def begin(current_user: models.User) -> Response:
 @wrappers.htmx_route(reseq_workflow, db=db, methods=["POST"])
 def select(current_user: models.User) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+        raise exceptions.NoPermissionsException()
+    context = get_context(current_user, request.args)
 
     form = SelectSamplesForm(
         "reseq", formdata=request.form, context=context,
@@ -88,6 +77,6 @@ def select(current_user: models.User) -> Response:
 @wrappers.htmx_route(reseq_workflow, db=db, methods=["POST"])
 def reseq(current_user: models.User, uuid: str) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return forms.ReseqLibrariesForm(uuid=uuid, formdata=request.form).process_request()

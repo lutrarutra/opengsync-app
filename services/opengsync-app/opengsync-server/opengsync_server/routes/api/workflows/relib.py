@@ -1,15 +1,13 @@
 import pandas as pd
 
-from flask import Blueprint, request, abort, Response
+from flask import Blueprint, request, Response
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
 
-from .... import db, logger
-from ....core import wrappers
+from .... import db
+from ....core import wrappers, exceptions
 from ....forms.workflows import relib as forms
 from ....forms import SelectSamplesForm
-from ....core import exceptions
 
 relib_workflow = Blueprint("relib_workflow", __name__, url_prefix="/api/workflows/relib/")
 
@@ -34,13 +32,8 @@ def get_context(args: dict) -> dict:
 @wrappers.htmx_route(relib_workflow, db=db)
 def begin(current_user: models.User) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    try:
-        context = get_context(request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+        raise exceptions.NoPermissionsException()
+    context = get_context(request.args)
         
     form = SelectSamplesForm("relib", context=context, select_libraries=True)
     return form.make_response()
@@ -49,13 +42,8 @@ def begin(current_user: models.User) -> Response:
 @wrappers.htmx_route(relib_workflow, db=db, methods=["POST"])
 def select(current_user: models.User) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    try:
-        context = get_context(request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+        raise exceptions.NoPermissionsException()
+    context = get_context(request.args)
 
     form = SelectSamplesForm(
         "relib", formdata=request.form, context=context,
@@ -103,14 +91,8 @@ def select(current_user: models.User) -> Response:
 @wrappers.htmx_route(relib_workflow, db=db, methods=["POST"])
 def parse_library_type_form(current_user: models.User, uuid: str) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
-    
-    try:
-        context = get_context(request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+        raise exceptions.NoPermissionsException()
+    context = get_context(request.args)
 
     return forms.LibraryTableForm(
         seq_request=context.get("seq_request"),

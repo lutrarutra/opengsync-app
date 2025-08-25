@@ -1,15 +1,16 @@
 from typing import Optional, Any
 
-from flask import Response, flash, url_for, abort
+from flask import Response, flash, url_for
 from flask_htmx import make_response
 from wtforms import TextAreaField, EmailField, SelectField
 from wtforms.validators import Optional as OptionalValidator, DataRequired, Length
 
 from opengsync_db import models
-from opengsync_db.categories import RequestResponse, SeqRequestStatus, HTTPResponse
+from opengsync_db.categories import RequestResponse, SeqRequestStatus
 
 from .. import logger, db  # noqa
 from .HTMXFlaskForm import HTMXFlaskForm
+from ..core import exceptions
 
 
 class ProcessRequestForm(HTMXFlaskForm):
@@ -67,7 +68,7 @@ class ProcessRequestForm(HTMXFlaskForm):
             seq_request = db.seq_requests.process(seq_request.id, SeqRequestStatus.DRAFT)
             flash("Request pending revision!", "info")
         else:
-            return abort(HTTPResponse.INTERNAL_SERVER_ERROR.id)
+            raise exceptions.InternalServerErrorException()
         
         if self.notification_comment.data:
             _ = db.comments.create(

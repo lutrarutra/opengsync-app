@@ -1,13 +1,13 @@
 from datetime import datetime
 
-from flask import Blueprint, request, abort, Response, flash, url_for
+from flask import Blueprint, request, Response, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, SampleStatus, LibraryStatus, PoolStatus, SeqRequestStatus, SubmissionType
+from opengsync_db.categories import SampleStatus, LibraryStatus, PoolStatus, SeqRequestStatus, SubmissionType
 
 from .... import db, logger
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....forms import SelectSamplesForm
 
 store_samples_workflow = Blueprint("store_samples_workflow", __name__, url_prefix="/api/workflows/store_samples/")
@@ -16,17 +16,17 @@ store_samples_workflow = Blueprint("store_samples_workflow", __name__, url_prefi
 @wrappers.htmx_route(store_samples_workflow, db=db)
 def begin(current_user: models.User) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     context = {}
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
             if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["seq_request"] = seq_request
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     form = SelectSamplesForm.create_workflow_form("store_samples", context=context)
     return form.make_response()
@@ -35,17 +35,17 @@ def begin(current_user: models.User) -> Response:
 @wrappers.htmx_route(store_samples_workflow, db=db, methods=["POST"])
 def select(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     context = {}
     if (seq_request_id := request.form.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
             if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["seq_request"] = seq_request
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     else:
         seq_request = None
 

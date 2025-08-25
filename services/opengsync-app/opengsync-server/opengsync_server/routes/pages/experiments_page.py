@@ -1,17 +1,17 @@
-from flask import Blueprint, render_template, url_for, abort, request
+from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, FileType
+from opengsync_db.categories import FileType
 
 from ... import db
-from ...core import wrappers
+from ...core import wrappers, exceptions
 experiments_page_bp = Blueprint("experiments_page", __name__)
 
 
 @wrappers.page_route(experiments_page_bp, db=db, cache_timeout_seconds=360)
 def experiments(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return render_template("experiments_page.html")
 
@@ -19,13 +19,13 @@ def experiments(current_user: models.User):
 @wrappers.page_route(experiments_page_bp, db=db, cache_timeout_seconds=360)
 def experiment(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     pools, _ = db.pools.find(experiment_id=experiment_id, sort_by="id", descending=True, limit=None)
 

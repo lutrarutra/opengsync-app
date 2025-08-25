@@ -1,12 +1,12 @@
 from typing import Any
 
-from flask import Blueprint, request, abort, Request
+from flask import Blueprint, request, Request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, PoolStatus, LibraryStatus, SampleStatus
+from opengsync_db.categories import PoolStatus, LibraryStatus, SampleStatus
 
 from .... import db
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....forms.workflows import qubit_measure as wff
 from ....forms import SelectSamplesForm
 
@@ -25,26 +25,26 @@ def get_context(request: Request) -> dict:
         try:
             seq_request_id = int(seq_request_id)
             if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["seq_request"] = seq_request
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     if (experiment_id := args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
             if (experiment := db.experiments.get(experiment_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["experiment"] = experiment
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     if (pool_id := args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
             if (pool := db.pools.get(pool_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["pool"] = pool
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     return context
 
@@ -52,7 +52,7 @@ def get_context(request: Request) -> dict:
 @wrappers.htmx_route(qubit_measure_workflow, db=db)
 def begin(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     context = get_context(request)
     form = SelectSamplesForm(
@@ -71,7 +71,7 @@ def begin(current_user: models.User):
 @wrappers.htmx_route(qubit_measure_workflow, db=db, methods=["POST"])
 def select(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     context = get_context(request)
     form: SelectSamplesForm = SelectSamplesForm(workflow="qubit_measure", formdata=request.form, context=context)
@@ -100,6 +100,6 @@ def select(current_user: models.User):
 @wrappers.htmx_route(qubit_measure_workflow, db=db, methods=["POST"])
 def complete(current_user: models.User, uuid: str):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
         
     return wff.CompleteQubitMeasureForm(uuid=uuid, formdata=request.form).process_request()

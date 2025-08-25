@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid_extensions import uuid7str
 from typing import Optional
 
 from ...categories import FileTypeEnum
@@ -37,7 +37,7 @@ class FileBP(DBBlueprint):
                 raise exceptions.ElementDoesNotExist(f"LabPrep with id '{lab_prep_id}', not found.")
         
         if uuid is None:
-            uuid = str(uuid4())
+            uuid = uuid7str()
 
         name = name[:models.File.name.type.length]
 

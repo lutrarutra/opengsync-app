@@ -1,0 +1,66 @@
+{% from 'components/form_group.jinja2' import form_group, form_cell %}
+
+<div class="modal-content" id="ba_report-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Bio Analyzer Report</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body" id="ba_report-form">
+        {{ form.csrf_token() }}
+        {{ form_group(form.report) }}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col" class="col-1">ID</th>
+                    <th scope="col" class="col-4">Sample Name</th>
+                    <th scope="col" class="col-4">Sample Type <span class="desc">Sample/Library/Pool/Lane</span></th>
+                    <th scope="col" class="col-3">Avg. Fragment Size</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i, (_, row) in enumerate(form.ba_table.iterrows()) %}
+                {% set sub_form = form.sample_fields[i] %}
+                {{ sub_form.csrf_token() }}
+                {{ sub_form.sample_type(readonly=true, hidden=true) }}
+                {{ sub_form.obj_id(readonly=true, hidden=true) }}
+                <tr>
+                    <th scope="row">{{ row["id"] | int }}</th>
+                    <td>{{ row["name"] }}</td>
+                    <td>{{ row["sample_type"] }}</td>
+                    <td>{{ form_cell(sub_form.avg_fragment_size, unit="bp") }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.uuid }}            
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" id="submit-ba_report-form-btn" hx-include="#ba_report-form" hx-target="#ba_report-form-container" hx-swap="outerHTML"
+                hx-encoding="multipart/form-data" hx-post="{{ url_for('ba_report_workflow.complete', uuid=form.uuid) }}">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<style>
+    .list-group li.highlight {
+        background-color: #00adcc70;
+        border: 2px dashed #00adcc70;
+        margin: 2px 0;
+    }
+</style>
+<script>
+    window.onbeforeunload = function() {
+        return "Data will be lost if you leave the page, are you sure?";
+    };
+
+    $("#submit-ba_report-form-btn").on("click", function() {
+        window.onbeforeunload = null;
+    });
+</script>

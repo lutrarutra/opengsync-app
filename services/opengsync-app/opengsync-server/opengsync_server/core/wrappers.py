@@ -2,7 +2,7 @@ from typing import Callable, Literal, TypeVar, Any
 from functools import wraps
 import traceback
 
-from flask import Blueprint, Flask, abort, render_template, flash, request
+from flask import Blueprint, Flask, render_template, flash, request
 from flask_htmx import make_response
 from flask_login import login_required as login_required_f, current_user
 
@@ -151,17 +151,100 @@ def _route_decorator(
 
 
 def _page_handler(e: Exception):
-    flash(__get_flash_msg("An error occurred while processing your request. Please notify us."), category="error")
-    return abort(HTTPResponse.INTERNAL_SERVER_ERROR.id)
+    if isinstance(e, serv_exceptions.OpeNGSyncServerException):
+        msg = e.message
+    elif isinstance(e, db_exceptions.OpeNGSyncDBException):
+        msg = e.message
+    else:
+        msg = "An error occurred while processing your request. Please notify us."
+
+    match type(e):
+        case serv_exceptions.NoPermissionsException:
+            flash(msg, category="error")
+            return render_template("errors/page.html", msg=msg, code=403), 403
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+            flash(msg, category="error")
+            return render_template("errors/page.html", msg=msg, code=404), 404
+        case serv_exceptions.BadRequestException:
+            flash(msg, category="error")
+            return render_template("errors/page.html", msg=msg, code=400), 400
+        case serv_exceptions.MethodNotAllowedException:
+            flash(msg, category="error")
+            return render_template("errors/page.html", msg=msg, code=405), 405
+        case _:
+            flash(__get_flash_msg(msg), category="error")
+            return render_template("errors/page.html", msg=msg, code=500), 500
 
 
 def _htmx_handler(e: Exception):
-    flash(__get_flash_msg("An error occurred while processing your request. Please notify us."), category="error")
-    return make_response(render_template("errors/htmx_alert.html"), 200, retarget="#alert-container")
+    if isinstance(e, serv_exceptions.OpeNGSyncServerException):
+        msg = e.message
+    elif isinstance(e, db_exceptions.OpeNGSyncDBException):
+        msg = e.message
+    else:
+        msg = "An error occurred while processing your request. Please notify us."
+
+    match type(e):
+        case serv_exceptions.NoPermissionsException:
+            flash(msg, category="error")
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+            flash(msg, category="error")
+        case serv_exceptions.BadRequestException:
+            flash(msg, category="error")
+        case serv_exceptions.MethodNotAllowedException:
+            flash(msg, category="error")
+        case _:
+            msg = __get_flash_msg(msg)
+            flash(msg, category="error")
+
+    return make_response(render_template("errors/htmx/alert.html"), 200, retarget="#alert-container")
 
 
 def _api_handler(e: Exception):
-    return "An error occurred while processing your request. Please notify us.", HTTPResponse.INTERNAL_SERVER_ERROR.id
+    if isinstance(e, serv_exceptions.OpeNGSyncServerException):
+        msg = e.message
+    elif isinstance(e, db_exceptions.OpeNGSyncDBException):
+        msg = e.message
+    else:
+        msg = "An error occurred while processing your request. Please notify us."
+
+    match type(e):
+        case serv_exceptions.NoPermissionsException:
+            return msg, HTTPResponse.FORBIDDEN.id
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+            return msg, HTTPResponse.NOT_FOUND.id
+        case serv_exceptions.BadRequestException:
+            return msg, HTTPResponse.BAD_REQUEST.id
+        case serv_exceptions.MethodNotAllowedException:
+            return msg, HTTPResponse.METHOD_NOT_ALLOWED.id
+        case _:
+            return msg, HTTPResponse.INTERNAL_SERVER_ERROR.id
+
+
+def _resource_handler(e: Exception):
+    if isinstance(e, serv_exceptions.OpeNGSyncServerException):
+        msg = e.message
+    elif isinstance(e, db_exceptions.OpeNGSyncDBException):
+        msg = e.message
+    else:
+        msg = "An error occurred while processing your request. Please notify us."
+
+    match type(e):
+        case serv_exceptions.NoPermissionsException:
+            flash(msg, category="error")
+            return render_template("errors/error.html", msg=msg, code=403), 403
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+            flash(msg, category="error")
+            return render_template("errors/error.html", msg=msg, code=404), 404
+        case serv_exceptions.BadRequestException:
+            flash(msg, category="error")
+            return render_template("errors/error.html", msg=msg, code=400), 400
+        case serv_exceptions.MethodNotAllowedException:
+            flash(msg, category="error")
+            return render_template("errors/error.html", msg=msg, code=405), 405
+        case _:
+            flash(__get_flash_msg(msg), category="error")
+            return render_template("errors/error.html", msg=msg, code=500), 500
 
 
 def page_route(
@@ -244,6 +327,35 @@ def api_route(
         debug=debug,
         strict_slashes=strict_slashes,
         response_handler=_api_handler,
+        cache_timeout_seconds=cache_timeout_seconds,
+        cache_query_string=cache_query_string,
+        cache_type=cache_type,
+        cache_kwargs=cache_kwargs,
+    )
+
+
+def resource_route(
+    blueprint: Blueprint | Flask,
+    route: str | None = None,
+    methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
+    db: DBHandler | None = None,
+    login_required: bool = False,
+    debug: bool = False,
+    cache_timeout_seconds: int | None = None,
+    cache_query_string: bool = True,
+    cache_kwargs: dict[str, Any] | None = None,
+    cache_type: Literal["user", "insider", "global"] = "user",
+    strict_slashes: bool = True,
+) -> Callable[[F], F]:
+    return _route_decorator(
+        blueprint=blueprint,
+        route=route,
+        methods=methods,
+        db=db,
+        login_required=login_required,
+        debug=debug,
+        strict_slashes=strict_slashes,
+        response_handler=_resource_handler,
         cache_timeout_seconds=cache_timeout_seconds,
         cache_query_string=cache_query_string,
         cache_type=cache_type,

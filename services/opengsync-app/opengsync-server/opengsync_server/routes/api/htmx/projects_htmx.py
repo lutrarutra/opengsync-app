@@ -3,14 +3,14 @@ import json
 import numpy as np
 import pandas as pd
 
-from flask import Blueprint, url_for, render_template, flash, abort, request
+from flask import Blueprint, url_for, render_template, flash, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, SampleStatus, ProjectStatus, LibraryStatus, SeqRequestStatus, AccessType
+from opengsync_db.categories import SampleStatus, ProjectStatus, LibraryStatus, SeqRequestStatus, AccessType
 
 from .... import db, forms, logger
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....tools.spread_sheet_components import TextColumn
 
 projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/api/hmtx/projects/")
@@ -24,7 +24,7 @@ def get(current_user: models.User, page: int = 0):
     offset = page * PAGE_LIMIT
 
     if sort_by not in models.Project.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     projects: list[models.Project] = []
     context = {}
@@ -34,7 +34,7 @@ def get(current_user: models.User, page: int = 0):
         try:
             status_in = [ProjectStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -44,13 +44,13 @@ def get(current_user: models.User, page: int = 0):
         try:
             user_id = int(user_id)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if user_id != current_user.id and not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
         
         if (user := db.users.get(user_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
         
         projects, n_pages = db.projects.find(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True, status_in=status_in)
         context["user"] = user
@@ -77,7 +77,7 @@ def get(current_user: models.User, page: int = 0):
 def query(current_user: models.User):
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name, default="")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     if not current_user.is_insider():
         _user_id = current_user.id
@@ -88,10 +88,10 @@ def query(current_user: models.User):
         try:
             group_id = int(group_id)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if (_ := db.groups.get(group_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
         
         _user_id = None
             
@@ -114,15 +114,15 @@ def create(current_user: models.User):
 @wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
 def edit(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.projects.get_access_type(project, current_user)
 
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     return forms.models.ProjectForm(project=project, formdata=request.form).process_request(
         user=current_user
@@ -132,18 +132,18 @@ def edit(current_user: models.User, project_id: int):
 @wrappers.htmx_route(projects_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.projects.get_access_type(project, current_user)
 
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if project.num_samples > 0:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     db.projects.delete(project_id)
     flash(f"Deleted project {project.title}.", "success")
@@ -153,10 +153,10 @@ def delete(current_user: models.User, project_id: int):
 @wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
 def complete(current_user: models.User, project_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (project := db.projects.get(project_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     for library in project.libraries:
         if library.status not in {LibraryStatus.SHARED, LibraryStatus.FAILED, LibraryStatus.REJECTED, LibraryStatus.ARCHIVED}:
@@ -181,9 +181,9 @@ def table_query(current_user: models.User):
         try:
             id = int(id)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     def __get_projects(
         title: str | None = None,
@@ -215,9 +215,9 @@ def table_query(current_user: models.User):
         try:
             user_id = int(user_id)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         if (user := db.users.get(user_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
             
         context["user"] = user
     else:
@@ -243,16 +243,16 @@ def table_query(current_user: models.User):
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_seq_requests(current_user: models.User, project_id: int, page: int = 0):
     if (project := db.projects.get(project_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.projects.get_access_type(project, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if not current_user.is_insider() and project.owner_id != current_user.id:
         affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
         if affiliation is None:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -260,14 +260,14 @@ def get_seq_requests(current_user: models.User, project_id: int, page: int = 0):
     offset = page * PAGE_LIMIT
 
     if sort_by not in models.SeqRequest.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [SeqRequestStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -289,11 +289,11 @@ def get_seq_requests(current_user: models.User, project_id: int, page: int = 0):
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_samples(current_user: models.User, project_id: int, page: int = 0):
     if (project := db.projects.get(project_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     access_type = db.projects.get_access_type(project, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -305,7 +305,7 @@ def get_samples(current_user: models.User, project_id: int, page: int = 0):
         try:
             status_in = [SampleStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -325,14 +325,14 @@ def get_samples(current_user: models.User, project_id: int, page: int = 0):
 @wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
 def query_samples(current_user: models.User, project_id: int, field_name: str):
     if (word := request.form.get(field_name)) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (project := db.projects.get(project_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.projects.get_access_type(project, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     samples = []
     if field_name == "name":
@@ -345,7 +345,7 @@ def query_samples(current_user: models.User, project_id: int, field_name: str):
         except ValueError:
             samples = []
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     return make_response(
         render_template(
@@ -358,11 +358,11 @@ def query_samples(current_user: models.User, project_id: int, field_name: str):
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_sample_attributes(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     access_type = db.projects.get_access_type(project, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     df = db.pd.get_project_samples(project_id=project_id).rename(columns={"sample_id": "id", "sample_name": "name"})
 
@@ -389,13 +389,13 @@ def get_sample_attributes(current_user: models.User, project_id: int):
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def edit_sample_attributes(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.projects.get_access_type(project, current_user)
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if request.method == "GET":
         form = forms.SampleAttributeTableForm(project)
@@ -403,7 +403,7 @@ def edit_sample_attributes(current_user: models.User, project_id: int):
     elif request.method == "POST":
         return forms.SampleAttributeTableForm(project=project, formdata=request.form).process_request()
     
-    return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+    raise exceptions.MethodNotAllowedException()
 
 
 @wrappers.htmx_route(projects_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
@@ -429,11 +429,11 @@ def get_recent_projects(current_user: models.User):
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_software(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     access_type = db.projects.get_access_type(project, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     software = project.software or {}
     return make_response(
@@ -448,11 +448,11 @@ def get_software(current_user: models.User, project_id: int):
 @wrappers.htmx_route(projects_htmx, db=db)
 def overview(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     access_type = db.projects.get_access_type(project, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
         
     df = db.pd.get_project_libraries(project_id=project_id)
 

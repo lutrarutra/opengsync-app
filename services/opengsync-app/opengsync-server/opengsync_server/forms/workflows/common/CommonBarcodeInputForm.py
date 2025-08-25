@@ -87,7 +87,7 @@ class CommonBarcodeInputForm(MultiStepForm):
                     self.library_table = library_table
             else:
                 logger.error(f"Library table not found for workflow {workflow}")
-                raise exceptions.WorkflowException("Library table not found for workflow")
+                raise exceptions.InternalServerErrorException("Library table not found for workflow")
         else:
             self.library_table = library_table
 

@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, redirect, request, url_for, flash
 from opengsync_db import models
 
 from ... import forms, db, serializer
-from ...core import wrappers
+from ...core import wrappers, exceptions
 from ... import logger
 
 auth_page_bp = Blueprint("auth_page", __name__)

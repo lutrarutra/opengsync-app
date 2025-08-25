@@ -1,13 +1,13 @@
-from flask import Blueprint, url_for, flash, request, abort
+from flask import Blueprint, url_for, flash, request
 from flask_htmx import make_response
 from flask_mail import Message
 from flask_login import logout_user
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, UserRole
+from opengsync_db.categories import UserRole
 
 from .... import db, forms, logger, mail, serializer, EMAIL_SENDER
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/api/hmtx/auth/")
 
@@ -48,10 +48,10 @@ def complete_registration(token: str):
 @wrappers.htmx_route(auth_htmx, methods=["GET", "POST"], db=db)
 def change_password(current_user: models.User, user_id: int):
     if current_user.id != user_id and not current_user.is_admin():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (user := db.users.get(user_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if request.method == "GET":
         return forms.auth.ChangePasswordForm(user=user).make_response(user_id=user_id)
@@ -62,10 +62,10 @@ def change_password(current_user: models.User, user_id: int):
 @wrappers.htmx_route(auth_htmx, db=db)
 def reset_password_email(current_user: models.User, user_id: int):
     if (user := db.users.get(user_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if current_user.role != UserRole.ADMIN and current_user.id != user_id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
         
     token = user.generate_reset_token(serializer=serializer)
     url = url_for("auth_page.reset_password_page", token=token, _external=True)

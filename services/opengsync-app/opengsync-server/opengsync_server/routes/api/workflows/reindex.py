@@ -1,12 +1,11 @@
 
-from flask import Blueprint, request, abort, Response
+from flask import Blueprint, request, Response
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, AccessType
+from opengsync_db.categories import AccessType
 
-from ....core import exceptions
 from .... import db, logger
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....forms.workflows import reindex as forms
 from ....forms import SelectSamplesForm
 from ....tools import utils
@@ -39,23 +38,18 @@ def get_context(current_user: models.User, args: dict) -> dict:
 
     if not current_user.is_insider():
         if "seq_request" not in context:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
         
     return context
 
 
 @wrappers.htmx_route(reindex_workflow, db=db)
 def previous(current_user: models.User, uuid: str):
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+    context = get_context(current_user, request.args)
     
     if (response := MultiStepForm.pop_last_step("reindex", uuid)) is None:
         logger.error("Failed to pop last step")
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     step_name, step = response
 
@@ -81,12 +75,7 @@ def previous(current_user: models.User, uuid: str):
 
 @wrappers.htmx_route(reindex_workflow, db=db)
 def begin(current_user: models.User) -> Response:
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+    context = get_context(current_user, request.args)
         
     form = SelectSamplesForm(
         "reindex", context=context,
@@ -97,13 +86,8 @@ def begin(current_user: models.User) -> Response:
 
 @wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
 def select(current_user: models.User):
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
-    
+    context = get_context(current_user, request.args)
+
     form: SelectSamplesForm = SelectSamplesForm(
         "reindex", formdata=request.form, context=context,
         select_libraries=True
@@ -130,12 +114,7 @@ def select(current_user: models.User):
 
 @wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
 def upload_barcode_form(current_user: models.User, uuid: str):
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+    context = get_context(current_user, request.args)
     
     form = forms.BarcodeInputForm(
         uuid=uuid, formdata=request.form,
@@ -148,12 +127,7 @@ def upload_barcode_form(current_user: models.User, uuid: str):
 
 @wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
 def upload_tenx_atac_barcode_form(current_user: models.User, uuid: str):
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+    context = get_context(current_user, request.args)
     
     form = forms.TENXATACBarcodeInputForm(
         uuid=uuid, formdata=request.form,
@@ -166,12 +140,7 @@ def upload_tenx_atac_barcode_form(current_user: models.User, uuid: str):
 
 @wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
 def map_index_kits(current_user: models.User, uuid: str):
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+    context = get_context(current_user, request.args)   
     
     form = forms.IndexKitMappingForm(
         uuid=uuid, formdata=request.form,
@@ -184,12 +153,7 @@ def map_index_kits(current_user: models.User, uuid: str):
 
 @wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
 def barcode_match(current_user: models.User, uuid: str):
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+    context = get_context(current_user, request.args)
     
     return forms.BarcodeMatchForm(
         uuid=uuid, formdata=request.form,
@@ -201,12 +165,7 @@ def barcode_match(current_user: models.User, uuid: str):
 
 @wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
 def complete_reindex(current_user: models.User, uuid: str):
-    try:
-        context = get_context(current_user, request.args)
-    except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
-    except exceptions.OpeNGSyncServerException as e:
-        return abort(e.response.id)
+    context = get_context(current_user, request.args)
     
     return forms.CompleteReindexForm(
         uuid=uuid, formdata=request.form,

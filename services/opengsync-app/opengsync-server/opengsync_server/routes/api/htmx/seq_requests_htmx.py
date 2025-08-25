@@ -3,19 +3,18 @@ import json
 from io import BytesIO
 from typing import Literal
 
-from flask import Blueprint, url_for, render_template, flash, abort, request, Response
+from flask import Blueprint, url_for, render_template, flash, request, Response
 from flask_htmx import make_response
 import pandas as pd
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import (
-    HTTPResponse, SeqRequestStatus, LibraryStatus, LibraryType,
+    SeqRequestStatus, LibraryStatus, LibraryType,
     SampleStatus, SubmissionType, PoolStatus, ProjectStatus, AccessType
 )
-from opengsync_db.core import exceptions
 
 from .... import db, forms, logger
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....core.RunTime import runtime
 
 
@@ -34,7 +33,7 @@ def get(current_user: models.User, page: int = 0):
         try:
             status_in = [SeqRequestStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if len(status_in) == 0:
             status_in = None
@@ -44,7 +43,7 @@ def get(current_user: models.User, page: int = 0):
         try:
             submission_type_in = [SubmissionType.get(int(submission_type)) for submission_type in submission_type_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if len(submission_type_in) == 0:
             submission_type_in = None
@@ -75,27 +74,27 @@ def get(current_user: models.User, page: int = 0):
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
     if form_type not in ["create", "edit"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if form_type != "edit":
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
         
         if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
         return forms.models.SeqRequestForm(form_type=form_type, seq_request=seq_request).make_response()
     
     # seq_request_id must be provided if form_type is "edit"
     if form_type == "edit":
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     return forms.models.SeqRequestForm(form_type=form_type, current_user=current_user).make_response()
 
@@ -103,10 +102,10 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def export(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     file_name = f"request_{seq_request_id}.xlsx"
 
@@ -153,10 +152,10 @@ def export(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def export_libraries(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
         
     if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
         
     file_name = f"libraries_{seq_request.id}.tsv"
     libraries_df = db.pd.get_seq_request_libraries(seq_request_id=seq_request_id, include_indices=True)
@@ -170,15 +169,15 @@ def export_libraries(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def edit(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
 
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return forms.models.SeqRequestForm(form_type="edit", formdata=request.form).process_request(
         seq_request=seq_request, user=current_user
@@ -188,15 +187,15 @@ def edit(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
 
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.ADMIN:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     db.seq_requests.delete(seq_request_id)
 
@@ -209,12 +208,12 @@ def delete(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def archive(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
 
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     seq_request.status = SeqRequestStatus.ARCHIVED
     db.seq_requests.update(seq_request)
@@ -228,10 +227,10 @@ def archive(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def unarchive(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     seq_request.status = SeqRequestStatus.DRAFT
     seq_request.timestamp_submitted_utc = None
@@ -248,18 +247,18 @@ def unarchive(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def submit_request(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if seq_request.status != SeqRequestStatus.DRAFT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if not seq_request.is_submittable():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
 
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if request.method == "GET":
         form = forms.SubmitSeqRequestForm(seq_request=seq_request)
@@ -277,15 +276,15 @@ def create(current_user: models.User):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def upload_auth_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
 
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if seq_request.status == SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return forms.SeqAuthForm(
         seq_request=seq_request, formdata=request.form | request.files
@@ -297,12 +296,12 @@ def upload_auth_form(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def comment_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
 
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if request.method == "GET":
         form = forms.comment.SeqRequestCommentForm(seq_request=seq_request)
@@ -311,18 +310,18 @@ def comment_form(current_user: models.User, seq_request_id: int):
         form = forms.comment.SeqRequestCommentForm(seq_request=seq_request, formdata=request.form)
         return form.process_request(current_user)
     else:
-        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+        raise exceptions.MethodNotAllowedException()
 
 
 @seq_requests_htmx.route("file_form", methods=["GET", "POST"])
 def file_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
         
     if request.method == "GET":
         form = forms.file.SeqRequestAttachmentForm(seq_request=seq_request)
@@ -331,27 +330,27 @@ def file_form(current_user: models.User, seq_request_id: int):
         form = forms.file.SeqRequestAttachmentForm(seq_request=seq_request, formdata=request.form | request.files)
         return form.process_request(current_user)
     else:
-        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+        raise exceptions.MethodNotAllowedException()
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if (file := db.files.get(file_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if file not in seq_request.files:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
@@ -366,22 +365,22 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_auth_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if seq_request.seq_auth_form_file is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
         
     if seq_request.status != SeqRequestStatus.DRAFT:
         if not current_user.is_insider():
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
         
     file = seq_request.seq_auth_form_file
 
@@ -401,30 +400,30 @@ def remove_auth_form(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_library(current_user: models.User, seq_request_id: int):
     if (library_id := request.args.get("library_id")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if not current_user.is_insider():
         if seq_request.status != SeqRequestStatus.DRAFT:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
 
     try:
         library_id = int(library_id)
     except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (library := db.libraries.get(library_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
         
     db.libraries.delete(library_id)
 
@@ -443,26 +442,26 @@ def remove_library(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_sample(current_user: models.User, seq_request_id: int):
     if (sample_id := request.args.get("sample_id")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
         
     try:
         sample_id = int(sample_id)
     except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (sample := db.samples.get(sample_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     for library_link in sample.library_links:
         if library_link.library.seq_request_id != seq_request_id:
@@ -480,15 +479,15 @@ def remove_sample(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_all_libraries(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     for library in seq_request.libraries:
         db.libraries.delete(library.id)
@@ -512,7 +511,7 @@ def table_query(current_user: models.User):
     elif (word := request.args.get("group_id")) is not None:
         field_name = "group_id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     user_id = current_user.id if not current_user.is_insider() else None
 
@@ -521,7 +520,7 @@ def table_query(current_user: models.User):
         try:
             status_in = [SeqRequestStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if len(status_in) == 0:
             status_in = None
@@ -556,10 +555,10 @@ def table_query(current_user: models.User):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def process_request(current_user: models.User, seq_request_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     return forms.ProcessRequestForm(formdata=request.form).process_request(
         seq_request=seq_request, user=current_user
@@ -569,12 +568,12 @@ def process_request(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def add_share_email(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     return forms.SeqRequestShareEmailForm(formdata=request.form).process_request(
         seq_request=seq_request
@@ -584,20 +583,17 @@ def add_share_email(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def remove_share_email(current_user: models.User, seq_request_id: int, email: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if len(seq_request.delivery_email_links) == 1:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
         
-    try:
-        db.seq_requests.remove_share_email(seq_request_id, email)
-    except exceptions.ElementDoesNotExist:
-        return abort(HTTPResponse.NOT_FOUND.id)
+    db.seq_requests.remove_share_email(seq_request_id, email)
 
     flash(f"Removed shared email '{email}' from sequencing request '{seq_request.name}'", "success")
     return make_response(
@@ -608,12 +604,12 @@ def remove_share_email(current_user: models.User, seq_request_id: int, email: st
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def overview(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     LINK_WIDTH_UNIT = 1
 
@@ -737,11 +733,11 @@ def overview(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_libraries(current_user: models.User, seq_request_id: int, page: int = 0):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -753,7 +749,7 @@ def get_libraries(current_user: models.User, seq_request_id: int, page: int = 0)
         try:
             status_in = [LibraryStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -763,7 +759,7 @@ def get_libraries(current_user: models.User, seq_request_id: int, page: int = 0)
         try:
             type_in = [LibraryType.get(int(type_)) for type_ in type_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(type_in) == 0:
             type_in = None
@@ -786,7 +782,7 @@ def get_libraries(current_user: models.User, seq_request_id: int, page: int = 0)
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_projects(current_user: models.User, seq_request_id: int, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -794,22 +790,22 @@ def get_projects(current_user: models.User, seq_request_id: int, page: int = 0):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Project.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [ProjectStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -836,22 +832,22 @@ def query_libraries(current_user: models.User, seq_request_id: int):
     elif (word := request.args.get("id")) is not None:
         field_name = "id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [LibraryStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -861,7 +857,7 @@ def query_libraries(current_user: models.User, seq_request_id: int):
         try:
             type_in = [LibraryType.get(int(type_)) for type_ in type_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(type_in) == 0:
             type_in = None
@@ -895,11 +891,11 @@ def query_libraries(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_samples(current_user: models.User, seq_request_id: int, page: int = 0):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -920,11 +916,11 @@ def get_samples(current_user: models.User, seq_request_id: int, page: int = 0):
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_pools(current_user: models.User, seq_request_id: int, page: int = 0):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -947,11 +943,11 @@ def get_pools(current_user: models.User, seq_request_id: int, page: int = 0):
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_comments(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return make_response(
         render_template(
@@ -964,11 +960,11 @@ def get_comments(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_files(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return make_response(
         render_template(
@@ -982,13 +978,13 @@ def get_files(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def clone(current_user: models.User, seq_request_id: int, method: Literal["pooled", "indexed", "raw"]):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if method not in {"pooled", "indexed", "raw"}:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     cloned_request = db.seq_requests.clone(seq_request_id=seq_request.id, method=method)
 
@@ -999,10 +995,10 @@ def clone(current_user: models.User, seq_request_id: int, method: Literal["poole
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def store_samples(current_user: models.User, seq_request_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     if seq_request.submission_type == SubmissionType.RAW_SAMPLES:
         form: forms.SelectSamplesForm = forms.SelectSamplesForm(

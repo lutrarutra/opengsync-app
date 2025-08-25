@@ -9,14 +9,14 @@ import openpyxl
 from openpyxl import styles as openpyxl_styles
 from openpyxl.utils import get_column_letter
 
-from flask import Blueprint, render_template, request, abort, flash, url_for, Response
+from flask import Blueprint, render_template, request, flash, url_for, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus
+from opengsync_db.categories import LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus
 
 from .... import db, forms, logger
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....core.RunTime import runtime
 from ....tools.spread_sheet_components import TextColumn
 
@@ -27,7 +27,7 @@ lab_preps_htmx = Blueprint("lab_preps_htmx", __name__, url_prefix="/api/hmtx/lab
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get(current_user: models.User, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -39,7 +39,7 @@ def get(current_user: models.User, page: int = 0):
         try:
             status_in = [PrepStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -49,7 +49,7 @@ def get(current_user: models.User, page: int = 0):
         try:
             protocol_in = [LabProtocol.get(int(protocol_)) for protocol_ in protocol_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(protocol_in) == 0:
             protocol_in = None
@@ -74,14 +74,14 @@ def table_query(current_user: models.User):
     elif (word := request.args.get("creator_id")) is not None:
         field_name = "creator_id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [PrepStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -91,7 +91,7 @@ def table_query(current_user: models.User):
         try:
             protocol_in = [LabProtocol.get(int(protocol_)) for protocol_ in protocol_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(protocol_in) == 0:
             protocol_in = None
@@ -121,28 +121,28 @@ def table_query(current_user: models.User):
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if form_type not in ["create", "edit"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (lab_prep_id := request.args.get("lab_prep_id")) is not None:
         try:
             lab_prep_id = int(lab_prep_id)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if form_type != "edit":
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
         
         return forms.models.LabPrepForm(form_type=form_type, lab_prep=lab_prep).make_response()
     
     # seq_request_id must be provided if form_type is "edit"
     if form_type == "edit":
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     return forms.models.LabPrepForm(form_type=form_type).make_response()
 
@@ -150,7 +150,7 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def create(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     form = forms.models.LabPrepForm(formdata=request.form, form_type="create")
     return form.process_request(current_user)
@@ -159,10 +159,10 @@ def create(current_user: models.User):
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def edit(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     form = forms.models.LabPrepForm(formdata=request.form, form_type="edit", lab_prep=lab_prep)
     return form.process_request(current_user)
@@ -171,10 +171,10 @@ def edit(current_user: models.User, lab_prep_id: int):
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def complete(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     for pool in lab_prep.pools:
         pool.status = PoolStatus.STORED
@@ -200,10 +200,10 @@ def complete(current_user: models.User, lab_prep_id: int):
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if lab_prep.status != PrepStatus.PREPARING:
         flash("Cannot delete completed prep.", "warning")
@@ -217,10 +217,10 @@ def delete(current_user: models.User, lab_prep_id: int):
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def uncomplete(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     lab_prep.status = PrepStatus.PREPARING
     db.lab_preps.update(lab_prep)
@@ -232,21 +232,21 @@ def uncomplete(current_user: models.User, lab_prep_id: int):
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
 def remove_library(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if lab_prep.status != PrepStatus.PREPARING:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (library_id := request.args.get("library_id")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     try:
         library_id = int(library_id)
     except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     db.lab_preps.remove_library(lab_prep_id=lab_prep.id, library_id=library_id)
 
@@ -257,10 +257,10 @@ def remove_library(current_user: models.User, lab_prep_id: int):
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_libraries(current_user: models.User, lab_prep_id: int, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -281,13 +281,13 @@ def get_libraries(current_user: models.User, lab_prep_id: int, page: int = 0):
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET"])
 def download_template(current_user: models.User, lab_prep_id: int, direction: Literal["rows", "columns"]) -> Response:
     if direction not in ("rows", "columns"):
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     if runtime.current_app.static_folder is None:
         logger.error("Static folder not set")
@@ -297,7 +297,7 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
 
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     template = openpyxl.load_workbook(filepath)
 
@@ -365,10 +365,10 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def prep_table_upload_form(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if request.method == "GET":
         form = forms.workflows.library_prep.LibraryPrepForm(lab_prep=lab_prep)
@@ -381,10 +381,10 @@ def prep_table_upload_form(current_user: models.User, lab_prep_id: int) -> Respo
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_pools(current_user: models.User, lab_prep_id: int, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -407,10 +407,10 @@ def get_pools(current_user: models.User, lab_prep_id: int, page: int = 0):
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_files(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     return make_response(
         render_template(
@@ -424,16 +424,16 @@ def get_files(current_user: models.User, lab_prep_id: int):
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
 def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if (file := db.files.get(file_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if file not in lab_prep.files:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
@@ -448,10 +448,10 @@ def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def file_form(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if request.method == "GET":
         form = forms.file.LabPrepAttachmentForm(lab_prep=lab_prep)
@@ -460,16 +460,16 @@ def file_form(current_user: models.User, lab_prep_id: int):
         form = forms.file.LabPrepAttachmentForm(lab_prep=lab_prep, formdata=request.form | request.files)
         return form.process_request(current_user)
     else:
-        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+        raise exceptions.MethodNotAllowedException()
     
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def plates_tab(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     return make_response(render_template("components/plates.html", plates=lab_prep.plates, from_page=f"lab_prep@{lab_prep.id}"))
     
@@ -477,10 +477,10 @@ def plates_tab(current_user: models.User, lab_prep_id: int):
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def comment_form(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if request.method == "GET":
         form = forms.comment.LabPrepCommentForm(lab_prep=lab_prep)
@@ -489,16 +489,16 @@ def comment_form(current_user: models.User, lab_prep_id: int):
         form = forms.comment.LabPrepCommentForm(lab_prep=lab_prep, formdata=request.form)
         return form.process_request(current_user)
     else:
-        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+        raise exceptions.MethodNotAllowedException()
 
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_comments(current_user: models.User, lab_prep_id: int):
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return make_response(
         render_template(
@@ -511,10 +511,10 @@ def get_comments(current_user: models.User, lab_prep_id: int):
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_mux_table(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     df = db.pd.get_lab_prep_samples(lab_prep.id)
 

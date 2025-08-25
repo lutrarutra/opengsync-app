@@ -1,11 +1,11 @@
-from flask import Blueprint, request, abort, Response, url_for, flash
+from flask import Blueprint, request, Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, LibraryStatus, LibraryType, LabProtocol
+from opengsync_db.categories import LibraryStatus, LibraryType, LabProtocol
 
 from .... import db
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....forms.SelectSamplesForm import SelectSamplesForm
 
 library_prep_workflow = Blueprint("library_prep_workflow", __name__, url_prefix="/api/workflows/library_prep/")
@@ -22,10 +22,10 @@ args: dict = dict(
 @wrappers.htmx_route(library_prep_workflow, db=db)
 def begin(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     _args = args.copy()
     if lab_prep.protocol == LabProtocol.CUSTOM:
@@ -40,10 +40,10 @@ def begin(current_user: models.User, lab_prep_id: int) -> Response:
 @wrappers.htmx_route(library_prep_workflow, db=db, methods=["POST"])
 def select(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     _args = args.copy()
     if lab_prep.protocol == LabProtocol.CUSTOM:
