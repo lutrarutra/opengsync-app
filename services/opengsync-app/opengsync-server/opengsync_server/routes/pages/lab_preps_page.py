@@ -1,17 +1,17 @@
-from flask import Blueprint, render_template, abort, url_for, request
+from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, LibraryStatus
+from opengsync_db.categories import LibraryStatus
 
 from ... import db
-from ...core import wrappers
+from ...core import wrappers, exceptions
 lab_preps_page_bp = Blueprint("lab_preps_page", __name__)
 
 
 @wrappers.page_route(lab_preps_page_bp, db=db, cache_timeout_seconds=360)
 def lab_preps(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     return render_template("lab_preps_page.html")
 
@@ -19,10 +19,10 @@ def lab_preps(current_user: models.User):
 @wrappers.page_route(lab_preps_page_bp, db=db, cache_timeout_seconds=360)
 def lab_prep(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     can_be_completed = len(lab_prep.libraries) > 0
     contains_mux_libraries = False

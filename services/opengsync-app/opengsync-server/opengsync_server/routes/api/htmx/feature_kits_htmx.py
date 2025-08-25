@@ -1,13 +1,13 @@
 import pandas as pd
 
-from flask import Blueprint, render_template, request, abort, flash, url_for
+from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, KitType
+from opengsync_db.categories import KitType
 
 from .... import db
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from .... import forms
 from ....tools.spread_sheet_components import TextColumn
 
@@ -21,7 +21,7 @@ def get(page: int = 0):
     descending = sort_order == "desc"
 
     if sort_by not in models.FeatureKit.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     feature_kits, n_pages = db.feature_kits.find(
         offset=PAGE_LIMIT * page,
@@ -42,10 +42,10 @@ def get(page: int = 0):
 def query():
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name, default="")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     if (word := request.form.get(field_name)) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     results = db.kits.query(word, kit_type=KitType.FEATURE_KIT)
 
@@ -61,14 +61,14 @@ def query():
 @wrappers.htmx_route(feature_kits_htmx, db=db)
 def table_query(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
         field_name = "id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     feature_kits = []
     if field_name == "name":
@@ -77,12 +77,12 @@ def table_query(current_user: models.User):
         try:
             _id = int(word)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
 
         if (feature_kit := db.feature_kits.get(_id)) is not None:
             feature_kits.append(feature_kit)
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     return make_response(
         render_template(
@@ -100,7 +100,7 @@ def get_features(feature_kit_id: int, page: int = 0):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Feature.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
         
     feature_kit = db.feature_kits.get(feature_kit_id)
     features, n_pages = db.features.find(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
@@ -120,7 +120,7 @@ def get_features(feature_kit_id: int, page: int = 0):
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
     if not current_user.is_admin():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
         return forms.models.FeatureKitForm(form_type="create").make_response()
@@ -128,15 +128,15 @@ def create(current_user: models.User):
         form = forms.models.FeatureKitForm(form_type="create", formdata=request.form)
         return form.process_request()
     else:
-        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+        raise exceptions.MethodNotAllowedException()
 
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if request.method == "GET":
         return forms.models.FeatureKitForm(form_type="edit", feature_kit=feature_kit).make_response()
@@ -144,16 +144,16 @@ def edit(current_user: models.User, feature_kit_id: int):
         form = forms.models.FeatureKitForm(form_type="edit", formdata=request.form, feature_kit=feature_kit)
         return form.process_request()
     else:
-        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+        raise exceptions.MethodNotAllowedException()
     
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def edit_features(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if request.method == "GET":
         return forms.EditKitFeaturesForm(feature_kit=feature_kit).make_response()
@@ -164,16 +164,16 @@ def edit_features(current_user: models.User, feature_kit_id: int):
         )
         return form.process_request()
     
-    return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+    raise exceptions.MethodNotAllowedException()
 
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, feature_kit_id: int):
     if not current_user.is_admin():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (kit := db.feature_kits.get(feature_kit_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     db.feature_kits.delete(kit)
 
@@ -184,7 +184,7 @@ def delete(current_user: models.User, feature_kit_id: int):
 @wrappers.htmx_route(feature_kits_htmx, db=db)
 def render_table(feature_kit_id: int):
     if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     df = db.pd.get_feature_kit_features(feature_kit_id=feature_kit.id)
     df = df.drop(columns=["type", "type_id"])

@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, abort, url_for, request
+from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, AccessType
+from opengsync_db.categories import AccessType
 from ... import db, forms
-from ...core import wrappers
+from ...core import wrappers, exceptions
+
 projects_page_bp = Blueprint("projects_page", __name__)
 
 
@@ -15,11 +16,11 @@ def projects():
 @wrappers.page_route(projects_page_bp, db=db, cache_timeout_seconds=360)
 def project(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.projects.get_access_type(project, current_user)
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     path_list = [
         ("Projects", url_for("projects_page.projects")),

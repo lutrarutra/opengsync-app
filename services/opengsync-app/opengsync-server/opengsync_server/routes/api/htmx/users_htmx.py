@@ -1,12 +1,12 @@
 import json
 
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, UserRole, SeqRequestStatus
+from opengsync_db.categories import UserRole, SeqRequestStatus
 from .... import db, logger  # noqa F401
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 users_htmx = Blueprint("users_htmx", __name__, url_prefix="/api/hmtx/users/")
 
@@ -14,21 +14,21 @@ users_htmx = Blueprint("users_htmx", __name__, url_prefix="/api/hmtx/users/")
 @wrappers.htmx_route(users_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get(current_user: models.User, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
 
     if sort_by not in models.User.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (role_in := request.args.get("role_id_in")) is not None:
         role_in = json.loads(role_in)
         try:
             role_in = [UserRole.get(int(role)) for role in role_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(role_in) == 0:
             role_in = None
@@ -51,20 +51,20 @@ def get(current_user: models.User, page: int = 0):
 @wrappers.htmx_route(users_htmx, db=db, methods=["POST"])
 def query(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     field_name = next(iter(request.form.keys()))
     query = request.form.get(field_name)
 
     if query is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (role_in := request.args.get("role_id_in")) is not None:
         role_in = json.loads(role_in)
         try:
             role_in = [UserRole.get(int(role)) for role in role_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if len(role_in) == 0:
             role_in = None
@@ -83,7 +83,7 @@ def query(current_user: models.User):
 @wrappers.htmx_route(users_htmx, db=db)
 def table_query(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (word := request.args.get("last_name")) is not None:
         field_name = "last_name"
@@ -92,14 +92,14 @@ def table_query(current_user: models.User):
     elif (word := request.args.get("id")) is not None:
         field_name = "id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     if (role_in := request.args.get("role_id_in")) is not None:
         role_in = json.loads(role_in)
         try:
             role_in = [UserRole.get(int(role)) for role in role_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if len(role_in) == 0:
             role_in = None
@@ -129,10 +129,10 @@ def table_query(current_user: models.User):
 @wrappers.htmx_route(users_htmx, db=db)
 def get_projects(current_user: models.User, user_id: int, page: int = 0):
     if (user := db.users.get(user_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if user.id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -153,10 +153,10 @@ def get_projects(current_user: models.User, user_id: int, page: int = 0):
 @wrappers.htmx_route(users_htmx, db=db)
 def get_seq_requests(current_user: models.User, user_id: int, page: int = 0):
     if (user := db.users.get(user_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if user.id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -168,7 +168,7 @@ def get_seq_requests(current_user: models.User, user_id: int, page: int = 0):
         try:
             status_in = [SeqRequestStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -193,20 +193,20 @@ def query_seq_requests(current_user: models.User, user_id: int):
     elif (word := request.args.get("id")) is not None:
         field_name = "id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (user := db.users.get(user_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if user.id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [SeqRequestStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -236,10 +236,10 @@ def query_seq_requests(current_user: models.User, user_id: int):
 @wrappers.htmx_route(users_htmx, db=db)
 def get_affiliations(current_user: models.User, user_id: int, page: int = 0):
     if (user := db.users.get(user_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if user.id != current_user.id and not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "group_id")
     sort_order = request.args.get("sort_order", "desc")

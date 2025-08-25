@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, url_for, abort, request
+from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, AccessType
+from opengsync_db.categories import AccessType
+
 from ... import db
-from ...core import wrappers
+from ...core import wrappers, exceptions
 samples_page_bp = Blueprint("samples_page", __name__)
 
 
@@ -15,10 +16,10 @@ def samples():
 @wrappers.page_route(samples_page_bp, db=db, cache_timeout_seconds=360)
 def sample(current_user: models.User, sample_id: int):
     if (sample := db.samples.get(sample_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
         
     if db.samples.get_access_type(sample, current_user) < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     path_list = [
         ("Samples", url_for("samples_page.samples")),

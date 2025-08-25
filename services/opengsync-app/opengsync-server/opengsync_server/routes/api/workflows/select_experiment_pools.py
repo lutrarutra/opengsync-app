@@ -1,11 +1,10 @@
-from flask import Blueprint, request, abort, flash, url_for
+from flask import Blueprint, request, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....forms import SelectSamplesForm
 
 select_experiment_pools_workflow = Blueprint("select_experiment_pools_workflow", __name__, url_prefix="/api/workflows/select_experiment_pools/")
@@ -14,10 +13,10 @@ select_experiment_pools_workflow = Blueprint("select_experiment_pools_workflow",
 @wrappers.htmx_route(select_experiment_pools_workflow, db=db)
 def begin(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     context = {"experiment": experiment}
     form = SelectSamplesForm.create_workflow_form(workflow="select_experiment_pools", context=context)
@@ -27,21 +26,21 @@ def begin(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(select_experiment_pools_workflow, db=db, methods=["POST"])
 def select(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     context = {}
     if (experiment_id := request.form.get("experiment_id")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     try:
         experiment_id = int(experiment_id)
         if (experiment := db.experiments.get(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
         
         experiment.pools
         
         context["experiment"] = experiment
     except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     form: SelectSamplesForm = SelectSamplesForm.create_workflow_form(workflow="select_experiment_pools", formdata=request.form, context=context)
     if not form.validate():
@@ -57,7 +56,7 @@ def select(current_user: models.User):
             raise ValueError("Invalid pool id")
         
         if (_ := db.pools.get(pool_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
         
         if pool_id not in current_pool_ids:
             db.links.link_pool_experiment(experiment_id=experiment.id, pool_id=pool_id)

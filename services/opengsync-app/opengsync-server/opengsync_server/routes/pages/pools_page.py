@@ -1,11 +1,10 @@
-from flask import Blueprint, render_template, abort, url_for, request
+from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db.categories import PoolStatus
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
 
 from ... import db
-from ...core import wrappers
+from ...core import wrappers, exceptions
 pools_page_bp = Blueprint("pools_page", __name__)
 
 
@@ -17,10 +16,10 @@ def pools():
 @wrappers.page_route(pools_page_bp, db=db, cache_timeout_seconds=360)
 def pool(current_user: models.User, pool_id: int):
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     path_list = [
         ("Pools", url_for("pools_page.pools")),

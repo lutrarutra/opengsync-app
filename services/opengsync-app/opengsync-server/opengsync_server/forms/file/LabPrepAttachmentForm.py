@@ -1,5 +1,5 @@
 import os
-import uuid
+from uuid_extensions import uuid7str
 from typing import Optional
 
 from flask import Response, flash, url_for
@@ -42,7 +42,7 @@ class LabPrepAttachmentForm(FileInputForm):
 
         filename, extension = os.path.splitext(self.file.data.filename)
 
-        _uuid = uuid.uuid4().hex
+        _uuid = uuid7str()
         filepath = os.path.join(runtime.current_app.media_folder, file_type.dir, f"{_uuid}{extension}")
         self.file.data.save(filepath)
         size_bytes = os.stat(filepath).st_size

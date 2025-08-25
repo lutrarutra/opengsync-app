@@ -256,7 +256,6 @@ class App(Flask):
         self.register_blueprint(pages.users_page_bp)
         self.register_blueprint(pages.seq_requests_page_bp)
         self.register_blueprint(pages.kits_page_bp)
-        self.register_blueprint(pages.errors_bp)
         self.register_blueprint(pages.devices_page_bp)
         self.register_blueprint(pages.pools_page_bp)
         self.register_blueprint(pages.seq_runs_page_bp)

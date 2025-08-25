@@ -1,10 +1,10 @@
-from flask import Blueprint, request, abort
+from flask import Blueprint, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, MUXType
+from opengsync_db.categories import MUXType
 
 from .... import db
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....forms.workflows import mux_prep as forms
 
 mux_prep_workflow = Blueprint("mux_prep_workflow", __name__, url_prefix="/api/workflows/multiplexing_prep/")
@@ -13,13 +13,13 @@ mux_prep_workflow = Blueprint("mux_prep_workflow", __name__, url_prefix="/api/wo
 @wrappers.htmx_route(mux_prep_workflow, db=db)
 def begin(current_user: models.User, lab_prep_id: int, mux_type_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if not (mux_type := MUXType.get(mux_type_id)):
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if mux_type == MUXType.TENX_OLIGO:
         form = forms.OligoMuxForm(lab_prep=lab_prep)
@@ -36,7 +36,7 @@ def begin(current_user: models.User, lab_prep_id: int, mux_type_id: int):
 @wrappers.htmx_route(mux_prep_workflow, db=db, methods=["GET", "POST"])
 def sample_pooling(lab_prep_id: int):
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if request.method == "GET":
         return forms.SamplePoolingForm(lab_prep=lab_prep).make_response()
@@ -47,7 +47,7 @@ def sample_pooling(lab_prep_id: int):
 @wrappers.htmx_route(mux_prep_workflow, db=db, methods=["POST"])
 def parse_oligo_mux_annotation(lab_prep_id: int, uuid: str):
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     return forms.OligoMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
 
@@ -55,7 +55,7 @@ def parse_oligo_mux_annotation(lab_prep_id: int, uuid: str):
 @wrappers.htmx_route(mux_prep_workflow, db=db, methods=["POST"])
 def parse_flex_annotation(lab_prep_id: int, uuid: str):
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     return forms.FlexMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
 
@@ -63,7 +63,7 @@ def parse_flex_annotation(lab_prep_id: int, uuid: str):
 @wrappers.htmx_route(mux_prep_workflow, db=db, methods=["POST"])
 def parse_flex_abc_annotation(lab_prep_id: int, uuid: str):
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     return forms.FlexABCForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()
 
@@ -71,6 +71,6 @@ def parse_flex_abc_annotation(lab_prep_id: int, uuid: str):
 @wrappers.htmx_route(mux_prep_workflow, db=db, methods=["POST"])
 def parse_ocm_annotation(lab_prep_id: int, uuid: str):
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     return forms.OCMMuxForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form).process_request()

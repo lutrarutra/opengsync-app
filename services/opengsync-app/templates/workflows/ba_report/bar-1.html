@@ -5,87 +5,94 @@
         <h1 class="modal-title fs-5">Upload Bio Analyzer Report</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
     </div>
-    <div class="modal-body" id="ba_report-form">
-        {{ ba_report_form.csrf_token() }}
-        {{ form_group(ba_report_form.file) }}
-        <h4>Samples</h4>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th scope="col" class="col-1">ID</th>
-                    <th scope="col" class="col-4">Sample Name</th>
-                    <th scope="col" class="col-4">Sample Type <span class="desc">Sample/Library/Pool/Lane</span></th>
-                    <th scope="col" class="col-3">Avg. Fragment Size</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for i, (_, row) in enumerate(sample_table.iterrows()) %}
-                {% set sub_form = ba_report_form.sample_fields[i] %}
-                {{ sub_form.csrf_token() }}
-                <tr>
-                    <th scope="row">{{ row["id"] | int }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
-                    <td>{{ row["name"] }}</td>
-                    <td>Sample</td>
-                    <td>{{ form_cell(sub_form.avg_fragment_size, input_class="avg_fragment_size-col", unit="bp") }}</td>
-                </tr>
-                {% endfor %}
-
-                {% for _, row in library_table.iterrows() %}
-                {% set sub_form = ba_report_form.library_fields[loop.index0] %}
-                {{ sub_form.csrf_token() }}
-                <tr>
-                    <th scope="row">{{ row["id"] }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
-                    <td>{{ row["name"] }}</td>
-                    <td>Library</td>
-                    <td>{{ form_cell(sub_form.avg_fragment_size, input_class="avg_fragment_size-col", unit="bp") }}</td>
-                </tr>
-                {% endfor %}
-
-                {% for _, row in pool_table.iterrows() %}
-                {% set sub_form = ba_report_form.pool_fields[loop.index0] %}
-                {{ sub_form.csrf_token() }}
-                <tr>
-                    <th scope="row">{{ row["id"] }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
-                    <td>{{ row["name"] }}</td>
-                    <td>Pool</td>
-                    <td>{{ form_cell(sub_form.avg_fragment_size, input_class="avg_fragment_size-col", unit="bp") }}</td>
-                </tr>
-                {% endfor %}
-
-                {% for _, row in lane_table.iterrows() %}
-                {% set sub_form = ba_report_form.lane_fields[loop.index0] %}
-                {{ sub_form.csrf_token() }}
-                <tr>
-                    <th scope="row">{{ row["id"] | int }}{{ sub_form.obj_id(class="form-control", readonly=true, hidden=true) }}</th>
-                    <td>{{ row["name"] }}</td>
-                    <td>Lane</td>
-                    <td>{{ form_cell(sub_form.avg_fragment_size, unit="bp") }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="modal-body tab-body" id="ba_report-form">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 'excel' %} active{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#form-tab-excel" type="button" role="tab"
+                aria-controls="form-tab-excel" aria-selected="true"
+                id="ba_report-excel-tab-btn">
+                Excel</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link{% if active_tab == 'manual' %} active{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#form-tab-manual" type="button" role="tab"
+                aria-controls="form-tab-manual" aria-selected="false"
+                id="ba_report-manual-tab-btn">
+                Manual</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            {{ form.csrf_token() }}
+            <div class="tab-pane fade{% if active_tab == 'excel' %} show active{% endif %}" id="form-tab-excel" role="tabpanel" tabindex="0">
+                {{ form_group(form.excel) }}
+            </div>
+            <div class="tab-pane fade{% if active_tab == 'manual' %} show active{% endif %}" id="form-tab-manual" role="tabpanel" tabindex="1">
+                {{ form_group(form.pdf) }}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">ID</th>
+                            <th scope="col" class="col-4">Sample Name</th>
+                            <th scope="col" class="col-4">Sample Type <span class="desc">Sample/Library/Pool/Lane</span></th>
+                            <th scope="col" class="col-3">Avg. Fragment Size</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i, (_, row) in enumerate(form.sample_table.iterrows()) %}
+                        {% set sub_form = form.sample_fields[i] %}
+                        {{ sub_form.csrf_token() }}
+                        {{ sub_form.sample_type(readonly=true, hidden=true) }}
+                        {{ sub_form.obj_id(readonly=true, hidden=true) }}
+                        <tr>
+                            <th scope="row">{{ row["id"] | int }}</th>
+                            <td>{{ row["name"] }}</td>
+                            <td>{{ row["sample_type"] }}</td>
+                            <td>{{ form_cell(sub_form.avg_fragment_size, unit="bp") }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
     <div class="modal-footer" id="popup-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ ba_report_form.uuid }}
+            {{ form.uuid }}
         </div>
         <div class="footer-info">
         </div>
         <div class="footer-controls">
-            <button class="btn btn-primary" id="submit-ba_report-form-btn" hx-include="#ba_report-form" hx-target="#ba_report-form-container" hx-swap="outerHTML"
-                hx-encoding="multipart/form-data" hx-post="{{ url_for('ba_report_workflow.complete', uuid=ba_report_form.uuid) }}">
-                Next
+            <button class="btn btn-primary" id="submit-ba_report-excel-form-btn" hx-include="#ba_report-form" hx-target="#ba_report-form-container" hx-swap="outerHTML"
+                hx-encoding="multipart/form-data" hx-post="{{ url_for('ba_report_workflow.upload', uuid=form.uuid, method='excel') }}"
+                {% if active_tab == 'manual' %} style="display: none;"{% endif %}>
+                Parse
+            </button>
+            <button class="btn btn-success" id="submit-ba_report-manual-form-btn" hx-include="#ba_report-form" hx-target="#ba_report-form-container" hx-swap="outerHTML"
+                hx-encoding="multipart/form-data" hx-post="{{ url_for('ba_report_workflow.upload', uuid=form.uuid, method='manual') }}"
+                {% if active_tab == 'excel' %} style="display: none;"{% endif %}>
+                Save
             </button>
         </div>
     </div>
 </div>
 <script>
-    init_tooltips();
     window.onbeforeunload = function() {
         return "Data will be lost if you leave the page, are you sure?";
     };
 
-    $("#submit-ba_report-form-btn").on("click", function() {
+    $(document).ready(function() {
+        $("#ba_report-excel-tab-btn").on("click", function() {
+            $("#submit-ba_report-excel-form-btn").show();
+            $("#submit-ba_report-manual-form-btn").hide();
+        });
+        $("#ba_report-manual-tab-btn").on("click", function() {
+            $("#submit-ba_report-excel-form-btn").hide();
+            $("#submit-ba_report-manual-form-btn").show();
+        });
+    });
+
+    $("#submit-ba_report-manual-form-btn").on("click", function() {
         window.onbeforeunload = null;
     });
 </script>

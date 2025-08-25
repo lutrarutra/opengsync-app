@@ -1,10 +1,9 @@
-from flask import Blueprint, render_template, url_for, abort, request
+from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
 
 from ... import db, logger  # noqa: F401
-from ...core import wrappers
+from ...core import wrappers, exceptions
 
 users_page_bp = Blueprint("users_page", __name__)
 
@@ -12,7 +11,7 @@ users_page_bp = Blueprint("users_page", __name__)
 @wrappers.page_route(users_page_bp, db=db, cache_timeout_seconds=360)
 def users(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return render_template("users_page.html")
 
@@ -24,10 +23,10 @@ def user(current_user: models.User, user_id: int | None = None):
 
     if not current_user.is_insider():
         if user_id != current_user.id:
-            return abort(HTTPResponse.FORBIDDEN.id)
+            raise exceptions.NoPermissionsException()
         
     if (user := db.users.get(user_id)) is None:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     path_list = [
         ("Users", url_for("users_page.users")),

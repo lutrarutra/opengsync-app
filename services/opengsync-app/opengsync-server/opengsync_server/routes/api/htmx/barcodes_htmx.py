@@ -1,11 +1,11 @@
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
 from opengsync_db import PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, IndexType
+from opengsync_db.categories import IndexType
 
 from .... import db, forms
-from ....core import wrappers
+from ....core import wrappers, exceptions
 barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/api/hmtx/barcodes/")
 
 
@@ -34,12 +34,12 @@ def query_index_kits():
         try:
             index_type_in = [IndexType.get(int(i)) for i in index_type_id_in.split(",")]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     else:
         index_type_in = None
     
     if (word := request.form.get(field_name)) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     results = db.index_kits.query(word, index_type_in=index_type_in)
 

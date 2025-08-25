@@ -4,15 +4,15 @@ from typing import Literal
 
 import pandas as pd
 
-from flask import Blueprint, url_for, render_template, flash, abort, request
+from flask import Blueprint, url_for, render_template, flash, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, ExperimentStatus, ExperimentWorkFlow, ProjectStatus
+from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow, ProjectStatus
 
 from .... import db, forms, logger
 from ....core.RunTime import runtime
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/api/hmtx/experiments/")
 
@@ -29,7 +29,7 @@ def get(page: int = 0):
         try:
             status_in = [ExperimentStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -39,7 +39,7 @@ def get(page: int = 0):
         try:
             workflow_in = [ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(workflow_in) == 0:
             workflow_in = None
@@ -64,28 +64,28 @@ def get(page: int = 0):
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if form_type not in ["create", "edit"]:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if form_type != "edit":
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if (experiment := db.experiments.get(experiment_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
         
         return forms.models.ExperimentForm(form_type=form_type, experiment=experiment).make_response()
 
     # seq_request_id must be provided if form_type is "edit"
     if form_type == "edit":
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     return forms.models.ExperimentForm(form_type=form_type, current_user=current_user).make_response()
 
@@ -93,7 +93,7 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
 def create(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return forms.models.ExperimentForm(formdata=request.form, form_type="create").process_request()
 
@@ -101,10 +101,10 @@ def create(current_user: models.User):
 @wrappers.htmx_route(experiments_htmx, methods=["POST"], db=db)
 def edit(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     return forms.models.ExperimentForm(formdata=request.form, form_type="edit").process_request(
         experiment=experiment
@@ -114,13 +114,13 @@ def edit(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(experiments_htmx, methods=["DELETE"], db=db)
 def delete(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if not experiment.is_deleteable():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     db.experiments.delete(experiment_id)
 
@@ -135,11 +135,11 @@ def delete(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
 def query(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name)) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     results = db.experiments.query(word)
 
@@ -154,13 +154,13 @@ def query(current_user: models.User):
 @wrappers.htmx_route(experiments_htmx, db=db)
 def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: int, file_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
         
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
         
     if (file := db.files.get(file_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     filepath = os.path.join(runtime.current_app.media_folder, file.path)
     df = pd.read_csv(filepath, sep="\t")
@@ -188,24 +188,24 @@ def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def table_query(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (word := request.args.get("name", None)) is not None:
         field_name = "name"
     elif (word := request.args.get("id", None)) is not None:
         field_name = "id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if word is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (workflow_in := request.args.get("workflow_id_in")) is not None:
         workflow_in = json.loads(workflow_in)
         try:
             workflow_in = [ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(workflow_in) == 0:
             workflow_in = None
@@ -234,19 +234,19 @@ def table_query(current_user: models.User):
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
 def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_num: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if lane_num > experiment.num_lanes or lane_num < 1:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (_ := db.lanes.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     db.links.add_pool_to_lane(
         experiment_id=experiment_id,
@@ -266,19 +266,19 @@ def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
 def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_num: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if (pool := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if lane_num > experiment.num_lanes or lane_num < 1:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (_ := db.lanes.get_experiment_lane(experiment_id=experiment_id, lane_num=lane_num)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     db.links.remove_pool_from_lane(
         experiment_id=experiment_id,
@@ -298,10 +298,10 @@ def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lan
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
 def comment_form(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if request.method == "GET":
         form = forms.comment.ExperimentCommentForm(experiment=experiment)
@@ -310,16 +310,16 @@ def comment_form(current_user: models.User, experiment_id: int):
         form = forms.comment.ExperimentCommentForm(experiment=experiment, formdata=request.form)
         return form.process_request(current_user)
     else:
-        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+        raise exceptions.MethodNotAllowedException()
     
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
 def file_form(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if request.method == "GET":
         form = forms.file.ExperimentAttachmentForm(experiment=experiment)
@@ -328,22 +328,22 @@ def file_form(current_user: models.User, experiment_id: int):
         form = forms.file.ExperimentAttachmentForm(experiment=experiment, formdata=request.form | request.files)
         return form.process_request(current_user)
     else:
-        return abort(HTTPResponse.METHOD_NOT_ALLOWED.id)
+        raise exceptions.MethodNotAllowedException()
 
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
 def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if (file := db.files.get(file_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if file not in experiment.files:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     file_path = os.path.join(runtime.current_app.media_folder, file.path)
     if os.path.exists(file_path):
@@ -358,10 +358,10 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
 def add_comment(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     return forms.comment.ExperimentCommentForm(experiment=experiment, formdata=request.form).process_request(user=current_user)
 
@@ -369,21 +369,21 @@ def add_comment(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
 def remove_pool(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if (pool_id := request.args.get("pool_id")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     try:
         pool_id = int(pool_id)
     except ValueError:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (_ := db.pools.get(pool_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     db.links.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
 
@@ -398,10 +398,10 @@ def remove_pool(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(experiments_htmx, db=db)
 def overview(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     LINK_WIDTH_UNIT = 1
     
@@ -505,7 +505,7 @@ def overview(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_pools(current_user: models.User, experiment_id: int, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -513,12 +513,12 @@ def get_pools(current_user: models.User, experiment_id: int, page: int = 0):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Pool.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     experiment_lanes: dict[int, list[int]] = {}
 
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     pools, _ = db.pools.find(
         offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
@@ -544,7 +544,7 @@ def get_pools(current_user: models.User, experiment_id: int, page: int = 0):
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_projects(current_user: models.User, experiment_id: int, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -552,17 +552,17 @@ def get_projects(current_user: models.User, experiment_id: int, page: int = 0):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Project.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [ProjectStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -585,7 +585,7 @@ def get_projects(current_user: models.User, experiment_id: int, page: int = 0):
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_libraries(current_user: models.User, experiment_id: int, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -593,10 +593,10 @@ def get_libraries(current_user: models.User, experiment_id: int, page: int = 0):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Library.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     libraries, n_pages = db.libraries.find(
         offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, count_pages=True
@@ -615,13 +615,13 @@ def get_libraries(current_user: models.User, experiment_id: int, page: int = 0):
 @wrappers.htmx_route(experiments_htmx, db=db)
 def query_libraries(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (word := request.args.get("word")) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     libraries = db.libraries.query(experiment_id=experiment_id, name=word)
 
@@ -636,10 +636,10 @@ def query_libraries(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_comments(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     return make_response(
         render_template(
@@ -652,10 +652,10 @@ def get_comments(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_files(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     return make_response(
         render_template(
@@ -669,10 +669,10 @@ def get_files(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_pool_dilutions(current_user: models.User, experiment_id: int, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     sort_by = request.args.get("sort_by", "pool_id")
     sort_order = request.args.get("sort_order", "desc")
@@ -693,11 +693,11 @@ def get_pool_dilutions(current_user: models.User, experiment_id: int, page: int 
 @wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get_recent_experiments(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (sort_by := request.args.get("sort_by")) is not None:
         if sort_by not in ["name", "id", "timestamp_created_utc"]:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     else:
         sort_by = "name"
 

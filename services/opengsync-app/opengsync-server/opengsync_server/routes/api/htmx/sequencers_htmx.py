@@ -1,10 +1,11 @@
-from flask import Blueprint, url_for, render_template, flash, request, abort
+from flask import Blueprint, url_for, render_template, flash, request
 from flask_htmx import make_response
 
-from opengsync_db import PAGE_LIMIT, exceptions, models
-from opengsync_db.categories import HTTPResponse, UserRole
+from opengsync_db import PAGE_LIMIT, exceptions as db_exc, models
+from opengsync_db.categories import UserRole
+
 from .... import db, forms
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/hmtx/sequencers/")
 
@@ -12,7 +13,7 @@ sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/api/hmtx/s
 @wrappers.htmx_route(sequencers_htmx, db=db, cache_timeout_seconds=60, cache_type="user")
 def get(current_user: models.User, page: int = 0):
     if current_user.role != UserRole.ADMIN:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sequencers, n_pages = db.sequencers.find(offset=PAGE_LIMIT * page, count_pages=True)
     
@@ -29,7 +30,7 @@ def get(current_user: models.User, page: int = 0):
 @wrappers.htmx_route(sequencers_htmx, db=db, methods=["POST"])
 def create(current_user: models.User):
     if current_user.role != UserRole.ADMIN:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     return forms.models.SequencerForm(request.form).process_request()
 
@@ -37,10 +38,10 @@ def create(current_user: models.User):
 @wrappers.htmx_route(sequencers_htmx, db=db, methods=["POST"])
 def update(current_user: models.User, sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (sequencer := db.sequencers.get(sequencer_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     return forms.models.SequencerForm(request.form).process_request(
         sequencer=sequencer
@@ -50,14 +51,14 @@ def update(current_user: models.User, sequencer_id: int):
 @wrappers.htmx_route(sequencers_htmx, db=db)
 def delete(current_user: models.User, sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if db.sequencers.get(sequencer_id) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     try:
         db.sequencers.delete(sequencer_id)
-    except exceptions.ElementIsReferenced:
+    except db_exc.ElementIsReferenced:
         flash("Sequencer is referenced by experiment(s) and cannot be deleted.", "error")
         return make_response(
             redirect=url_for("devices_page.sequencer", sequencer_id=sequencer_id)
@@ -75,7 +76,7 @@ def query():
     query = request.form.get(field_name)
 
     if query is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     results = db.sequencers.query(query)
     

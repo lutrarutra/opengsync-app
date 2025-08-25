@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, abort, url_for, request
+from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse, AccessType
+from opengsync_db.categories import AccessType
 
 from ... import forms, db, logger
-from ...core import wrappers
+from ...core import wrappers, exceptions
 seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
 
 
@@ -16,14 +16,14 @@ def seq_requests():
 @wrappers.page_route(seq_requests_page_bp, db=db, cache_timeout_seconds=360)
 def seq_request(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests[seq_request_id]) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     from sqlalchemy import orm
     logger.debug(seq_request.num_libraries)
     logger.debug("libraries" in orm.attributes.instance_state(seq_request).unloaded)
 
     if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     path_list = [
         ("Requests", url_for("seq_requests_page.seq_requests")),

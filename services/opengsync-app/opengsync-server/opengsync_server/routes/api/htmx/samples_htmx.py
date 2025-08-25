@@ -1,13 +1,13 @@
 import json
 
-from flask import Blueprint, url_for, render_template, flash, request, abort
+from flask import Blueprint, url_for, render_template, flash, request
 from flask_htmx import make_response
 
-from opengsync_db import models, PAGE_LIMIT, DBHandler
-from opengsync_db.categories import HTTPResponse, UserRole, SampleStatus, AccessType
+from opengsync_db import models, PAGE_LIMIT
+from opengsync_db.categories import UserRole, SampleStatus, AccessType
 
 from .... import db, logger, forms
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 
 samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/api/hmtx/samples/")
@@ -21,14 +21,14 @@ def get(current_user: models.User, page: int = 0):
     offset = PAGE_LIMIT * page
 
     if sort_by not in models.Sample.sortable_fields:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [SampleStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -54,15 +54,15 @@ def get(current_user: models.User, page: int = 0):
 @wrappers.htmx_route(samples_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, sample_id: int):
     if (sample := db.samples.get(sample_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.samples.get_access_type(sample, current_user)
 
     if not sample.is_editable() and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     db.samples.delete(sample_id)
 
@@ -79,15 +79,15 @@ def delete(current_user: models.User, sample_id: int):
 @wrappers.htmx_route(samples_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, sample_id: int):
     if (sample := db.samples.get(sample_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     access_type = db.samples.get_access_type(sample, current_user)
 
     if not sample.is_editable() and access_type < AccessType.INSIDER:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if access_type < AccessType.EDIT:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
 
     if request.method == "GET":
         return forms.models.SampleForm(sample).make_response()
@@ -99,7 +99,7 @@ def edit(current_user: models.User, sample_id: int):
 def query(current_user: models.User):
     field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name)) is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
 
     if current_user.role == UserRole.CLIENT:
         _user_id = current_user.id
@@ -124,10 +124,10 @@ def table_query(current_user: models.User):
     elif (word := request.args.get("id", None)) is not None:
         field_name = "id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if word is None:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if not current_user.is_insider():
         _user_id = current_user.id
@@ -180,10 +180,10 @@ def table_query(current_user: models.User):
             project_id = int(project_id)
 
         except (ValueError, TypeError):
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if (project := db.projects.get(project_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
             
         samples = __get_samples(word, field_name, project_id=project_id, seq_request_id=None)
         context["project"] = project
@@ -193,10 +193,10 @@ def table_query(current_user: models.User):
         try:
             seq_request_id = int(seq_request_id)
         except (ValueError, TypeError):
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
         if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-            return abort(HTTPResponse.NOT_FOUND.id)
+            raise exceptions.NotFoundException()
         
         samples = __get_samples(word, field_name, project_id=None, seq_request_id=seq_request_id)
         context["seq_request"] = seq_request
@@ -218,12 +218,12 @@ def table_query(current_user: models.User):
 @wrappers.htmx_route(samples_htmx, db=db)
 def get_libraries(current_user: models.User, sample_id: int):
     if (sample := db.samples.get(sample_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     access_type = db.samples.get_access_type(sample, current_user)
 
     if access_type < AccessType.VIEW:
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     libraries, n_pages = db.libraries.find(
         sample_id=sample_id, count_pages=True
@@ -242,10 +242,10 @@ def get_libraries(current_user: models.User, sample_id: int):
 def get_plate(current_user: models.User, sample_id: int):
     raise NotImplementedError()
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (sample := db.samples.get(sample_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     return make_response(
         render_template(
@@ -258,7 +258,7 @@ def get_plate(current_user: models.User, sample_id: int):
 @wrappers.htmx_route(samples_htmx, db=db)
 def browse(current_user: models.User, workflow: str, page: int = 0):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
@@ -272,23 +272,23 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
             seq_request_id = int(seq_request_id)
             context["seq_request_id"] = seq_request_id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (pool_id := request.args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
             if (pool := db.pools.get(pool_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["pool_id"] = pool.id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [SampleStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -311,14 +311,14 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
 @wrappers.htmx_route(samples_htmx, db=db)
 def browse_query(current_user: models.User, workflow: str):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
         field_name = "id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     context = {}
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
@@ -326,16 +326,16 @@ def browse_query(current_user: models.User, workflow: str):
             seq_request_id = int(seq_request_id)
             context["seq_request_id"] = seq_request_id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
         
     if (pool_id := request.args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
             if (pool := db.pools.get(pool_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["pool_id"] = pool.id
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
 
     samples: list[models.Sample] = []
 
@@ -362,24 +362,24 @@ def browse_query(current_user: models.User, workflow: str):
 @wrappers.htmx_route(samples_htmx, db=db)
 def select_all(current_user: models.User, workflow: str):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     context = {}
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
             if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-                return abort(HTTPResponse.NOT_FOUND.id)
+                raise exceptions.NotFoundException()
             context["seq_request"] = seq_request
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
 
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
         try:
             status_in = [SampleStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None

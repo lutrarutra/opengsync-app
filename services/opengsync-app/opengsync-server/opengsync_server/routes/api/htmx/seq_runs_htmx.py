@@ -1,12 +1,12 @@
 import json
 
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import HTTPResponse, RunStatus
+from opengsync_db.categories import RunStatus
 from .... import db, logger, route_cache  # noqa F401
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/api/hmtx/seq_run/")
 
@@ -23,7 +23,7 @@ def get(page: int = 0):
         try:
             status_in = [RunStatus.get(int(status)) for status in status_in]
         except ValueError:
-            return abort(HTTPResponse.BAD_REQUEST.id)
+            raise exceptions.BadRequestException()
     
         if len(status_in) == 0:
             status_in = None
@@ -39,14 +39,14 @@ def get(page: int = 0):
 @wrappers.htmx_route(seq_runs_htmx, db=db)
 def table_query(current_user: models.User):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (word := request.args.get("experiment_name", None)) is not None:
         field_name = "experiment_name"
     elif (word := request.args.get("id", None)) is not None:
         field_name = "id"
     else:
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     seq_runs = []
     if field_name == "experiment_name":

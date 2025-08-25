@@ -1,11 +1,10 @@
-from flask import Blueprint, request, abort
+from flask import Blueprint, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa
 from ....forms.workflows import dilute_pools as wff
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 dilute_pools_workflow = Blueprint("dilute_pools_workflow", __name__, url_prefix="/api/workflows/dilute_pools/")
 
@@ -13,10 +12,10 @@ dilute_pools_workflow = Blueprint("dilute_pools_workflow", __name__, url_prefix=
 @wrappers.htmx_route(dilute_pools_workflow, db=db)
 def begin(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     form = wff.DilutePoolsForm(experiment=experiment)
     return form.make_response()
@@ -25,9 +24,9 @@ def begin(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(dilute_pools_workflow, db=db, methods=["POST"])
 def dilute(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     return wff.DilutePoolsForm(experiment=experiment, formdata=request.form).process_request(user=current_user)

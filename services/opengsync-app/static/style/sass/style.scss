@@ -20,6 +20,9 @@ body.waiting * {
     cursor: wait !important;
 }
 
+.exception-container {
+    font-family: monospace, monospace;
+}
 
 .spreadsheet-grid {
     tbody tr {

@@ -1,11 +1,10 @@
-from flask import Blueprint, request, abort
+from flask import Blueprint, request
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
 
 from .... import db, logger  # noqa F401
 from ....forms.workflows import lane_qc as wff
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 lane_qc_workflow = Blueprint("lane_qc_workflow", __name__, url_prefix="/api/workflows/lane_qc/")
 
@@ -13,10 +12,10 @@ lane_qc_workflow = Blueprint("lane_qc_workflow", __name__, url_prefix="/api/work
 @wrappers.htmx_route(lane_qc_workflow, db=db)
 def begin(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     if experiment.workflow.combined_lanes:
         form = wff.UnifiedQCLanesForm(experiment=experiment)
@@ -28,10 +27,10 @@ def begin(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(lane_qc_workflow, db=db, methods=["POST"])
 def qc(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.FORBIDDEN.id)
+        raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
 
     if experiment.workflow.combined_lanes:
         form = wff.UnifiedQCLanesForm(experiment=experiment, formdata=request.form)

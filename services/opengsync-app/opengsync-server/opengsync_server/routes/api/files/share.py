@@ -4,10 +4,8 @@ import mimetypes
 
 from flask import Blueprint, render_template, Response, send_from_directory
 
-from opengsync_db.categories import HTTPResponse
-
 from .... import db, logger, DEBUG
-from ....core import wrappers
+from ....core import wrappers, exceptions
 from ....tools import utils
 from ....core.RunTime import runtime
 
@@ -65,13 +63,13 @@ class SharedFileBrowser:
 @wrappers.api_route(file_share_bp, db=db, login_required=False)
 def validate(token: str):
     if (share_token := db.shares.get(token)) is None:
-        return "Token Not Found", HTTPResponse.NOT_FOUND.id
+        raise exceptions.NotFoundException("Token Not Found")
     
     if share_token.is_expired:
-        return "Token expired", HTTPResponse.BAD_REQUEST.id
+        raise exceptions.NoPermissionsException("Token expired")
         
     logger.debug(f"File share token verified:\n{'\n\t'.join([path.path for path in share_token.paths])}")
-    return "OK", HTTPResponse.OK.id
+    return "OK", 200
 
 
 @wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60 if not DEBUG else None, cache_type="global", cache_query_string=True)
@@ -80,10 +78,10 @@ def rclone(token: str, subpath: Path = Path()):
         subpath = Path(subpath)
 
     if (share_token := db.shares.get(token)) is None:
-        return "Token Not Found", HTTPResponse.NOT_FOUND.id
+        raise exceptions.NotFoundException("Token Not Found")
     
     if share_token.is_expired:
-        return "Token expired", HTTPResponse.BAD_REQUEST.id
+        raise exceptions.NoPermissionsException("Token expired")
     
     SHARE_ROOT = Path(runtime.current_app.share_root)
 
@@ -114,10 +112,10 @@ def browse(token: str, subpath: Path = Path()):
         subpath = Path(subpath)
 
     if (share_token := db.shares.get(token)) is None:
-        return "Token Not Found", HTTPResponse.NOT_FOUND.id
+        raise exceptions.NotFoundException("Token Not Found")
     
     if share_token.is_expired:
-        return "Token expired", HTTPResponse.BAD_REQUEST.id
+        raise exceptions.NoPermissionsException("Token expired")
     
     SHARE_ROOT = Path(runtime.current_app.share_root)
 

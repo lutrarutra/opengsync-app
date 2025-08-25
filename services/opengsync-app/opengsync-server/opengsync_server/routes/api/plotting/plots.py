@@ -1,6 +1,6 @@
 import json
 
-from flask import Blueprint, request, abort, url_for
+from flask import Blueprint, request, url_for
 from flask_htmx import make_response
 
 import plotly
@@ -8,9 +8,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from opengsync_db import models
-from opengsync_db.categories import HTTPResponse
+
 from .... import db
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 plots_api = Blueprint("plots_api", __name__, url_prefix="/api/plots/")
 
@@ -25,10 +25,10 @@ def _add_traces(to_figure, from_figure):
 @wrappers.htmx_route(plots_api, db=db, methods=["POST"])
 def experiment_library_reads(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
-        return abort(HTTPResponse.BAD_REQUEST.id)
+        raise exceptions.BadRequestException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
-        return abort(HTTPResponse.NOT_FOUND.id)
+        raise exceptions.NotFoundException()
     
     request_args = request.get_json()
     width = request_args.get("width", 700)

@@ -4,7 +4,7 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 
 from .... import db
-from ....core import wrappers
+from ....core import wrappers, exceptions
 
 share_tokens_htmx = Blueprint("share_tokens_htmx", __name__, url_prefix="/api/hmtx/share_tokens/")
 
