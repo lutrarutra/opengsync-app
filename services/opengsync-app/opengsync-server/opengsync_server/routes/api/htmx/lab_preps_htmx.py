@@ -289,11 +289,11 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         raise exceptions.NotFoundException()
 
-    if runtime.current_app.static_folder is None:
+    if runtime.app.static_folder is None:
         logger.error("Static folder not set")
         raise ValueError("Static folder not set")
 
-    filepath = os.path.join(runtime.current_app.static_folder, "resources", "templates", "library_prep", lab_prep.protocol.prep_file_name)
+    filepath = os.path.join(runtime.app.static_folder, "resources", "templates", "library_prep", lab_prep.protocol.prep_file_name)
 
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
@@ -435,7 +435,7 @@ def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
     if file not in lab_prep.files:
         raise exceptions.BadRequestException()
 
-    file_path = os.path.join(runtime.current_app.media_folder, file.path)
+    file_path = os.path.join(runtime.app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
     db.files.delete(file_id=file.id)

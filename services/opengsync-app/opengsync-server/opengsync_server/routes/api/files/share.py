@@ -83,7 +83,7 @@ def rclone(token: str, subpath: Path = Path()):
     if share_token.is_expired:
         raise exceptions.NoPermissionsException("Token expired")
     
-    SHARE_ROOT = Path(runtime.current_app.share_root)
+    SHARE_ROOT = Path(runtime.app.share_root)
 
     browser = SharedFileBrowser([path.path for path in share_token.paths], SHARE_ROOT)
 
@@ -117,7 +117,7 @@ def browse(token: str, subpath: Path = Path()):
     if share_token.is_expired:
         raise exceptions.NoPermissionsException("Token expired")
     
-    SHARE_ROOT = Path(runtime.current_app.share_root)
+    SHARE_ROOT = Path(runtime.app.share_root)
 
     browser = SharedFileBrowser([path.path for path in share_token.paths], SHARE_ROOT)
 

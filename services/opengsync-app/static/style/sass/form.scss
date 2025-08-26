@@ -7,6 +7,10 @@
 .form-group {
     padding: 0 5px 0 5px;
     margin: 0;
+    .form-control.readonly {
+        background-color: $gray-200 !important;
+        cursor: not-allowed !important;
+    }
 }
 
 .form-check:has(input.disabled) {

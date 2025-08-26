@@ -19,11 +19,11 @@ library_annotation_workflow = Blueprint("library_annotation_workflow", __name__,
 def download_seq_auth_form():
     name = "seq_auth_form_v2.pdf"
 
-    if runtime.current_app.static_folder is None:
+    if runtime.app.static_folder is None:
         raise exceptions.InternalServerErrorException()
     
     path = os.path.join(
-        runtime.current_app.static_folder, "resources", "templates", name
+        runtime.app.static_folder, "resources", "templates", name
     )
 
     return send_file(path, mimetype="pdf", as_attachment=True, download_name=name)

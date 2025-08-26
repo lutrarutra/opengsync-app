@@ -43,7 +43,7 @@ class LabPrepAttachmentForm(FileInputForm):
         filename, extension = os.path.splitext(self.file.data.filename)
 
         _uuid = uuid7str()
-        filepath = os.path.join(runtime.current_app.media_folder, file_type.dir, f"{_uuid}{extension}")
+        filepath = os.path.join(runtime.app.media_folder, file_type.dir, f"{_uuid}{extension}")
         self.file.data.save(filepath)
         size_bytes = os.stat(filepath).st_size
 

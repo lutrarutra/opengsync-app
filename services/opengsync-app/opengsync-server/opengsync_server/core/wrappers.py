@@ -125,7 +125,7 @@ def _route_decorator(
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncDBException")
                 return response_handler(e)
             except Exception as e:
-                if runtime.current_app.debug and response_handler.__name__ != "_htmx_handler":
+                if runtime.app.debug and response_handler.__name__ != "_htmx_handler":
                     raise e
                 _default_logger(blueprint, routes, args, kwargs, e, "Exception")
                 return response_handler(e)
@@ -134,7 +134,7 @@ def _route_decorator(
                     if db.close_session():
                         route_cache.clear()
 
-                if (msgs := runtime.current_app.consume_flashes(runtime.session)):
+                if (msgs := runtime.app.consume_flashes(runtime.session)):
                     if runtime.session.sid:
                         flash_cache.add(runtime.session.sid, msgs)
 

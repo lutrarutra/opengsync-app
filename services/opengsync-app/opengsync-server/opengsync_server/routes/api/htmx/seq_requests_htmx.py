@@ -352,7 +352,7 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
     if file not in seq_request.files:
         raise exceptions.BadRequestException()
     
-    file_path = os.path.join(runtime.current_app.media_folder, file.path)
+    file_path = os.path.join(runtime.app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
     db.files.delete(file_id=file.id)
@@ -384,7 +384,7 @@ def remove_auth_form(current_user: models.User, seq_request_id: int):
         
     file = seq_request.seq_auth_form_file
 
-    filepath = os.path.join(runtime.current_app.media_folder, file.path)
+    filepath = os.path.join(runtime.app.media_folder, file.path)
     if os.path.exists(filepath):
         os.remove(filepath)
     db.files.delete(file_id=file.id)
