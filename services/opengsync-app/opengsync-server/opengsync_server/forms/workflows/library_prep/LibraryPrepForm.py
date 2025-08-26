@@ -110,7 +110,7 @@ class LibraryPrepForm(HTMXFlaskForm):
             return self.make_response()
         
         hash = uuid7str()
-        path = os.path.join(runtime.current_app.media_folder, FileType.LIBRARY_PREP_FILE.dir, f"{hash}.xlsx")
+        path = os.path.join(runtime.app.media_folder, FileType.LIBRARY_PREP_FILE.dir, f"{hash}.xlsx")
         self.table.file.data.save(path)
         size_bytes = os.path.getsize(path)
 

@@ -29,7 +29,6 @@ class ChangePasswordForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        # Check current password
         if not bcrypt.check_password_hash(self.user.password, self.current_password.data):
             self.current_password.errors = ("Invalid Password",)
             return False
@@ -40,12 +39,15 @@ class ChangePasswordForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        # Update password
         hashed_password = bcrypt.generate_password_hash(self.new_password.data).decode("utf-8")
         self.user.password = hashed_password
         db.users.update(self.user)
         logger.info(f"Password changed for user {self.user.email}")
+        user_id = self.user.id
         logout_user()
+        num_deleted = runtime.app.delete_user_sessions(user_id)
+        logger.info(f"Closed {num_deleted} sessions for user ID: {user_id}")
+        runtime.session.clear()
         flash("Password Changed Successfully!", "success")
         return make_response(redirect=url_for("auth_page.auth"))
 

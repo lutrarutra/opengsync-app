@@ -1,20 +1,20 @@
 {% from 'components/form_group.jinja2' import form_group %}
 {% from 'components/metadata_group.jinja2' import metadata_group %}
 <form id="complete-register-form">
-    {{ complete_registration_form.csrf_token() }}
+    {{ form.csrf_token() }}
     <div class="row">
-        {{ metadata_group("Email", email, class="col") }}
-        {{ metadata_group("Role", user_role.name, class="col") }}
+        {{ form_group(form.email, class="col", autocomplete="username", readonly=true) }}
+        {{ metadata_group("Role", form._role, class="col") }}
     </div>
     <div class="row">
-        {{ form_group(complete_registration_form.first_name, class="col") }}
-        {{ form_group(complete_registration_form.last_name, class="col") }}
+        {{ form_group(form.first_name, class="col") }}
+        {{ form_group(form.last_name, class="col") }}
     </div>
     <div class="row">
-        {{ form_group(complete_registration_form.password, class="col") }}
-        {{ form_group(complete_registration_form.confirm, class="col") }}
+        {{ form_group(form.password, class="col", autocomplete="new-password") }}
+        {{ form_group(form.confirm, class="col", autocomplete="new-password") }}
     </div>
-    <button type="button" class="btn btn-primary"
+    <button type="button" class="btn btn-success"
     hx-target="#complete-register-form" hx-swap="outerHTML"
-    hx-post="{{ url_for('auth_htmx.complete_registration', token=token) }}">Register</button>
+    hx-post="{{ url_for('auth_htmx.complete_registration', token=form.token) }}">Register</button>
 </form>

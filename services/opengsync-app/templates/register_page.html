@@ -11,6 +11,8 @@
     </div>
 </div>
 <div class="page-content">
-    {% include "forms/complete_register.html" %}
+    <div hx-get="{{ url_for('auth_htmx.complete_registration', token=token) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
 </div>
 {% endblock content %}

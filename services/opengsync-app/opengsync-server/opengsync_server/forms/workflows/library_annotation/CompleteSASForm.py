@@ -412,7 +412,7 @@ class CompleteSASForm(MultiStepForm):
         flash(f"Added {self.library_table.shape[0]} libraries to sequencing request.", "success")
         logger.info(f"{self.uuid}: added libraries to sequencing request.")
 
-        newdir = os.path.join(runtime.current_app.media_folder, FileType.LIBRARY_ANNOTATION.dir, str(self.seq_request.id))
+        newdir = os.path.join(runtime.app.media_folder, FileType.LIBRARY_ANNOTATION.dir, str(self.seq_request.id))
         os.makedirs(newdir, exist_ok=True)
         self.complete(os.path.join(newdir, f"{self.uuid}.msf"))
 

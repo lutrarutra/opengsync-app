@@ -7,7 +7,7 @@ from opengsync_db import models
 from opengsync_db.categories import UserRole
 
 from .... import db, forms, logger, mail, serializer, EMAIL_SENDER
-from ....core import wrappers, exceptions
+from ....core import wrappers, exceptions, runtime
 
 auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/api/hmtx/auth/")
 
@@ -27,7 +27,11 @@ def login(current_user: models.User | None):
 @wrappers.htmx_route(auth_htmx, db=db)
 def logout(current_user: models.User | None):
     if current_user and current_user.is_authenticated:
+        user_id = current_user.id
         logout_user()
+        num_deleted = runtime.app.delete_user_sessions(user_id)
+        logger.info(f"Closed {num_deleted} sessions for user ID: {user_id}")
+        runtime.session.clear()
         flash("Logged out!", "info")
 
     return make_response(redirect=url_for("dashboard"))
@@ -40,9 +44,12 @@ def register(current_user: models.User | None):
     return forms.auth.RegisterUserForm(formdata=request.form).process_request(user=current_user)
     
 
-@wrappers.htmx_route(auth_htmx, db=db, login_required=False, methods=["POST"])
+@wrappers.htmx_route(auth_htmx, db=db, login_required=False, methods=["GET", "POST"])
 def complete_registration(token: str):
-    return forms.auth.CompleteRegistrationForm(request.form).process_request(token=token)
+    if request.method == "GET":
+        return forms.auth.CompleteRegistrationForm(token=token).make_response()
+        
+    return forms.auth.CompleteRegistrationForm(token=token, formdata=request.form).process_request()
 
 
 @wrappers.htmx_route(auth_htmx, methods=["GET", "POST"], db=db)
@@ -82,6 +89,14 @@ def reset_password_email(current_user: models.User, user_id: int):
 
     flash(f"Password reset email sent to '{user.email}'", "info")
     logger.info(f"Password reset email sent to '{user.email}'")
-    return make_response(
-        redirect=url_for("users_page.user", user_id=user_id),
-    )
+    return make_response(redirect=url_for("users_page.user", user_id=user_id))
+
+
+@wrappers.htmx_route(auth_htmx, methods=["GET", "POST"], db=db, login_required=False)
+def reset_password(token: str):
+    if request.method == "GET":
+        form = forms.auth.ResetPasswordForm(token=token)
+        return form.make_response()
+    
+    form = forms.auth.ResetPasswordForm(token=token, formdata=request.form)
+    return form.process_request()

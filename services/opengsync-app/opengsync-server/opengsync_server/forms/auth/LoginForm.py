@@ -40,7 +40,7 @@ class LoginForm(HTMXFlaskForm):
         
         runtime.session.clear()
         login_user(user)
-        runtime.current_app.session_interface.regenerate(runtime.session)  # type: ignore
+        runtime.app.session_interface.regenerate(runtime.session)  # type: ignore
 
         flash("Login successful.", "success")
         return make_response(redirect=dest or url_for("dashboard"))

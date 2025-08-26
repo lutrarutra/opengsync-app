@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 class RunTime:
     @property
-    def current_app(self) -> "App":
+    def app(self) -> "App":
         from .App import App
         return cast(App, flask_app)
     
