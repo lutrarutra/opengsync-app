@@ -339,7 +339,7 @@ def resource_route(
     route: str | None = None,
     methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
     db: DBHandler | None = None,
-    login_required: bool = False,
+    login_required: bool = True,
     debug: bool = False,
     cache_timeout_seconds: int | None = None,
     cache_query_string: bool = True,
