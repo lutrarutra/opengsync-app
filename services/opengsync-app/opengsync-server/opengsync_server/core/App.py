@@ -271,3 +271,28 @@ class App(Flask):
     def consume_flashes(self, session: ServerSideSession) -> list[tuple[str, str]]:
         flashes = session.pop("_flashes") if "_flashes" in session else []
         return flashes
+    
+    def delete_user_sessions(self, user_id: int) -> str:
+        lua_script = """
+        local keys_to_delete = {}
+        local session_keys = redis.call('KEYS', 'session:*')
+        
+        for i, key in ipairs(session_keys) do
+            local session_data = redis.call('GET', key)
+            if session_data then
+                -- You'd need to implement pickle parsing in Lua or use a different approach
+                -- This is a simplified version that might need adjustment
+                if string.find(session_data, '_user_id') and string.find(session_data, tostring(ARGV[1])) then
+                    table.insert(keys_to_delete, key)
+                end
+            end
+        end
+
+        if #keys_to_delete > 0 then
+            redis.call('DEL', unpack(keys_to_delete))
+        end
+        
+        return #keys_to_delete
+        """
+        deleted_count = session_cache.eval(lua_script, 0, str(user_id))
+        return deleted_count  # type: ignore

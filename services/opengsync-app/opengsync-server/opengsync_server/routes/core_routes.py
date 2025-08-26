@@ -12,15 +12,14 @@ from flask_htmx import make_response as make_htmx_response
 from opengsync_db import models
 
 from ..core import exceptions
-from .. import db, logger, flash_cache
+from .. import db, logger, flash_cache, tools
 from ..core import wrappers
 from ..core.RunTime import runtime
-from .. import tools
 
 
-if runtime.current_app.debug:
-    @wrappers.page_route(runtime.current_app, db=db, login_required=False)
-    def test():
+if runtime.app.debug:
+    @wrappers.page_route(runtime.app, db=db, login_required=False)
+    def test(current_user: models.User | None):
         flash("This is a test flash message.")
         if tools.textgen is not None:
             msg = tools.textgen.generate(
@@ -32,25 +31,25 @@ if runtime.current_app.debug:
         return render_template("test.html")
 
 
-@wrappers.page_route(runtime.current_app, login_required=False, cache_timeout_seconds=360, cache_type="global")
+@wrappers.page_route(runtime.app, login_required=False, cache_timeout_seconds=360, cache_type="global")
 def help():
     return render_template("help.html")
 
 
-@wrappers.htmx_route(runtime.current_app, login_required=False)
+@wrappers.htmx_route(runtime.app, login_required=False)
 def retrieve_flash_messages():
     flashes = flash_cache.consume_all(runtime.session.sid)
-    return make_htmx_response(runtime.current_app.no_context_render_template("components/flash.html", flashes=flashes))
+    return make_htmx_response(runtime.app.no_context_render_template("components/flash.html", flashes=flashes))
 
 
-@wrappers.page_route(runtime.current_app, db=db, route="/", cache_timeout_seconds=360, cache_type="user")
+@wrappers.page_route(runtime.app, db=db, route="/", cache_timeout_seconds=360, cache_type="user")
 def dashboard(current_user: models.User):
     if current_user.is_insider():
         return render_template("dashboard-insider.html")
     return render_template("dashboard-user.html")
 
 
-@wrappers.resource_route(runtime.current_app, db=db)
+@wrappers.resource_route(runtime.app, db=db)
 def pdf_file(file_id: int, current_user: models.User):
     if (file := db.files.get(file_id)) is None:
         raise exceptions.NotFoundException()
@@ -62,7 +61,7 @@ def pdf_file(file_id: int, current_user: models.User):
     if file.extension != ".pdf":
         raise exceptions.BadRequestException()
 
-    filepath = os.path.join(runtime.current_app.media_folder, file.path)
+    filepath = os.path.join(runtime.app.media_folder, file.path)
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
         raise exceptions.NotFoundException("File not found")
@@ -76,7 +75,7 @@ def pdf_file(file_id: int, current_user: models.User):
     return response
 
 
-@wrappers.resource_route(runtime.current_app, db=db)
+@wrappers.resource_route(runtime.app, db=db)
 def img_file(current_user: models.User, file_id: int):
     if (file := db.files.get(file_id)) is None:
         raise exceptions.NotFoundException()
@@ -88,7 +87,7 @@ def img_file(current_user: models.User, file_id: int):
     if file.extension not in [".png", ".jpg", ".jpeg"]:
         raise exceptions.BadRequestException()
 
-    filepath = os.path.join(runtime.current_app.media_folder, file.path)
+    filepath = os.path.join(runtime.app.media_folder, file.path)
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
         raise exceptions.NotFoundException()
@@ -102,7 +101,7 @@ def img_file(current_user: models.User, file_id: int):
     return response
 
 
-@wrappers.resource_route(runtime.current_app, db=db)
+@wrappers.resource_route(runtime.app, db=db)
 def download_file(file_id: int, current_user: models.User):
     if (file := db.files.get(file_id)) is None:
         raise exceptions.NotFoundException()
@@ -111,7 +110,7 @@ def download_file(file_id: int, current_user: models.User):
         if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
             raise exceptions.NoPermissionsException()
 
-    filepath = os.path.join(runtime.current_app.media_folder, file.path)
+    filepath = os.path.join(runtime.app.media_folder, file.path)
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
         raise exceptions.NotFoundException()
@@ -125,11 +124,11 @@ def download_file(file_id: int, current_user: models.User):
     return response
 
 
-@runtime.current_app.before_request
+@runtime.app.before_request
 def before_request():
     session["from_url"] = request.referrer
 
 
-@wrappers.page_route(runtime.current_app, login_required=False)
+@wrappers.page_route(runtime.app, login_required=False)
 def status():
     return make_response("OK", 200)

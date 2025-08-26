@@ -84,7 +84,7 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
                 
                 library_table = utils.get_barcode_table(db, self.lab_prep.libraries)
                 if self.lab_prep.prep_file is not None:
-                    prep_table = pd.read_excel(os.path.join(runtime.current_app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
+                    prep_table = pd.read_excel(os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
                     prep_table = prep_table.dropna(subset=["library_id", "library_name"]).rename(columns={"kit_i7": "kit", "name_i7": "name"})
                     self.library_table = prep_table[[col.label for col in self.columns if col.label in prep_table.columns]]
                     self.library_table["library_type_id"] = library_table.set_index(self.index_col).loc[self.library_table["library_id"], "library_type_id"].values

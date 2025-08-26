@@ -64,7 +64,7 @@ class CompleteBAForm(MultiStepForm):
         filename, extension = os.path.splitext(report.data.filename)
         
         file_uuid = uuid7str()
-        new_path = os.path.join(runtime.current_app.media_folder, FileType.BIOANALYZER_REPORT.dir, f"{file_uuid}{extension}")
+        new_path = os.path.join(runtime.app.media_folder, FileType.BIOANALYZER_REPORT.dir, f"{file_uuid}{extension}")
         report.data.save(new_path)
         size_bytes = os.stat(new_path).st_size
 

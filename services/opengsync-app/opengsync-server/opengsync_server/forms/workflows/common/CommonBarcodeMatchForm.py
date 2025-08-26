@@ -122,7 +122,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         self._context["barcodes"] = pd.DataFrame(columns=["kit_id", "kit"])
 
     def single_index_prepare(self):
-        path = os.path.join(runtime.current_app.app_data_folder, "kits", f"{IndexType.SINGLE_INDEX.id}.pkl")
+        path = os.path.join(runtime.app.app_data_folder, "kits", f"{IndexType.SINGLE_INDEX.id}.pkl")
         if not os.path.exists(path):
             logger.warning(f"Singe-index barcode file not found: {path}")
             barcodes = pd.DataFrame(columns=["kit_id", "kit", "sequence_i7"])
@@ -161,7 +161,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         self._context["barcodes"] = barcodes
         
     def dual_index_prepare(self):
-        path = os.path.join(runtime.current_app.app_data_folder, "kits", f"{IndexType.DUAL_INDEX.id}.pkl")
+        path = os.path.join(runtime.app.app_data_folder, "kits", f"{IndexType.DUAL_INDEX.id}.pkl")
         if not os.path.exists(path):
             logger.warning(f"Dual index barcode file not found: {path}")
             barcodes = pd.DataFrame(columns=["kit_id", "kit", "sequence_i7", "sequence_i5"])

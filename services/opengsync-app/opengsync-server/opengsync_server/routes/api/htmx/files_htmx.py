@@ -25,7 +25,7 @@ def render_xlsx(current_user: models.User, file_id: int):
         if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
             raise exceptions.NoPermissionsException()
 
-    filepath = os.path.join(runtime.current_app.media_folder, file.path)
+    filepath = os.path.join(runtime.app.media_folder, file.path)
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
         raise exceptions.NotFoundException()

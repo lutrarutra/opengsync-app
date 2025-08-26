@@ -59,7 +59,7 @@ class SeqAuthForm(HTMXFlaskForm):
             size_bytes=self.size_bytes,
             seq_request_id=self.seq_request.id,
         )
-        filepath = os.path.join(runtime.current_app.media_folder, db_file.path)
+        filepath = os.path.join(runtime.app.media_folder, db_file.path)
         self.file.data.save(filepath)
 
         flash("Authorization form uploaded!", "success")

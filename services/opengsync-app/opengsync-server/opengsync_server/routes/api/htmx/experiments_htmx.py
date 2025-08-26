@@ -162,7 +162,7 @@ def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: 
     if (file := db.files.get(file_id)) is None:
         raise exceptions.NotFoundException()
 
-    filepath = os.path.join(runtime.current_app.media_folder, file.path)
+    filepath = os.path.join(runtime.app.media_folder, file.path)
     df = pd.read_csv(filepath, sep="\t")
 
     if "lane" not in df.columns:
@@ -345,7 +345,7 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     if file not in experiment.files:
         raise exceptions.BadRequestException()
     
-    file_path = os.path.join(runtime.current_app.media_folder, file.path)
+    file_path = os.path.join(runtime.app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
     db.files.delete(file_id=file.id)
