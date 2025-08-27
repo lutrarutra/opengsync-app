@@ -8,7 +8,7 @@ from opengsync_db.categories import LibraryType, GenomeRef, AssayType, MUXType
 
 from .... import logger, db
 from ....tools import utils
-from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
+from ....tools.spread_sheet_components import TextColumn, CategoricalDropDown, InvalidCellValue, MissingCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
 from .PoolMappingForm import PoolMappingForm
@@ -25,8 +25,8 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
     columns = [
         TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Library.sample_name.type.length, min_length=4, validation_fnc=utils.check_string),
-        DropdownColumn("genome", "Genome", 200, choices=GenomeRef.names(), required=True),
-        DropdownColumn("library_type", "Library Type", 300, choices=LibraryType.names(), required=True),
+        CategoricalDropDown("genome_id", "Genome", 200, categories=dict(GenomeRef.as_selectable()), required=True),
+        CategoricalDropDown("library_type_id", "Library Type", 300, categories=dict(LibraryType.as_selectable()), required=True),
         TextColumn("pool", "Pool", 200, required=True, max_length=models.Pool.name.type.length, min_length=4),
     ]
 
@@ -76,12 +76,13 @@ class PooledLibraryAnnotationForm(MultiStepForm):
             return False
     
         df = self.spreadsheet.df
+        df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(int(x)).display_name if pd.notna(x) else None)
+        df["genome"] = df["genome_id"].apply(lambda x: GenomeRef.get(int(x)).display_name if pd.notna(x) else None)
 
         duplicate_sample_libraries = df.duplicated(subset=["sample_name", "library_type"])
-        
         seq_request_samples = db.pd.get_seq_request_samples(self.seq_request.id)
 
-        for i, (idx, row) in enumerate(df.iterrows()):
+        for idx, row in df.iterrows():
             if duplicate_sample_libraries.at[idx]:
                 self.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue("Duplicate 'Sample Name' and 'Library Type'"))
 
@@ -101,8 +102,6 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         
         if len(self.spreadsheet._errors) > 0:
             return False
-        
-        df = self.__map_library_types(df)
 
         if self.ocm_multiplexing.data and LibraryType.TENX_MUX_OLIGO.id in df["library_type_id"].values:
             self.spreadsheet.add_general_error("It is not possible to use '10X On-Chip Multiplexing' with '10X Multiplexing Oligo' library type.")
@@ -130,32 +129,16 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         if len(self.spreadsheet._errors) > 0:
             return False
         
-        df = self.__map_genome_ref(df)
+        df["library_name"] = df["sample_name"] + df["library_type_id"].apply(lambda x: f"_{LibraryType.get(x).identifier}")
         self.df = self.__map_existing_samples(df)
 
         return True
-    
-    def __map_library_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        library_type_map = {}
-        for id, e in LibraryType.as_tuples():
-            library_type_map[e.display_name] = id
-        
-        df["library_type_id"] = df["library_type"].map(library_type_map)
-        df["library_name"] = df["sample_name"] + df["library_type_id"].apply(lambda x: f"_{LibraryType.get(x).identifier}")
-        return df
-
-    def __map_genome_ref(self, df: pd.DataFrame) -> pd.DataFrame:
-        organism_map = {}
-        for id, e in GenomeRef.as_tuples():
-            organism_map[e.display_name] = id
-        
-        df["genome_id"] = df["genome"].map(organism_map)
-        return df
 
     def __map_existing_samples(self, df: pd.DataFrame) -> pd.DataFrame:
         df["sample_id"] = None
         if self.metadata["project_id"] is None:
             return df
+        
         if (project := db.projects.get(self.metadata["project_id"])) is None:
             logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
             raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")

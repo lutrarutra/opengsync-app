@@ -61,7 +61,6 @@ def previous(current_user: models.User, uuid: str):
         return form.make_response()
 
     prev_step_cls = forms.steps[step_name]
-    logger.debug(context)
     prev_step = prev_step_cls(
         uuid=uuid,
         seq_request=context.get("seq_request"),  # type: ignore
@@ -99,7 +98,6 @@ def select(current_user: models.User):
     libraries = form.get_libraries()
     library_table = utils.get_barcode_table(db, libraries)
     form.add_table("library_table", library_table)
-    logger.debug(library_table)
     form.update_data()
 
     next_form = forms.BarcodeInputForm(
@@ -134,19 +132,6 @@ def upload_tenx_atac_barcode_form(current_user: models.User, uuid: str):
         seq_request=context.get("seq_request"),
         lab_prep=context.get("lab_prep"),
         pool=context.get("pool")
-    )
-    return form.process_request()
-
-
-@wrappers.htmx_route(reindex_workflow, db=db, methods=["POST"])
-def map_index_kits(current_user: models.User, uuid: str):
-    context = get_context(current_user, request.args)   
-    
-    form = forms.IndexKitMappingForm(
-        uuid=uuid, formdata=request.form,
-        seq_request=context.get("seq_request"),
-        lab_prep=context.get("lab_prep"),
-        pool=context.get("pool"),
     )
     return form.process_request()
 

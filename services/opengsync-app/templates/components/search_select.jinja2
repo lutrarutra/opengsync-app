@@ -17,7 +17,7 @@
         name="{{ field.name }}-search" id="{{ field.name }}-search"
         hx-include="#{{ field.name }}-search" hx-target="#{{ field.name }}-results"
         hx-trigger="keyup changed delay:500ms, {{ field.name }}, change{% if not results %}, load{% endif %}" 
-        hx-post="{{ query_url }}"
+        hx-post="{{ query_url}}"
         hx-swap="innerHTML"
         placeholder="Search">
     </div>

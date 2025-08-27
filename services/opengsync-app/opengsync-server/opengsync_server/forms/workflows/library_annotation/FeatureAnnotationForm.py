@@ -11,7 +11,6 @@ from .... import tools  # noqa
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
-from .KitMappingForm import KitMappingForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
@@ -235,9 +234,7 @@ class FeatureAnnotationForm(MultiStepForm):
         self.add_table("feature_table", self.feature_table)
         self.update_data()
 
-        if KitMappingForm.is_applicable(self):
-            next_form = KitMappingForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OpenSTAnnotationForm.is_applicable(self):
+        if OpenSTAnnotationForm.is_applicable(self):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

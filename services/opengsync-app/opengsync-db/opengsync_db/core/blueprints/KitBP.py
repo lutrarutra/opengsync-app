@@ -45,15 +45,29 @@ class KitBP(DBBlueprint):
     def get_with_name(self, name: str) -> models.Kit | None:
         kit = self.db.session.query(models.Kit).where(models.Kit.name == name).first()
         return kit
+    
+    @DBBlueprint.transaction
+    def get_with_identifier(self, identifier: str) -> models.Kit | None:
+        kit = self.db.session.query(models.Kit).where(models.Kit.identifier == identifier).first()
+        return kit
 
     @DBBlueprint.transaction
     def find(
-        self, limit: int | None = PAGE_LIMIT, offset: int | None = 0,
+        self,
+        type: KitTypeEnum | None = None,
+        type_in: list[KitTypeEnum] | None = None,
+        limit: int | None = PAGE_LIMIT, offset: int | None = 0,
         sort_by: Optional[str] = None, descending: bool = False,
         count_pages: bool = False
     ) -> tuple[list[models.Kit], int | None]:
 
         query = self.db.session.query(models.Kit)
+
+        if type is not None:
+            query = query.where(models.Kit.kit_type_id == type.id)
+
+        if type_in is not None:
+            query = query.where(models.Kit.kit_type_id.in_([t.id for t in type_in]))
 
         if sort_by is not None:
             if sort_by not in models.Kit.sortable_fields:
@@ -111,7 +125,11 @@ class KitBP(DBBlueprint):
             self.db.flush()
 
     @DBBlueprint.transaction
-    def __getitem__(self, id: int) -> models.Kit:
-        if (kit := self.db.session.get(models.Kit, id)) is None:
-            raise KeyError(f"Kit with id {id} does not exist")
+    def __getitem__(self, id: int | str) -> models.Kit:
+        if isinstance(id, str):
+            if (kit := self.get(identifier=id)) is None:
+                raise KeyError(f"Kit with identifier '{id}' does not exist")
+        else:
+            if (kit := self.db.session.get(models.Kit, id)) is None:
+                raise KeyError(f"Kit with id {id} does not exist")
         return kit

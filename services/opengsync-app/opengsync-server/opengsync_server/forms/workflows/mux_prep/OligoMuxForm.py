@@ -10,46 +10,31 @@ from opengsync_db import models
 from opengsync_db.categories import LibraryStatus, MUXType
 
 from .... import logger, tools, db  # noqa F401
-from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, DropdownColumn, MissingCellValue, DuplicateCellValue
+from ..common.CommonOligoMuxForm import CommonOligoMuxForm
+from ....tools.spread_sheet_components import InvalidCellValue, MissingCellValue, DuplicateCellValue
 from ...SearchBar import OptionalSearchBar
-from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
-class OligoMuxForm(MultiStepForm):
+class OligoMuxForm(CommonOligoMuxForm):
     _template_path = "workflows/mux_prep/mux_prep-oligo_mux_annotation.html"
     _workflow_name = "mux_prep"
-    _step_name = "oligo_annotation"
+    lab_prep: models.LabPrep
 
     kit = FormField(OptionalSearchBar, label="Select Kit")
     mux_type = MUXType.TENX_OLIGO
     
-    columns = [
-        TextColumn("demux_name", "Demultiplexed Name", 170, max_length=models.Sample.name.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        TextColumn("sample_pool", "Sample Pool", 170, max_length=models.Library.sample_name.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-        TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-        DropdownColumn("read", "Read", 100, choices=["", "R2", "R1"]),
-    ]
-
     def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: Optional[str] = None):
-        MultiStepForm.__init__(
-            self, uuid=uuid, formdata=formdata, workflow=OligoMuxForm._workflow_name,
-            step_name=OligoMuxForm._step_name, step_args={"mux_type_id": OligoMuxForm.mux_type.id}
+        CommonOligoMuxForm.__init__(
+            self,
+            lab_prep=lab_prep, seq_request=None,
+            uuid=uuid, formdata=formdata, workflow=OligoMuxForm._workflow_name,
+            additional_columns=[]
         )
-        self.lab_prep = lab_prep
-        self._context["lab_prep"] = self.lab_prep
 
         self.sample_table = db.pd.get_lab_prep_samples(lab_prep.id)
         self.sample_table = self.sample_table[self.sample_table["mux_type"].isin([MUXType.TENX_OLIGO])]
         self.mux_table = self.sample_table.drop_duplicates(subset=["sample_name", "sample_pool"], keep="first")
-
-        self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=self.columns, csrf_token=self._csrf_token,
-            post_url=url_for("mux_prep_workflow.parse_oligo_mux_annotation", lab_prep_id=self.lab_prep.id, uuid=self.uuid),
-            formdata=formdata, df=self.__get_template()
-        )
 
     def __get_template(self) -> pd.DataFrame:
         template_data = {

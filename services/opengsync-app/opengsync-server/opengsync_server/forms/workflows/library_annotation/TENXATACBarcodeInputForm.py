@@ -1,14 +1,10 @@
-import pandas as pd
-
 from flask import Response
 
 from opengsync_db import models
-from opengsync_db.categories import IndexType
 
 from .... import logger, db  # noqa F401
 from ...MultiStepForm import StepFile
 from ..common import CommonTENXATACBarcodeInputForm
-from .IndexKitMappingForm import IndexKitMappingForm
 from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
@@ -47,12 +43,8 @@ class TENXATACBarcodeInputForm(CommonTENXATACBarcodeInputForm):
         self.add_table("tenx_atac_barcode_table", barcode_table)
         self.update_data()
 
-        if IndexKitMappingForm.is_applicable(self):
-            next_form = IndexKitMappingForm(uuid=self.uuid, seq_request=self.seq_request, formdata=None)
-        elif BarcodeMatchForm.is_applicable(self):
+        if BarcodeMatchForm.is_applicable(self):
             next_form = BarcodeMatchForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif IndexKitMappingForm.is_applicable(self):
-            next_form = IndexKitMappingForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OCMAnnotationForm.is_applicable(self):
             next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OligoMuxAnnotationForm.is_applicable(self):
