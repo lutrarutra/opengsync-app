@@ -38,15 +38,28 @@ class FeatureKitBP(DBBlueprint):
     def get_with_name(self, name: str) -> models.FeatureKit | None:
         res = self.db.session.query(models.FeatureKit).where(models.FeatureKit.name == name).first()
         return res
+    
+    @DBBlueprint.transaction
+    def get_with_identifier(self, identifier: str) -> models.FeatureKit | None:
+        res = self.db.session.query(models.FeatureKit).where(models.FeatureKit.identifier == identifier).first()
+        return res
 
     @DBBlueprint.transaction
     def find(
         self,
+        type: FeatureTypeEnum | None = None,
+        type_in: list[FeatureTypeEnum] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
         count_pages: bool = False
     ) -> tuple[list[models.FeatureKit], int | None]:
+        
         query = self.db.session.query(models.FeatureKit)
+        if type is not None:
+            query = query.filter(models.FeatureKit.type_id == type.id)
+
+        if type_in is not None:
+            query = query.filter(models.FeatureKit.type_id.in_([t.id for t in type_in]))
 
         if sort_by is not None:
             sort_attr = getattr(models.FeatureKit, sort_by)
@@ -85,3 +98,13 @@ class FeatureKitBP(DBBlueprint):
         for feature in feature_kit.features:
             self.db.session.delete(feature)
         return feature_kit
+    
+    @DBBlueprint.transaction
+    def __getitem__(self, id: int | str) -> models.FeatureKit:
+        if isinstance(id, int):
+            if (kit := self.db.session.get(models.FeatureKit, id)) is None:
+                raise exceptions.ElementDoesNotExist(f"FeatureKit with id '{id}' not found.")
+        else:
+            if (kit := self.get_with_identifier(id)) is None:
+                raise exceptions.ElementDoesNotExist(f"FeatureKit with identifier '{id}' not found.")
+        return kit

@@ -45,7 +45,7 @@ def sample_pooling(lab_prep_id: int):
 
 
 @wrappers.htmx_route(mux_prep_workflow, db=db, methods=["POST"])
-def parse_oligo_mux_annotation(lab_prep_id: int, uuid: str):
+def parse_oligo_mux_reference(lab_prep_id: int, uuid: str):
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         raise exceptions.NotFoundException()
 

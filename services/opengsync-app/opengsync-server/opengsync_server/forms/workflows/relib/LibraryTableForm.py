@@ -1,5 +1,3 @@
-import pandas as pd
-
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
@@ -9,7 +7,7 @@ from opengsync_db.categories import LibraryType, GenomeRef, AssayType
 from .... import logger, db
 from ....core import exceptions
 from ....tools import utils
-from ....tools.spread_sheet_components import IntegerColumn, TextColumn, DropdownColumn
+from ....tools.spread_sheet_components import IntegerColumn, TextColumn, DropdownColumn, CategoricalDropDown
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 
@@ -23,9 +21,9 @@ class LibraryTableForm(MultiStepForm):
         IntegerColumn("library_id", "Library ID", 100, required=True, read_only=True),
         TextColumn("sample_name", "Sample Name", 250, required=True, max_length=models.Library.sample_name.type.length, min_length=4, validation_fnc=utils.check_string),
         TextColumn("library_name", "Library Name", 250, required=True, max_length=models.Library.name.type.length, min_length=4, validation_fnc=utils.check_string),
-        DropdownColumn("library_type", "Library Type", 300, choices=LibraryType.names(), required=True),
-        DropdownColumn("genome", "Genome", 300, choices=GenomeRef.names(), required=True),
-        DropdownColumn("assay_type", "Assay Type", 300, choices=AssayType.names(), required=True),
+        CategoricalDropDown("library_type_id", "Library Type", 300, categories=dict(LibraryType.as_selectable()), required=True),
+        CategoricalDropDown("genome_id", "Genome", 300, categories=dict(GenomeRef.as_selectable()), required=True),
+        CategoricalDropDown("assay_type_id", "Assay Type", 300, categories=dict(AssayType.as_selectable()), required=True),
         DropdownColumn("nuclei_isolation", "Nuclei", 100, choices=["Yes", "No"], required=True),
     ]
 
@@ -78,35 +76,7 @@ class LibraryTableForm(MultiStepForm):
             return False
         
         self.df = self.spreadsheet.df
-
-        self.df = self.__map_library_types(self.df)
-        self.df = self.__map_genome_ref(self.df)
-        self.df = self.__map_assay_type(self.df)
         return True
-
-    def __map_library_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        library_type_map = {}
-        for id, e in LibraryType.as_tuples():
-            library_type_map[e.display_name] = id
-        
-        df["library_type_id"] = df["library_type"].map(library_type_map)
-        return df
-
-    def __map_genome_ref(self, df: pd.DataFrame) -> pd.DataFrame:
-        organism_map = {}
-        for id, e in GenomeRef.as_tuples():
-            organism_map[e.display_name] = id
-        
-        df["genome_id"] = df["genome"].map(organism_map)
-        return df
-    
-    def __map_assay_type(self, df: pd.DataFrame) -> pd.DataFrame:
-        assay_type_map = {}
-        for id, e in AssayType.as_tuples():
-            assay_type_map[e.display_name] = id
-        
-        df["assay_type_id"] = df["assay_type"].map(assay_type_map)
-        return df
 
     def process_request(self) -> Response:
         if not self.validate():

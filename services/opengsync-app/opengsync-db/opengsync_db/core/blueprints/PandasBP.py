@@ -529,6 +529,7 @@ class PandasBP(DBBlueprint):
 
         df = pd.read_sql(query, self.db._engine)
         df["name"] = df["name"].astype(str)
+        df["well"] = df["well"].astype(str)
         df["type"] = df["type_id"].map(categories.BarcodeType.get)  # type: ignore
 
         if per_adapter or per_index:

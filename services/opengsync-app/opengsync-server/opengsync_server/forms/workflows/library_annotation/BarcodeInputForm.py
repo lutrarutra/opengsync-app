@@ -5,7 +5,6 @@ from opengsync_db import models
 from .... import logger, tools, db  # noqa F401
 
 from ..common import CommonBarcodeInputForm
-from .IndexKitMappingForm import IndexKitMappingForm
 from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
@@ -34,7 +33,7 @@ class BarcodeInputForm(CommonBarcodeInputForm):
         if not self.validate():
             return self.make_response()
         
-        barcode_table = self.get_barcode_table()
+        barcode_table = self.df
         self.add_table("barcode_table", barcode_table)
         self.update_data()
 
@@ -42,8 +41,6 @@ class BarcodeInputForm(CommonBarcodeInputForm):
             next_form = TENXATACBarcodeInputForm(seq_request=self.seq_request, uuid=self.uuid)
         elif BarcodeMatchForm.is_applicable(self):
             next_form = BarcodeMatchForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif IndexKitMappingForm.is_applicable(self):
-            next_form = IndexKitMappingForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OCMAnnotationForm.is_applicable(self):
             next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OligoMuxAnnotationForm.is_applicable(self):

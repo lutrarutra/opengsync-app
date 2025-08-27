@@ -139,17 +139,6 @@ def barcode_match(current_user: models.User, seq_request_id: int, uuid: str):
 
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
-def map_index_kits(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
-        raise exceptions.NoPermissionsException()
-    
-    return forms.IndexKitMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
-
-
-@wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_assay_form(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
@@ -195,7 +184,7 @@ def parse_ocm_reference(current_user: models.User, seq_request_id: int, uuid: st
 
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
-def parse_cmo_reference(current_user: models.User, seq_request_id: int, uuid: str):
+def parse_oligo_mux_reference(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
     
@@ -214,17 +203,6 @@ def annotate_features(current_user: models.User, seq_request_id: int, uuid: str)
         raise exceptions.NoPermissionsException()
 
     return forms.FeatureAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
-
-
-@wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
-def map_feature_kits(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
-        raise exceptions.NoPermissionsException()
-
-    return forms.KitMappingForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])

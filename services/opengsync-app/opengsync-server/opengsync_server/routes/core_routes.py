@@ -20,14 +20,6 @@ from ..core.RunTime import runtime
 if runtime.app.debug:
     @wrappers.page_route(runtime.app, db=db, login_required=False)
     def test(current_user: models.User | None):
-        flash("This is a test flash message.")
-        if tools.textgen is not None:
-            msg = tools.textgen.generate(
-                "You need to write in 1-2 sentences make a joke to greet user to my web runtime.current_app. \
-                Only raw text, no special characters (only punctuation , or . or !), no markdown, no code blocks, no quotes, no emojis, no links, no hashtags, no mentions. \
-                Just the joke text."
-            )
-            flash(msg, category="info")
         return render_template("test.html")
 
 

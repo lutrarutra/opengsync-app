@@ -8,7 +8,7 @@ from opengsync_db.categories import LibraryType, GenomeRef
 
 from .... import logger, db
 from ....tools import utils
-from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, TextColumn, DropdownColumn, FloatColumn
+from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, TextColumn, DropdownColumn, FloatColumn, CategoricalDropDown
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
 from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
@@ -29,8 +29,8 @@ class LibraryAnnotationForm(MultiStepForm):
 
     columns = [
         TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, validation_fnc=utils.check_string),
-        DropdownColumn("genome", "Genome", 200, choices=GenomeRef.names(), required=True),
-        DropdownColumn("library_type", "Library Type", 200, choices=LibraryType.names(), required=True),
+        CategoricalDropDown("genome_id", "Genome", 200, categories=dict(GenomeRef.as_selectable()), required=True),
+        CategoricalDropDown("library_type_id", "Library Type", 200, categories=dict(LibraryType.as_selectable()), required=True),
         FloatColumn("seq_depth", "Sequencing Depth (M reads)", 200),
     ]
 
@@ -57,12 +57,13 @@ class LibraryAnnotationForm(MultiStepForm):
             return False
     
         df = self.spreadsheet.df
-
-        duplicate_sample_libraries = df.duplicated(subset=["sample_name", "library_type"]) & df["library_type"].notna()
+        df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(int(x)).display_name if pd.notna(x) else None)
+        df["genome"] = df["genome_id"].apply(lambda x: GenomeRef.get(int(x)).display_name if pd.notna(x) else None)
         
+        duplicate_sample_libraries = df.duplicated(subset=["sample_name", "library_type"]) & df["library_type"].notna()
         seq_request_samples = db.pd.get_seq_request_samples(self.seq_request.id)
 
-        for i, (idx, row) in enumerate(df.iterrows()):
+        for idx, row in df.iterrows():
             if len(df[df["sample_name"] == row["sample_name"]]["genome"].unique()) > 1:
                 self.spreadsheet.add_error(idx, "sample_name", InvalidCellValue("All libraries of a same sample must have the same genome"))
                 self.spreadsheet.add_error(idx, "genome", InvalidCellValue("All libraries of a same sample must have the same genome"))
@@ -81,20 +82,6 @@ class LibraryAnnotationForm(MultiStepForm):
     
     def fill_previous_form(self, previous_form: StepFile):
         self.spreadsheet.set_data(previous_form.tables["library_table"])
-    
-    def __map_library_types(self):
-        library_type_map = {}
-        for id, e in LibraryType.as_tuples():
-            library_type_map[e.display_name] = id
-        
-        self.df["library_type_id"] = self.df["library_type"].map(library_type_map)
-
-    def __map_genome_ref(self):
-        organism_map = {}
-        for id, e in GenomeRef.as_tuples():
-            organism_map[e.display_name] = id
-        
-        self.df["genome_id"] = self.df["genome"].map(organism_map)
 
     def __map_existing_samples(self):
         self.df["sample_id"] = None
@@ -111,8 +98,6 @@ class LibraryAnnotationForm(MultiStepForm):
         if not self.validate():
             return self.make_response()
 
-        self.__map_library_types()
-        self.__map_genome_ref()
         self.__map_existing_samples()
 
         self.metadata["nuclei_isolation"] = self.nuclei_isolation.data

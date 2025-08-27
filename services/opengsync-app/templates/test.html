@@ -64,15 +64,11 @@
         var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
             data: [
                 {% for i in range(500) %}
-                ["{{i}}", "", "{{i}}", "", "", "" , "", ""],
+                ["", "{{i}}", "{{i}}"],
                 {% endfor %}
             ],
             columns: [
-                { type: "text", title: "title", width: 200 },
-                { type: "text", title: "title", width: 200 },
-                { type: "text", title: "title", width: 200 },
-                { type: "text", title: "title", width: 200 },
-                { type: "text", title: "title", width: 200 },
+                { type: "dropdown", title: "title", width: 200, },
                 { type: "text", title: "title", width: 200 },
                 { type: "text", title: "title", width: 200 },
             ],

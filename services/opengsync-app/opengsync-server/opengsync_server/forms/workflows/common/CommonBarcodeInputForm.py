@@ -12,7 +12,7 @@ from .... import logger, tools, db  # noqa F401
 from ....tools import utils
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
-from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue
+from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, CategoricalDropDown
 
 
 class CommonBarcodeInputForm(MultiStepForm):
@@ -30,17 +30,6 @@ class CommonBarcodeInputForm(MultiStepForm):
         sequence = tools.make_alpha_numeric(sequence, keep=[], replace_white_spaces_with="")
         sequence = sequence.upper()  # type: ignore
         return sequence
-
-    columns = [
-        TextColumn("library_name", "Library Name", 250, required=True, read_only=True),
-        TextColumn("index_well", "Index Well", 100, max_length=8),
-        TextColumn("kit_i7", "i7 Kit", 200, max_length=models.Kit.name.type.length),
-        TextColumn("name_i7", "i7 Name", 150, max_length=models.LibraryIndex.name_i7.type.length),
-        TextColumn("sequence_i7", "i7 Sequence", 180, clean_up_fnc=barcode_sequence_clean_up),
-        TextColumn("kit_i5", "i5 Kit", 200, max_length=models.Kit.name.type.length),
-        TextColumn("name_i5", "i5 Name", 150, max_length=models.LibraryIndex.name_i5.type.length),
-        TextColumn("sequence_i5", "i5 Sequence", 180, clean_up_fnc=barcode_sequence_clean_up),
-    ]
 
     def __init__(
         self,
@@ -60,7 +49,19 @@ class CommonBarcodeInputForm(MultiStepForm):
         self.seq_request = seq_request
         self.lab_prep = lab_prep
         self.pool = pool
-        self.columns = additional_columns + self.columns
+
+        self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.index_kits.find(limit=None, sort_by="name", type_in=[IndexType.DUAL_INDEX, IndexType.SINGLE_INDEX])[0]}
+        columns = [
+            TextColumn("library_name", "Library Name", 250, required=True, read_only=True),
+            TextColumn("index_well", "Index Well", 100, max_length=8),
+            CategoricalDropDown("kit_i7", "i7 Kit", 200, categories=self.kits_mapping, required=False),
+            TextColumn("name_i7", "i7 Name", 150, max_length=models.LibraryIndex.name_i7.type.length),
+            TextColumn("sequence_i7", "i7 Sequence", 180, clean_up_fnc=CommonBarcodeInputForm.barcode_sequence_clean_up),
+            CategoricalDropDown("kit_i5", "i5 Kit", 200, categories=self.kits_mapping, required=False),
+            TextColumn("name_i5", "i5 Name", 150, max_length=models.LibraryIndex.name_i5.type.length),
+            TextColumn("sequence_i5", "i5 Sequence", 180, clean_up_fnc=CommonBarcodeInputForm.barcode_sequence_clean_up),
+        ]
+        self.columns = additional_columns + columns
 
         if workflow == "library_annotation":
             self.index_col = "library_name"
@@ -132,8 +133,8 @@ class CommonBarcodeInputForm(MultiStepForm):
         
         self.df = self.spreadsheet.df
 
-        self.df.loc[self.df["kit_i7"].notna(), "kit_i7"] = self.df.loc[self.df["kit_i7"].notna(), "kit_i7"].astype(str)
-        self.df.loc[self.df["kit_i5"].notna(), "kit_i5"] = self.df.loc[self.df["kit_i5"].notna(), "kit_i5"].astype(str)
+        self.df.loc[self.df["kit_i7"].notna(), "kit_i7"] = self.df.loc[self.df["kit_i7"].notna(), "kit_i7"]
+        self.df.loc[self.df["kit_i5"].notna(), "kit_i5"] = self.df.loc[self.df["kit_i5"].notna(), "kit_i5"]
 
         self.df.loc[self.df["index_well"].notna(), "index_well"] = self.df.loc[self.df["index_well"].notna(), "index_well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
@@ -143,6 +144,67 @@ class CommonBarcodeInputForm(MultiStepForm):
         self.df.loc[self.df["kit_i5"].isna(), "kit_i5"] = self.df.loc[self.df["kit_i5"].isna(), "kit_i7"]
         self.df.loc[self.df["name_i5"].isna(), "name_i5"] = self.df.loc[self.df["name_i5"].isna(), "name_i7"]
 
+        kit_identifiers = list(set(self.df["kit_i7"].dropna().unique().tolist() + self.df["kit_i5"].dropna().unique().tolist()))
+        kits: dict[str, tuple[models.IndexKit, pd.DataFrame]] = dict()
+
+        self.df["kit_i7_id"] = None
+        self.df["kit_i5_id"] = None
+        for identifier in kit_identifiers:
+            kit = db.index_kits[identifier]
+            df = db.pd.get_index_kit_barcodes(kit.id, per_adapter=False, per_index=True)
+            kits[identifier] = (kit, df)
+            self.df.loc[self.df["kit_i7"] == identifier, "kit_i7_id"] = kit.id
+            self.df.loc[self.df["kit_i5"] == identifier, "kit_i5_id"] = kit.id
+
+        for kit_identifier, (kit, kit_df) in kits.items():
+            view = self.df[(self.df["kit_i7"] == kit_identifier) | (self.df["kit_i5"] == kit_identifier)]
+            
+            if kit.type == IndexType.DUAL_INDEX:
+                mask = (
+                    (kit_df["well"].isin(view["index_well"].values)) |
+                    (kit_df["name_i7"].isin(view["name_i7"].values)) |
+                    (kit_df["name_i5"].isin(view["name_i5"].values))
+                )
+            elif kit.type == IndexType.SINGLE_INDEX:
+                mask = (
+                    (kit_df["well"].isin(view["index_well"].values)) |
+                    (kit_df["name_i7"].isin(view["name_i7"].values))
+                )
+            else:
+                raise exceptions.InternalServerErrorException(f"Only Dual and Single index kits are supported, but kit '{kit.identifier}' is of type '{kit.type.name}'")
+            
+            for _, kit_row in kit_df[mask].iterrows():
+                self.df.loc[
+                    (self.df["kit_i7"] == kit_identifier) &
+                    (self.df["index_well"] == kit_row["well"]), "name_i7"
+                ] = kit_row["name_i7"]
+
+                self.df.loc[
+                    (self.df["kit_i7"] == kit_identifier) &
+                    (self.df["index_well"] == kit_row["well"]), "sequence_i7"
+                ] = kit_row["sequence_i7"]
+
+                self.df.loc[
+                    (self.df["kit_i7"] == kit_identifier) &
+                    (self.df["name_i7"] == kit_row["name_i7"]), "sequence_i7"
+                ] = kit_row["sequence_i7"]
+
+                if kit.type == IndexType.DUAL_INDEX:
+                    self.df.loc[
+                        (self.df["kit_i5"] == kit_identifier) &
+                        (self.df["index_well"] == kit_row["well"]), "name_i5"
+                    ] = kit_row["name_i5"]
+
+                    self.df.loc[
+                        (self.df["kit_i5"] == kit_identifier) &
+                        (self.df["index_well"] == kit_row["well"]), "sequence_i5"
+                    ] = kit_row["sequence_i5"]
+
+                    self.df.loc[
+                        (self.df["kit_i5"] == kit_identifier) &
+                        (self.df["name_i5"] == kit_row["name_i5"]), "sequence_i5"
+                    ] = kit_row["sequence_i5"]
+
         for idx, row in self.df.iterrows():
             if row["library_name"] not in self.library_table["library_name"].values:
                 self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name'"))
@@ -150,64 +212,57 @@ class CommonBarcodeInputForm(MultiStepForm):
             if self._workflow_name == "library_pooling" and str(row["pool"]).strip().lower() == "x":
                 continue
 
-            if (not kit_defined.at[idx]) and (not manual_defined.at[idx]):
+            if kit_defined.at[idx]:
+                kit_i7_label = row["kit_i7"]
+                kit_i7, kit_i7_df = kits[row["kit_i7"]]
+                kit_i5, kit_i5_df = kits[row["kit_i5"]]
+                
+                if pd.notna(row["name_i7"]):
+                    if row["name_i7"] not in kit_i7_df["name_i7"].values:
+                        self.spreadsheet.add_error(idx, "name_i7", InvalidCellValue(f"i7 name '{row['name_i7']}' not found in kit '{kit_i7_label}'"))
+                        continue
+                elif pd.notna(row["index_well"]):
+                    if row["index_well"] not in kit_i7_df["well"].values:
+                        self.spreadsheet.add_error(idx, "index_well", InvalidCellValue(f"i7 well '{row['index_well']}' not found in kit '{kit_i7_label}'"))
+                        continue
+                
+                if kit_i5.type == IndexType.DUAL_INDEX:
+                    kit_i5_label = row["kit_i5"]
+                    if pd.notna(row["name_i5"]):
+                        if row["name_i5"] not in kit_i5_df["name_i5"].values:
+                            self.spreadsheet.add_error(idx, "name_i5", InvalidCellValue(f"i5 name '{row['name_i5']}' not found in kit '{kit_i5_label}'"))
+                            continue
+                    elif pd.notna(row["index_well"]):
+                        if row["index_well"] not in kit_i5_df["well"].values:
+                            self.spreadsheet.add_error(idx, "index_well", InvalidCellValue(f"i5 well '{row['index_well']}' not found in kit '{kit_i5_label}'"))
+                            continue
+
+            elif manual_defined.at[idx]:
+                if pd.notna(row["sequence_i7"]) and len(row["sequence_i7"]) > models.LibraryIndex.sequence_i7.type.length:
+                    self.spreadsheet.add_error(idx, "sequence_i7", InvalidCellValue(f"i7 sequence too long ({len(row['sequence_i7'])} > {models.LibraryIndex.sequence_i7.type.length})"))
+                    continue
+                
+                if pd.notna(row["sequence_i5"]) and len(row["sequence_i5"]) > models.LibraryIndex.sequence_i5.type.length:
+                    self.spreadsheet.add_error(idx, "sequence_i5", InvalidCellValue(f"i5 sequence too long ({len(row['sequence_i5'])} > {models.LibraryIndex.sequence_i5.type.length})"))
+                    continue
+            else:
                 if pd.notna(row["kit_i7"]):
                     if pd.isna(row["index_well"]) and pd.isna(row["name_i7"]):
                         self.spreadsheet.add_error(idx, ["index_well", "name_i7"], MissingCellValue("'index_well' or 'name_i7' must be defined when kit is defined"))
+                        continue
                 elif pd.notna(row["index_well"]) or pd.notna(row["name_i7"]):
                     self.spreadsheet.add_error(idx, "kit_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
+                    continue
                 elif pd.isna(row["sequence_i7"]):
                     self.spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
+                    continue
+                
+            if pd.isna(row["sequence_i7"]):
+                self.spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("missing 'sequence_i7'"))
+                continue
 
-            if pd.notna(row["sequence_i7"]) and len(row["sequence_i7"]) > models.LibraryIndex.sequence_i7.type.length:
-                self.spreadsheet.add_error(idx, "sequence_i7", InvalidCellValue(f"i7 sequence too long ({len(row['sequence_i7'])} > {models.LibraryIndex.sequence_i7.type.length})"))
-            
-            if pd.notna(row["sequence_i5"]) and len(row["sequence_i5"]) > models.LibraryIndex.sequence_i5.type.length:
-                self.spreadsheet.add_error(idx, "sequence_i5", InvalidCellValue(f"i5 sequence too long ({len(row['sequence_i5'])} > {models.LibraryIndex.sequence_i5.type.length})"))
-
+        self.df["index_type_id"] = None
+        self.df.loc[(self.df["sequence_i7"].notna() & self.df["sequence_i5"].notna()), "index_type_id"] = IndexType.DUAL_INDEX.id
+        self.df.loc[(self.df["sequence_i7"].notna() & self.df["sequence_i5"].isna()), "index_type_id"] = IndexType.SINGLE_INDEX.id
+        self.spreadsheet.set_data(self.df)
         return len(self.spreadsheet._errors) == 0
-    
-    def get_barcode_table(self) -> pd.DataFrame:
-        barcode_table_data = {
-            self.index_col: [],
-            "index_well": [],
-            "kit_i7": [],
-            "name_i7": [],
-            "sequence_i7": [],
-            "kit_i5": [],
-            "name_i5": [],
-            "sequence_i5": [],
-        }
-        
-        for _, row in self.df.iterrows():
-            index_i7_seqs = row["sequence_i7"].split(";") if pd.notna(row["sequence_i7"]) else [None]
-            index_i5_seqs = row["sequence_i5"].split(";") if pd.notna(row["sequence_i5"]) else [None]
-
-            for i in range(max(len(index_i7_seqs), len(index_i5_seqs))):
-                barcode_table_data[self.index_col].append(row[self.index_col])
-                barcode_table_data["index_well"].append(row["index_well"])
-                barcode_table_data["kit_i7"].append(row["kit_i7"])
-                barcode_table_data["name_i7"].append(row["name_i7"])
-                barcode_table_data["sequence_i7"].append(index_i7_seqs[i] if len(index_i7_seqs) > i else None)
-                barcode_table_data["kit_i5"].append(row["kit_i5"])
-                barcode_table_data["name_i5"].append(row["name_i5"])
-                barcode_table_data["sequence_i5"].append(index_i5_seqs[i] if len(index_i5_seqs) > i else None)
-
-        barcode_table = pd.DataFrame(barcode_table_data)
-        barcode_table["kit_i7_id"] = None
-        barcode_table["kit_i7_name"] = None
-        barcode_table["kit_i5_id"] = None
-        barcode_table["kit_i5_name"] = None
-        barcode_table["index_type_id"] = None
-
-        barcode_table.loc[(barcode_table["sequence_i7"].notna() & barcode_table["sequence_i5"].notna()), "index_type_id"] = IndexType.DUAL_INDEX.id
-        barcode_table.loc[(barcode_table["sequence_i7"].notna() & barcode_table["sequence_i5"].isna()), "index_type_id"] = IndexType.SINGLE_INDEX.id
-        for (idx, library_type_id), _ in self.library_table.groupby([self.index_col, "library_type_id"], dropna=False):
-            if LibraryType.get(library_type_id) == LibraryType.TENX_SC_ATAC:
-                barcode_table.loc[barcode_table[self.index_col] == idx, "index_type_id"] = IndexType.TENX_ATAC_INDEX.id
-
-        df = self.df.set_index(self.index_col)
-        for col in df.columns:
-            if col not in barcode_table.columns:
-                barcode_table[col] = df.loc[barcode_table[self.index_col], col].values
-        return barcode_table

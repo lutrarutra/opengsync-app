@@ -1,5 +1,3 @@
-import pandas as pd
-
 from flask import Response
 
 from opengsync_db import models
@@ -7,7 +5,6 @@ from opengsync_db import models
 from .... import logger, db  # noqa F401
 from ....tools.spread_sheet_components import InvalidCellValue, IntegerColumn
 from ..common import CommonTENXATACBarcodeInputForm
-from .IndexKitMappingForm import IndexKitMappingForm
 from .CompleteReindexForm import CompleteReindexForm
 from .BarcodeMatchForm import BarcodeMatchForm
 
@@ -69,9 +66,7 @@ class TENXATACBarcodeInputForm(CommonTENXATACBarcodeInputForm):
         self.add_table("tenx_atac_barcode_table", barcode_table)
         self.update_data()
 
-        if IndexKitMappingForm.is_applicable(self):
-            form = IndexKitMappingForm(uuid=self.uuid, lab_prep=self.lab_prep, seq_request=self.seq_request, pool=self.pool, formdata=None)
-        elif BarcodeMatchForm.is_applicable(self):
+        if BarcodeMatchForm.is_applicable(self):
             form = BarcodeMatchForm(seq_request=self.seq_request, lab_prep=self.lab_prep, pool=self.pool, uuid=self.uuid, formdata=None)
         else:
             form = CompleteReindexForm(seq_request=self.seq_request, lab_prep=self.lab_prep, pool=self.pool, uuid=self.uuid, formdata=None)
