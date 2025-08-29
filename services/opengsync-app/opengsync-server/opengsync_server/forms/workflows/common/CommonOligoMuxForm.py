@@ -21,7 +21,7 @@ class CommonOligoMuxForm(MultiStepForm):
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
-        return current_step.tables["library_table"]["library_type_id"].isin([LibraryType.TENX_MUX_OLIGO.id]).any()
+        return bool(current_step.tables["library_table"]["library_type_id"].isin([LibraryType.TENX_MUX_OLIGO.id]).any())
     
     @classmethod
     def __get_multiplexed_samples(cls, df: pd.DataFrame) -> list[str]:

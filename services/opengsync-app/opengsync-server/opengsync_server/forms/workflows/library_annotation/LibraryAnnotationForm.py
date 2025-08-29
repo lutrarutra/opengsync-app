@@ -8,7 +8,7 @@ from opengsync_db.categories import LibraryType, GenomeRef
 
 from .... import logger, db
 from ....tools import utils
-from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, TextColumn, DropdownColumn, FloatColumn, CategoricalDropDown
+from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, TextColumn, FloatColumn, CategoricalDropDown
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
 from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
@@ -72,7 +72,7 @@ class LibraryAnnotationForm(MultiStepForm):
                 self.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue("Duplicate 'Sample Name' and 'Library Type'"))
 
             if ((seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.name) == row["library_type"])).any():
-                self.spreadsheet.add_error(idx, "library_type", DuplicateCellValue(f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request"))
+                self.spreadsheet.add_error(idx, "library_type_id", DuplicateCellValue(f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request"))
 
         if len(self.spreadsheet._errors) > 0:
             return False

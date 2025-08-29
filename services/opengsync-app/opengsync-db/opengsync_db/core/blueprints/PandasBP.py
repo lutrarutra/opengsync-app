@@ -669,7 +669,7 @@ class PandasBP(DBBlueprint):
         
         df = pd.read_sql(query, self.db._engine)
 
-        if pivot:
+        if not df.empty and pivot:
             expanded = df["attributes"].apply(pd.Series)
             for col in expanded.columns:
                 expanded[col] = expanded[col].apply(lambda x: x.get("value") if isinstance(x, dict) else x)

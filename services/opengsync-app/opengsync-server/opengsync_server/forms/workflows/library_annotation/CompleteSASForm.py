@@ -39,6 +39,12 @@ class CompleteSASForm(MultiStepForm):
         self.library_properties_table = self.tables.get("library_properties_table")
         self.comment_table = self.tables.get("comment_table")
         self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata["mux_type_id"] is not None else None
+
+        self.abc_libraries = self.library_table[
+            self.library_table["library_type_id"].isin(
+                [LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id]
+            )
+        ]["library_name"]
         
         spatial_library_type_ids = [t.id for t in LibraryType.get_visium_library_types()] + [LibraryType.OPENST.id]
         self.contains_spatial_samples = self.library_table["library_type_id"].isin(spatial_library_type_ids).any()
@@ -370,7 +376,11 @@ class CompleteSASForm(MultiStepForm):
             self.feature_table["feature_id"] = self.feature_table["feature_id"].astype(int)
             
             for _, library_row in self.library_table.iterrows():
-                if len(ids := self.feature_table[self.feature_table["library_name"] == library_row["library_name"]]["feature_id"].values.tolist()) > 0:
+                mask = (
+                    (self.feature_table["library_name"] == library_row["library_name"]) |
+                    self.feature_table["library_name"].isna()
+                )
+                if len(ids := self.feature_table[mask]["feature_id"].values.tolist()) > 0:
                     db.links.link_features_library(feature_ids=ids, library_id=int(library_row["library_id"]))
             
         if self.comment_table is not None:

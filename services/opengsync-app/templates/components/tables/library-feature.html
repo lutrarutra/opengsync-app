@@ -7,12 +7,13 @@
             <tr>
                 <th scope="col" class="col-1">ID</th>
                 <th scope="col" class="col-2">Name</th>
-                <th scope="col" class="col-2">Target Name</th>
-                <th scope="col" class="col-2">Target ID</th>
+                <th scope="col" class="col-1">Identifier</th>
                 <th scope="col" class="col-2">Sequence</th>
                 <th scope="col" class="col-1">Pattern</th>
                 <th scope="col" class="col-1">Read</th>
                 <th scope="col" class="col-1">Type</th>
+                <th scope="col" class="col-1">Target Name</th>
+                <th scope="col" class="col-1">Target ID</th>
             </tr>
         </thead>
         <tbody>
@@ -20,12 +21,13 @@
             <tr>
                 <th scope="row">{{ feature.id }}</th>
                 <td>{{ feature.name }}</td>
-                <td>{{ feature.target_name if feature.target_name }}</td>
-                <td>{{ feature.target_id if feature.target_id }}</td>
+                <td>{{ feature.identifier }}</td>
                 <td>{{ feature.sequence }}</td>
                 <td>{{ feature.pattern }}</td>
                 <td>{{ feature.read }}</td>
                 <td>{{ feature.type.name }}</td>
+                <td>{{ feature.target_name if feature.target_name }}</td>
+                <td>{{ feature.target_id if feature.target_id }}</td>
             </tr>
             {% endfor %}
         </tbody>

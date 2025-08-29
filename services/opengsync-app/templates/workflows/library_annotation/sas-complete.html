@@ -195,7 +195,13 @@
                             <td>{{ read }}</td>
                             <td>
                                 {% for _, row in df.iterrows() %}
+                                {% if isna(row["library_name"]) %}
+                                {% for library in form.abc_libraries %}
+                                <span class="badge" >{{ library }}</span>
+                                {% endfor %}
+                                {% else %}
                                 <span class="badge" >{{ row["library_name"] }}</span>
+                                {% endif %}
                                 {% endfor %}
                             </td>
                         </tr>

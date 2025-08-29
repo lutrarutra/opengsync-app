@@ -87,17 +87,11 @@ class PooledLibraryAnnotationForm(MultiStepForm):
                 self.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue("Duplicate 'Sample Name' and 'Library Type'"))
 
             if ((seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.name) == row["library_type"])).any():
-                self.spreadsheet.add_error(idx, "library_type", DuplicateCellValue(f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request"))
-
-            if pd.isna(row["library_type"]):
-                self.spreadsheet.add_error(idx, "library_type", MissingCellValue("missing 'Library Type'"))
-
-            if pd.isna(row["genome"]):
-                self.spreadsheet.add_error(idx, "genome", MissingCellValue("missing 'Genome'"))
+                self.spreadsheet.add_error(idx, "library_type_id", DuplicateCellValue(f"You already have '{row['library_type']}'-library from sample {row['sample_name']} in the request"))
 
         for sample_name, _df in df.groupby("sample_name"):
             if len(_df) > 1:
-                if len(_df["genome"].unique()) > 1:
+                if len(_df["genome_id"].unique()) > 1:
                     self.spreadsheet.add_general_error(f"Sample '{sample_name}' has multiple different genomes.")
         
         if len(self.spreadsheet._errors) > 0:
@@ -122,7 +116,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
                     library_type_id = row["library_type_id"]
                     if library_type_id not in required_type_ids and library_type_id not in optional_library_type_ids:
                         self.spreadsheet.add_error(
-                            idx, "library_type",  # type: ignore
+                            idx, "library_type_id",  # type: ignore
                             InvalidCellValue(f"Library type '{LibraryType.get(library_type_id).name}' is not part of '{assay_type.name}' assay."),
                         )
 
