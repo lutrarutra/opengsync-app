@@ -195,7 +195,7 @@ def parse_oligo_mux_reference(current_user: models.User, seq_request_id: int, uu
 
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
-def annotate_features(current_user: models.User, seq_request_id: int, uuid: str):
+def parse_feature_annotation(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
     

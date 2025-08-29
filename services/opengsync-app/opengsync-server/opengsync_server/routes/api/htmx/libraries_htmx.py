@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import LibraryType, LibraryStatus, AssayType, MUXType, AccessType
 
-from .... import db, forms, logger
+from .... import db, forms, logger  # noqa
 from ....core import wrappers, exceptions
 from ....tools.spread_sheet_components import TextColumn
 
@@ -594,9 +594,9 @@ def get_mux_table(current_user: models.User, library_id: int):
                 col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
                 {
                     "sample_name": 300,
-                    "barcode": 100,
+                    "barcode": 200,
                     "read": 80,
-                    "pattern": 150
+                    "pattern": 200
                 }.get(col, 100),
                 max_length=1000
             )
