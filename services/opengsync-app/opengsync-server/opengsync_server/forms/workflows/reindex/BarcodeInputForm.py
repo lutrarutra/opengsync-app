@@ -4,7 +4,6 @@ from opengsync_db import models
 
 from .... import logger, db  # noqa F401
 from ....tools.spread_sheet_components import InvalidCellValue, IntegerColumn
-from .IndexKitMappingForm import IndexKitMappingForm
 from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm
 from ..common import CommonBarcodeInputForm
 from .CompleteReindexForm import CompleteReindexForm
@@ -63,7 +62,7 @@ class BarcodeInputForm(CommonBarcodeInputForm):
         if not self.validate():
             return self.make_response()
         
-        barcode_table = self.get_barcode_table()
+        barcode_table = self.df
         self.metadata["index_col"] = self.index_col
         self.add_table("library_table", self.library_table)
         self.add_table("barcode_table", barcode_table)
@@ -71,8 +70,6 @@ class BarcodeInputForm(CommonBarcodeInputForm):
 
         if TENXATACBarcodeInputForm.is_applicable(self):
             form = TENXATACBarcodeInputForm(uuid=self.uuid, lab_prep=self.lab_prep, seq_request=self.seq_request, pool=self.pool, formdata=None)
-        elif IndexKitMappingForm.is_applicable(self):
-            form = IndexKitMappingForm(uuid=self.uuid, lab_prep=self.lab_prep, seq_request=self.seq_request, pool=self.pool, formdata=None)
         elif BarcodeMatchForm.is_applicable(self):
             form = BarcodeMatchForm(seq_request=self.seq_request, lab_prep=self.lab_prep, pool=self.pool, uuid=self.uuid, formdata=None)
         else:

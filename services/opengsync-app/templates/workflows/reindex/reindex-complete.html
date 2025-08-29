@@ -44,7 +44,7 @@
             hx-get="{{ url_for('reindex_workflow.previous', uuid=form.uuid, **form.url_context) }}">
                 Back
             </button>
-            <button type="button" class="btn btn-primary"
+            <button type="button" class="btn btn-success"
                 hx-target="#barcode-check-form-container" hx-swap="outerHTML"
                 hx-include="#barcode-check-form"
                 hx-post="{{ form.post_url | safe }}">

@@ -2,7 +2,7 @@
 <form id="login-form">
     {{ login_form.csrf_token(id="login_csrf_token") }}
     <div style="display: flex; width: 100%; justify-content: center; align-items: center; flex-direction: column;">
-        {{ form_group(login_form.email, class="col-6", autocomplete="username", placeholder="Invalid Token") }}
+        {{ form_group(login_form.email, class="col-6", autocomplete="username") }}
         {{ form_group(login_form.password, class="col-6", autocomplete="current-password") }}
         <div class="col-6" style="display: flex; flex-direction: row; justify-content: flex-end; padding: 0 5px;">
             <button class="btn btn-success"

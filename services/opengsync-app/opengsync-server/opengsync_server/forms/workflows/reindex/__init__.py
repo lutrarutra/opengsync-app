@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING
 
 from .BarcodeInputForm import BarcodeInputForm  # noqa
-from .IndexKitMappingForm import IndexKitMappingForm  # noqa
 from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm  # noqa
 from .BarcodeMatchForm import BarcodeMatchForm  # noqa
 from .CompleteReindexForm import CompleteReindexForm  # noqa
@@ -12,7 +11,6 @@ if TYPE_CHECKING:
 _steps: list[type["MultiStepForm"]] = [
     BarcodeInputForm,
     TENXATACBarcodeInputForm,
-    IndexKitMappingForm,
     BarcodeMatchForm,
     CompleteReindexForm,
 ]

@@ -7,7 +7,6 @@ from opengsync_db import models
 from .... import logger, db  # noqa F401
 from ....tools.spread_sheet_components import IntegerColumn, TextColumn, InvalidCellValue
 from ..common import CommonBarcodeInputForm
-from .IndexKitMappingForm import IndexKitMappingForm
 from .BarcodeMatchForm import BarcodeMatchForm
 from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm
 from .CompleteLibraryPoolingForm import CompleteLibraryPoolingForm
@@ -80,7 +79,7 @@ class BarcodeInputForm(CommonBarcodeInputForm):
             self._context["active_tab"] = "spreadsheet"
             return self.make_response()
         
-        barcode_table = self.get_barcode_table()
+        barcode_table = self.df
         logger.debug(barcode_table)
         self.metadata["index_col"] = self.index_col
         self.add_table("library_table", self.library_table)
@@ -91,8 +90,6 @@ class BarcodeInputForm(CommonBarcodeInputForm):
 
         if TENXATACBarcodeInputForm.is_applicable(self):
             form = TENXATACBarcodeInputForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
-        elif IndexKitMappingForm.is_applicable(self):
-            form = IndexKitMappingForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         elif BarcodeMatchForm.is_applicable(self):
             form = BarcodeMatchForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         else:

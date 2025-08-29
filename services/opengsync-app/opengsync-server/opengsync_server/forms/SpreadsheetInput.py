@@ -11,7 +11,7 @@ from wtforms.validators import DataRequired
 from flask_wtf import FlaskForm
 
 from .. import logger
-from ..tools.spread_sheet_components import SpreadSheetColumn, SpreadSheetException, DropdownColumn
+from ..tools.spread_sheet_components import SpreadSheetColumn, SpreadSheetException, DropdownColumn, CategoricalDropDown
 
 
 class SpreadsheetInput(FlaskForm):
@@ -47,17 +47,24 @@ class SpreadsheetInput(FlaskForm):
         if df is not None:
             self.set_data(df)
 
-        if formdata is not None and (data := formdata.get("spreadsheet")) is not None:
-            self._data = json.loads(data)
-
     def set_data(self, data: pd.DataFrame):
         _df = data.copy()
         for col in self.columns.keys():
             if col not in _df.columns:
                 _df[col] = None
-            
-        self._data = _df[self.columns.keys()].replace(np.nan, "").values.tolist()
+
         self.__df = _df
+
+    @property
+    def raw_data(self) -> list[list]:
+        df = pd.DataFrame()
+        for col in self.columns.values():
+            if isinstance(col, CategoricalDropDown):
+                df[col.label] = self.__df[col.label].map(col.categories)
+            else:
+                df[col.label] = self.__df[col.label]
+
+        return df.replace(np.nan, "").values.tolist()
 
     def add_column(self, label: str, column: SpreadSheetColumn):
         if label in self.columns.keys():
@@ -119,8 +126,6 @@ class SpreadsheetInput(FlaskForm):
                     continue
                     
                 self.__df.at[idx, label] = column.clean_up(row[label])
-        
-        self._data = self.__df.replace(np.nan, "").values.tolist()
 
         if len(self._errors) > 0:
             return False

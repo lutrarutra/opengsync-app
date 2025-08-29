@@ -183,3 +183,29 @@ class DropdownColumn(SpreadSheetColumn):
             if self.source is None:
                 raise ValueError(f"Dropdown column '{self.label}' must have a source list of choices.")
             raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'. Must be one of: {', '.join(self.source)}")
+        
+
+class CategoricalDropDown(SpreadSheetColumn):
+    def __init__(
+        self, label: str, name: str, width: float, categories: dict[Any, str], required: bool = False,
+        letter: Optional[str] = None, optional_col: bool = False, unique: bool = False, read_only: bool = False
+    ):
+        super().__init__(
+            label=label, name=name, type="dropdown", width=width, var_type=str,
+            source=list(categories.values()), letter=letter, required=required,
+            optional_col=optional_col, unique=unique, read_only=read_only
+        )
+        self.categories = categories
+        self.rev_categories = {v: k for k, v in categories.items()}
+
+    def validate(self, value: Any, column_values: Sequence[Any]):
+        super().validate(value, column_values)
+        if pd.isna(value) and not self.required:
+            return
+        if value not in self.rev_categories:
+            raise InvalidCellValue(f"Invalid category '{value}' for '{self.label}'.")
+        
+    def clean_up(self, value: Any) -> Any:
+        if pd.isna(value):
+            return None
+        return self.rev_categories[value]

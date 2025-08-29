@@ -58,7 +58,7 @@
 </div>
 <script>
     var spread_sheet = jspreadsheet(document.getElementById("{{ element.id }}"), {
-        data: {{ element._data if element._data else "[[null]]" }},
+        data: {{ element.raw_data if element.raw_data else "[[null]]" }},
         columns: [
             {% for col in element.columns.values() %}
             {%- if col.type == "text" or col.type == "numeric" -%}

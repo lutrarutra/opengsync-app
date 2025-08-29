@@ -10,7 +10,6 @@ from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, InvalidCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
-from .KitMappingForm import KitMappingForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
@@ -138,8 +137,6 @@ class OCMAnnotationForm(MultiStepForm):
 
         if FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif KitMappingForm.is_applicable(self):
-            next_form = KitMappingForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):

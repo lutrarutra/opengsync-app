@@ -129,7 +129,11 @@ class IndexKitBP(DBBlueprint):
         self.db.session.add(index_kit)
 
     @DBBlueprint.transaction
-    def __getitem__(self, id: int) -> models.IndexKit:
-        if (index_kit := self.db.session.get(models.IndexKit, id)) is None:
-            raise exceptions.ElementDoesNotExist(f"IndexKit with id '{id}' not found.")
+    def __getitem__(self, id: int | str) -> models.IndexKit:
+        if isinstance(id, str):
+            if (index_kit := self.get_with_identifier(id)) is None:
+                raise exceptions.ElementDoesNotExist(f"IndexKit with identifier '{id}' not found.")
+        else:
+            if (index_kit := self.get(id)) is None:
+                raise exceptions.ElementDoesNotExist(f"IndexKit with id '{id}' not found.")
         return index_kit
