@@ -25,15 +25,13 @@ def login(current_user: models.User | None):
 
 
 @wrappers.htmx_route(auth_htmx, db=db)
-def logout(current_user: models.User | None):
-    if current_user and current_user.is_authenticated:
-        user_id = current_user.id
-        logout_user()
-        num_deleted = runtime.app.delete_user_sessions(user_id)
-        logger.info(f"Closed {num_deleted} sessions for user ID: {user_id}")
-        runtime.session.clear()
-        flash("Logged out!", "info")
-
+def logout(current_user: models.User):
+    user_id = current_user.id
+    logout_user()
+    num_deleted = runtime.app.delete_user_sessions(user_id)
+    logger.info(f"Closed {num_deleted} sessions for user ID: {user_id}")
+    runtime.session.clear()
+    flash("Logged out!", "info")
     return make_response(redirect=url_for("dashboard"))
 
 
