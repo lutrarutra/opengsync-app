@@ -29,6 +29,20 @@
                 if result.isConfirmed issueRequest()">
                 Reset Password
             </button>
+            <button class="btn btn-warning"
+            hx-post="{{ url_for('auth_htmx.delete_user_sessions', user_id=user.id) }}"
+            _="on htmx:confirm(issueRequest)
+                halt the event
+                call Swal.fire({
+                    title: 'Delete all active user sessions \'{{ user.email }}\'?',
+                    showDenyButton: true,
+                    text: 'Proceed?',
+                    confirmButtonText: 'Yes',
+                    denyButtonText: 'No'
+                })
+                if result.isConfirmed issueRequest()">
+                Delete Sessions
+            </button>
             {% endif %}
             {% if current_user.id == user.id %}
             <button id="logout-btn" class="btn btn-danger"

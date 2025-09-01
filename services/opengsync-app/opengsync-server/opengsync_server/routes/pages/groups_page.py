@@ -14,7 +14,7 @@ def groups():
     return render_template("groups_page.html", group_form=group_form)
 
 
-@wrappers.page_route(groups_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(groups_page_bp, "groups", db=db, cache_timeout_seconds=360)
 def group(current_user: models.User, group_id: int):
     if (group := db.groups.get(group_id)) is None:
         raise exceptions.NotFoundException()

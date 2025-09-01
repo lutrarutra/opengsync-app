@@ -13,7 +13,7 @@ def libraries():
     return render_template("libraries_page.html")
 
 
-@wrappers.page_route(libraries_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(libraries_page_bp, "libraries", db=db, cache_timeout_seconds=360)
 def library(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         raise exceptions.NotFoundException()

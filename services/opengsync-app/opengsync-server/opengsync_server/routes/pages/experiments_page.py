@@ -16,7 +16,7 @@ def experiments(current_user: models.User):
     return render_template("experiments_page.html")
 
 
-@wrappers.page_route(experiments_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(experiments_page_bp, "experiments", db=db, cache_timeout_seconds=360)
 def experiment(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()

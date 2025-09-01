@@ -15,7 +15,7 @@ def seq_runs(current_user: models.User):
     return render_template("seq_runs_page.html")
 
 
-@wrappers.page_route(seq_runs_page_bp, db=db, cache_timeout_seconds=60)
+@wrappers.page_route(seq_runs_page_bp, "seq_runs", db=db, cache_timeout_seconds=60)
 def seq_run(current_user: models.User, seq_run_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()

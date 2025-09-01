@@ -16,7 +16,7 @@ def lab_preps(current_user: models.User):
     return render_template("lab_preps_page.html")
 
 
-@wrappers.page_route(lab_preps_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(lab_preps_page_bp, "lab_preps", db=db, cache_timeout_seconds=360)
 def lab_prep(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()

@@ -13,7 +13,7 @@ def seq_requests():
     return render_template("seq_requests_page.html")
 
 
-@wrappers.page_route(seq_requests_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(seq_requests_page_bp, "seq_requests", db=db, cache_timeout_seconds=360)
 def seq_request(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests[seq_request_id]) is None:
         raise exceptions.NotFoundException()

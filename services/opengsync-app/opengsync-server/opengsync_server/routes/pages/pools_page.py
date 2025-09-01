@@ -13,7 +13,7 @@ def pools():
     return render_template("pools_page.html")
 
 
-@wrappers.page_route(pools_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(pools_page_bp, "pools", db=db, cache_timeout_seconds=360)
 def pool(current_user: models.User, pool_id: int):
     if (pool := db.pools.get(pool_id)) is None:
         raise exceptions.NotFoundException()
