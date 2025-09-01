@@ -13,7 +13,7 @@ from flask import Blueprint, render_template, request, flash, url_for, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus
+from opengsync_db.categories import LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType
 
 from .... import db, forms, logger
 from ....core import wrappers, exceptions
@@ -66,7 +66,7 @@ def get(current_user: models.User, page: int = 0):
 
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
-def table_query(current_user: models.User):
+def table_query():
     if (word := request.args.get("name")) is not None:
         field_name = "name"
     elif (word := request.args.get("id")) is not None:
@@ -307,40 +307,40 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
     def if_color(i):
         return pattern[i]
 
-    active_sheet = template["prep_table"]
+    prep_table = template["prep_table"]
     column_mapping: dict[str, str] = {}
     
-    for col_i in range(0, min(active_sheet.max_column, 96)):
+    for col_i in range(0, min(prep_table.max_column, 96)):
         col = get_column_letter(col_i + 1)
-        column_name = active_sheet[f"{col}1"].value
+        column_name = prep_table[f"{col}1"].value
         column_mapping[column_name] = col
         
-        for row_idx, cell in enumerate(active_sheet[col][1:]):
+        for row_idx, cell in enumerate(prep_table[col][1:]):
             if if_color(row_idx % (n * 2)):
                 cell.fill = openpyxl_styles.PatternFill(start_color="ced4da", end_color="ced4da", fill_type="solid")
             else:
                 cell.fill = openpyxl_styles.PatternFill(start_color="ffffff", end_color="ffffff", fill_type="solid")
 
-    for row_idx, cell in enumerate(active_sheet[column_mapping["plate_well"]][1:]):
+    for row_idx, cell in enumerate(prep_table[column_mapping["plate_well"]][1:]):
         if row_idx > 95:
             break
         cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
 
-    for row_idx, cell in enumerate(active_sheet[column_mapping["index_well"]][1:]):
+    for row_idx, cell in enumerate(prep_table[column_mapping["index_well"]][1:]):
         if row_idx > 95:
             break
         cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
         
     for i, library in enumerate(lab_prep.libraries):
-        library_id_cell = active_sheet[f"{column_mapping['library_id']}{i + 2}"]
-        library_name_cell = active_sheet[f"{column_mapping['library_name']}{i + 2}"]
-        requestor_cell = active_sheet[f"{column_mapping['requestor']}{i + 2}"]
-        sequence_i7_cell = active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"]
-        sequence_i5_cell = active_sheet[f"{column_mapping['sequence_i5']}{i + 2}"]
+        library_id_cell = prep_table[f"{column_mapping['library_id']}{i + 2}"]
+        library_name_cell = prep_table[f"{column_mapping['library_name']}{i + 2}"]
+        requestor_cell = prep_table[f"{column_mapping['requestor']}{i + 2}"]
+        sequence_i7_cell = prep_table[f"{column_mapping['sequence_i7']}{i + 2}"]
+        sequence_i5_cell = prep_table[f"{column_mapping['sequence_i5']}{i + 2}"]
         # kit_i7_cell = active_sheet[f"{column_mapping['kit_i7']}{i + 2}"]
         # kit_i5_cell = active_sheet[f"{column_mapping['kit_i5']}{i + 2}"]
-        name_i7_cell = active_sheet[f"{column_mapping['name_i7']}{i + 2}"]
-        name_i5_cell = active_sheet[f"{column_mapping['name_i5']}{i + 2}"]
+        name_i7_cell = prep_table[f"{column_mapping['name_i7']}{i + 2}"]
+        name_i5_cell = prep_table[f"{column_mapping['name_i5']}{i + 2}"]
         library_id_cell.value = library.id
         library_name_cell.value = library.name
         requestor_cell.value = library.seq_request.requestor.name
@@ -349,7 +349,45 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
             name_i5_cell.value = library.indices[0].name_i5
         sequence_i7_cell.value = library.sequences_i7_str(";")
         sequence_i5_cell.value = library.sequences_i5_str(";")
-        
+
+    if "FLEX_table" in template.sheetnames:
+        flex_table = template["FLEX_table"]
+        column_mapping: dict[str, str] = {}
+    
+        for col_i in range(0, min(flex_table.max_column, 96)):
+            col = get_column_letter(col_i + 1)
+            column_name = flex_table[f"{col}1"].value
+            column_mapping[column_name] = col
+
+        i = 2
+        for library in lab_prep.libraries:
+            if library.type == LibraryType.TENX_SC_GEX_FLEX:
+                for sample_link in library.sample_links:
+                    sample_num_cell = flex_table[f"{column_mapping['sample_num']}{i}"]
+                    sample_name_cell = flex_table[f"{column_mapping['sample_name']}{i}"]
+                    sample_num_cell.value = i - 1
+                    sample_name_cell.value = sample_link.sample.name
+                    i += 1
+
+    if "10X_table" in template.sheetnames:
+        tenx_table = template["10X_table"]
+        column_mapping: dict[str, str] = {}
+    
+        for col_i in range(0, min(tenx_table.max_column, 96)):
+            col = get_column_letter(col_i + 1)
+            column_name = tenx_table[f"{col}1"].value
+            column_mapping[column_name] = col
+
+        i = 2
+        for library in lab_prep.libraries:
+            if library.type in (LibraryType.TENX_SC_GEX_3PRIME, LibraryType.TENX_SC_GEX_5PRIME):
+                for sample_link in library.sample_links:
+                    sample_num_cell = tenx_table[f"{column_mapping['sample_num']}{i}"]
+                    sample_name_cell = tenx_table[f"{column_mapping['sample_name']}{i}"]
+                    sample_num_cell.value = i - 1
+                    sample_name_cell.value = sample_link.sample.name
+                    i += 1
+            
     bytes_io = io.BytesIO()
     template.save(bytes_io)
 
@@ -399,6 +437,32 @@ def get_pools(current_user: models.User, lab_prep_id: int, page: int = 0):
         render_template(
             "components/tables/lab_prep-pool.html",
             pools=pools, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, lab_prep=lab_prep
+        )
+    )
+
+
+@wrappers.htmx_route(lab_preps_htmx, db=db)
+def get_samples(current_user: models.User, lab_prep_id: int, page: int = 0):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    samples, n_pages = db.samples.find(
+        lab_prep_id=lab_prep_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True
+    )
+
+    return make_response(
+        render_template(
+            "components/tables/lab_prep-sample.html",
+            samples=samples, n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order, lab_prep=lab_prep
         )
     )

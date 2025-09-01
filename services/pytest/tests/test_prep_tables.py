@@ -38,32 +38,40 @@ def common_prep_table_test(table_path: str):
         assert col in df.columns, f"Column not found: {col}"
         assert df[col].isna().sum() == len(df), f"Not empty: {col}"
 
-    return wb, df
+    return wb
 
 
 def test_default_table():
-    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.CUSTOM.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.CUSTOM.prep_file_name))
 
 
 def test_rna_table():
-    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.RNA_SEQ.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.RNA_SEQ.prep_file_name))
 
 
 def test_wgs_table():
-    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.WGS.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.WGS.prep_file_name))
 
 
 def test_qseq_table():
-    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.QUANT_SEQ.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.QUANT_SEQ.prep_file_name))
 
 
 def test_tenx_table():
-    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.TENX.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.TENX.prep_file_name))
+    assert "10X_table" in wb.sheetnames
+    tenx_table = pd.read_excel(os.path.join(prep_table_template_dir, LabProtocol.TENX.prep_file_name), "10X_table")
+    for col in ["sample_num", "sample_name"]:
+        assert col in tenx_table.columns, f"Column not found: {col}"
+    assert "FLEX_table" in wb.sheetnames
+    flex_table = pd.read_excel(os.path.join(prep_table_template_dir, LabProtocol.TENX.prep_file_name), "FLEX_table")
+    for col in ["sample_num", "sample_name"]:
+        assert col in flex_table.columns, f"Column not found: {col}"
 
 
 def test_smartseq_table():
-    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.SMART_SEQ.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.SMART_SEQ.prep_file_name))
 
 
 def test_wes_table():
-    wb, df = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.WES.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.WES.prep_file_name))

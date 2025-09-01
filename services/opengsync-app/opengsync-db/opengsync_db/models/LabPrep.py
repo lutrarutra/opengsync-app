@@ -9,6 +9,7 @@ from opengsync_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, Pr
 
 from .Base import Base
 from .. import LAB_PROTOCOL_START_NUMBER
+from . import links
 
 if TYPE_CHECKING:
     from .User import User
@@ -36,7 +37,7 @@ class LabPrep(Base):
     plates: Mapped[list["Plate"]] = relationship("Plate", back_populates="lab_prep", cascade="save-update, merge, delete, delete-orphan", lazy="select", order_by="Plate.id")
 
     prep_file: Mapped[Optional["File"]] = relationship(
-        "File", lazy="joined", viewonly=True,
+        "File", lazy="select", viewonly=True,
         primaryjoin=f"and_(LabPrep.id == File.lab_prep_id, File.type_id == {FileType.LIBRARY_PREP_FILE.id})",
     )
 
@@ -44,6 +45,21 @@ class LabPrep(Base):
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="lab_prep", lazy="select")
     files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
+
+    @property
+    def num_samples(self) -> int:
+        from .Sample import Sample
+        from .Library import Library
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
+
+        return session.query(Sample.id).where(
+            sa.exists().where(
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.lab_prep_id == self.id)
+            )
+        ).count()
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]

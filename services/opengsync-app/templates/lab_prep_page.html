@@ -114,6 +114,11 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#lab_prep-samples-tab" type="button" role="tab"
+            aria-controls="lab_prep-samples-tab" aria-selected="true">Samples ({{ lab_prep.num_samples }})</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#prep_table-tab" type="button" role="tab"
             aria-controls="prep_table-tab" aria-selected="false"
             {% if not lab_prep.prep_file %}disabled{% endif %}>
@@ -440,7 +445,20 @@
             </div>
         </div>
 
-        <div class="tab-pane fade" id="prep_table-tab" role="tabpanel" tabindex="3">
+        <div class="tab-pane fade" id="lab_prep-samples-tab" role="tabpanel" tabindex="3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Samples</h2>
+                </div>
+                <div>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('lab_preps_htmx.get_samples', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="prep_table-tab" role="tabpanel" tabindex="4">
             {% if lab_prep.prep_file %}
             <div hx-get="{{ url_for('files_htmx.render_xlsx', file_id=lab_prep.prep_file.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
@@ -448,7 +466,7 @@
             {% endif %}
         </div>
 
-        <div class="tab-pane fade" id="plate-tab" role="tabpanel" tabindex="4">
+        <div class="tab-pane fade" id="plate-tab" role="tabpanel" tabindex="5">
             {% if lab_prep.plates | length > 0 %}
             <div hx-get="{{ url_for('lab_preps_htmx.plates_tab', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
@@ -456,19 +474,19 @@
             {% endif %}
         </div>
 
-        <div class="tab-pane fade" id="mux-tab" role="tabpanel" tabindex="5">
+        <div class="tab-pane fade" id="mux-tab" role="tabpanel" tabindex="6">
             <div hx-get="{{ url_for('lab_preps_htmx.get_mux_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
 
-        <div class="tab-pane fade" id="files-tab" role="tabpanel" tabindex="6">
+        <div class="tab-pane fade" id="files-tab" role="tabpanel" tabindex="7">
             <div hx-get="{{ url_for('lab_preps_htmx.get_files', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
 
-        <div class="tab-pane fade" id="comments-tab" role="tabpanel" tabindex="7">
+        <div class="tab-pane fade" id="comments-tab" role="tabpanel" tabindex="8">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Comments</h2>
@@ -484,7 +502,7 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="8">
+        <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="9">
             <h4>Metadata</h4>
             <div class="row">
                 {{ metadata_group("Name", lab_prep.name, class="col-3") }}
