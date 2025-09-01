@@ -4,9 +4,9 @@ After=docker.service
 
 [Service]
 Restart=always
-WorkingDirectory=~/opengsync-app-prod
+WorkingDirectory=<repository path>
 ExecStart=/usr/bin/docker compose --env-file=.env -f compose.yaml -p opengsync-prod up --build
-ExecStop=/usr/bin/docker compose -f compose.yaml -p opengsync-prod down
+ExecStop=/usr/bin/docker compose -f compose.yaml -p opengsync-prod down --volumes --remove-orphans
 
 [Install]
 WantedBy=multi-user.target
