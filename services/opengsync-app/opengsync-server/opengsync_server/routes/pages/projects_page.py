@@ -13,7 +13,7 @@ def projects():
     return render_template("projects_page.html", form=forms.models.ProjectForm())
 
 
-@wrappers.page_route(projects_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(projects_page_bp, "projects", db=db, cache_timeout_seconds=360)
 def project(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
         raise exceptions.NotFoundException()

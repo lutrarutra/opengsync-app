@@ -12,7 +12,7 @@ def share_tokens():
     return render_template("share_tokens_page.html")
 
 
-@wrappers.page_route(share_tokens_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(share_tokens_page_bp, "share_tokens", db=db, cache_timeout_seconds=360)
 def share_token(current_user: models.User, share_token_id: str):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()

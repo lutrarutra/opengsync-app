@@ -31,7 +31,12 @@
                 }}
                 <th scope="col" class="col-1">Cycles</th>
                 <th scope="col" class="col-2">Flowcell ID</th>
-                <th scope="col" class="col-3">Run Folder</th>
+                {{
+                    table_col(
+                        table_container_id='seq_run-table', column_name='Run Folder', column_var='run_folder',
+                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3,
+                    )
+                }}
             </tr>
         </thead>
         <tbody>

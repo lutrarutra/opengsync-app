@@ -460,6 +460,8 @@ def overview(current_user: models.User, project_id: int):
 
     nodes = []
     links = []
+    library_in_nodes = {}
+    library_out_nodes = {}
     experiment_nodes = {}
     seq_request_nodes = {}
     idx = 0
@@ -473,15 +475,21 @@ def overview(current_user: models.User, project_id: int):
         nodes.append(sample_node)
         for _, row in sample_df.iterrows():
             library_name = row["library_name"]
+            library_id = row["library_id"]
             seq_request_id = row["seq_request_id"]
             experiment_name = row["experiment_name"] if pd.notna(row["experiment_name"]) else None
 
-            library_in_node = {
-                "node": idx,
-                "name": library_name,
-            }
-            idx += 1
-            nodes.append(library_in_node)
+            if library_id not in library_in_nodes:
+                library_in_node = {
+                    "node": idx,
+                    "name": library_name,
+                }
+                idx += 1
+                nodes.append(library_in_node)
+                library_in_nodes[library_id] = library_in_node
+            else:
+                library_in_node = library_in_nodes[library_id]
+
             links.append({
                 "source": sample_node["node"],
                 "target": library_in_node["node"],
@@ -513,12 +521,16 @@ def overview(current_user: models.User, project_id: int):
                     nodes.append(experiment_node)
                     experiment_nodes[experiment_name] = experiment_node["node"]
                 
-                library_out_node = {
-                    "node": idx,
-                    "name": library_name,
-                }
-                idx += 1
-                nodes.append(library_out_node)
+                if library_id not in library_out_nodes:
+                    library_out_node = {
+                        "node": idx,
+                        "name": library_name,
+                    }
+                    idx += 1
+                    nodes.append(library_out_node)
+                else:
+                    library_out_node = library_out_nodes[library_id]
+                    
                 links.append({
                     "source": seq_request_nodes[seq_request_id],
                     "target": library_out_node["node"],

@@ -100,3 +100,17 @@ def reset_password(token: str):
     
     form = forms.auth.ResetPasswordForm(token=token, formdata=request.form)
     return form.process_request()
+
+
+@wrappers.htmx_route(auth_htmx, methods=["POST"], db=db, login_required=True)
+def delete_user_sessions(current_user: models.User, user_id: int):
+    if not current_user.is_admin():
+        raise exceptions.NoPermissionsException()
+    
+    if (user := db.users.get(user_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    runtime.app.delete_user_sessions(user_id)
+    flash(f"Deleted all sessions for user '{user.email}'", "info")
+    logger.info(f"Deleted all sessions for user '{user.id}'")
+    return make_response(redirect=url_for("users_page.user", user_id=user_id))

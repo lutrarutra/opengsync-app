@@ -10,7 +10,7 @@ def kits():
     return render_template("kits_page.html")
 
 
-@wrappers.page_route(kits_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(kits_page_bp, "kits", db=db, cache_timeout_seconds=360)
 def kit(kit_id: int):
     if (kit := db.kits.get(kit_id)) is None:
         raise exceptions.NotFoundException()
@@ -30,7 +30,7 @@ def index_kits():
     return render_template("index_kits_page.html")
 
 
-@wrappers.page_route(kits_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(kits_page_bp, "index_kits", db=db, cache_timeout_seconds=360)
 def index_kit(index_kit_id: int):
     index_kit = db.index_kits.get(index_kit_id)
 
@@ -58,7 +58,7 @@ def feature_kits():
     return render_template("feature_kits_page.html")
 
 
-@wrappers.page_route(kits_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(kits_page_bp, "feature_kits", db=db, cache_timeout_seconds=360)
 def feature_kit(feature_kit_id: int):
     feature_kit = db.feature_kits.get(feature_kit_id)
 

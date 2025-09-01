@@ -13,7 +13,7 @@ def samples():
     return render_template("samples_page.html")
 
 
-@wrappers.page_route(samples_page_bp, db=db, cache_timeout_seconds=360)
+@wrappers.page_route(samples_page_bp, "samples", db=db, cache_timeout_seconds=360)
 def sample(current_user: models.User, sample_id: int):
     if (sample := db.samples.get(sample_id)) is None:
         raise exceptions.NotFoundException()

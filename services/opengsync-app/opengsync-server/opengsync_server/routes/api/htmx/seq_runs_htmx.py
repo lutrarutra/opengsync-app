@@ -13,7 +13,7 @@ seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/api/hmtx/seq_r
 
 @wrappers.htmx_route(seq_runs_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get(page: int = 0):
-    sort_by = request.args.get("sort_by", "run_folder")
+    sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
