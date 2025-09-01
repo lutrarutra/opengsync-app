@@ -1,0 +1,58 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="lab_prep-sample-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='lab_prep-sample-table', column_name='ID', column_var='id',
+                        sort_url='lab_preps_htmx.get_samples', context={'lab_prep_id': lab_prep.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='lab_preps_htmx.table_query', current_query=current_query,
+                        active_query_field=active_query_field, query_type="number",
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='lab_prep-sample-table', column_name='Name', column_var='name',
+                        sort_url='lab_preps_htmx.get_samples', context={'lab_prep_id': lab_prep.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        query_url='lab_preps_htmx.table_query', current_query=current_query,
+                        active_query_field=active_query_field, col_size=4
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='lab_prep-sample-table', column_name='Status', column_var='status_id',
+                        sort_url='lab_preps_htmx.get_samples', context={'lab_prep_id': lab_prep.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=3,
+                        multiselect_choices=SampleStatus.as_list(), multiselect_selected=status_in
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='lab_prep-sample-table', column_name='Owner', column_var='owner_id',
+                        sort_url='lab_preps_htmx.get_samples', context={'lab_prep_id': lab_prep.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                        col_size=3
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for sample in samples %}
+            <tr>
+                <th scope="row">{{ sample.id }}</th>
+                <td><a href="{{ url_for('samples_page.sample', sample_id=sample.id, from='lab_prep@' + lab_prep.id | string) }}">{{ sample.name }}</a></td>
+                <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
+                <td><a href="{{ url_for('users_page.user', user_id=sample.owner_id, from='lab_prep@' + lab_prep.id | string) }}">{{ sample.owner.name }}{% if current_user.id == sample.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("lab_prep-sample-table-spinner") }}
+    {{ pagination("lab_prep-sample-table", "lab_preps_htmx.get_samples", n_pages, active_page, context={ "lab_prep_id":lab_prep.id }) }}
+</div>

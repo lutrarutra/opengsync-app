@@ -19,6 +19,7 @@ class SampleBP(DBBlueprint):
         library_id: int | None = None,
         pool_id: int | None = None,
         seq_request_id: int | None = None,
+        lab_prep_id: int | None = None,
         status: Optional[SampleStatusEnum] = None,
         status_in: Optional[list[SampleStatusEnum]] = None,
         custom_query: Callable[[Query], Query] | None = None,
@@ -53,6 +54,15 @@ class SampleBP(DBBlueprint):
                     (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
                     (models.Library.id == models.links.SampleLibraryLink.library_id) &
                     (models.Library.pool_id == pool_id)
+                )
+            )
+
+        if lab_prep_id is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                    (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                    (models.Library.lab_prep_id == lab_prep_id)
                 )
             )
 
@@ -98,6 +108,7 @@ class SampleBP(DBBlueprint):
         project_id: int | None = None,
         library_id: int | None = None,
         pool_id: int | None = None,
+        lab_prep_id: int | None = None,
         seq_request_id: int | None = None,
         status: Optional[SampleStatusEnum] = None,
         status_in: Optional[list[SampleStatusEnum]] = None,
@@ -109,7 +120,7 @@ class SampleBP(DBBlueprint):
 
         query = self.db.session.query(models.Sample)
         query = SampleBP.where(
-            query, user_id=user_id, project_id=project_id, library_id=library_id,
+            query, user_id=user_id, project_id=project_id, library_id=library_id, lab_prep_id=lab_prep_id,
             pool_id=pool_id, seq_request_id=seq_request_id, status=status, status_in=status_in,
             custom_query=custom_query
         )
@@ -166,13 +177,14 @@ class SampleBP(DBBlueprint):
         library_id: int | None = None,
         pool_id: int | None = None,
         seq_request_id: int | None = None,
+        lab_prep_id: int | None = None,
         status: Optional[SampleStatusEnum] = None,
         status_in: Optional[list[SampleStatusEnum]] = None,
         limit: int | None = PAGE_LIMIT
     ) -> list[models.Sample]:
         query = self.db.session.query(models.Sample)
         query = SampleBP.where(
-            query, user_id=user_id, project_id=project_id, library_id=library_id,
+            query, user_id=user_id, project_id=project_id, library_id=library_id, lab_prep_id=lab_prep_id,
             pool_id=pool_id, seq_request_id=seq_request_id, status=status, status_in=status_in
         )
 
