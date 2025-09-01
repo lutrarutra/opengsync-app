@@ -456,15 +456,37 @@ def overview(current_user: models.User, project_id: int):
         
     df = db.pd.get_project_libraries(project_id=project_id)
 
-    LINK_WIDTH_UNIT = 0.5
+    LINK_WIDTH_UNIT = 1
 
     nodes = []
     links = []
     library_in_nodes = {}
     library_out_nodes = {}
+
     experiment_nodes = {}
     seq_request_nodes = {}
     idx = 0
+
+    for (experiment_name,), _ in df.groupby(["experiment_name"]):
+        node = {
+            "node": idx,
+            "name": experiment_name,
+        }
+        experiment_nodes[experiment_name] = node
+        nodes.append(node)
+        idx += 1
+
+    for (seq_request_id,), _ in df.groupby(["seq_request_id",]):
+        node = {
+            "node": idx,
+            "name": f"Request {seq_request_id}",
+        }
+        seq_request_nodes[seq_request_id] = node
+        nodes.append(node)
+        idx += 1
+
+    logger.debug(experiment_nodes)
+    logger.debug(seq_request_nodes)
 
     for (sample_name,), sample_df in df.groupby(["sample_name"]):
         sample_node = {
@@ -473,20 +495,12 @@ def overview(current_user: models.User, project_id: int):
         }
         idx += 1
         nodes.append(sample_node)
+
         for _, row in sample_df.iterrows():
             library_name = row["library_name"]
             library_id = row["library_id"]
             seq_request_id = row["seq_request_id"]
             experiment_name = row["experiment_name"] if pd.notna(row["experiment_name"]) else None
-
-            if seq_request_id not in seq_request_nodes:
-                seq_request_node = {
-                    "node": idx,
-                    "name": f"Request {seq_request_id}",
-                }
-                idx += 1
-                nodes.append(seq_request_node)
-                seq_request_nodes[seq_request_id] = seq_request_node["node"]
 
             if library_id not in library_in_nodes:
                 library_in_node = {
@@ -498,7 +512,7 @@ def overview(current_user: models.User, project_id: int):
                 library_in_nodes[library_id] = library_in_node
                 links.append({
                     "source": library_in_node["node"],
-                    "target": seq_request_nodes[seq_request_id],
+                    "target": seq_request_nodes[seq_request_id]["node"],
                     "value": LINK_WIDTH_UNIT * len(df[df["library_id"] == library_id])
                 })
             else:
@@ -511,15 +525,6 @@ def overview(current_user: models.User, project_id: int):
             })
 
             if experiment_name is not None:
-                if experiment_name not in experiment_nodes:
-                    experiment_node = {
-                        "node": idx,
-                        "name": experiment_name,
-                    }
-                    idx += 1
-                    nodes.append(experiment_node)
-                    experiment_nodes[experiment_name] = experiment_node["node"]
-                
                 if library_id not in library_out_nodes:
                     library_out_node = {
                         "node": idx,
@@ -528,20 +533,19 @@ def overview(current_user: models.User, project_id: int):
                     idx += 1
                     nodes.append(library_out_node)
                     library_out_nodes[library_id] = library_out_node
-                else:
-                    library_out_node = library_out_nodes[library_id]
-                    
-                links.append({
-                    "source": seq_request_nodes[seq_request_id],
-                    "target": library_out_node["node"],
-                    "value": LINK_WIDTH_UNIT
-                })
-                links.append({
-                    "source": library_out_node["node"],
-                    "target": experiment_nodes[experiment_name],
-                    "value": LINK_WIDTH_UNIT
-                })
-
+                    links.append({
+                        "source": library_out_node["node"],
+                        "target": experiment_nodes[experiment_name]["node"],
+                        "value": LINK_WIDTH_UNIT * len(df[df["library_id"] == library_id])
+                    })
+                    links.append({
+                        "source": seq_request_nodes[seq_request_id]["node"],
+                        "target": library_out_node["node"],
+                        "value": LINK_WIDTH_UNIT
+                    })
+    
+    logger.debug(nodes)
+    logger.debug(links)
     return make_response(
         render_template(
             "components/plots/project_overview.html",
