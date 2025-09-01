@@ -479,23 +479,6 @@ def overview(current_user: models.User, project_id: int):
             seq_request_id = row["seq_request_id"]
             experiment_name = row["experiment_name"] if pd.notna(row["experiment_name"]) else None
 
-            if library_id not in library_in_nodes:
-                library_in_node = {
-                    "node": idx,
-                    "name": library_name,
-                }
-                idx += 1
-                nodes.append(library_in_node)
-                library_in_nodes[library_id] = library_in_node
-            else:
-                library_in_node = library_in_nodes[library_id]
-
-            links.append({
-                "source": sample_node["node"],
-                "target": library_in_node["node"],
-                "value": LINK_WIDTH_UNIT
-            })
-
             if seq_request_id not in seq_request_nodes:
                 seq_request_node = {
                     "node": idx,
@@ -505,9 +488,25 @@ def overview(current_user: models.User, project_id: int):
                 nodes.append(seq_request_node)
                 seq_request_nodes[seq_request_id] = seq_request_node["node"]
 
+            if library_id not in library_in_nodes:
+                library_in_node = {
+                    "node": idx,
+                    "name": library_name,
+                }
+                idx += 1
+                nodes.append(library_in_node)
+                library_in_nodes[library_id] = library_in_node
+                links.append({
+                    "source": library_in_node["node"],
+                    "target": seq_request_nodes[seq_request_id],
+                    "value": LINK_WIDTH_UNIT * len(df[df["library_id"] == library_id])
+                })
+            else:
+                library_in_node = library_in_nodes[library_id]
+
             links.append({
-                "source": library_in_node["node"],
-                "target": seq_request_nodes[seq_request_id],
+                "source": sample_node["node"],
+                "target": library_in_node["node"],
                 "value": LINK_WIDTH_UNIT
             })
 
@@ -528,6 +527,7 @@ def overview(current_user: models.User, project_id: int):
                     }
                     idx += 1
                     nodes.append(library_out_node)
+                    library_out_nodes[library_id] = library_out_node
                 else:
                     library_out_node = library_out_nodes[library_id]
                     
