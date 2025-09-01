@@ -541,7 +541,7 @@ def overview(current_user: models.User, project_id: int):
                     links.append({
                         "source": seq_request_nodes[seq_request_id]["node"],
                         "target": library_out_node["node"],
-                        "value": LINK_WIDTH_UNIT
+                        "value": LINK_WIDTH_UNIT * len(df[(df["library_id"] == library_id) & (df["seq_request_id"] == seq_request_id)])
                     })
     
     logger.debug(nodes)
