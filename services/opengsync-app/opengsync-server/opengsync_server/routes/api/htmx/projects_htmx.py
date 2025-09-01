@@ -485,9 +485,6 @@ def overview(current_user: models.User, project_id: int):
         nodes.append(node)
         idx += 1
 
-    logger.debug(experiment_nodes)
-    logger.debug(seq_request_nodes)
-
     for (sample_name,), sample_df in df.groupby(["sample_name"]):
         sample_node = {
             "node": idx,
@@ -541,11 +538,9 @@ def overview(current_user: models.User, project_id: int):
                     links.append({
                         "source": seq_request_nodes[seq_request_id]["node"],
                         "target": library_out_node["node"],
-                        "value": LINK_WIDTH_UNIT
+                        "value": LINK_WIDTH_UNIT * len(df[(df["library_id"] == library_id) & (df["seq_request_id"] == seq_request_id)])
                     })
     
-    logger.debug(nodes)
-    logger.debug(links)
     return make_response(
         render_template(
             "components/plots/project_overview.html",
