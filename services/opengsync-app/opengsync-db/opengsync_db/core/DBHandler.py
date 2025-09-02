@@ -13,7 +13,7 @@ from .. import models
 class DBHandler():
     Session: orm.scoped_session
 
-    def __init__(self, logger: Optional["loguru.Logger"] = None, expire_on_commit: bool = False, auto_open: bool = True) -> None:
+    def __init__(self, logger: Optional["loguru.Logger"] = None, expire_on_commit: bool = False, auto_open: bool = False) -> None:
         self._logger = logger
         self._session: orm.Session | None = None
         self._connection: sa.engine.Connection | None = None
@@ -188,18 +188,18 @@ class DBHandler():
             return False
 
         if commit and not rollback:
-            if self.__needs_commit or self.session.dirty or self.session.new or self.session.deleted:
+            if self.__needs_commit or self._session.dirty or self._session.new or self._session.deleted:
                 try:
-                    self.session.commit()
+                    self._session.commit()
                 except Exception:
                     self.error("Commit failed: - rolling back transaction.")
-                    self.session.rollback()
+                    self._session.rollback()
                     raise
                 self.__needs_commit = False
                 modified = True
         elif rollback:
             self.info("Rolling back transaction...")
-            self.session.rollback()
+            self._session.rollback()
         else:
             if not commit and self.__needs_commit:
                 self.warn("Session was not committed, but changes were made. This may lead to data loss.")

@@ -18,7 +18,7 @@
                     table_col(
                         table_container_id='lab_prep-table', column_name='Name', column_var='name',
                         sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=4, query_url='lab_preps_htmx.table_query', current_query=current_query,
+                        col_size=3, query_url='lab_preps_htmx.table_query', current_query=current_query,
                         active_query_field=active_query_field, query_type="text"
                     )
                 }}
@@ -44,6 +44,20 @@
                         active_query_field=active_query_field, query_type="text"
                     )
                 }}
+                {{
+                    table_col(
+                        table_container_id='lab_prep-table', column_name='# Libraries', column_var='num_libraries',
+                        sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
+                        col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='lab_prep-table', column_name='# Samples', column_var='num_samples',
+                        sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
+                        col_size=1,
+                    )
+                }}
             </tr>
         </thead>
         <tbody>
@@ -54,6 +68,8 @@
                 <td>{{ lab_prep.protocol.name }}</td>
                 <td>{{ lab_prep.status.icon }} {{ lab_prep.status.name }}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=lab_prep.creator_id) }}">{{ lab_prep.creator.name }} <span class="desc">{{ "me" if current_user.id == lab_prep.creator_id }}</span></a></td>
+                <td>{{ lab_prep.num_libraries }}</td>
+                <td>{{ lab_prep.num_samples }}</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -1,7 +1,6 @@
 import pandas as pd
 
 import sqlalchemy as sa
-from sqlalchemy.sql.operators import and_  # noqa: F401
 
 from ... import models
 from ... import categories
@@ -716,7 +715,7 @@ class PandasBP(DBBlueprint):
             models.Lane.number.label("lane"), models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
             models.Library.id.label("library_id")
         ).where(
-            and_(models.Experiment.id.in_(experiment_ids), models.Library.id.in_(libraries_ids))
+            sa.and_(models.Experiment.id.in_(experiment_ids), models.Library.id.in_(libraries_ids))
         ).join(
             models.Lane,
             models.Lane.experiment_id == models.Experiment.id
@@ -824,4 +823,9 @@ class PandasBP(DBBlueprint):
         df["hamming"] = df["sequence"].apply(lambda x: hamming_distance(x, sequence))
         df["type"] = df["type_id"].map(categories.BarcodeType.get)  # type: ignore
 
+        return df
+    
+    @DBBlueprint.transaction
+    def query(self, query: sa.Select | str) -> pd.DataFrame:
+        df = pd.read_sql(query, self.db._engine)
         return df
