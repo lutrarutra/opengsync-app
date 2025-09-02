@@ -46,8 +46,8 @@ class LabPrep(Base):
     files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
 
-    @property
-    def num_samples(self) -> int:
+    @hybrid_property
+    def num_samples(self) -> int:  # type: ignore[override]
         from .Sample import Sample
         from .Library import Library
         if (session := orm.object_session(self)) is None:
@@ -60,6 +60,21 @@ class LabPrep(Base):
                 (Library.lab_prep_id == self.id)
             )
         ).count()
+    
+    @num_samples.expression
+    def num_samples(cls) -> sa.ScalarSelect[int]:
+        from .Sample import Sample
+        from .Library import Library
+
+        return sa.select(
+            sa.func.count(sa.distinct(Sample.id))
+        ).join(
+            links.SampleLibraryLink, links.SampleLibraryLink.sample_id == Sample.id
+        ).join(
+            Library, Library.id == links.SampleLibraryLink.library_id
+        ).where(
+            Library.lab_prep_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
