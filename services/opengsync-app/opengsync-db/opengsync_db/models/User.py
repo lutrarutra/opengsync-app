@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from .Pool import Pool
     from .Sample import Sample
     from .Library import Library
-    from .File import File
+    from .MediaFile import MediaFile
     from .LabPrep import LabPrep
 
 
@@ -84,7 +84,7 @@ class User(Base, UserMixin):
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="owner", lazy="select")
     samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="owner", lazy="select")
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="owner", lazy="select")
-    files: Mapped[list["File"]] = relationship("File", back_populates="uploader", lazy="select")
+    media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", back_populates="uploader", lazy="select")
     preps: Mapped[list["LabPrep"]] = relationship("LabPrep", back_populates="creator", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_samples", "num_projects", "num_seq_requests"]

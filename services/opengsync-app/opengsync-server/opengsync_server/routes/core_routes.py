@@ -1,11 +1,13 @@
 import os
+from pathlib import Path
 
 from flask import (
     render_template,
     request,
     session,
     make_response,
-    flash
+    flash,
+    url_for
 )
 from flask_htmx import make_response as make_htmx_response
 
@@ -21,6 +23,24 @@ if runtime.app.debug:
     @wrappers.page_route(runtime.app, db=db, login_required=False)
     def test(current_user: models.User | None):
         return render_template("test.html")
+    
+    @wrappers.page_route(runtime.app, db=db, login_required=True)
+    def mail_template(current_user: models.User):
+        import premailer
+
+        download_command = render_template("snippets/rclone-copy.sh.j2", token="aisndnasdnuasndu")
+        style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
+
+        browse_link = url_for("file_share.browse", token="aisndnasdnuasndu", _external=True)
+
+        content = render_template(
+            "email/share-data.html", style=style, download_command=download_command, browse_link=browse_link,
+            tenx_contents=True,
+            author=current_user
+        )
+
+        content = premailer.transform(content)
+        return content
 
 
 @wrappers.page_route(runtime.app, login_required=False, cache_timeout_seconds=360, cache_type="global")

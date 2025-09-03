@@ -6,7 +6,7 @@ from wtforms import SelectField, TextAreaField
 from flask import Response
 
 from opengsync_db import models
-from opengsync_db.categories import FileType
+from opengsync_db.categories import MediaFileType
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -22,7 +22,7 @@ class FileInputForm(HTMXFlaskForm):
         ("jpg", "JPEG"),
         ("jpeg", "JPEG")
     ]
-    file_type = SelectField("File Type", choices=FileType.as_selectable(), coerce=int, description="Select the type of file you are uploading.")
+    file_type = SelectField("File Type", choices=MediaFileType.as_selectable(), coerce=int, description="Select the type of file you are uploading.")
     comment = TextAreaField("Comment", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)], description="Provide a brief description of the file.")  # type: ignore
     file = FileField(validators=[DataRequired(), FileAllowed([ext for ext, _ in _allowed_extensions])])
 

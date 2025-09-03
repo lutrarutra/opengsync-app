@@ -1,12 +1,11 @@
-from flask import Blueprint, url_for, flash, request
+from flask import Blueprint, url_for, flash, request, render_template
 from flask_htmx import make_response
-from flask_mail import Message
 from flask_login import logout_user
 
 from opengsync_db import models
 from opengsync_db.categories import UserRole
 
-from .... import db, forms, logger, mail, serializer, EMAIL_SENDER
+from .... import db, forms, logger, mail_handler, serializer
 from ....core import wrappers, exceptions, runtime
 
 auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/api/hmtx/auth/")
@@ -73,17 +72,17 @@ def reset_password_email(current_user: models.User, user_id: int):
         raise exceptions.NoPermissionsException()
         
     token = user.generate_reset_token(serializer=serializer)
-    url = url_for("auth_page.reset_password_page", token=token, _external=True)
+    link = url_for("auth_page.reset_password_page", token=token, _external=True)
 
-    msg = Message(
-        "opengsync Reset Password",
-        sender=EMAIL_SENDER,
-        recipients=[user.email],
-        body=f"""Follow the link to reset your password:\n
-        <a href='{url}'>{url}</a>
-        """
-    )
-    mail.send(msg)
+    if not mail_handler.send_email(
+        recipients=user.email,
+        subject="OpeNGSync Password Reset",
+        body=render_template("email/password-reset.html", recipient=user, link=link),
+        mime_type="html"
+    ):
+        flash("Failed to send password reset email. Please contact administrator.", "error")
+        logger.error(f"Failed to send password reset email to '{user.email}'")
+        return make_response(redirect=url_for("users_page.user", user_id=user_id))
 
     flash(f"Password reset email sent to '{user.email}'", "info")
     logger.info(f"Password reset email sent to '{user.email}'")

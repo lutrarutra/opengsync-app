@@ -6,7 +6,6 @@ import redis
 from flask_htmx import HTMX
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
-from flask_mail import Mail
 from flask_caching import Cache
 from itsdangerous import URLSafeTimedSerializer
 
@@ -18,6 +17,7 @@ from .core.LogBuffer import log_buffer
 from .tools import RedisMSFFileCache
 from .core.FlashCache import FlashCache
 from .core.FileHandler import FileHandler
+from .tools import MailHandler
 
 DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
 
@@ -35,14 +35,14 @@ pd.set_option('display.width', 1000)
 
 
 SECRET_KEY = os.environ["SECRET_KEY"]
-EMAIL_SENDER = os.environ["EMAIL_SENDER"]
 TIMEZONE = pytz.timezone(os.environ["TIMEZONE"])
 
 htmx = HTMX()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
-mail = Mail()
 serializer = URLSafeTimedSerializer(SECRET_KEY)
+mail_handler = MailHandler()
+
 
 db = DBHandler(logger=logger, expire_on_commit=True, auto_open=False)
 route_cache = Cache()

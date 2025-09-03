@@ -33,7 +33,7 @@ def load(current_user: models.User, experiment_id: int):
     if (experiment := db.experiments.get(experiment_id)) is None:
         raise exceptions.NotFoundException()
     
-    experiment.files
+    experiment.media_files
 
     if experiment.workflow.combined_lanes:
         form = wff.UnifiedLoadFlowCellForm(experiment=experiment, formdata=request.form)

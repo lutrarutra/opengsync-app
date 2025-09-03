@@ -10,15 +10,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from .Base import Base
-from ..categories import FileType, FileTypeEnum
+from ..categories import MediaFileType, MediaFileTypeEnum
 from .User import User
 
 if TYPE_CHECKING:
     from .Comment import Comment
 
 
-class File(Base):
-    __tablename__ = "file"
+class MediaFile(Base):
+    __tablename__ = "media_file"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     extension: Mapped[str] = mapped_column(sa.String(16), nullable=False)
@@ -28,7 +28,7 @@ class File(Base):
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     
     uploader_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
-    uploader: Mapped["User"] = relationship("User", back_populates="files", lazy="joined")
+    uploader: Mapped["User"] = relationship("User", back_populates="media_files", lazy="select")
     comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="file", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
 
     seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
@@ -36,8 +36,8 @@ class File(Base):
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
 
     @property
-    def type(self) -> FileTypeEnum:
-        return FileType.get(self.type_id)
+    def type(self) -> MediaFileTypeEnum:
+        return MediaFileType.get(self.type_id)
     
     @property
     def path(self) -> str:

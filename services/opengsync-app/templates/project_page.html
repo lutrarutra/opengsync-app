@@ -75,8 +75,7 @@
             <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#project-overview-tab" type="button" role="tab"
                 aria-controls="project-overview-tab" aria-selected="true">
-                Overview
-            </button>
+            Overview</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -95,6 +94,12 @@
             data-bs-target="#project-software-tab" type="button" role="tab"
             aria-controls="project-software-tab" aria-selected="false">
             Software ({{ project.software | length }})</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#project-data_paths-tab" type="button" role="tab"
+            aria-controls="project-data_paths-tab" aria-selected="false">
+            Data ({{ project.num_data_paths }})</button>
         </li>
     </ul>
 </div>
@@ -167,6 +172,11 @@
         </div>
         <div class="tab-pane fade" id="project-software-tab" role="tabpanel" tabindex="5">
             <div hx-get="{{ url_for('projects_htmx.get_software', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="project-data_paths-tab" role="tabpanel" tabindex="6">
+            <div hx-get="{{ url_for('projects_htmx.get_data_paths', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

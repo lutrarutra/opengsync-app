@@ -349,7 +349,7 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
     if (file := db.files.get(file_id)) is None:
         raise exceptions.NotFoundException()
     
-    if file not in seq_request.files:
+    if file not in seq_request.media_files:
         raise exceptions.BadRequestException()
     
     file_path = os.path.join(runtime.app.media_folder, file.path)
@@ -969,7 +969,7 @@ def get_files(current_user: models.User, seq_request_id: int):
     return make_response(
         render_template(
             "components/file-list.html",
-            files=seq_request.files, seq_request=seq_request, delete="seq_requests_htmx.delete_file",
+            files=seq_request.media_files, seq_request=seq_request, delete="seq_requests_htmx.delete_file",
             delete_context={"seq_request_id": seq_request_id}
         )
     )

@@ -16,12 +16,13 @@ if TYPE_CHECKING:
     from .Pool import Pool
     from .Sequencer import Sequencer
     from .User import User
-    from .File import File
+    from .MediaFile import MediaFile
     from .Comment import Comment
     from .SeqQuality import SeqQuality
     from .SeqRun import SeqRun
     from .Lane import Lane
     from .Library import Library
+    from .DataPath import DataPath
 
 
 class Experiment(Base):
@@ -51,10 +52,11 @@ class Experiment(Base):
     pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select", back_populates="experiment")
     libraries: Mapped[list["Library"]] = relationship("Library", lazy="select", back_populates="experiment")
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="merge, save-update, delete, delete-orphan")
-    files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
+    media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
     laned_pool_links: Mapped[list[links.LanePoolLink]] = relationship("LanePoolLink", lazy="select", cascade="delete, delete-orphan")
+    data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="experiment", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp_created_utc", "timestamp_finished_utc", "status_id", "sequencer_id", "flowcell_type_id", "workflow_id"]
 
@@ -99,20 +101,20 @@ class Experiment(Base):
     @hybrid_property
     def num_files(self) -> int:  # type: ignore[override]
         if "files" not in orm.attributes.instance_state(self).unloaded:
-            return len(self.files)
+            return len(self.media_files)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_files' attribute.")
-        from .File import File
-        return session.query(sa.func.count(File.id)).filter(File.experiment_id == self.id).count()
+        from .MediaFile import MediaFile
+        return session.query(sa.func.count(MediaFile.id)).filter(MediaFile.experiment_id == self.id).count()
     
     @num_files.expression
     def num_files(cls) -> sa.ScalarSelect[int]:
-        from .File import File
+        from .MediaFile import MediaFile
         return sa.select(
-            sa.func.count(sa.distinct(File.id))
+            sa.func.count(sa.distinct(MediaFile.id))
         ).where(
-            File.experiment_id == cls.id
+            MediaFile.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property

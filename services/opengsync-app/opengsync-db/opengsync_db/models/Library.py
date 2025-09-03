@@ -22,10 +22,11 @@ if TYPE_CHECKING:
     from .User import User
     from .Feature import Feature
     from .SeqQuality import SeqQuality
-    from .File import File
+    from .MediaFile import MediaFile
     from .LibraryIndex import LibraryIndex
     from .LabPrep import LabPrep
     from .Experiment import Experiment
+    from .DataPath import DataPath
 
 
 @dataclass
@@ -66,8 +67,8 @@ class Library(Base):
 
     properties: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
-    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
-    ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select")
+    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id"), nullable=True, default=None)
+    ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select")
 
     pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True)
     pool: Mapped[Optional["Pool"]] = relationship(
@@ -94,6 +95,7 @@ class Library(Base):
     plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
     indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="joined", cascade="all, save-update, merge, delete, delete-orphan")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
+    data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="library", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "owner_id", "pool_id", "adapter", "num_samples", "num_features"]
 

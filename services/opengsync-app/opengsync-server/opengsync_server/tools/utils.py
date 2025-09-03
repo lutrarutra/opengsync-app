@@ -514,3 +514,32 @@ def normalize_to_ascii(text: str, allow_special_characters: list[str] = ["_", ".
     allowed_pattern = re.escape("".join(allow_special_characters))
     text = re.sub(rf"[^a-zA-Z0-9 {allowed_pattern}]", '', text)
     return text
+
+
+def filter_subpaths(paths: list[str]) -> list[str]:
+    """
+    Filter out paths that are subpaths of other paths in the list.
+    
+    Args:
+        paths: List of file/directory paths as strings
+    
+    Returns:
+        List of paths where no path is a subpath of another
+    """
+    sorted_paths = sorted(paths, key=len, reverse=False)
+    filtered_paths = []
+    
+    for path in sorted_paths:
+        normalized_path = path.rstrip('/') + '/'
+        
+        is_subpath = False
+        for existing_path in filtered_paths:
+            normalized_existing = existing_path.rstrip('/') + '/'
+            if normalized_path.startswith(normalized_existing):
+                is_subpath = True
+                break
+        
+        if not is_subpath:
+            filtered_paths.append(path)
+    
+    return filtered_paths

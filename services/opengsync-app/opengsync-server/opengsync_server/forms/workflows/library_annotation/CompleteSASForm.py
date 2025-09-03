@@ -7,7 +7,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models
 from opengsync_db.categories import (
-    GenomeRef, LibraryType, FeatureType, FileType, SampleStatus, PoolType, AttributeType,
+    GenomeRef, LibraryType, FeatureType, MediaFileType, SampleStatus, PoolType, AttributeType,
     AssayType, SubmissionType, MUXType, IndexType
 )
 
@@ -422,7 +422,7 @@ class CompleteSASForm(MultiStepForm):
         flash(f"Added {self.library_table.shape[0]} libraries to sequencing request.", "success")
         logger.info(f"{self.uuid}: added libraries to sequencing request.")
 
-        newdir = os.path.join(runtime.app.media_folder, FileType.LIBRARY_ANNOTATION.dir, str(self.seq_request.id))
+        newdir = os.path.join(runtime.app.media_folder, MediaFileType.LIBRARY_ANNOTATION.dir, str(self.seq_request.id))
         os.makedirs(newdir, exist_ok=True)
         self.complete(os.path.join(newdir, f"{self.uuid}.msf"))
 

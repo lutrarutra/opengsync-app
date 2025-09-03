@@ -7,7 +7,7 @@ from flask import Blueprint, url_for, render_template, flash, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import SampleStatus, ProjectStatus, LibraryStatus, SeqRequestStatus, AccessType
+from opengsync_db.categories import SampleStatus, ProjectStatus, LibraryStatus, SeqRequestStatus, AccessType, DataPathType, DataPathTypeEnum
 
 from .... import db, forms, logger
 from ....core import wrappers, exceptions
@@ -282,6 +282,41 @@ def get_seq_requests(current_user: models.User, project_id: int, page: int = 0):
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
             project=project, status_in=status_in
+        )
+    )
+
+
+@wrappers.htmx_route(projects_htmx, db=db)
+def get_data_paths(current_user: models.User, project_id: int, page: int = 0):
+    if (project := db.projects.get(project_id)) is None:
+        raise exceptions.NotFoundException()
+
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        raise exceptions.NoPermissionsException()
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+
+    if (type_id := request.args.get("type_id", None)) is not None:
+        try:
+            type_id = int(type_id)
+            type_enum = DataPathType.get(type_id)
+        except ValueError:
+            raise exceptions.BadRequestException()
+    else:
+        type_enum = None
+
+    data_paths, n_pages = db.data_paths.find(offset=offset, project_id=project_id, type=type_enum, sort_by=sort_by, descending=descending, count_pages=True)
+
+    return make_response(
+        render_template(
+            "components/tables/project-data_path.html", data_paths=data_paths,
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
+            project=project, type_id=type_id
         )
     )
         

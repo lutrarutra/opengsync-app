@@ -120,19 +120,19 @@ def _route_decorator(
             try:
                 return _fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
-                rollback = True
+                rollback = db.needs_commit if db is not None else False
                 _default_logger(blueprint, routes, args, kwargs, e, "InternalServerErrorException")
                 return response_handler(e)
             except serv_exceptions.OpeNGSyncServerException as e:
-                rollback = True
+                rollback = db.needs_commit if db is not None else False
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncServerException")
                 return response_handler(e)
             except db_exceptions.OpeNGSyncDBException as e:
-                rollback = True
+                rollback = db.needs_commit if db is not None else False
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncDBException")
                 return response_handler(e)
             except Exception as e:
-                rollback = True
+                rollback = db.needs_commit if db is not None else False
                 if runtime.app.debug and response_handler.__name__ != "_htmx_handler":
                     raise e
                 _default_logger(blueprint, routes, args, kwargs, e, "Exception")

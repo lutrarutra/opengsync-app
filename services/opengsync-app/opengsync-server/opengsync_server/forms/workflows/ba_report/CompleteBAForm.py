@@ -10,7 +10,7 @@ from wtforms import IntegerField, FieldList, FormField, StringField
 from flask_wtf import FlaskForm
 
 from opengsync_db import models
-from opengsync_db.categories import FileType, PoolStatus
+from opengsync_db.categories import MediaFileType, PoolStatus
 
 from .... import db, logger  # noqa
 from ....core import exceptions
@@ -64,7 +64,7 @@ class CompleteBAForm(MultiStepForm):
         filename, extension = os.path.splitext(report.data.filename)
         
         file_uuid = uuid7str()
-        new_path = os.path.join(runtime.app.media_folder, FileType.BIOANALYZER_REPORT.dir, f"{file_uuid}{extension}")
+        new_path = os.path.join(runtime.app.media_folder, MediaFileType.BIOANALYZER_REPORT.dir, f"{file_uuid}{extension}")
         report.data.save(new_path)
         size_bytes = os.stat(new_path).st_size
 
@@ -77,7 +77,7 @@ class CompleteBAForm(MultiStepForm):
             name=filename,
             extension=extension,
             size_bytes=size_bytes,
-            type=FileType.BIOANALYZER_REPORT,
+            type=MediaFileType.BIOANALYZER_REPORT,
             uploader_id=user.id,
             uuid=file_uuid,
             lab_prep_id=lab_prep_id
