@@ -116,22 +116,30 @@ def _route_decorator(
             if current_user_required != "no":
                 kwargs["current_user"] = current_user if current_user.is_authenticated else None
 
+            rollback = False
             try:
                 return _fnc(*args, **kwargs)
+            except serv_exceptions.InternalServerErrorException as e:
+                rollback = True
+                _default_logger(blueprint, routes, args, kwargs, e, "InternalServerErrorException")
+                return response_handler(e)
             except serv_exceptions.OpeNGSyncServerException as e:
+                rollback = True
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncServerException")
                 return response_handler(e)
             except db_exceptions.OpeNGSyncDBException as e:
+                rollback = True
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncDBException")
                 return response_handler(e)
             except Exception as e:
+                rollback = True
                 if runtime.app.debug and response_handler.__name__ != "_htmx_handler":
                     raise e
                 _default_logger(blueprint, routes, args, kwargs, e, "Exception")
                 return response_handler(e)
             finally:
                 if db is not None:
-                    if db.close_session():
+                    if db.close_session(rollback=rollback):
                         route_cache.clear()
 
                 if (msgs := runtime.app.consume_flashes(runtime.session)):
