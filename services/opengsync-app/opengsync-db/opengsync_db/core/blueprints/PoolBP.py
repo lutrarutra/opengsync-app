@@ -382,16 +382,24 @@ class PoolBP(DBBlueprint):
         if (merged_pool := self.db.session.get(models.Pool, merged_pool_id)) is None:
             raise exceptions.ElementDoesNotExist(f"New Pool with id {merged_pool} does not exist")
 
-        pools = self.db.session.query(models.Pool).where(
+        from sqlalchemy import orm
+        pools = self.db.session.query(models.Pool).filter(
             models.Pool.id.in_(pool_ids)
-        ).all()
+        ).options(orm.joinedload(models.Pool.libraries)).all()
+
+        if len(pool_ids) != len(pools):
+            raise exceptions.ElementDoesNotExist("One or more pools to merge do not exist")
 
         for pool in pools:
             for library in pool.libraries:
-                merged_pool.libraries.append(library)
-            self.db.session.delete(pool)
+                library.pool_id = merged_pool.id
+            self.db.session.add(pool)
 
         self.db.session.add(merged_pool)
+        
+        self.db.session.query(models.Pool).filter(
+            models.Pool.id.in_(pool_ids)
+        ).delete()
 
         if flush:
             self.db.flush()

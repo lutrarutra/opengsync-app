@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import Response, url_for, flash
@@ -10,7 +8,7 @@ from wtforms.validators import Optional as OptionalValidator, Length, DataRequir
 from opengsync_db import models, exceptions
 from opengsync_db.categories import PoolStatus, PoolType
 
-
+from ...core import exceptions as serv_exceptions
 from ... import db, logger, tools  # noqa F401
 from ..MultiStepForm import MultiStepForm
 from ..SearchBar import OptionalSearchBar
@@ -36,11 +34,9 @@ class MergePoolsForm(MultiStepForm):
             workflow=MergePoolsForm._workflow_name, step_args={}
         )
         self.pool_table = self.tables["pool_table"]
+        self.pool_table["num_m_reads_requested"] = 0
         self.post_url = url_for("merge_pools_workflow.merge", uuid=uuid)
-
-    def get_context(self, **context) -> dict:
-        num_m_reads_requested = 0
-        context = super().get_context(**context)
+        
         dfs = []
         for pool_id in self.pool_table["id"].tolist():
             if (pool := db.pools.get(int(pool_id))) is None:
@@ -48,21 +44,18 @@ class MergePoolsForm(MultiStepForm):
                 raise exceptions.ElementDoesNotExist(f"Pool {pool_id} not found")
             
             if pool.num_m_reads_requested is not None:
-                num_m_reads_requested += pool.num_m_reads_requested
+                self.pool_table.loc[self.pool_table["id"] == pool_id, "num_m_reads_requested"] = pool.num_m_reads_requested
 
             df = db.pd.get_pool_libraries(pool_id=pool.id)
             df["pool_id"] = pool.id
             df["pool_name"] = pool.name
             dfs.append(df)
 
-        df = pd.concat(dfs, ignore_index=True).reset_index(drop=True)
-        df = tools.check_indices(df)
-        context["library_table"] = df
+        self.library_table = pd.concat(dfs, ignore_index=True).reset_index(drop=True)
+        self._context["library_table"] = tools.check_indices(self.library_table)
 
-        if not self.num_m_reads_requested.data:
-            self.num_m_reads_requested.data = num_m_reads_requested
-
-        return context
+    def prepare(self):
+        self.num_m_reads_requested.data = self.pool_table["num_m_reads_requested"].sum()
 
     def validate(self, user: models.User) -> bool:
         if not super().validate():
@@ -107,8 +100,13 @@ class MergePoolsForm(MultiStepForm):
 
         pool = db.pools.merge(
             merged_pool_id=pool.id,
-            pool_ids=self.pool_table["id"].tolist(),
+            pool_ids=[int(x) for x in self.pool_table["id"].tolist()],
         )
+
+        if len(pool.libraries) != len(self.library_table):
+            logger.error(f"{self.uuid}: Mismatch in number of libraries after merging pools. Expected {len(self.pool_table)}, got {len(pool.libraries)}")
+            raise serv_exceptions.InternalServerErrorException("Mismatch in number of libraries after merging pools.")
+    
         flash("Pools Merged!")
         logger.info(f"{self.uuid}: Pools merged successfully. New pool ID: {pool.id}")
         return make_response(redirect=url_for("pools_page.pool", pool_id=pool.id))

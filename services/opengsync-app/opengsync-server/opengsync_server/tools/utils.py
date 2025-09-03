@@ -112,7 +112,6 @@ def check_indices(df: pd.DataFrame, groupby: str | None = None) -> pd.DataFrame:
 
     df.loc[df["min_hamming_bases"] < 1, "error"] = "Hamming distance of 0 between barcode combination in two or more libraries."
     df.loc[df["min_hamming_bases"] < 3, "warning"] = "Small hamming distance between barcode combination in two or more libraries."
-    logger.info(df)
     return df
 
 
