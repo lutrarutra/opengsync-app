@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .Project import Project
     from .SeqRequest import SeqRequest
 
+
 class Group(Base):
     __tablename__ = "group"
 
@@ -61,6 +62,24 @@ class Group(Base):
             sa.func.count(SeqRequest.id)
         ).where(
             SeqRequest.group_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    @hybrid_property
+    def num_users(self) -> int:  # type: ignore[override]
+        if "user_links" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.user_links)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_users' attribute.")
+        
+        return session.query(sa.func.count(links.UserAffiliation.user_id)).filter(links.UserAffiliation.group_id == self.id).scalar()
+    
+    @num_users.expression
+    def num_users(cls) -> sa.ScalarSelect[int]:
+        return sa.select(
+            sa.func.count(links.UserAffiliation.user_id)
+        ).where(
+            links.UserAffiliation.group_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property

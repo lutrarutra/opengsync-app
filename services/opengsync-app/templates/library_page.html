@@ -97,6 +97,12 @@
             {% if library.status != LibraryStatus.SEQUENCED %}disabled{% endif %}>
             Read Quality</button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#library-data_paths-tab" type="button" role="tab"
+            aria-controls="library-data_paths-tab" aria-selected="true">
+            Data ({{ library.num_data_paths }})</button>
+        </li>
     </ul>
 </div>
 
@@ -272,6 +278,11 @@
         {% endif %}
         <div class="tab-pane fade" id="reads-tab" role="tabpanel" tabindex="10">
             <div hx-get="{{ url_for('libraries_htmx.reads_tab', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="library-data_paths-tab" role="tabpanel" tabindex="11">
+            <div hx-get="{{ url_for('libraries_htmx.get_data_paths', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

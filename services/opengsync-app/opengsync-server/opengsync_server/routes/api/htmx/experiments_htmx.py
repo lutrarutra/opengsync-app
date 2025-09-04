@@ -8,7 +8,7 @@ from flask import Blueprint, url_for, render_template, flash, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow, ProjectStatus
+from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow, ProjectStatus, DataPathType
 
 from .... import db, forms, logger
 from ....core.RunTime import runtime
@@ -342,7 +342,7 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     if (file := db.files.get(file_id)) is None:
         raise exceptions.NotFoundException()
     
-    if file not in experiment.files:
+    if file not in experiment.media_files:
         raise exceptions.BadRequestException()
     
     file_path = os.path.join(runtime.app.media_folder, file.path)
@@ -583,6 +583,41 @@ def get_projects(current_user: models.User, experiment_id: int, page: int = 0):
 
 
 @wrappers.htmx_route(experiments_htmx, db=db)
+def get_data_paths(current_user: models.User, experiment_id: int, page: int = 0):
+    if (experiment := db.experiments.get(experiment_id)) is None:
+        raise exceptions.NotFoundException()
+
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [DataPathType.get(int(t)) for t in type_in]
+        except ValueError:
+            raise exceptions.BadRequestException()
+    
+        if len(type_in) == 0:
+            type_in = None
+
+    data_paths, n_pages = db.data_paths.find(offset=offset, experiment_id=experiment_id, type_in=type_in, sort_by=sort_by, descending=descending, count_pages=True)
+
+    return make_response(
+        render_template(
+            "components/tables/experiment-data_path.html", data_paths=data_paths,
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
+            experiment=experiment, type_in=type_in
+        )
+    )
+
+
+@wrappers.htmx_route(experiments_htmx, db=db)
 def get_libraries(current_user: models.User, experiment_id: int, page: int = 0):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
@@ -660,7 +695,7 @@ def get_files(current_user: models.User, experiment_id: int):
     return make_response(
         render_template(
             "components/file-list.html",
-            files=experiment.files, experiment=experiment, delete="experiments_htmx.delete_file",
+            files=experiment.media_files, experiment=experiment, delete="experiments_htmx.delete_file",
             delete_context={"experiment_id": experiment_id}
         )
     )

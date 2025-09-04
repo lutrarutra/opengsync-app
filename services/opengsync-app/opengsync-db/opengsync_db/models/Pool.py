@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from .SeqRequest import SeqRequest
     from .Lane import Lane
     from .Contact import Contact
-    from .File import File
+    from .MediaFile import MediaFile
     from .PoolDilution import PoolDilution
     from .Plate import Plate
     from .LabPrep import LabPrep
@@ -50,8 +50,8 @@ class Pool(Base):
     contact_id: Mapped[int] = mapped_column(sa.ForeignKey("contact.id"), nullable=False)
     contact: Mapped["Contact"] = relationship("Contact", lazy="select")
 
-    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True, default=None)
-    ba_report: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[ba_report_id])
+    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id"), nullable=True, default=None)
+    ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select", foreign_keys=[ba_report_id])
 
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", lazy="select")

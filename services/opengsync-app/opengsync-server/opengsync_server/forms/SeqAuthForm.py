@@ -7,7 +7,7 @@ from wtforms import FileField
 from wtforms.validators import DataRequired
 from flask_wtf.file import FileAllowed
 
-from opengsync_db.categories import FileType
+from opengsync_db.categories import MediaFileType
 from opengsync_db import models
 
 from .. import logger, db
@@ -53,7 +53,7 @@ class SeqAuthForm(HTMXFlaskForm):
 
         db_file = db.files.create(
             name=filename,
-            type=FileType.SEQ_AUTH_FORM,
+            type=MediaFileType.SEQ_AUTH_FORM,
             extension=extension,
             uploader_id=user.id,
             size_bytes=self.size_bytes,

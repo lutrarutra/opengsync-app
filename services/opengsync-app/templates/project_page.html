@@ -75,8 +75,7 @@
             <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#project-overview-tab" type="button" role="tab"
                 aria-controls="project-overview-tab" aria-selected="true">
-                Overview
-            </button>
+            Overview</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -95,6 +94,12 @@
             data-bs-target="#project-software-tab" type="button" role="tab"
             aria-controls="project-software-tab" aria-selected="false">
             Software ({{ project.software | length }})</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#project-data_paths-tab" type="button" role="tab"
+            aria-controls="project-data_paths-tab" aria-selected="false">
+            Data ({{ project.num_data_paths }})</button>
         </li>
     </ul>
 </div>
@@ -167,6 +172,51 @@
         </div>
         <div class="tab-pane fade" id="project-software-tab" role="tabpanel" tabindex="5">
             <div hx-get="{{ url_for('projects_htmx.get_software', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="project-data_paths-tab" role="tabpanel" tabindex="6">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2>Paths {% if current_user.is_insider() %}<img {{ tooltip('Right click on a path to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;">{% endif %}</h2>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: flex-end;">
+                    <div class="input-group" style="width: 100%; cursor: default;">
+                        <span class="input-group-text">Token Expiration</span>
+                        <input class="form-control noselect" type="text" readonly
+                        {% if project.share_token_uuid %}
+                        style="text-align: end; cursor: default;"
+                        value="{{ project.share_token.expiration | format_datetime }} {% if project.share_token.is_expired %}🔴{% else %}🟢{% endif %}"
+                        {% else %}
+                        style="text-align: end; cursor: default; color: #5e5e5e;"
+                        value="No Token Generated" style="text-align: end;"
+                        {% endif %}>
+                    </div>
+                    {% if current_user.is_insider() %}
+                    <div>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" style="width: 120px;"
+                            hx-get="{{ url_for('share_project_data_workflow.share_project_data', project_id=project.id) }}"
+                            hx-swap="innerHTML" hx-target="#xl-modal-content"
+                            {% if project.share_token_uuid and not project.share_token.expired %}
+                            _="on htmx:confirm(issueRequest)
+                            halt the event
+                            call Swal.fire({
+                                title: 'This project already has a valid share token.',
+                                icon: 'warning',
+                                showDenyButton: true,
+                                text: 'Existing token will be invalidated and a new one will be created. Do you want to proceed?',
+                                confirmButtonText: 'Yes',
+                                denyButtonText: 'No'
+                            })
+                            if result.isConfirmed issueRequest()"
+                            {% endif %}>
+                            Share Data
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div hx-get="{{ url_for('projects_htmx.get_data_paths', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

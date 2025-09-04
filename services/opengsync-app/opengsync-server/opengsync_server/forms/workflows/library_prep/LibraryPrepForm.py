@@ -8,7 +8,7 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models, to_utc
-from opengsync_db.categories import FileType, LibraryStatus
+from opengsync_db.categories import MediaFileType, LibraryStatus
 
 from .... import logger, db  # noqa F401
 from ....core import exceptions
@@ -110,7 +110,7 @@ class LibraryPrepForm(HTMXFlaskForm):
             return self.make_response()
         
         hash = uuid7str()
-        path = os.path.join(runtime.app.media_folder, FileType.LIBRARY_PREP_FILE.dir, f"{hash}.xlsx")
+        path = os.path.join(runtime.app.media_folder, MediaFileType.LIBRARY_PREP_FILE.dir, f"{hash}.xlsx")
         self.table.file.data.save(path)
         size_bytes = os.path.getsize(path)
 
@@ -178,7 +178,7 @@ class LibraryPrepForm(HTMXFlaskForm):
         else:
             db.files.create(
                 name=f"{self.lab_prep.name}_prep",
-                type=FileType.LIBRARY_PREP_FILE,
+                type=MediaFileType.LIBRARY_PREP_FILE,
                 extension=".xlsx",
                 uploader_id=user.id,
                 size_bytes=size_bytes,

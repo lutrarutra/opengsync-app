@@ -7,7 +7,7 @@ from flask_htmx import make_response
 from wtforms import SelectField
 
 from opengsync_db import models
-from opengsync_db.categories import FileType
+from opengsync_db.categories import MediaFileType
 
 from ...core.RunTime import runtime
 from .FileInputForm import FileInputForm
@@ -15,7 +15,7 @@ from ... import db, logger
 
 
 class ExperimentAttachmentForm(FileInputForm):
-    file_type = SelectField("File Type", choices=[(ft.id, ft.display_name) for ft in [FileType.POST_SEQUENCING_QC_REPORT, FileType.BIOANALYZER_REPORT, FileType.LANE_POOLING_TABLE, FileType.CUSTOM]], coerce=int, description="Select the type of file you are uploading.")
+    file_type = SelectField("File Type", choices=[(ft.id, ft.display_name) for ft in [MediaFileType.POST_SEQUENCING_QC_REPORT, MediaFileType.BIOANALYZER_REPORT, MediaFileType.LANE_POOLING_TABLE, MediaFileType.CUSTOM]], coerce=int, description="Select the type of file you are uploading.")
     
     def __init__(self, experiment: models.Experiment, formdata: Optional[dict] = None, max_size_mbytes: int = 5):
         FileInputForm.__init__(self, formdata=formdata, max_size_mbytes=max_size_mbytes)
@@ -26,7 +26,7 @@ class ExperimentAttachmentForm(FileInputForm):
         if not super().validate():
             return False
         
-        if FileType.get(self.file_type.data) == FileType.SEQ_AUTH_FORM:
+        if MediaFileType.get(self.file_type.data) == MediaFileType.SEQ_AUTH_FORM:
             self.file_type.errors = ("Invalid file type for experiment.",)
             return False
             
@@ -36,7 +36,7 @@ class ExperimentAttachmentForm(FileInputForm):
         if not self.validate():
             return self.make_response()
 
-        file_type = FileType.get(self.file_type.data)
+        file_type = MediaFileType.get(self.file_type.data)
 
         filename, extension = os.path.splitext(self.file.data.filename)
 

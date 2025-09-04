@@ -4,7 +4,7 @@ from .DataDeliveryMode import DataDeliveryMode, DataDeliveryModeEnum  # noqa: F4
 from .DeliveryStatus import DeliveryStatus, DeliveryStatusEnum  # noqa: F401
 from .ExperimentStatus import ExperimentStatus, ExperimentStatusEnum  # noqa: F401
 from .FeatureType import FeatureType, FeatureTypeEnum  # noqa: F401
-from .FileType import FileType, FileTypeEnum  # noqa
+from .MediaFileType import MediaFileType, MediaFileTypeEnum  # noqa
 from .FlowCellType import FlowCellType, FlowCellTypeEnum  # noqa: F401
 from .GenomeRef import GenomeRef, GenomeRefEnum  # noqa: F401
 from .HTTPResponse import HTTPResponse  # noqa: F401
@@ -32,3 +32,4 @@ from .PrepStatus import PrepStatus, PrepStatusEnum  # noqa: F401
 from .KitType import KitType, KitTypeEnum  # noqa: F401
 from .ProjectStatus import ProjectStatus, ProjectStatusEnum  # noqa: F401
 from .MUXType import MUXType, MUXTypeEnum  # noqa: F401
+from .DataPathType import DataPathType, DataPathTypeEnum  # noqa: F401

@@ -6,7 +6,6 @@ import redis
 from flask_htmx import HTMX
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
-from flask_mail import Mail
 from flask_caching import Cache
 from itsdangerous import URLSafeTimedSerializer
 
@@ -18,8 +17,7 @@ from .core.LogBuffer import log_buffer
 from .tools import RedisMSFFileCache
 from .core.FlashCache import FlashCache
 from .core.FileHandler import FileHandler
-
-DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
+from .tools import MailHandler
 
 logger.remove()
 logger.add(log_buffer.write, format="{message}", serialize=True, catch=True)
@@ -33,16 +31,16 @@ pd.set_option('display.max_colwidth', None)
 # Optional: increase the display width of your console (characters per line)
 pd.set_option('display.width', 1000)
 
-
+DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
 SECRET_KEY = os.environ["SECRET_KEY"]
-EMAIL_SENDER = os.environ["EMAIL_SENDER"]
 TIMEZONE = pytz.timezone(os.environ["TIMEZONE"])
 
 htmx = HTMX()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
-mail = Mail()
 serializer = URLSafeTimedSerializer(SECRET_KEY)
+mail_handler = MailHandler()
+
 
 db = DBHandler(logger=logger, expire_on_commit=True, auto_open=False)
 route_cache = Cache()

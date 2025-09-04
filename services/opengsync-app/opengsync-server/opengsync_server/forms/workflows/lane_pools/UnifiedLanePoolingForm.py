@@ -10,7 +10,7 @@ from wtforms import StringField, FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
 from opengsync_db import models
-from opengsync_db.categories import FileType
+from opengsync_db.categories import MediaFileType
 
 from .... import db, logger
 from ....core.RunTime import runtime
@@ -148,8 +148,8 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         extension = ".tsv"
 
         old_file = None
-        for file in self.experiment.files:
-            if file.type == FileType.LANE_POOLING_TABLE:
+        for file in self.experiment.media_files:
+            if file.type == MediaFileType.LANE_POOLING_TABLE:
                 old_file = file
                 break
             
@@ -159,7 +159,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             logger.info(f"Old file '{old_file.path}' removed.")
 
         _uuid = uuid7str()
-        filepath = os.path.join(runtime.app.media_folder, FileType.LANE_POOLING_TABLE.dir, f"{_uuid}.tsv")
+        filepath = os.path.join(runtime.app.media_folder, MediaFileType.LANE_POOLING_TABLE.dir, f"{_uuid}.tsv")
         df.to_csv(filepath, sep="\t", index=False)
         size_bytes = os.stat(filepath).st_size
 
@@ -167,7 +167,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             name=filename,
             uuid=_uuid,
             size_bytes=size_bytes,
-            type=FileType.LANE_POOLING_TABLE,
+            type=MediaFileType.LANE_POOLING_TABLE,
             extension=extension,
             uploader_id=user.id,
             experiment_id=self.experiment.id

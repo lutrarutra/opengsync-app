@@ -27,7 +27,7 @@ from .. import (
     htmx,
     bcrypt,
     login_manager,
-    mail,
+    mail_handler,
     db,
     file_handler,
 )
@@ -38,6 +38,8 @@ from .. import tools
 
 
 class App(Flask):
+    static_folder: str
+    template_folder: str
     sample_submission_windows: list[WeekTimeWindow] | None
     email_domain_white_list: list[str] | None
     lab_protocol_start_number: int
@@ -90,7 +92,7 @@ class App(Flask):
         msf_cache.connect("redis-cache", REDIS_PORT, 1)
         flash_cache.connect("redis-cache", REDIS_PORT, 2)
 
-        for file_type in categories.FileType.as_list():
+        for file_type in categories.MediaFileType.as_list():
             if file_type.dir is None:
                 continue
             path = os.path.join(self.media_folder, file_type.dir)
@@ -100,13 +102,6 @@ class App(Flask):
         logger.info(f"DEBUG: {self.debug}")
 
         self.secret_key = SECRET_KEY
-
-        self.config["MAIL_SERVER"] = "smtp-relay.sendinblue.com"
-        self.config["MAIL_PORT"] = 587
-        self.config["MAIL_USE_TLS"] = True
-
-        self.config["MAIL_USERNAME"] = os.environ["EMAIL_USER"]
-        self.config["MAIL_PASSWORD"] = os.environ["EMAIL_PASS"]
 
         self.config["SESSION_TYPE"] = "redis"
         self.config["SESSION_PERMANENT"] = False
@@ -119,7 +114,14 @@ class App(Flask):
         htmx.init_app(self)
         bcrypt.init_app(self)
         login_manager.init_app(self)
-        mail.init_app(self)
+        mail_handler.init_app(
+            smtp_server=os.environ["MAIL_SERVER"],
+            smtp_port=int(os.environ["MAIL_PORT"]),
+            smtp_user=os.environ["MAIL_USER"],
+            sender_address=os.environ["MAIL_SENDER"],
+            smtp_password=os.environ["MAIL_PASSWORD"],
+        )
+
         db.connect(
             user=os.environ["POSTGRES_USER"],
             password=os.environ["POSTGRES_PASSWORD"],
@@ -188,8 +190,9 @@ class App(Flask):
                 PoolType=categories.PoolType,
                 KitType=categories.KitType,
                 ProjectStatus=categories.ProjectStatus,
-                FileType=categories.FileType,
+                FileType=categories.MediaFileType,
                 MUXType=categories.MUXType,
+                DataPathType=categories.DataPathType,
                 SpreadSheetErrors=[ssc.InvalidCellValue(""), ssc.MissingCellValue(""), ssc.DuplicateCellValue("")],
                 isna=pd.isna,
                 notna=pd.notna,
@@ -247,6 +250,7 @@ class App(Flask):
         self.register_blueprint(api.workflows.select_pool_libraries_workflow)
         self.register_blueprint(api.workflows.library_remux_workflow)
         self.register_blueprint(api.workflows.relib_workflow)
+        self.register_blueprint(api.workflows.share_project_data_workflow)
 
         self.register_blueprint(pages.samples_page_bp)
         self.register_blueprint(pages.projects_page_bp)
@@ -280,8 +284,6 @@ class App(Flask):
         for i, key in ipairs(session_keys) do
             local session_data = redis.call('GET', key)
             if session_data then
-                -- You'd need to implement pickle parsing in Lua or use a different approach
-                -- This is a simplified version that might need adjustment
                 if string.find(session_data, '_user_id') and string.find(session_data, tostring(ARGV[1])) then
                     table.insert(keys_to_delete, key)
                 end

@@ -1,0 +1,56 @@
+{% extends "email/base.html" %}
+{% block content %}
+<p>
+<b>The Biomedical Sequencing Facility has finished analyzing your project '{{ project.name }}'.</b>
+</p>
+<p>You will find the following directories among the files we shared:</p>  
+
+<b>Raw Data</b> in <span class="path">BSF_SEQUENCES/</span> and/or <span class="path">BSF_SEQUENCES_10X/</span>
+<ul class="contents">
+    {% if tenx_contents %}
+    {% include "email/contents/tenx_demux.html" %}
+    {% endif %}
+</ul>
+
+<b>Processed Data</b> in <span class="path">BSF_PROJECTS/</span>
+<ul class="contents">
+    {% if tenx_contents %}
+    {% include "email/contents/tenx.html" %}
+    {% endif %}
+</ul>
+<hr>
+
+<p>
+You can download results with following command:
+<div class="code">{{ download_command | highlight_sh | safe }}</div>
+Or you can browse the files <a href="{{ browse_link }}">{{ browse_link }}</a>
+</p>
+<hr>
+
+<p>
+    This project consists of samples defined in following sequencing requests:
+    <ol>
+        {% for seq_request in seq_requests %}
+        <li><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, _external=True) }}">{{ seq_request.name }}</a></li>
+        {% endfor %}
+    </ol>
+</p>
+
+<p>
+    Libraries were sequenced as part of following experiments:
+    <ol>
+        {% for experiment in experiments %}
+        <li>{{ experiment.name }}</li>
+        {% endfor %}
+    </ol>
+</p>
+<hr>
+
+<p>Please note that the links are only available for a limited time. After they expire, you will need to request new ones.</p>
+<p>
+We would kindly ask you to download your data within <b>90 days</b>.
+Please ensure that you have copied and backed up all of your data during this time.
+If you require longer availability, please get in touch with us.
+While the BSF archives the raw data in longer-term storage, <b>we cannot guarantee</b> successful data retrieval over longer time periods.
+</p>
+{% endblock %}

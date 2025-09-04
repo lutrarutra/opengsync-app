@@ -12,7 +12,7 @@ from .Sequencer import Sequencer    # noqa: F401
 from .Adapter import Adapter    # noqa: F401
 from .Feature import Feature    # noqa: F401
 from .FeatureKit import FeatureKit  # noqa: F401
-from .File import File  # noqa: F401
+from .MediaFile import MediaFile  # noqa: F401
 from .SeqQuality import SeqQuality  # noqa: F401
 from .Comment import Comment  # noqa: F401
 from .SeqRun import SeqRun  # noqa: F401
@@ -28,3 +28,4 @@ from .Kit import Kit  # noqa: F401
 from . import links  # noqa: F401
 from .SharePath import SharePath  # noqa: F401
 from .ShareToken import ShareToken  # noqa: F401
+from .DataPath import DataPath  # noqa: F401

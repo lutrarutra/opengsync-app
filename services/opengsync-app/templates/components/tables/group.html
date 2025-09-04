@@ -26,6 +26,12 @@
                 }}
                 {{
                     table_col(
+                        table_container_id='group-table', column_name='# Users', column_var='num_users',
+                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                    )
+                }}
+                {{
+                    table_col(
                         table_container_id='group-table', column_name='# Requests', column_var='num_seq_requests',
                         sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
@@ -44,6 +50,7 @@
                 <th scope="row">{{ group.id }}</th>
                 <td><a href="{{ url_for('groups_page.group', group_id=group.id) }}">{{ group.name }}</a></td>
                 <td>{{ group.type.icon }} {{ group.type.name }}</td>
+                <td>{{ group.num_users }}</td>
                 <td>{{ group.num_seq_requests }}</td>
                 <td>{{ group.num_projects }}</td>
             </tr>

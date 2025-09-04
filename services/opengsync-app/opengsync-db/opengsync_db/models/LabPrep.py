@@ -5,7 +5,7 @@ from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from opengsync_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, FileType, AssayTypeEnum, AssayType
+from opengsync_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, MediaFileType, AssayTypeEnum, AssayType
 
 from .Base import Base
 from .. import LAB_PROTOCOL_START_NUMBER
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from .User import User
     from .Library import Library
     from .Plate import Plate
-    from .File import File
+    from .MediaFile import MediaFile
     from .Pool import Pool
     from .Comment import Comment
 
@@ -36,14 +36,14 @@ class LabPrep(Base):
 
     plates: Mapped[list["Plate"]] = relationship("Plate", back_populates="lab_prep", cascade="save-update, merge, delete, delete-orphan", lazy="select", order_by="Plate.id")
 
-    prep_file: Mapped[Optional["File"]] = relationship(
-        "File", lazy="select", viewonly=True,
-        primaryjoin=f"and_(LabPrep.id == File.lab_prep_id, File.type_id == {FileType.LIBRARY_PREP_FILE.id})",
+    prep_file: Mapped[Optional["MediaFile"]] = relationship(
+        "MediaFile", lazy="select", viewonly=True,
+        primaryjoin=f"and_(LabPrep.id == MediaFile.lab_prep_id, MediaFile.type_id == {MediaFileType.LIBRARY_PREP_FILE.id})",
     )
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="lab_prep", lazy="select", order_by="Library.id")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="lab_prep", lazy="select")
-    files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
+    media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
 
     @hybrid_property
@@ -119,21 +119,21 @@ class LabPrep(Base):
     @hybrid_property
     def num_files(self) -> int:  # type: ignore[override]
         if "files" not in orm.attributes.instance_state(self).unloaded:
-            return len(self.files)
+            return len(self.media_files)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_files' attribute.")
         
-        from .File import File
-        return session.query(sa.func.count(File.id)).filter(File.lab_prep_id == self.id).scalar()
+        from .MediaFile import MediaFile
+        return session.query(sa.func.count(MediaFile.id)).filter(MediaFile.lab_prep_id == self.id).scalar()
     
     @num_files.expression
     def num_files(cls) -> sa.ScalarSelect[int]:
-        from .File import File
+        from .MediaFile import MediaFile
         return sa.select(
-            sa.func.count(File.id)
+            sa.func.count(MediaFile.id)
         ).where(
-            File.lab_prep_id == cls.id
+            MediaFile.lab_prep_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property

@@ -1,0 +1,90 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="project-data_path-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='project-data_path-table', column_name='ID', column_var='id',
+                        sort_url='projects_htmx.get_data_paths', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='project-data_path-table', column_name='Path', column_var='path',
+                        sort_url='projects_htmx.get_data_paths', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=3
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='project-data_path-table', column_name='Type', column_var='type_id',
+                        sort_url='projects_htmx.get_data_paths', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=DataPathType.as_list(), multiselect_selected=type_in
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for data_path in data_paths %}
+            <tr class="data_path-row" data-id="{{ data_path.id }}">
+                <th scope="row">{{ data_path.id }}</th>
+                {% if data_path.type != DataPathType.DIRECTORY %}
+                <td><a href="{{ url_for('file_share.data_file', data_path_id=data_path.id) }}" target="_blank">{{ data_path.path }}</a></td>
+                {% else %}
+                <td>{{ data_path.path }}</td>
+                {% endif %}
+                <td>{{ data_path.type }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("project-data_path-table-spinner") }}
+    {{ pagination("project-data_path-table", "projects_htmx.get_data_paths", n_pages, active_page, context={ "project_id":project.id }) }}
+    {% if current_user.is_insider() %}
+    <script>
+        let selected_path_id = null;
+
+        function remove_path() {
+            Swal.fire({
+                title: `Remove path 'id=[${selected_path_id}]' from '{{ project.identifier or project.name }}'?`,
+                showDenyButton: true,
+                text: 'Are you sure?',
+                confirmButtonText: 'Yes',
+                icon: 'question',
+                denyButtonText: 'No'
+            }).then(function(e) {
+                if (e.isConfirmed) {
+                    htmx.ajax(
+                    "DELETE", "{{ url_for('projects_htmx.remove_data_path', project_id=project.id) }}?data_path_id=" + selected_path_id,
+                    null);
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            $(document).off("contextmenu", ".data_path-row").on("contextmenu", ".data_path-row", function(e) {
+                e.preventDefault();
+                const x = e.pageX;
+                const y = e.pageY;
+                selected_path_id = parseInt($(this).data("id"));
+                $("#copy-edit-menu").css({
+                    display: "block",
+                    left: x + 8, top: y + 8
+                }).empty().append([
+                    `<li><a class='dropdown-item' onclick='remove_path()'>Remove</a></li>`
+                ]);
+
+                $("#right-click-bg").css({
+                    display: "block"
+                });
+            });
+        });
+    </script>
+    {% endif %}
+</div>
