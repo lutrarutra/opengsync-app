@@ -194,7 +194,6 @@ class SeqRequest(Base):
             sa.func.count(MediaFile.id)
         ).where(
             MediaFile.seq_request_id == cls.id
-<<<<<<< HEAD
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @hybrid_property
@@ -214,8 +213,6 @@ class SeqRequest(Base):
             sa.func.count(DataPath.id)
         ).where(
             DataPath.seq_request_id == cls.id
-=======
->>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property

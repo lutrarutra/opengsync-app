@@ -12,11 +12,7 @@
     <div class="footer">
         <h4>Best regards,</h4>
         <pre>
-<<<<<<< HEAD
 {%- if author is defined and author and not author.is_admin() and author.is_insider() -%}
-=======
-{%- if author is defined and not author.is_admin() and author.is_insider() -%}
->>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
 {{ author.name }}
 <a href="mailto:{{ author.email }}">{{ author.email }}</a>
 

@@ -18,10 +18,7 @@ class DataPathBP(DBBlueprint):
         cls,
         query: Query,
         type: DataPathTypeEnum | None = None,
-<<<<<<< HEAD
         type_in: list[DataPathTypeEnum] | None = None,
-=======
->>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
         project_id: int | None = None,
         seq_request_id: int | None = None,
         library_id: int | None = None,
@@ -31,12 +28,9 @@ class DataPathBP(DBBlueprint):
         if type is not None:
             query = query.filter(models.DataPath.type_id == type.id)
 
-<<<<<<< HEAD
         if type_in is not None:
             query = query.filter(models.DataPath.type_id.in_([t.id for t in type_in]))
 
-=======
->>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
         if project_id is not None:
             query = query.filter(models.DataPath.project_id == project_id)
 
@@ -66,6 +60,22 @@ class DataPathBP(DBBlueprint):
         flush: bool = True
     ) -> models.DataPath:
         
+        if project is not None:
+            if path in [dp.path for dp in project.data_paths]:
+                raise exceptions.NotUniqueValue(f"DataPath with path '{path}' already exists for Project with id {project.id}")
+        
+        if seq_request is not None:
+            if path in [dp.path for dp in seq_request.data_paths]:
+                raise exceptions.NotUniqueValue(f"DataPath with path '{path}' already exists for SeqRequest with id {seq_request.id}")
+            
+        if library is not None:
+            if path in [dp.path for dp in library.data_paths]:
+                raise exceptions.NotUniqueValue(f"DataPath with path '{path}' already exists for Library with id {library.id}")
+            
+        if experiment is not None:
+            if path in [dp.path for dp in experiment.data_paths]:
+                raise exceptions.NotUniqueValue(f"DataPath with path '{path}' already exists for Experiment with id {experiment.id}")
+        
         data_path = models.DataPath(
             path=path,
             type_id=type.id,
@@ -89,10 +99,7 @@ class DataPathBP(DBBlueprint):
     def find(
         self,
         type: DataPathTypeEnum | None = None,
-<<<<<<< HEAD
         type_in: list[DataPathTypeEnum] | None = None,
-=======
->>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
         project_id: int | None = None,
         seq_request_id: int | None = None,
         library_id: int | None = None,
@@ -106,14 +113,11 @@ class DataPathBP(DBBlueprint):
         query = self.where(
             query,
             type=type,
-<<<<<<< HEAD
             type_in=type_in,
-=======
->>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
             project_id=project_id,
+            experiment_id=experiment_id,
             seq_request_id=seq_request_id,
             library_id=library_id,
-            experiment_id=experiment_id,
         )
 
         if sort_by is not None:

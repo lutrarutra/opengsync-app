@@ -87,7 +87,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
         if not self.selected_users:
             self.error_dummy.errors = ("No valid users selected.",)
             return False
-
+        
         return True
 
     def process_request(self, current_user: models.User) -> Response:
