@@ -10,7 +10,8 @@ import pandas as pd
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import (
     SeqRequestStatus, LibraryStatus, LibraryType,
-    SampleStatus, SubmissionType, PoolStatus, ProjectStatus, AccessType
+    SampleStatus, SubmissionType, PoolStatus, ProjectStatus, AccessType,
+    DataPathType
 )
 
 from .... import db, forms, logger
@@ -349,7 +350,7 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
     if (file := db.files.get(file_id)) is None:
         raise exceptions.NotFoundException()
     
-    if file not in seq_request.files:
+    if file not in seq_request.media_files:
         raise exceptions.BadRequestException()
     
     file_path = os.path.join(runtime.app.media_folder, file.path)
@@ -471,9 +472,7 @@ def remove_sample(current_user: models.User, seq_request_id: int):
 
     flash(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'")
-    return make_response(
-        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request_id),
-    )
+    return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request_id))
         
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
@@ -826,6 +825,42 @@ def get_projects(current_user: models.User, seq_request_id: int, page: int = 0):
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
+def get_data_paths(current_user: models.User, seq_request_id: int, page: int = 0):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.VIEW:
+        raise exceptions.NoPermissionsException()
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [DataPathType.get(int(t)) for t in type_in]
+        except ValueError:
+            raise exceptions.BadRequestException()
+    
+        if len(type_in) == 0:
+            type_in = None
+
+    data_paths, n_pages = db.data_paths.find(offset=offset, seq_request_id=seq_request_id, type_in=type_in, sort_by=sort_by, descending=descending, count_pages=True)
+
+    return make_response(
+        render_template(
+            "components/tables/seq_request-data_path.html", data_paths=data_paths,
+            n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
+            seq_request=seq_request, type_in=type_in
+        )
+    )
+
+
+@wrappers.htmx_route(seq_requests_htmx, db=db)
 def query_libraries(current_user: models.User, seq_request_id: int):
     if (word := request.args.get("name")) is not None:
         field_name = "name"
@@ -969,7 +1004,7 @@ def get_files(current_user: models.User, seq_request_id: int):
     return make_response(
         render_template(
             "components/file-list.html",
-            files=seq_request.files, seq_request=seq_request, delete="seq_requests_htmx.delete_file",
+            files=seq_request.media_files, seq_request=seq_request, delete="seq_requests_htmx.delete_file",
             delete_context={"seq_request_id": seq_request_id}
         )
     )

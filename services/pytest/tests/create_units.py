@@ -5,7 +5,7 @@ from opengsync_db import DBHandler, models
 
 from opengsync_db.categories import (
     LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlowEnum, SequencerModel,
-    ReadType, ExperimentStatus, PoolType, SubmissionType, FileType, GenomeRef, AssayType,
+    ReadType, ExperimentStatus, PoolType, SubmissionType, MediaFileType, GenomeRef, AssayType,
     GroupType
 )
 
@@ -139,12 +139,12 @@ def create_experiment(db: DBHandler, user: models.User, workflow: ExperimentWork
 def create_file(
     db: DBHandler, seq_request: Optional[models.SeqRequest] = None,
     experiment: Optional[models.Experiment] = None, lab_prep: Optional[models.LabPrep] = None
-) -> models.File:
+) -> models.MediaFile:
     _uuid = str(uuid.uuid1())
 
     return db.files.create(
         name=_uuid,
-        type=FileType.CUSTOM,
+        type=MediaFileType.CUSTOM,
         extension=".txt",
         uploader_id=create_user(db).id,
         size_bytes=1,

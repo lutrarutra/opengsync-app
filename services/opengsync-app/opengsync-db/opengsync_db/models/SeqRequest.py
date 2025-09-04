@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from .Base import Base
-from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadTypeEnum, DataDeliveryMode, DataDeliveryModeEnum, SubmissionType, SubmissionTypeEnum, FileType
+from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadTypeEnum, DataDeliveryMode, DataDeliveryModeEnum, SubmissionType, SubmissionTypeEnum, MediaFileType
 from . import links
 
 if TYPE_CHECKING:
@@ -16,11 +16,12 @@ if TYPE_CHECKING:
     from .User import User
     from .Contact import Contact
     from .Pool import Pool
-    from .File import File
+    from .MediaFile import MediaFile
     from .Comment import Comment
     from .Sample import Sample
     from .Event import Event
     from .Group import Group
+    from .DataPath import DataPath
 
 
 class SeqRequest(Base):
@@ -61,9 +62,9 @@ class SeqRequest(Base):
     billing_contact_id: Mapped[int] = mapped_column(sa.ForeignKey("contact.id"), nullable=False)
     billing_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[billing_contact_id], cascade="save-update, merge")
 
-    seq_auth_form_file: Mapped[Optional["File"]] = relationship(
-        "File", lazy="joined", viewonly=True,
-        primaryjoin=f"and_(SeqRequest.id == File.seq_request_id, File.type_id == {FileType.SEQ_AUTH_FORM.id})",
+    seq_auth_form_file: Mapped[Optional["MediaFile"]] = relationship(
+        "MediaFile", lazy="joined", viewonly=True,
+        primaryjoin=f"and_(SeqRequest.id == MediaFile.seq_request_id, MediaFile.type_id == {MediaFileType.SEQ_AUTH_FORM.id})",
     )
 
     sample_submission_event_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("event.id"), nullable=True)
@@ -71,7 +72,7 @@ class SeqRequest(Base):
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
-    files: Mapped[list["File"]] = relationship("File", lazy="select", cascade="all, delete-orphan")
+    media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
     delivery_email_links: Mapped[list[links.SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="save-update,delete,merge", back_populates="seq_request")
     samples: Mapped[list["Sample"]] = relationship(
@@ -79,6 +80,7 @@ class SeqRequest(Base):
         secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id).join(Library, Library.id == SampleLibraryLink.library_id)",
         primaryjoin="SeqRequest.id == Library.seq_request_id",
     )
+    data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="seq_request", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
 
@@ -178,20 +180,39 @@ class SeqRequest(Base):
     @hybrid_property
     def num_files(self) -> int:  # type: ignore[override]
         if "files" not in orm.attributes.instance_state(self).unloaded:
-            return len(self.files)
+            return len(self.media_files)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_files.")
-        from .File import File
-        return session.query(sa.func.count(File.id)).filter(File.seq_request_id == self.id).scalar()
+        from .MediaFile import MediaFile
+        return session.query(sa.func.count(MediaFile.id)).filter(MediaFile.seq_request_id == self.id).scalar()
     
     @num_files.expression
     def num_files(cls) -> sa.ScalarSelect[int]:
-        from .File import File
+        from .MediaFile import MediaFile
         return sa.select(
-            sa.func.count(File.id)
+            sa.func.count(MediaFile.id)
         ).where(
-            File.seq_request_id == cls.id
+            MediaFile.seq_request_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    @hybrid_property
+    def num_data_paths(self) -> int:  # type: ignore[override]
+        if "data_paths" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.data_paths)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_data_paths.")
+        from .DataPath import DataPath
+        return session.query(sa.func.count(DataPath.id)).filter(DataPath.seq_request_id == self.id).scalar()
+    
+    @num_data_paths.expression
+    def num_data_paths(cls) -> sa.ScalarSelect[int]:
+        from .DataPath import DataPath
+        return sa.select(
+            sa.func.count(DataPath.id)
+        ).where(
+            DataPath.seq_request_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property

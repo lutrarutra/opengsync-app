@@ -46,6 +46,7 @@ class DBHandler():
         from .blueprints.EventBP import EventBP
         from .blueprints.GroupBP import GroupBP
         from .blueprints.ShareBP import ShareBP
+        from .blueprints.DataPathBP import DataPathBP
         from .blueprints.PandasBP import PandasBP
 
         self.seq_requests = SeqRequestBP("seq_requests", self)
@@ -73,6 +74,7 @@ class DBHandler():
         self.events = EventBP("events", self)
         self.groups = GroupBP("groups", self)
         self.shares = ShareBP("shares", self)
+        self.data_paths = DataPathBP("data_paths", self)
         self.pd = PandasBP("pd", self)
 
     def connect(
@@ -188,7 +190,7 @@ class DBHandler():
             return False
 
         if commit and not rollback:
-            if self.__needs_commit or self._session.dirty or self._session.new or self._session.deleted:
+            if self.needs_commit:
                 try:
                     self._session.commit()
                 except Exception:
@@ -223,3 +225,9 @@ class DBHandler():
             self.close_session()
         self.close_connection()
         self._engine.dispose()
+
+    @property
+    def needs_commit(self) -> bool:
+        if self._session is None:
+            return False
+        return self.__needs_commit or bool(self._session.dirty) or bool(self._session.new) or bool(self._session.deleted)

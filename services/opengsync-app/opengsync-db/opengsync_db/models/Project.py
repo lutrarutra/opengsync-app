@@ -19,6 +19,8 @@ if TYPE_CHECKING:
     from .User import User
     from .Group import Group
     from .Library import Library
+    from .DataPath import DataPath
+    from .ShareToken import ShareToken
 
 
 class Project(Base):
@@ -33,8 +35,8 @@ class Project(Base):
 
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
+    data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="project", lazy="select")
     samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="project", lazy="select")
-
     libraries: Mapped[list["Library"]] = relationship(
         "Library",
         secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id)",
@@ -44,6 +46,9 @@ class Project(Base):
         viewonly=True,
         lazy="select",
     )
+
+    share_token_uuid: Mapped[str | None] = mapped_column(sa.ForeignKey("share_token.uuid", ondelete="SET NULL"), nullable=True)
+    share_token: Mapped["ShareToken | None"] = relationship("ShareToken", lazy="select")
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="projects", lazy="joined")
@@ -72,6 +77,25 @@ class Project(Base):
             sa.func.count(Sample.id)
         ).where(
             Sample.project_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    @hybrid_property
+    def num_data_paths(self) -> int:  # type: ignore[override]
+        if "data_paths" in orm.attributes.instance_state(self).unloaded:
+            return len(self.data_paths)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_data_paths' attribute.")
+        from .DataPath import DataPath
+        return session.query(sa.func.count(DataPath.id)).filter(DataPath.project_id == self.id).scalar()
+
+    @num_data_paths.expression
+    def num_data_paths(cls) -> sa.ScalarSelect[int]:
+        from .DataPath import DataPath
+        return sa.select(
+            sa.func.count(DataPath.id)
+        ).where(
+            DataPath.project_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property

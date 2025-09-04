@@ -32,7 +32,7 @@ class CommentBP(DBBlueprint):
                 raise exceptions.ElementDoesNotExist(f"LabPrep with id '{lab_prep_id}', not found.")
             
         if file_id is not None:
-            if self.db.session.get(models.File, file_id) is None:
+            if self.db.session.get(models.MediaFile, file_id) is None:
                 raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
             
         if self.db.session.get(models.User, author_id) is None:

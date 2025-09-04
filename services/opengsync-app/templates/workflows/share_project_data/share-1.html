@@ -1,0 +1,145 @@
+{% from 'components/form_group.jinja2' import form_group, switch_input, select_input %}
+{% from 'components/spinner.jinja2' import spinner %}
+{% from 'components/spreadsheet.jinja2' import static_spreadsheet %}
+
+<div id="share_project_data-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Share Project</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body tab-body" id="share_project_data-form">
+        <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#share_project_data-form-tab"
+                    type="button" role="tab" aria-controls="share_project_data-form-tab" aria-selected="true">
+                    Form
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#share_project_data-paths-tab"
+                    type="button" role="tab" aria-controls="share_project_data-paths-tab" aria-selected="true">
+                    Paths ({{ form.paths | length }})
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content ba">
+            <div class="tab-pane fade show active" id="share_project_data-form-tab" role="tabpanel" tabindex="0">
+                <div class="row pb-3 pt-3">
+                    <div style="display: flex; gap: 10px;" class="col-6">
+                        {{ switch_input(form.send_to_owner) }}
+                        {{ project.owner.email }}
+                    </div>
+                    {% if current_user.is_insider() %}
+                    {{ switch_input(form.anonymous_send, class="col-6") }}
+                    {% endif %}
+                </div>
+
+                {{ select_input(form.time_valid_min) }}
+
+                <div class="pt-2">
+                    <h4>Project Group Members</h4>
+                    <div class="invalid-feedback-container">
+                        {% for error in form.error_dummy.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-1">ID</th>
+                                <th scope="col" class="col-4">Name</th>
+                                <th scope="col" class="col-4">Email</th>
+                                <th scope="col" class="col-3">Affiliation Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if project.group_id %}
+                            {% for link in project.group.user_links %}
+                            {% set user = link.user %}
+                            <tr class="user-row" data-id="{{ user.id }}" id="user-row-{{ user.id }}" onclick="toggle_user({{ user.id }})">
+                                <th scope="row">{{ user.id }}</th>
+                                <td>{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span>{% endif %}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ link.affiliation_type.icon }} {{ link.affiliation_type.name }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="share_project_data-paths-tab" role="tabpanel" tabindex="1">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">ID</th>
+                            <th scope="col" class="col-5">Path</th>
+                            <th scope="col" class="col-5">Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data_path in form.data_paths %}
+                        <tr>
+                            <th scope="row">{{ data_path.id }}</th>
+                            <td>{{ data_path.path }}</td>
+                            <td>{{ data_path.type }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.uuid }}
+        </div>
+        <div class="footer-info"></div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success" id="submit-select_users-form-btn">
+                Submit
+            </button>
+        </div>
+    </div>
+    <script>
+        var selected_users = [];
+
+        $("#submit-select_users-form-btn").off("click").on("click", function() {
+            if (selected_users.length === 0 && !$("#send_to_owner").is(":checked")) {
+                $(".invalid-feedback-container").html("<p>Select at least one user.</p>");
+                return false;
+            }
+
+            htmx.ajax("POST", "{{ form.post_url | safe }}", {
+                target: "#share_project_data-form-container",
+                swap: "outerHTML",
+                values: {
+                    csrf_token: "{{ form._csrf_token }}",
+                    selected_user_ids: JSON.stringify(selected_users),
+                    workflow: "{{ workflow }}",
+                    project_id: "{{ project.id }}",
+                    anonymous_send: $("#anonymous_send").is(":checked"),
+                    send_to_owner: $("#send_to_owner").is(":checked"),
+                    time_valid_min: parseInt($("#time_valid_min").val()),
+                },
+            });
+        });
+
+        function add_user(user_id) {
+            selected_users.push(user_id);
+            $(`#user-row-${user_id}`).addClass("selected");
+        }
+        function remove_user(user_id) {
+            selected_users = selected_users.filter(id => id !== user_id);
+            $(`#user-row-${user_id}`).removeClass("selected");
+        }
+        function toggle_user(user_id) {
+            const _user_id = parseInt(user_id);
+            if (selected_users.includes(_user_id)) {
+                remove_user(_user_id);
+            } else {
+                add_user(_user_id);
+            }
+        }
+    </script>
+</div>

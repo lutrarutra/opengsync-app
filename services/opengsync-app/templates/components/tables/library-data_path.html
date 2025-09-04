@@ -1,0 +1,49 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div id="library-data_path-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='library-data_path-table', column_name='ID', column_var='id',
+                        sort_url='libraries_htmx.get_data_paths', context={'library_id': library.id},
+                        sort_by=sort_by, sort_order=sort_order,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='library-data_path-table', column_name='Path', column_var='path',
+                        sort_url='libraries_htmx.get_data_paths', context={'library_id': library.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=3
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='library-data_path-table', column_name='Type', column_var='type_id',
+                        sort_url='libraries_htmx.get_data_paths', context={'library_id': library.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=DataPathType.as_list(), multiselect_selected=type_in
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for data_path in data_paths %}
+            <tr data-id="{{ data_path.id }}">
+                <th scope="row">{{ data_path.id }}</th>
+                {% if data_path.type != DataPath.DIRECTORY %}
+                <td><a href="{{ url_for('file_share.data_file', data_path_id=data_path.id) }}" target="_blank">{{ data_path.path }}</a></td>
+                {% else %}
+                <td>{{ data_path.path }}</td>
+                {% endif %}
+                <td>{{ data_path.type }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("library-data_path-table-spinner") }}
+    {{ pagination("library-data_path-table", "libraries_htmx.get_data_paths", n_pages, active_page, context={ "library_id":library.id }) }}
+</div>

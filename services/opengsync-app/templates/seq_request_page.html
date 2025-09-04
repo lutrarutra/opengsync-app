@@ -269,6 +269,12 @@
             aria-controls="request-projects-tab" aria-selected="true"
             id="request-projects-tab-btn">Projects</button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#seq_request-data_paths-tab" type="button" role="tab"
+            aria-controls="seq_request-data_paths-tab" aria-selected="true">
+            Data ({{ seq_request.num_data_paths }})</button>
+        </li>
     </ul>
 </div>
 
@@ -696,6 +702,11 @@
         </div>
         <div class="tab-pane fadee" id="request-projects-tab" role="tabpanel" tabindex="10">
             <div hx-get="{{ url_for('seq_requests_htmx.get_projects', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="seq_request-data_paths-tab" role="tabpanel" tabindex="11">
+            <div hx-get="{{ url_for('seq_requests_htmx.get_data_paths', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

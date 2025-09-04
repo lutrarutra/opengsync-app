@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db import models
-from opengsync_db.categories import FileType
+from opengsync_db.categories import MediaFileType
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -81,8 +81,8 @@ def experiment(current_user: models.User, experiment_id: int):
             ]
 
     laning_completed = False
-    for file in experiment.files:
-        if file.type == FileType.LANE_POOLING_TABLE:
+    for file in experiment.media_files:
+        if file.type == MediaFileType.LANE_POOLING_TABLE:
             laning_completed = True
             break
 

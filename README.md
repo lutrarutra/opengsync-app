@@ -165,7 +165,7 @@ db = DBHandler()
 db.connect(
     user=os.environ["POSTGRES_USER"],
     password=os.environ["POSTGRES_PASSWORD"],
-    host=os.environ["POSTGRES_SERVER_IP"],
+    host="< server ip >",
     port=os.environ["POSTGRES_PORT"],
     db=os.environ["POSTGRES_DB"],
 )

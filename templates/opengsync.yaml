@@ -6,7 +6,5 @@ sample_submission_windows:
       start_time: "13:00"
       end_time: "15:00"
 
-lab_protocol_start_number: 0
-
 email_domain_white_list:
     - "gmail.com"

@@ -61,6 +61,14 @@ class ShareBP(DBBlueprint):
 
         tokens = query.all()
         return tokens, n_pages
+
+    @DBBlueprint.transaction
+    def update(self, token: models.ShareToken):
+        self.db.session.add(token)
+
+    @DBBlueprint.transaction
+    def delete(self, token: models.ShareToken):
+        self.db.session.delete(token)
     
     @DBBlueprint.transaction
     def __getitem__(self, uuid: str) -> models.ShareToken:

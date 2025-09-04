@@ -7,7 +7,7 @@ from flask_htmx import make_response
 from wtforms import SelectField
 
 from opengsync_db import models
-from opengsync_db.categories import FileType
+from opengsync_db.categories import MediaFileType
 
 from .FileInputForm import FileInputForm
 from ... import db, logger
@@ -15,7 +15,7 @@ from ...core.RunTime import runtime
 
 
 class SeqRequestAttachmentForm(FileInputForm):
-    file_type = SelectField("File Type", choices=[(ft.id, ft.display_name) for ft in [FileType.SEQ_AUTH_FORM, FileType.CUSTOM]], coerce=int, description="Select the type of file you are uploading.")
+    file_type = SelectField("File Type", choices=[(ft.id, ft.display_name) for ft in [MediaFileType.SEQ_AUTH_FORM, MediaFileType.CUSTOM]], coerce=int, description="Select the type of file you are uploading.")
     
     def __init__(self, seq_request: models.SeqRequest, formdata: Optional[dict] = None, max_size_mbytes: int = 5):
         FileInputForm.__init__(self, formdata=formdata, max_size_mbytes=max_size_mbytes)
@@ -26,7 +26,7 @@ class SeqRequestAttachmentForm(FileInputForm):
         if not super().validate():
             return False
         
-        if FileType.get(self.file_type.data) == FileType.SEQ_AUTH_FORM:
+        if MediaFileType.get(self.file_type.data) == MediaFileType.SEQ_AUTH_FORM:
             if self.seq_request.seq_auth_form_file is not None:
                 self.file_type.errors = ("Authorization form has already been uploaded. Please, delete it first before continuing.",)
                 return False
@@ -36,7 +36,7 @@ class SeqRequestAttachmentForm(FileInputForm):
         if not self.validate():
             return self.make_response()
 
-        file_type = FileType.get(self.file_type.data)
+        file_type = MediaFileType.get(self.file_type.data)
 
         filename, extension = os.path.splitext(self.file.data.filename)
 

@@ -142,3 +142,19 @@ def browse(token: str, subpath: Path = Path()):
         parent_dir=subpath.parent if subpath != Path() else None,
         paths=paths, token=token
     )
+
+
+@wrappers.page_route(file_share_bp, db=db, login_required=True)
+def data_file(data_path_id: int):
+    if (data_path := db.data_paths.get(data_path_id)) is None:
+        raise exceptions.NotFoundException("DataPath not found")
+    
+    path = Path(runtime.app.share_root) / data_path.path
+    if not path.exists():
+        raise exceptions.NotFoundException("Data file not found")
+    if not path.is_file():
+        raise exceptions.BadRequestException("Data path is not a file")
+    
+    mimetype = mimetypes.guess_type(data_path.path)[0] or "application/octet-stream"
+
+    return send_from_directory(path.parent, path.name, as_attachment=not utils.is_browser_friendly(mimetype), mimetype=mimetype)

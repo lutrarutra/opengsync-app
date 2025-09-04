@@ -16,6 +16,7 @@ class ExperimentBP(DBBlueprint):
         cls,
         query: Query,
         status: Optional[ExperimentStatusEnum] = None,
+        project_id: Optional[int] = None,
         status_in: Optional[list[ExperimentStatusEnum]] = None,
         workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
         custom_query: Callable[[Query], Query] | None = None,
@@ -28,6 +29,17 @@ class ExperimentBP(DBBlueprint):
 
         if workflow_in is not None:
             query = query.where(models.Experiment.workflow_id.in_([w.id for w in workflow_in]))
+
+        if project_id is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.Project.id == project_id) &
+                    (models.Sample.project_id == models.Project.id) &
+                    (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                    (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                    (models.Library.experiment_id == models.Experiment.id)
+                )
+            )
 
         if custom_query is not None:
             query = custom_query(query)
@@ -84,6 +96,7 @@ class ExperimentBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
+        project_id: Optional[int] = None,
         status: Optional[ExperimentStatusEnum] = None,
         status_in: Optional[list[ExperimentStatusEnum]] = None,
         workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
@@ -96,6 +109,7 @@ class ExperimentBP(DBBlueprint):
         query = self.db.session.query(models.Experiment)
         query = ExperimentBP.where(
             query,
+            project_id=project_id,
             status=status,
             status_in=status_in,
             workflow_in=workflow_in,

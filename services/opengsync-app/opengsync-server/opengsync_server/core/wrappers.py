@@ -1,3 +1,4 @@
+import os
 from typing import Callable, Literal, TypeVar, Any
 from functools import wraps
 import traceback
@@ -17,6 +18,7 @@ from . import exceptions as serv_exceptions
 from .RunTime import runtime
 
 F = TypeVar("F", bound=Callable[..., Any])  # generic for wrapped functions
+DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
 
 
 def __get_flash_msg(msg: str) -> str:
@@ -73,7 +75,7 @@ def _route_decorator(
         if login_required and db is None:
             raise ValueError("db must be provided if login_required is True")
 
-        if cache_timeout_seconds is not None:
+        if cache_timeout_seconds is not None and not DEBUG:
             def user_cache_key() -> str:
                 query_string = ""
                 user_id = current_user.id if current_user.is_authenticated else "anon"
@@ -120,19 +122,19 @@ def _route_decorator(
             try:
                 return _fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
-                rollback = True
+                rollback = db.needs_commit if db is not None else False
                 _default_logger(blueprint, routes, args, kwargs, e, "InternalServerErrorException")
                 return response_handler(e)
             except serv_exceptions.OpeNGSyncServerException as e:
-                rollback = True
+                rollback = db.needs_commit if db is not None else False
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncServerException")
                 return response_handler(e)
             except db_exceptions.OpeNGSyncDBException as e:
-                rollback = True
+                rollback = db.needs_commit if db is not None else False
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncDBException")
                 return response_handler(e)
             except Exception as e:
-                rollback = True
+                rollback = db.needs_commit if db is not None else False
                 if runtime.app.debug and response_handler.__name__ != "_htmx_handler":
                     raise e
                 _default_logger(blueprint, routes, args, kwargs, e, "Exception")

@@ -479,7 +479,7 @@ def get_files(current_user: models.User, lab_prep_id: int):
     return make_response(
         render_template(
             "components/file-list.html",
-            files=lab_prep.files, delete="lab_preps_htmx.delete_file",
+            files=lab_prep.media_files, delete="lab_preps_htmx.delete_file",
             delete_context={"lab_prep_id": lab_prep_id}
         )
     )
@@ -496,7 +496,7 @@ def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
     if (file := db.files.get(file_id)) is None:
         raise exceptions.NotFoundException()
     
-    if file not in lab_prep.files:
+    if file not in lab_prep.media_files:
         raise exceptions.BadRequestException()
 
     file_path = os.path.join(runtime.app.media_folder, file.path)

@@ -10,7 +10,7 @@ from .Base import Base
 
 if TYPE_CHECKING:
     from .User import User
-    from .File import File
+    from .MediaFile import MediaFile
 
 
 class Comment(Base):
@@ -19,8 +19,8 @@ class Comment(Base):
     text: Mapped[str] = mapped_column(sa.String(2048), nullable=False)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     
-    file_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("file.id"), nullable=True)
-    file: Mapped[Optional["File"]] = relationship("File", lazy="select", foreign_keys=[file_id])
+    file_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id"), nullable=True)
+    file: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select", foreign_keys=[file_id])
 
     author_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     author: Mapped["User"] = relationship("User", lazy="joined")

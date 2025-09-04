@@ -1,0 +1,59 @@
+@import "colors.scss";
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    font-size: 16;
+    a {
+        text-decoration: none;
+        color: $cemm-blue-darker;
+    }
+}
+
+.header {
+    color: $cemm-blue;
+    padding: 10px 50px 0 50px;
+}
+.body {
+    padding: 5px 50px;
+}
+.footer {
+    color: $cemm-blue;
+    padding: 0 50px;
+    pre {
+        font-family: Arial, sans-serif;
+    }
+}
+
+ul.contents {
+    li {
+        margin-bottom: 10px;
+    }
+}
+
+span.desc {
+    color: $gray-500;    
+}
+
+span.path {
+    font-size: 14;
+    padding: 3px;
+    border-radius: 5px;
+    background-color: $gray-300;
+    // italic
+    font-family: monospace;
+    font-style: italic;
+}
+
+div.code {
+    background-color: #f4f4f4; 
+    border: 1px solid #ddd; 
+    border-radius: 4px; 
+    padding: 5px 10px;
+    margin: 10px 0;
+    font-family: Consolas, Courier, monospace; 
+    font-size: 14px; 
+    color: #333;
+}

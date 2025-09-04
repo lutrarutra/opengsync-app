@@ -52,3 +52,30 @@ def inject_jinja_format_filters(app: App):
                 return f"{size:.2f} {unit}"
             size /= 1024  # type: ignore
         return f"{size:.2f} PB"
+    
+    @app.template_filter()
+    def highlight_py(code: str) -> str:
+        from pygments import highlight
+        from pygments.lexers import PythonLexer
+        from pygments.formatters import HtmlFormatter
+
+        formatter = HtmlFormatter(style="friendly", noclasses=True)
+        return highlight(code, PythonLexer(), formatter)
+    
+    @app.template_filter()
+    def highlight_sh(code: str) -> str:
+        from pygments import highlight
+        from pygments.lexers import BashLexer
+        from pygments.formatters import HtmlFormatter
+
+        formatter = HtmlFormatter(style="friendly", noclasses=True)
+        return highlight(code, BashLexer(), formatter)
+    
+    @app.template_filter()
+    def highlight_r(code: str) -> str:
+        from pygments import highlight
+        from pygments.lexers import RLexer
+        from pygments.formatters import HtmlFormatter
+
+        formatter = HtmlFormatter(style="friendly", noclasses=True)
+        return highlight(code, RLexer(), formatter)
