@@ -18,6 +18,11 @@ from .tools import RedisMSFFileCache
 from .core.FlashCache import FlashCache
 from .core.FileHandler import FileHandler
 from .tools import MailHandler
+<<<<<<< HEAD
+=======
+
+DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
+>>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
 
 logger.remove()
 logger.add(log_buffer.write, format="{message}", serialize=True, catch=True)

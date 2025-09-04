@@ -135,7 +135,11 @@ def _route_decorator(
                 return response_handler(e)
             except Exception as e:
                 rollback = db.needs_commit if db is not None else False
+<<<<<<< HEAD
                 if DEBUG and response_handler.__name__ != "_htmx_handler":
+=======
+                if runtime.app.debug and response_handler.__name__ != "_htmx_handler":
+>>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
                     raise e
                 _default_logger(blueprint, routes, args, kwargs, e, "Exception")
                 return response_handler(e)

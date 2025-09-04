@@ -176,6 +176,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="project-data_paths-tab" role="tabpanel" tabindex="6">
+<<<<<<< HEAD
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h2>Paths {% if current_user.is_insider() %}<img {{ tooltip('Right click on a path to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;">{% endif %}</h2>
@@ -216,6 +217,8 @@
                     {% endif %}
                 </div>
             </div>
+=======
+>>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
             <div hx-get="{{ url_for('projects_htmx.get_data_paths', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>

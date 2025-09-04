@@ -300,6 +300,7 @@ def get_data_paths(current_user: models.User, project_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
 
+<<<<<<< HEAD
     if (type_in := request.args.get("type_id_in")) is not None:
         type_in = json.loads(type_in)
         try:
@@ -311,13 +312,29 @@ def get_data_paths(current_user: models.User, project_id: int, page: int = 0):
             type_in = None
 
     data_paths, n_pages = db.data_paths.find(offset=offset, project_id=project_id, type_in=type_in, sort_by=sort_by, descending=descending, count_pages=True)
+=======
+    if (type_id := request.args.get("type_id", None)) is not None:
+        try:
+            type_id = int(type_id)
+            type_enum = DataPathType.get(type_id)
+        except ValueError:
+            raise exceptions.BadRequestException()
+    else:
+        type_enum = None
+
+    data_paths, n_pages = db.data_paths.find(offset=offset, project_id=project_id, type=type_enum, sort_by=sort_by, descending=descending, count_pages=True)
+>>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
 
     return make_response(
         render_template(
             "components/tables/project-data_path.html", data_paths=data_paths,
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
+<<<<<<< HEAD
             project=project, type_in=type_in
+=======
+            project=project, type_id=type_id
+>>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
         )
     )
         

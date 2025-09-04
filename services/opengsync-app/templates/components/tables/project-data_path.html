@@ -22,16 +22,24 @@
                 }}
                 {{
                     table_col(
+<<<<<<< HEAD
                         table_container_id='project-data_path-table', column_name='Type', column_var='type_id',
                         sort_url='projects_htmx.get_data_paths', context={'project_id': project.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
                         multiselect_choices=DataPathType.as_list(), multiselect_selected=type_in
+=======
+                        table_container_id='project-data_paths-table', column_name='Type', column_var='type_id',
+                        sort_url='projects_htmx.get_data_paths', context={'project_id': project.id},
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=DataPathType.as_list(), multiselect_selected=type_id
+>>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
                     )
                 }}
             </tr>
         </thead>
         <tbody>
             {% for data_path in data_paths %}
+<<<<<<< HEAD
             <tr class="data_path-row" data-id="{{ data_path.id }}">
                 <th scope="row">{{ data_path.id }}</th>
                 {% if data_path.type != DataPathType.DIRECTORY %}
@@ -39,6 +47,11 @@
                 {% else %}
                 <td>{{ data_path.path }}</td>
                 {% endif %}
+=======
+            <tr data-id="{{ data_path.id }}">
+                <th scope="row">{{ data_path.id }}</th>
+                <td><a href="{{ url_for('file_share.data_file', data_path_id=data_path.id) }}" target="_blank">{{ data_path.path }}</a></td>
+>>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
                 <td>{{ data_path.type }}</td>
             </tr>
             {% endfor %}
@@ -46,6 +59,7 @@
     </table>
     {{ spinner("project-data_path-table-spinner") }}
     {{ pagination("project-data_path-table", "projects_htmx.get_data_paths", n_pages, active_page, context={ "project_id":project.id }) }}
+<<<<<<< HEAD
     {% if current_user.is_insider() %}
     <script>
         let selected_path_id = null;
@@ -87,4 +101,6 @@
         });
     </script>
     {% endif %}
+=======
+>>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
 </div>

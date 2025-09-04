@@ -20,7 +20,10 @@ if TYPE_CHECKING:
     from .Group import Group
     from .Library import Library
     from .DataPath import DataPath
+<<<<<<< HEAD
     from .ShareToken import ShareToken
+=======
+>>>>>>> 3bf9919ded1998d0ff25beefa9bcbc3530e447a5
 
 
 class Project(Base):
