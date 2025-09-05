@@ -3,7 +3,7 @@ def main():
     import os
     from opengsync_db.core import DBHandler
 
-    db = DBHandler(expire_on_commit=False)
+    db = DBHandler()
     db.connect(
         user=os.environ["POSTGRES_USER"],
         password=os.environ["POSTGRES_PASSWORD"],

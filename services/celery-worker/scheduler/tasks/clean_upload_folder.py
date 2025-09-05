@@ -1,10 +1,11 @@
 import os
 import time
+from pathlib import Path
 
 from . import logger
 
 
-def clean_upload_folder(directory: str, days_old: int):
+def clean_upload_folder(directory: Path, days_old: int):
     logger.info(f"Cleaning up files older than {days_old} days in {directory}")
     now = time.time()
     cutoff = now - (days_old * 86400)  # 86400 seconds in a day

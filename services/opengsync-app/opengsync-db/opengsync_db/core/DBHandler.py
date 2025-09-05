@@ -12,12 +12,18 @@ from .. import models
 
 class DBHandler():
     Session: orm.scoped_session
+    lab_protocol_start_number: int
 
-    def __init__(self, logger: Optional["loguru.Logger"] = None, expire_on_commit: bool = False, auto_open: bool = False) -> None:
+    def __init__(
+        self, logger: Optional["loguru.Logger"] = None,
+        expire_on_commit: bool = False, auto_open: bool = False,
+        lab_protocol_start_number: int = 1
+    ):
         self._logger = logger
         self._session: orm.Session | None = None
         self._connection: sa.engine.Connection | None = None
         self.expire_on_commit = expire_on_commit
+        self.lab_protocol_start_number = lab_protocol_start_number
         self.__needs_commit = False
         self.auto_open = auto_open
 

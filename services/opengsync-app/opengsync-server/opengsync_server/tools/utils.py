@@ -459,13 +459,13 @@ def infer_route(func: Callable, base: str | None = None) -> tuple[list[tuple[str
 
 
 def update_index_kits(
-    db: DBHandler, app_data_folder: str,
+    db: DBHandler, app_data_folder: Path,
     types: list[categories.IndexTypeEnum] = categories.IndexType.as_list()
 ):
     import pandas as pd
+    kits_path = app_data_folder / "kits"
+    kits_path.mkdir(parents=True, exist_ok=True)
 
-    if not os.path.exists(os.path.join(app_data_folder, "kits")):
-        os.makedirs(os.path.join(app_data_folder, "kits"))
     for type in types:
         res = []
         for kit in db.index_kits.find(limit=None, sort_by="id", descending=True, type_in=[type])[0]:
@@ -477,7 +477,7 @@ def update_index_kits(
         if len(res) == 0:
             continue
 
-        pd.concat(res).to_pickle(os.path.join(app_data_folder, "kits", f"{type.id}.pkl"))
+        pd.concat(res).to_pickle(kits_path / f"{type.id}.pkl")
 
 
 def is_browser_friendly(mimetype: str | None) -> bool:

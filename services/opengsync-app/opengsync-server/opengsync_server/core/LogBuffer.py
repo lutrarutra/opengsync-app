@@ -1,7 +1,7 @@
 import os
-from typing import Optional
 from datetime import datetime
-import json  # Add this import
+from pathlib import Path
+import json
 
 DEFAULT_FMT = """{time}:
 ------------------------ [ BEGIN {session_name}] ------------------------
@@ -12,17 +12,23 @@ DEFAULT_FMT = """{time}:
 
 
 class LogBuffer:
+    log_dir: Path | None
+
     def __init__(
         self,
         stdout: bool = True,
-        log_dir: Optional[str] = None,
     ):
         self.stdout = stdout
-        self.log_dir = log_dir
+        self.log_dir = None
         self.buffer: list[str] | None = None
         self.session_name: str | None = None
         self.src_prefix = os.path.dirname(os.path.abspath(__file__)).removesuffix("/opengsync_server/core")
         print(f"LogBuffer initialized with src_prefix: {self.src_prefix}", flush=True)
+
+    def set_log_dir(self, log_dir: Path):
+        self.log_dir = log_dir
+        if not self.log_dir.exists():
+            os.makedirs(self.log_dir)
 
     def write(self, message: str):
         """Handle both serialized and non-serialized messages"""
@@ -68,7 +74,7 @@ class LogBuffer:
         log = DEFAULT_FMT.format(
             level="INFO",
             time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            message="".join(formatted_messages),  # Combine with origins
+            message="".join(formatted_messages),
             session_name=self.session_name or "unknown"
         )
         
@@ -76,14 +82,9 @@ class LogBuffer:
             print(log, flush=True)
 
         if self.log_dir:
-            log_path = os.path.join(
-                self.log_dir,
-                datetime.now().strftime("%Y-%m-%d_server") + ".log",
-            )
-            err_path = os.path.join(
-                self.log_dir,
-                datetime.now().strftime("%Y-%m-%d_server") + ".err",
-            )
+            log_path = self.log_dir / (datetime.now().strftime("%Y-%m-%d") + ".log")
+            err_path = self.log_dir / (datetime.now().strftime("%Y-%m-%d") + ".err")
+
             with open(log_path, "a") as f:
                 f.write(log)
             with open(err_path, "a") as f:
@@ -92,11 +93,4 @@ class LogBuffer:
         self.buffer = None
 
 
-def create_buffer(
-    stdout: bool = True, log_dir: str = "logs/"
-) -> LogBuffer:
-    log_buffer = LogBuffer(stdout=stdout, log_dir=log_dir)
-    return log_buffer
-
-
-log_buffer = create_buffer(stdout=True)
+log_buffer = LogBuffer(stdout=True)

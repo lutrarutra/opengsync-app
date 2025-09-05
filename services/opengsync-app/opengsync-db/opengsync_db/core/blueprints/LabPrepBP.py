@@ -3,7 +3,7 @@ from typing import Optional
 
 import sqlalchemy as sa
 
-from ... import models, PAGE_LIMIT, LAB_PROTOCOL_START_NUMBER
+from ... import models, PAGE_LIMIT
 from ...categories import LabProtocolEnum, LibraryStatus, PrepStatusEnum, AssayTypeEnum
 from ..DBBlueprint import DBBlueprint
 from .. import exceptions
@@ -25,7 +25,7 @@ class LabPrepBP(DBBlueprint):
         number = self.get_next_protocol_number(protocol)
 
         if not name:
-            name = f"{protocol.identifier}{number + LAB_PROTOCOL_START_NUMBER:04d}"
+            name = f"{protocol.identifier}{number:04d}"
 
         lab_prep = models.LabPrep(
             name=name.strip(),
@@ -157,7 +157,7 @@ class LabPrepBP(DBBlueprint):
         ).first()) is not None:
             prep_number = latest_prep.prep_number + 1
         else:
-            prep_number = 1
+            prep_number = self.db.lab_protocol_start_number
         return prep_number
 
     @DBBlueprint.transaction

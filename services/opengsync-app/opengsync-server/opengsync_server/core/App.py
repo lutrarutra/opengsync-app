@@ -1,6 +1,7 @@
 import os
 import yaml
 from uuid import uuid4
+from pathlib import Path
 
 import pandas as pd
 
@@ -40,38 +41,37 @@ from .. import tools
 class App(Flask):
     static_folder: str
     template_folder: str
+    root_folder: Path
+    media_folder: Path
+    uploads_folder: Path
+    app_data_folder: Path
+    share_root: Path
     sample_submission_windows: list[WeekTimeWindow] | None
     email_domain_white_list: list[str] | None
-    lab_protocol_start_number: int
-    root_folder: str
-    media_folder: str
-    uploads_folder: str
-    app_data_folder: str
-    share_root: str
     secret_key: str
     debug: bool
 
-    def __init__(
-        self,
-        static_folder: str,
-        template_folder: str,
-        config_path: str
-    ):
+    def __init__(self, config_path: str):
+        opengsync_config = yaml.safe_load(open(config_path))
+        super().__init__(__name__, static_folder=opengsync_config["static_folder"], template_folder=opengsync_config["template_folder"])
+        
+        log_buffer.set_log_dir(Path(opengsync_config["log_folder"]) / "server")
         log_buffer.start()
 
-        if not os.path.exists(static_folder):
-            raise FileNotFoundError(f"Static folder not found: {static_folder}")
-        
-        if not os.path.exists(template_folder):
-            raise FileNotFoundError(f"Template folder not found: {template_folder}")
-    
-        super().__init__(__name__, static_folder=static_folder, template_folder=template_folder)
+        self.root_folder = Path(opengsync_config["app_root"])
+        self.static_folder = opengsync_config["static_folder"]
+        self.template_folder = opengsync_config["template_folder"]
+        self.share_root = Path(opengsync_config["share_root"])
+        self.media_folder = Path(opengsync_config["media_folder"])
+        self.uploads_folder = Path(opengsync_config["uploads_folder"])
+        self.app_data_folder = Path(opengsync_config["app_data_folder"])
 
-        self.root_folder = "/usr/src/app/"
-        self.media_folder = tools.io.mkdir(os.path.join(self.root_folder, "media"))
-        self.uploads_folder = tools.io.mkdir(os.path.join(self.root_folder, "uploads"))
-        self.app_data_folder = tools.io.mkdir(os.path.join(self.root_folder, "app_data"))
-        self.share_root = os.path.join(self.root_folder, "share")
+        if not os.path.exists(self.static_folder):
+            raise FileNotFoundError(f"Static folder not found: {self.static_folder}")
+        
+        if not os.path.exists(self.template_folder):
+            raise FileNotFoundError(f"Template folder not found: {self.template_folder}")
+
         file_handler.init_app(
             media_folder=self.media_folder,
             uploads_folder=self.uploads_folder,
@@ -91,7 +91,7 @@ class App(Flask):
         route_cache.init_app(self, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": f"redis://redis-cache:{REDIS_PORT}/0"})
         msf_cache.connect("redis-cache", REDIS_PORT, 1)
         flash_cache.connect("redis-cache", REDIS_PORT, 2)
-
+        
         for file_type in categories.MediaFileType.as_list():
             if file_type.dir is None:
                 continue
@@ -130,19 +130,18 @@ class App(Flask):
             db=os.environ["POSTGRES_DB"],
         )
 
-        data = yaml.safe_load(open(config_path))
-        if (windows := data.get("sample_submission_windows")):
+        if (windows := opengsync_config.get("sample_submission_windows")):
             self.sample_submission_windows = tools.utils.parse_time_windows(windows)
         else:
             self.sample_submission_windows = None
 
-        if (whitelist := data.get("email_domain_white_list")):
+        if (whitelist := opengsync_config.get("email_domain_white_list")):
             self.email_domain_white_list = whitelist
         else:
             self.email_domain_white_list = None
             logger.warning("No email domain white list configured. All domains are allowed.")
 
-        self.lab_protocol_start_number = int(os.environ.get("LAB_PROTOCOL_START_NUMBER", 0))
+        db.lab_protocol_start_number = int(opengsync_config["db"]["lab_protocol_start_number"])
 
         @login_manager.user_loader
         def load_user(user_id: int) -> models.User | None:

@@ -1,9 +1,9 @@
-from . import logger
-
 import sqlalchemy as sa
 
 from opengsync_db.core import DBHandler
 from opengsync_db import categories, models
+
+from . import logger
 
 
 def __find_stored_samples(q):

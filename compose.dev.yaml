@@ -1,5 +1,6 @@
 services:
     opengsync-app:
+        platform: linux/amd64
         container_name: opengsync-app-dev
         build:
             context: ./services/opengsync-app
@@ -8,16 +9,15 @@ services:
             - ./services/opengsync-app/opengsync-server:/usr/src/app/opengsync-server
             - ./services/opengsync-app/opengsync-db:/usr/src/app/opengsync-db
             - ./services/opengsync-app/opengsync.yaml:/usr/src/app/opengsync.yaml:ro
-            - ./services/opengsync-app/static/images:/usr/src/app/static/images:ro
-            - ./services/opengsync-app/static/js:/usr/src/app/static/js:ro
-            - ./services/opengsync-app/static/resources:/usr/src/app/static/resources:ro
-            - ./services/opengsync-app/templates:/usr/src/app/templates:ro
-            - ${UPLOADS_DIR}:/usr/src/app/uploads
-            - ${DATA_DIR}/media:/usr/src/app/media
-            - ${DATA_DIR}/logs/opengsync:/usr/src/app/logs
-            - ${DB_DIR}/init:/usr/src/app/init
-            - ./share:/usr/src/app/share:ro
-            - compiled_css:/usr/src/app/static/style/compiled:ro
+            - ./services/opengsync-app/static/images:/static/images:ro
+            - ./services/opengsync-app/static/js:/static/js:ro
+            - ./services/opengsync-app/static/resources:/static/resources:ro
+            - ./services/opengsync-app/templates:/templates:ro
+            - ${UPLOADS_DIR}:/uploads
+            - ${DATA_DIR}/media:/media
+            - ${DATA_DIR}/logs/opengsync:/logs
+            - ./share:/share:ro
+            - compiled_css:/static/style/compiled:ro
         environment:
             TZ: ${TIMEZONE}
         env_file: .env
@@ -42,30 +42,27 @@ services:
             timeout: 10s
         command: "sh ./entrypoint.sh"
 
-    # scheduler:
-    #     container_name: scheduler-dev
-    #     build:
-    #         context: ./services
-    #         dockerfile: scheduler/Dockerfile
-    #     env_file: .env
-    #     environment:
-    #         TZ: ${TIMEZONE}
-    #     volumes:
-    #         - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
-    #         - ${UPLOADS_DIR}:/uploads
-    #     depends_on:
-    #         postgres:
-    #             condition: service_healthy
-    #             restart: true
-    #     restart: always
-    #     command: >
-    #         python /usr/src/app/scheduler/run.py
-    #         --run-folder /illumina_run_folder
-    #         --rf-scan-interval 5
-    #         --status-update-interval 2
-    #         --upload-folder /uploads
-    #         --upload-folder-file-age-days 1
-    #         --upload-folder-clean-schedule '0 * * * * *'
+    celery-worker:
+        platform: linux/amd64
+        container_name: celery-worker-dev
+        build:
+            context: ./services
+            dockerfile: celery-worker/Dockerfile
+        env_file: .env
+        environment:
+            TZ: ${TIMEZONE}
+        volumes:
+            - ./services/opengsync-app/opengsync.yaml:/usr/src/app/opengsync.yaml:ro
+            - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
+            - ${DATA_DIR}/logs/celery-worker:/logs
+            - ${UPLOADS_DIR}:/uploads
+        depends_on:
+            postgres:
+                condition: service_healthy
+                restart: true
+        restart: always
+        command: >
+            sh -c "celery -A scheduler.celery beat --detach && celery -A scheduler.celery worker --loglevel=info"
 
     redis-cache:
         container_name: redis-cache-dev
@@ -101,7 +98,7 @@ services:
 
     postgres:
         container_name: postgres-dev
-        image: postgres:17.5-alpine3.22
+        image: postgres:17.6-alpine3.22
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -127,7 +124,7 @@ services:
 
     pgadmin:
         container_name: pgadmin-dev
-        image: dpage/pgadmin4:9.5.0
+        image: dpage/pgadmin4:latest
         environment:
             PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
             PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}

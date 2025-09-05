@@ -8,7 +8,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from opengsync_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, MediaFileType, AssayTypeEnum, AssayType
 
 from .Base import Base
-from .. import LAB_PROTOCOL_START_NUMBER
 from . import links
 
 if TYPE_CHECKING:
@@ -202,7 +201,7 @@ class LabPrep(Base):
 
     @property
     def identifier(self) -> str:
-        return f"{self.protocol.identifier}{self.prep_number + LAB_PROTOCOL_START_NUMBER:04d}"
+        return f"{self.protocol.identifier}{self.prep_number:04d}"
     
     @property
     def display_name(self) -> str:

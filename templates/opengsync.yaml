@@ -7,4 +7,25 @@ sample_submission_windows:
       end_time: "15:00"
 
 email_domain_white_list:
-    - "gmail.com"
+    - "email.domain"
+
+db:
+    lab_protocol_start_number: 1
+
+
+# Make sure these match the paths specified in the docker-compose file
+app_root: "/usr/src/app"
+media_folder: "/media"
+uploads_folder: "/uploads"
+app_data_folder: "/app_data"
+share_root: "/share"
+static_folder: "/static"
+template_folder: "/templates"
+log_folder: "/logs"
+illumina_run_folder: "/illumina_run_folder"
+
+scheduler:
+    upload_folder_file_age_days: 30
+    upload_folder_clean_schedule: "0 1 * * *"
+    rf_scan_interval_min: 5
+    status_update_interval_min: 2

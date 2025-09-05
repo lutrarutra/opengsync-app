@@ -1,18 +1,20 @@
 services:
     opengsync-app:
+        platform: linux/amd64
+        user: "${USER}:${GROUP}"
         container_name: opengsync-app
         build: ./services/opengsync-app
         restart: always
         command: >
-            sh -c "opengsync-init-db && gunicorn -w 4 --bind 0.0.0.0:${OPENGSYNC_PORT} 'wsgi:create_app(static_folder=\"/usr/src/app/static\", template_folder=\"/usr/src/app/templates\", config_path=\"/usr/src/app/opengsync.yaml\")'"
+            sh -c "exec gunicorn -w 4 --bind 0.0.0.0:${OPENGSYNC_PORT} 'wsgi:create_app(config_path=\"/usr/src/app/opengsync.yaml\")'"
         volumes:
             - ./services/opengsync-app/opengsync-server:/usr/src/app/opengsync-server
-            - ./services/opengsync-app/templates:/usr/src/app/templates:ro
+            - ./services/opengsync-app/templates:/templates:ro
             - ./services/opengsync-app/opengsync.yaml:/usr/src/app/opengsync.yaml:ro
-            - ${UPLOADS_DIR}:/usr/src/app/uploads
-            - ${DATA_DIR}/media:/usr/src/app/media
-            - ${DATA_DIR}/logs/opengsync:/usr/src/app/logs
-            - ./mnt/share:/usr/src/app/share:ro
+            - ${UPLOADS_DIR}:/uploads
+            - ${DATA_DIR}/media:/media
+            - ${DATA_DIR}/logs/opengsync:/logs
+            - ./mnt/share:/share:ro
         env_file: .env
         environment:
             TZ: ${TIMEZONE}
@@ -34,41 +36,15 @@ services:
             timeout: 10s
             retries: 5
 
-    scheduler:
-        container_name: scheduler-prod
-        build:
-            context: ./services
-            dockerfile: scheduler/Dockerfile
-        env_file: .env
-        environment:
-            TZ: ${TIMEZONE}
-        volumes:
-            - ${DATA_DIR}/logs/scheduler:/usr/src/app/logs
-            - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
-            - ${UPLOADS_DIR}:/uploads
-        depends_on:
-            postgres:
-                condition: service_healthy
-                restart: true
-        restart: always
-        command: >
-            python /usr/src/app/scheduler/run.py
-            --run-folder /illumina_run_folder
-            --rf-scan-interval 5
-            --status-update-interval 2
-            --upload-folder /uploads
-            --upload-folder-file-age-days 7
-            --upload-folder-clean-schedule '0 0 1 * * *'
-
     sass-compiler:
         container_name: sass-compiler
         build: ./services/sass-compiler
         environment:
             TZ: ${TIMEZONE}
         volumes:
-            - ./services/opengsync-app/static/style/sass:/usr/src/static/style/sass:ro
-            - compiled_css:/usr/src/app/static/style/compiled
-        command: "sass --style compressed --update /usr/src/static/style/sass:/usr/src/app/static/style/compiled"
+            - ./services/opengsync-app/static/style/sass:/static/style/sass:ro
+            - compiled_css:/static/style/compiled
+        command: "sass --style compressed --update /static/style/sass:/static/style/compiled"
 
     nginx:
         container_name: nginx-proxy
@@ -76,11 +52,11 @@ services:
         ports:
             - 80:80
         volumes:
-            - ./services/opengsync-app/static:/usr/src/app/static  #:ro     # remove :ro when running for the first time
-            - compiled_css:/usr/src/app/static/style/compiled:ro
-            - ${DATA_DIR}/media:/usr/src/app/media:ro
-            - ${UPLOADS_DIR}:/usr/src/app/uploads:ro
-            - ./mnt/share:/usr/src/app/share:ro
+            - ./services/opengsync-app/static:/static:ro     # remove :ro when running for the first time
+            - compiled_css:/static/style/compiled:ro
+            - ${DATA_DIR}/media:/media:ro
+            - ${UPLOADS_DIR}:/uploads:ro
+            - ./mnt/share:/share:ro
         depends_on:
             opengsync-app:
                 condition: service_started
@@ -94,6 +70,7 @@ services:
         command: /bin/bash -c "envsubst < /etc/nginx/conf.d/conf.template | sed -e 's/§/$/g' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
     redis-cache:
+        user: "${USER}:${GROUP}"
         container_name: redis-cache
         image: redis:8.0.3-alpine3.21
         ports:
@@ -112,8 +89,8 @@ services:
 
     postgres:
         container_name: postgres
-        user: "999:999"
-        image: postgres:17.5-alpine3.22
+        user: "${USER}:${GROUP}"
+        image: postgres:17.6-alpine3.22
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -139,7 +116,7 @@ services:
 
     pgadmin:
         container_name: pgadmin
-        image: dpage/pgadmin4:9.5.0
+        image: dpage/pgadmin4:latest
         environment:
             PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
             PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}

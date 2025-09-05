@@ -1,9 +1,10 @@
 from typing import Optional
 import os
 import glob
+from pathlib import Path
 
 import pandas as pd
-import interop  # type: ignore
+import interop
 from xml.dom.minidom import parse
 from dataclasses import dataclass
 
@@ -46,7 +47,7 @@ def parse_read_cycles(run_info) -> tuple[Optional[int], Optional[int], Optional[
     return r1_cycles, i1_cycles, i2_cycles, r2_cycles
 
 
-def parse_run_folder(run_folder: str) -> dict:
+def parse_run_folder(run_folder: Path) -> dict:
     run_info = interop.py_interop_run.info()     # type: ignore
     run_info.read(run_folder)
     
@@ -86,7 +87,7 @@ class UnitParse:
     rename: str | None = None
 
 
-def parse_quantitities(run_folder: str, quantities: list[UnitParse]) -> dict[str, units.Quantity]:
+def parse_quantitities(run_folder: Path, quantities: list[UnitParse]) -> dict[str, units.Quantity]:
     metrics = interop.read(run_folder)
     df = pd.DataFrame(interop.summary(metrics))
     df.columns = [(
@@ -127,7 +128,7 @@ def parse_quantitities(run_folder: str, quantities: list[UnitParse]) -> dict[str
     return res
 
 
-def parse_metrics(run_folder: str) -> dict[str, units.Quantity]:
+def parse_metrics(run_folder: Path) -> dict[str, units.Quantity]:
     quantities = parse_quantitities(
         run_folder,
         [
@@ -145,8 +146,8 @@ def parse_metrics(run_folder: str) -> dict[str, units.Quantity]:
     return quantities
 
 
-def process_run_folder(illumina_run_folder: str, db: DBHandler):
-    logs = [f"Processing run folder: {illumina_run_folder}"]
+def process_run_folder(illumina_run_folder: Path, db: DBHandler):
+    logger.info(f"Processing run folder: {illumina_run_folder}")
     
     active_runs, _ = db.seq_runs.find(
         status_in=[RunStatus.FINISHED, RunStatus.RUNNING],
@@ -166,11 +167,11 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
                         library.status = LibraryStatus.SEQUENCED
             db.seq_runs.update(run)
             active_runs[run.experiment_name] = run
-            logs.append(f"Archived: {run.experiment_name} ({run.run_folder})")
+            logger.info(f"Archived: {run.experiment_name} ({run.run_folder})")
     
     for run_parameters_path in glob.glob(os.path.join(illumina_run_folder, "*", "RunParameters.xml")):
-        run_folder = os.path.dirname(run_parameters_path)
-        run_name = os.path.basename(run_folder)
+        run_folder = Path(os.path.dirname(run_parameters_path))
+        run_name = run_folder.name
         
         if os.path.exists(os.path.join(run_folder, "RTAComplete.txt")):
             status = RunStatus.FINISHED
@@ -180,22 +181,22 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
         parsed_data = parse_run_folder(run_folder)
         
         experiment_name = parsed_data["experiment_name"]
-        logs.append(f"Processing {experiment_name} ({run_name}):")
+        logger.info(f"Processing {experiment_name} ({run_name}):")
 
         if (run := active_runs.get(experiment_name)) is not None:
             if run.run_folder != run_name:
-                logs.append(f"WARNING: Run folder name mismatch: {run.run_folder} != {run_name}.")
+                logger.info(f"WARNING: Run folder name mismatch: {run.run_folder} != {run_name}.")
                 if status > run.status:
-                    logs.append(f"Updating run folder name to {run_name}.")
+                    logger.info(f"Updating run folder name to {run_name}.")
                     run.run_folder = run_name
                     db.seq_runs.update(run)
                     parsed_data = parse_run_folder(run_folder)
                 else:
-                    logs.append("Skipping update due to lower status.")
+                    logger.info("Skipping update due to lower status.")
                     continue
                 
             if run.status == status:
-                logs.append("Up to date!")
+                logger.info("Up to date!")
                 continue
             
             if run.status == RunStatus.FINISHED:
@@ -227,7 +228,7 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
 
             db.seq_runs.update(run)
             active_runs[experiment_name] = run
-            logs.append("Updated!")
+            logger.info("Updated!")
         else:
             metrics = parse_metrics(run_folder)
 
@@ -266,4 +267,4 @@ def process_run_folder(illumina_run_folder: str, db: DBHandler):
             db.seq_runs.update(run)
 
             active_runs[experiment_name] = run
-            logs.append("Added!")
+            logger.info("Added!")
