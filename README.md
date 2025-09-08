@@ -97,8 +97,6 @@ sudo systemctl daemon-reload
 sudo systemctl enable opengsync
 sudo systemctl start opengsync
 ```
-or
-`./prod.sh`
 
 - Wait for startup: `sudo journalctl -u opengsync -e -f`
 
@@ -133,10 +131,6 @@ pg_basebackup \
     1. Rebuilds containers
     1. Restarts service (`systemctl`)
 
-### 2. Or run production server
-- `chmod +x prod.sh`
-- `./prod.sh` 
-
 ## After first boot
 - Change yacht login and password
     - `http://localhost:${YACHT_PORT}`
@@ -154,9 +148,6 @@ pip install -e services/opengsync-app/opengsync-db
 pip install -e services/opengsync-app/opengsync-server
 mkdir -p db
 mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
-mkdir -p db/postgres && sudo chown -R 999:999 db/postgres
-mkdir -p data/db_backup/wal && sudo chown -R 999:999 data/db_backup/wal
-mkdir -p data/db_backup/base && sudo chown -R 999:999 data/db_backup/base
 ```
 
 ## Run with flask debug server

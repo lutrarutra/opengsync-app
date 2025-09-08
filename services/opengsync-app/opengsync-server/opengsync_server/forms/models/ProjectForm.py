@@ -25,13 +25,10 @@ class ProjectForm(HTMXFlaskForm):
     def __init__(self, project: Optional[models.Project] = None, formdata: Optional[dict[str, Any]] = None):
         super().__init__(formdata=formdata)
         self.project = project
-        if formdata is None and self.project is not None:
-            self.__fill_form()
 
-    def __fill_form(self):
+    def prepare(self):
         if self.project is None:
-            logger.error("Project is not set for form filling.")
-            raise ValueError("Project is not set for form filling.")
+            return
         
         self.identifier.data = self.project.identifier or ""
         self.title.data = self.project.title

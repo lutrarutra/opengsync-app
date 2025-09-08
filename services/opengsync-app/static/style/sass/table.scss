@@ -18,6 +18,10 @@ table .multi-select {
     }
 }
 
+table tbody tr td {
+    a.visitable:visited { color: #551a8b !important; }
+}
+
 table input.table-query-input{
     height: 28px;
 }
