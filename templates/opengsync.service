@@ -1,12 +1,15 @@
 [Unit]
 Description=OpeNGSync App
-After=docker.service
+Requires=docker.service
+After=docker.service network.target
 
 [Service]
-Restart=always
+Type=oneshot
+Restart=no
+RemainAfterExit=yes
 WorkingDirectory=<repository path>
-ExecStart=/usr/bin/docker compose --env-file=.env -f compose.yaml -p opengsync-prod up --build
-ExecStop=/usr/bin/docker compose -f compose.yaml -p opengsync-prod down --volumes --remove-orphans
+ExecStop=start.sh down --volumes --remove-orphans
+ExecStart=start.sh up --build -d
 
 [Install]
 WantedBy=multi-user.target

@@ -71,9 +71,28 @@ sudo mkdir -p ./app_data && sudo chown -R ${USER}:${GROUP} ./app_data && sudo ch
 sudo chown root:root .env && sudo chmod 400 .env
 ```
 
-### 2. Start production server as systemd service
+### 2. Configure Shareable Directories
+```sh
+touch compose.override.yaml
+```
+#### Include the paths you want to share from, e.g.:
+```yaml
+services:
+    opengsync-app:
+        volumes:
+            - /mnt/projects:/share/PROJECTS:ro
+            - /mnt/raw_data:/share/RAW_DATA:ro
+    nginx:
+        volumes:
+            - /mnt/projects:/share/PROJECTS:ro
+            - /mnt/raw_data:/share/RAW_DATA:ro
+```
+
+
+### 3. Start production server as systemd service
 ```sh
 sudo cp templates/opengsync.service /lib/systemd/system/opengsync.service
+# Populate templates/start.sh
 sudo systemctl daemon-reload
 sudo systemctl enable opengsync
 sudo systemctl start opengsync
@@ -83,7 +102,7 @@ or
 
 - Wait for startup: `sudo journalctl -u opengsync -e -f`
 
-### 3. Create Base Backup
+### 4. Create Base Backup
 ```sh
 # host
 docker exec -it postgres sh

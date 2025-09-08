@@ -14,6 +14,7 @@ opengsync.yaml
 local/
 *.env
 !templates/template.env
+compose.override.yaml
 .tmp/
 .ssh/
 test*.ipynb
