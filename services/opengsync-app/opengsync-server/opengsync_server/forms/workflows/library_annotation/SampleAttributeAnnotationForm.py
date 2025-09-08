@@ -10,6 +10,7 @@ from opengsync_db.categories import LibraryType, AttributeType
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa F401
+from ....core import runtime
 from ....tools.spread_sheet_components import TextColumn, MissingCellValue, SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm
 from .CompleteSASForm import CompleteSASForm
@@ -33,7 +34,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
-        self.upload_path = os.path.join("uploads", "seq_request")
+        self.upload_path = os.path.join(runtime.app.uploads_folder.as_posix(), "seq_request")
         self.columns: list[SpreadSheetColumn] = SampleAttributeAnnotationForm.predefined_columns.copy()  # type: ignore
 
         library_table = self.tables["library_table"]

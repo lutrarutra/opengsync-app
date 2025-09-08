@@ -17,10 +17,6 @@ def seq_requests():
 def seq_request(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests[seq_request_id]) is None:
         raise exceptions.NotFoundException()
-    
-    from sqlalchemy import orm
-    logger.debug(seq_request.num_libraries)
-    logger.debug("libraries" in orm.attributes.instance_state(seq_request).unloaded)
 
     if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.VIEW:
         raise exceptions.NoPermissionsException()

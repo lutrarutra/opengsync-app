@@ -8,6 +8,7 @@ import pickle
 import pandas as pd
 
 from .. import msf_cache, logger
+from ..core import runtime
 from .HTMXFlaskForm import HTMXFlaskForm
 import shutil
 
@@ -45,8 +46,8 @@ class MultiStepForm(HTMXFlaskForm):
         self.step_args = step_args
         self.uuid = uuid
         self.workflow = workflow
-
-        self.__path = os.path.join("uploads", workflow, f"{uuid}.msf")
+        
+        self.__path = os.path.join(runtime.app.uploads_folder.as_posix(), workflow, f"{uuid}.msf")
         if not os.path.exists(os.path.dirname(self.__path)):
             os.mkdir(os.path.dirname(self.__path))
 
@@ -64,7 +65,7 @@ class MultiStepForm(HTMXFlaskForm):
 
     @staticmethod
     def get_traceback(workflow: str, uuid: str) -> dict[str, StepFile] | None:
-        path = os.path.join("uploads", workflow, f"{uuid}.msf")
+        path = os.path.join(runtime.app.uploads_folder.as_posix(), workflow, f"{uuid}.msf")
         if not os.path.exists(path):
             return None
 
@@ -74,7 +75,7 @@ class MultiStepForm(HTMXFlaskForm):
     
     @staticmethod
     def pop_last_step(workflow: str, uuid: str) -> tuple[str, StepFile] | None:
-        path = os.path.join("uploads", workflow, f"{uuid}.msf")
+        path = os.path.join(runtime.app.uploads_folder.as_posix(), workflow, f"{uuid}.msf")
         if not os.path.exists(path):
             return None
 

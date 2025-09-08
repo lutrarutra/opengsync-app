@@ -50,11 +50,25 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
     - Populate opengsync.yaml as required.
 
 ```sh
-mkdir -p db
+# ${USER} ${GROUP} from .env
+mkdir -p db && sudo chown -R ${USER}:${GROUP} db && sudo chmod -R 700 db
 mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
-mkdir -p db/postgres && sudo chown -R 999:999 db/postgres
-mkdir -p data/db_backup/wal && sudo chown -R 999:999 data/db_backup/wal
-mkdir -p data/db_backup/base && sudo chown -R 999:999 data/db_backup/base
+mkdir -p db/postgres && sudo chown -R ${USER}:${GROUP} db/postgres
+
+mkdir -p data && sudo chown -R ${USER}:${GROUP} data && sudo chmod -R 700 data
+mkdir -p data/db_backup/wal && sudo chown -R ${USER}:${GROUP} data/db_backup/wal && sudo chmod -R 700 data/db_backup/wal
+mkdir -p data/db_backup/base && sudo chown -R ${USER}:${GROUP} data/db_backup/base && sudo chmod -R 700 data/db_backup/base
+
+sudo mkdir -p ./data/media && sudo chown -R ${USER}:${GROUP} ./data/media && sudo chmod -R 700 ./data/media 
+sudo mkdir -p ./uploads && sudo chown -R ${USER}:${GROUP} ./uploads && sudo chmod -R 700 ./uploads
+sudo mkdir -p ./cache && sudo chown -R ${USER}:${GROUP} ./cache && sudo chmod -R 700 ./cache
+sudo mkdir -p ./app_data && sudo chown -R ${USER}:${GROUP} ./app_data && sudo chmod -R 700 ./app_data
+
+# Add directories for sharing files
+# sudo ln -s <directory you want to share from> ./mnt/share
+
+# Make .env root readonly
+sudo chown root:root .env && sudo chmod 400 .env
 ```
 
 ### 2. Start production server as systemd service

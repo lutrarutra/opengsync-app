@@ -55,7 +55,7 @@ class App(Flask):
         opengsync_config = yaml.safe_load(open(config_path))
         super().__init__(__name__, static_folder=opengsync_config["static_folder"], template_folder=opengsync_config["template_folder"])
         
-        log_buffer.set_log_dir(Path(opengsync_config["log_folder"]) / "server")
+        log_buffer.set_log_dir(Path(opengsync_config["log_folder"]))
         log_buffer.start()
 
         self.root_folder = Path(opengsync_config["app_root"])
