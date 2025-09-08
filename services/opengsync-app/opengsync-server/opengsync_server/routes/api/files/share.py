@@ -96,7 +96,7 @@ def rclone(token: str, subpath: Path = Path()):
             
             response = Response()
             response.headers["Content-Type"] = mimetype
-            response.headers["X-Accel-Redirect"] = str(file.path).replace("/usr/src/app/share/", "/nginx-share/")
+            response.headers["X-Accel-Redirect"] = file.path.as_posix().replace(runtime.app.share_root.as_posix(), "/nginx-share/")
             return response
 
     return render_template(
@@ -132,7 +132,7 @@ def browse(token: str, subpath: Path = Path()):
             response.headers["Content-Type"] = mimetype
             if not utils.is_browser_friendly(mimetype):
                 response.headers["Content-Disposition"] = f"attachment; filename={file.name}"
-            response.headers["X-Accel-Redirect"] = str(file.path).replace("/usr/src/app/share/", "/nginx-share/")
+            response.headers["X-Accel-Redirect"] = file.path.as_posix().replace(runtime.app.share_root.as_posix(), "/nginx-share/")
             return response
         
     paths = sorted(paths, key=lambda p: p.name.lower())
@@ -155,6 +155,14 @@ def data_file(data_path_id: int):
     if not path.is_file():
         raise exceptions.BadRequestException("Data path is not a file")
     
-    mimetype = mimetypes.guess_type(data_path.path)[0] or "application/octet-stream"
+    mimetype = mimetypes.guess_type(path)[0] or "application/octet-stream"
 
-    return send_from_directory(path.parent, path.name, as_attachment=not utils.is_browser_friendly(mimetype), mimetype=mimetype)
+    if DEBUG:
+        return send_from_directory(path.parent, path.name, as_attachment=not utils.is_browser_friendly(mimetype), mimetype=mimetype)
+    
+    response = Response()
+    response.headers["Content-Type"] = mimetype
+    if not utils.is_browser_friendly(mimetype):
+        response.headers["Content-Disposition"] = f"attachment; filename={path.name}"
+    response.headers["X-Accel-Redirect"] = path.as_posix().replace(runtime.app.share_root.as_posix(), "/nginx-share/")
+    return response

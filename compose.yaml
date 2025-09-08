@@ -3,7 +3,11 @@ services:
         platform: linux/amd64
         user: "${USER}:${GROUP}"
         container_name: opengsync-app
-        build: ./services/opengsync-app
+        build:
+            context: ./services/opengsync-app
+            args:
+                - APPUSER=${USER}
+                - APPGROUP=${GROUP}
         restart: always
         command: >
             gunicorn -w 4 --bind 0.0.0.0:${OPENGSYNC_PORT} 'wsgi:create_app(config_path="/usr/src/app/opengsync.yaml")'
@@ -12,11 +16,11 @@ services:
             - ./services/opengsync-app/templates:/templates:ro
             - ./opengsync.yaml:/usr/src/app/opengsync.yaml:ro
             - ./services/opengsync-app/static/:/static/:ro
+            - compiled_css:/static/style/compiled:ro
             - ./app_data:/app_data
             - ${UPLOADS_DIR}:/uploads
             - ${DATA_DIR}/media:/media
             - ${DATA_DIR}/logs/opengsync:/logs
-            - ./mnt/share:/share:ro
         env_file: .env
         environment:
             TZ: ${TIMEZONE}
@@ -106,7 +110,6 @@ services:
             - compiled_css:/static/style/compiled:ro
             - ${DATA_DIR}/media:/media:ro
             - ${UPLOADS_DIR}:/uploads:ro
-            - ./mnt/share:/share:ro
         depends_on:
             opengsync-app:
                 condition: service_started
