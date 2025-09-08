@@ -13,12 +13,14 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 ## Tech Stack
 1. `opengsync-app` - Flask web server @ `https://localhost:80`
 1. `opengsync-db` - PostgreSQL database
-1. `scheduler` - Custom python container for running scheduled tasks: old file cleaning, status updates, and run-folder scanner
+1. `celery-beat` - Periodic task scheduler
+1. `celery-worker` - Asynchronous task worker to scan illumina run folder, update statuses, clean old files etc.
+1. `celery-flower` - Celery monitoring web interface @ `https://localhost:5555`
 1. `nginx` - Reverse proxy for static files (only prod)
 1. `pgadmin` - PostgreSQL admin interface @ `https://localhost:5050`
 1. `yacht` - Web interface for overview of running docker containers @ `https://localhost:8000`
 1. `sass-compiler` - Compiles scss to css
-1. `redis` - Cache for Flask app
+1. `redis` - Redis server for celery broker and caching
 
 ## Performance Considerations
 - Gunicorn with multiple workers
@@ -44,6 +46,8 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 ### 1. Create folders with correct permissions
 - `cp templates/template.env .env`
     - Populate .env as required.
+- `cp templates/opengsync.yaml .`
+    - Populate opengsync.yaml as required.
 
 ```sh
 mkdir -p db

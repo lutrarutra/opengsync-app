@@ -49,7 +49,7 @@ def parse_read_cycles(run_info) -> tuple[Optional[int], Optional[int], Optional[
 
 def parse_run_folder(run_folder: Path) -> dict:
     run_info = interop.py_interop_run.info()     # type: ignore
-    run_info.read(run_folder)
+    run_info.read(run_folder.as_posix())
     
     flowcell_id = run_info.flowcell().barcode()
     instrument = run_info.instrument_name()
@@ -88,7 +88,7 @@ class UnitParse:
 
 
 def parse_quantitities(run_folder: Path, quantities: list[UnitParse]) -> dict[str, units.Quantity]:
-    metrics = interop.read(run_folder)
+    metrics = interop.read(run_folder.as_posix())
     df = pd.DataFrame(interop.summary(metrics))
     df.columns = [(
         str(col)

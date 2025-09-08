@@ -1,0 +1,9 @@
+FROM python:3.13-slim
+
+WORKDIR /usr/src/app
+
+RUN apt update
+RUN apt install cron -y
+
+RUN pip install --upgrade pip
+RUN pip install celery[redis] flower

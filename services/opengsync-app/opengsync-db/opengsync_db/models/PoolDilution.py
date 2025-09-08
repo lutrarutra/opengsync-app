@@ -19,7 +19,7 @@ class PoolDilution(Base):
 
     identifier: Mapped[str] = mapped_column(sa.String(4), nullable=False)
     
-    pool_id: Mapped[int] = mapped_column(sa.ForeignKey("pool.id"))
+    pool_id: Mapped[int] = mapped_column(sa.ForeignKey("pool.id", ondelete="CASCADE"))
     pool: Mapped["Pool"] = relationship("Pool", back_populates="dilutions", lazy="joined")
 
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))

@@ -208,6 +208,7 @@ class PoolBP(DBBlueprint):
         qubit_concentration: float,
         operator_id: int,
         volume_ul: Optional[float] = None,
+        flush: bool = True
     ) -> models.Pool:
 
         if (pool := self.db.session.get(models.Pool, pool_id)) is None:
@@ -236,6 +237,10 @@ class PoolBP(DBBlueprint):
         pool.dilutions.append(dilution)
         self.db.session.add(pool)
         self.db.session.refresh(pool)
+        
+        if flush:
+            self.db.flush()
+
         return pool
 
     @DBBlueprint.transaction

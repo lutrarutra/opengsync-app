@@ -9,7 +9,7 @@ cert/
 mnt/
 app_data/
 backup/
-services/opengsync-app/opengsync.yaml
+opengsync.yaml
 .vscode/
 local/
 *.env

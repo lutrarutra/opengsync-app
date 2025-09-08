@@ -6,11 +6,11 @@ services:
         build: ./services/opengsync-app
         restart: always
         command: >
-            sh -c "exec gunicorn -w 4 --bind 0.0.0.0:${OPENGSYNC_PORT} 'wsgi:create_app(config_path=\"/usr/src/app/opengsync.yaml\")'"
+            exec gunicorn -w 4 --bind 0.0.0.0:${OPENGSYNC_PORT} 'wsgi:create_app(config_path=\"/usr/src/app/opengsync.yaml\")'
         volumes:
             - ./services/opengsync-app/opengsync-server:/usr/src/app/opengsync-server
             - ./services/opengsync-app/templates:/templates:ro
-            - ./services/opengsync-app/opengsync.yaml:/usr/src/app/opengsync.yaml:ro
+            - ./opengsync.yaml:/usr/src/app/opengsync.yaml:ro
             - ${UPLOADS_DIR}:/uploads
             - ${DATA_DIR}/media:/media
             - ${DATA_DIR}/logs/opengsync:/logs
@@ -45,6 +45,54 @@ services:
             - ./services/opengsync-app/static/style/sass:/static/style/sass:ro
             - compiled_css:/static/style/compiled
         command: "sass --style compressed --update /static/style/sass:/static/style/compiled"
+
+    celery-worker:
+        user: "${USER}:${GROUP}"
+        platform: linux/amd64
+        container_name: celery-worker-prod
+        build:
+            context: ./services
+            dockerfile: celery/Dockerfile
+        env_file: .env
+        environment:
+            TZ: ${TIMEZONE}
+        volumes:
+            - ./opengsync.yaml:/usr/src/app/opengsync.yaml:ro
+            - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
+            - ${DATA_DIR}/logs/celery-worker:/logs
+            - ${UPLOADS_DIR}:/uploads
+        depends_on:
+            celery-scheduler:
+                condition: service_started
+                restart: true
+            postgres:
+                condition: service_healthy
+                restart: true
+        restart: always
+        command: >
+            celery -A scheduler.celery worker --loglevel=info
+
+    celery-scheduler:
+        platform: linux/amd64
+        container_name: celery-scheduler-prod
+        build:
+            context: ./services
+            dockerfile: celery/Dockerfile
+        env_file: .env
+        environment:
+            TZ: ${TIMEZONE}
+        volumes:
+            - ./opengsync.yaml:/usr/src/app/opengsync.yaml:ro
+        depends_on:
+            postgres:
+                condition: service_healthy
+                restart: true
+            redis-cache:
+                condition: service_healthy
+                restart: true
+        restart: always
+        command: >
+            celery -A scheduler.celery beat --loglevel=info
 
     nginx:
         container_name: nginx-proxy
@@ -143,6 +191,24 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock
             - yacht:/config
         restart: always
+
+    celery-flower:
+        platform: linux/amd64
+        container_name: celery-flower-prod
+        build:
+            context: ./services
+            dockerfile: celery/Dockerfile.flower
+        environment:
+            TZ: ${TIMEZONE}
+        depends_on:
+            redis-cache:
+                condition: service_healthy
+                restart: true
+        ports:
+            - 5555:5555
+        restart: always
+        command: >
+            celery --broker=redis://redis-cache:${REDIS_PORT}/4 flower --port=5555 --basic-auth="${FLOWER_USER}:${FLOWER_PASSWORD}"
 
 volumes:
     compiled_css:

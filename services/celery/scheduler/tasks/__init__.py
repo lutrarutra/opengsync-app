@@ -16,7 +16,7 @@ from scheduler.tasks.status_updater import update_statuses
 logger.remove()
 
 config = yaml.safe_load(open("/usr/src/app/opengsync.yaml"))
-logdir = Path(config["log_folder"]) / "scheduler"
+logdir = Path(config["log_folder"])
 
 date = "{time:YYYY-MM-DD}"
 logger.add(logdir / f"{date}.log", level="INFO", colorize=False, rotation="1 day")
