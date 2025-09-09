@@ -105,6 +105,7 @@ services:
         build: ./services/nginx
         ports:
             - 80:80
+            - 443:443
         volumes:
             - ./services/opengsync-app/static:/static:ro     # remove :ro when running for the first time
             - compiled_css:/static/style/compiled:ro
@@ -120,6 +121,7 @@ services:
         environment:
             TZ: ${TIMEZONE}
             OPENGSYNC_PORT: ${OPENGSYNC_PORT}
+            OPENGSYNC_SERVER_NAME: ${OPENGSYNC_SERVER_NAME}
         command: /bin/bash -c "envsubst < /etc/nginx/conf.d/conf.template | sed -e 's/§/$/g' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
     redis-cache:

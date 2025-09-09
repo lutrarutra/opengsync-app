@@ -4,12 +4,12 @@ Requires=docker.service
 After=docker.service network.target
 
 [Service]
-Type=oneshot
-Restart=no
+Type=simple
+Restart=always
 RemainAfterExit=yes
 WorkingDirectory=<repository path>
 ExecStop=start.sh down --volumes --remove-orphans
-ExecStart=start.sh up --build -d
+ExecStart=start.sh up --build
 
 [Install]
 WantedBy=multi-user.target
