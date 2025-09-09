@@ -741,3 +741,51 @@ def get_recent_experiments(current_user: models.User):
     return make_response(
         render_template("components/dashboard/experiments-list.html", experiments=experiments, sort_by=sort_by)
     )
+
+
+@wrappers.htmx_route(experiments_htmx, db=db)
+def browse(current_user: models.User, workflow: str, page: int = 0):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = PAGE_LIMIT * page
+
+    context = {}
+
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [ExperimentStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            raise exceptions.BadRequestException()
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    if (workflow_in := request.args.get("workflow_id_in")) is not None:
+        workflow_in = json.loads(workflow_in)
+        try:
+            workflow_in = [ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
+        except ValueError:
+            raise exceptions.BadRequestException()
+    
+        if len(workflow_in) == 0:
+            workflow_in = None
+
+    experiments, n_pages = db.experiments.find(
+        offset=offset, sort_by=sort_by, descending=descending,
+        status_in=status_in, workflow_in=workflow_in, count_pages=True
+    )
+
+    context["workflow"] = workflow
+    return make_response(
+        render_template(
+            "components/tables/select-experiments.html",
+            experiments=experiments, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order,
+            workflow=workflow, context=context, status_in=status_in
+        )
+    )
