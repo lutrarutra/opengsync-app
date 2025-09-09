@@ -9,7 +9,7 @@ from flask_htmx import HTMX
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_caching import Cache
-from flask_limiter import Limiter, util as limiter_utils
+from flask_limiter import Limiter
 
 from itsdangerous import URLSafeTimedSerializer
 from loguru import logger
@@ -53,6 +53,6 @@ file_handler = FileHandler()
 
 limiter = Limiter(
     lambda: request.headers.get("X-Real-IP", request.remote_addr, type=str),  # type: ignore
-    default_limits=["1000 per day", "100 per hour"],
+    default_limits=["1000 per day", "200 per hour"],
     storage_uri="memory://"
 )

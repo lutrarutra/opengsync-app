@@ -1,7 +1,7 @@
 {
   "extraPaths": [
     "./services/opengsync-app/opengsync-db",
-    "./services/opengsync-app/opengsync-server",
+    "./services/opengsync-app/opengsync-server"
   ],
   "reportIncompatibleMethodOverride": false
 }

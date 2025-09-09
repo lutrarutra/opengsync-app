@@ -107,7 +107,7 @@ services:
             - 80:80
             - 443:443
         volumes:
-            - ./services/opengsync-app/static:/static:ro     # remove :ro when running for the first time
+            - ./services/opengsync-app/static:/static:ro     # you might need to remove :ro when running for the first time
             - compiled_css:/static/style/compiled:ro
             - ${DATA_DIR}/media:/media:ro
             - ${UPLOADS_DIR}:/uploads:ro
