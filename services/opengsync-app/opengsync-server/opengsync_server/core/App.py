@@ -14,6 +14,8 @@ from flask import (
 
 from flask_session import Session
 from flask_session.base import ServerSideSession
+from flask_limiter import util as limiter_utils
+
 from opengsync_db import categories, models, TIMEZONE
 
 from .. import (
@@ -31,6 +33,7 @@ from .. import (
     mail_handler,
     db,
     file_handler,
+    limiter,
 )
 from ..tools import spread_sheet_components as ssc
 from ..tools.utils import WeekTimeWindow
@@ -114,6 +117,7 @@ class App(Flask):
         htmx.init_app(self)
         bcrypt.init_app(self)
         login_manager.init_app(self)
+        limiter.init_app(self)
         mail_handler.init_app(
             smtp_server=os.environ["MAIL_SERVER"],
             smtp_port=int(os.environ["MAIL_PORT"]),
@@ -162,6 +166,11 @@ class App(Flask):
         @self.context_processor
         def inject_uuid():
             return dict(uuid4=uuid4)
+        
+        # @self.after_request
+        # def headers(response):
+        #     logger.debug(response.headers)
+        #     return response
         
         from .jfilters import inject_jinja_format_filters
         inject_jinja_format_filters(self)

@@ -11,7 +11,7 @@ from ....core import wrappers, exceptions, runtime
 auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/api/hmtx/auth/")
 
 
-@wrappers.htmx_route(auth_htmx, methods=["GET", "POST"], db=db, login_required=False)
+@wrappers.htmx_route(auth_htmx, methods=["GET", "POST"], db=db, login_required=False, limit_exempt=None, limit="20 per minute")
 def login(current_user: models.User | None):
     if current_user:
         return make_response(redirect=url_for("dashboard"))
@@ -34,14 +34,14 @@ def logout(current_user: models.User):
     return make_response(redirect=url_for("dashboard"))
 
 
-@wrappers.htmx_route(auth_htmx, db=db, methods=["GET", "POST"], login_required=False)
+@wrappers.htmx_route(auth_htmx, db=db, methods=["GET", "POST"], login_required=False, limit_exempt=None, limit="20 per minute")
 def register(current_user: models.User | None):
     if request.method == "GET":
         return forms.auth.RegisterUserForm().make_response()
     return forms.auth.RegisterUserForm(formdata=request.form).process_request(user=current_user)
     
 
-@wrappers.htmx_route(auth_htmx, db=db, login_required=False, methods=["GET", "POST"])
+@wrappers.htmx_route(auth_htmx, db=db, login_required=False, methods=["GET", "POST"], limit_exempt=None, limit="20 per minute")
 def complete_registration(token: str):
     if request.method == "GET":
         return forms.auth.CompleteRegistrationForm(token=token).make_response()
@@ -89,7 +89,7 @@ def reset_password_email(current_user: models.User, user_id: int):
     return make_response(redirect=url_for("users_page.user", user_id=user_id))
 
 
-@wrappers.htmx_route(auth_htmx, methods=["GET", "POST"], db=db, login_required=False)
+@wrappers.htmx_route(auth_htmx, methods=["GET", "POST"], db=db, login_required=False, limit_exempt=None, limit="20 per minute")
 def reset_password(token: str):
     if request.method == "GET":
         form = forms.auth.ResetPasswordForm(token=token)

@@ -6,22 +6,30 @@ from flask import (
     request,
     session,
     make_response,
-    flash,
     url_for
 )
 from flask_htmx import make_response as make_htmx_response
+from flask_limiter.util import get_remote_address
 
 from opengsync_db import models
 
 from ..core import exceptions
-from .. import db, logger, flash_cache, tools
+from .. import db, logger, flash_cache, limiter
 from ..core import wrappers
 from ..core.RunTime import runtime
 
 
 if runtime.app.debug:
-    @wrappers.page_route(runtime.app, db=db, login_required=False)
-    def test(current_user: models.User | None):
+    @wrappers.page_route(runtime.app, db=db, login_required=False, limit_exempt=None, limit="3 per minute")
+    def test(current_user: models.User | None, number: int):
+        logger.debug(get_remote_address())
+
+        if number > 5:
+            raise exceptions.NotFoundException()
+        
+        if limiter.current_limit:
+            logger.debug(limiter.storage.clear(limiter.current_limit.key))
+        
         return render_template("test.html")
     
     @wrappers.page_route(runtime.app, db=db, login_required=True)

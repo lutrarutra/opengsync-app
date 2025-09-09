@@ -6,6 +6,7 @@ import traceback
 from flask import Blueprint, Flask, render_template, flash, request
 from flask_htmx import make_response
 from flask_login import login_required as login_required_f, current_user
+from flask_limiter.errors import RateLimitExceeded
 
 from opengsync_db import DBHandler
 from opengsync_db.categories import HTTPResponse
@@ -56,9 +57,12 @@ def _route_decorator(
     cache_query_string: bool,
     cache_type: Literal["user", "insider", "global"],
     cache_kwargs: dict[str, Any] | None,
+    limit: str | None = None,
+    limit_exempt: Literal["all", "insider", "user", None] = "insider",
+    limit_override: bool = False,
 ) -> Callable[[F], F]:
     """Base decorator for all route types."""
-    from .. import route_cache, flash_cache
+    from .. import route_cache, flash_cache, limiter
 
     def decorator(fnc: F) -> F:
         routes, current_user_required = utils.infer_route(fnc, base=route)
@@ -110,10 +114,31 @@ def _route_decorator(
                 log_buffer.start(str(request.url_rule))
             else:
                 log_buffer.start()
+
             if db is not None:
                 db.open_session()
+            
+            if limit_exempt == "all":
+                _fnc = limiter.exempt(fnc)
+            else:
+                if limit is not None:
+                    match limit_exempt:
+                        case "insider":
+                            exempt_when = lambda: current_user.is_authenticated and current_user.is_insider()
+                        case "user":
+                            exempt_when = lambda: current_user.is_authenticated
+                        case _:
+                            exempt_when = None
+                        
+                    _fnc = limiter.limit(
+                        limit, override_defaults=limit_override,
+                        exempt_when=exempt_when
+                    )(fnc)
+                else:
+                    _fnc = fnc
 
-            _fnc = login_required_f(fnc) if login_required else fnc
+            if login_required:
+                _fnc = login_required_f(_fnc)
             
             if current_user_required != "no":
                 kwargs["current_user"] = current_user if current_user.is_authenticated else None
@@ -133,6 +158,9 @@ def _route_decorator(
                 rollback = db.needs_commit if db is not None else False
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncDBException")
                 return response_handler(e)
+            except RateLimitExceeded as e:
+                logger.warning(f"Rate limit exceeded on route {routes} for IP {request.remote_addr}")
+                return response_handler(serv_exceptions.TooManyRequestsException())
             except Exception as e:
                 rollback = db.needs_commit if db is not None else False
                 if runtime.app.debug and response_handler.__name__ != "_htmx_handler":
@@ -181,6 +209,9 @@ def _page_handler(e: Exception):
         case serv_exceptions.MethodNotAllowedException:
             flash(msg, category="error")
             return render_template("errors/page.html", msg=msg, code=405), 405
+        case serv_exceptions.TooManyRequestsException:
+            flash(msg, category="error")
+            return render_template("errors/page.html", msg=msg, code=429), 429
         case _:
             flash(__get_flash_msg(msg), category="error")
             return render_template("errors/page.html", msg=msg, code=500), 500
@@ -202,6 +233,8 @@ def _htmx_handler(e: Exception):
         case serv_exceptions.BadRequestException:
             flash(msg, category="error")
         case serv_exceptions.MethodNotAllowedException:
+            flash(msg, category="error")
+        case serv_exceptions.TooManyRequestsException:
             flash(msg, category="error")
         case _:
             msg = __get_flash_msg(msg)
@@ -227,6 +260,8 @@ def _api_handler(e: Exception):
             return msg, HTTPResponse.BAD_REQUEST.id
         case serv_exceptions.MethodNotAllowedException:
             return msg, HTTPResponse.METHOD_NOT_ALLOWED.id
+        case serv_exceptions.TooManyRequestsException:
+            return msg, HTTPResponse.TOO_MANY_REQUESTS.id
         case _:
             return msg, HTTPResponse.INTERNAL_SERVER_ERROR.id
 
@@ -252,6 +287,9 @@ def _resource_handler(e: Exception):
         case serv_exceptions.MethodNotAllowedException:
             flash(msg, category="error")
             return render_template("errors/error.html", msg=msg, code=405), 405
+        case serv_exceptions.TooManyRequestsException:
+            flash(msg, category="error")
+            return render_template("errors/error.html", msg=msg, code=429), 429
         case _:
             flash(__get_flash_msg(msg), category="error")
             return render_template("errors/error.html", msg=msg, code=500), 500
@@ -269,6 +307,9 @@ def page_route(
     cache_kwargs: dict[str, Any] | None = None,
     cache_type: Literal["user", "global"] = "user",
     strict_slashes: bool = True,
+    limit: str | None = None,
+    limit_exempt: Literal["all", "insider", "user", None] = "insider",
+    limit_override: bool = False,
 ) -> Callable[[F], F]:
     return _route_decorator(
         blueprint=blueprint,
@@ -283,6 +324,9 @@ def page_route(
         cache_query_string=cache_query_string,
         cache_type=cache_type,
         cache_kwargs=cache_kwargs,
+        limit=limit,
+        limit_exempt=limit_exempt,
+        limit_override=limit_override,
     )
 
 
@@ -298,6 +342,9 @@ def htmx_route(
     cache_kwargs: dict[str, Any] | None = None,
     cache_type: Literal["user", "insider", "global"] = "user",
     strict_slashes: bool = True,
+    limit: str | None = None,
+    limit_exempt: Literal["all", "insider", "user", None] = "insider",
+    limit_override: bool = False,
 ) -> Callable[[F], F]:
     return _route_decorator(
         blueprint=blueprint,
@@ -312,6 +359,9 @@ def htmx_route(
         cache_query_string=cache_query_string,
         cache_type=cache_type,
         cache_kwargs=cache_kwargs,
+        limit=limit,
+        limit_exempt=limit_exempt,
+        limit_override=limit_override,
     )
 
 
@@ -327,6 +377,9 @@ def api_route(
     cache_kwargs: dict[str, Any] | None = None,
     cache_type: Literal["user", "insider", "global"] = "user",
     strict_slashes: bool = True,
+    limit: str | None = None,
+    limit_exempt: Literal["all", "insider", "user", None] = "insider",
+    limit_override: bool = False,
 ) -> Callable[[F], F]:
     return _route_decorator(
         blueprint=blueprint,
@@ -341,6 +394,9 @@ def api_route(
         cache_query_string=cache_query_string,
         cache_type=cache_type,
         cache_kwargs=cache_kwargs,
+        limit=limit,
+        limit_exempt=limit_exempt,
+        limit_override=limit_override,
     )
 
 
@@ -356,6 +412,9 @@ def resource_route(
     cache_kwargs: dict[str, Any] | None = None,
     cache_type: Literal["user", "insider", "global"] = "user",
     strict_slashes: bool = True,
+    limit: str | None = None,
+    limit_exempt: Literal["all", "insider", "user", None] = "insider",
+    limit_override: bool = False,
 ) -> Callable[[F], F]:
     return _route_decorator(
         blueprint=blueprint,
@@ -370,4 +429,7 @@ def resource_route(
         cache_query_string=cache_query_string,
         cache_type=cache_type,
         cache_kwargs=cache_kwargs,
+        limit=limit,
+        limit_exempt=limit_exempt,
+        limit_override=limit_override,
     )

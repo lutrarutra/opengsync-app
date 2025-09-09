@@ -4,7 +4,10 @@ import mimetypes
 
 from flask import Blueprint, render_template, Response, send_from_directory
 
-from .... import db, logger, DEBUG
+from opengsync_db import models
+from opengsync_db.categories import AccessType
+
+from .... import db, logger, DEBUG, limiter
 from ....core import wrappers, exceptions
 from ....tools import utils
 from ....core.RunTime import runtime
@@ -68,11 +71,10 @@ def validate(token: str):
     if share_token.is_expired:
         raise exceptions.NoPermissionsException("Token expired")
         
-    logger.debug(f"File share token verified:\n{'\n\t'.join([path.path for path in share_token.paths])}")
     return "OK", 200
 
 
-@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60 if not DEBUG else None, cache_type="global", cache_query_string=True)
+@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60 if not DEBUG else None, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20 per minute")
 def rclone(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
@@ -83,6 +85,9 @@ def rclone(token: str, subpath: Path = Path()):
     if share_token.is_expired:
         raise exceptions.NoPermissionsException("Token expired")
     
+    if limiter.current_limit:
+        limiter.storage.clear(limiter.current_limit.key)
+
     SHARE_ROOT = Path(runtime.app.share_root)
 
     browser = SharedFileBrowser([path.path for path in share_token.paths], SHARE_ROOT)
@@ -106,7 +111,7 @@ def rclone(token: str, subpath: Path = Path()):
     )
 
 
-@wrappers.page_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60 if not DEBUG else None, cache_type="global", cache_query_string=True)
+@wrappers.page_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60 if not DEBUG else None, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20 per minute")
 def browse(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
@@ -116,6 +121,9 @@ def browse(token: str, subpath: Path = Path()):
     
     if share_token.is_expired:
         raise exceptions.NoPermissionsException("Token expired")
+    
+    if limiter.current_limit:
+        limiter.storage.clear(limiter.current_limit.key)
     
     SHARE_ROOT = Path(runtime.app.share_root)
 
@@ -145,9 +153,22 @@ def browse(token: str, subpath: Path = Path()):
 
 
 @wrappers.page_route(file_share_bp, db=db, login_required=True)
-def data_file(data_path_id: int):
+def data_file(current_user: models.User, data_path_id: int):
     if (data_path := db.data_paths.get(data_path_id)) is None:
         raise exceptions.NotFoundException("DataPath not found")
+    
+    if not current_user.is_insider():
+        if data_path.project is not None:
+            if not db.projects.get_access_type(data_path.project, current_user) < AccessType.VIEW:
+                raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        elif data_path.seq_request is not None:
+            if not db.seq_requests.get_access_type(data_path.seq_request, current_user) < AccessType.VIEW:
+                raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        elif data_path.library is not None:
+            if not db.libraries.get_access_type(data_path.library, current_user) < AccessType.VIEW:
+                raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        else:
+            raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
     
     path = Path(runtime.app.share_root) / data_path.path
     if not path.exists():
