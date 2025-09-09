@@ -1,0 +1,94 @@
+{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/spinner.jinja2' import spinner %}
+{% from 'components/spreadsheet.jinja2' import static_spreadsheet %}
+
+<div id="select-experiments-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Select Experiments for Billing</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body tab-body" id="select-experiments-form">
+        <ul class="nav nav-tabs" id="auth-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#select-experiments-form-tab"
+                    type="button" role="tab" aria-controls="select-experiments-form-tab" aria-selected="true">
+                    Form
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" id="selected-experiments-tab-btn" data-bs-target="#selected-experiments-tab"
+                    type="button" role="tab" aria-controls="selected-experiments-tab" aria-selected="true">
+                    Selected Experiments ({{ selected_experiments | length }})
+                </button>
+            </li>
+        </ul>
+
+        <div class="invalid-feedback-container">
+            {% for error in form.selected_experiment_ids.errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        <div class="tab-content ba">
+            <div class="tab-pane fade show active" id="select-experiments-form-tab" role="tabpanel" tabindex="0">
+                <div hx-trigger="intersect once" hx-get="{{ url_for('experiments_htmx.browse', **url_context) }}">
+                    {{ spinner() }}
+                </div>
+            </div>
+            <div class="tab-pane fade" id="selected-experiments-tab" role="tabpanel" tabindex="1">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">ID</th>
+                            <th scope="col" class="col-3">Name</th>
+                            <th scope="col" class="col-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="selected-experiments-table-container">
+                    {% for experiment in selected_experiments %}
+                        <tr onclick="remove_experiment({{ experiment.id }});" id="selected-experiment-row-{{ experiment.id }}"
+                        class="experiment-row selected">
+                            <th scope="row">{{ experiment.id }}</th>
+                            <td>{{ experiment.name }}</td>
+                            <td>{{ experiment.status.name }} {{ experiment.status.icon }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.uuid }}
+        </div>
+        <div class="footer-info"></div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success" id="submit-select-experiments-form-btn">
+                Submit
+            </button>
+        </div>
+    </div>
+    <script>
+        (function () {
+            window.selected_experiments = window.selected_experiments || {{ selected_experiments_ids | tojson if selected_experiments_ids else [] }};
+            window.num_selected_experiments = window.selected_experiments.length;
+
+            $("#submit-select-experiments-form-btn").off("click").on("click", function() {
+                if (selected_experiments.length === 0) {
+                    $(".invalid-feedback-container").html("<p>Select at least one experiment.</p>");
+                    return false;
+                }
+
+                htmx.ajax("POST", "{{ form.post_url | safe }}", {
+                    target: "#select-experiments-form-container",
+                    swap: "outerHTML",
+                    values: {
+                        csrf_token: "{{ form._csrf_token }}",
+                        selected_experiment_ids: JSON.stringify(selected_experiments),
+                        workflow: "{{ workflow }}",
+                    },
+                });
+            });
+        })();
+    </script>
+</div>

@@ -1,0 +1,139 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from 'components/spinner.jinja2' import spinner %}
+
+<div id="select-experiments-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{
+                    table_col(
+                        table_container_id='select-experiments-table', column_name='ID', column_var='id',
+                        sort_url="experiments_htmx.browse", context=context,
+                        sort_by=sort_by, sort_order=sort_order, col_size=1,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='select-experiments-table', column_name='Name', column_var='name',
+                        sort_url="experiments_htmx.browse", context=context,
+                        sort_by=sort_by, sort_order=sort_order, col_size=3,
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='select-experiments-table', column_name='Status', column_var='status_id',
+                        sort_url="experiments_htmx.browse", context=context,
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=ExperimentStatus.as_list(), multiselect_selected=status_in
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for experiment in experiments %}
+            <tr id="experiment-row-{{ experiment.id }}" data-id="{{ experiment.id }}" class="experiment-row">
+                <th scope="row">{{ experiment.id }}</th>
+                <td>{{ experiment.name }}</td>
+                <td>{{ experiment.status.name }} {{ experiment.status.icon | safe }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("select-experiments-table-spinner") }}
+    {{ pagination("select-experiments-table", "experiments_htmx.browse", n_pages, active_page, context=context) }}
+    <script>
+        $(document).ready(function() {
+            init_tooltips();
+
+            let is_mouse_down = false;
+            let start_row = null;
+            let dragging = false;
+            let hovered_experiment = null;
+
+            function remove_experiment(experiment_id) {
+                experiment_id = parseInt(experiment_id);
+                selected_experiments = selected_experiments.filter(function(value, index, arr) {
+                    return value != experiment_id;
+                });
+                $(`#experiment-row-${experiment_id}`).removeClass("selected");
+                $(`#selected-experiment-row-${experiment_id}`).remove();
+                num_selected_experiments -= 1;
+                $("#selected-experiments-tab-btn").text(`Selected experiments (${num_selected_experiments})`);
+            }
+
+            function add_experiment(experiment_id) {
+                experiment_id = parseInt(experiment_id);
+                selected_experiments.push(experiment_id);
+                $(`#experiment-row-${experiment_id}`).addClass("selected");
+                const cloned = $(`#experiment-row-${experiment_id}`).clone();
+                cloned.attr("id", `selected-experiment-row-${experiment_id}`);
+                cloned.on("click", function() {
+                    remove_experiment(experiment_id);
+                });
+                $("#selected-experiments-table-container").append(cloned);
+                num_selected_experiments += 1;
+                $("#selected-experiments-tab-btn").text(`Selected Experiments (${num_selected_experiments})`);
+            }
+
+            function toggle_experiment(experiment_id) {
+                experiment_id = parseInt(experiment_id);
+                if (selected_experiments.includes(experiment_id)) {
+                    remove_experiment(experiment_id);
+                } else {
+                    add_experiment(experiment_id);
+                }
+            }
+
+            function update_experiments() {
+                $(".experiment-row").each(function() {
+                    const experiment_id = parseInt($(this).data("id"));
+                    if (selected_experiments.includes(experiment_id)) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
+
+            $(".experiment-row").mousedown(function(e) {
+                e.preventDefault();
+                is_mouse_down = true;
+                start_row = $(this);
+                toggle_experiment($(this).data("id"));
+                hovered_experiment = $(this).data("id");
+            });
+
+            $(".experiment-row").mousemove(function(e) {
+                if (is_mouse_down) {
+                    dragging = true;
+                    if (hovered_experiment != $(this).data("id")) {
+                        hovered_experiment = $(this).data("id");
+                        toggle_experiment($(this).data("id"));
+                    }
+                }
+            });
+
+            $(".experiment-row").mouseup(function(e) {
+                is_mouse_down = false;
+                if (dragging) {
+                    dragging = false;
+                    start_row = null;
+                }
+            });
+
+            $(document).keydown(function(e) {
+                if (e.ctrlKey && e.key === "a") {
+                    e.preventDefault();
+                    $(".experiment-row").each(function() {
+                        if ($(this).is(":visible")) {
+                            if (!$(this).hasClass("selected")) {
+                                add_experiment($(this).data("id"));
+                            }
+                        }
+                    });
+                }
+            });
+            update_experiments();
+        });
+    </script>
+</div>

@@ -256,6 +256,7 @@ class App(Flask):
         self.register_blueprint(api.workflows.library_remux_workflow)
         self.register_blueprint(api.workflows.relib_workflow)
         self.register_blueprint(api.workflows.share_project_data_workflow)
+        self.register_blueprint(api.workflows.billing_workflow)
 
         self.register_blueprint(pages.samples_page_bp)
         self.register_blueprint(pages.projects_page_bp)
