@@ -1,15 +1,17 @@
 import os
 
 import pandas as pd
-import yaml
 import pytz
 import redis
+
+from flask import request
 from flask_htmx import HTMX
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_caching import Cache
-from itsdangerous import URLSafeTimedSerializer
+from flask_limiter import Limiter, util as limiter_utils
 
+from itsdangerous import URLSafeTimedSerializer
 from loguru import logger
 
 from opengsync_db import DBHandler
@@ -48,3 +50,9 @@ msf_cache = RedisMSFFileCache()
 session_cache = redis.Redis(host="redis-cache", port=int(os.environ["REDIS_PORT"]), db=3)
 flash_cache = FlashCache()
 file_handler = FileHandler()
+
+limiter = Limiter(
+    lambda: request.headers.get("X-Real-IP", request.remote_addr, type=str),  # type: ignore
+    default_limits=["1000 per day", "100 per hour"],
+    storage_uri="memory://"
+)

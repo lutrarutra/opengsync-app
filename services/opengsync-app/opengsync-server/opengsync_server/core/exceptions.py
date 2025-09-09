@@ -57,3 +57,12 @@ class InternalServerErrorException(OpeNGSyncServerException):
     @property
     def response(self) -> DBEnum:
         return HTTPResponse.INTERNAL_SERVER_ERROR
+    
+
+class TooManyRequestsException(OpeNGSyncServerException):
+    def __init__(self, message: str = "Request limit exceeded. Please try again later."):
+        super().__init__(message)
+
+    @property
+    def response(self) -> DBEnum:
+        return HTTPResponse.TOO_MANY_REQUESTS
