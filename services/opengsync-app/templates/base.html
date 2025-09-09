@@ -23,7 +23,6 @@
 
     <!-- Custom CSS --> 
     <link href="{{ url_for('static', filename='style/compiled/style.css') }}" rel="stylesheet" type="text/css"> 
-    <link href="{{ url_for('static', filename='style/compiled/df.css') }}" rel="stylesheet" type="text/css"> 
 
     <!-- Plotly -->
     <script src="https://cdn.plot.ly/plotly-3.0.0.min.js" charset="utf-8"></script>
@@ -239,6 +238,18 @@
     <div id="debug-modal" aria-hidden="true" style="display: none;">
     </div>
 
+    <div class="toast" id="cookie-toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto"><i class="bi bi-info-circle"></i> Cookies Notice</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            This website uses only essential cookies to ensure the proper functionality of the website.
+            We do not use any tracking or marketing cookies.
+            By continuing to use this website, you consent to the use of these essential cookies.
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='js/searchbar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/reverse_complement.js') }}"></script>
     <script src="{{ url_for('static', filename='js/confirm_close.js') }}"></script>
@@ -246,7 +257,7 @@
     <script src="{{ url_for('static', filename='js/colors.js') }}"></script>
 
     <script type="text/javascript">
-        // table row click TODO: is this needed?
+        // TODO: is this needed?
         $("tr[data-href]").on("click", function(event) {
             window.location.href = this.dataset.href;
         });
@@ -255,6 +266,17 @@
             init_tooltips();
         });
 
+        $("#cookie-toast .btn-close").on("click", function() {
+            localStorage.setItem("cookies_accepted", "true");
+            $("#cookie-toast").hide();
+        });
+
+        $(document).ready(function() {
+            console.log(localStorage.getItem("cookies_accepted"));
+            if (!localStorage.getItem("cookies_accepted")) {
+                $("#cookie-toast").show();
+            }
+        });
         
         function redirect(url) {
             document.location.href = url;

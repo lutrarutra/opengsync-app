@@ -14,7 +14,6 @@ from flask import (
 
 from flask_session import Session
 from flask_session.base import ServerSideSession
-from flask_limiter import util as limiter_utils
 
 from opengsync_db import categories, models, TIMEZONE
 
@@ -57,13 +56,11 @@ class App(Flask):
     def __init__(self, config_path: str):
         opengsync_config = yaml.safe_load(open(config_path))
         super().__init__(__name__, static_folder=opengsync_config["static_folder"], template_folder=opengsync_config["template_folder"])
-        
+
         log_buffer.set_log_dir(Path(opengsync_config["log_folder"]))
         log_buffer.start()
 
         self.root_folder = Path(opengsync_config["app_root"])
-        self.static_folder = opengsync_config["static_folder"]
-        self.template_folder = opengsync_config["template_folder"]
         self.share_root = Path(opengsync_config["share_root"])
         self.media_folder = Path(opengsync_config["media_folder"])
         self.uploads_folder = Path(opengsync_config["uploads_folder"])
@@ -71,7 +68,7 @@ class App(Flask):
 
         if not os.path.exists(self.static_folder):
             raise FileNotFoundError(f"Static folder not found: {self.static_folder}")
-        
+
         if not os.path.exists(self.template_folder):
             raise FileNotFoundError(f"Template folder not found: {self.template_folder}")
 
@@ -81,7 +78,7 @@ class App(Flask):
             app_data_folder=self.app_data_folder,
             share_root=self.share_root
         )
-        
+
         self.debug = DEBUG
         self.timezone = TIMEZONE
 
@@ -90,11 +87,11 @@ class App(Flask):
         logger.info(f"APP_DATA_FOLDER: {self.app_data_folder}")
 
         REDIS_PORT = int(os.environ["REDIS_PORT"])
-        
+
         route_cache.init_app(self, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": f"redis://redis-cache:{REDIS_PORT}/0"})
         msf_cache.connect("redis-cache", REDIS_PORT, 1)
         flash_cache.connect("redis-cache", REDIS_PORT, 2)
-        
+
         for file_type in categories.MediaFileType.as_list():
             if file_type.dir is None:
                 continue
@@ -153,25 +150,25 @@ class App(Flask):
                 logger.error(f"User not found: {user_id}")
                 return None
             return user
-        
+
         @login_manager.unauthorized_handler
         def unauthorized():
             next = url_for(request.endpoint, **request.view_args)   # type: ignore
             return redirect(url_for("auth_page.auth", next=next))
-        
+
         @self.context_processor
         def inject_debug():
             return dict(debug=self.debug)
-        
+
         @self.context_processor
         def inject_uuid():
             return dict(uuid4=uuid4)
-        
+
         # @self.after_request
         # def headers(response):
         #     logger.debug(response.headers)
         #     return response
-        
+
         from .jfilters import inject_jinja_format_filters
         inject_jinja_format_filters(self)
 
@@ -205,7 +202,7 @@ class App(Flask):
                 isna=pd.isna,
                 notna=pd.notna,
             )
-        
+
         db.open_session()
         tools.utils.update_index_kits(db, self.app_data_folder)
         db.close_session()
@@ -234,7 +231,7 @@ class App(Flask):
         self.register_blueprint(api.htmx.groups_htmx)
         self.register_blueprint(api.htmx.kits_htmx)
         self.register_blueprint(api.htmx.share_tokens_htmx)
-        
+
         self.register_blueprint(api.plotting.plots_api)
         self.register_blueprint(api.files.file_share_bp)
 
@@ -279,16 +276,16 @@ class App(Flask):
 
     def no_context_render_template(self, template_name: str, **context: dict) -> str:
         return self.jinja_env.get_template(template_name).render(**context)
-    
+
     def consume_flashes(self, session: ServerSideSession) -> list[tuple[str, str]]:
         flashes = session.pop("_flashes") if "_flashes" in session else []
         return flashes
-    
+
     def delete_user_sessions(self, user_id: int) -> str:
         lua_script = """
         local keys_to_delete = {}
         local session_keys = redis.call('KEYS', 'session:*')
-        
+
         for i, key in ipairs(session_keys) do
             local session_data = redis.call('GET', key)
             if session_data then
@@ -301,7 +298,7 @@ class App(Flask):
         if #keys_to_delete > 0 then
             redis.call('DEL', unpack(keys_to_delete))
         end
-        
+
         return #keys_to_delete
         """
         deleted_count = session_cache.eval(lua_script, 0, str(user_id))

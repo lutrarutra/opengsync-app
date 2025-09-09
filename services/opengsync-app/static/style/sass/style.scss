@@ -97,6 +97,21 @@ input[type=number] {
     appearance: textfield;
 }
 
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    min-width: 450px;
+    z-index: 1055;
+    .toast-header strong {
+        color: $cemm-blue-darker;
+    }
+
+    .toast-body {
+        font-size: 8;
+    }
+}
+
 .print-only { display: none; }
 .print-window .print-only { display: inline; }
 

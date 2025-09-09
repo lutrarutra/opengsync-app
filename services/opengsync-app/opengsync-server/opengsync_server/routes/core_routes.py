@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 from flask import (
     render_template,
@@ -26,12 +25,12 @@ if runtime.app.debug:
 
         if number > 5:
             raise exceptions.NotFoundException()
-        
+
         if limiter.current_limit:
             logger.debug(limiter.storage.clear(limiter.current_limit.key))
-        
+
         return render_template("test.html")
-    
+
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def mail_template(current_user: models.User):
         import premailer
@@ -73,11 +72,11 @@ def dashboard(current_user: models.User):
 def pdf_file(file_id: int, current_user: models.User):
     if (file := db.files.get(file_id)) is None:
         raise exceptions.NotFoundException()
-    
+
     if file.uploader_id != current_user.id and not current_user.is_insider():
         if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
             raise exceptions.NoPermissionsException()
-    
+
     if file.extension != ".pdf":
         raise exceptions.BadRequestException()
 
@@ -85,7 +84,7 @@ def pdf_file(file_id: int, current_user: models.User):
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
         raise exceptions.NotFoundException("File not found")
-    
+
     with open(filepath, "rb") as f:
         data = f.read()
 
@@ -99,11 +98,11 @@ def pdf_file(file_id: int, current_user: models.User):
 def img_file(current_user: models.User, file_id: int):
     if (file := db.files.get(file_id)) is None:
         raise exceptions.NotFoundException()
-    
+
     if file.uploader_id != current_user.id and not current_user.is_insider():
         if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
             raise exceptions.NoPermissionsException()
-    
+
     if file.extension not in [".png", ".jpg", ".jpeg"]:
         raise exceptions.BadRequestException()
 
@@ -111,7 +110,7 @@ def img_file(current_user: models.User, file_id: int):
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
         raise exceptions.NotFoundException()
-    
+
     with open(filepath, "rb") as f:
         data = f.read()
 
@@ -125,7 +124,7 @@ def img_file(current_user: models.User, file_id: int):
 def download_file(file_id: int, current_user: models.User):
     if (file := db.files.get(file_id)) is None:
         raise exceptions.NotFoundException()
-    
+
     if file.uploader_id != current_user.id and not current_user.is_insider():
         if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
             raise exceptions.NoPermissionsException()
@@ -134,7 +133,7 @@ def download_file(file_id: int, current_user: models.User):
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
         raise exceptions.NotFoundException()
-    
+
     with open(filepath, "rb") as f:
         data = f.read()
 
