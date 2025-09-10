@@ -38,7 +38,7 @@ def select(current_user: models.User) -> Response:
     return make_response(redirect=url_for("billing_workflow.download", experiment_ids={json.dumps([e.id for e in experiments])}))
 
 
-@wrappers.htmx_route(billing_workflow, methods=["GET"], db=db)
+@wrappers.resource_route(billing_workflow, methods=["GET"], db=db)
 def download(current_user: models.User) -> Response:
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
@@ -66,15 +66,16 @@ def download(current_user: models.User) -> Response:
         "lane_share": [],
         "flowcell_share": [],
         "num_libraries": [],
+        "group": [],
         "contact_name": [],
         "contact_email": [],
         "billing_name": [],
         "billing_email": [],
-        "lab_prep": [],
         "billing_code": [],
+        "lab_prep": [],
+        "num_m_reads_requested": [],
         "lab_contact_name": [],
         "lab_contact_email": [],
-        "num_m_reads_requested": [],
         "pool_id": [],
         "info": [],
     }
@@ -134,7 +135,7 @@ def download(current_user: models.User) -> Response:
             for link in pool.lane_links:
                 if link.num_m_reads is not None:
                     num_m_reads_loaded += link.num_m_reads
-                    lane_share[link.lane_num] = link.num_m_reads / experiment.flowcell_type.max_m_reads_per_lane
+                    lane_share[link.lane_num] = f"{link.num_m_reads / experiment.flowcell_type.max_m_reads_per_lane:.3%}"
                 else:
                     num_m_reads_loaded = None
                     info += "⚠️ Some lanes are missing number of loaded reads "
@@ -161,6 +162,9 @@ def download(current_user: models.User) -> Response:
             if seq_request is not None:
                 contact = seq_request.contact_person
                 billing_code = seq_request.billing_code
+                pool_data["group"].append(seq_request.group.name if seq_request.group else "")
+            else:
+                pool_data["group"].append("")
 
             if seq_request is None:
                 info += "⚠️ Libraries in pool are from different requests "
@@ -182,9 +186,9 @@ def download(current_user: models.User) -> Response:
             pool_data["info"].append(info)
 
     
-    pools_df = pd.DataFrame(pool_data)
-    experiments_df = pd.DataFrame(experiment_data)
-    lanes_df = pd.DataFrame(lane_data)
+    pools_df = pd.DataFrame(pool_data).sort_values(by=["experiment_name", "lanes"], ascending=[False, True]).reset_index(drop=True)
+    experiments_df = pd.DataFrame(experiment_data).sort_values(by=["experiment_name"], ascending=False).reset_index(drop=True)
+    lanes_df = pd.DataFrame(lane_data).sort_values(by=["experiment_name", "lane"], ascending=[False, True]).reset_index(drop=True)
     experiments_df["loaded_m_reads"] = ""
 
     for experiment in experiments:
