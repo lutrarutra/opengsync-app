@@ -347,7 +347,7 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
         raise exceptions.NoPermissionsException()
 
-    if (file := db.files.get(file_id)) is None:
+    if (file := db.media_files.get(file_id)) is None:
         raise exceptions.NotFoundException()
     
     if file not in seq_request.media_files:
@@ -356,7 +356,7 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
     file_path = os.path.join(runtime.app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
-    db.files.delete(file_id=file.id)
+    db.media_files.delete(file_id=file.id)
 
     logger.info(f"Deleted file '{file.name}' from request (id='{seq_request_id}')")
     flash(f"Deleted file '{file.name}' from request.", "success")
@@ -388,7 +388,7 @@ def remove_auth_form(current_user: models.User, seq_request_id: int):
     filepath = os.path.join(runtime.app.media_folder, file.path)
     if os.path.exists(filepath):
         os.remove(filepath)
-    db.files.delete(file_id=file.id)
+    db.media_files.delete(file_id=file.id)
 
     flash("Authorization form removed!", "success")
     logger.debug(f"Removed sequencing authorization form for sequencing request '{seq_request.name}'")

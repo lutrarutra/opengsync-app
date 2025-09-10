@@ -73,7 +73,7 @@ class ProjectForm(HTMXFlaskForm):
                 return False
             
             if self.identifier.data:
-                if (db.projects.get(identifier=self.identifier.data) is not None):
+                if (db.projects.get(self.identifier.data) is not None):
                     self.identifier.errors = ("Project with this identifier already exists.",)
                     return False
 
@@ -86,7 +86,7 @@ class ProjectForm(HTMXFlaskForm):
                         return False
                     
             if self.identifier.data:
-                if (prj := db.projects.get(identifier=self.identifier.data)) is not None:
+                if (prj := db.projects.get(self.identifier.data)) is not None:
                     if prj.id != self.project.id:
                         self.identifier.errors = ("Project with this identifier already exists.",)
                         return False

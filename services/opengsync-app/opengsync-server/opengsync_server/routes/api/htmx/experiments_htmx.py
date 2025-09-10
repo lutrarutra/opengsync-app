@@ -159,7 +159,7 @@ def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: 
     if (experiment := db.experiments.get(experiment_id)) is None:
         raise exceptions.NotFoundException()
         
-    if (file := db.files.get(file_id)) is None:
+    if (file := db.media_files.get(file_id)) is None:
         raise exceptions.NotFoundException()
 
     filepath = os.path.join(runtime.app.media_folder, file.path)
@@ -339,7 +339,7 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     if (experiment := db.experiments.get(experiment_id)) is None:
         raise exceptions.NotFoundException()
     
-    if (file := db.files.get(file_id)) is None:
+    if (file := db.media_files.get(file_id)) is None:
         raise exceptions.NotFoundException()
     
     if file not in experiment.media_files:
@@ -348,7 +348,7 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     file_path = os.path.join(runtime.app.media_folder, file.path)
     if os.path.exists(file_path):
         os.remove(file_path)
-    db.files.delete(file_id=file.id)
+    db.media_files.delete(file_id=file.id)
 
     logger.info(f"Deleted file '{file.name}' from experiment (id='{experiment_id}')")
     flash(f"Deleted file '{file.name}' from experiment.", "success")

@@ -2,6 +2,7 @@ import math
 from typing import Optional
 
 import sqlalchemy as sa
+from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
 from ...categories import LabProtocolEnum, LibraryStatus, PrepStatusEnum, AssayTypeEnum
@@ -42,8 +43,11 @@ class LabPrepBP(DBBlueprint):
         return lab_prep
 
     @DBBlueprint.transaction
-    def get(self, lab_prep_id: int) -> models.LabPrep | None:
-        lab_prep = self.db.session.get(models.LabPrep, lab_prep_id)
+    def get(self, lab_prep_id: int, options: ExecutableOption | None = None) -> models.LabPrep | None:
+        if options is not None:
+            lab_prep = self.db.session.query(models.LabPrep).options(options).filter(models.LabPrep.id == lab_prep_id).first()
+        else:
+            lab_prep = self.db.session.get(models.LabPrep, lab_prep_id)
         return lab_prep
 
     @DBBlueprint.transaction
@@ -54,7 +58,8 @@ class LabPrepBP(DBBlueprint):
         status_in: Optional[list[PrepStatusEnum]] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False
+        count_pages: bool = False,
+        options: ExecutableOption | None = None,
     ) -> tuple[list[models.LabPrep], int | None]:
         query = self.db.session.query(models.LabPrep)
 
@@ -68,6 +73,9 @@ class LabPrepBP(DBBlueprint):
         elif status_in is not None:
             query = query.where(models.LabPrep.status_id.in_([s.id for s in status_in]))
 
+        if options is not None:
+            query = query.options(options)
+            
         n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
         if sort_by is not None:

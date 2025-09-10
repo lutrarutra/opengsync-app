@@ -1,6 +1,8 @@
 import math
 from typing import Optional
 
+from sqlalchemy.sql.base import ExecutableOption
+
 from ... import models, PAGE_LIMIT
 from ..DBBlueprint import DBBlueprint
 from .. import exceptions
@@ -29,8 +31,11 @@ class LaneBP(DBBlueprint):
         return lane
 
     @DBBlueprint.transaction
-    def get(self, lane_id: int) -> models.Lane | None:
-        res = self.db.session.get(models.Lane, lane_id)
+    def get(self, lane_id: int, options: ExecutableOption | None = None) -> models.Lane | None:
+        if options is not None:
+            res = self.db.session.query(models.Lane).options(options).filter(models.Lane.id == lane_id).first()
+        else:
+            res = self.db.session.get(models.Lane, lane_id)
         return res
 
     @DBBlueprint.transaction
@@ -46,12 +51,15 @@ class LaneBP(DBBlueprint):
         self, experiment_id: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        count_pages: bool = False
+        count_pages: bool = False,
+        options: ExecutableOption | None = None,
     ) -> tuple[list[models.Lane], int | None]:
         query = self.db.session.query(models.Lane)
-
         if experiment_id is not None:
             query = query.filter(models.Lane.experiment_id == experiment_id)
+        
+        if options is not None:
+            query = query.options(options)
 
         n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 

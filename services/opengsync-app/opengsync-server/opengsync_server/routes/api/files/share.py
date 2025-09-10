@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import mimetypes
 
+from sqlalchemy import orm
+
 from flask import Blueprint, render_template, Response, send_from_directory
 
 from opengsync_db import models
@@ -79,7 +81,7 @@ def rclone(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
 
-    if (share_token := db.shares.get(token)) is None:
+    if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
         raise exceptions.NotFoundException("Token Not Found")
     
     if share_token.is_expired:
@@ -88,7 +90,7 @@ def rclone(token: str, subpath: Path = Path()):
     if limiter.current_limit:
         limiter.storage.clear(limiter.current_limit.key)
 
-    SHARE_ROOT = Path(runtime.app.share_root)
+    SHARE_ROOT = runtime.app.share_root
 
     browser = SharedFileBrowser([path.path for path in share_token.paths], SHARE_ROOT)
 
@@ -101,7 +103,7 @@ def rclone(token: str, subpath: Path = Path()):
             
             response = Response()
             response.headers["Content-Type"] = mimetype
-            response.headers["X-Accel-Redirect"] = file.path.as_posix().replace(runtime.app.share_root.as_posix(), "/nginx-share/")
+            response.headers["X-Accel-Redirect"] = file.path.as_posix().replace(SHARE_ROOT.as_posix(), "/nginx-share/")
             return response
 
     return render_template(
@@ -116,7 +118,7 @@ def browse(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
 
-    if (share_token := db.shares.get(token)) is None:
+    if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
         raise exceptions.NotFoundException("Token Not Found")
     
     if share_token.is_expired:
@@ -125,7 +127,7 @@ def browse(token: str, subpath: Path = Path()):
     if limiter.current_limit:
         limiter.storage.clear(limiter.current_limit.key)
     
-    SHARE_ROOT = Path(runtime.app.share_root)
+    SHARE_ROOT = runtime.app.share_root
 
     browser = SharedFileBrowser([path.path for path in share_token.paths], SHARE_ROOT)
 
@@ -140,7 +142,7 @@ def browse(token: str, subpath: Path = Path()):
             response.headers["Content-Type"] = mimetype
             if not utils.is_browser_friendly(mimetype):
                 response.headers["Content-Disposition"] = f"attachment; filename={file.name}"
-            response.headers["X-Accel-Redirect"] = file.path.as_posix().replace(runtime.app.share_root.as_posix(), "/nginx-share/")
+            response.headers["X-Accel-Redirect"] = file.path.as_posix().replace(SHARE_ROOT.as_posix(), "/nginx-share/")
             return response
         
     paths = sorted(paths, key=lambda p: p.name.lower())

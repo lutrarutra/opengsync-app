@@ -45,7 +45,7 @@ class ExperimentAttachmentForm(FileInputForm):
         self.file.data.save(filepath)
         size_bytes = os.stat(filepath).st_size
 
-        db_file = db.files.create(
+        db_file = db.media_files.create(
             name=filename,
             type=file_type,
             extension=extension,

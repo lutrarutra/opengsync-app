@@ -39,11 +39,17 @@ if runtime.app.debug:
         style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
 
         browse_link = url_for("file_share.browse", token="aisndnasdnuasndu", _external=True)
+        project = db.projects[1]
+        seq_requests = db.seq_requests.find(project_id=project.id, limit=None, sort_by="id")[0]
+        experiments = db.experiments.find(project_id=project.id, limit=None, sort_by="id")[0]
 
         content = render_template(
             "email/share-data.html", style=style, download_command=download_command, browse_link=browse_link,
             tenx_contents=True,
-            author=current_user
+            author=current_user,
+            project=project,
+            seq_requests=seq_requests,
+            experiments=experiments,
         )
 
         content = premailer.transform(content)
@@ -70,11 +76,11 @@ def dashboard(current_user: models.User):
 
 @wrappers.resource_route(runtime.app, db=db)
 def pdf_file(file_id: int, current_user: models.User):
-    if (file := db.files.get(file_id)) is None:
+    if (file := db.media_files.get(file_id)) is None:
         raise exceptions.NotFoundException()
 
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
+        if not db.media_files.permissions_check(user_id=current_user.id, file_id=file_id):
             raise exceptions.NoPermissionsException()
 
     if file.extension != ".pdf":
@@ -96,11 +102,11 @@ def pdf_file(file_id: int, current_user: models.User):
 
 @wrappers.resource_route(runtime.app, db=db)
 def img_file(current_user: models.User, file_id: int):
-    if (file := db.files.get(file_id)) is None:
+    if (file := db.media_files.get(file_id)) is None:
         raise exceptions.NotFoundException()
 
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
+        if not db.media_files.permissions_check(user_id=current_user.id, file_id=file_id):
             raise exceptions.NoPermissionsException()
 
     if file.extension not in [".png", ".jpg", ".jpeg"]:
@@ -122,11 +128,11 @@ def img_file(current_user: models.User, file_id: int):
 
 @wrappers.resource_route(runtime.app, db=db)
 def download_file(file_id: int, current_user: models.User):
-    if (file := db.files.get(file_id)) is None:
+    if (file := db.media_files.get(file_id)) is None:
         raise exceptions.NotFoundException()
 
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if not db.files.permissions_check(user_id=current_user.id, file_id=file_id):
+        if not db.media_files.permissions_check(user_id=current_user.id, file_id=file_id):
             raise exceptions.NoPermissionsException()
 
     filepath = os.path.join(runtime.app.media_folder, file.path)

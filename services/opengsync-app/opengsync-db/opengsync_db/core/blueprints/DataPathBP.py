@@ -3,6 +3,7 @@ from typing import Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
+from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
 from ...categories import (
@@ -92,8 +93,11 @@ class DataPathBP(DBBlueprint):
         return data_path
 
     @DBBlueprint.transaction
-    def get(self, id: int) -> models.DataPath | None:
-        return self.db.session.get(models.DataPath, id)
+    def get(self, id: int, options: ExecutableOption | None = None) -> models.DataPath | None:
+        if options is not None:
+            return self.db.session.query(models.DataPath).options(options).filter(models.DataPath.id == id).first()
+        else:
+            return self.db.session.get(models.DataPath, id)
     
     @DBBlueprint.transaction
     def find(
@@ -107,6 +111,7 @@ class DataPathBP(DBBlueprint):
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
         count_pages: bool = False,
+        options: ExecutableOption | None = None,
     ) -> tuple[list[models.DataPath], int | None]:
         
         query = self.db.session.query(models.DataPath)
@@ -119,6 +124,8 @@ class DataPathBP(DBBlueprint):
             seq_request_id=seq_request_id,
             library_id=library_id,
         )
+        if options is not None:
+            query = query.options(options)
 
         if sort_by is not None:
             attr = getattr(models.DataPath, sort_by)

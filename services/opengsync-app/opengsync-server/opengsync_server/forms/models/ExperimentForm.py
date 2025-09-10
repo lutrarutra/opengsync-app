@@ -65,7 +65,7 @@ class ExperimentForm(HTMXFlaskForm):
             return False
         
         try:
-            if (e := db.experiments.get(name=self.name.data)) is not None:
+            if (e := db.experiments.get(self.name.data)) is not None:  # type: ignore
                 if experiment is None or experiment.id != e.id:
                     self.name.errors = ("An experiment with this name already exists.",)
                     return False

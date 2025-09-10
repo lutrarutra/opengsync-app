@@ -2,8 +2,8 @@ import math
 from typing import Optional, Callable
 
 import sqlalchemy as sa
-from sqlalchemy.sql.operators import or_, and_  # noqa F401
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import aliased
 
 from ... import models, PAGE_LIMIT
@@ -165,8 +165,11 @@ class LibraryBP(DBBlueprint):
         return library
 
     @DBBlueprint.transaction
-    def get(self, library_id: int) -> models.Library | None:
-        library = self.db.session.get(models.Library, library_id)
+    def get(self, library_id: int, options: ExecutableOption | None = None) -> models.Library | None:
+        if options is None:
+            library = self.db.session.get(models.Library, library_id)
+        else:
+            library = self.db.session.query(models.Library).options(options).filter(models.Library.id == library_id).first()
         return library
 
     @DBBlueprint.transaction
@@ -188,7 +191,8 @@ class LibraryBP(DBBlueprint):
         custom_query: Callable[[Query], Query] | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        count_pages: bool = False
+        count_pages: bool = False,
+        options: ExecutableOption | None = None,
     ) -> tuple[list[models.Library], int | None]:
 
         query = self.db.session.query(models.Library)
@@ -200,6 +204,8 @@ class LibraryBP(DBBlueprint):
             type_in=type_in, status_in=status_in, pooled=pooled, status=status,
             custom_query=custom_query, project_id=project_id
         )
+        if options is not None:
+            query = query.options(options)
 
         n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 

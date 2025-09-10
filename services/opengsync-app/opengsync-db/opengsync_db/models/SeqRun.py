@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import ClassVar, Optional, TYPE_CHECKING, Any
 
 import sqlalchemy as sa
@@ -28,6 +29,8 @@ class SeqRun(Base):
     recipe_version: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
     side: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
     flowcell_mode: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
+
+    _timestamps: Mapped[Optional[dict[str, datetime]]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="timestamps")
 
     r1_cycles: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
     r2_cycles: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
@@ -68,9 +71,29 @@ class SeqRun(Base):
         return units.from_dict(data)
             
     def set_quantity(self, key: str, value: units.Quantity) -> None:
+        if not isinstance(value, units.Quantity):
+            raise ValueError("Value must be a Quantity object")
         if self._quantities is None:
             self._quantities = {}
         self._quantities[key] = value.to_dict()
+
+    @property
+    def timestamps(self) -> dict[str, datetime]:
+        if self._timestamps is None:
+            return {}
+        return self._timestamps
+    
+    def set_timestamp(self, key: str, value: datetime) -> None:
+        if not isinstance(value, datetime):
+            raise ValueError("Value must be a datetime object")
+        if self._timestamps is None:
+            self._timestamps = {}
+        self._timestamps[key] = value
+
+    def get_timestamp(self, key: str) -> Optional[datetime]:
+        if self._timestamps is None:
+            return None
+        return self._timestamps.get(key)
 
     @property
     def cycles_str(self) -> str:

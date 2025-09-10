@@ -2,6 +2,7 @@ import math
 from typing import Optional, Callable
 
 import sqlalchemy as sa
+from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import Query
 
 from ... import models, PAGE_LIMIT
@@ -100,16 +101,21 @@ class ProjectBP(DBBlueprint):
         return project
     
     @DBBlueprint.transaction
-    def get(self, project_id: int | None = None, identifier: str | None = None) -> models.Project | None:
-        if project_id is None and identifier is None:
-            raise ValueError("Either project_id or identifier must be provided")
-        
-        if project_id is not None:
-            res = self.db.session.get(models.Project, project_id)
+    def get(self, key: int | str, options: ExecutableOption | None = None) -> models.Project | None:
+        if isinstance(key, int):
+            if options is not None:
+                project = self.db.session.query(models.Project).options(options).filter(models.Project.id == key).first()
+            else:
+                project = self.db.session.get(models.Project, key)
+        elif isinstance(key, str):
+            query = self.db.session.query(models.Project)
+            if options is not None:
+                query = query.options(options)
+            project = query.filter(models.Project.identifier == key).first()
         else:
-            res = self.db.session.query(models.Project).filter(models.Project.identifier == identifier).first()
+            raise ValueError("Key must be an integer (id) or string (identifier)")
 
-        return res
+        return project
     
     @DBBlueprint.transaction
     def find(
@@ -124,6 +130,7 @@ class ProjectBP(DBBlueprint):
         sort_by: Optional[str] = None, descending: bool = False,
         count_pages: bool = False,
         custom_query: Callable[[Query], Query] | None = None,
+        options: ExecutableOption | None = None,
     ) -> tuple[list[models.Project], int | None]:
         query = self.db.session.query(models.Project)
         query = ProjectBP.where(
@@ -132,6 +139,9 @@ class ProjectBP(DBBlueprint):
             status_in=status_in, user_id=user_id, experiment_id=experiment_id,
             custom_query=custom_query
         )
+
+        if options is not None:
+            query = query.options(options)
 
         if sort_by is not None:
             attr = getattr(models.Project, sort_by)
@@ -228,11 +238,6 @@ class ProjectBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def __getitem__(self, id: int | str) -> models.Project:
-        if isinstance(id, str):
-            if (project := self.get(identifier=id)) is None:
-                raise exceptions.ElementDoesNotExist(f"Project with identifier '{id}' does not exist")
-        else:
-            if (project := self.get(project_id=id)) is None:
-                raise exceptions.ElementDoesNotExist(f"Project with id {id} does not exist")
-            
+        if (project := self.get(id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Project with identifier '{id}' does not exist")
         return project

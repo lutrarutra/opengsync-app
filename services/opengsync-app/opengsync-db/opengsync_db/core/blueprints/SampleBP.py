@@ -3,6 +3,7 @@ from typing import Optional, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
+from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
 from ...categories import SampleStatusEnum, AttributeType, AttributeTypeEnum, AccessType, AccessTypeEnum
@@ -98,8 +99,11 @@ class SampleBP(DBBlueprint):
         return sample
 
     @DBBlueprint.transaction
-    def get(self, sample_id: int) -> models.Sample | None:
-        sample = self.db.session.get(models.Sample, sample_id)
+    def get(self, sample_id: int, options: ExecutableOption | None = None) -> models.Sample | None:
+        if options is not None:
+            sample = self.db.session.query(models.Sample).options(options).filter(models.Sample.id == sample_id).first()
+        else:
+            sample = self.db.session.get(models.Sample, sample_id)
         return sample
 
     @DBBlueprint.transaction
@@ -115,7 +119,8 @@ class SampleBP(DBBlueprint):
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False
+        count_pages: bool = False,
+        options: ExecutableOption | None = None
     ) -> tuple[list[models.Sample], int | None]:
 
         query = self.db.session.query(models.Sample)
@@ -124,6 +129,9 @@ class SampleBP(DBBlueprint):
             pool_id=pool_id, seq_request_id=seq_request_id, status=status, status_in=status_in,
             custom_query=custom_query
         )
+        if options is not None:
+            query = query.options(options)
+
         n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
         if sort_by is not None:

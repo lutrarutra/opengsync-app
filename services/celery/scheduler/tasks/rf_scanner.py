@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 import os
 import glob
@@ -50,6 +51,14 @@ def parse_read_cycles(run_info) -> tuple[Optional[int], Optional[int], Optional[
 def parse_run_folder(run_folder: Path) -> dict:
     run_info = interop.py_interop_run.info()     # type: ignore
     run_info.read(run_folder.as_posix())
+
+    try:
+        created = datetime.strptime(run_info.date(), "%m/%d/%Y %I:%M:%S %p")  # NovaSeq 6000
+    except ValueError:
+        try:
+            created = datetime.fromisoformat(run_info.date())  # NovaSeq X
+        except ValueError:
+            created = None
     
     flowcell_id = run_info.flowcell().barcode()
     instrument = run_info.instrument_name()
@@ -67,6 +76,7 @@ def parse_run_folder(run_folder: Path) -> dict:
     run_id = get_dom_value(run_params_dom, "RunId")
 
     return {
+        "created": created,
         "experiment_name": experiment_name,
         "r1_cycles": r1_cycles,
         "i1_cycles": i1_cycles,
@@ -173,12 +183,17 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
         run_folder = Path(os.path.dirname(run_parameters_path))
         run_name = run_folder.name
         
+        completed = None
         if os.path.exists(os.path.join(run_folder, "RTAComplete.txt")):
             status = RunStatus.FINISHED
+            stat = os.stat(os.path.join(run_folder, "RTAComplete.txt"))
+            completed = datetime.fromtimestamp(stat.st_ctime)
         else:
             status = RunStatus.RUNNING
         
         parsed_data = parse_run_folder(run_folder)
+
+        created = parsed_data.pop("created")
         
         experiment_name = parsed_data["experiment_name"]
         logger.info(f"Processing {experiment_name} ({run_name}):")
@@ -198,6 +213,11 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
             if run.status == status:
                 logger.info("Up to date!")
                 continue
+            
+            if completed is not None:
+                run.set_timestamp("completed", completed)
+            if created is not None and isinstance(created, datetime):
+                run.set_timestamp("created", created)
             
             if run.status == RunStatus.FINISHED:
                 if run.experiment is not None:
@@ -233,7 +253,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
             metrics = parse_metrics(run_folder)
 
             # If for some reason the run is Archived while the data is still in the run folder
-            if (seq_run := db.seq_runs.get(experiment_name=experiment_name)) is not None:
+            if (seq_run := db.seq_runs.get(experiment_name)) is not None:
                 seq_run.status = status
                 db.seq_runs.update(seq_run)
                 continue
@@ -252,6 +272,10 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                 i2_cycles=parsed_data.get("i2_cycles"),
                 quantities=metrics,
             )
+            if completed is not None:
+                run.set_timestamp("completed", completed)
+            if created is not None and isinstance(created, datetime):
+                run.set_timestamp("created", created)
 
             if run.status == RunStatus.FINISHED:
                 if run.experiment is not None:

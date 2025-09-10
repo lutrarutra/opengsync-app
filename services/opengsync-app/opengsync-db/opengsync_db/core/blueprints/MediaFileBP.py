@@ -1,13 +1,15 @@
 from uuid_extensions import uuid7str
 from typing import Optional
 
+from sqlalchemy.sql.base import ExecutableOption
+
 from ...categories import MediaFileTypeEnum
 from ... import models
 from ..DBBlueprint import DBBlueprint
 from .. import exceptions
 
 
-class FileBP(DBBlueprint):
+class MediaFileBP(DBBlueprint):
     @DBBlueprint.transaction
     def create(
         self, name: str, type: MediaFileTypeEnum,
@@ -60,8 +62,11 @@ class FileBP(DBBlueprint):
         return file
 
     @DBBlueprint.transaction
-    def get(self, file_id: int) -> models.MediaFile | None:
-        res = self.db.session.get(models.MediaFile, file_id)
+    def get(self, file_id: int, options: ExecutableOption | None = None) -> models.MediaFile | None:
+        if options is not None:
+            res = self.db.session.query(models.MediaFile).options(options).filter(models.MediaFile.id == file_id).first()
+        else:
+            res = self.db.session.get(models.MediaFile, file_id)
         return res
 
     @DBBlueprint.transaction
@@ -81,6 +86,7 @@ class FileBP(DBBlueprint):
         seq_request_id: int | None = None,
         lab_prep_id: int | None = None,
         limit: int | None = None,
+        options: ExecutableOption | None = None,
     ) -> list[models.MediaFile]:
         query = self.db.session.query(models.MediaFile)
         if uploader_id:
@@ -91,6 +97,9 @@ class FileBP(DBBlueprint):
             query = query.where(models.MediaFile.seq_request_id == seq_request_id)
         if lab_prep_id is not None:
             query = query.where(models.MediaFile.lab_prep_id == lab_prep_id)
+
+        if options is not None:
+            query = query.options(options)
 
         if limit is not None:
             query = query.limit(limit)

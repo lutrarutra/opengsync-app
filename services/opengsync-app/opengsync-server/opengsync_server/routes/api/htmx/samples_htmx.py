@@ -239,23 +239,6 @@ def get_libraries(current_user: models.User, sample_id: int):
 
 
 @wrappers.htmx_route(samples_htmx, db=db)
-def get_plate(current_user: models.User, sample_id: int):
-    raise NotImplementedError()
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    if (sample := db.samples.get(sample_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    return make_response(
-        render_template(
-            "components/plate.html", plate=sample.plate,
-            sample=sample
-        )
-    )
-
-
-@wrappers.htmx_route(samples_htmx, db=db)
 def browse(current_user: models.User, workflow: str, page: int = 0):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()

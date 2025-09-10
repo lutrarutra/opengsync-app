@@ -179,7 +179,7 @@ class LanePoolingForm(HTMXFlaskForm):
                 break
             
         if old_file:
-            db.files.delete(file_id=old_file.id)
+            db.media_files.delete(file_id=old_file.id)
             os.remove(os.path.join(runtime.app.media_folder, old_file.path))
             logger.info(f"Old file '{old_file.path}' removed.")
 
@@ -188,7 +188,7 @@ class LanePoolingForm(HTMXFlaskForm):
         df.to_csv(filepath, sep="\t", index=False)
         size_bytes = os.stat(filepath).st_size
 
-        db_file = db.files.create(
+        db_file = db.media_files.create(
             name=filename,
             uuid=_uuid,
             size_bytes=size_bytes,

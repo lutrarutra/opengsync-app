@@ -142,7 +142,7 @@ def create_file(
 ) -> models.MediaFile:
     _uuid = str(uuid.uuid1())
 
-    return db.files.create(
+    return db.media_files.create(
         name=_uuid,
         type=MediaFileType.CUSTOM,
         extension=".txt",
