@@ -21,11 +21,15 @@
 <br>
 <hr>
 
+{% if internal_access_share %}
+{% include "email/custom/share-internal-access.html" %}
+{% endif %}
+
 <p>
-You can download results with following command:
+<b>You can download results with following command:</b>
 <div class="code">{{ download_command | highlight_sh | safe }}</div>
 Or you can browse the files:<br>
-<a href="{{ browse_link }}">{{ browse_link }}</a>
+🔗 <a href="{{ browse_link }}">{{ browse_link }}</a>
 </p>
 <br><br>
 <hr>
@@ -43,11 +47,15 @@ Or you can browse the files:<br>
     Libraries were sequenced as part of following experiments:
     <ol>
         {% for experiment in experiments %}
-        <li>{{ experiment.name }}</li>
+        {% if experiment.seq_run %}
+        {% set completed = experiment.seq_run.get_timestamp("completed") %}
+        {% else %}
+        {% set completed = None %}
+        {% endif %}
+        <li>{{ experiment.name }} {% if completed %}<span class="desc">{{ completed | format_datetime }}</span>{% endif %}</li>
         {% endfor %}
     </ol>
 </p>
-<br>
 <hr>
 
 <p>Please note that the links are only available for a limited time. After they expire, you will need to request new ones.</p>

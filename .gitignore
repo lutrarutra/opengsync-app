@@ -21,6 +21,8 @@ test*.ipynb
 licensed/
 ~*.xlsx
 
+services/opengsync-app/templates/email/custom/
+
 .snakemake/
 .VSCodeCounter/
 .~lock.*

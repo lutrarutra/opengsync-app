@@ -51,6 +51,7 @@ class App(Flask):
     sample_submission_windows: list[WeekTimeWindow] | None
     email_domain_white_list: list[str] | None
     secret_key: str
+    share_path_mapping: dict[str, str]
     debug: bool
 
     def __init__(self, config_path: str):
@@ -65,6 +66,7 @@ class App(Flask):
         self.media_folder = Path(opengsync_config["media_folder"])
         self.uploads_folder = Path(opengsync_config["uploads_folder"])
         self.app_data_folder = Path(opengsync_config["app_data_folder"])
+        self.share_path_mapping = opengsync_config.get("share_path_mapping", {})
 
         if not os.path.exists(self.static_folder):
             raise FileNotFoundError(f"Static folder not found: {self.static_folder}")
