@@ -38,7 +38,7 @@ def select(current_user: models.User) -> Response:
     return make_response(redirect=url_for("billing_workflow.download", experiment_ids={json.dumps([e.id for e in experiments])}))
 
 
-@wrappers.htmx_route(billing_workflow, methods=["GET"], db=db)
+@wrappers.resource_route(billing_workflow, methods=["GET"], db=db)
 def download(current_user: models.User) -> Response:
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
@@ -182,9 +182,9 @@ def download(current_user: models.User) -> Response:
             pool_data["info"].append(info)
 
     
-    pools_df = pd.DataFrame(pool_data)
-    experiments_df = pd.DataFrame(experiment_data)
-    lanes_df = pd.DataFrame(lane_data)
+    pools_df = pd.DataFrame(pool_data).sort_values(by=["experiment_name", "lanes"], ascending=[False, True]).reset_index(drop=True)
+    experiments_df = pd.DataFrame(experiment_data).sort_values(by=["experiment_name"], ascending=False).reset_index(drop=True)
+    lanes_df = pd.DataFrame(lane_data).sort_values(by=["experiment_name", "lane"], ascending=[False, True]).reset_index(drop=True)
     experiments_df["loaded_m_reads"] = ""
 
     for experiment in experiments:
