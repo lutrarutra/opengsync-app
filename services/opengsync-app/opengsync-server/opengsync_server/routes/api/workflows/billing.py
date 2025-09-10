@@ -57,7 +57,8 @@ def download(current_user: models.User) -> Response:
         raise exceptions.BadRequestException("Invalid experiment ids")
     
     pool_data = {
-        "pool_id": [],
+        "experiment_name": [],
+        "lanes": [],
         "pool_name": [],
         "pool_type": [],
         "workflow": [],
@@ -70,12 +71,11 @@ def download(current_user: models.User) -> Response:
         "billing_name": [],
         "billing_email": [],
         "lab_prep": [],
-        "experiment_name": [],
-        "lanes": [],
         "billing_code": [],
         "lab_contact_name": [],
         "lab_contact_email": [],
         "num_m_reads_requested": [],
+        "pool_id": [],
         "info": [],
     }
 
@@ -130,22 +130,23 @@ def download(current_user: models.User) -> Response:
             pool_data["pool_name"].append(pool.name)
             pool_data["pool_type"].append(pool.type.name)
             num_m_reads_loaded = 0
+            lane_share = {}
             for link in pool.lane_links:
                 if link.num_m_reads is not None:
                     num_m_reads_loaded += link.num_m_reads
+                    lane_share[link.lane_num] = link.num_m_reads / experiment.flowcell_type.max_m_reads_per_lane
                 else:
                     num_m_reads_loaded = None
                     info += "⚠️ Some lanes are missing number of loaded reads "
                     break
             
+            pool_data["lane_share"].append(lane_share or "")
+            
             if num_m_reads_loaded is not None:
                 flowcell_share = (num_m_reads_loaded / experiment.flowcell_type.max_m_reads)
-                lane_share = (num_m_reads_loaded / experiment.flowcell_type.max_m_reads_per_lane)
-                pool_data["lane_share"].append(f"{lane_share:.3%}")
                 pool_data["flowcell_share"].append(f"{flowcell_share:.3%}")
             else:
                 pool_data["flowcell_share"].append("")
-                pool_data["lane_share"].append("")
             
             contact = None
             billing_code = None
