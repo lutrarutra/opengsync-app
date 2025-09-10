@@ -244,6 +244,10 @@ class Experiment(Base):
             return None
         return localize(self.timestamp_finished_utc)
     
+    @property
+    def read_config(self) -> str:
+        return f"{self.r1_cycles}-{self.i1_cycles}-{self.i2_cycles or 0}-{self.r2_cycles or 0}"
+    
     def is_deleteable(self) -> bool:
         return self.status == ExperimentStatus.DRAFT
     

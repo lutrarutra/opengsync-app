@@ -6,6 +6,7 @@ from .classproperty import classproperty  # noqa
 from .RedisMSFFileCache import RedisMSFFileCache  # noqa
 from .StaticSpreadSheet import StaticSpreadSheet  # noqa
 from .MailHandler import MailHandler  # noqa
+from .ExcelWriter import ExcelWriter  # noqa
 
 if os.getenv("GEMINI_API_KEY"):
     from .TextGen import TextGen  # noqa
