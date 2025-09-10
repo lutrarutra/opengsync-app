@@ -3,6 +3,7 @@ from typing import Optional, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
+from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
@@ -80,13 +81,20 @@ class ExperimentBP(DBBlueprint):
         return experiment
 
     @DBBlueprint.transaction
-    def get(self, id: int | None = None, name: Optional[str] = None) -> models.Experiment | None:
-
-        if id is not None and name is None:
-            experiment = self.db.session.get(models.Experiment, id)
-        elif name is not None and id is None:
-            experiment = self.db.session.query(models.Experiment).where(
-                models.Experiment.name == name
+    def get(self, key: int | str, options: ExecutableOption | None = None) -> models.Experiment | None:
+        if isinstance(key, int):
+            if options is not None:
+                experiment = self.db.session.query(models.Experiment).options(options).filter(
+                    models.Experiment.id == key
+                ).first()
+            else:        
+                experiment = self.db.session.get(models.Experiment, id)
+        elif isinstance(key, str):
+            query = self.db.session.query(models.Experiment)
+            if options is not None:
+                query = query.options(options)
+            experiment = query.filter(
+                models.Experiment.name == key
             ).first()
         else:
             raise ValueError("Either 'id' or 'name' must be provided, not both.")
@@ -103,7 +111,8 @@ class ExperimentBP(DBBlueprint):
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False
+        count_pages: bool = False,
+        options: ExecutableOption | None = None,
     ) -> tuple[list[models.Experiment], int | None]:
 
         query = self.db.session.query(models.Experiment)
@@ -115,6 +124,8 @@ class ExperimentBP(DBBlueprint):
             workflow_in=workflow_in,
             custom_query=custom_query,
         )
+        if options is not None:
+            query = query.options(options)
 
         n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
@@ -204,10 +215,6 @@ class ExperimentBP(DBBlueprint):
     
     @DBBlueprint.transaction
     def __getitem__(self, key: int | str) -> models.Experiment:
-        if isinstance(key, str):
-            if (experiment := self.get(name=key)) is None:
-                raise exceptions.ElementDoesNotExist(f"Experiment with name '{key}' does not exist")
-        else:
-            if (experiment := self.get(id=key)) is None:
-                raise exceptions.ElementDoesNotExist(f"Experiment with id {key} does not exist")
+        if (experiment := self.get(key)) is None:
+            raise exceptions.ElementDoesNotExist(f"Experiment with name '{key}' does not exist")
         return experiment

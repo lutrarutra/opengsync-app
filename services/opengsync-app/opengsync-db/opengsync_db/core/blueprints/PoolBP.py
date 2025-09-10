@@ -3,6 +3,7 @@ import string
 from typing import Optional, Sequence, Callable
 
 import sqlalchemy as sa
+from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import Query
     
 from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum, AccessType, AccessTypeEnum
@@ -132,8 +133,11 @@ class PoolBP(DBBlueprint):
         return pool
 
     @DBBlueprint.transaction
-    def get(self, pool_id: int) -> models.Pool | None:
-        pool = self.db.session.get(models.Pool, pool_id)
+    def get(self, pool_id: int, options: ExecutableOption | None = None) -> models.Pool | None:
+        if options is not None:
+            pool = self.db.session.query(models.Pool).options(options).filter(models.Pool.id == pool_id).first()
+        else:
+            pool = self.db.session.get(models.Pool, pool_id)
         return pool
 
     @DBBlueprint.transaction
@@ -152,6 +156,7 @@ class PoolBP(DBBlueprint):
         sort_by: Optional[str] = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         count_pages: bool = False,
+        options: ExecutableOption | None = None,
     ) -> tuple[list[models.Pool], int | None]:
 
         query = self.db.session.query(models.Pool)
@@ -169,6 +174,8 @@ class PoolBP(DBBlueprint):
             type_in=type_in,
             custom_query=custom_query
         )
+        if options is not None:
+            query = query.options(options)
 
         if sort_by is not None:
             attr = getattr(models.Pool, sort_by)

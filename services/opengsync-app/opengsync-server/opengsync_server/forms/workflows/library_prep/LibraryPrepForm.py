@@ -174,9 +174,9 @@ class LibraryPrepForm(HTMXFlaskForm):
             file.uuid = hash
             file.size_bytes = size_bytes
             file.timestamp_utc = to_utc(db.timestamp())
-            db.files.update(file)
+            db.media_files.update(file)
         else:
-            db.files.create(
+            db.media_files.create(
                 name=f"{self.lab_prep.name}_prep",
                 type=MediaFileType.LIBRARY_PREP_FILE,
                 extension=".xlsx",

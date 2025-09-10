@@ -62,7 +62,7 @@ class SeqRunForm(HTMXFlaskForm):
             self.status.errors = ("Invalid status",)
             return False
         
-        if db.seq_runs.get(experiment_name=self.experiment_name.data) is not None:
+        if db.seq_runs.get(self.experiment_name.data) is not None:  # type: ignore
             self.experiment_name.errors = ("experiment_name not unique",)
             return False
 
@@ -86,7 +86,7 @@ class SeqRunForm(HTMXFlaskForm):
             i2_cycles=self.i2_cycles.data,
         )
 
-        if (experiment := db.experiments.get(name=seq_run.experiment_name)) is not None:
+        if (experiment := db.experiments.get(seq_run.experiment_name)) is not None:
             if seq_run.status == RunStatus.FINISHED:
                 experiment.status = ExperimentStatus.FINISHED
                 db.experiments.update(experiment)
@@ -116,8 +116,8 @@ class SeqRunForm(HTMXFlaskForm):
         seq_run.r2_cycles = self.r2_cycles.data
         seq_run.i1_cycles = self.i1_cycles.data
         seq_run.i2_cycles = self.i2_cycles.data
-
-        return db.seq_runs.update(seq_run)
+        db.seq_runs.update(seq_run)
+        return seq_run
     
     def process_request(self, **context) -> Response:
         if not self.validate():

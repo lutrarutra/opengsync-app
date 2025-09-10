@@ -31,7 +31,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
         (60 * 38, "2 Days"),
         (60 * 72, "3 Days"),
         (60 * 24 * 7, "1 Week"),
-    ], default=60 * 24, coerce=int)
+    ], default=60 * 24 * 3, coerce=int)
 
     send_to_owner = BooleanField("Send to Project Owner: ", default=True)
     selected_user_ids = StringField(validators=[DataRequired()])

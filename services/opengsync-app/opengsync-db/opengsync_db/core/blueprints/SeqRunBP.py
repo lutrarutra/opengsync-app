@@ -3,6 +3,7 @@ from typing import Optional, TYPE_CHECKING, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
+from sqlalchemy.sql.base import ExecutableOption
 
 if TYPE_CHECKING:
     from ..units import Quantity
@@ -84,16 +85,22 @@ class SeqRunBP(DBBlueprint):
         return seq_run
 
     @DBBlueprint.transaction
-    def get(self, id: int | None = None, experiment_name: Optional[str] = None) -> models.SeqRun | None:
-        if id is not None and experiment_name is None:
-            seq_run = self.db.session.get(models.SeqRun, id)
+    def get(self, key: int | str, options: ExecutableOption | None = None) -> models.SeqRun | None:
+        if isinstance(key, int):
+            if options is not None:
+                seq_run = self.db.session.query(models.SeqRun).options(options).filter(models.SeqRun.id == key).first()
+            else:
+                seq_run = self.db.session.get(models.SeqRun, key)
 
-        elif experiment_name is not None and id is None:
-            seq_run = self.db.session.query(models.SeqRun).where(
-                models.SeqRun.experiment_name == experiment_name
+        elif isinstance(key, str):
+            query = self.db.session.query(models.SeqRun)
+            if options is not None:
+                query = query.options(options)
+            seq_run = query.where(
+                models.SeqRun.experiment_name == key
             ).first()
         else:
-            raise ValueError("Either 'id' or 'experiment_name' must be provided.")
+            raise ValueError("Key must be an integer (id) or string (experiment_name)")
         return seq_run
 
     @DBBlueprint.transaction
@@ -106,7 +113,8 @@ class SeqRunBP(DBBlueprint):
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False
+        count_pages: bool = False,
+        options: ExecutableOption | None = None,
     ) -> tuple[list[models.SeqRun], int | None]:
         query = self.db.session.query(models.SeqRun)
         query = SeqRunBP.where(
@@ -117,6 +125,8 @@ class SeqRunBP(DBBlueprint):
             experiment_status_in=experiment_status_in,
             custom_query=custom_query
         )
+        if options is not None:
+            query = query.options(options)
         
         if sort_by is not None:
             attr = getattr(models.SeqRun, sort_by)

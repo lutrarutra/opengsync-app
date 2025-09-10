@@ -5,14 +5,14 @@
 </p>
 <p>You will find the following directories among the files we shared:</p>  
 
-<b>Raw Data</b> in <span class="path">BSF_SEQUENCES/</span> and/or <span class="path">BSF_SEQUENCES_10X/</span>
+<b>Raw Data</b> in <span class="path">BSF_*/</span>
 <ul class="contents">
     {% if tenx_contents %}
     {% include "email/contents/tenx_demux.html" %}
     {% endif %}
 </ul>
 
-<b>Processed Data</b> in <span class="path">BSF_PROJECTS/</span>
+<b>Processed Data</b> <span class="desc">(Project Directory)</span> in <span class="path">BSA_*/</span>
 <ul class="contents">
     {% if tenx_contents %}
     {% include "email/contents/tenx.html" %}
@@ -24,7 +24,8 @@
 <p>
 You can download results with following command:
 <div class="code">{{ download_command | highlight_sh | safe }}</div>
-Or you can browse the files <a href="{{ browse_link }}">{{ browse_link }}</a>
+Or you can browse the files:<br>
+<a href="{{ browse_link }}">{{ browse_link }}</a>
 </p>
 <br><br>
 <hr>
@@ -33,7 +34,7 @@ Or you can browse the files <a href="{{ browse_link }}">{{ browse_link }}</a>
     This project consists of samples defined in following sequencing requests:
     <ol>
         {% for seq_request in seq_requests %}
-        <li><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, _external=True) }}">{{ seq_request.name }}</a></li>
+        <li><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, _external=True) }}">{{ seq_request.name }}</a> {% if seq_request.timestamp_submitted %}<span class="desc">(Submitted {{ seq_request.timestamp_submitted | format_datetime }}){% endif %}</span></li>
         {% endfor %}
     </ol>
 </p>

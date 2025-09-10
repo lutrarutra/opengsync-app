@@ -4,6 +4,8 @@ from typing import Optional, Literal, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
+from sqlalchemy import orm
+from sqlalchemy.sql.base import ExecutableOption
 
 from ... import to_utc
 from ... import models, PAGE_LIMIT
@@ -170,8 +172,13 @@ class SeqRequestBP(DBBlueprint):
         return seq_request
 
     @DBBlueprint.transaction
-    def get(self, seq_request_id: int) -> models.SeqRequest | None:
-        seq_request = self.db.session.get(models.SeqRequest, seq_request_id)
+    def get(self, seq_request_id: int, options: ExecutableOption | None = None) -> models.SeqRequest | None:
+        if options is None:
+            seq_request = self.db.session.get(models.SeqRequest, seq_request_id)
+        else:
+            seq_request = self.db.session.query(models.SeqRequest).options(
+                options
+            ).filter(models.SeqRequest.id == seq_request_id).first()
         return seq_request
     
     @DBBlueprint.transaction
@@ -189,6 +196,7 @@ class SeqRequestBP(DBBlueprint):
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
         count_pages: bool = False,
+        options: ExecutableOption | None = None,
     ) -> tuple[list[models.SeqRequest], int | None]:
         query = self.db.session.query(models.SeqRequest)
         query = SeqRequestBP.where(
@@ -196,6 +204,8 @@ class SeqRequestBP(DBBlueprint):
             show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status, project_id=project_id,
             custom_query=custom_query
         )
+        if options is not None:
+            query = query.options(options)
 
         if sort_by is not None:
             attr = getattr(models.SeqRequest, sort_by)

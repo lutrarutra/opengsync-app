@@ -46,7 +46,7 @@ class DBHandler():
         from .blueprints.LabPrepBP import LabPrepBP
         from .blueprints.KitBP import KitBP
         from .blueprints.LinkBP import LinkBP
-        from .blueprints.FileBP import FileBP
+        from .blueprints.MediaFileBP import MediaFileBP
         from .blueprints.CommentBP import CommentBP
         from .blueprints.SeqRunBP import SeqRunBP
         from .blueprints.EventBP import EventBP
@@ -74,7 +74,7 @@ class DBHandler():
         self.lab_preps = LabPrepBP("lab_preps", self)
         self.kits = KitBP("kits", self)
         self.links = LinkBP("links", self)
-        self.files = FileBP("files", self)
+        self.media_files = MediaFileBP("media_files", self)
         self.comments = CommentBP("comments", self)
         self.seq_runs = SeqRunBP("seq_runs", self)
         self.events = EventBP("events", self)

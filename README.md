@@ -257,7 +257,7 @@ db.barcodes
 db.lab_preps
 db.kits
 db.links
-db.files
+db.media_files
 db.comments
 db.seq_runs
 db.events

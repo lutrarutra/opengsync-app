@@ -3,6 +3,7 @@ from typing import Optional, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
+from sqlalchemy.sql.base import ExecutableOption
 
 from opengsync_db import models
 
@@ -94,16 +95,20 @@ class UserBP(DBBlueprint):
         return user
 
     @DBBlueprint.transaction
-    def get(self, user_id: int) -> models.User | None:
+    def get(self, user_id: int, options: ExecutableOption | None = None) -> models.User | None:
         """get user by id
 
         Args:
             user_id (int): user id
+            options (ExecutableOption | None, optional): sqlalchemy loading options. Defaults to None.
 
         Returns:
             models.User | None: _user object or None if not found_
         """
-        res = self.db.session.get(models.User, user_id)
+        if options is not None:
+            res = self.db.session.query(models.User).options(options).filter(models.User.id == user_id).first()
+        else:
+            res = self.db.session.get(models.User, user_id)
         return res
 
     @DBBlueprint.transaction
@@ -128,7 +133,8 @@ class UserBP(DBBlueprint):
         group_id: int | None = None, exclude_group_id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False
+        count_pages: bool = False,
+        options: ExecutableOption | None = None,
     ) -> tuple[list[models.User], int | None]:
         """Query users
 
@@ -150,6 +156,8 @@ class UserBP(DBBlueprint):
             query, role_in=role_in, group_id=group_id,
             exclude_group_id=exclude_group_id
         )
+        if options is not None:
+            query = query.options(options)
             
         if sort_by is not None:
             attr = getattr(models.User, sort_by)

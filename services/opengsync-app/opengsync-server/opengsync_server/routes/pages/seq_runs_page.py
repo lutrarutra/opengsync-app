@@ -23,7 +23,7 @@ def seq_run(current_user: models.User, seq_run_id: int):
     if (seq_run := db.seq_runs.get(seq_run_id)) is None:
         raise exceptions.NotFoundException()
     
-    experiment = db.experiments.get(name=seq_run.experiment_name)
+    experiment = db.experiments.get(seq_run.experiment_name)
     path_list = [
         ("Runs", url_for("seq_runs_page.seq_runs")),
         (f"Run {seq_run.id}", ""),
