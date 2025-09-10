@@ -1,19 +1,18 @@
 import json
 from datetime import datetime
-from io import BytesIO
 
 import pandas as pd
 
 from flask import Blueprint, request, Response, url_for
 from flask_htmx import make_response
 
+
 from opengsync_db import models
-from opengsync_db.categories import PoolStatus, PoolType, AccessType
 
 from .... import db
 from ....core import wrappers, exceptions
+from ....tools import ExcelWriter
 from ....forms.workflows import billing as wff
-
 
 
 billing_workflow = Blueprint("billing_workflow", __name__, url_prefix="/api/workflows/billing/")
@@ -57,30 +56,79 @@ def download(current_user: models.User) -> Response:
     except ValueError:
         raise exceptions.BadRequestException("Invalid experiment ids")
     
-    data = {
+    pool_data = {
         "pool_id": [],
         "pool_name": [],
         "pool_type": [],
-        "flowcell_share": [],
+        "workflow": [],
         "num_m_reads_loaded": [],
-        "num_m_reads_requested": [],
+        "lane_share": [],
+        "flowcell_share": [],
         "num_libraries": [],
         "contact_name": [],
         "contact_email": [],
+        "billing_name": [],
+        "billing_email": [],
         "lab_prep": [],
         "experiment_name": [],
         "lanes": [],
         "billing_code": [],
         "lab_contact_name": [],
         "lab_contact_email": [],
+        "num_m_reads_requested": [],
         "info": [],
     }
+
+    experiment_data = {
+        "experiment_name": [],
+        "workflow": [],
+        "flow_cell_type": [],
+        "max_m_reads": [],
+        "max_m_reads_per_lane": [],
+        "num_lanes": [],
+        "num_pools": [],
+        "read_config": [],
+    }
+    
+    lane_data = {
+        "experiment_name": [],
+        "lane": [],
+        "num_m_reads_loaded": [],
+        "num_pools": [],
+        "pools": [],
+    }
+
     for experiment in experiments:
+        experiment_data["experiment_name"].append(experiment.name)
+        experiment_data["workflow"].append(experiment.workflow.name)
+        experiment_data["flow_cell_type"].append(experiment.flowcell_type.name)
+        experiment_data["max_m_reads"].append(experiment.flowcell_type.max_m_reads)
+        experiment_data["max_m_reads_per_lane"].append(experiment.flowcell_type.max_m_reads_per_lane)
+        experiment_data["num_pools"].append(len(experiment.pools))
+        experiment_data["read_config"].append(experiment.read_config)
+        experiment_data["num_lanes"].append(experiment.num_lanes)
+
+        for lane in experiment.lanes:
+            lane_data["experiment_name"].append(experiment.name)
+            lane_data["lane"].append(lane.number)
+            num_m_reads_loaded = 0
+            lane_data["num_pools"].append(len(lane.pool_links))
+            pools = []
+            for link in lane.pool_links:
+                pools.append(link.pool.name)
+                if link.num_m_reads is not None:
+                    num_m_reads_loaded += link.num_m_reads
+                else:
+                    num_m_reads_loaded = None
+                    break
+            lane_data["num_m_reads_loaded"].append(num_m_reads_loaded or "")
+            lane_data["pools"].append(", ".join(pools))
+
         for pool in experiment.pools:
             info = ""
-            data["pool_id"].append(pool.id)
-            data["pool_name"].append(pool.name)
-            data["pool_type"].append(pool.type.name)
+            pool_data["pool_id"].append(pool.id)
+            pool_data["pool_name"].append(pool.name)
+            pool_data["pool_type"].append(pool.type.name)
             num_m_reads_loaded = 0
             for link in pool.lane_links:
                 if link.num_m_reads is not None:
@@ -91,47 +139,58 @@ def download(current_user: models.User) -> Response:
                     break
             
             if num_m_reads_loaded is not None:
-                flowcell_share = (num_m_reads_loaded / experiment.workflow.flow_cell_type.max_m_reads)
-                data["flowcell_share"].append(f"{flowcell_share:.3%}")
+                flowcell_share = (num_m_reads_loaded / experiment.flowcell_type.max_m_reads)
+                lane_share = (num_m_reads_loaded / experiment.flowcell_type.max_m_reads_per_lane)
+                pool_data["lane_share"].append(f"{lane_share:.3%}")
+                pool_data["flowcell_share"].append(f"{flowcell_share:.3%}")
             else:
-                data["flowcell_share"].append("")
+                pool_data["flowcell_share"].append("")
+                pool_data["lane_share"].append("")
             
             contact = None
             billing_code = None
-            if len(pool.libraries) > 0:
-                seq_request = pool.libraries[0].seq_request
-                for library in pool.libraries:
-                    if library.seq_request != seq_request:
-                        seq_request = None
-                        break
-                    
-                if seq_request is not None:
-                    contact = seq_request.contact_person
-                    billing_code = seq_request.billing_code
+            if (seq_request := pool.seq_request) is None:
+                if len(pool.libraries) > 0:
+                    seq_request = pool.libraries[0].seq_request
+                    for library in pool.libraries:
+                        if library.seq_request != seq_request:
+                            seq_request = None
+                            break
+                        
+            if seq_request is not None:
+                contact = seq_request.contact_person
+                billing_code = seq_request.billing_code
 
-                if seq_request is None:
-                    info += "⚠️ Libraries in pool are from different requests "
+            if seq_request is None:
+                info += "⚠️ Libraries in pool are from different requests "
                 
-            data["contact_name"].append(contact.name if contact else "")
-            data["contact_email"].append(contact.email if contact else "")
-            data["billing_code"].append(billing_code or "")
-            data["num_m_reads_loaded"].append(num_m_reads_loaded or "")
-            data["num_m_reads_requested"].append(pool.num_m_reads_requested or 0)
-            data["num_libraries"].append(pool.num_libraries)
-            data["lab_contact_name"].append(pool.contact.name if pool.contact else "")
-            data["lab_contact_email"].append(pool.contact.email if pool.contact else "")
-            data["lab_prep"].append(pool.lab_prep.name if pool.lab_prep else "")
-            data["experiment_name"].append(experiment.name)
-            data["lanes"].append(", ".join(str(link.lane_num) for link in pool.lane_links))
-            data["info"].append(info)
+            pool_data["workflow"].append(experiment.workflow.name)
+            pool_data["contact_name"].append(contact.name if contact else "")
+            pool_data["contact_email"].append(contact.email if contact else "")
+            pool_data["billing_name"].append(seq_request.billing_contact.name if seq_request else "")
+            pool_data["billing_email"].append(seq_request.billing_contact.email if seq_request else "")
+            pool_data["billing_code"].append(billing_code or "")
+            pool_data["num_m_reads_loaded"].append(num_m_reads_loaded or "")
+            pool_data["num_m_reads_requested"].append(pool.num_m_reads_requested or 0)
+            pool_data["num_libraries"].append(pool.num_libraries)
+            pool_data["lab_contact_name"].append(pool.contact.name if pool.contact else "")
+            pool_data["lab_contact_email"].append(pool.contact.email if pool.contact else "")
+            pool_data["lab_prep"].append(pool.lab_prep.name if pool.lab_prep else "")
+            pool_data["experiment_name"].append(experiment.name)
+            pool_data["lanes"].append(", ".join(str(link.lane_num) for link in pool.lane_links))
+            pool_data["info"].append(info)
 
     
-    pools_df = pd.DataFrame(data)
+    pools_df = pd.DataFrame(pool_data)
+    experiments_df = pd.DataFrame(experiment_data)
+    lanes_df = pd.DataFrame(lane_data)
+    experiments_df["loaded_m_reads"] = ""
 
     for experiment in experiments:
         experiment_loaded_reads = sum(pools_df.loc[
             (pools_df["experiment_name"] == experiment.name) & (pools_df["num_m_reads_loaded"] != ""), "num_m_reads_loaded"
         ])
+        experiments_df.loc[experiments_df["experiment_name"] == experiment.name, "loaded_m_reads"] = experiment_loaded_reads
         if experiment_loaded_reads > experiment.workflow.flow_cell_type.max_m_reads:
             pools_df.loc[pools_df["experiment_name"] == experiment.name, "info"] += "⚠️ Total loaded reads for experiment exceeds flow cell capacity "
         elif experiment_loaded_reads < experiment.workflow.flow_cell_type.max_m_reads:
@@ -140,13 +199,17 @@ def download(current_user: models.User) -> Response:
     pools_df["info"] = pools_df["info"].str.strip()
     file_name = f"billing_{datetime.now().strftime('%Y%m%d')}.xlsx"
 
-    bytes_io = BytesIO()
-    with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:  # type: ignore
-        pools_df.to_excel(writer, sheet_name="pools", index=True)
-
-    bytes_io.seek(0)
+    ew = ExcelWriter({
+        "pools": pools_df,
+        "experiments": experiments_df,
+        "lanes": lanes_df
+    })
+    ew.apply_header_style(sheet_name=None)
+    ew.apply_body_style(sheet_name=None)
+    ew.apply_column_width(sheet_name=None, max_width=50)
+    ew.apply_alternating_colors(sheet_name=None, column="experiment_name", primary_color="a4cbfa")
         
     return Response(
-        bytes_io, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ew.get_bytes(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-disposition": f"attachment; filename={file_name}"}
     )
