@@ -2,6 +2,12 @@
 
 SKIP_TESTS=false
 
+if [[ $EUID -eq 0 ]]; then
+    echo "ERROR: This script should not be run as root or with sudo." >&2
+    echo "Please run it as a regular user." >&2
+    exit 1
+fi
+
 # Check for --skip-tests flag
 for arg in "$@"; do
     if [ "$arg" == "--skip-tests" ]; then
@@ -14,7 +20,7 @@ if [ "$SKIP_TESTS" = false ]; then
     cd ./tmp || exit 1
     git clone https://github.com/lutrarutra/opengsync-app
     cd opengsync-app || exit 1
-    bash ./test.sh --build
+    sudo bash ./test.sh --build
     STATUS=$?
     cd ../../
     rm -rf ./tmp

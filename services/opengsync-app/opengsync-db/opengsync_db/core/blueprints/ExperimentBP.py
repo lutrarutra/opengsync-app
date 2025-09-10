@@ -88,7 +88,7 @@ class ExperimentBP(DBBlueprint):
                     models.Experiment.id == key
                 ).first()
             else:        
-                experiment = self.db.session.get(models.Experiment, id)
+                experiment = self.db.session.get(models.Experiment, key)
         elif isinstance(key, str):
             query = self.db.session.query(models.Experiment)
             if options is not None:
