@@ -53,12 +53,12 @@ def parse_run_folder(run_folder: Path) -> dict:
     run_info.read(run_folder.as_posix())
 
     try:
-        created = datetime.strptime(run_info.date(), "%m/%d/%Y %I:%M:%S %p")  # NovaSeq 6000
+        started = datetime.strptime(run_info.date(), "%m/%d/%Y %I:%M:%S %p")  # NovaSeq 6000
     except ValueError:
         try:
-            created = datetime.fromisoformat(run_info.date())  # NovaSeq X
+            started = datetime.fromisoformat(run_info.date())  # NovaSeq X
         except ValueError:
-            created = None
+            started = None
     
     flowcell_id = run_info.flowcell().barcode()
     instrument = run_info.instrument_name()
@@ -76,7 +76,7 @@ def parse_run_folder(run_folder: Path) -> dict:
     run_id = get_dom_value(run_params_dom, "RunId")
 
     return {
-        "created": created,
+        "started": started,
         "experiment_name": experiment_name,
         "r1_cycles": r1_cycles,
         "i1_cycles": i1_cycles,
@@ -193,7 +193,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
         
         parsed_data = parse_run_folder(run_folder)
 
-        created = parsed_data.pop("created")
+        started = parsed_data.pop("started")
         
         experiment_name = parsed_data["experiment_name"]
         logger.info(f"Processing {experiment_name} ({run_name}):")
@@ -216,8 +216,8 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
             
             if completed is not None:
                 run.set_timestamp("completed", completed)
-            if created is not None and isinstance(created, datetime):
-                run.set_timestamp("created", created)
+            if started is not None and isinstance(started, datetime):
+                run.set_timestamp("started", started)
             
             if run.status == RunStatus.FINISHED:
                 if run.experiment is not None:
@@ -274,8 +274,8 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
             )
             if completed is not None:
                 run.set_timestamp("completed", completed)
-            if created is not None and isinstance(created, datetime):
-                run.set_timestamp("created", created)
+            if started is not None and isinstance(started, datetime):
+                run.set_timestamp("started", started)
 
             if run.status == RunStatus.FINISHED:
                 if run.experiment is not None:
