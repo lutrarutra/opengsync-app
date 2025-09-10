@@ -82,6 +82,7 @@ def inject_jinja_format_filters(app: App):
     
     @app.template_filter()
     def replace_substrings(s: str, replacements: dict[str, str]) -> str:
-        for old, new in replacements.items():
+        sorted_replacements = sorted(replacements.items(), key=lambda x: len(x[0]), reverse=True)
+        for old, new in sorted_replacements:
             s = s.replace(old, new)
         return s
