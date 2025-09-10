@@ -31,7 +31,7 @@ class SeqRequest(Base):
     name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
     special_requirements: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
-    billing_code: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
+    billing_code: Mapped[Optional[str]] = mapped_column(sa.String(256), nullable=True)
     
     data_delivery_mode_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     read_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)

@@ -66,15 +66,16 @@ def download(current_user: models.User) -> Response:
         "lane_share": [],
         "flowcell_share": [],
         "num_libraries": [],
+        "group": [],
         "contact_name": [],
         "contact_email": [],
         "billing_name": [],
         "billing_email": [],
-        "lab_prep": [],
         "billing_code": [],
+        "lab_prep": [],
+        "num_m_reads_requested": [],
         "lab_contact_name": [],
         "lab_contact_email": [],
-        "num_m_reads_requested": [],
         "pool_id": [],
         "info": [],
     }
@@ -134,7 +135,7 @@ def download(current_user: models.User) -> Response:
             for link in pool.lane_links:
                 if link.num_m_reads is not None:
                     num_m_reads_loaded += link.num_m_reads
-                    lane_share[link.lane_num] = link.num_m_reads / experiment.flowcell_type.max_m_reads_per_lane
+                    lane_share[link.lane_num] = f"{link.num_m_reads / experiment.flowcell_type.max_m_reads_per_lane:.3%}"
                 else:
                     num_m_reads_loaded = None
                     info += "⚠️ Some lanes are missing number of loaded reads "
@@ -161,6 +162,9 @@ def download(current_user: models.User) -> Response:
             if seq_request is not None:
                 contact = seq_request.contact_person
                 billing_code = seq_request.billing_code
+                pool_data["group"].append(seq_request.group.name if seq_request.group else "")
+            else:
+                pool_data["group"].append("")
 
             if seq_request is None:
                 info += "⚠️ Libraries in pool are from different requests "
