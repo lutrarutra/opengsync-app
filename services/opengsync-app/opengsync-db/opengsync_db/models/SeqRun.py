@@ -30,7 +30,7 @@ class SeqRun(Base):
     side: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
     flowcell_mode: Mapped[Optional[str]] = mapped_column(sa.String(8), nullable=True)
 
-    _timestamps: Mapped[Optional[dict[str, datetime]]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="timestamps")
+    _timestamps: Mapped[Optional[dict[str, str]]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="timestamps")
 
     r1_cycles: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
     r2_cycles: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
@@ -81,19 +81,21 @@ class SeqRun(Base):
     def timestamps(self) -> dict[str, datetime]:
         if self._timestamps is None:
             return {}
-        return self._timestamps
+        return {key: datetime.fromisoformat(value) for key, value in self._timestamps.items()}
     
     def set_timestamp(self, key: str, value: datetime) -> None:
         if not isinstance(value, datetime):
             raise ValueError("Value must be a datetime object")
         if self._timestamps is None:
             self._timestamps = {}
-        self._timestamps[key] = value
+        self._timestamps[key] = value.isoformat()
 
     def get_timestamp(self, key: str) -> Optional[datetime]:
         if self._timestamps is None:
             return None
-        return self._timestamps.get(key)
+        if (key_value := self._timestamps.get(key)) is None:
+            return None
+        return datetime.fromisoformat(key_value)
 
     @property
     def cycles_str(self) -> str:
