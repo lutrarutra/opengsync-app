@@ -79,3 +79,9 @@ def inject_jinja_format_filters(app: App):
 
         formatter = HtmlFormatter(style="friendly", noclasses=True)
         return highlight(code, RLexer(), formatter)
+    
+    @app.template_filter()
+    def replace_substrings(s: str, replacements: dict[str, str]) -> str:
+        for old, new in replacements.items():
+            s = s.replace(old, new)
+        return s

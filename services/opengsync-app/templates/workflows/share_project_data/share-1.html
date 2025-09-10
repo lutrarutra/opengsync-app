@@ -30,7 +30,8 @@
                         {{ project.owner.email }}
                     </div>
                     {% if current_user.is_insider() %}
-                    {{ switch_input(form.anonymous_send, class="col-6") }}
+                    {{ switch_input(form.anonymous_send, class="col-3") }}
+                    {{ switch_input(form.internal_share, class="col-3") }}
                     {% endif %}
                 </div>
 
@@ -121,6 +122,7 @@
                     anonymous_send: $("#anonymous_send").is(":checked"),
                     send_to_owner: $("#send_to_owner").is(":checked"),
                     time_valid_min: parseInt($("#time_valid_min").val()),
+                    internal_share: $("#internal_share").is(":checked"),
                 },
             });
         });

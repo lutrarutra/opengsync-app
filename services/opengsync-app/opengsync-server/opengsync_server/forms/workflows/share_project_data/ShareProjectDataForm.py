@@ -22,6 +22,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
     _template_path = "workflows/share_project_data/share-1.html"
 
     anonymous_send = BooleanField("Anonymous Send")
+    internal_share = BooleanField("Internal Access Share", default=False)
     time_valid_min = SelectField("Link Validity Period: ", choices=[
         (60 * 1, "1 Hour"),
         (60 * 3, "3 Hours"),
@@ -122,8 +123,10 @@ class ShareProjectDataForm(HTMXFlaskForm):
         content = render_template(
             "email/share-data.html", style=style, download_command=download_command, browse_link=browse_link,
             project=self.project, tenx_contents=tenx_contents, library_types=library_types,
-            seq_requests=seq_requests, experiments=experiments,
             author=None if self.anonymous_send.data else current_user if current_user.is_insider() else None,
+            seq_requests=seq_requests, experiments=experiments, share_token=share_token,
+            share_path_mapping=runtime.app.share_path_mapping,
+            internal_access_share=self.internal_share.data
         )
 
         recipients = [user.email for user in self.selected_users]

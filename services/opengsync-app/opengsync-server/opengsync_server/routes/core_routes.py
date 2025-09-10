@@ -35,13 +35,15 @@ if runtime.app.debug:
     def mail_template(current_user: models.User):
         import premailer
 
-        download_command = render_template("snippets/rclone-copy.sh.j2", token="aisndnasdnuasndu")
+        project = db.projects[14]
+        token = project.share_token.uuid  # type: ignore
+        download_command = render_template("snippets/rclone-copy.sh.j2", token=token)
         style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
 
-        browse_link = url_for("file_share.browse", token="aisndnasdnuasndu", _external=True)
-        project = db.projects[1]
+        browse_link = url_for("file_share.browse", token=token, _external=True)
         seq_requests = db.seq_requests.find(project_id=project.id, limit=None, sort_by="id")[0]
-        experiments = db.experiments.find(project_id=project.id, limit=None, sort_by="id")[0]
+        experiments = db.experiments.find(limit=None, sort_by="id")[0]
+        
 
         content = render_template(
             "email/share-data.html", style=style, download_command=download_command, browse_link=browse_link,
@@ -50,6 +52,9 @@ if runtime.app.debug:
             project=project,
             seq_requests=seq_requests,
             experiments=experiments,
+            internal_access_share=True,
+            share_token=project.share_token,
+            share_path_mapping={"ok2": "replaced"}#runtime.app.share_path_mapping
         )
 
         content = premailer.transform(content)
