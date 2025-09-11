@@ -4,7 +4,7 @@ from opengsync_db import models
 from opengsync_db.categories import AccessType
 
 from .... import db, logger  # noqa
-from ....forms.workflows import share_project_data as wff
+from ....forms.workflows import share as wff
 from ....core import wrappers, exceptions
 
 share_project_data_workflow = Blueprint("share_project_data_workflow", __name__, url_prefix="/api/workflows/dilute_pools/")

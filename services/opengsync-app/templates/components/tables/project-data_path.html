@@ -35,7 +35,7 @@
             <tr class="data_path-row" data-id="{{ data_path.id }}">
                 <th scope="row">{{ data_path.id }}</th>
                 {% if data_path.type != DataPathType.DIRECTORY %}
-                <td><a class="visitable" href="{{ url_for('file_share.data_file', data_path_id=data_path.id) }}" target="_blank">{{ data_path.path }}</a></td>
+                <td><a class="visitable" href="{{ url_for('files_htmx.render_data_file', data_path_id=data_path.id) }}" target="_blank">{{ data_path.path }}</a></td>
                 {% else %}
                 <td>{{ data_path.path }}</td>
                 {% endif %}

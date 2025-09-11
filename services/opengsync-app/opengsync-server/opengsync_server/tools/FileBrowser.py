@@ -7,6 +7,7 @@ from opengsync_db import models, DBHandler
 @dataclass
 class BrowserPath:
     path: Path
+    rel_path: Path
     data_paths: list[models.DataPath]
 
 
@@ -15,21 +16,35 @@ class FileBrowser:
         self.root_dir = root_dir
         self.db = db
 
-    def list_contents(self, subpath: Path = Path()) -> list[BrowserPath]:
+    def list_contents(
+        self, subpath: Path = Path(),
+        limit: int | None = None, offset: int | None = None
+    ) -> list[BrowserPath]:
         if not self._is_safe(subpath):
             return []
         
         full_path = self.root_dir / subpath
         
         if full_path.exists() and full_path.is_dir():
+            counter = 0
             paths: list[BrowserPath] = []
             for path in full_path.iterdir():
+                if offset is not None and counter < offset:
+                    offset -= 1
+                    continue
+                
                 if not self._is_safe(path.relative_to(self.root_dir)):
                     continue
+                
                 paths.append(BrowserPath(
                     path=path,
+                    rel_path=path.relative_to(self.root_dir),
                     data_paths=self.db.data_paths.find(path=path.relative_to(self.root_dir).as_posix(), limit=None)[0]
                 ))
+
+                counter += 1
+                if limit is not None and counter >= limit:
+                    break
             return paths
         return []
     

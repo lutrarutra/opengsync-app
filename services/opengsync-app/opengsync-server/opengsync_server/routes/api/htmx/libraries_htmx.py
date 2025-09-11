@@ -71,7 +71,7 @@ def edit(current_user: models.User, library_id: int):
 
 @wrappers.htmx_route(libraries_htmx, db=db, methods=["POST"])
 def query(current_user: models.User):
-    field_name = next(iter(request.args.keys()))
+    field_name = next(iter(request.form.keys()))
     if (word := request.form.get(field_name, default="")) is None:
         raise exceptions.BadRequestException()
 

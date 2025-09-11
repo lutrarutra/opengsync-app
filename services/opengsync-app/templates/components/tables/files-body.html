@@ -1,0 +1,39 @@
+{% from "components/spinner.jinja2" import spinner %}
+
+{% for browser_path in paths %}
+{% set stat = browser_path.path.stat() %}
+<tr class="path-row" data-path="{{ browser_path.rel_path.as_posix() }}">
+    <td>
+        {% if browser_path.path.is_file() %}
+        <i class="bi bi-file-earmark"></i> {{ browser_path.path.name }}
+        {% else %}
+        <a href="{{ url_for('browser_page.files', subpath=(current_path / browser_path.path.name) if current_path else browser_path.path.name) }}">
+            <i class="bi bi-archive"></i> {{ browser_path.path.name }}/
+        </a>
+        {% endif %}
+    </td>
+    <td>{{ stat.st_size | bytes_to_human }}</td>
+    <td>{{ stat.st_mtime | from_timestamp }}</td>
+    <td>
+        {% for data_path in browser_path.data_paths %}
+            {% if data_path.project %}
+            <a href="{{ url_for('projects_page.project', project_id=data_path.project.id) }}"><span class="badge">{{ data_path.project.identifier if data_path.project.identifier else data_path.project.name }}</span></a>
+            {% endif %}
+            {% if data_path.experiment %}
+            <span class="badge">{{ data_path.experiment.name }}</span>
+            {% endif %}
+            {% if data_path.seq_request %}
+            <span class="badge">{{ data_path.seq_request.name }}</span>
+            {% endif %}
+            {% if data_path.library %}
+            <a href="{{ url_for('libraries_page.library', library_id=data_path.library.id) }}"><span class="badge">{{ data_path.library.name }}</span></a>
+            {% endif %}
+        {% endfor %}
+    </td>
+</tr>
+{% endfor %}
+{% if limit == paths | length %}
+<tr hx-get="{{ url_for('files_htmx.files', subpath=current_path, page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+    <td colspan="4">{{ spinner() }}</td>
+</tr>
+{% endif %}

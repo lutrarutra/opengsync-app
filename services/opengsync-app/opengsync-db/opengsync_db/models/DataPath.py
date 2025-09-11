@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from .Project import Project
     from .Experiment import Experiment
     from .Library import Library
+    from .SeqRequest import SeqRequest
 
 
 class DataPath(Base):
@@ -30,7 +31,7 @@ class DataPath(Base):
     experiment: Mapped["Experiment | None"] = relationship("Experiment", back_populates="data_paths", lazy="select")
 
     seq_request_id: Mapped[int | None] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
-    seq_request = relationship("SeqRequest", back_populates="data_paths", lazy="select")
+    seq_request: Mapped["SeqRequest | None"] = relationship("SeqRequest", back_populates="data_paths", lazy="select")
 
     @property
     def type(self) -> DataPathTypeEnum:
