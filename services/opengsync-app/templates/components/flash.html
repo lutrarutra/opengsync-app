@@ -1,4 +1,4 @@
-{% with infos = flashes["info"] %}
+{% with infos = flashes.get("info") %}
 {% if infos %}
 <div id="info-alert" class="alert alert-primary d-flex align-items-center" role="alert">
     <div class="alert-content">
@@ -13,7 +13,7 @@
 {% endif %}
 {% endwith %}
 
-{% with successes = flashes["success"] %}
+{% with successes = flashes.get("success") %}
 {% if successes %}
 <div class="alert alert-success d-flex align-items-center" role="alert">
     <div class="alert-content">
@@ -28,7 +28,7 @@
 {% endif %}
 {% endwith %}
 
-{% with warnings = flashes["warning"] %}
+{% with warnings = flashes.get("warning") %}
 {% if warnings %}
 <div class="alert alert-warning d-flex align-items-center" role="alert">
     <div class="alert-content">
@@ -43,7 +43,7 @@
 {% endif %}
 {% endwith %}
 
-{% with errors = flashes["error"] %}
+{% with errors = flashes.get("error") %}
 {% if errors %}
 <div class="alert alert-danger d-flex align-items-center" role="alert">
     <div class="alert-content">

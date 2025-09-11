@@ -7,7 +7,10 @@
             <h1>Projects</h1>
         </div>
         <div class="page-controls">
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#form-popup">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                hx-get="{{ url_for('projects_htmx.create') }}"
+                hx-target="#xl-modal-content" data-bs-toggle="modal"
+                hx-swap="innerHTML" hx-trigger="click">
                 New Project
             </button>
         </div>
@@ -18,32 +21,5 @@
     <div hx-get="{{ url_for('projects_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
-
-    <div class="modal fade" id="form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h1 class="modal-title fs-5" >New Project</h1>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                {% include form._template_path %}
-            </div>
-            <div class="modal-footer" id="popup-footer">
-                <div class="text-nowrap text-muted footer-id">
-                </div>
-                <div class="footer-info">
-                </div>
-                <div class="footer-controls">
-                    <button id="submit-project-btn" class="btn btn-primary"
-                    hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
-                    hx-post="{{ url_for('projects_htmx.create') }}">Submit</button>
-                </div>
-            </div>
-          </div>
-        </div>
-    </div>
 </div>
-<script type="text/javascript">
-</script>
 {% endblock content %}

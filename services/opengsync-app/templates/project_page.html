@@ -28,8 +28,10 @@
                 </button>
             </span>
             {% endif %}
-            <button type="button"  class="btn btn-primary" data-bs-toggle="modal"
-                data-bs-target="#project-form-popup">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                hx-get="{{ url_for('projects_htmx.edit', project_id=project.id) }}"
+                hx-target="#xl-modal-content" data-bs-toggle="modal"
+                hx-swap="innerHTML" hx-trigger="click">
                 Edit Project
             </button>
             <span
@@ -218,24 +220,6 @@
             </div>
             <div hx-get="{{ url_for('projects_htmx.get_data_paths', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="project-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" >Edit Project</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                {% include form._template_path %}
-            </div>
-            <div class="modal-footer" id="popup-footer">
-                <button class="btn btn-primary" hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
-                    hx-post="{{ url_for('projects_htmx.edit', project_id=project.id) }}">Submit</button>
             </div>
         </div>
     </div>

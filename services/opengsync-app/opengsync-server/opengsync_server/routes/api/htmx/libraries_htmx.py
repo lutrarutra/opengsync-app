@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import LibraryType, LibraryStatus, AssayType, MUXType, AccessType, DataPathType
+from opengsync_db.categories import LibraryType, LibraryStatus, AssayType, MUXType, AccessType, DataPathType, SampleStatus
 
 from .... import db, forms, logger  # noqa
 from ....core import wrappers, exceptions
@@ -236,16 +236,30 @@ def get_samples(current_user: models.User, library_id: int, page: int = 0):
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
+
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [SampleStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            raise exceptions.BadRequestException()
+    
+        if len(status_in) == 0:
+            status_in = None
+    
+    samples: list[models.Sample] = []
     
     samples, n_pages = db.samples.find(
-        offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True
+        offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True,
+        status_in=status_in
     )
 
     return make_response(
         render_template(
             "components/tables/library-sample.html",
             samples=samples, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, library=library
+            sort_by=sort_by, sort_order=sort_order, library=library,
+            status_in=status_in
         )
     )
 

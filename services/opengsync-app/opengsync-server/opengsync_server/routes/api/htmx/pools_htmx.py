@@ -344,13 +344,14 @@ def get_dilutions(current_user: models.User, pool_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    dilutions, _ = db.pools.get_dilutions(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, limit=None)
+    dilutions, n_pages = db.pools.get_dilutions(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, limit=None)
     
     return make_response(
         render_template(
             "components/tables/pool-dilution.html",
             dilutions=dilutions, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, pool=pool
+            sort_by=sort_by, sort_order=sort_order, pool=pool,
+            n_pages=n_pages
         )
     )
 

@@ -5,14 +5,14 @@
 </p>
 <p>You will find the following directories among the files we shared:</p>  
 
-<b>Raw Data</b> in <span class="path">BSF_*/</span>
+<b>Raw Data</b> in <span class="path">BSF_SEQUENCES/</span> and/or <span class="path">BSA_SEQUENCES_10X/</span>
 <ul class="contents">
     {% if tenx_contents %}
     {% include "email/contents/tenx_demux.html" %}
     {% endif %}
 </ul>
 
-<b>Processed Data</b> <span class="desc">(Project Directory)</span> in <span class="path">BSA_*/</span>
+<b>Processed Data</b> in <span class="path">BSF_PROJECTS/</span>
 <ul class="contents">
     {% if tenx_contents %}
     {% include "email/contents/tenx.html" %}

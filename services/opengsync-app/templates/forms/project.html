@@ -2,17 +2,42 @@
 {% from 'components/search_select.jinja2' import search_select_field %}
 
 
-<div id="project-form">
-    {{ form.csrf_token() }}
-    {{ form_group(form.title) }}
-    <div class="row">
-        {% if current_user.is_insider() %}
-        {{ form_group(form.identifier, class="col-6", placeholder="BSA_XXXX") }}
-        {% else %}
-        {{ form_group(form.identifier, class="col-6", placeholder="BSA_XXXX", disabled=true) }}
-        {% endif %}
-        {{ select_input(form.status, class="col-6") }}
+<div class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Project</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
-    {{ search_select_field(form.group, query_url=url_for('groups_htmx.query')) }}
-    {{ form_group(form.description) }}
+    <div class="modal-body">
+        <div id="project-form">
+            {{ form.csrf_token() }}
+            {{ form_group(form.title) }}
+            <div class="row">
+                {% if current_user.is_insider() %}
+                {{ form_group(form.identifier, class="col-6", placeholder="BSA_XXXX") }}
+                {% else %}
+                {{ form_group(form.identifier, class="col-6", placeholder="BSA_XXXX", disabled=true) }}
+                {% endif %}
+                {{ select_input(form.status, class="col-6") }}
+            </div>
+            {{ search_select_field(form.group, query_url=url_for('groups_htmx.query')) }}
+            {{ form_group(form.description) }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            {% if form.form_type == "edit" %}
+            <button id="submit-project-btn" class="btn btn-success"
+            hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
+            hx-post="{{ url_for('projects_htmx.edit', project_id=form.project.id) }}">Submit</button>
+            {% else %}
+            <button id="submit-project-btn" class="btn btn-success"
+            hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
+            hx-post="{{ url_for('projects_htmx.create') }}">Submit</button>
+            {% endif %}
+        </div>
+    </div>
 </div>
