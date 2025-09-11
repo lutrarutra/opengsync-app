@@ -1,5 +1,5 @@
 <ul class="list-group search-component">
-    {% if results and (results | length > 0) %}
+    {% if results is defined and results and (results | length > 0) %}
     {% for res in results %}
     <li {% if loop.last %} class="last" {% endif %}>
         <a id="option-{{ field_name}}-{{ loop.index }}"

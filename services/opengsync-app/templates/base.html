@@ -138,6 +138,9 @@
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'seq_run-page' else ''}}" href="{{ url_for('seq_runs_page.seq_runs') }}">Runs</a>
             </div>
+            <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'browser-page' else ''}}" href="{{ url_for('browser_page.files') }}">Files</a>
+            </div>
             {% if user_role == UserRole.ADMIN  %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'share_token-page' else ''}}" href="{{ url_for('share_tokens_page.share_tokens') }}">Share</a>

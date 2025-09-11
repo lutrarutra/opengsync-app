@@ -17,7 +17,7 @@ class DataPath(Base):
     __tablename__ = "data_path"
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, autoincrement=True)
-    path: Mapped[str] = mapped_column(sa.String(1024), nullable=False)
+    path: Mapped[str] = mapped_column(sa.String(2048), nullable=False, unique=False, index=True)
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     library_id: Mapped[int | None] = mapped_column(sa.ForeignKey("library.id"), nullable=True)
@@ -39,3 +39,9 @@ class DataPath(Base):
     @type.setter
     def type(self, value: DataPathTypeEnum) -> None:
         self.type_id = value.id
+
+    def __str__(self):
+        return f"DataPath(id={self.id}, path='{self.path}', type={self.type.name})"
+    
+    def __repr__(self):
+        return self.__str__()

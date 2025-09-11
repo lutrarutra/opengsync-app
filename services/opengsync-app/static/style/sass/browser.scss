@@ -1,0 +1,23 @@
+.file-browser {
+    font-family: Arial, sans-serif;
+    margin: 0px;
+
+    table {
+        width: 100%; border-collapse: collapse;
+    }
+    th, td {
+        padding: 8px; text-align: left; border-bottom: 1px solid #ddd;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    a {
+        text-decoration: none; color: #0066cc;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+    .breadcrumb {
+        margin-bottom: 20px;
+    }
+}

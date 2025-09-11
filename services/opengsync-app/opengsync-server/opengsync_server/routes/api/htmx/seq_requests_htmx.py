@@ -937,13 +937,27 @@ def get_samples(current_user: models.User, seq_request_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    samples, n_pages = db.samples.find(offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending, count_pages=True)
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [SampleStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            raise exceptions.BadRequestException()
+    
+        if len(status_in) == 0:
+            status_in = None
+
+    samples, n_pages = db.samples.find(
+        offset=offset, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending, count_pages=True,
+        status_in=status_in
+    )
 
     return make_response(
         render_template(
             "components/tables/seq_request-sample.html",
             samples=samples, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, seq_request=seq_request
+            sort_by=sort_by, sort_order=sort_order, seq_request=seq_request,
+            status_in=status_in
         )
     )
     

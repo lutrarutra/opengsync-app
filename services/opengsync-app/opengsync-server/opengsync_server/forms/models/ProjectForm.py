@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Literal
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -9,6 +9,7 @@ from opengsync_db import models
 from opengsync_db.categories import ProjectStatus
 
 from ... import logger, db
+from ...core import exceptions
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ..SearchBar import OptionalSearchBar
 
@@ -22,9 +23,25 @@ class ProjectForm(HTMXFlaskForm):
     status = SelectField("Status", choices=ProjectStatus.as_selectable(), coerce=int, default=ProjectStatus.DRAFT.id, description="Status of the project")
     group = FormField(OptionalSearchBar, label="Group", description="Group to which the project belongs. All users of that group will be able to see this project.")
 
-    def __init__(self, project: Optional[models.Project] = None, formdata: Optional[dict[str, Any]] = None):
+    def __init__(
+        self,
+        project: models.Project | None,
+        form_type: Literal["create", "edit"],
+        formdata: dict | None = None,
+
+    ):
         super().__init__(formdata=formdata)
         self.project = project
+        self.form_type = form_type
+        match form_type:
+            case "create":
+                if project is not None:
+                    raise exceptions.InternalServerErrorException("Project must be None when creating a new project.")
+            case "edit":
+                if project is None:
+                    raise exceptions.InternalServerErrorException("Project must be set when editing an existing project.")
+            case _:
+                raise exceptions.InternalServerErrorException("form_type must be either 'create' or 'edit'.")
 
     def prepare(self):
         if self.project is None:

@@ -105,13 +105,22 @@ def query(current_user: models.User):
         )
     )
 
-
-@wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
+@wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
-    return forms.models.ProjectForm(formdata=request.form).process_request(user=current_user)
+    if request.method == "GET":
+        return forms.models.ProjectForm(
+            project=None,
+            form_type="create",
+        ).make_response()
+    
+    return forms.models.ProjectForm(
+        project=None,
+        form_type="create",
+        formdata=request.form
+    ).process_request(user=current_user)
 
 
-@wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
+@wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
         raise exceptions.NotFoundException()
@@ -124,9 +133,12 @@ def edit(current_user: models.User, project_id: int):
     if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
         raise exceptions.NoPermissionsException()
     
-    return forms.models.ProjectForm(project=project, formdata=request.form).process_request(
-        user=current_user
-    )
+    if request.method == "GET":
+        return forms.models.ProjectForm(project=project, form_type="edit").make_response()
+    
+    return forms.models.ProjectForm(
+        project=project, form_type="edit", formdata=request.form,
+    ).process_request(user=current_user)
 
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["DELETE"])

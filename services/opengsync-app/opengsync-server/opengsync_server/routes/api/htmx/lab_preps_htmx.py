@@ -13,7 +13,7 @@ from flask import Blueprint, render_template, request, flash, url_for, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType
+from opengsync_db.categories import LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType, SampleStatus
 
 from .... import db, forms, logger
 from ....core import wrappers, exceptions
@@ -455,15 +455,27 @@ def get_samples(current_user: models.User, lab_prep_id: int, page: int = 0):
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [SampleStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            raise exceptions.BadRequestException()
+    
+        if len(status_in) == 0:
+            status_in = None
+
     samples, n_pages = db.samples.find(
-        lab_prep_id=lab_prep_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True
+        lab_prep_id=lab_prep_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True,
+        status_in=status_in
     )
 
     return make_response(
         render_template(
             "components/tables/lab_prep-sample.html",
             samples=samples, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, lab_prep=lab_prep
+            sort_by=sort_by, sort_order=sort_order, lab_prep=lab_prep,
+            status_in=status_in
         )
     )
 

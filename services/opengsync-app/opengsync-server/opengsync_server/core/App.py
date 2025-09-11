@@ -11,7 +11,7 @@ from flask import (
     request,
     url_for,
 )
-
+from jinja2 import StrictUndefined
 from flask_session import Session
 from flask_session.base import ServerSideSession
 
@@ -57,6 +57,9 @@ class App(Flask):
     def __init__(self, config_path: str):
         opengsync_config = yaml.safe_load(open(config_path))
         super().__init__(__name__, static_folder=opengsync_config["static_folder"], template_folder=opengsync_config["template_folder"])
+
+        if DEBUG:
+            self.jinja_env.undefined = StrictUndefined
 
         log_buffer.set_log_dir(Path(opengsync_config["log_folder"]))
         log_buffer.start()
@@ -108,7 +111,7 @@ class App(Flask):
         self.config["SESSION_TYPE"] = "redis"
         self.config["SESSION_PERMANENT"] = False
         self.config["SESSION_USE_SIGNER"] = True
-        self.config["SESSION_COOKIE_SECURE"] = False  # Set to True if your application is served over HTTPS
+        self.config["SESSION_COOKIE_SECURE"] = True
         self.config["SESSION_REDIS"] = session_cache
 
         Session(self)
@@ -173,6 +176,13 @@ class App(Flask):
 
         from .jfilters import inject_jinja_format_filters
         inject_jinja_format_filters(self)
+
+        @self.context_processor
+        def inject_defaults():
+            return dict(
+                current_query=None,
+                path_list=[],
+            )
 
         @self.context_processor
         def inject_categories():
@@ -274,6 +284,7 @@ class App(Flask):
         self.register_blueprint(pages.lab_preps_page_bp)
         self.register_blueprint(pages.groups_page_bp)
         self.register_blueprint(pages.share_tokens_page_bp)
+        self.register_blueprint(pages.browser_page_bp)
 
         log_buffer.flush()
 

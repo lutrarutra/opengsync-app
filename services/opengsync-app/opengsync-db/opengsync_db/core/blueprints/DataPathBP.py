@@ -18,6 +18,7 @@ class DataPathBP(DBBlueprint):
     def where(
         cls,
         query: Query,
+        path: str | None = None,
         type: DataPathTypeEnum | None = None,
         type_in: list[DataPathTypeEnum] | None = None,
         project_id: int | None = None,
@@ -26,6 +27,9 @@ class DataPathBP(DBBlueprint):
         experiment_id: int | None = None,
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
+        if path is not None:
+            query = query.filter(models.DataPath.path == path)
+
         if type is not None:
             query = query.filter(models.DataPath.type_id == type.id)
 
@@ -61,21 +65,21 @@ class DataPathBP(DBBlueprint):
         flush: bool = True
     ) -> models.DataPath:
         
+        query = self.db.session.query(models.DataPath).filter(models.DataPath.path == path)
+
         if project is not None:
-            if path in [dp.path for dp in project.data_paths]:
-                raise exceptions.NotUniqueValue(f"DataPath with path '{path}' already exists for Project with id {project.id}")
-        
+            if query.filter(models.DataPath.project_id == project.id).first() is not None:
+                raise exceptions.LinkAlreadyExists(f"DataPath with path '{path}' already linked to project with id '{project.id}'")
         if seq_request is not None:
-            if path in [dp.path for dp in seq_request.data_paths]:
-                raise exceptions.NotUniqueValue(f"DataPath with path '{path}' already exists for SeqRequest with id {seq_request.id}")
-            
+            if query.filter(models.DataPath.seq_request_id == seq_request.id).first() is not None:
+                raise exceptions.LinkAlreadyExists(f"DataPath with path '{path}' already linked to seq_request with id '{seq_request.id}'")
         if library is not None:
-            if path in [dp.path for dp in library.data_paths]:
-                raise exceptions.NotUniqueValue(f"DataPath with path '{path}' already exists for Library with id {library.id}")
-            
+            if query.filter(models.DataPath.library_id == library.id).first() is not None:
+                raise exceptions.LinkAlreadyExists(f"DataPath with path '{path}' already linked to library with id '{library.id}'")
         if experiment is not None:
-            if path in [dp.path for dp in experiment.data_paths]:
-                raise exceptions.NotUniqueValue(f"DataPath with path '{path}' already exists for Experiment with id {experiment.id}")
+            if query.filter(models.DataPath.experiment_id == experiment.id).first() is not None:
+                raise exceptions.LinkAlreadyExists(f"DataPath with path '{path}' already linked to experiment with id '{experiment.id}'")
+
         
         data_path = models.DataPath(
             path=path,
@@ -102,6 +106,7 @@ class DataPathBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
+        path: str | None = None,
         type: DataPathTypeEnum | None = None,
         type_in: list[DataPathTypeEnum] | None = None,
         project_id: int | None = None,
@@ -117,6 +122,7 @@ class DataPathBP(DBBlueprint):
         query = self.db.session.query(models.DataPath)
         query = self.where(
             query,
+            path=path,
             type=type,
             type_in=type_in,
             project_id=project_id,

@@ -4,7 +4,8 @@ from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import UserRole, SeqRequestStatus
+from opengsync_db.categories import UserRole, SeqRequestStatus, ProjectStatus
+
 from .... import db, logger  # noqa F401
 from ....core import wrappers, exceptions
 
@@ -138,14 +139,29 @@ def get_projects(current_user: models.User, user_id: int, page: int = 0):
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
     offset = page * PAGE_LIMIT
+
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [ProjectStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            raise exceptions.BadRequestException()
     
-    projects, n_pages = db.projects.find(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, count_pages=True)
+        if len(status_in) == 0:
+            status_in = None
+    
+    projects, n_pages = db.projects.find(
+        offset=offset, user_id=user_id, sort_by=sort_by,
+        descending=descending, count_pages=True, status_in=status_in
+    )
     
     return make_response(
         render_template(
             "components/tables/user-project.html",
             user=user, projects=projects,
-            active_page=page, n_pages=n_pages
+            active_page=page, n_pages=n_pages,
+            sort_by=sort_by, sort_order=sort_order,
+            status_in=status_in
         )
     )
 
@@ -181,7 +197,8 @@ def get_seq_requests(current_user: models.User, user_id: int, page: int = 0):
         render_template(
             "components/tables/user-seq_request.html",
             user=user, seq_requests=seq_requests,
-            active_page=page, n_pages=n_pages
+            active_page=page, n_pages=n_pages,
+            sort_by=sort_by, sort_order=sort_order,
         )
     )
 
@@ -254,6 +271,7 @@ def get_affiliations(current_user: models.User, user_id: int, page: int = 0):
         render_template(
             "components/tables/user-affiliation.html",
             user=user, affiliations=affiliations,
-            active_page=page, n_pages=n_pages
+            active_page=page, n_pages=n_pages,
+            sort_by=sort_by, sort_order=sort_order
         )
     )

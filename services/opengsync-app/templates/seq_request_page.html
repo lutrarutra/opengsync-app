@@ -547,8 +547,8 @@
                     }}
                 </div>
                 <div class="row">
-                    {{ metadata_group("Organization", seq_request.organization_name, class="col-6") }}
-                    {{ metadata_group("Organization Address", seq_request.organization_address, class="col-6") }}
+                    {{ metadata_group("Organization", seq_request.organization_contact.name, class="col-6") }}
+                    {{ metadata_group("Organization Address", seq_request.organization_contact.address, class="col-6") }}
                 </div>
                 
                 {% if seq_request.bioinformatician_contact_id %}
@@ -582,7 +582,7 @@
                     {{ metadata_group("Phone", seq_request.billing_contact.phone, class="col-6") }}
                 </div>
                 <div class="row">
-                    {{ metadata_group("Billing Code", seq_request.billing_contact.billing_code, class="col-6") }}
+                    {{ metadata_group("Billing Code", seq_request.billing_code, class="col-6") }}
                 </div>
             </div>
         </div>

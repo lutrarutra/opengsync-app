@@ -7,6 +7,8 @@ from .RedisMSFFileCache import RedisMSFFileCache  # noqa
 from .StaticSpreadSheet import StaticSpreadSheet  # noqa
 from .MailHandler import MailHandler  # noqa
 from .ExcelWriter import ExcelWriter  # noqa
+from .FileBrowser import FileBrowser  # noqa
+from .SharedFileBrowser import SharedFileBrowser  # noqa
 
 if os.getenv("GEMINI_API_KEY"):
     from .TextGen import TextGen  # noqa

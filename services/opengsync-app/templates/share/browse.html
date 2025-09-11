@@ -32,11 +32,11 @@
                 </tr>
                 {% endif %}
                 {% for path in paths %}
-                {% set stat = path.path.stat() %}
+                {% set stat = path.stat() %}
                 <tr>
                     <td>
                         <a href="{{ url_for('file_share.browse', token=token, subpath=(current_path / path.name).as_posix() if current_path else path.name) }}">
-                            {% if path.path.is_file() %}
+                            {% if path.is_file() %}
                             <i class="bi bi-file-earmark"></i> {{ path.name }}
                             {% else %}
                             <i class="bi bi-archive"></i> {{ path.name }}/

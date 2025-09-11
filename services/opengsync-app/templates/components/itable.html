@@ -1,7 +1,7 @@
 {% if not table_id %}
 {% set table_id = uuid4() %}
 {% endif %}
-<div class="spreadsheet-container" {% if height %}style="height: {{ height }};"{% endif %}>
+<div class="spreadsheet-container" {% if height is defined and height %}style="height: {{ height }};"{% endif %}>
     <div id="{{ table_id }}" class="spreadsheet-grid">
     </div>
 </div>

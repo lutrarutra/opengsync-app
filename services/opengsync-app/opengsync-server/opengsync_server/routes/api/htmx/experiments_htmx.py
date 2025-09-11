@@ -714,13 +714,14 @@ def get_pool_dilutions(current_user: models.User, experiment_id: int, page: int 
     descending = sort_order == "desc"
     offset = PAGE_LIMIT * page
 
-    dilutions, _ = db.pools.get_dilutions(offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None)
+    dilutions, n_pages = db.pools.get_dilutions(offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None)
     
     return make_response(
         render_template(
             "components/tables/experiment-pool-dilution.html",
             dilutions=dilutions, active_page=page,
             sort_by=sort_by, sort_order=sort_order, experiment=experiment,
+            n_pages=n_pages
         )
     )
 

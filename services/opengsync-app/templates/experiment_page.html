@@ -312,7 +312,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="flip-card card{% if all_lanes_qced == false %} text-muted disabled{% endif %}{% if flowcell_is_loaded %} workflow-completed{% endif %}"
+                <div class="flip-card card{% if all_lanes_qced == false %} text-muted disabled{% endif %}{% if experiment.status == ExperimentStatus.LOADED %} workflow-completed{% endif %}"
                     {% if all_lanes_qced == true %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('load_flow_cell_workflow.begin', experiment_id=experiment.id) }}"
