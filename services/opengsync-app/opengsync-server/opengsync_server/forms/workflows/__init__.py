@@ -9,4 +9,3 @@ from . import library_prep  # noqa: F401
 from . import library_pooling  # noqa: F401
 from . import dist_reads  # noqa: F401
 from . import remux  # noqa: F401
-from . import share  # noqa: F401

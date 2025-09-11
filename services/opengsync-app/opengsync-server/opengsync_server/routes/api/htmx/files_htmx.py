@@ -12,7 +12,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import AccessType
 
-from .... import db, logger, DEBUG, forms
+from .... import db, logger
 from ....tools import utils, FileBrowser
 from ....core import wrappers, exceptions
 from ....core.RunTime import runtime
@@ -73,7 +73,7 @@ def render_data_file(current_user: models.User, data_path_id: int):
     
     mimetype = mimetypes.guess_type(path)[0] or "application/octet-stream"
 
-    if DEBUG:
+    if runtime.app.debug:
         return send_from_directory(path.parent, path.name, as_attachment=not utils.is_browser_friendly(mimetype), mimetype=mimetype)
     
     response = Response()
@@ -86,6 +86,8 @@ def render_data_file(current_user: models.User, data_path_id: int):
 
 @wrappers.htmx_route(files_htmx, db=db, login_required=True, methods=["GET", "POST"])
 def share_path(current_user: models.User):
+    from ....forms.workflows.share.AssociatePathForm import AssociatePathForm
+
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
     
@@ -93,7 +95,7 @@ def share_path(current_user: models.User):
         raise exceptions.BadRequestException("No path specified")
     
     path = Path(path)
-    form = forms.workflows.share.AssociatePathForm(path=path, formdata=request.form)
+    form = AssociatePathForm(path=path, formdata=request.form)
     
     if request.method == "GET":
         return form.make_response()
