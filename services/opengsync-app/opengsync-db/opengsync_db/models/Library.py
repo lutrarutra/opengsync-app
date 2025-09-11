@@ -330,6 +330,12 @@ class Library(Base):
                 i5s.append(index.name_i5)
 
         return sep.join(i5s)
+    
+    def search_value(self) -> int:
+        return self.id
+    
+    def search_name(self) -> str:
+        return self.name
 
     __table_args__ = (
         sa.Index(

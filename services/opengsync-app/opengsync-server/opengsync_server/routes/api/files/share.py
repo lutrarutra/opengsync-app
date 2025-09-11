@@ -6,9 +6,8 @@ from sqlalchemy import orm
 from flask import Blueprint, render_template, Response, send_from_directory
 
 from opengsync_db import models
-from opengsync_db.categories import AccessType
 
-from .... import db, DEBUG, limiter, logger
+from .... import db, DEBUG, limiter
 from ....core import wrappers, exceptions
 from ....tools import utils, SharedFileBrowser
 from ....core.RunTime import runtime
@@ -113,40 +112,3 @@ def browse(token: str, subpath: Path = Path()):
         parent_dir=subpath.parent if subpath != Path() else None,
         paths=paths, token=token
     )
-
-
-@wrappers.resource_route(file_share_bp, db=db, login_required=True)
-def data_file(current_user: models.User, data_path_id: int):
-    if (data_path := db.data_paths.get(data_path_id)) is None:
-        raise exceptions.NotFoundException("DataPath not found")
-    
-    if not current_user.is_insider():
-        if data_path.project is not None:
-            if not db.projects.get_access_type(data_path.project, current_user) < AccessType.VIEW:
-                raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
-        elif data_path.seq_request is not None:
-            if not db.seq_requests.get_access_type(data_path.seq_request, current_user) < AccessType.VIEW:
-                raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
-        elif data_path.library is not None:
-            if not db.libraries.get_access_type(data_path.library, current_user) < AccessType.VIEW:
-                raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
-        else:
-            raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
-    
-    path = Path(runtime.app.share_root) / data_path.path
-    if not path.exists():
-        raise exceptions.NotFoundException("Data file not found")
-    if not path.is_file():
-        raise exceptions.BadRequestException("Data path is not a file")
-    
-    mimetype = mimetypes.guess_type(path)[0] or "application/octet-stream"
-
-    if DEBUG:
-        return send_from_directory(path.parent, path.name, as_attachment=not utils.is_browser_friendly(mimetype), mimetype=mimetype)
-    
-    response = Response()
-    response.headers["Content-Type"] = mimetype
-    if not utils.is_browser_friendly(mimetype):
-        response.headers["Content-Disposition"] = f"attachment; filename={path.name}"
-    response.headers["X-Accel-Redirect"] = path.as_posix().replace(runtime.app.share_root.as_posix(), "/nginx-share/")
-    return response

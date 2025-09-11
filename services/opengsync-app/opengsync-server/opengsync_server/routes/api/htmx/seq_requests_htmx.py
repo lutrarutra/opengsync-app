@@ -498,6 +498,23 @@ def remove_all_libraries(current_user: models.User, seq_request_id: int):
         redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request_id),
     )
 
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def query(current_user: models.User):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    field_name = next(iter(request.form.keys()))
+    word = request.form.get(field_name, default="")
+    
+    results = db.seq_requests.query(name=word)
+
+    return make_response(
+        render_template(
+            "components/search_select_results.html",
+            results=results,
+            field_name=field_name
+        )
+    )
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def table_query(current_user: models.User):

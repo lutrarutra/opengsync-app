@@ -111,7 +111,7 @@ class App(Flask):
         self.config["SESSION_TYPE"] = "redis"
         self.config["SESSION_PERMANENT"] = False
         self.config["SESSION_USE_SIGNER"] = True
-        self.config["SESSION_COOKIE_SECURE"] = True
+        self.config["SESSION_COOKIE_SECURE"] = False # True does not work, at least not without https
         self.config["SESSION_REDIS"] = session_cache
 
         Session(self)

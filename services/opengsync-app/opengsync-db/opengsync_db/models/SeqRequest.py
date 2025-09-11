@@ -266,6 +266,12 @@ class SeqRequest(Base):
             
         return True
     
+    def search_value(self) -> int:
+        return self.id
+    
+    def search_name(self) -> str:
+        return self.name
+    
     def is_editable(self) -> bool:
         return self.status == SeqRequestStatus.DRAFT
     

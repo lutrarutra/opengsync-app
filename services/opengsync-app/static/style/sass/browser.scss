@@ -1,9 +1,14 @@
 .file-browser {
     font-family: Arial, sans-serif;
     margin: 0px;
+    padding-bottom: 20px !important;
 
     table {
         width: 100%; border-collapse: collapse;
+        thead {
+            position: sticky;
+            top: 0;
+        }
     }
     th, td {
         padding: 8px; text-align: left; border-bottom: 1px solid #ddd;
