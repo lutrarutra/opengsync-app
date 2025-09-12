@@ -1,7 +1,7 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 
 {% macro search_select_field(field, query_url, class="") -%}
-<div class="form-group search-select {{ class }}">
+<div class="form-group search-select {{ class }}" id="{{ field.name }}-container">
     <a {% if field.description %}
     {{ tooltip(field.description, "top") }}
     {% endif %}>
@@ -10,16 +10,21 @@
     <div class="input-group">
         <input class="input-group-text searchbar-data"
         type="number" value="{{ field.selected.data if field.selected.data }}"
-        id="{{ field.name }}" name="{{ field.name }}-selected" readonly>
-        <input type="search" autocomplete="off"
+        id="{{ field.name }}" name="{{ field.name }}-selected" readonly
+        {% if field.optional %} placeholder="Optional" {% endif %}>
+        <input type="text" autocomplete="off"
         class="form-control searchbar-input search-component {% if field.selected.errors %} is-invalid {% endif %}"
         value="{{ field.search_bar.data if field.search_bar.data else '' }}"
         name="{{ field.name }}-search" id="{{ field.name }}-search"
+        data-field="{{ field.name }}"
         hx-include="#{{ field.name }}-search" hx-target="#{{ field.name }}-results"
         hx-trigger="keyup changed delay:500ms, {{ field.name }}, change{% if not results is defined or not results %}, load{% endif %}" 
         hx-post="{{ query_url}}"
         hx-swap="innerHTML"
         placeholder="Search">
+        <span id="{{ field.name }}-selected_bar" class="form-control selected-bar" style="display: none;" data-field="{{ field.name }}"></span>
+        <button class="btn btn-outline-secondary clear-search-btn" type="button"
+        data-field="{{ field.name }}">Clear</button>
     </div>
     <div class="search-select-results-container">
         <div id="{{ field.name }}-results" class="search-select-results" style="display: none; width: 100%; z-index: 100;">
@@ -35,23 +40,4 @@
     </div>
     {{ field.csrf_token() }}
 </div>
-<script>
-    init_tooltips();
-    // Shows search results when user focuses on search component
-    $("#{{ field.name }}-search:not(.disabled)").on("focus", function() {
-        $("#{{ field.name }}-results").css("display", "block");
-        this.select();
-        $(this).parent().addClass("active");
-    });
-
-    $("#{{ field.name }}-search:not(.disabled)").on("focusout", function() {
-        $(this).parent().removeClass("active");
-    });
-
-    $("#{{ field.name }}-search").on("change", function() {
-        if ($(this).val() === "") {
-            $("#{{ field.name }}").val("");
-        }
-    });
-</script>
 {%- endmacro %}

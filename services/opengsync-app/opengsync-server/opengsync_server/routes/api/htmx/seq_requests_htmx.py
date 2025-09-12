@@ -510,7 +510,7 @@ def query(current_user: models.User):
 
     return make_response(
         render_template(
-            "components/search_select_results.html",
+            "components/search/seq_request.html",
             results=results,
             field_name=field_name
         )

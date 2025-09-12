@@ -46,6 +46,23 @@ def get(page: int = 0):
     )
 
 
+@wrappers.htmx_route(index_kits_htmx, db=db, methods=["POST"])
+def query():
+    field_name = next(iter(request.form.keys()))
+    if (word := request.form.get(field_name, default="")) is None:
+        raise exceptions.BadRequestException()
+            
+    results = db.index_kits.query(word)
+
+    return make_response(
+        render_template(
+            "components/search/index_kit.html",
+            results=results,
+            field_name=field_name
+        )
+    )
+
+
 @wrappers.htmx_route(index_kits_htmx, db=db)
 def table_query():
     if (word := request.args.get("name")) is not None:

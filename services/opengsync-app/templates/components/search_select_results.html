@@ -2,10 +2,11 @@
     {% if results is defined and results and (results | length > 0) %}
     {% for res in results %}
     <li {% if loop.last %} class="last" {% endif %}>
-        <a id="option-{{ field_name}}-{{ loop.index }}"
+        <a id="option-{{ field_name }}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
-        value="{{ res.search_value() }}"
-        onclick="select_option('{{ res.search_name().replace('\'', '') }}', '{{ res.search_value() }}', '{{ field_name }}');"
+        data-field="{{ field_name }}"
+        data-value="{{ res.search_value() }}"
+        data-name="{{ res.search_name() }}"
         aria-controls="{{ field_name }}">
             <span class="search-select-name {{ res.name_class() }}">{{ res.search_name() }}</span>
             {% if res.show_value() %}

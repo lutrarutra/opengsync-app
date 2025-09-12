@@ -182,6 +182,7 @@ class App(Flask):
             return dict(
                 current_query=None,
                 path_list=[],
+                context={}
             )
 
         @self.context_processor
@@ -269,6 +270,7 @@ class App(Flask):
         self.register_blueprint(api.workflows.relib_workflow)
         self.register_blueprint(api.workflows.share_project_data_workflow)
         self.register_blueprint(api.workflows.billing_workflow)
+        self.register_blueprint(api.workflows.check_barcode_constraints_workflow)
 
         self.register_blueprint(pages.samples_page_bp)
         self.register_blueprint(pages.projects_page_bp)

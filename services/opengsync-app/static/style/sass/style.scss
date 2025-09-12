@@ -15,6 +15,7 @@
 @import "banner.scss";
 @import "form.scss";
 @import "browser.scss";
+@import "components.scss";
 
 body.waiting,
 body.waiting * {
@@ -474,67 +475,6 @@ span.id-desc::after {
         color: $danger;
         font-size: 14px;
     }
-}
-
-.search-select {
-    position: relative;
-
-    .active {
-        .searchbar-data {
-            border-bottom-left-radius: 0;
-        }
-        .searchbar-input {
-            border-bottom-right-radius: 0;
-            box-shadow: none !important;
-        }
-        box-shadow: 0 .125rem .25rem rgba($black, .075);
-    }
-
-    .input-group {
-        display: flex;
-
-        .searchbar-data {
-            width: 20%;
-        }
-        .searchbar-input {
-            flex-grow: 1;
-        }
-    }
-
-    .search-select-results-container {
-        position: relative;
-        padding: 0;
-    }
-
-    .search-select-results {
-        position: absolute;
-        width: 100%;
-
-        ul {
-            list-style: none;
-            li {
-                height: 40px;
-                text-decoration: none;
-            }
-            li:hover {
-                background-color: $gray-400 !important;
-                cursor: pointer;
-            }
-            li.last {
-                border-bottom-left-radius: 5px;
-                border-bottom-right-radius: 5px;
-            }
-        }
-    }
-}
-
-.search-select-value {
-    font-weight: 600;
-}
-.search-select-desc {
-    color: $gray-500;
-    white-space: nowrap;
-    overflow: hidden;
 }
 
 

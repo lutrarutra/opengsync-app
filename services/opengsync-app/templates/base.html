@@ -258,45 +258,12 @@
     <script src="{{ url_for('static', filename='js/confirm_close.js') }}"></script>
     <script src="{{ url_for('static', filename='js/flask-table.js') }}"></script>
     <script src="{{ url_for('static', filename='js/colors.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/cookie.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
 
     <script type="text/javascript">
-        // TODO: is this needed?
-        $("tr[data-href]").on("click", function(event) {
-            window.location.href = this.dataset.href;
-        });
-
         $(document).ready(function() {
             init_tooltips();
-        });
-
-        $("#cookie-toast .btn-close").on("click", function() {
-            localStorage.setItem("cookies_accepted", "true");
-            $("#cookie-toast").hide();
-        });
-
-        $(document).ready(function() {
-            if (!localStorage.getItem("cookies_accepted")) {
-                $("#cookie-toast").show();
-            }
-        });
-        
-        function redirect(url) {
-            document.location.href = url;
-        }
-
-        document.addEventListener("DOMContentLoaded", function () {
-            var hash = window.location.hash;
-            if (!hash) {
-                const params = new URLSearchParams(window.location.search);
-                hash = "#" + params.get("tab");
-            }
-            if (hash) {
-                const trigger = document.querySelector(`button[data-bs-target="${hash}"]`);
-                if (trigger) {
-                    const tab = new bootstrap.Tab(trigger);
-                    tab.show();
-                }
-            }
         });
 
         $(document).on('click', 'button[hx-post], button[hx-get], button[hx-delete], .submit-form-btn', function () {
@@ -324,16 +291,6 @@
             }
         });
 
-        document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(button => {
-            button.addEventListener('shown.bs.tab', function (event) {
-                const hash = event.target.getAttribute('data-bs-target');
-                if (hash) {
-                    history.replaceState(null, null, hash);
-                }
-            });
-        });
-
-
         // right click menu
         $(document).on("click", "#right-click-bg", function(e) {
             $("#copy-edit-menu").css({
@@ -343,6 +300,7 @@
                 display: "none"
             });
         });
+
         $(document).keyup(function(e) {
             if (e.key === "Escape") {
                 $("#copy-edit-menu").css({

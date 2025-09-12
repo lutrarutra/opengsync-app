@@ -1,6 +1,7 @@
 from pathlib import Path
-
 from dataclasses import dataclass
+
+from sqlalchemy import orm
 
 from opengsync_db import models, DBHandler
 
@@ -29,7 +30,7 @@ class FileBrowser:
             counter = 0
             paths: list[BrowserPath] = []
             for path in full_path.iterdir():
-                if offset is not None and counter < offset:
+                if offset:
                     offset -= 1
                     continue
                 
@@ -39,7 +40,15 @@ class FileBrowser:
                 paths.append(BrowserPath(
                     path=path,
                     rel_path=path.relative_to(self.root_dir),
-                    data_paths=self.db.data_paths.find(path=path.relative_to(self.root_dir).as_posix(), limit=None)[0]
+                    data_paths=self.db.data_paths.find(
+                        path=path.relative_to(self.root_dir).as_posix(), limit=None,
+                        options=[
+                            orm.joinedload(models.DataPath.project),
+                            orm.joinedload(models.DataPath.seq_request),
+                            orm.joinedload(models.DataPath.library),
+                            orm.joinedload(models.DataPath.experiment),
+                        ]  # type: ignore
+                    )[0]
                 ))
 
                 counter += 1

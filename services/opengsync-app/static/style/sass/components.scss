@@ -1,0 +1,92 @@
+@import "colors.scss";
+
+.search-select {
+    position: relative;
+
+    .active {
+        .searchbar-input, .selected-bar {
+            border-radius: 0;
+        }
+        .searchbar-data {
+            border-bottom-left-radius: 0;
+        }
+        .searchbar-input {
+            box-shadow: none !important;
+        }
+        .clear-search-btn {
+            border-bottom-right-radius: 0;
+        }
+        box-shadow: 0 .125rem .25rem rgba($black, .075);
+    }
+
+    .input-group {
+        display: flex;
+        justify-content: space-between;
+
+        .searchbar-data {
+            width: min(max(80px, 20%), 150px);
+        }
+        .searchbar-input, .selected-bar {
+            flex-grow: 3;
+        }
+        .selected-bar {
+            background-color: white;
+        }
+        .selected-bar:hover {
+            cursor: pointer;
+        }
+        .clear-search-btn {
+            width: 65px;
+        }
+    }
+
+    .search-select-results-container {
+        position: relative;
+        padding: 0;
+
+        .search-select-results {
+            position: absolute;
+            width: 100%;
+            max-height: 250px;
+            overflow-y: auto;
+
+            ul {
+                list-style: none;
+                li {
+                    height: 40px;
+                    text-decoration: none;
+                }
+                li:hover {
+                    background-color: $gray-400 !important;
+                    cursor: pointer;
+                }
+                li.last {
+                    border-bottom-left-radius: 5px;
+                    border-bottom-right-radius: 5px;
+                }
+            }
+
+            .search-select-option, .selected-bar {
+                display: flex;
+                
+                .search-select-header {
+                    font-weight: 600;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    width: 100px;
+                }
+                .search-select-name {
+                    flex-grow: 1;
+                    padding-right: 10px;
+                }
+                .search-select-desc {
+                    color: $gray-500;
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
+            }
+        }
+    }
+
+}

@@ -57,7 +57,7 @@ def query(current_user: models.User):
     groups = db.groups.query(name=query, user_id=user_id)
     return make_response(
         render_template(
-            "components/search_select_results.html",
+            "components/search/group.html",
             results=groups, field_name=field_name,
         )
     )

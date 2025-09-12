@@ -48,3 +48,6 @@ class IndexKit(Kit):
     def __repr__(self) -> str:
         return self.__str__()
     
+    def search_name(self) -> str:
+        return f"{self.name} [{self.type.name}]"
+    

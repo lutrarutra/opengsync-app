@@ -66,6 +66,7 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
         self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)
 
         sample_table = pd.DataFrame(sample_data)
+        sample_table = sample_table.drop_duplicates().reset_index(drop=True)
         sample_table["sample_id"] = None
         if (project_id := self.metadata.get("project_id")) is not None:
             if (project := db.projects.get(project_id)) is None:

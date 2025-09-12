@@ -2,7 +2,7 @@
 {% from 'components/search_select.jinja2' import search_select_field %}
 
 
-<div class="modal-content">
+<div class="modal-content" id="project-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Project</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -31,11 +31,11 @@
         <div class="footer-controls">
             {% if form.form_type == "edit" %}
             <button id="submit-project-btn" class="btn btn-success"
-            hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
+            hx-include="#project-form" hx-target="#project-form-container" hx-swap="outerHTML"
             hx-post="{{ url_for('projects_htmx.edit', project_id=form.project.id) }}">Submit</button>
             {% else %}
             <button id="submit-project-btn" class="btn btn-success"
-            hx-include="#project-form" hx-target="#project-form" hx-swap="outerHTML"
+            hx-include="#project-form" hx-target="#project-form-container" hx-swap="outerHTML"
             hx-post="{{ url_for('projects_htmx.create') }}">Submit</button>
             {% endif %}
         </div>

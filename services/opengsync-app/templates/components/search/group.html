@@ -1,0 +1,20 @@
+<ul class="list-group search-component">
+    {% if results is defined and results %}
+    {% for res in results %}
+    <li {% if loop.last %} class="last" {% endif %}>
+        <a id="option-{{ field_name }}-{{ loop.index }}"
+        class="list-group-item search-component search-select-option"
+        data-field="{{ field_name }}"
+        data-value="{{ res.id }}"
+        aria-controls="{{ field_name }}">
+            <span class="search-select-name">{{ res.name }}</span>
+            <span class="search-select-desc">({{ res.type.name }} {{ res.type.icon }})</span>
+        </a>
+    </li>
+    {% endfor %}
+    {% else %}
+    <li class="last">
+        <a class="list-group-item disabled">No results...</a>
+    </li>
+    {% endif %}
+</ul>
