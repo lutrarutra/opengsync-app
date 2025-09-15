@@ -1,8 +1,8 @@
 import math
-from typing import Optional, Callable
+from typing import Optional, Callable, Iterable
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import Query, interfaces
 from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT

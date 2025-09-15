@@ -110,16 +110,23 @@ def files(current_user: models.User, subpath: Path = Path(), page: int = 0):
     if isinstance(subpath, str):
         subpath = Path(subpath)
 
+    sort_by = request.args.get("sort_by", "name")
+    sort_order = request.args.get("sort_order", "asc" if sort_by == "name" else "desc")
+
     PAGE_LIMIT = 20
 
     browser = FileBrowser(runtime.app.share_root, db=db)
-    paths = browser.list_contents(subpath, limit=PAGE_LIMIT, offset=page * PAGE_LIMIT)
+    paths = browser.list_contents(
+        subpath, limit=PAGE_LIMIT, offset=page * PAGE_LIMIT,
+        sort_by=sort_by, sort_order=sort_order,  # type: ignore
+    )
 
     return make_response(render_template(
         "components/tables/files-body.html",
         paths=paths,
         current_path=subpath,
         parents_dir=subpath.parent if subpath != Path() else None,
-        limit=PAGE_LIMIT, current_page=page
+        limit=PAGE_LIMIT, current_page=page,
+        sort_by=sort_by, sort_order=sort_order,
     ))
 

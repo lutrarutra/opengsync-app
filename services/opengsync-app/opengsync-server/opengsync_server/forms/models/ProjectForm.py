@@ -140,7 +140,7 @@ class ProjectForm(HTMXFlaskForm):
     
     def __create_new_project(self, user_id: int) -> Response:
         project = db.projects.create(
-            identifier=self.identifier.data,
+            identifier=self.identifier.data if self.identifier.data else None,
             title=self.title.data,  # type: ignore
             description=self.description.data,  # type: ignore
             owner_id=user_id,
@@ -159,7 +159,7 @@ class ProjectForm(HTMXFlaskForm):
             logger.error("Project is not set for update.")
             raise ValueError("Project is not set for update.")
 
-        self.project.identifier = self.identifier.data
+        self.project.identifier = self.identifier.data if self.identifier.data else None
         self.project.title = self.title.data  # type: ignore
         self.project.description = self.description.data
         self.project.status = ProjectStatus.get(self.status.data)

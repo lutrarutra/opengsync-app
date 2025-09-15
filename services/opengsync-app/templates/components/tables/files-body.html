@@ -7,7 +7,7 @@
         {% if browser_path.path.is_file() %}
         <i class="bi bi-file-earmark"></i> {{ browser_path.path.name }}
         {% else %}
-        <a href="{{ url_for('browser_page.files', subpath=(current_path / browser_path.path.name) if current_path else browser_path.path.name) }}">
+        <a href="{{ url_for('browser_page.files', subpath=(current_path / browser_path.path.name) if current_path else browser_path.path.name, sort_by=sort_by, sort_order=sort_order) }}">
             <i class="bi bi-archive"></i> {{ browser_path.path.name }}/
         </a>
         {% endif %}
@@ -33,7 +33,7 @@
 </tr>
 {% endfor %}
 {% if limit == paths | length %}
-<tr hx-get="{{ url_for('files_htmx.files', subpath=current_path, page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+<tr hx-get="{{ url_for('files_htmx.files', subpath=current_path, page=current_page + 1, sort_by=sort_by, sort_order=sort_order) }}" hx-trigger="intersect once" hx-swap="outerHTML">
     <td colspan="4">{{ spinner() }}</td>
 </tr>
 {% endif %}

@@ -637,6 +637,41 @@ class PandasBP(DBBlueprint):
         df["type"] = df["type_id"].map(categories.FeatureType.get)  # type: ignore
 
         return df
+    
+
+    @DBBlueprint.transaction
+    def get_project_features(self, project_id: int) -> pd.DataFrame:
+        query = sa.select(
+            models.Feature.name.label("feature"), models.Feature.identifier.label("identifier"),
+            models.Feature.sequence.label("sequence"), models.Feature.pattern.label("pattern"), models.Feature.read.label("read"),
+            models.Feature.type_id.label("type_id"), models.Feature.target_name.label("target_name"), models.Feature.target_id.label("target_id"),
+            models.Library.sample_name.label("sample_pool"),
+            models.FeatureKit.identifier.label("kit")
+        ).where(
+            sa.exists().where(
+                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                (models.Sample.project_id == project_id) &
+                (models.Library.type_id.in_([
+                    categories.LibraryType.TENX_SC_ABC_FLEX.id,
+                    categories.LibraryType.TENX_ANTIBODY_CAPTURE.id
+                ]))
+            )
+        ).join(
+            models.links.LibraryFeatureLink,
+            models.links.LibraryFeatureLink.library_id == models.Library.id
+        ).join(
+            models.Feature,
+            models.Feature.id == models.links.LibraryFeatureLink.feature_id
+        ).outerjoin(
+            models.FeatureKit,
+            models.FeatureKit.id == models.Feature.feature_kit_id,
+        )
+
+        df = pd.read_sql(query, self.db._engine)
+        df["type"] = df["type_id"].map(categories.FeatureType.get)  # type: ignore
+
+        return df
 
     @DBBlueprint.transaction
     def get_project_samples(self, project_id: int, with_libraries: bool = False, pivot: bool = True) -> pd.DataFrame:

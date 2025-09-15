@@ -65,7 +65,7 @@
             <tr>
                 <th scope="row">{{ library.id }}</th>
                 <td class="library-name-cell" id="library-name-cell-{{library.id}}" data-id="{{ library.id }}"><a href="{{ url_for('libraries_page.library', library_id=library.id, from='lab_prep@' + lab_prep.id | string) }}">
-                    {{ library.name }}
+                    {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
                 </a></td>
                 <td>
                     <span {{ tooltip(library.type.name) }}>

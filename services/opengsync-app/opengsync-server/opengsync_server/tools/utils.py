@@ -1,4 +1,3 @@
-import os
 from typing import Optional, Union, TypeVar, Sequence, Callable, get_type_hints, Literal, get_origin, get_args
 from types import NoneType, UnionType
 from pathlib import Path
@@ -543,3 +542,51 @@ def filter_subpaths(paths: list[str]) -> list[str]:
             filtered_paths.append(path)
     
     return filtered_paths
+
+
+def check_index_constraints(indices: list[str], must_have_bases: list[str] = ['T', 'C']) -> bool:    
+    bases = set([c.upper() for c in must_have_bases])
+
+    if len(indices) == 0:
+        raise ValueError("At least one index must be provided")
+    
+    l = len(indices[0])
+    for index in indices:
+        if len(index) != l:
+            raise ValueError("All indices must have the same length")
+
+    for idx in range(l):
+        pass_contstraints = False
+        for index in indices:
+            if index[idx] in bases:
+                pass_contstraints = True
+                break
+            
+        if not pass_contstraints:
+            return False
+        
+    return True
+
+
+def generate_valid_combinations(
+    indices: list[str], additional_indices: list[str], must_have_bases: list[str] = ["A", "G"],
+    max_iterations: int = 100_000, max_suggestions: int = 20, min_samples: int | None = None
+) -> list[list[str]]:        
+    if indices and check_index_constraints(indices, must_have_bases):
+        return []
+    
+    res = []
+    i = 0
+
+    for n in range(min_samples or 1, len(additional_indices) + 1):
+        for perm in itertools.permutations(additional_indices, n):
+            t = indices + list(perm)
+            if check_index_constraints(t, must_have_bases):
+                res.append(perm)
+                if len(res) >= max_suggestions:
+                    return res
+            i += 1
+            if i > max_iterations:
+                return res
+    
+    return res

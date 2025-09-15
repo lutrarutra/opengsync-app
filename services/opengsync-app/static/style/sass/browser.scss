@@ -8,6 +8,10 @@
         thead {
             position: sticky;
             top: 0;
+            th.sortable-col {
+                a i {
+                }
+            }
         }
     }
     th, td {

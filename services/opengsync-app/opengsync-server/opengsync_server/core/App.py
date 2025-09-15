@@ -169,11 +169,6 @@ class App(Flask):
         def inject_uuid():
             return dict(uuid4=uuid4)
 
-        # @self.after_request
-        # def headers(response):
-        #     logger.debug(response.headers)
-        #     return response
-
         from .jfilters import inject_jinja_format_filters
         inject_jinja_format_filters(self)
 
@@ -182,6 +177,12 @@ class App(Flask):
             return dict(
                 current_query=None,
                 path_list=[],
+                context={},
+                sort_by=None,
+                sort_order=None,
+                active_query_field=None,
+                active_page=0,
+                n_pages=None
             )
 
         @self.context_processor
@@ -269,6 +270,7 @@ class App(Flask):
         self.register_blueprint(api.workflows.relib_workflow)
         self.register_blueprint(api.workflows.share_project_data_workflow)
         self.register_blueprint(api.workflows.billing_workflow)
+        self.register_blueprint(api.workflows.check_barcode_constraints_workflow)
 
         self.register_blueprint(pages.samples_page_bp)
         self.register_blueprint(pages.projects_page_bp)

@@ -20,3 +20,4 @@ from .library_remux import library_remux_workflow  # noqa: F401
 from .relib import relib_workflow  # noqa: F401
 from .share_project_data import share_project_data_workflow  # noqa: F401
 from .billing import billing_workflow  # noqa: F401
+from .check_barcode_constraints import check_barcode_constraints_workflow  # noqa: F401

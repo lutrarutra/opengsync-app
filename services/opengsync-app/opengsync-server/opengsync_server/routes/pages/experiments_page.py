@@ -1,9 +1,11 @@
 from flask import Blueprint, render_template, url_for, request
 
+from sqlalchemy import orm
+
 from opengsync_db import models
 from opengsync_db.categories import MediaFileType
 
-from ... import db
+from ... import db, logger
 from ...core import wrappers, exceptions
 experiments_page_bp = Blueprint("experiments_page", __name__)
 
@@ -21,18 +23,22 @@ def experiment(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
 
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.experiments.get(
+        experiment_id, options=[
+            orm.selectinload(models.Experiment.pools),
+            orm.selectinload(models.Experiment.lanes).selectinload(models.Lane.pool_links),
+            orm.selectinload(models.Experiment.media_files),
+        ])  # type: ignore
+    ) is None:
         raise exceptions.NotFoundException()
 
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
 
-    pools, _ = db.pools.find(experiment_id=experiment_id, sort_by="id", descending=True, limit=None)
-
     experiment_lanes: dict[int, list[int]] = {}
-
     all_lanes_qced = len(experiment.lanes) > 0
     flow_cell_ready = len(experiment.lanes) > 0
+    all_pools_qced = len(experiment.pools) > 0
 
     for lane in experiment.lanes:
         all_lanes_qced = all_lanes_qced and lane.is_qced()
@@ -42,21 +48,25 @@ def experiment(current_user: models.User, experiment_id: int):
         for link in lane.pool_links:
             experiment_lanes[lane.number].append(link.pool_id)
 
-    all_pools_laned = len(pools) > 0
+    all_pools_laned = len(experiment.pools) > 0
 
-    qubit_concentration_measured = len(pools) > 0
-    avg_framgnet_size_measured = len(pools) > 0
-    for pool in pools:
+    qubit_concentration_measured = len(experiment.pools) > 0
+    avg_framgnet_size_measured = len(experiment.pools) > 0
+    for pool in experiment.pools:
         laned = False
         for pool_ids in experiment_lanes.values():
             if pool.id in pool_ids:
                 laned = True
                 break
         all_pools_laned = all_pools_laned and laned
+
+        if not pool.is_qced():
+            all_lanes_qced = False
+
         qubit_concentration_measured = qubit_concentration_measured and pool.qubit_concentration is not None
         avg_framgnet_size_measured = avg_framgnet_size_measured and pool.avg_fragment_size is not None
 
-        if not all_pools_laned and not qubit_concentration_measured and not avg_framgnet_size_measured:
+        if not all_pools_laned and not qubit_concentration_measured and not avg_framgnet_size_measured and not all_pools_qced:
             break
     
     can_be_loaded = all_pools_laned and qubit_concentration_measured and avg_framgnet_size_measured
@@ -90,7 +100,7 @@ def experiment(current_user: models.User, experiment_id: int):
         "experiment_page.html",
         experiment=experiment,
         path_list=path_list,
-        pools=pools,
+        pools=experiment.pools,
         experiment_lanes=experiment_lanes,
         selected_sequencer=experiment.sequencer.name,
         selected_user=experiment.operator,
@@ -101,4 +111,5 @@ def experiment(current_user: models.User, experiment_id: int):
         all_lanes_qced=all_lanes_qced,
         flow_cell_ready=flow_cell_ready,
         laning_completed=laning_completed,
+        all_pools_qced=all_pools_qced
     )

@@ -110,7 +110,7 @@ def query(current_user: models.User):
 
     return make_response(
         render_template(
-            "components/search_select_results.html",
+            "components/search/sample.html",
             results=results,
             field_name=field_name
         )
@@ -206,11 +206,8 @@ def table_query(current_user: models.User):
 
     return make_response(
         render_template(
-            template,
-            current_query=word,
-            samples=samples,
-            field_name=field_name,
-            **context
+            template, current_query=word, samples=samples,
+            field_name=field_name, **context
         )
     )
     

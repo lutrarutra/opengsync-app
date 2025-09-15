@@ -138,11 +138,6 @@
         }
 
         $(document).ready(function() {
-            $(document).off("click", ".url-row").on("click", ".url-row", function(e) {
-                if (!$(e.target).hasClass("table-btn")){
-                    redirect($(this).attr("dest"));
-                }
-            });
             $(document).off("contextmenu", ".pool-row").on("contextmenu", ".pool-row", function(e) {
                 e.preventDefault();
                 const x = e.pageX;

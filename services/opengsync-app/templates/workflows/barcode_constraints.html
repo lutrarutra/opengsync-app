@@ -1,0 +1,115 @@
+{% from 'components/form_group.jinja2' import form_group, select_input, switch_input %}
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+{% from "components/search_select.jinja2" import search_select_field %}
+{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
+
+<div id="barcode-constraints-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Check Sequencing Index Constraints</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                data-bs-target="#form-tab-form" type="button" role="tab"
+                aria-controls="form-tab-form" aria-selected="true">
+                Form</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#sequences-tab-form" type="button" role="tab"
+                aria-controls="sequences-tab-form" aria-selected="true">
+                Valid Combinations</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="form-tab-form" role="tabpanel" tabindex="0">
+                {{ 
+                    search_select_field(
+                        form.kit, url_for('index_kits_htmx.query'),
+                    )
+                }}
+                {{ form_group(form.min_samples) }}
+                {{ spreadsheet_input(element=form.spreadsheet) }}
+            </div>
+            <div class="tab-pane fade" id="sequences-tab-form" role="tabpanel" tabindex="1">
+                <div class="row">
+                    {% if form.needed_additions %}
+                    {% for combination in form.needed_additions %}
+                    <h4>Combination {{ loop.index }}</h4>
+                    <ul class="list-group pb-3">
+                        {% for sequence in combination %}
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-1">{{ sequence.well }}</div>
+                                <div class="col-2">{{ sequence.name_i7 }}</div>
+                                <div class="col-3" style="font-family: monospace;">{{ sequence.sequence_i7 }}</div>
+                                <div class="col-2">{{ sequence.name_i5 }}</div>
+                                <div class="col-3" style="font-family: monospace;">{{ sequence.sequence_i5 }}</div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endfor %}
+                    {% else %}
+                    <div class="col-6">
+                        {% for combination in form.needed_additions_i7 %}
+                        <ul class="list-group pb-3">
+                            {% for sequence in combination %}
+                            <li class="list-group-item">{{ sequence }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endfor %}
+                    </div>
+                    <div class="col-6">
+                        {% for combination in form.needed_additions_i5 %}
+                        <ul class="list-group pb-3">
+                            {% for sequence in combination %}
+                            <li class="list-group-item">{{ sequence }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" type="button" id="submit-spreadsheet-btn">
+                Submit
+            </button>
+        </div>
+    </div>
+    <script>
+        $("#submit-spreadsheet-btn").on("click", function() {
+            var data = spread_sheet.getData();
+
+            htmx.ajax("POST", "{{ form.post_url | safe }}", {
+                "target": "#barcode-constraints-form-container",
+                "swap": "outerHTML",
+                "values": {
+                    "spreadsheet": JSON.stringify(data),
+                    "csrf_token": "{{ form._csrf_token }}",
+                    "columns": JSON.stringify(spread_sheet.getHeaders()),
+                    "kit-csrf_token": "{{ form._csrf_token }}",
+                    "kit-selected": $("#kit").val(),
+                    "min_samples": $("#min_samples").val(),
+                },
+            });
+
+            //if ($(this).prop("disabled")) return;
+            //$(this).prop("disabled", true);
+            if (!$(document.body).hasClass("waiting")) {
+                document.body.classList.add("waiting");
+            };
+        });
+    </script>
+</div>

@@ -45,9 +45,8 @@ def query_index_kits():
 
     return make_response(
         render_template(
-            "components/search_select_results.html",
-            results=results,
-            field_name=field_name
+            "components/search/barcode.html",
+            results=results, field_name=field_name
         )
     )
 

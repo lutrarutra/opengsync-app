@@ -22,6 +22,7 @@ class SpreadsheetInput(FlaskForm):
         df: Optional[pd.DataFrame] = None, formdata: Optional[dict] = None,
         allow_new_rows: bool = False, allow_new_cols: bool = False,
         allow_col_rename: bool = False, min_spare_rows: int = 10,
+        can_be_empty: bool = False,
     ):
         super().__init__(formdata=formdata)
         self.columns: dict[str, SpreadSheetColumn] = {}
@@ -29,6 +30,7 @@ class SpreadsheetInput(FlaskForm):
             col.letter = string.ascii_uppercase[len(self.columns)]
             self.add_column(col.label, col)
 
+        self.__df = pd.DataFrame()
         self.style: dict[str, str] = {}
         self._errors: list[str] = []
         self.post_url = post_url
@@ -39,6 +41,8 @@ class SpreadsheetInput(FlaskForm):
         self.allow_col_rename = "true" if allow_col_rename else "false"
         self.min_spare_rows = min_spare_rows if allow_new_rows else 0
         self.col_names = formdata.get("columns") if formdata is not None else None
+        self.can_be_empty = can_be_empty
+
         if self.col_names is not None:
             self.col_names = json.loads(self.col_names).split(",")
         
@@ -59,6 +63,8 @@ class SpreadsheetInput(FlaskForm):
     def raw_data(self) -> list[list]:
         df = pd.DataFrame()
         for col in self.columns.values():
+            if col.label not in self.__df.columns:
+                continue
             if isinstance(col, CategoricalDropDown):
                 df[col.label] = self.__df[col.label].map(col.categories)
             else:
@@ -96,7 +102,7 @@ class SpreadsheetInput(FlaskForm):
         self.__df.columns = [self.col_title_map[col_name] if col_name in self.col_title_map else col_name.lower().replace(" ", "_") for col_name in self.col_names]
         self.__df = self.__df.dropna(how="all")
 
-        if len(self.__df) == 0:
+        if len(self.__df) == 0 and not self.can_be_empty:
             self._errors = ["Spreadsheet is empty.",]
             return False
         

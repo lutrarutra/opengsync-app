@@ -86,3 +86,4 @@ def inject_jinja_format_filters(app: App):
         for old, new in sorted_replacements:
             s = s.replace(old, new)
         return s
+    
