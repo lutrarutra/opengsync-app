@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from datetime import datetime
 
 from .. import logger
@@ -87,3 +89,6 @@ def inject_jinja_format_filters(app: App):
             s = s.replace(old, new)
         return s
     
+    @app.template_filter()
+    def root_name(path: str | Path) -> str:
+        return Path(path).parts[0] if Path(path).parts else ""

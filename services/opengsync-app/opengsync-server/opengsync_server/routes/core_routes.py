@@ -37,16 +37,17 @@ if runtime.app.debug:
 
         project = db.projects[14]
         token = project.share_token.uuid  # type: ignore
-        download_command = render_template("snippets/rclone-copy.sh.j2", token=token)
+        http_command = render_template("snippets/rclone-http.sh.j2", token=token)
+        sync_command = render_template("snippets/rclone-sync.sh.j2", token=token)
+        wget_command = render_template("snippets/wget.sh.j2", token=token)
         style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
 
         browse_link = url_for("file_share.browse", token=token, _external=True)
         seq_requests = db.seq_requests.find(project_id=project.id, limit=None, sort_by="id")[0]
         experiments = db.experiments.find(limit=None, sort_by="id")[0]
         
-
         content = render_template(
-            "email/share-data.html", style=style, download_command=download_command, browse_link=browse_link,
+            "email/share-data.html", style=style, browse_link=browse_link,
             tenx_contents=True,
             author=current_user,
             project=project,
@@ -54,7 +55,10 @@ if runtime.app.debug:
             experiments=experiments,
             internal_access_share=True,
             share_token=project.share_token,
-            share_path_mapping={"ok2": "replaced"}#runtime.app.share_path_mapping
+            share_path_mapping={"ok2": "replaced"},
+            http_command=http_command,
+            sync_command=sync_command,
+            wget_command=wget_command,
         )
 
         content = premailer.transform(content)

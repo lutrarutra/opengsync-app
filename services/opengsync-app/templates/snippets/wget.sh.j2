@@ -1,0 +1,4 @@
+wget -P <target path> \
+    --reject="index.html*" --recursive --level=99 --no-parent \
+    --no-check-certificate -k -e robots=off -nH --cut-dirs=4 \
+    {{ url_for("file_share.rclone", token=token, _external=True) }}

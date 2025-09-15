@@ -109,8 +109,9 @@ class ShareProjectDataForm(HTMXFlaskForm):
         self.project.share_token = share_token
         db.projects.update(self.project)
         
-        download_command = render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid)
-        mount_command = render_template("snippets/rclone-mount.sh.j2", token=share_token.uuid)
+        http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid)
+        sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid)
+        wget_command = render_template("snippets/wget.sh.j2", token=share_token.uuid)
         style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
 
         browse_link = url_for("file_share.browse", token=share_token.uuid, _external=True)
@@ -122,13 +123,15 @@ class ShareProjectDataForm(HTMXFlaskForm):
         experiments = db.experiments.find(project_id=self.project.id, limit=None, sort_by="id")[0]
 
         content = render_template(
-            "email/share-data.html", style=style, download_command=download_command, browse_link=browse_link,
+            "email/share-data.html", style=style, browse_link=browse_link,
             project=self.project, tenx_contents=tenx_contents, library_types=library_types,
             author=None if self.anonymous_send.data else current_user if current_user.is_insider() else None,
             seq_requests=seq_requests, experiments=experiments, share_token=share_token,
             share_path_mapping=runtime.app.share_path_mapping,
             internal_access_share=self.internal_share.data,
-            mount_command=mount_command,
+            sync_command=sync_command,
+            http_command=http_command,
+            wget_command=wget_command,
         )
 
         recipients = [user.email for user in self.selected_users]
