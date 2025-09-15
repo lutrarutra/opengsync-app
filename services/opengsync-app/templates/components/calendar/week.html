@@ -4,15 +4,11 @@
 <div class="calendar-container" id="calendar-week-container">
     <div class="header" style="z-index: 2;">
         <a hx-get="{{ url_for('events_htmx.render_calendar_week', year=prev_year, week=prev_week) }}" hx-target="#calendar-week-container" hx-swap="outerHTML" hx-indicator="#calendar-week-spinner" onclick="hide_calendar()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
-            </svg>
+            <i class="bi bi-chevron-left"></i>
         </a>
         <h5>Week <span {% if week == today.isocalendar().week %}style="color: #0d6efd;"{% endif %}>{{ week }}</span> <span class="desc">{{ year }} {{ month_name}}</span></h5>
         <a hx-get="{{ url_for('events_htmx.render_calendar_week', year=next_year, week=next_week) }}" hx-target="#calendar-week-container" hx-swap="outerHTML" hx-indicator="#calendar-week-spinner" onclick="hide_calendar();">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
-            </svg>
+            <i class="bi bi-chevron-right"></i>
         </a>
     </div>
     <div class="calendar">

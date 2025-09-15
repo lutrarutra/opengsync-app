@@ -182,7 +182,8 @@ class App(Flask):
                 sort_order=None,
                 active_query_field=None,
                 active_page=0,
-                n_pages=None
+                n_pages=None,
+                next=None
             )
 
         @self.context_processor

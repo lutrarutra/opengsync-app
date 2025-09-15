@@ -3,15 +3,11 @@
 <div class="calendar-container" id="calendar-month-container">
     <div class="header" style="z-index: 2;">
         <a hx-get="{{ url_for('events_htmx.render_calendar_month', year=prev_year, month=prev_month) }}" hx-target="#calendar-month-container" hx-swap="outerHTML" hx-indicator="#calendar-month-spinner" onclick="hide_calendar()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
-            </svg>
+            <i class="bi bi-chevron-left"></i>
         </a>
         <h5>{{ year }} {{ month_name }}</h5>
         <a hx-get="{{ url_for('events_htmx.render_calendar_month', year=next_year, month=next_month) }}" hx-target="#calendar-month-container" hx-swap="outerHTML" hx-indicator="#calendar-month-spinner" onclick="hide_calendar();">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
-            </svg>
+            <i class="bi bi-chevron-right"></i>
         </a>
     </div>
     <div class="calendar">
