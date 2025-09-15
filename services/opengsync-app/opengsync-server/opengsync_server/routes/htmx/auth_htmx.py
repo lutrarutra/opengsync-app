@@ -74,14 +74,17 @@ def reset_password_email(current_user: models.User, user_id: int):
     token = user.generate_reset_token(serializer=serializer)
     link = url_for("auth_page.reset_password_page", token=token, _external=True)
 
-    if not mail_handler.send_email(
-        recipients=user.email,
-        subject="OpeNGSync Password Reset",
-        body=render_template("email/password-reset.html", recipient=user, link=link),
-        mime_type="html"
-    ):
+    try:
+        mail_handler.send_email(
+            recipients=user.email,
+            subject="OpeNGSync Password Reset",
+            body=render_template("email/password-reset.html", recipient=user, link=link),
+            mime_type="html"
+        )
+    except Exception as e:
         flash("Failed to send password reset email. Please contact administrator.", "error")
-        logger.error(f"Failed to send password reset email to '{user.email}'")
+        logger.error(f"Failed to send password reset email to '{user.email}':")
+        logger.error(e)
         return make_response(redirect=url_for("users_page.user", user_id=user_id))
 
     flash(f"Password reset email sent to '{user.email}'", "info")

@@ -64,14 +64,17 @@ class RegisterUserForm(HTMXFlaskForm):
 
         link = url_for("auth_page.register", token=token, _external=True)
 
-        if not mail_handler.send_email(
-            recipients=email,
-            subject="OpeNGSync User Registration",
-            body=render_template("email/register-user.html", link=link),
-            mime_type="html"
-        ):
+        try:
+            mail_handler.send_email(
+                recipients=email,
+                subject="OpeNGSync User Registration",
+                body=render_template("email/register-user.html", link=link),
+                mime_type="html"
+            ):
+        except Exception as e:
             self.email.errors = ("Failed to send registration email. Please contact administrator.",)
             logger.error(f"Failed to send registration email to '{email}'")
+            logger.error(e)
             return self.make_response()
 
         flash("Email sent. Check your email for registration link.", "info")
