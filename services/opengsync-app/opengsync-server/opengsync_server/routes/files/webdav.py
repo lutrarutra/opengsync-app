@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, Response, send_from_directory, req
 
 from opengsync_db import models
 
-from ... import db, DEBUG, limiter, logger
+from ... import db, DEBUG, limiter
 from ...core import wrappers, exceptions
 from ...tools import SharedFileBrowser
 from ...core.RunTime import runtime
@@ -49,7 +49,7 @@ def share(token: str, subpath: Path = Path()):
         response.headers["Content-Type"] = mimetype or "application/octet-stream"
         response.headers["Content-Length"] = str(stat.st_size)
         response.headers["Last-Modified"] = browser._format_date(stat.st_mtime)
-        return response  # No body
+        return response
     elif request.method == "PROPFIND":
         depth = request.headers.get("Depth", "1")
         if depth not in ("0", "1", "infinity"):
@@ -58,7 +58,6 @@ def share(token: str, subpath: Path = Path()):
         depth = 0 if depth == "0" else 1
         resources = browser.propfind(subpath, depth=depth)
         xml = render_template("share/webdav.xml", resources=resources)
-        logger.debug(xml)
         response = Response(xml, status=207)
         response.headers["Content-Type"] = "application/xml; charset=utf-8"
         return response

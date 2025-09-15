@@ -25,15 +25,29 @@
 {% include "email/custom/share-internal-access.html" %}
 {% endif %}
 
+<br>
+<hr>
 <p>
-<b>You can download results with following command:</b>
-<div class="code">{{ download_command | highlight_sh | safe }}</div><br>
-<b>Or you can mount the output directory using rclone:</b>
-<div class="code">{{ mount_command | highlight_sh | safe }}</div><br>
-<b>Or you can browse the files:</b><br>
-🔗 <a href="{{ browse_link }}">{{ browse_link }}</a>
+    <b>You can copy the data with one of the following commands:</b>
+    <ul>
+        <li>
+            WebDAV <span class="desc">(Rclone, recommended, fastest)</span>:
+            <div class="code">{{ sync_command | highlight_sh | safe }}</div><br>
+        </li>
+        <li>
+            HTTP <span class="desc">(Rclone)</span>:
+            <div class="code">{{ http_command | highlight_sh | safe }}</div><br>
+        </li>
+        <li>
+            wget <span class="desc">(Use only if rclone is not available)</span>
+            <div class="code">{{ wget_command | highlight_sh | safe }}</div><br>
+        </li>
+    </ul>
+    <b>You can also browse the files at:</b>
+    <ul>
+        <li>🔗 <a href="{{ browse_link }}">{{ browse_link }}</a></li>
+    </ul>
 </p>
-<br><br>
 <hr>
 
 <p>

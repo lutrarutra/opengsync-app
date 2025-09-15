@@ -1,0 +1,8 @@
+rclone sync \
+    ":webdav,url='{{ url_for("webdav.share", token=token, _external=True) }}':/" \
+    <target path> \
+    --progress \
+    --transfers=8 \
+    --checkers=16 \
+    --use-server-modtime \
+    --verbose
