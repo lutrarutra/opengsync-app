@@ -1,9 +1,9 @@
 import os
-from typing import Callable, Literal, TypeVar, Any
+from typing import Callable, Literal, Any, Sequence
 from functools import wraps
 import traceback
 
-from flask import Blueprint, Flask, render_template, flash, request
+from flask import Blueprint, Flask, render_template, flash, request, Response
 from flask_htmx import make_response
 from flask_login import login_required as login_required_f, current_user
 from flask_limiter.errors import RateLimitExceeded
@@ -18,7 +18,6 @@ from ..tools import utils, textgen
 from . import exceptions as serv_exceptions
 from .RunTime import runtime
 
-F = TypeVar("F", bound=Callable[..., Any])  # generic for wrapped functions
 DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
 
 
@@ -47,7 +46,7 @@ def _default_logger(blueprint: Blueprint | Flask, routes, args, kwargs, e: Excep
 def _route_decorator(
     blueprint: Blueprint | Flask,
     route: str | None,
-    methods: list[Literal["GET", "POST", "PUT", "DELETE"]],
+    methods: Sequence[Literal["GET", "POST", "PUT", "DELETE", "PROPFIND", "OPTIONS", "HEAD"]],
     db: DBHandler | None,
     login_required: bool,
     debug: bool,
@@ -60,11 +59,11 @@ def _route_decorator(
     limit: str | None = None,
     limit_exempt: Literal["all", "insider", "user", None] = "insider",
     limit_override: bool = False,
-) -> Callable[[F], F]:
+) -> Callable[[Callable[..., Any]], Response]:
     """Base decorator for all route types."""
     from .. import route_cache, flash_cache, limiter
 
-    def decorator(fnc: F) -> F:
+    def decorator(fnc: Callable[..., Any]) -> Response:
         routes, current_user_required = utils.infer_route(fnc, base=route)
 
         match current_user_required:
@@ -298,7 +297,7 @@ def _resource_handler(e: Exception):
 def page_route(
     blueprint: Blueprint | Flask,
     route: str | None = None,
-    methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
+    methods: Sequence[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
     db: DBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
@@ -310,7 +309,7 @@ def page_route(
     limit: str | None = None,
     limit_exempt: Literal["all", "insider", "user", None] = "insider",
     limit_override: bool = False,
-) -> Callable[[F], F]:
+) -> Callable[[Callable[..., Any]], Response]:
     return _route_decorator(
         blueprint=blueprint,
         route=route,
@@ -333,7 +332,7 @@ def page_route(
 def htmx_route(
     blueprint: Blueprint | Flask,
     route: str | None = None,
-    methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
+    methods: Sequence[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
     db: DBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
@@ -345,7 +344,7 @@ def htmx_route(
     limit: str | None = None,
     limit_exempt: Literal["all", "insider", "user", None] = "insider",
     limit_override: bool = False,
-) -> Callable[[F], F]:
+) -> Callable[[Callable[..., Any]], Response]:
     return _route_decorator(
         blueprint=blueprint,
         route=route,
@@ -368,7 +367,7 @@ def htmx_route(
 def api_route(
     blueprint: Blueprint | Flask,
     route: str | None = None,
-    methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
+    methods: Sequence[Literal["GET", "POST", "PUT", "DELETE", "PROPFIND", "OPTIONS", "HEAD"]] = ["GET"],
     db: DBHandler | None = None,
     login_required: bool = False,
     debug: bool = False,
@@ -380,7 +379,7 @@ def api_route(
     limit: str | None = None,
     limit_exempt: Literal["all", "insider", "user", None] = "insider",
     limit_override: bool = False,
-) -> Callable[[F], F]:
+) -> Callable[[Callable[..., Any]], Response]:
     return _route_decorator(
         blueprint=blueprint,
         route=route,
@@ -403,7 +402,7 @@ def api_route(
 def resource_route(
     blueprint: Blueprint | Flask,
     route: str | None = None,
-    methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
+    methods: Sequence[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"],
     db: DBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
@@ -415,7 +414,7 @@ def resource_route(
     limit: str | None = None,
     limit_exempt: Literal["all", "insider", "user", None] = "insider",
     limit_override: bool = False,
-) -> Callable[[F], F]:
+) -> Callable[[Callable[..., Any]], Response]:
     return _route_decorator(
         blueprint=blueprint,
         route=route,

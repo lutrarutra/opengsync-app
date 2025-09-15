@@ -1,9 +1,27 @@
+import os
 from pathlib import Path
+from dataclasses import dataclass
+from datetime import datetime
 
 from opengsync_db import models, DBHandler
 
-from .. import logger
+from ..core import exceptions
 
+@dataclass
+class DAVProp:
+    name: str
+    value: str
+
+@dataclass
+class DAVPropStat:
+    props: list[DAVProp]
+    status_code: int
+    status_text: str
+
+@dataclass
+class DAVResponse:
+    href: str
+    propstats: list[DAVPropStat]
 
 class SharedFileBrowser:
     def __init__(self, root_dir: Path, db: DBHandler, share_token: models.ShareToken):
@@ -53,3 +71,105 @@ class SharedFileBrowser:
             return False
         except (ValueError, RuntimeError):
             return False
+
+    def propfind(self, subpath: Path = Path(), depth: int = 0) -> list[DAVResponse]:
+        """
+        Handle WebDAV PROPFIND request.
+        Returns list of DAVResponse objects.
+        """
+        if not self._is_safe(subpath):
+            raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+
+        full_path = self.root_dir / subpath
+
+        if not full_path.exists():
+            raise exceptions.NotFoundException("File or directory not found")
+
+        # Prepare list of resources to include based on Depth
+        resources: list[DAVResponse] = []
+
+        # Always include the requested resource
+        target_resource = self._build_resource_props(full_path, subpath, subpath)  # ← requested_subpath = subpath
+        if target_resource:
+            resources.append(target_resource)
+
+        # If Depth: 1 and it's a directory, include children
+        if depth == 1 and full_path.is_dir():
+            for child_path in full_path.iterdir():
+                child_subpath = child_path.relative_to(self.root_dir)
+                if not self._is_safe(child_subpath):
+                    continue
+                child_resource = self._build_resource_props(child_path, child_subpath, subpath)  # ← requested_subpath = original subpath
+                if child_resource:
+                    resources.append(child_resource)
+
+        return resources
+
+    def _build_resource_props(self, fs_path: Path, item_subpath: Path, requested_subpath: Path) -> DAVResponse | None:
+        """Build DAVResponse for a single file/directory"""
+        try:
+            stat = fs_path.stat()
+
+            # ✅ FIX: Compute href relative to requested_subpath
+            try:
+                if requested_subpath in (Path(), Path("/")):
+                    # Client requested root
+                    rel = item_subpath
+                else:
+                    # Compute path relative to requested directory
+                    rel = item_subpath.relative_to(requested_subpath)
+                href = str(rel)
+            except ValueError:
+                # Fallback (shouldn't happen with _is_safe)
+                href = str(item_subpath)
+
+            # Add trailing slash for directories
+            if fs_path.is_dir() and not href.endswith('/'):
+                href += '/'
+
+            props = [
+                DAVProp("displayname", fs_path.name),
+                DAVProp("getlastmodified", self._format_date(stat.st_mtime)),
+            ]
+
+            if fs_path.is_file():
+                props.append(DAVProp("getcontentlength", str(stat.st_size)))
+                props.append(DAVProp("resourcetype", ""))
+            elif fs_path.is_dir():
+                props.append(DAVProp("resourcetype", "<D:collection/>"))
+                props.append(DAVProp("getcontentlength", "0"))
+
+            propstat = DAVPropStat(
+                props=props,
+                status_code=200,
+                status_text="OK"
+            )
+
+            return DAVResponse(
+                href=href,
+                propstats=[propstat]
+            )
+
+        except (OSError, ValueError):
+            return None
+
+    def _format_date(self, timestamp: float) -> str:
+        """Format timestamp as RFC 1123 (HTTP-Date)"""
+        dt = datetime.fromtimestamp(timestamp)
+        return dt.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    
+    def get_file_info(self, subpath: Path) -> tuple[Path, os.stat_result] | None:
+        """Return file path and stat if it's a safe, existing file."""
+        if not self._is_safe(subpath):
+            return None
+
+        full_path = self.root_dir / subpath
+
+        if full_path.is_file():
+            try:
+                stat = full_path.stat()
+                return full_path, stat
+            except OSError:
+                return None
+
+        return None

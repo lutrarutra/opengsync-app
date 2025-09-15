@@ -1,0 +1,1 @@
+rclone mount ":webdav,url='{{ url_for("webdav.share", token=token, _external=True) }}':/" <mount location> --vfs-cache-mode full --read-only --daemon

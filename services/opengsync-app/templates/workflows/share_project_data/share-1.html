@@ -92,9 +92,6 @@
         </div>
     </div>
     <div class="modal-footer">
-        <div class="text-nowrap text-muted footer-id">
-            {{ form.uuid }}
-        </div>
         <div class="footer-info"></div>
         <div class="footer-controls">
             <button type="button" class="btn btn-success" id="submit-select_users-form-btn">
@@ -117,7 +114,6 @@
                 values: {
                     csrf_token: "{{ form._csrf_token }}",
                     selected_user_ids: JSON.stringify(selected_users),
-                    workflow: "{{ workflow }}",
                     project_id: "{{ project.id }}",
                     anonymous_send: $("#anonymous_send").is(":checked"),
                     send_to_owner: $("#send_to_owner").is(":checked"),

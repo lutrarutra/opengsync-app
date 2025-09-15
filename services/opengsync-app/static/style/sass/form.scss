@@ -21,6 +21,37 @@
     }
 }
 
+.form-group {
+    a.clipboard-btn {
+        .not-copied-icon {
+            color: $cemm-blue-darker;
+        }
+        .copied-icon {
+            color: $cemm-green-darker;
+        }
+    }
+    a.clipboard-btn:hover {
+        cursor: pointer;
+    }
+
+    .copyable-input {
+        display: flex;
+        align-items: center;
+        align-content: center;
+        position: relative;
+        .clipboard-btn {
+            position: absolute;
+            right: 10px;
+        }
+    }
+
+    .copyable-input.input-with-unit {
+        .clipboard-btn {
+            right: 80px;
+        }
+    }
+}
+
 .form-check {
     padding: 0 0 0 5px;
     margin: 0;

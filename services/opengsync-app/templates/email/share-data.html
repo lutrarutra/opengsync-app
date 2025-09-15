@@ -27,8 +27,10 @@
 
 <p>
 <b>You can download results with following command:</b>
-<div class="code">{{ download_command | highlight_sh | safe }}</div>
-Or you can browse the files:<br>
+<div class="code">{{ download_command | highlight_sh | safe }}</div><br>
+<b>Or you can mount the output directory using rclone:</b>
+<div class="code">{{ mount_command | highlight_sh | safe }}</div><br>
+<b>Or you can browse the files:</b><br>
 🔗 <a href="{{ browse_link }}">{{ browse_link }}</a>
 </p>
 <br><br>

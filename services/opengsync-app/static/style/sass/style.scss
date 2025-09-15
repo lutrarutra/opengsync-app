@@ -35,6 +35,10 @@ body.waiting * {
                                     supported by Chrome, Edge, Opera and Firefox */
 }
 
+i {
+    text-align: center;
+}
+
 .exception-container {
     font-family: monospace, monospace;
 }
@@ -516,23 +520,7 @@ span.id-desc::after {
 }
 
 .print-window .copyable-input .clipboard-btn {
-    display: none;
-}
-
-.copyable-input {
-    display: flex;
-    position: relative;
-    .clipboard-btn {
-        position: absolute;
-        right: 10px;
-        top: 5px;
-    }
-}
-
-.copyable-input.input-with-unit {
-    .clipboard-btn {
-        right: 80px;
-    }
+    display: none !important;
 }
 
 .h-list {
