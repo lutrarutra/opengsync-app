@@ -1,3 +1,5 @@
+{% from "components/table_col.jinja2" import browser_col %}
+
 {% extends "base.html" %}
 {% set active_page = "browser-page" %}
 {% block content %}
@@ -5,22 +7,40 @@
     <table>
         <thead>
             <tr>
-                <th class="col-6">Name</th>
-                <th class="col-2">Size</th>
-                <th class="col-2">Last Modified</th>
+                {{
+                    browser_col(
+                        "Name", "name", sort_url="browser_page.files",
+                        url_context={"subpath": current_path.as_posix() if current_path else "", },
+                        sort_by=sort_by, sort_order=sort_order, col_size=6
+                    )
+                }}
+                {{
+                    browser_col(
+                        "Size", "size", sort_url="browser_page.files",
+                        url_context={"subpath": current_path.as_posix() if current_path else "", },
+                        sort_by=sort_by, sort_order=sort_order, col_size=2
+                    )
+                }}
+                {{
+                    browser_col(
+                        "Last Modified", "mtime", sort_url="browser_page.files",
+                        url_context={"subpath": current_path.as_posix() if current_path else "", },
+                        sort_by=sort_by, sort_order=sort_order, col_size=2
+                    )
+                }}
                 <th class="col-2">Associations</th>
             </tr>
         </thead>
         <tbody>
             {% if current_path.parts %}
             <tr>
-                <td><a href="{{ url_for('browser_page.files', subpath=parent_dir if parent_dir else '') }}">../</a></td>
+                <td><a href="{{ url_for('browser_page.files', subpath=parent_dir if parent_dir else '', sort_by=sort_by, sort_order=sort_order) }}">../</a></td>
                 <td>-</td>
                 <td>-</td>
                 <td>-</td>
             </tr>
             {% endif %}
-            <tr hx-get="{{ url_for('files_htmx.files', subpath=current_path) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <tr hx-get="{{ url_for('files_htmx.files', subpath=current_path, sort_by=sort_by, sort_order=sort_order) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 <td colspan="4">{{ spinner() }}</td>
             </tr>
         </tbody>

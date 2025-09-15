@@ -1,0 +1,50 @@
+{% from "components/search_select.jinja2" import search_select_field %}
+{% from 'components/metadata_group.jinja2' import metadata_group %}
+
+<div id="associate-path-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Associate Path</h1>
+        <button type="button" class="btn-close" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body">
+        <div id="associate-path-form">
+            {{ form.csrf_token() }}
+            {{ metadata_group("Path", form.path.as_posix()) }}
+            {{ 
+                search_select_field(
+                    form.project,
+                    url_for('projects_htmx.query'),
+                )
+            }}
+            {{ 
+                search_select_field(
+                    form.experiment,
+                    url_for('experiments_htmx.query'),
+                )
+            }}
+            {{ 
+                search_select_field(
+                    form.seq_request,
+                    url_for('seq_requests_htmx.query'),
+                )
+            }}
+            {{
+                search_select_field(
+                    form.library,
+                    url_for('libraries_htmx.query'),
+                )
+            }}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+                hx-target="#associate-path-form-container" hx-swap="outerHTML" hx-include="#associate-path-form"
+                hx-post="{{ form.post_url | safe }}">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>

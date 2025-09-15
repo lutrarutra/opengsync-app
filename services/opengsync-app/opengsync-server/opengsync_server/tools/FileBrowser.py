@@ -1,5 +1,6 @@
 from pathlib import Path
 from dataclasses import dataclass
+from typing import Literal
 
 from sqlalchemy import orm
 
@@ -19,17 +20,45 @@ class FileBrowser:
 
     def list_contents(
         self, subpath: Path = Path(),
-        limit: int | None = None, offset: int | None = None
+        limit: int | None = None, offset: int | None = None,
+        sort_by: Literal["name", "size", "mtime"] | None = "name",
+        sort_order: Literal["asc", "desc"] = "asc"
     ) -> list[BrowserPath]:
         if not self._is_safe(subpath):
             return []
         
         full_path = self.root_dir / subpath
+
+        def sort_by_name(p: Path):
+            return p.name.lower()
+        
+        def sort_by_size(p: Path):
+            try:
+                return p.stat().st_size
+            except (FileNotFoundError, PermissionError):
+                return -1
+        
+        def sort_by_mtime(p: Path):
+            try:
+                return p.stat().st_mtime
+            except (FileNotFoundError, PermissionError):
+                return -1
+
+        match sort_by:
+            case "name":
+                key_func = sort_by_name
+            case "size":
+                key_func = sort_by_size
+            case "mtime":
+                key_func = sort_by_mtime
+            case _:
+                key_func = sort_by_name
         
         if full_path.exists() and full_path.is_dir():
             counter = 0
             paths: list[BrowserPath] = []
-            for path in full_path.iterdir():
+            dir_paths = sorted(list(full_path.iterdir()), key=key_func, reverse=(sort_order == "desc"))
+            for path in dir_paths:
                 if offset:
                     offset -= 1
                     continue

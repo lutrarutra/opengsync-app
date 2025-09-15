@@ -9,7 +9,7 @@
         aria-controls="{{ field_name }}">
             <span class="search-select-header">{{ res.identifier or "" }}</span>
             <span class="search-select-name">{{ res.title }}</span>
-            <span class="search-select-desc">({{ res.status.name }} {{ res.status.icon }})</span>
+            <span class="search-select-desc">{{ res.status.name }} {{ res.status.icon }}</span>
         </a>
     </li>
     {% endfor %}

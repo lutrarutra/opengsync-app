@@ -8,7 +8,7 @@
         data-value="{{ res.id }}"
         aria-controls="{{ field_name }}">
             <span class="search-select-name">{{ res.name }}{% if res.clone_number > 0 %}<sup class="clone-number">(re:{{ res.clone_number }})</sup>{% endif %}</span>
-            <span class="search-select-desc">({{ res.type.abbreviation }}{% if res.mux_type %}<sup class="mux-type">[{{ res.mux_type.abbreviation }}]</sup>{% endif %}{% if res.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %})</span>
+            <span class="search-select-desc">{{ res.type.abbreviation }}{% if res.mux_type %}<sup class="mux-type">[{{ res.mux_type.abbreviation }}]</sup>{% endif %}{% if res.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}</span>
         </a>
     </li>
     {% endfor %}

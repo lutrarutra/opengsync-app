@@ -191,7 +191,11 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
         else:
             status = RunStatus.RUNNING
         
-        parsed_data = parse_run_folder(run_folder)
+        try:
+            parsed_data = parse_run_folder(run_folder)
+        except Exception as e:
+            logger.warning(f"Failed to parse run folder '{run_folder}': \n{e}")
+            continue
 
         started = parsed_data.pop("started")
         

@@ -8,7 +8,7 @@
         data-value="{{ res.id }}"
         aria-controls="{{ field_name }}">
             <span class="search-select-name">{{ res.name }}</span>
-            <span class="search-select-desc">({{ res.model.manufacturer }} {{ res.model.name }})</span>
+            <span class="search-select-desc">{{ res.model.manufacturer }} {{ res.model.name }}</span>
         </a>
     </li>
     {% endfor %}

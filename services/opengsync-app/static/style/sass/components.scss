@@ -3,6 +3,23 @@
 .search-select {
     position: relative;
 
+    .search-select-header {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100px;
+    }
+    .search-select-name {
+        flex-grow: 1;
+        padding-right: 10px;
+    }
+    .search-select-desc {
+        color: $gray-500;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
     .active {
         .searchbar-input, .selected-bar {
             border-radius: 0;
@@ -31,6 +48,7 @@
         }
         .selected-bar {
             background-color: white;
+            justify-content: space-between;
         }
         .selected-bar:hover {
             cursor: pointer;
@@ -68,25 +86,7 @@
 
             .search-select-option, .selected-bar {
                 display: flex;
-                
-                .search-select-header {
-                    font-weight: 600;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    width: 100px;
-                }
-                .search-select-name {
-                    flex-grow: 1;
-                    padding-right: 10px;
-                }
-                .search-select-desc {
-                    color: $gray-500;
-                    white-space: nowrap;
-                    overflow: hidden;
-                }
             }
         }
     }
-
 }

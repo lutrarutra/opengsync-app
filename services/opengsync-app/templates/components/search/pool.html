@@ -7,8 +7,8 @@
         data-field="{{ field_name }}"
         data-value="{{ res.id }}"
         aria-controls="{{ field_name }}">
-            <span class="search-select-name">{{ res.name }}{% if res.clone_number > 0 %}<sup class="clone-number">(re:{{ res.clone_number }})</sup>{% endif %}</span>
-            <span class="search-select-desc">({{ res.type.name }})</span>
+            <span class="search-select-name">{{ res.name }}{% if res.clone_number > 0 %}<sup class="clone-number">(re:{{ res.clone_number }}</sup>{% endif %}</span>
+            <span class="search-select-desc">{{ res.type.name }}</span>
         </a>
     </li>
     {% endfor %}
