@@ -110,6 +110,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
         db.projects.update(self.project)
         
         download_command = render_template("snippets/rclone-copy.sh.j2", token=share_token.uuid)
+        mount_command = render_template("snippets/rclone-mount.sh.j2", token=share_token.uuid)
         style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
 
         browse_link = url_for("file_share.browse", token=share_token.uuid, _external=True)
@@ -126,7 +127,8 @@ class ShareProjectDataForm(HTMXFlaskForm):
             author=None if self.anonymous_send.data else current_user if current_user.is_insider() else None,
             seq_requests=seq_requests, experiments=experiments, share_token=share_token,
             share_path_mapping=runtime.app.share_path_mapping,
-            internal_access_share=self.internal_share.data
+            internal_access_share=self.internal_share.data,
+            mount_command=mount_command,
         )
 
         recipients = [user.email for user in self.selected_users]

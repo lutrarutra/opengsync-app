@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<D:multistatus xmlns:D="DAV:">
+{%- for resource in resources %}
+  <D:response>
+    <D:href>{{ resource.href | e }}</D:href>
+    {%- for propstat in resource.propstats %}
+    <D:propstat>
+      <D:prop>
+        {%- for prop in propstat.props %}
+        <D:{{ prop.name }}>{{ prop.value | safe }}</D:{{ prop.name }}>
+        {%- endfor %}
+      </D:prop>
+      <D:status>HTTP/1.1 {{ propstat.status_code }} {{ propstat.status_text }}</D:status>
+    </D:propstat>
+    {%- endfor %}
+  </D:response>
+{%- endfor %}
+</D:multistatus>
