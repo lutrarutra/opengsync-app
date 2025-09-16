@@ -1,19 +1,13 @@
 import json
-import smtplib
-import os
 
-import premailer
-from flask import Response, url_for, flash, render_template
-from flask_htmx import make_response
-from wtforms import StringField, BooleanField, SelectField
+from flask import url_for
+from wtforms import StringField
 from wtforms.validators import DataRequired
 
 from opengsync_db import models
-from opengsync_db.categories import AccessType, LibraryType
 
-from .... import db, logger, mail_handler
-from ....tools import utils
-from ....core import exceptions, runtime
+from .... import db
+from ....core import exceptions
 from ...HTMXFlaskForm import HTMXFlaskForm
 
 

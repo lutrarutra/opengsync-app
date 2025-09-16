@@ -2,7 +2,6 @@ import json
 import smtplib
 import os
 
-import premailer
 from flask import Response, url_for, flash, render_template
 from flask_htmx import make_response
 from wtforms import StringField, BooleanField, SelectField
@@ -135,8 +134,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
         )
 
         recipients = [user.email for user in self.selected_users]
-        content = premailer.transform(content)
-
+        
         try:
             mail_handler.send_email(
                 recipients=recipients,

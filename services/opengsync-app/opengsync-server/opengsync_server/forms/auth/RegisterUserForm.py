@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from flask import flash, url_for, Response, render_template
 from flask_htmx import make_response
 from wtforms import EmailField, SelectField
@@ -28,10 +30,11 @@ class RegisterUserForm(HTMXFlaskForm):
             self.email.errors = ("Email is required.",)
             return False
         
-        if runtime.app.email_domain_white_list is not None:
-            if self.email.data.split("@")[-1] not in runtime.app.email_domain_white_list:
-                self.email.errors = ("Specified email domain is not allowed. Please contact us.",)
-                return False
+        if user is None or not user.is_insider():
+            if runtime.app.email_domain_white_list is not None:
+                if self.email.data.split("@")[-1] not in runtime.app.email_domain_white_list:
+                    self.email.errors = ("Specified email domain is not allowed. Please contact us.",)
+                    return False
         
         if db.users.get_with_email(self.email.data):  # type: ignore
             self.email.errors = ("Email already registered.",)
@@ -61,20 +64,21 @@ class RegisterUserForm(HTMXFlaskForm):
         user_role = UserRole.get(self.role.data)
 
         token = models.User.generate_registration_token(email=email, role=user_role, serializer=serializer)
-
+        logger.debug(user_role)
         link = url_for("auth_page.register", token=token, _external=True)
+
+        style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
 
         try:
             mail_handler.send_email(
                 recipients=email,
                 subject="OpeNGSync User Registration",
-                body=render_template("email/register-user.html", link=link),
+                body=render_template("email/register-user.html", link=link, style=style),
                 mime_type="html"
-            ):
+            )
         except Exception as e:
             self.email.errors = ("Failed to send registration email. Please contact administrator.",)
-            logger.error(f"Failed to send registration email to '{email}'")
-            logger.error(e)
+            logger.error(f"Failed to send registration email to '{email}': {e}")
             return self.make_response()
 
         flash("Email sent. Check your email for registration link.", "info")
