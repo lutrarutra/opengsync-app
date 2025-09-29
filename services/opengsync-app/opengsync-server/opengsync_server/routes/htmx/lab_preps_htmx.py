@@ -384,8 +384,15 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
                 for sample_link in library.sample_links:
                     sample_num_cell = tenx_table[f"{column_mapping['sample_num']}{i}"]
                     sample_name_cell = tenx_table[f"{column_mapping['sample_name']}{i}"]
+                    library_name_cell = tenx_table[f"{column_mapping['library_name']}{i}"]
+                    library_id_cell = tenx_table[f"{column_mapping['library_id']}{i}"]
+                    requestor_cell = tenx_table[f"{column_mapping['requestor']}{i}"]
+
                     sample_num_cell.value = i - 1
                     sample_name_cell.value = sample_link.sample.name
+                    library_name_cell.value = library.name
+                    library_id_cell.value = library.id
+                    requestor_cell.value = library.seq_request.requestor.name
                     i += 1
             
     bytes_io = io.BytesIO()

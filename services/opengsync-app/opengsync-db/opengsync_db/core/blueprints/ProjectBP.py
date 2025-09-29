@@ -81,7 +81,7 @@ class ProjectBP(DBBlueprint):
         flush: bool = True
     ) -> models.Project:
         if group_id is not None:
-            if self.db.session.get(models.Group, group_id) is not None:
+            if self.db.session.get(models.Group, group_id) is None:
                 raise exceptions.ElementDoesNotExist(f"Group with id {group_id} does not exist")
 
         project = models.Project(

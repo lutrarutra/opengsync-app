@@ -50,7 +50,21 @@ class CommonOligoMuxForm(MultiStepForm):
 
         self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.feature_kits.find(limit=None, sort_by="name", type=FeatureType.CMO)[0]}
 
-        self.multiplexed_samples = CommonOligoMuxForm.__get_multiplexed_samples(self.tables["library_table"])
+        if workflow == "mux_prep":
+            self.index_col = "library_id"
+            if self.lab_prep is None:
+                logger.error("LabPrep must be provided for mux_prep workflow")
+                raise ValueError("LabPrep must be provided for mux_prep workflow")
+
+            self.sample_table = db.pd.get_lab_prep_samples(self.lab_prep.id)
+        elif workflow == "library_annotation":
+            self.index_col = "sample_name"
+            self.sample_table = self.tables["library_table"]
+        else:
+            logger.error(f"Unsupported workflow: {workflow}")
+            raise ValueError(f"Unsupported workflow: {workflow}")
+            
+        self.multiplexed_samples = CommonOligoMuxForm.__get_multiplexed_samples(self.sample_table)
         
         columns = [
             TextColumn("demux_name", "Demultiplexed Name", 170, required=True, max_length=models.Sample.name.type.length, min_length=4, validation_fnc=utils.check_string),
