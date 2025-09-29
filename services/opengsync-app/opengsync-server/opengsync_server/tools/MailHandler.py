@@ -1,7 +1,12 @@
 from typing import Sequence, Literal
+
+import premailer
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+
+from .. import logger
 
 
 class MailHandler:
@@ -26,13 +31,16 @@ class MailHandler:
         if not self.__initialized:
             raise RuntimeError("MailHandler not initialized. Call init_app() before using this method.")
         
+        if mime_type == "html":
+            body = premailer.transform(body)
+        
         with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
             if self.use_tls:
                 server.starttls()
 
             server.login(self.smtp_user, self.smtp_password)
             server.auth_plain()
-            
+
             if isinstance(recipients, str):
                 recipients = [recipients]
             
