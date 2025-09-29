@@ -342,13 +342,39 @@
                         selected_pool_ids: JSON.stringify(window.selected_pools),
                         selected_lanes_ids: JSON.stringify(window.selected_lanes),
                         workflow: "{{ workflow }}",
-                        {% if seq_request %}seq_request_id: "{{ seq_request.id }}",{% endif %}
-                        {% if pool %}pool_id: "{{ pool.id }}",{% endif %}
-                        {% if experiment %}experiment_id: "{{ experiment.id }}",{% endif %}
-                        {% if lab_prep %}lab_prep_id: "{{ lab_prep.id }}",{% endif %}
+                        {% if seq_request is defined and seq_request %}seq_request_id: "{{ seq_request.id }}",{% endif %}
+                        {% if pool is defined and pool %}pool_id: "{{ pool.id }}",{% endif %}
+                        {% if experiment is defined and experiment %}experiment_id: "{{ experiment.id }}",{% endif %}
+                        {% if lab_prep is defined and lab_prep %}lab_prep_id: "{{ lab_prep.id }}",{% endif %}
                     },
                 });
             });
         })();
+
+        $(document).ready(function() {
+            {% if select_all_libraries %}
+            $("#select-all-libraries-btn").on("click", function() {
+                var state = get_table_state("select-libraries-table");
+
+                htmx.ajax("GET", "{{ url_for('libraries_htmx.select_all', **url_context) | safe }}", {
+                    target: "#select_samples-form-container",
+                    swap: "outerHTML",
+                    values: state
+                });
+            });
+            {% endif %}
+            
+            {% if select_all_samples %}
+            $("#select-all-samples-btn").on("click", function() {
+                var state = get_table_state("select-samples-table");
+
+                htmx.ajax("GET", "{{ url_for('samples_htmx.select_all', **url_context) }}", {
+                    target: "#select_samples-form-container",
+                    swap: "outerHTML",
+                    values: state
+                });
+            });
+            {% endif %}
+        });
     </script>
 </div>

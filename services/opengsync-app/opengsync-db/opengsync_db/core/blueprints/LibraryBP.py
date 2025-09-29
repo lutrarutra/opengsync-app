@@ -342,7 +342,7 @@ class LibraryBP(DBBlueprint):
         return library
 
     @DBBlueprint.transaction
-    def seq_seq_quality(
+    def set_seq_quality(
         self, library_id: Optional[int], experiment_id: int, lane: int,
         num_lane_reads: int, num_library_reads: int,
         mean_quality_pf_r1: float, q30_perc_r1: float,

@@ -1,1 +1,1 @@
-from .LibraryTableForm import LibraryTableForm  # noqa: F401
+from .LibraryEditTableForm import LibraryEditTableForm  # noqa: F401

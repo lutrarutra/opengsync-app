@@ -183,18 +183,6 @@
                 }
             });
             update_libraries();
-            
-            {% if select_all_libraries %}
-            $("#select-all-libraries-btn").on("click", function() {
-                var state = get_table_state("select-libraries-table");
-
-                htmx.ajax("GET", "{{ url_for('libraries_htmx.select_all', **url_context) | safe }}", {
-                    target: "#select_samples-form-container",
-                    swap: "outerHTML",
-                    values: state
-                });
-            });
-            {% endif %}
         });
     </script>
 </div>

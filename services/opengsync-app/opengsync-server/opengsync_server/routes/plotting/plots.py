@@ -1,6 +1,6 @@
 import json
 
-from flask import Blueprint, request, url_for
+from flask import Blueprint, request, url_for, render_template
 from flask_htmx import make_response
 
 import plotly
@@ -22,13 +22,19 @@ def _add_traces(to_figure, from_figure):
     return to_figure
 
 
-@wrappers.htmx_route(plots_api, db=db, methods=["POST"])
+@wrappers.htmx_route(plots_api, db=db, methods=["GET", "POST"])
 def experiment_library_reads(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.BadRequestException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
         raise exceptions.NotFoundException()
+    
+    if request.method == "GET":
+        return make_response(render_template(
+            "components/plots/experiment_library_reads.html",
+            experiment=experiment
+        ))
     
     request_args = request.get_json()
     width = request_args.get("width", 700)
