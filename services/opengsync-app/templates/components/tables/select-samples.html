@@ -166,18 +166,6 @@
                 }
             });
             update_samples();
-
-            {% if select_all_samples %}
-            $("#select-all-samples-btn").on("click", function() {
-                var state = get_table_state("select-samples-table");
-
-                htmx.ajax("GET", "{{ url_for('samples_htmx.select_all', **url_context) }}", {
-                    target: "#select_samples-form-container",
-                    swap: "outerHTML",
-                    values: state
-                });
-            });
-            {% endif %}
         });
     </script>
 </div>

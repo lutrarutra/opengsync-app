@@ -12,7 +12,7 @@ from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
-class LibraryTableForm(MultiStepForm):
+class LibraryEditTableForm(MultiStepForm):
     _template_path = "workflows/relib/table_form.html"
     _workflow_name = "relib"
     _step_name = "library_table_form"
@@ -36,9 +36,9 @@ class LibraryTableForm(MultiStepForm):
         uuid: str | None
     ):
         MultiStepForm.__init__(
-            self, uuid=uuid, workflow=LibraryTableForm._workflow_name,
+            self, uuid=uuid, workflow=LibraryEditTableForm._workflow_name,
             formdata=formdata,
-            step_name=LibraryTableForm._step_name,
+            step_name=LibraryEditTableForm._step_name,
             step_args={}
         )
         self.seq_request = seq_request
@@ -58,10 +58,10 @@ class LibraryTableForm(MultiStepForm):
 
         self.library_table = self.tables["library_table"]
 
-        self.post_url = url_for(f"{LibraryTableForm._workflow_name}_workflow.parse_library_type_form", uuid=uuid, **self.url_context)
+        self.post_url = url_for(f"{LibraryEditTableForm._workflow_name}_workflow.parse_library_type_form", uuid=uuid, **self.url_context)
 
         self.spreadsheet = SpreadsheetInput(
-            columns=LibraryTableForm.columns,
+            columns=LibraryEditTableForm.columns,
             post_url=self.post_url,
             csrf_token=self._csrf_token,
             formdata=formdata,

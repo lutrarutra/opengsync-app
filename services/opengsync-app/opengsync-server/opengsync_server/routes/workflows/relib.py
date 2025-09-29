@@ -4,7 +4,7 @@ from flask import Blueprint, request, Response
 
 from opengsync_db import models
 
-from ... import db
+from ... import db, logger
 from ...core import wrappers, exceptions
 from ...forms.workflows import relib as forms
 from ...forms import SelectSamplesForm
@@ -58,27 +58,28 @@ def select(current_user: models.User) -> Response:
         "library_id": [],
         "sample_name": [],
         "library_name": [],
-        "library_type": [],
-        "assay_type": [],
-        "genome": [],
+        "library_type_id": [],
+        "assay_type_id": [],
+        "genome_id": [],
         "nuclei_isolation": []
     }
     for library in form.get_libraries():
         data["library_id"].append(library.id)
         data["sample_name"].append(library.sample_name)
         data["library_name"].append(library.name)
-        data["library_type"].append(library.type.display_name)
-        data["assay_type"].append(library.assay_type.display_name)
-        data["genome"].append(library.genome_ref.display_name)
+        data["library_type_id"].append(library.type.id)
+        data["assay_type_id"].append(library.assay_type.id)
+        data["genome_id"].append(library.genome_ref.id)
         data["nuclei_isolation"].append("Yes" if library.nuclei_isolation else "No")
 
     df = pd.DataFrame(data)
+    logger.debug(df)
 
     form.add_table("library_table", df)
     form.metadata["workflow"] = "relib"
     form.update_data()
 
-    next_form = forms.LibraryTableForm(
+    next_form = forms.LibraryEditTableForm(
         seq_request=context.get("seq_request"),
         lab_prep=context.get("lab_prep"),
         pool=context.get("pool"),
@@ -94,7 +95,7 @@ def parse_library_type_form(current_user: models.User, uuid: str) -> Response:
         raise exceptions.NoPermissionsException()
     context = get_context(request.args)
 
-    return forms.LibraryTableForm(
+    return forms.LibraryEditTableForm(
         seq_request=context.get("seq_request"),
         lab_prep=context.get("lab_prep"),
         pool=context.get("pool"),
