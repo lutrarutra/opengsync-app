@@ -63,14 +63,8 @@ class SampleLibraryLink(Base):
     sample_id: Mapped[int] = mapped_column(sa.ForeignKey("sample.id", ondelete="CASCADE"), primary_key=True)
     library_id: Mapped[int] = mapped_column(sa.ForeignKey("library.id", ondelete="CASCADE"), primary_key=True)
 
-    sample: Mapped["Sample"] = relationship(
-        "Sample", back_populates="library_links", lazy="joined",
-        cascade="save-update, merge"
-    )
-    library: Mapped["Library"] = relationship(
-        "Library", back_populates="sample_links", lazy="joined",
-        cascade="save-update, merge"
-    )
+    sample: Mapped["Sample"] = relationship("Sample", back_populates="library_links", lazy="joined")
+    library: Mapped["Library"] = relationship("Library", back_populates="sample_links", lazy="joined")
     
     def __str__(self) -> str:
         return f"SampleLibraryLink(sample_id: {self.sample_id}, library_id: {self.library_id})"

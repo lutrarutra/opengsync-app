@@ -44,7 +44,7 @@ def test_mux_links(db: DBHandler):
     assert len(library.sample_links) == NUM_SAMPLES
     assert library.num_samples == NUM_SAMPLES
 
-    db.libraries.delete(library.id)
+    db.libraries.delete(library)
 
     user = db.users.get(user.id)
     db.refresh(user)

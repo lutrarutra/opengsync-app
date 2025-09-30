@@ -188,7 +188,9 @@ class OligoMuxForm(CommonOligoMuxForm):
             db.libraries.update(new_library)
 
         for old_library_id in old_libraries:
-            db.libraries.delete(old_library_id, delete_orphan_samples=False)
+            if (old_library := db.libraries.get(old_library_id)) is None:
+                continue
+            db.libraries.delete(old_library, delete_orphan_samples=False)
 
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id)))

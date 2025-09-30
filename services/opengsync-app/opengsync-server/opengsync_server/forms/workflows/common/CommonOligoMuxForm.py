@@ -3,7 +3,7 @@ import pandas as pd
 from flask import url_for
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, FeatureType
+from opengsync_db.categories import LibraryType, FeatureType, SubmissionType, MUXType
 
 from .... import logger, tools, db  # noqa F401
 from ....tools import utils
@@ -27,7 +27,7 @@ class CommonOligoMuxForm(MultiStepForm):
     def __get_multiplexed_samples(cls, df: pd.DataFrame) -> list[str]:
         multiplexed_samples = set()
         for sample_name, _df in df.groupby("sample_name"):
-            if LibraryType.TENX_MUX_OLIGO.id in _df["library_type_id"].unique():
+            if LibraryType.TENX_MUX_OLIGO.id in _df["library_type_id"].values:
                 multiplexed_samples.add(sample_name)
         return list(multiplexed_samples)
 
@@ -66,9 +66,19 @@ class CommonOligoMuxForm(MultiStepForm):
             
         self.multiplexed_samples = CommonOligoMuxForm.__get_multiplexed_samples(self.sample_table)
         
+        demux_name_col = TextColumn("demux_name", "Demultiplexed Name", 170, required=True, max_length=models.Sample.name.type.length, min_length=4, validation_fnc=utils.check_string)
+
+        if workflow == "library_annotation":
+            if seq_request is None:
+                raise ValueError("SeqRequest must be provided for library_annotation workflow")
+            if seq_request.submission_type == SubmissionType.RAW_SAMPLES:
+                pooling_table = self.tables["sample_pooling_table"]
+                pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_MUX_OLIGO.identifier)]
+                demux_name_col = DropdownColumn("demux_name", "Demultiplexed Name", 170, required=True, choices=pooling_table["sample_name"].tolist())
+
         columns = [
-            TextColumn("demux_name", "Demultiplexed Name", 170, required=True, max_length=models.Sample.name.type.length, min_length=4, validation_fnc=utils.check_string),
-            DropdownColumn("sample_name", "Sample (Pool) Name", 170, choices=self.multiplexed_samples, required=True),
+            demux_name_col,
+            DropdownColumn("sample_pool", "Sample (Pool) Name", 170, choices=self.multiplexed_samples, required=True),
             CategoricalDropDown("kit", "Kit", 250, categories=self.kits_mapping, required=False),
             TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
             TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
@@ -92,11 +102,21 @@ class CommonOligoMuxForm(MultiStepForm):
             formdata=formdata, allow_new_rows=True
         )
 
+        if not formdata:
+            if workflow == "library_annotation":
+                if seq_request is None:
+                    raise ValueError("SeqRequest must be provided for library_annotation workflow")
+                if seq_request.submission_type == SubmissionType.RAW_SAMPLES:
+                    pooling_table = self.tables["sample_pooling_table"]
+                    pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_MUX_OLIGO.identifier)]
+                    self.spreadsheet.set_data(pooling_table.rename(columns={
+                        "sample_name": "demux_name",
+                    }))
+
     def fill_previous_form(self, previous_form: StepFile):
         df = previous_form.tables["sample_pooling_table"]
         df = df.drop_duplicates(subset=["sample_name"]).rename(columns={
             "sample_name": "demux_name",
-            "sample_pool": "sample_name",
         })
         self.spreadsheet.set_data(df)
 
@@ -124,8 +144,8 @@ class CommonOligoMuxForm(MultiStepForm):
             self.df.loc[self.df["kit"] == identifier, "kit_id"] = kit.id
 
         duplicate_oligo = (
-            (self.df.duplicated(subset=["sample_name", "sequence", "pattern", "read"], keep=False) & custom_feature) |
-            (self.df.duplicated(subset=["sample_name", "kit", "feature"], keep=False) & kit_feature)
+            (self.df.duplicated(subset=["sample_pool", "sequence", "pattern", "read"], keep=False) & custom_feature) |
+            (self.df.duplicated(subset=["sample_pool", "kit", "feature"], keep=False) & kit_feature)
         )
 
         for identifier, (kit, kit_df) in kits.items():
@@ -182,7 +202,6 @@ class CommonOligoMuxForm(MultiStepForm):
                 self.spreadsheet.add_error(idx, "kit", DuplicateCellValue("Definitions must be unique for each sample."))
                 self.spreadsheet.add_error(idx, "feature", DuplicateCellValue("Definitions must be unique for each sample."))
 
-        logger.debug(self.kits_mapping)
         if len(self.spreadsheet._errors) > 0:
             return False
         

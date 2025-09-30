@@ -138,7 +138,7 @@ def test_user_links(db: DBHandler):
     assert len(seq_request.pools) == 1
     assert seq_request.pools[0].id == pool.id
 
-    db.libraries.delete(library.id)
+    db.libraries.delete(library)
     libraries, _ = db.libraries.find(limit=None)
     assert len(libraries) == 0
     samples, _ = db.samples.find(limit=None)

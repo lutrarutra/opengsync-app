@@ -42,7 +42,7 @@ def test_library_links(db: DBHandler):
     assert len(sample.library_links) == NUM_LIBRARIES
     assert sample.num_libraries == NUM_LIBRARIES
 
-    db.libraries.delete(libraries[0].id)
+    db.libraries.delete(libraries[0])
 
     db.refresh(user)
     assert user is not None
@@ -102,7 +102,7 @@ def test_library_feature_link(db: DBHandler):
     assert len(db.features.find(limit=None)[0]) == num_prev_features + NUM_FEATURES
     assert len(db.libraries.find(limit=None)[0]) == num_prev_libraries + NUM_LIBRARIES
 
-    db.libraries.delete(libraries[0].id)
+    db.libraries.delete(libraries[0])
 
     assert len(db.features.find(limit=None)[0]) == num_prev_features + NUM_FEATURES
     assert len(db.libraries.find(limit=None)[0]) == num_prev_libraries + NUM_LIBRARIES - 1

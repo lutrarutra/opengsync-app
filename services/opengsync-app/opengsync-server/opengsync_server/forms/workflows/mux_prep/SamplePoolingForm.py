@@ -115,7 +115,7 @@ class SamplePoolingForm(HTMXFlaskForm):
         for library in self.lab_prep.libraries:
             db.refresh(library)
             if len(library.sample_links) == 0:
-                db.libraries.delete(library.id)
+                db.libraries.delete(library)
 
         flash("Sample pool annotation processed successfully.", "success")
         return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))

@@ -36,7 +36,7 @@
                 {{ form.csrf_token() }}
                 {{ form.optional_assays.csrf_token() }}
                 {{ form.additional_services.csrf_token() }}
-                <h5>Additional Assays for 10X</h5>
+                <h5>Additional Modalities for 10X</h5>
                 <div class="d-flex justify-contents-evenly" style="gap: 20px;">
                     {{ checkbox_input(form.optional_assays.vdj_b, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_VDJ_B.id | string) }}
                     {{ checkbox_input(form.optional_assays.vdj_t, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_VDJ_T.id | string) }}
@@ -44,7 +44,7 @@
                     {{ checkbox_input(form.optional_assays.crispr_screening, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_CRISPR_SCREENING.id | string) }}
                 </div>
                 <h5>Additional Services</h5>
-                <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center pb-3">
                     {{ checkbox_input(form.optional_assays.antibody_capture, class="opt-checkbox opt-checkbox-{} opt-checkbox-{} col-6".format(LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id)) }}
                     {{ form_group(form.optional_assays.antibody_capture_kit, class="col-6", placeholder="Kit Name", hide_label=true) }}
                 </div>
@@ -52,6 +52,13 @@
                     {{ checkbox_input(form.additional_services.oligo_multiplexing, class="opt-checkbox col-6", disabled=true) }}
                     {{ form_group(form.additional_services.oligo_multiplexing_kit, class="col-6", placeholder="Kit Name", hide_label=true) }}
                 </div>
+                {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
+                <div id="oligo-mux-warning" class="pb-3">
+                    <p class="text-warning">
+                        ⚠️ When selecting oligo multiplexing, you will multiplex the samples using LMOs/CMOs/HTOs and we will prepare the libraries from multiplexed sample pools.
+                    </p>
+                </div>
+                {% endif %}
                 <div class="d-flex align-items-center" style="gap: 20px;">
                     {{ checkbox_input(form.additional_services.nuclei_isolation) }}
                     {{ checkbox_input(form.additional_services.ocm_multiplexing, class="opt-checkbox") }}
@@ -174,14 +181,15 @@
 
         function update_oligo_multiplexing_kit_input() {
             const is_checked = $("#additional_services-oligo_multiplexing").is(":checked");
-            console.log("hi");
             if (is_checked) {
                 $("#additional_services-oligo_multiplexing_kit").removeClass("disabled");
                 $("#additional_services-oligo_multiplexing_kit").prop("disabled", false);
+                $("#oligo-mux-warning").css("display", "block");
             } else {
                 $("#additional_services-oligo_multiplexing_kit").addClass("disabled");
                 $("#additional_services-oligo_multiplexing_kit").prop("disabled", true);
                 $("#additional_services-oligo_multiplexing_kit").val("");
+                $("#oligo-mux-warning").css("display", "none");
             }
         }
 

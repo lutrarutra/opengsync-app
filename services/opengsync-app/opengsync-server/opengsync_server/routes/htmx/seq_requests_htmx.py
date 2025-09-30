@@ -426,7 +426,7 @@ def remove_library(current_user: models.User, seq_request_id: int):
     if (library := db.libraries.get(library_id)) is None:
         raise exceptions.NotFoundException()
         
-    db.libraries.delete(library_id)
+    db.libraries.delete(library)
 
     flash(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed library '{library.name}' from sequencing request '{seq_request.name}'")
@@ -467,8 +467,7 @@ def remove_sample(current_user: models.User, seq_request_id: int):
     for library_link in sample.library_links:
         if library_link.library.seq_request_id != seq_request_id:
             continue
-        
-        db.libraries.delete(library_link.library.id)
+        db.libraries.delete(library_link.library, delete_orphan_samples=False)
 
     flash(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed sample '{sample.name}' from sequencing request '{seq_request.name}'")
@@ -489,7 +488,7 @@ def remove_all_libraries(current_user: models.User, seq_request_id: int):
         raise exceptions.NoPermissionsException()
 
     for library in seq_request.libraries:
-        db.libraries.delete(library.id)
+        db.libraries.delete(library)
 
     flash(f"Removed all libraries from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed all libraries from sequencing request '{seq_request.name}'")
@@ -1104,7 +1103,7 @@ def get_recent_seq_requests(current_user: models.User):
             )
 
         seq_requests, _ = db.seq_requests.find(
-            status_in=[SeqRequestStatus.ACCEPTED, SeqRequestStatus.SAMPLES_RECEIVED, SeqRequestStatus.PREPARED, SeqRequestStatus.DATA_PROCESSING],
+            status_in=[SeqRequestStatus.SUBMITTED, SeqRequestStatus.ACCEPTED, SeqRequestStatus.SAMPLES_RECEIVED, SeqRequestStatus.PREPARED, SeqRequestStatus.DATA_PROCESSING],
             custom_query=__order_by_status_and_time, limit=None
         )
     else:

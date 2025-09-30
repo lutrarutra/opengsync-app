@@ -74,7 +74,7 @@
             Swal.fire({
                 title: `Remove sample '${selected_sample_name}' [${selected_sample_id}] from '{{seq_request.name}}'-request ?`,
                 showDenyButton: true,
-                text: 'Are you sure?',
+                text: 'This will remove all libraries associated with the sample. If sample is multiplexed, all other multiplexed samples in the associated libraries will be removed. Are you sure?',
                 confirmButtonText: 'Yes',
                 icon: 'question',
                 denyButtonText: 'No'

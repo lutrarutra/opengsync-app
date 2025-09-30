@@ -29,7 +29,7 @@
         {% else %}
         <tr>
         {% endif %}
-            <th scope="row">{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_id"] }}</th>
+            <th scope="row">{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_id"] if "library_id" in row else "" }}</th>
             <td>{{ row["library_name"] }}</td>
             {% if "pool" in df.columns %}
             <td>{{ row["pool"] }}</td>

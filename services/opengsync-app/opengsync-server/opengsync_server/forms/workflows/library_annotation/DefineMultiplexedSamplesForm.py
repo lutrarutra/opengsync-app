@@ -14,6 +14,7 @@ from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
+from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 
 
 class DefineMultiplexedSamplesForm(MultiStepForm):
@@ -256,7 +257,9 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         self.add_table("sample_pooling_table", sample_pooling_table)
         self.update_data()
 
-        if FeatureAnnotationForm.is_applicable(self):
+        if OligoMuxAnnotationForm.is_applicable(self):
+            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
