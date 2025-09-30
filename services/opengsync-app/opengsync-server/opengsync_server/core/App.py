@@ -212,6 +212,7 @@ class App(Flask):
                 FileType=categories.MediaFileType,
                 MUXType=categories.MUXType,
                 DataPathType=categories.DataPathType,
+                ExperimentWorkFlow=categories.ExperimentWorkFlow,
                 SpreadSheetErrors=[ssc.InvalidCellValue(""), ssc.MissingCellValue(""), ssc.DuplicateCellValue("")],
                 isna=pd.isna,
                 notna=pd.notna,

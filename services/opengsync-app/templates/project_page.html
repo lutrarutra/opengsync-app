@@ -93,6 +93,12 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#project-experiments-tab" type="button" role="tab"
+            aria-controls="project-experiments-tab" aria-selected="false">
+            Experiments</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#project-software-tab" type="button" role="tab"
             aria-controls="project-software-tab" aria-selected="false">
             Software ({{ project.software | length }})</button>
@@ -169,6 +175,11 @@
         </div>
         <div class="tab-pane fade" id="project-seq_requests-tab" role="tabpanel" tabindex="4">
             <div hx-get="{{ url_for('projects_htmx.get_seq_requests', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="project-experiments-tab" role="tabpanel" tabindex="4">
+            <div hx-get="{{ url_for('projects_htmx.get_experiments', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
