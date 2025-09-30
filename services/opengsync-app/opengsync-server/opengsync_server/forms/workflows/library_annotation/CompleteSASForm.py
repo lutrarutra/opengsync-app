@@ -347,18 +347,12 @@ class CompleteSASForm(MultiStepForm):
                         logger.error(f"{self.uuid}: Mux read is required for TENX_OLIGO mux type.")
                         raise ValueError("Mux read is required for TENX_OLIGO mux type.")
                     
-                    if self.seq_request.submission_type in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES]:
-                        mux = {
-                            "barcode": pooling_row["mux_barcode"],
-                            "pattern": pooling_row["mux_pattern"],
-                            "read": pooling_row["mux_read"]
-                        }
-                    else:
-                        mux = {
-                            "barcode": None,
-                            "pattern": None,
-                            "read": None
-                        }
+                    mux = {
+                        "barcode": pooling_row["mux_barcode"],
+                        "pattern": pooling_row["mux_pattern"],
+                        "read": pooling_row["mux_read"]
+                    }
+
                 elif pooling_row["mux_type_id"] == MUXType.TENX_ON_CHIP.id:
                     mux = {"barcode": pooling_row["mux_barcode"]}
                 else:
