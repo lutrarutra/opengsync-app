@@ -3,7 +3,8 @@ import pandas as pd
 from flask import Response
 
 from opengsync_db import models
-from opengsync_db.categories import FeatureType, MUXType
+from opengsync_db.categories import FeatureType, MUXType, SubmissionType
+from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa
 from ..common.CommonOligoMuxForm import CommonOligoMuxForm
@@ -27,6 +28,10 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
             uuid=uuid, formdata=formdata,
             additional_columns=[]
         )
+
+    def fill_previous_form(self, previous_form: StepFile):
+        logger.debug(previous_form.tables["sample_pooling_table"])
+        self.spreadsheet.set_data(previous_form.tables["sample_pooling_table"])
     
     def process_request(self) -> Response:
         if not self.validate():
@@ -51,7 +56,11 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
 
         for _, mux_row in self.df.iterrows():
             sample_data["sample_name"].append(mux_row["demux_name"])
-            for _, pooling_row in sample_pooling_table[sample_pooling_table["sample_name"] == mux_row["sample_name"]].iterrows():
+            if self.seq_request.submission_type == SubmissionType.RAW_SAMPLES:
+                idx = sample_pooling_table["sample_name"] == mux_row["demux_name"]
+            else:
+                idx = sample_pooling_table["sample_name"] == mux_row["sample_pool"]
+            for _, pooling_row in sample_pooling_table[idx].iterrows():
                 pooling_data["sample_name"].append(mux_row["demux_name"])
                 pooling_data["library_name"].append(pooling_row["library_name"])
                 pooling_data["mux_barcode"].append(mux_row["sequence"])
@@ -60,7 +69,7 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
                 pooling_data["kit"].append(mux_row["kit"])
                 pooling_data["feature"].append(mux_row["feature"])
                 pooling_data["mux_type_id"].append(MUXType.TENX_OLIGO.id)
-                pooling_data["sample_pool"].append(mux_row["sample_name"])
+                pooling_data["sample_pool"].append(mux_row["sample_pool"])
         
         sample_pooling_table = pd.DataFrame(pooling_data)
         self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)

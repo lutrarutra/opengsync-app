@@ -7,6 +7,7 @@ from wtforms.validators import Optional as OptionalValidator, Length, DataRequir
 
 from opengsync_db import models
 from opengsync_db.categories import AssayType, GenomeRef, MUXType
+from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa
 from ...MultiStepForm import MultiStepForm
@@ -53,6 +54,26 @@ class SelectAssayForm(MultiStepForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 
+    def fill_previous_form(self, previous_form: StepFile):
+        self.assay_type.data = previous_form.metadata.get("assay_type_id")
+        self.additional_services.nuclei_isolation.data = previous_form.metadata.get("nuclei_isolation", False)
+        self.optional_assays.antibody_capture.data = previous_form.metadata.get("antibody_capture", False)
+        self.optional_assays.vdj_b.data = previous_form.metadata.get("vdj_b", False)
+        self.optional_assays.vdj_t.data = previous_form.metadata.get("vdj_t", False)
+        self.optional_assays.vdj_t_gd.data = previous_form.metadata.get("vdj_t_gd", False)
+        self.optional_assays.crispr_screening.data = previous_form.metadata.get("crispr_screening", False)
+
+        self.optional_assays.antibody_capture_kit.data = previous_form.metadata.get("antibody_capture_kit", "")
+        
+        if previous_form.metadata.get("mux_type_id") == MUXType.TENX_OLIGO.id:
+            self.additional_services.oligo_multiplexing.data = True
+            self.additional_services.oligo_multiplexing_kit.data = previous_form.metadata.get("oligo_multiplexing_kit", "")
+        elif previous_form.metadata.get("mux_type_id") == MUXType.TENX_ON_CHIP.id:
+            self.additional_services.ocm_multiplexing.data = True    
+
+        self.additional_info.data = previous_form.metadata.get("additional_info", "")
+
+
     def validate(self) -> bool:
         if not super().validate():
             return False
@@ -92,6 +113,9 @@ class SelectAssayForm(MultiStepForm):
         
         self.metadata["assay_type_id"] = assay_type.id
         self.metadata["mux_type_id"] = None
+        self.metadata["oligo_multiplexing_kit"] = self.additional_services.oligo_multiplexing_kit.data
+        self.metadata["antibody_capture_kit"] = self.optional_assays.antibody_capture_kit.data
+
         if oligo_multiplexing:
             self.metadata["mux_type_id"] = MUXType.TENX_OLIGO.id
         elif ocm_multiplexing:
@@ -101,10 +125,12 @@ class SelectAssayForm(MultiStepForm):
             
         self.metadata["nuclei_isolation"] = self.additional_services.nuclei_isolation.data
         self.metadata["antibody_capture"] = self.optional_assays.antibody_capture.data
+
         self.metadata["vdj_b"] = self.optional_assays.vdj_b.data
         self.metadata["vdj_t"] = self.optional_assays.vdj_t.data
         self.metadata["vdj_t_gd"] = self.optional_assays.vdj_t_gd.data
         self.metadata["crispr_screening"] = self.optional_assays.crispr_screening.data
+        self.metadata["additional_info"] = self.additional_info.data
 
         if self.additional_services.oligo_multiplexing_kit.data:
             self.add_comment(context="oligo_multiplexing_kit", text=self.additional_services.oligo_multiplexing_kit.data)

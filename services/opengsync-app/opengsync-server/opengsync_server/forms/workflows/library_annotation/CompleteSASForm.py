@@ -70,6 +70,9 @@ class CompleteSASForm(MultiStepForm):
         n_libraries = len(self.library_table)
         n_library_names = len(self.library_table["library_name"].unique())
         n_libraries_pooled = len(self.sample_pooling_table.duplicated(subset=["library_name", "mux_type_id"], keep=False))
+
+        logger.debug(self.sample_pooling_table)
+        
         if n_libraries != n_library_names or n_libraries_pooled != n_libraries:
             logger.warning(self.sample_pooling_table[self.sample_pooling_table.duplicated(subset=["library_name", "mux_type_id"], keep=False)][["library_name", "mux_type_id", "sample_name"]])
             # logger.error(f"{self.uuid}: Library table contains duplicate library names or pooling entries.")
@@ -328,25 +331,34 @@ class CompleteSASForm(MultiStepForm):
 
             for _, pooling_row in self.sample_pooling_table[self.sample_pooling_table["library_name"] == library_row["library_name"]].iterrows():
                 if pooling_row["mux_type_id"] == MUXType.TENX_FLEX_PROBE.id:
-                    if self.workflow == "pooled" and pd.isna(pooling_row["mux_barcode"]):
+                    if self.seq_request.submission_type in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] and pd.isna(pooling_row["mux_barcode"]):
                         logger.error(f"{self.uuid}: Mux barcode is required for TENX_FLEX_PROBE mux type.")
                         raise ValueError("Mux barcode is required for TENX_FLEX_PROBE mux type.")
+                    
                     mux = {"barcode": pooling_row["mux_barcode"]}
                 elif pooling_row["mux_type_id"] in [MUXType.TENX_OLIGO.id]:
-                    if self.workflow == "pooled" and pd.isna(pooling_row["mux_barcode"]):
+                    if self.seq_request.submission_type in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] and pd.isna(pooling_row["mux_barcode"]):
                         logger.error(f"{self.uuid}: Mux barcode is required for TENX_OLIGO mux type.")
                         raise ValueError("Mux barcode is required for TENX_OLIGO mux type.")
-                    if self.workflow == "pooled" and pd.isna(pooling_row["mux_pattern"]):
+                    if self.seq_request.submission_type in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] and pd.isna(pooling_row["mux_pattern"]):
                         logger.error(f"{self.uuid}: Mux pattern is required for TENX_OLIGO mux type.")
                         raise ValueError("Mux pattern is required for TENX_OLIGO mux type.")
-                    if self.workflow == "pooled" and pd.isna(pooling_row["mux_read"]):
+                    if self.seq_request.submission_type in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] and pd.isna(pooling_row["mux_read"]):
                         logger.error(f"{self.uuid}: Mux read is required for TENX_OLIGO mux type.")
                         raise ValueError("Mux read is required for TENX_OLIGO mux type.")
-                    mux = {
-                        "barcode": pooling_row["mux_barcode"],
-                        "pattern": pooling_row["mux_pattern"],
-                        "read": pooling_row["mux_read"]
-                    }
+                    
+                    if self.seq_request.submission_type in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES]:
+                        mux = {
+                            "barcode": pooling_row["mux_barcode"],
+                            "pattern": pooling_row["mux_pattern"],
+                            "read": pooling_row["mux_read"]
+                        }
+                    else:
+                        mux = {
+                            "barcode": None,
+                            "pattern": None,
+                            "read": None
+                        }
                 elif pooling_row["mux_type_id"] == MUXType.TENX_ON_CHIP.id:
                     mux = {"barcode": pooling_row["mux_barcode"]}
                 else:

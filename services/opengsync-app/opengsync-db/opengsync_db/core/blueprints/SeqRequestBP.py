@@ -254,7 +254,7 @@ class SeqRequestBP(DBBlueprint):
             raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
 
         for library in seq_request.libraries:
-            self.db.libraries.delete(library.id)
+            self.db.libraries.delete(library)
 
         for pool in seq_request.pools:
             if pool.type == PoolType.EXTERNAL:

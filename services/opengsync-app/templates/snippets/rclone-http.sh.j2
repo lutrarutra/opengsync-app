@@ -1,1 +1,1 @@
-rclone copy --http-url {{ url_for("file_share.rclone", token=token, _external=True) }} :http: . -v --stats-log-level NOTICE --stats 500ms --progress
+rclone copy --http-url {{ url_for("file_share.rclone", token=token, _external=True) }} :http: <target path> -v --stats-log-level NOTICE --stats 500ms --progress

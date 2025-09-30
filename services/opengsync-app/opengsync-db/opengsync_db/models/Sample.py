@@ -73,7 +73,7 @@ class Sample(Base):
 
     library_links: Mapped[list["links.SampleLibraryLink"]] = relationship(
         "SampleLibraryLink", back_populates="sample", lazy="select",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan", order_by=links.SampleLibraryLink.library_id
     )
 
     _attributes: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="attributes")

@@ -32,7 +32,7 @@
                     data-bs-toggle="modal" data-bs-target="#xl-modal" 
                     hx-target="#xl-modal-content"
                     hx-swap="innerHTML" hx-trigger="click"
-                    {% if not seq_request.is_submittable() and not current_user.is_insider() %}disabled{% endif %}>
+                    {% if not seq_request.is_submittable() %}disabled{% endif %}>
                     Submit Request
                 </button>
             </span>

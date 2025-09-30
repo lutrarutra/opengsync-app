@@ -9,7 +9,7 @@ from sqlalchemy.orm import aliased
 from ... import models, PAGE_LIMIT
 from ...categories import (
     LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus,
-    AccessType, AccessTypeEnum, AssayTypeEnum, IndexTypeEnum, MUXTypeEnum
+    AccessType, AccessTypeEnum, AssayTypeEnum, IndexTypeEnum, MUXTypeEnum, LibraryType
 )
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -227,13 +227,9 @@ class LibraryBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def delete(
-        self, library_id: int, delete_orphan_samples: bool = True,
+        self, library: models.Library, delete_orphan_samples: bool = True,
         flush: bool = True
     ):
-
-        if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
-        
         if delete_orphan_samples:
             SLL1 = aliased(models.links.SampleLibraryLink)
             SLL2 = aliased(models.links.SampleLibraryLink)
@@ -244,7 +240,7 @@ class LibraryBP(DBBlueprint):
                 .group_by(models.Sample.id)
                 .having(sa.func.count(SLL1.library_id) == 1)
                 .join(SLL2, SLL2.sample_id == models.Sample.id)  # for filtering by library_id
-                .filter(SLL2.library_id == library_id)
+                .filter(SLL2.library_id == library.id)
                 .subquery()
             )
 
@@ -256,7 +252,7 @@ class LibraryBP(DBBlueprint):
 
         if flush:
             self.db.flush()
-
+        
         self.db.features.delete_orphan(flush=flush)
 
     @DBBlueprint.transaction

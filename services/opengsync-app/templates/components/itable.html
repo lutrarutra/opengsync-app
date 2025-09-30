@@ -1,4 +1,4 @@
-{% if not table_id %}
+{% if not table_id is defined or not table_id %}
 {% set table_id = uuid4() %}
 {% endif %}
 <div class="spreadsheet-container" {% if height is defined and height %}style="height: {{ height }};"{% endif %}>

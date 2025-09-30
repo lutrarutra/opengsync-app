@@ -1,4 +1,4 @@
-from opengsync_db import DBHandler
+from opengsync_db import DBHandler, categories
 
 from .create_units import (
     create_user, create_seq_request, create_library,
@@ -13,6 +13,17 @@ def test_library_features_links(db: DBHandler):
     library_1 = create_library(db, user=user, seq_request=request)
     library_2 = create_library(db, user=user, seq_request=request)
     library_3 = create_library(db, user=user, seq_request=request)
+    library_1.type = categories.LibraryType.TENX_ANTIBODY_CAPTURE
+    library_2.type = categories.LibraryType.TENX_ANTIBODY_CAPTURE
+    library_3.type = categories.LibraryType.TENX_ANTIBODY_CAPTURE
+
+    db.libraries.update(library_1)
+    db.libraries.update(library_2)
+    db.libraries.update(library_3)
+
+    db.refresh(library_1)
+    db.refresh(library_2)
+    db.refresh(library_3)
 
     NUM_CUSTOM_FEATURES = 500
     NUM_KIT_FEATURES = 100
@@ -47,9 +58,9 @@ def test_library_features_links(db: DBHandler):
     assert library_2.num_features == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
     assert library_3.num_features == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
 
-    db.libraries.delete(library_1.id)
+    db.libraries.delete(library_1)
     assert len(db.features.find(limit=None)[0]) == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
-    db.libraries.delete(library_2.id)
+    db.libraries.delete(library_2)
     assert len(db.features.find(limit=None)[0]) == NUM_CUSTOM_FEATURES + NUM_KIT_FEATURES
-    db.libraries.delete(library_3.id)
+    db.libraries.delete(library_3)
     assert len(db.features.find(limit=None)[0]) == NUM_KIT_FEATURES

@@ -176,14 +176,14 @@ class PooledLibraryAnnotationForm(MultiStepForm):
                 genome = GenomeRef.get(int(row["genome_id"]))
                 library_name = f"{row['sample_name']}_{library_type.identifier}"
                 library_table_data["library_name"].append(library_name)
-                library_table_data["sample_name"].append(row['sample_name'])
+                library_table_data["sample_name"].append(row["sample_name"])
                 library_table_data["genome"].append(genome.display_name)
                 library_table_data["genome_id"].append(genome.id)
                 library_table_data["library_type"].append(library_type.display_name)
                 library_table_data["library_type_id"].append(library_type.id)
                 library_table_data["pool"].append(row["pool"])
 
-                sample_pooling_table["sample_name"].append(row['sample_name'])
+                sample_pooling_table["sample_name"].append(row["sample_name"])
                 sample_pooling_table["library_name"].append(library_name)
 
         sample_pooling_table = pd.DataFrame(sample_pooling_table)

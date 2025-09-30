@@ -13,11 +13,11 @@
         jspreadsheet(document.getElementById('visium-1-example'), {
             data: [
                 ["sample_1", "F", "", "", "", "10", "", "control"],
-                ["sample_2", "F", "", "", "", "20", "", "ligma"],
+                ["sample_2", "F", "", "", "", "20", "", "disease"],
                 ["sample_3", "M", "", "", "", "30", "", "control"],
             ],
             columns: [
-                {% for col in columns %}
+                {% for col in form.spreadsheet.columns.values() %}
                 {%- if col.type == "text" or col.type == "numeric" -%}
                 { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
                 {%- elif col["type"] == "dropdown" -%}

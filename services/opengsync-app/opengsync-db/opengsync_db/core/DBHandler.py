@@ -236,4 +236,5 @@ class DBHandler():
     def needs_commit(self) -> bool:
         if self._session is None:
             return False
+        
         return self.__needs_commit or bool(self._session.dirty) or bool(self._session.new) or bool(self._session.deleted)

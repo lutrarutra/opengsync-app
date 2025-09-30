@@ -26,11 +26,11 @@
                 "kidney_sample_C", "cmo_sample_C", "", "", "GTTGATCTATAACAG", "5P(BC)", "R2"
             ],
             columns: [
-                {% for col in columns %}
+                {% for col in form.spreadsheet.columns.values() %}
                 {%- if col.type == "text" or col.type == "numeric" -%}
-                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
                 {%- elif col["type"] == "dropdown" -%}
-                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
                 {%- endif -%}
                 {% endfor %}
             ],
