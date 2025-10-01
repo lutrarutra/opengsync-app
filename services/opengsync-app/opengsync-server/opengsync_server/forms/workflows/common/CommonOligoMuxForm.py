@@ -30,7 +30,11 @@ class CommonOligoMuxForm(MultiStepForm):
         return bool(current_step.tables["library_table"]["library_type_id"].isin([LibraryType.TENX_MUX_OLIGO.id]).any())
     
     @classmethod
-    def __get_multiplexed_samples(cls, df: pd.DataFrame) -> list[str]:            
+    def __get_multiplexed_samples(cls, df: pd.DataFrame) -> list[str]:
+        if "mux_type_id" in df.columns:
+            return df[
+                df["mux_type_id"].isin([MUXType.TENX_OLIGO.id, MUXType.TENX_ABC_HASH.id])
+            ]["sample_name"].unique().tolist()    
         multiplexed_samples = set()
         for sample_name, _df in df.groupby("sample_name"):
             if LibraryType.TENX_MUX_OLIGO.id in _df["library_type_id"].values:
