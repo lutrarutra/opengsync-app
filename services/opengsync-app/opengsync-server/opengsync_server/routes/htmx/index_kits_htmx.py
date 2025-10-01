@@ -12,7 +12,7 @@ from ... import db, logger, forms
 from ...core import wrappers, exceptions
 from ...tools.spread_sheet_components import TextColumn
 
-index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/hmtx/index_kits/")
+index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/htmx/index_kits/")
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db)

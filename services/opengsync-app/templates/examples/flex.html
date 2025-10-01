@@ -19,7 +19,7 @@
                 ["FLEX_SAMPLE_POOL_B", "sample_B_brain", "BC003"],
             ],
             columns: [
-                {% for col in form.columns %}
+                {% for col in form.spreadsheet.columns.values() %}
                 {%- if col.type == "text" or col.type == "numeric" -%}
                 { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
                 {%- elif col["type"] == "dropdown" -%}

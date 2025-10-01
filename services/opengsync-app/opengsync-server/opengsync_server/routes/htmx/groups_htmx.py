@@ -9,7 +9,7 @@ from opengsync_db.categories import AffiliationType, UserRole, ProjectStatus
 from ... import db, forms
 from ...core import wrappers, exceptions
 
-groups_htmx = Blueprint("groups_htmx", __name__, url_prefix="/hmtx/groups/")
+groups_htmx = Blueprint("groups_htmx", __name__, url_prefix="/htmx/groups/")
 
 
 @wrappers.htmx_route(groups_htmx, db=db)

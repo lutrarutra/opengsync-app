@@ -45,8 +45,6 @@
     {{ pagination("select-experiments-table", "experiments_htmx.browse", n_pages, active_page, context=context) }}
     <script>
         $(document).ready(function() {
-            init_tooltips();
-
             let is_mouse_down = false;
             let start_row = null;
             let dragging = false;

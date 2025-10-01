@@ -6,7 +6,7 @@ from opengsync_db import models
 from ... import db
 from ...core import wrappers, exceptions
 
-plates_htmx = Blueprint("plates_htmx", __name__, url_prefix="/hmtx/plates/")
+plates_htmx = Blueprint("plates_htmx", __name__, url_prefix="/htmx/plates/")
 
 
 @wrappers.htmx_route(plates_htmx, db=db)

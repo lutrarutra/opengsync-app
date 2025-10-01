@@ -21,7 +21,6 @@ class OligoMuxForm(CommonOligoMuxForm):
     _workflow_name = "mux_prep"
     lab_prep: models.LabPrep
 
-    kit = FormField(OptionalSearchBar, label="Select Kit")
     mux_type = MUXType.TENX_OLIGO
     
     def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: Optional[str] = None):
@@ -62,70 +61,6 @@ class OligoMuxForm(CommonOligoMuxForm):
                 template_data["read"].append(mux.get("read"))
 
         return pd.DataFrame(template_data)
-
-    def validate(self) -> bool:
-        if not super().validate():
-            return False
-        
-        if not self.spreadsheet.validate():
-            return False
-        
-        df = self.spreadsheet.df
-
-        kit: models.FeatureKit | None = None
-        if (kit_id := self.kit.selected.data) is not None:
-            if (kit := db.feature_kits.get(kit_id)) is None:
-                logger.error(f"Unknown feature kit id {kit_id}")
-                self.kit.search_bar.errors = ("Unknown feature kit id",)
-                return False
-
-        duplicate_kit_feature = df.duplicated(subset=["sample_pool", "feature"], keep=False)
-        duplicate_manual_feature = df.duplicated(subset=["sample_pool", "sequence", "read", "pattern"], keep=False)
-
-        for idx, row in df.iterrows():
-            if row["demux_name"] not in self.sample_table["sample_name"].values:
-                self.spreadsheet.add_error(idx, "demux_name", InvalidCellValue(f"Unknown sample '{row['demux_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}"))
-
-            if kit is not None:
-                if pd.notna(row["sequence"]):
-                    self.spreadsheet.add_error(idx, "sequence", InvalidCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
-                if pd.notna(row["pattern"]):
-                    self.spreadsheet.add_error(idx, "pattern", InvalidCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
-                if pd.notna(row["read"]):
-                    self.spreadsheet.add_error(idx, "read", InvalidCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
-                
-                if pd.isna(row["feature"]):
-                    self.spreadsheet.add_error(idx, "feature", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
-                elif duplicate_kit_feature.at[idx]:
-                    self.spreadsheet.add_error(idx, "feature", DuplicateCellValue("Duplicate 'Kit' + 'Feature' specified in same pool."))
-                else:
-                    if len(features := db.features.get_from_kit_by_name(row["feature"], kit.id)) == 0:
-                        self.spreadsheet.add_error(idx, "feature", InvalidCellValue(f"Feature '{row['feature']}' not found in '{kit.name}'."))
-                    else:
-                        feature = features[0]
-                        df.at[idx, "sequence"] = feature.sequence
-                        df.at[idx, "pattern"] = feature.pattern
-                        df.at[idx, "read"] = feature.read
-            else:
-                if pd.isna(row["sequence"]):
-                    self.spreadsheet.add_error(idx, "sequence", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
-                if pd.isna(row["pattern"]):
-                    self.spreadsheet.add_error(idx, "pattern", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
-                if pd.isna(row["read"]):
-                    self.spreadsheet.add_error(idx, "read", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
-                if pd.notna(row["feature"]):
-                    self.spreadsheet.add_error(idx, "feature", MissingCellValue("Specify Kit + Feature or Sequence + Pattern + Read"))
-                if duplicate_manual_feature.at[idx]:
-                    self.spreadsheet.add_error(idx, "sequence", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination in same pool."))
-                    self.spreadsheet.add_error(idx, "pattern", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination in same pool."))
-                    self.spreadsheet.add_error(idx, "read", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination in same pool."))
-                
-        if len(self.spreadsheet._errors) > 0:
-            return False
-        
-        self.df = df
-
-        return True
 
     def process_request(self) -> Response:
         if not self.validate():

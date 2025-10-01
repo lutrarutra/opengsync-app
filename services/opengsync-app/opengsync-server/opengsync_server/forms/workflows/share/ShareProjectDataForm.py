@@ -138,7 +138,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
         try:
             mail_handler.send_email(
                 recipients=recipients,
-                subject=f"[{self.project.identifier or f'P{self.project.id}'}]: BSF Shared Project Data",
+                subject=f"[{self.project.identifier or f'P{self.project.id}'}]: {runtime.app.personalization['organization']} Shared Project Data",
                 body=content, mime_type="html",
             )
         except smtplib.SMTPException as e:

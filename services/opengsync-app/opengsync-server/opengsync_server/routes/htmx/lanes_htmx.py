@@ -6,7 +6,7 @@ from opengsync_db import models, PAGE_LIMIT
 from ... import db, forms, logger  # noqa
 from ...core import wrappers, exceptions
 
-lanes_htmx = Blueprint("lanes_htmx", __name__, url_prefix="/hmtx/lanes/")
+lanes_htmx = Blueprint("lanes_htmx", __name__, url_prefix="/htmx/lanes/")
 
 
 @wrappers.htmx_route(lanes_htmx, db=db)

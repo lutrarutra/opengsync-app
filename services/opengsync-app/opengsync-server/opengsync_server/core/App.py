@@ -53,6 +53,7 @@ class App(Flask):
     secret_key: str
     share_path_mapping: dict[str, str]
     debug: bool
+    personalization: dict
 
     def __init__(self, config_path: str):
         opengsync_config = yaml.safe_load(open(config_path))
@@ -70,6 +71,7 @@ class App(Flask):
         self.uploads_folder = Path(opengsync_config["uploads_folder"])
         self.app_data_folder = Path(opengsync_config["app_data_folder"])
         self.share_path_mapping = opengsync_config.get("share_path_mapping", {})
+        self.personalization = opengsync_config["personalization"]
 
         if not os.path.exists(self.static_folder):
             raise FileNotFoundError(f"Static folder not found: {self.static_folder}")
@@ -183,7 +185,9 @@ class App(Flask):
                 active_query_field=None,
                 active_page=0,
                 n_pages=None,
-                next=None
+                next=None,
+                contact_email=self.personalization["email"],
+                organization_name=self.personalization["organization"],
             )
 
         @self.context_processor

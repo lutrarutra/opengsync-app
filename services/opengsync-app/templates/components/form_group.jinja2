@@ -144,7 +144,7 @@
 </div>
 {%- endmacro %}
 
-{% macro datepicker(field, class='') %}
+{% macro datepicker(field, class='', disabled=false) %}
     <a {% if field.description %}{{ tooltip(field.description, "top") }}{% endif %}>
         {{ field.label }}
     </a>

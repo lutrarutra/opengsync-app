@@ -9,7 +9,7 @@ from opengsync_db.categories import UserRole, SeqRequestStatus, ProjectStatus
 from ... import db, logger  # noqa F401
 from ...core import wrappers, exceptions
 
-users_htmx = Blueprint("users_htmx", __name__, url_prefix="/hmtx/users/")
+users_htmx = Blueprint("users_htmx", __name__, url_prefix="/htmx/users/")
 
 
 @wrappers.htmx_route(users_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")

@@ -9,7 +9,7 @@ from ... import db, forms
 from ...core import wrappers, exceptions
 
 
-kits_htmx = Blueprint("kits_htmx", __name__, url_prefix="/hmtx/kits/")
+kits_htmx = Blueprint("kits_htmx", __name__, url_prefix="/htmx/kits/")
 
 
 @wrappers.htmx_route(kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")

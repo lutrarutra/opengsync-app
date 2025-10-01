@@ -8,7 +8,7 @@ from opengsync_db.categories import UserRole
 from ... import db, forms, logger, mail_handler, serializer
 from ...core import wrappers, exceptions, runtime
 
-auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/hmtx/auth/")
+auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/htmx/auth/")
 
 
 @wrappers.htmx_route(auth_htmx, methods=["GET", "POST"], db=db, login_required=False, limit_exempt=None, limit="20 per minute")

@@ -113,8 +113,6 @@
         }
 
         $(document).ready(function() {
-            init_tooltips();
-
             $(document).off("contextmenu", ".library-row").on("contextmenu", ".library-row", function(e) {
                 e.preventDefault();
                 const x = e.pageX;

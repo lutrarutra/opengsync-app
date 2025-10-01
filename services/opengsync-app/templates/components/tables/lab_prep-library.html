@@ -85,8 +85,6 @@
     {{ spinner("lab_prep-library-table-spinner") }}
     {{ pagination("lab_prep-library-table", "lab_preps_htmx.get_libraries", n_pages, active_page, context={"lab_prep_id": lab_prep.id}) }}
     <script>
-        init_tooltips();
-
         {% if lab_prep.status == PrepStatus.PREPARING %}
         var selected_library_id = null;
 

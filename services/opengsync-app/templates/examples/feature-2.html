@@ -14,7 +14,7 @@
                 ["ABC_LIBRARY_3", "TotalSeqA Antibody", "", "", "", ""],
             ],
             columns: [
-                {% for col in columns %}
+                {% for col in form.spreadsheet.columns.values() %}
                 {%- if col.type == "text" or col.type == "numeric" -%}
                 { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
                 {%- elif col["type"] == "dropdown" -%}

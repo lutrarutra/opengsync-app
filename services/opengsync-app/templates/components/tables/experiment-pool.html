@@ -113,7 +113,6 @@
     {{ spinner("experiment-pool-table-spinner") }}
     {{ pagination("experiment-pool-table", "experiments_htmx.get_pools", n_pages, active_page, context={"experiment_id": experiment.id}) }}
     <script>
-        init_tooltips();
         let selected_pool_id = null;
         let selected_pool_name = null;
 

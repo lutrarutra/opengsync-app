@@ -106,8 +106,6 @@
         });
     }
     $(document).ready(function() {
-        init_tooltips();
-
         $("#submit-select-pools-form-btn").click(function() {
             function submit() {
                 htmx.ajax("POST", "{{ url_for('select_experiment_pools_workflow.complete', experiment_id=experiment.id) }}", {

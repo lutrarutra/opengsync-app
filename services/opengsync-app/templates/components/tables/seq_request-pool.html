@@ -69,7 +69,4 @@
     </table>
     {{ spinner("seq_request-pool-table-spinner") }}
     {{ pagination("seq_request-pool-table", "seq_requests_htmx.get_pools", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
-    <script>
-        init_tooltips();
-    </script>
 </div>

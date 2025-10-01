@@ -14,7 +14,7 @@ from ... import db, forms, logger
 from ...core.RunTime import runtime
 from ...core import wrappers, exceptions
 
-experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/hmtx/experiments/")
+experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/htmx/experiments/")
 
 
 @wrappers.htmx_route(experiments_htmx, db=db)

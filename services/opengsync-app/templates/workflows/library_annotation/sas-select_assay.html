@@ -44,25 +44,32 @@
                     {{ checkbox_input(form.optional_assays.crispr_screening, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_CRISPR_SCREENING.id | string) }}
                 </div>
                 <h5>Additional Services</h5>
-                <div class="d-flex align-items-center pb-3">
-                    {{ checkbox_input(form.optional_assays.antibody_capture, class="opt-checkbox opt-checkbox-{} opt-checkbox-{} col-6".format(LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id)) }}
-                    {{ form_group(form.optional_assays.antibody_capture_kit, class="col-6", placeholder="Kit Name", hide_label=true) }}
+                <div class="d-flex align-items-center">
+                    <div class="col-8 d-flex" style="gap: 20px;">
+                        {{ checkbox_input(form.optional_assays.antibody_capture, class="opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id)) }}
+                        {{ checkbox_input(form.optional_assays.antibody_multiplexing, class="opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id)) }}
+                    </div>
+                    {{ form_group(form.optional_assays.antibody_capture_kit, class="col-4", placeholder="Kit Name", hide_label=true) }}
+                </div>
+                <div id="abc-mux-warning">
+                    <p class="text-warning">
+                        ⚠️ If selecting 'Cell Surface Protein Capture' + 'Antibody Multiplexing' we will perform cell surface protein capture and multiplexing in the same library instead of preparing two separate libraries for antibody capture and multiplexing.
+                        If you only require multiplexing, please select Oligo-based multiplexing below. 👇
+                    </p>
                 </div>
                 <div class="d-flex align-items-center">
-                    {{ checkbox_input(form.additional_services.oligo_multiplexing, class="opt-checkbox col-6", disabled=true) }}
-                    {{ form_group(form.additional_services.oligo_multiplexing_kit, class="col-6", placeholder="Kit Name", hide_label=true) }}
+                    {{ checkbox_input(form.additional_services.oligo_multiplexing, class="opt-checkbox col-8", disabled=true) }}
+                    {{ form_group(form.additional_services.oligo_multiplexing_kit, class="col-4", placeholder="Kit Name", hide_label=true) }}
                 </div>
                 {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
                 <div id="oligo-mux-warning" class="pb-3">
                     <p class="text-warning">
-                        ⚠️ When selecting oligo multiplexing, you will multiplex the samples using LMOs/CMOs/HTOs and we will prepare the libraries from multiplexed sample pools.
+                        ⚠️ When selecting oligo multiplexing, you will multiplex the samples using LMOs/CMOs/HTOs and we will prepare the libraries from multiplexed sample pools. If you are not able to multiplex the samples yourself, please contact us.
                     </p>
                 </div>
                 {% endif %}
-                <div class="d-flex align-items-center" style="gap: 20px;">
-                    {{ checkbox_input(form.additional_services.nuclei_isolation) }}
-                    {{ checkbox_input(form.additional_services.ocm_multiplexing, class="opt-checkbox") }}
-                </div>
+                {{ checkbox_input(form.additional_services.ocm_multiplexing, class="opt-checkbox pb-2") }}
+                {{ checkbox_input(form.additional_services.nuclei_isolation, class="pb-2") }}
                 {{ form_group(form.additional_info) }}
             </div>
             <div class="tab-pane fade show" id="form-tab-form-help" role="tabpanel" tabindex="1">
@@ -198,19 +205,35 @@
             if (is_checked) {
                 $("#optional_assays-antibody_capture_kit").removeClass("disabled");
                 $("#optional_assays-antibody_capture_kit").prop("disabled", false);
+                $("#optional_assays-antibody_multiplexing").prop("disabled", false);
+                $("#optional_assays-antibody_multiplexing").removeClass("disabled");
             } else {
                 $("#optional_assays-antibody_capture_kit").addClass("disabled");
                 $("#optional_assays-antibody_capture_kit").prop("disabled", true);
                 $("#optional_assays-antibody_capture_kit").val("");
+                $("#optional_assays-antibody_multiplexing").prop("checked", false);
+                $("#optional_assays-antibody_multiplexing").addClass("disabled");
+                $("#optional_assays-antibody_multiplexing").prop("disabled", true);
+            }
+        }
+
+        function update_abc_mux_input() {
+            const is_checked = $("#optional_assays-antibody_multiplexing").is(":checked");
+
+            if (is_checked) {
+                $("#abc-mux-warning").css("display", "block");
+            } else {
+                $("#abc-mux-warning").css("display", "none");
             }
         }
 
         $(document).ready(function() {
-            init_tooltips();
             update_optional_assays();
             update_oligo_multiplexing_kit_input();
             update_antibody_kit_input();
+            update_abc_mux_input();
 
+            $("#optional_assays-antibody_multiplexing").on("change", update_abc_mux_input);
             $("#assay_type").on("change", update_optional_assays);
             $("#optional_assays-antibody_capture").on("change", update_antibody_kit_input);
             $("#additional_services-oligo_multiplexing").on("change", update_oligo_multiplexing_kit_input);

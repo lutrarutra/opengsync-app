@@ -24,16 +24,17 @@
                     <div class="accordion-body">
                         <div>
                             <p>
-                            This program is designed to store and facilitate the transfer of information between customers and our team. It is not intended for designing or validating experimental setups. Users must ensure that their experimental setups are valid. If you are uncertain about your setup, please contact us at <a href="mailto:bsf@cemm.at">bsf@cemm.at</a>.
+                            This program is designed to store and facilitate the transfer of information between customers and our team. It is not intended for designing or validating experimental setups. Users must ensure that their experimental setups are valid. If you are uncertain about your setup, please contact us at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.
+                            We reserve the right to reject any sequencing requests that are invalid, do not meet our quality standards, or are not feasible with our current resources.
                             </p>
                             <p>
-                            Each sequencing request is subject to review and approval by the BSF team. For non-standard experimental setups, such as using a custom genome reference, please contact us to ensure we can accommodate your request.
+                            Each sequencing request is subject to review and approval by the our team. For non-standard experimental setups, such as using a custom genome reference, please contact us to ensure we can accommodate your request.
                             </p>
                             <p>
                             Results from each request will be shared with a single entity (group), whether it is a research lab or an individual. If you are submitting a request on behalf of multiple entities, please submit separate requests for each entity. Results from different requests, including previous ones, can be grouped together for analysis by associating the libraries with the same project.
                             </p>
                             <p>
-                            <b>If group is selected</b>, the sequencing request will be editable by ALL members of the group until it is submitted. After submission, the request will be read-only for all group members. If you need to make changes to a submitted request, please contact us at <a href="mailto:bsf@cemm.at">bsf@cemm.at</a>. <b>The sequencing results will be shared with all group members.</b>
+                            <b>If group is selected</b>, the sequencing request will be editable by ALL members of the group until it is submitted. After submission, the request will be read-only for all group members. If you need to make changes to a submitted request, please contact us at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. <b>The sequencing results will be shared with all group members.</b>
                             </p>
                         </div>
                         {{ sub_form.csrf_token() }}
@@ -290,8 +291,6 @@
         }
 
         $(document).ready(function(){
-            init_tooltips();
-
             $("#billing_form-billing_is_organization").on("click", function(){
                 update_billing_is_organization();
             });

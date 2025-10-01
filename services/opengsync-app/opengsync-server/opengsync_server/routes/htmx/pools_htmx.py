@@ -10,7 +10,7 @@ from opengsync_db.categories import PoolStatus, LibraryStatus, PoolType
 
 from ... import db, forms
 from ...core import wrappers, exceptions
-pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/hmtx/pools/")
+pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/htmx/pools/")
 
 
 @wrappers.htmx_route(pools_htmx, db=db)

@@ -7,7 +7,7 @@ from opengsync_db.categories import UserRole
 from ... import db, forms
 from ...core import wrappers, exceptions
 
-sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/hmtx/sequencers/")
+sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/htmx/sequencers/")
 
 
 @wrappers.htmx_route(sequencers_htmx, db=db, cache_timeout_seconds=60, cache_type="user")

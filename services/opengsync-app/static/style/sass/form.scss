@@ -55,6 +55,7 @@
 .form-check {
     padding: 0 0 0 5px;
     margin: 0;
+    white-space: nowrap;
 
     label:hover, input:hover {
         cursor: pointer;
