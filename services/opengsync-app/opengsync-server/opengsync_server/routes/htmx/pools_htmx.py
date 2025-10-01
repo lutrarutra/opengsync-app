@@ -477,16 +477,19 @@ def browse_query(current_user: models.User, workflow: str):
 
 
 @wrappers.htmx_route(pools_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
-def get_recent_pools(current_user: models.User):
+def get_recent_pools(current_user: models.User, page: int = 0):
+    PAGE_LIMIT = 10
+    
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
     pools, _ = db.pools.find(
         status_in=[PoolStatus.STORED, PoolStatus.ACCEPTED], sort_by="id", descending=True,
-        limit=15
+        limit=PAGE_LIMIT, offset=page * PAGE_LIMIT, count_pages=False
     )
     
     return make_response(render_template(
         "components/dashboard/pools-list.html",
-        pools=pools, sort_by="id"
+        pools=pools, sort_by="id",
+        limit=PAGE_LIMIT, current_page=page
     ))

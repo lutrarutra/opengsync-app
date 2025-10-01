@@ -727,7 +727,9 @@ def get_pool_dilutions(current_user: models.User, experiment_id: int, page: int 
 
 
 @wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
-def get_recent_experiments(current_user: models.User):
+def get_recent_experiments(current_user: models.User, page: int = 0):
+    PAGE_LIMIT = 10
+    
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
@@ -737,11 +739,15 @@ def get_recent_experiments(current_user: models.User):
     else:
         sort_by = "name"
 
-    experiments, _ = db.experiments.find(sort_by=sort_by, descending=True)
-
-    return make_response(
-        render_template("components/dashboard/experiments-list.html", experiments=experiments, sort_by=sort_by)
+    experiments, _ = db.experiments.find(
+        sort_by=sort_by, descending=True,
+        limit=PAGE_LIMIT, offset=page * PAGE_LIMIT
     )
+
+    return make_response(render_template(
+        "components/dashboard/experiments-list.html", experiments=experiments, sort_by=sort_by,
+        current_page=page, limit=PAGE_LIMIT
+    ))
 
 
 @wrappers.htmx_route(experiments_htmx, db=db)

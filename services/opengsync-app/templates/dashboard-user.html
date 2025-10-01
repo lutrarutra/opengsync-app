@@ -5,15 +5,13 @@
 {% extends "base.html" %}
 {% set active_page = "dashboard-page" %}
 {% block content %}
-<div class="page-content">
+<div class="page-content dash-container">
     <div class="dash">
         <div class="dash-left">
             <div class="dash-top dash-component-container">
                 <div class="dash-component-header">
                     <div class="dash-component-title-container">
                         <h4>Recent Sequencing Requests</h4>
-                    </div>
-                    <div class="dash-component-controls-container">
                     </div>
                 </div>
                 <div class="dash-component-content">
@@ -24,14 +22,16 @@
             </div>
         </div>
         <div class="dash-right">
-            <div class="dash-top dash-component-container" >
-                <div class="dash-component-header" id="project_list-container">
+            <div class="dash-top dash-component-container">
+                <div class="dash-component-header">
                     <div class="dash-component-title-container">
                         <h4>Recent Projects</h4>
                     </div>
                 </div>
-                <div class="tab-content dash-component-content" hx-get="{{ url_for('projects_htmx.get_recent_projects') }}" hx-trigger="load once">
-                    {{ spinner() }}
+                <div class="dash-component-content">
+                    <div class="banner-container" hx-get="{{ url_for('projects_htmx.get_recent_projects') }}" hx-trigger="load once">
+                        {{ spinner() }}
+                    </div>
                 </div>
             </div>
             <div class="dash-bottom dash-component-container">

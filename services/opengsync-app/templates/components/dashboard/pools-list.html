@@ -1,16 +1,20 @@
 {% from "components/status_bar.jinja2" import pool_status_bar with context %}
+{% from "components/spinner.jinja2" import spinner %}
 
-<div class="banner-container">
 {% for pool in pools %}
-    <a class="element-banner" href="{{ url_for('pools_page.pool', pool_id=pool.id) }}">
-        <div class="row">
-            <div class="title col-3">{{ pool.name }}</div>
-            <div class="col-2">BA: {% if pool.avg_fragment_size %}✅{% else %}⚠️{% endif %}</div>
-            <div class="col-2">Qubit: {% if pool.qubit_concentration %}✅{% else %}⚠️{% endif %}</div>
-            <div class="col-2">E: {% if pool.experiment_id %}{{ pool.experiment.name }}{% else %}⚠️{% endif %}</div>
-            <div class="description col-3">{{ pool.owner.name }}</div>
-        </div>
-        {{ pool_status_bar(pool) }}
-    </a>
+<a class="element-banner" href="{{ url_for('pools_page.pool', pool_id=pool.id) }}">
+    <div class="row">
+        <div class="title col-3">{{ pool.name }}</div>
+        <div class="col-2">BA: {% if pool.avg_fragment_size %}✅{% else %}⚠️{% endif %}</div>
+        <div class="col-2">Qubit: {% if pool.qubit_concentration %}✅{% else %}⚠️{% endif %}</div>
+        <div class="col-2">E: {% if pool.experiment_id %}{{ pool.experiment.name }}{% else %}⚠️{% endif %}</div>
+        <div class="description col-3">{{ pool.owner.name }}</div>
+    </div>
+    {{ pool_status_bar(pool) }}
+</a>
 {% endfor %}
+{% if limit == pools | length %}
+<div hx-get="{{ url_for('pools_htmx.get_recent_pools', page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+    {{ spinner() }}
 </div>
+{% endif %}
