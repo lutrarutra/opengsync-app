@@ -1094,7 +1094,9 @@ def store_samples(current_user: models.User, seq_request_id: int):
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
-def get_recent_seq_requests(current_user: models.User):
+def get_recent_seq_requests(current_user: models.User, page: int = 0):
+    PAGE_LIMIT = 10
+
     if current_user.is_insider():
         def __order_by_status_and_time(q):
             return q.order_by(
@@ -1104,15 +1106,17 @@ def get_recent_seq_requests(current_user: models.User):
 
         seq_requests, _ = db.seq_requests.find(
             status_in=[SeqRequestStatus.SUBMITTED, SeqRequestStatus.ACCEPTED, SeqRequestStatus.SAMPLES_RECEIVED, SeqRequestStatus.PREPARED, SeqRequestStatus.DATA_PROCESSING],
-            custom_query=__order_by_status_and_time, limit=None
+            custom_query=__order_by_status_and_time, limit=PAGE_LIMIT, offset=PAGE_LIMIT * page
         )
     else:
         seq_requests, _ = db.seq_requests.find(
             user_id=current_user.id,
             sort_by="timestamp_submitted_utc",
             descending=True,
+            limit=PAGE_LIMIT, offset=PAGE_LIMIT * page
         )
 
-    return make_response(
-        render_template("components/dashboard/seq_requests-list.html", seq_requests=seq_requests)
-    )
+    return make_response(render_template(
+        "components/dashboard/seq_requests-list.html", seq_requests=seq_requests,
+        current_page=page, limit=PAGE_LIMIT
+    ))

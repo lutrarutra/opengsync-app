@@ -1,19 +1,24 @@
 {% from "components/status_bar.jinja2" import project_status_bar with context %}
-<div class="banner-container">
-    {% for project in projects %}
-    <a class="element-banner" href="{{ url_for('projects_page.project', project_id=project.id) }}">
-        <div class="row">
-            <div class="title col-8">{{ project.identifier or project.title }}</div>
-            <div class="col-4">
-                <span class="badge">Samples: {{ project.num_samples }}</span>
-            </div>
+{% from "components/spinner.jinja2" import spinner %}
+
+{% for project in projects %}
+<a class="element-banner" href="{{ url_for('projects_page.project', project_id=project.id) }}">
+    <div class="row">
+        <div class="title col-8">{{ project.identifier or project.title }}</div>
+        <div class="col-4">
+            <span class="badge">Samples: {{ project.num_samples }}</span>
         </div>
-        <div class="row">
-            <div class="col-4">{{ project.owner.name }}</div>
-            <div class="col-4">{{ project.timestamp_created_str("%-d. %b. %Y") }}</div>
-            <div class="col-4">{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</div>
-        </div>
-        {{ project_status_bar(project) }}
-    </a>
-    {% endfor %}
+    </div>
+    <div class="row">
+        <div class="col-4">{{ project.owner.name }}</div>
+        <div class="col-4">{{ project.timestamp_created_str("%-d. %b. %Y") }}</div>
+        <div class="col-4">{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</div>
+    </div>
+    {{ project_status_bar(project) }}
+</a>
+{% endfor %}
+{% if limit == projects | length %}
+<div hx-get="{{ url_for('projects_htmx.get_recent_projects', page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+    {{ spinner() }}
 </div>
+{% endif %}

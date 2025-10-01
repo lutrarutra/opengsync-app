@@ -1,4 +1,5 @@
 {% from "components/status_bar.jinja2" import experiment_status_bar with context %}
+{% from "components/spinner.jinja2" import spinner %}
 
 {% for experiment in experiments %}
 <a class="element-banner" href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}">
@@ -10,3 +11,8 @@
     {{ experiment_status_bar(experiment) }}
 </a>
 {% endfor %}
+{% if limit == experiments | length %}
+<div hx-get="{{ url_for('experiments_htmx.get_recent_experiments', page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+    {{ spinner() }}
+</div>
+{% endif %}

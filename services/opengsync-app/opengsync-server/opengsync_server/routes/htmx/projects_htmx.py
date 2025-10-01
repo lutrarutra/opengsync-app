@@ -501,7 +501,8 @@ def edit_sample_attributes(current_user: models.User, project_id: int):
 
 
 @wrappers.htmx_route(projects_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
-def get_recent_projects(current_user: models.User):
+def get_recent_projects(current_user: models.User, page: int = 0):
+    PAGE_LIMIT = 10
     status_in = None
     if current_user.is_insider():
         status_in = [
@@ -510,12 +511,14 @@ def get_recent_projects(current_user: models.User):
 
     projects, _ = db.projects.find(
         user_id=current_user.id if not current_user.is_insider() else None,
-        sort_by="id", limit=30, status_in=status_in, descending=True
+        sort_by="id", status_in=status_in, descending=True,
+        limit=PAGE_LIMIT, offset=PAGE_LIMIT * page
     )
 
     return make_response(
         render_template(
-            "components/dashboard/projects-list.html", projects=projects
+            "components/dashboard/projects-list.html", projects=projects,
+            current_page=page, limit=PAGE_LIMIT
         )
     )
 

@@ -13,8 +13,6 @@
                     <div class="dash-component-title-container">
                         <h4>Recent Sequencing Requests</h4>
                     </div>
-                    <div class="dash-component-controls-container">
-                    </div>
                 </div>
                 <div class="dash-component-content">
                     <div class="banner-container" hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests') }}" hx-trigger="load once">
@@ -26,8 +24,6 @@
                 <div class="dash-component-header">
                     <div class="dash-component-title-container">
                         <h4>Recent Experiments</h4>
-                    </div>
-                    <div class="dash-component-controls-container">
                     </div>
                 </div>
                 <div class="dash-component-content">
@@ -63,17 +59,17 @@
                 </div>
                 <div class="tab-content dash-component-content">
                     <div class="tab-pane fade show active" id="tab-projects" role="tabpanel" tabindex="0">
-                        <div hx-get="{{ url_for('projects_htmx.get_recent_projects') }}" hx-trigger="load once" hx-swap="outerHTML">
+                        <div class="banner-container" hx-get="{{ url_for('projects_htmx.get_recent_projects') }}" hx-trigger="load once">
                             {{ spinner() }}
                         </div>
                     </div>
                     <div class="tab-pane fade" id="tab-todo-libraries" role="tabpanel" tabindex="1">
-                        <div hx-get="{{ url_for('libraries_htmx.get_todo_libraries') }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                        <div class="banner-container" hx-get="{{ url_for('libraries_htmx.get_todo_libraries') }}" hx-trigger="intersect once">
                             {{ spinner() }}
                         </div>
                     </div>
                     <div class="tab-pane fade" id="tab-pools" role="tabpanel" tabindex="2">
-                        <div hx-get="{{ url_for('pools_htmx.get_recent_pools') }}" hx-trigger="load once" hx-swap="outerHTML">
+                        <div class="banner-container" hx-get="{{ url_for('pools_htmx.get_recent_pools') }}" hx-trigger="intersect once">
                             {{ spinner() }}
                         </div>
                     </div>
