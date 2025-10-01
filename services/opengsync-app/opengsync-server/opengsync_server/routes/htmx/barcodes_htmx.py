@@ -6,7 +6,7 @@ from opengsync_db.categories import IndexType
 
 from ... import db, forms
 from ...core import wrappers, exceptions
-barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/hmtx/barcodes/")
+barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/htmx/barcodes/")
 
 
 @wrappers.htmx_route(barcodes_htmx, db=db, cache_timeout_seconds=60, cache_type="global")

@@ -1,6 +1,5 @@
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
-{% from 'components/search_select.jinja2' import search_select_field %}
 
 <div id="oligo_mux_annotation-form-container" class="modal-content">
     <div class="modal-header">
@@ -25,8 +24,13 @@
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
-                {{ search_select_field(form.kit, query_url=url_for('feature_kits_htmx.query')) }}
-                {{ spreadsheet_input(element=form.spreadsheet) }}
+                {{
+                    spreadsheet_input(
+                        element=form.spreadsheet,
+                        target_element_id="oligo_mux_annotation-form-container",
+                        submit_btn_id="parse-spreadsheet-btn",
+                    )
+                }}
             </div>
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
             </div>
@@ -45,24 +49,4 @@
             </button>
         </div>
     </div>
-    <script>
-        $(document).ready(function() {
-            init_tooltips();
-            
-
-            $("#parse-spreadsheet-btn").on("click", function() {
-                htmx.ajax("POST", "{{ url_for('mux_prep_workflow.parse_oligo_mux_annotation', lab_prep_id=lab_prep.id, uuid=form.uuid) }}", {
-                    "target": "#oligo_mux_annotation-form-container",
-                    "swap": "outerHTML",
-                    "values": {
-                        "spreadsheet": JSON.stringify(spread_sheet.getData()),
-                        "kit-selected": $("#kit").val(),
-                        "kit-csrf_token": "{{ form.csrf_token._value() }}",
-                        "csrf_token": "{{ form.csrf_token._value() }}",
-                        "columns": JSON.stringify(spread_sheet.getHeaders()),
-                    },
-                });
-            });
-        });
-    </script>
 </div>

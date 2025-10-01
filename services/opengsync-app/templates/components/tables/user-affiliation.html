@@ -38,7 +38,4 @@
     </table>
     {{ spinner("user-affiliation-table-spinner") }}
     {{ pagination("user-affiliation-table", "users_htmx.get_affiliations", n_pages, active_page, context={"user_id": user.id}) }}
-    <script>
-        init_tooltips();
-    </script>
 </div>

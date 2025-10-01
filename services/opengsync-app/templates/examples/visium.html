@@ -17,7 +17,7 @@
                 ["VISIUM_SAMPLE_3", "image_sample_3.tif", "V01C03-333", "C1"],
             ],
             columns: [
-                {% for col in columns %}
+                {% for col in form.spreadsheet.columns.values() %}
                 {%- if col.type == "text" or col.type == "numeric" -%}
                 { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
                 {%- elif col["type"] == "dropdown" -%}

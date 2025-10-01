@@ -8,7 +8,7 @@ from opengsync_db import models
 from ... import db, logger  # noqa
 from ...core import wrappers, exceptions
 
-events_htmx = Blueprint("events_htmx", __name__, url_prefix="/hmtx/events/")
+events_htmx = Blueprint("events_htmx", __name__, url_prefix="/htmx/events/")
 
 
 @wrappers.htmx_route(events_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")

@@ -50,7 +50,6 @@
     {{ spinner("group-user-table-spinner") }}
     {{ pagination("group-user-table", "groups_htmx.get_users", n_pages, active_page, context={"group_id": group.id}) }}
     <script>
-        init_tooltips();
         {% if can_add_users %}
         var selected_user_id = null;
 

@@ -11,7 +11,7 @@ from ...core import wrappers, exceptions
 from ... import forms
 from ...tools.spread_sheet_components import TextColumn
 
-feature_kits_htmx = Blueprint("feature_kits_htmx", __name__, url_prefix="/hmtx/feature_kits/")
+feature_kits_htmx = Blueprint("feature_kits_htmx", __name__, url_prefix="/htmx/feature_kits/")
 
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")

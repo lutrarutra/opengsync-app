@@ -13,7 +13,7 @@ from ... import db, forms, logger
 from ...core import wrappers, exceptions
 from ...tools.spread_sheet_components import TextColumn
 
-projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/hmtx/projects/")
+projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/htmx/projects/")
 
 
 @wrappers.htmx_route(projects_htmx, db=db, cache_timeout_seconds=120, cache_type="insider")

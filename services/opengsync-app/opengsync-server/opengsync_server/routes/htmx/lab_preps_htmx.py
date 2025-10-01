@@ -21,7 +21,7 @@ from ...core.RunTime import runtime
 from ...tools.spread_sheet_components import TextColumn
 
 
-lab_preps_htmx = Blueprint("lab_preps_htmx", __name__, url_prefix="/hmtx/lab_preps/")
+lab_preps_htmx = Blueprint("lab_preps_htmx", __name__, url_prefix="/htmx/lab_preps/")
 
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)

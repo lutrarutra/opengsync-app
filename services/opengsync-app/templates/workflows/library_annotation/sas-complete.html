@@ -218,7 +218,7 @@
                             <th scope="col" class="col-2">Sample Name</th>
                             <th scope="col" class="col-2">Library Name</th>
                             <th scope="col" class="col-2">Sample Pool</th>
-                            {% if mux_type == MUXType.TENX_OLIGO %}
+                            {% if mux_type in [MUXType.TENX_OLIGO, MUXType.TENX_ABC_HASH] %}
                             <th scope="col" class="col-2">Kit</th>
                             <th scope="col" class="col-2">Feature</th>
                             <th scope="col" class="col-1">Sequence</th>
@@ -237,7 +237,7 @@
                             <th scope="row">{{ row["sample_name"] }}</th>
                             <td>{{ row["library_name"] }}</td>
                             <td>{{ row["sample_pool"] }}</td>
-                            {% if mux_type == MUXType.TENX_OLIGO %}
+                            {% if mux_type in [MUXType.TENX_OLIGO, MUXType.TENX_ABC_HASH] %}
                             <td>{{ row["kit"] if row["kit"] }}</td>
                             <td>{{ row["feature"] if row["feature"] }}</td>
                             <td>{{ row["mux_barcode"] }}</td>
@@ -312,7 +312,6 @@
     </div>
     <script>
         $(document).ready(function() {
-            init_tooltips();
             $("#submit-spreadsheet-btn").on("click", function() {
                 window.onbeforeunload = null;
             });

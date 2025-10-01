@@ -10,7 +10,7 @@ from ... import db, logger, forms
 from ...core import wrappers, exceptions
 
 
-samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/hmtx/samples/")
+samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/htmx/samples/")
 
 
 @wrappers.htmx_route(samples_htmx, db=db)

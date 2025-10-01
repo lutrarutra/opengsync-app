@@ -8,7 +8,7 @@ from opengsync_db.categories import RunStatus
 from ... import db, logger, route_cache  # noqa F401
 from ...core import wrappers, exceptions
 
-seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/hmtx/seq_run/")
+seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/htmx/seq_run/")
 
 
 @wrappers.htmx_route(seq_runs_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")

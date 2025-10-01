@@ -21,6 +21,7 @@ class OptionalAssaysForm(FlaskForm):
     vdj_t_gd = BooleanField("VDJ-T-GD", description="TCR-GD-sequencing", default=False)
     crispr_screening = BooleanField("CRISPR Screening", default=False)
     antibody_capture = BooleanField("Cell Surface Protein Capture", description="Antibody Capture", default=False)
+    antibody_multiplexing = BooleanField("+ Sample Multiplexing with Antibody-based Cell Hashing", description="Multiple samples per library with antibody-based cell tagging. Only available with cell surface protein capture.", default=False)
     antibody_capture_kit = StringField(description="Antibody Capture Kit", validators=[OptionalValidator(), Length(max=64)])
 
 
@@ -62,6 +63,7 @@ class SelectAssayForm(MultiStepForm):
         self.optional_assays.vdj_t.data = previous_form.metadata.get("vdj_t", False)
         self.optional_assays.vdj_t_gd.data = previous_form.metadata.get("vdj_t_gd", False)
         self.optional_assays.crispr_screening.data = previous_form.metadata.get("crispr_screening", False)
+        self.optional_assays.antibody_multiplexing.data = previous_form.metadata.get("antibody_multiplexing", False)
 
         self.optional_assays.antibody_capture_kit.data = previous_form.metadata.get("antibody_capture_kit", "")
         
@@ -87,6 +89,21 @@ class SelectAssayForm(MultiStepForm):
         if self.additional_services.oligo_multiplexing.data and not self.additional_services.oligo_multiplexing_kit.data:
             self.additional_services.oligo_multiplexing_kit.errors = ("Please specify a multiplexing kit.",)
 
+        if self.optional_assays.antibody_multiplexing.data and not self.optional_assays.antibody_capture.data:
+            self.optional_assays.antibody_multiplexing.errors = ("Antibody-based cell hashing multiplexing requires cell surface protein capture.",)
+
+        if self.optional_assays.antibody_multiplexing.data and self.additional_services.oligo_multiplexing.data:
+            self.optional_assays.antibody_multiplexing.errors = ("Please select only one multiplexing method.",)
+            self.additional_services.oligo_multiplexing_kit.errors = ("Please select only one multiplexing method.",)
+
+        if self.optional_assays.antibody_multiplexing.data and self.additional_services.ocm_multiplexing.data:
+            self.optional_assays.antibody_multiplexing.errors = ("Please select only one multiplexing method.",)
+            self.additional_services.ocm_multiplexing.errors = ("Please select only one multiplexing method.",)
+
+        if self.additional_services.oligo_multiplexing.data and self.additional_services.ocm_multiplexing.data:
+            self.additional_services.oligo_multiplexing_kit.errors = ("Please select only one multiplexing method.",)
+            self.additional_services.ocm_multiplexing.errors = ("Please select only one multiplexing method.",)
+
         if self.errors:
             return False
         
@@ -109,12 +126,14 @@ class SelectAssayForm(MultiStepForm):
         assay_type = AssayType.get(self.assay_type.data)
         oligo_multiplexing = self.additional_services.oligo_multiplexing.data
         ocm_multiplexing = self.additional_services.ocm_multiplexing.data
+        antibody_multiplexing = self.optional_assays.antibody_multiplexing.data
         flex_barcode_multiplexing = assay_type in [AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]
         
         self.metadata["assay_type_id"] = assay_type.id
         self.metadata["mux_type_id"] = None
         self.metadata["oligo_multiplexing_kit"] = self.additional_services.oligo_multiplexing_kit.data
         self.metadata["antibody_capture_kit"] = self.optional_assays.antibody_capture_kit.data
+        self.metadata["antibody_multiplexing"] = self.optional_assays.antibody_multiplexing.data
 
         if oligo_multiplexing:
             self.metadata["mux_type_id"] = MUXType.TENX_OLIGO.id
@@ -122,6 +141,8 @@ class SelectAssayForm(MultiStepForm):
             self.metadata["mux_type_id"] = MUXType.TENX_ON_CHIP.id
         elif flex_barcode_multiplexing:
             self.metadata["mux_type_id"] = MUXType.TENX_FLEX_PROBE.id
+        elif antibody_multiplexing:
+            self.metadata["mux_type_id"] = MUXType.TENX_ABC_HASH.id
             
         self.metadata["nuclei_isolation"] = self.additional_services.nuclei_isolation.data
         self.metadata["antibody_capture"] = self.optional_assays.antibody_capture.data

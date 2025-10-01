@@ -86,8 +86,6 @@
     </div>
     <script>
         $(document).ready(function() {
-            init_tooltips();
-
             function update_molarity(row) {
                 const measured_qubit = parseFloat(row.find(".measured_qubit-col").first().closest("input").val());
                 const total_volume_ul = parseFloat(row.find(".total_volume_ul-col").first().closest("input").val());

@@ -1,3 +1,7 @@
+personalization:
+    organization: "OpeNGSync"
+    email: "contact@us.email"
+
 sample_submission_windows:
     - weekday: 2
       start_time: "15:00"

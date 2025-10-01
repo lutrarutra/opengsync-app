@@ -369,7 +369,7 @@
                 {{
                     metadata_group_email_link(
                         "Operator Email", experiment.operator.email, class="col",
-                        subject="BSF Sequencing Experiment: " + experiment.id | string
+                        subject=organization_name + " Sequencing Experiment: " + experiment.id | string
                     )
                 }}
             </div>
@@ -467,8 +467,6 @@
 </div>
 
 <script>
-    init_tooltips();
-
     function open_file_tab(file_id) {
         $('.nav-tabs button[data-bs-target="#experiment-files-tab"]').tab('show');
         $('.nav-tabs button[data-bs-target="#file-' + file_id + '-tab"]').tab('show');

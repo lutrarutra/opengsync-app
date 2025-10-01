@@ -68,7 +68,10 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
                 pooling_data["mux_read"].append(mux_row["read"])
                 pooling_data["kit"].append(mux_row["kit"])
                 pooling_data["feature"].append(mux_row["feature"])
-                pooling_data["mux_type_id"].append(MUXType.TENX_OLIGO.id)
+                if OligoMuxAnnotationForm.is_abc_hashed(self):
+                    pooling_data["mux_type_id"].append(MUXType.TENX_ABC_HASH.id)
+                else:
+                    pooling_data["mux_type_id"].append(MUXType.TENX_OLIGO.id)
                 pooling_data["sample_pool"].append(mux_row["sample_pool"])
         
         sample_pooling_table = pd.DataFrame(pooling_data)

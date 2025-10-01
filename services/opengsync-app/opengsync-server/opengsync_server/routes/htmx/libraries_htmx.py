@@ -12,7 +12,7 @@ from ... import db, forms, logger  # noqa
 from ...core import wrappers, exceptions
 from ...tools.spread_sheet_components import TextColumn
 
-libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/hmtx/libraries/")
+libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/htmx/libraries/")
 
 
 @wrappers.htmx_route(libraries_htmx, db=db)

@@ -62,8 +62,6 @@
     }
 
     $(document).ready(function() {
-        init_tooltips();
-
         $(document).off("contextmenu", ".path-row").on("contextmenu", ".path-row", function(e) {
             e.preventDefault();
             const x = e.pageX;

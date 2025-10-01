@@ -17,7 +17,7 @@ from ...tools import utils, FileBrowser
 from ...core import wrappers, exceptions
 from ...core.RunTime import runtime
 
-files_htmx = Blueprint("files_htmx", __name__, url_prefix="/hmtx/files/")
+files_htmx = Blueprint("files_htmx", __name__, url_prefix="/htmx/files/")
 
 
 @wrappers.htmx_route(files_htmx, db=db)

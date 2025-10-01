@@ -7,21 +7,24 @@
     <div class="fig-body" id="projection-plot"></div>
 </div>
 <script>
-    $(document).ready(function(){
-        const plot_projection = async () => {
-            $.ajax({
-                url: "{{ url_for('plots_api.experiment_library_reads', experiment_id=experiment.id) }}",
-                type: "POST",
-                contentType: "application/json; charset=utf-8",
-                data: JSON.stringify({
-                    "width": $("#projection-plot").width(),
-                }),
-                dataType: "json",
-                success: function(figure){
-                    Plotly.newPlot("projection-plot", figure.data, figure.layout);
-                }
-            });
-        }
-        plot_projection();
-    });
+$(document).ready(async function(){
+    await load_plotly();
+
+    const plot_projection = () => {
+        $.ajax({
+            url: "{{ url_for('plots_api.experiment_library_reads', experiment_id=experiment.id) }}",
+            type: "POST",
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify({
+                "width": $("#projection-plot").width(),
+            }),
+            dataType: "json",
+            success: function(figure){
+                Plotly.newPlot("projection-plot", figure.data, figure.layout, {responsive: true});
+            }
+        });
+    };
+
+    plot_projection();
+});
 </script>

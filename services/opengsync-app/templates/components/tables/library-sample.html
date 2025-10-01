@@ -79,8 +79,6 @@
         }
 
         $(document).ready(function() {
-            init_tooltips();
-
             $(document).off("contextmenu", ".sample-row").on("contextmenu", ".sample-row", function(e) {
                 e.preventDefault();
                 const x = e.pageX;

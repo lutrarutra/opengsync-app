@@ -20,14 +20,28 @@ class CommonOligoMuxForm(MultiStepForm):
     index_col: str
 
     @staticmethod
+    def is_abc_hashed(current_step: MultiStepForm) -> bool:
+        return current_step.metadata.get("mux_type_id") == MUXType.TENX_ABC_HASH.id
+
+    @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
+        if CommonOligoMuxForm.is_abc_hashed(current_step):
+            return True
         return bool(current_step.tables["library_table"]["library_type_id"].isin([LibraryType.TENX_MUX_OLIGO.id]).any())
     
     @classmethod
-    def __get_multiplexed_samples(cls, df: pd.DataFrame) -> list[str]:
+    def __get_multiplexed_samples(cls, df: pd.DataFrame) -> list[str]:            
         multiplexed_samples = set()
         for sample_name, _df in df.groupby("sample_name"):
             if LibraryType.TENX_MUX_OLIGO.id in _df["library_type_id"].values:
+                multiplexed_samples.add(sample_name)
+        return list(multiplexed_samples)
+    
+    @classmethod
+    def __get_abc_multiplexed_samples(cls, df: pd.DataFrame) -> list[str]:
+        multiplexed_samples = set()
+        for sample_name, _df in df.groupby("sample_name"):
+            if LibraryType.TENX_ANTIBODY_CAPTURE.id in _df["library_type_id"].values:
                 multiplexed_samples.add(sample_name)
         return list(multiplexed_samples)
 
@@ -64,7 +78,10 @@ class CommonOligoMuxForm(MultiStepForm):
             logger.error(f"Unsupported workflow: {workflow}")
             raise ValueError(f"Unsupported workflow: {workflow}")
             
-        self.multiplexed_samples = CommonOligoMuxForm.__get_multiplexed_samples(self.sample_table)
+        if CommonOligoMuxForm.is_abc_hashed(self):
+            self.multiplexed_samples = CommonOligoMuxForm.__get_abc_multiplexed_samples(self.sample_table)
+        else:
+            self.multiplexed_samples = CommonOligoMuxForm.__get_multiplexed_samples(self.sample_table)
         
         demux_name_col = TextColumn("demux_name", "Demultiplexed Name", 170, required=True, max_length=models.Sample.name.type.length, min_length=4, validation_fnc=utils.check_string)
 
@@ -73,7 +90,10 @@ class CommonOligoMuxForm(MultiStepForm):
                 raise ValueError("SeqRequest must be provided for library_annotation workflow")
             if seq_request.submission_type == SubmissionType.RAW_SAMPLES:
                 pooling_table = self.tables["sample_pooling_table"]
-                pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_MUX_OLIGO.identifier)]
+                if CommonOligoMuxForm.is_abc_hashed(self):
+                    pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_ANTIBODY_CAPTURE.identifier)]
+                else:
+                    pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_MUX_OLIGO.identifier)]
                 demux_name_col = DropdownColumn("demux_name", "Demultiplexed Name", 170, required=True, choices=pooling_table["sample_name"].tolist())
 
         columns = [
@@ -108,7 +128,12 @@ class CommonOligoMuxForm(MultiStepForm):
                     raise ValueError("SeqRequest must be provided for library_annotation workflow")
                 if seq_request.submission_type == SubmissionType.RAW_SAMPLES:
                     pooling_table = self.tables["sample_pooling_table"]
-                    pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_MUX_OLIGO.identifier)]
+                    if CommonOligoMuxForm.is_abc_hashed(self):
+                        pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_ANTIBODY_CAPTURE.identifier)]
+                    else:
+                        pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_MUX_OLIGO.identifier)]
+                    
+                    logger.debug(pooling_table)
                     self.spreadsheet.set_data(pooling_table.rename(columns={
                         "sample_name": "demux_name",
                     }))

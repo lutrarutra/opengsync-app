@@ -19,7 +19,7 @@ from ...core import wrappers, exceptions
 from ...core.RunTime import runtime
 
 
-seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/hmtx/seq_requests/")
+seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/htmx/seq_requests/")
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
