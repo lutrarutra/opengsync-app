@@ -42,14 +42,6 @@
                         col_size=1
                     )
                 }}
-                {{
-                    table_col(
-                        table_container_id='experiment-library-table', column_name='Owner', column_var='owner_id',
-                        sort_url='experiments_htmx.get_libraries', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=2
-                    )
-                }}
                 <th scope="col" class="col-4">
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
@@ -72,11 +64,10 @@
                 </td>
                 <td>
                     <span {{ tooltip(library.type.name) }}>
-                        {{ library.type.abbreviation }}
+                        {{ library.type.abbreviation }}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
                     </span>
                 </td>
                 <td><a href="{{ url_for('pools_page.pool', pool_id=library.pool_id, from='experiment@' + experiment.id | string)}}">{{ library.pool.name }}</a></td>
-                <td><a href="{{ url_for('users_page.user', library_id=library.owner_id, from='experiment@' + experiment.id | string) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
                 <td class="barcode-cell">
                     {{ library_index_cell(library) }}
                 </td>
