@@ -36,6 +36,10 @@ class UserAffiliation(Base):
     def affiliation_type(self) -> AffiliationTypeEnum:
         return AffiliationType.get(self.affiliation_type_id)
     
+    @affiliation_type.setter
+    def affiliation_type(self, value: AffiliationTypeEnum) -> None:
+        self.affiliation_type_id = value.id
+    
     def __str__(self) -> str:
         return f"UserAffiliation(user_id: {self.user_id}, group_id: {self.group_id}, affiliation_type: {self.affiliation_type})"
     

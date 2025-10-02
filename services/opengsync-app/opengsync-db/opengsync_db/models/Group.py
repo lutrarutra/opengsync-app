@@ -5,12 +5,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 from . import links
-from ..categories import GroupType, GroupTypeEnum
+from ..categories import GroupType, GroupTypeEnum, AffiliationType
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .Project import Project
     from .SeqRequest import SeqRequest
+    from .User import User
 
 
 class Group(Base):
@@ -23,6 +24,16 @@ class Group(Base):
     user_links: Mapped[list[links.UserAffiliation]] = relationship("UserAffiliation", back_populates="group", lazy="select", cascade="all, save-update, merge")
     projects: Mapped[list["Project"]] = relationship("Project", back_populates="group", lazy="select")
     seq_requests: Mapped[list["SeqRequest"]] = relationship("SeqRequest", back_populates="group", lazy="select")
+
+    owner: Mapped["User"] = relationship(
+        "User",
+        secondary="join(links.UserAffiliation, User, links.UserAffiliation.user_id == User.id)",
+        primaryjoin=f"and_(Group.id == links.UserAffiliation.group_id, links.UserAffiliation.affiliation_type_id == {AffiliationType.OWNER.id})",
+        secondaryjoin="User.id == links.UserAffiliation.user_id",
+        uselist=False,
+        viewonly=True,
+        lazy="select",
+    )
 
     @hybrid_property
     def num_projects(self) -> int:  # type: ignore[override]

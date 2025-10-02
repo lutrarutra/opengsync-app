@@ -73,6 +73,26 @@
             });
         }
 
+        function make_owner() {
+            Swal.fire({
+                title: `Make user (id='${selected_user_id}') an owner of '{{ group.name }}' ?`,
+                showDenyButton: true,
+                text: 'The affiliation of the current owner will be changed to "Manager". Are you sure?',
+                confirmButtonText: 'Yes',
+                icon: 'question',
+                denyButtonText: 'No'
+            }).then(function(e) {
+                if (e.isConfirmed) {
+                    htmx.ajax(
+                    "POST", "{{ url_for('groups_htmx.make_owner', group_id=group.id) }}?user_id=" + selected_user_id,
+                    null, {
+                        target: "#group-user-table",
+                        swapStyle: "outerHTML"
+                    });
+                }
+            });
+        }
+
         $(document).off("contextmenu", ".user-cell").on("contextmenu", ".user-cell", function(e) {
             e.preventDefault();
             const x = e.pageX;
@@ -82,6 +102,9 @@
                 display: "block",
                 left: x + 8, top: y + 8
             }).empty().append([
+                {% if current_user.is_admin() or affiliation.affiliation_type == AffiliationType.OWNER %}
+                `<li><a class='dropdown-item' onclick='make_owner()'>Make Owner</a></li>`,
+                {% endif %}
                 `<li><a class='dropdown-item' onclick='remove_user()'>Remove User</a></li>`,
             ]);
 
@@ -89,6 +112,7 @@
                 display: "block"
             });
         });
+
         {% endif %}
     </script>
 </div>
