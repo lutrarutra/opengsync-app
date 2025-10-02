@@ -733,15 +733,14 @@ def get_recent_experiments(current_user: models.User, page: int = 0):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (sort_by := request.args.get("sort_by")) is not None:
+    if (sort_by := request.args.get("sort_by", "name")) is not None:
         if sort_by not in ["name", "id", "timestamp_created_utc"]:
             raise exceptions.BadRequestException()
-    else:
-        sort_by = "name"
 
     experiments, _ = db.experiments.find(
         sort_by=sort_by, descending=True,
-        limit=PAGE_LIMIT, offset=page * PAGE_LIMIT
+        limit=PAGE_LIMIT, offset=page * PAGE_LIMIT,
+        status_in=[ExperimentStatus.DRAFT, ExperimentStatus.LOADED, ExperimentStatus.SEQUENCING, ExperimentStatus.FINISHED]
     )
 
     return make_response(render_template(
