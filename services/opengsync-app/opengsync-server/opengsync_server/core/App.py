@@ -212,6 +212,7 @@ class App(Flask):
                 LabProtocol=categories.LabProtocol,
                 PoolType=categories.PoolType,
                 KitType=categories.KitType,
+                AffiliationType=categories.AffiliationType,
                 ProjectStatus=categories.ProjectStatus,
                 FileType=categories.MediaFileType,
                 MUXType=categories.MUXType,

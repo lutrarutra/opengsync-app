@@ -184,6 +184,22 @@ class GroupBP(DBBlueprint):
 
         self.db.session.add(group)
         return group
+    
+    @DBBlueprint.transaction
+    def change_user_affiliation(self, user_id: int, group_id: int, new_affiliation_type: AffiliationTypeEnum) -> models.Group:
+        if (group := self.db.session.get(models.Group, group_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
+        
+        if (affiliation := self.db.session.query(models.links.UserAffiliation).where(
+            models.links.UserAffiliation.user_id == user_id,
+            models.links.UserAffiliation.group_id == group_id
+        ).first()) is None:
+            raise exceptions.ElementDoesNotExist(f"User {user_id} is not in group {group_id}")
+
+        affiliation.affiliation_type = new_affiliation_type
+        self.db.session.add(affiliation)
+        self.db.session.add(group)
+        return group
 
     @DBBlueprint.transaction
     def remove_user(self, user_id: int, group_id: int) -> models.Group:

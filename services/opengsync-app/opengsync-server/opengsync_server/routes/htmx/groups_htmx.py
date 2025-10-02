@@ -140,6 +140,39 @@ def remove_user(current_user: models.User, group_id: int):
     return make_response(redirect=url_for("groups_page.group", group_id=group_id))
 
 
+@wrappers.htmx_route(groups_htmx, db=db, methods=["POST"])
+def make_owner(current_user: models.User, group_id: int):
+    if (group := db.groups.get(group_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if (user_id := request.args.get("user_id")) is None:
+        raise exceptions.BadRequestException()
+    
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        raise exceptions.BadRequestException()
+    
+    if group.owner.id == user_id:
+        raise exceptions.BadRequestException("User is already the owner")
+    
+    if not current_user.is_insider():
+        if (affiliation := db.groups.get_user_affiliation(user_id=current_user.id, group_id=group_id)) is None:
+            raise exceptions.NoPermissionsException()
+        if affiliation.affiliation_type not in (AffiliationType.OWNER,):
+            raise exceptions.NoPermissionsException()
+    
+    if (affiliation := db.groups.get_user_affiliation(user_id=user_id, group_id=group_id)) is None:
+        raise exceptions.NoPermissionsException()
+    
+    db.groups.change_user_affiliation(user_id=group.owner.id, group_id=group_id, new_affiliation_type=AffiliationType.MANAGER)
+    affiliation.affiliation_type = AffiliationType.OWNER
+    db.session.add(affiliation)
+    
+    flash("Owner Changed!", "success")
+    return make_response(redirect=url_for("groups_page.group", group_id=group_id))
+
+
 @wrappers.htmx_route(groups_htmx, db=db, methods=["GET", "POST"])
 def add_user(current_user: models.User, group_id: int):
     if (group := db.groups.get(group_id)) is None:
@@ -162,7 +195,7 @@ def add_user(current_user: models.User, group_id: int):
 
 
 @wrappers.htmx_route(groups_htmx, db=db)
-def get_seq_requests(current_user: models.User, group_id: int, page: int = 0):
+def get_seq_requests(group_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
@@ -184,7 +217,7 @@ def get_seq_requests(current_user: models.User, group_id: int, page: int = 0):
 
 
 @wrappers.htmx_route(groups_htmx, db=db)
-def get_projects(current_user: models.User, group_id: int, page: int = 0):
+def get_projects(group_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"

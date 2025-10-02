@@ -54,4 +54,6 @@ def group(current_user: models.User, group_id: int):
     else:
         group_form = None
 
-    return render_template("group_page.html", group=group, path_list=path_list, group_form=group_form, can_edit=can_edit, can_add_users=can_add_users)
+    return render_template(
+        "group_page.html", group=group, path_list=path_list, group_form=group_form, can_edit=can_edit, can_add_users=can_add_users,
+    )
