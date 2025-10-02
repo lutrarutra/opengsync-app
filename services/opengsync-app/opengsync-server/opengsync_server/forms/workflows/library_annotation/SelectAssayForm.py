@@ -80,7 +80,10 @@ class SelectAssayForm(MultiStepForm):
         if not super().validate():
             return False
 
-        if self.assay_type.data is None or AssayType.get(self.assay_type.data) == AssayType.CUSTOM:
+        if self.assay_type.data is None:
+            self.assay_type.errors = ("Please select an assay type.",)
+        
+        if (assay_type := AssayType.get(self.assay_type.data)) == AssayType.CUSTOM:
             self.assay_type.errors = ("Please select an assay type.",)
         
         if self.optional_assays.antibody_capture.data and not self.optional_assays.antibody_capture_kit.data:
@@ -103,6 +106,9 @@ class SelectAssayForm(MultiStepForm):
         if self.additional_services.oligo_multiplexing.data and self.additional_services.ocm_multiplexing.data:
             self.additional_services.oligo_multiplexing_kit.errors = ("Please select only one multiplexing method.",)
             self.additional_services.ocm_multiplexing.errors = ("Please select only one multiplexing method.",)
+
+        if self.optional_assays.antibody_multiplexing.data and assay_type in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
+            self.optional_assays.antibody_multiplexing.errors = ("Antibody-based cell hashing multiplexing is not available with 10X Flex assays.",)
 
         if self.errors:
             return False

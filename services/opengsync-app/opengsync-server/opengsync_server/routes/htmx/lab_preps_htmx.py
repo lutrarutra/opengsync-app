@@ -599,7 +599,9 @@ def get_mux_table(current_user: models.User, lab_prep_id: int):
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         raise exceptions.NotFoundException()
     
-    df = db.pd.get_lab_prep_samples(lab_prep.id)
+    df = db.pd.get_lab_prep_pooling_table(lab_prep.id)
+
+    df = df.sort_values(by=["library_name", "sample_pool", "sample_name"])
 
     mux_table = {
         "sample_name": [],

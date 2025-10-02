@@ -65,7 +65,7 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
         if self.sample_submission_time.data is not None:
             if self.seq_request.sample_submission_event is None:
                 self.seq_request.sample_submission_event = db.events.create(
-                    title=f"Sample Submission: {self.seq_request.name}",
+                    title=self.seq_request.name[:models.Event.title.type.length],
                     timestamp_utc=to_utc(self.sample_submission_time.data),
                     type=EventType.SAMPLE_SUBMISSION, user_id=user.id,
                 )

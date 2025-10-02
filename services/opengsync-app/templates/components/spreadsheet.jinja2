@@ -98,11 +98,7 @@
             },
         });
 
-        if ($(this).prop("disabled")) return;
-        $(this).prop("disabled", true);
-        if (!$(document.body).hasClass("waiting")) {
-            document.body.classList.add("waiting");
-        };
+        disable_button($("#{{ submit_btn_id }}"));
     });
     {% endif %}
     

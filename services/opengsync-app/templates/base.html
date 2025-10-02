@@ -36,6 +36,8 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+
+    <script src="{{ url_for('static', filename='js/tooltips.js') }}"></script>
 </head>
 
 <body>
@@ -228,35 +230,10 @@
     <script src="{{ url_for('static', filename='js/cookie.js') }}"></script>
     <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
     <script src="{{ url_for('static', filename='js/clipboard-btn.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/tooltips.js') }}"></script>
     <script src="{{ url_for('static', filename='js/load_plotly.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/callbacks.js') }}"></script>
 
     <script type="text/javascript">
-        $(document).on('click', 'button[hx-post], button[hx-get], button[hx-delete], .submit-form-btn', function () {
-            if ($(this).attr('_') && $(this).attr('_').includes('htmx:confirm')) {
-                return;
-            }
-            if ($(this).prop('disabled')) return; // already disabled
-            $(this).prop('disabled', true);
-            $(this).data('was-disabled', true); // mark that we disabled it
-            if (!$(document.body).hasClass("waiting")) {
-                document.body.classList.add("waiting");
-            };
-        });
-
-        // Re-enable after HTMX request completes
-        document.body.addEventListener('htmx:afterRequest', function (evt) {
-            const el = evt.target;
-            document.body.classList.remove("waiting");
-            if (!el.matches('[hx-post], [hx-get], [hx-delete]')) return;
-
-            const $el = $(el);
-            if ($el.data('was-disabled')) {
-                $el.prop('disabled', false);
-                $el.removeData('was-disabled');
-            }
-        });
-
         // right click menu
         $(document).on("click", "#right-click-bg", function(e) {
             $("#copy-edit-menu").css({

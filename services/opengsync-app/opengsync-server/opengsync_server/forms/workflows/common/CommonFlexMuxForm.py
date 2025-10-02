@@ -57,7 +57,7 @@ class CommonFlexMuxForm(MultiStepForm):
                 logger.error("LabPrep must be provided for mux_prep workflow")
                 raise ValueError("LabPrep must be provided for mux_prep workflow")
             
-            self.sample_table = db.pd.get_lab_prep_samples(self.lab_prep.id)
+            self.sample_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id)
             self.flex_table = self.sample_table[
                 (self.sample_table["mux_type"].isin([MUXType.TENX_FLEX_PROBE])) &
                 (self.sample_table["library_type"].isin([LibraryType.TENX_SC_GEX_FLEX]))

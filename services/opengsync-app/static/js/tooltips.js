@@ -6,8 +6,8 @@ function init_tooltips(container = document) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => init_tooltips());
+document.addEventListener("DOMContentLoaded", () => init_tooltips());
 
-document.addEventListener('htmx:afterSwap', (event) => {
+document.addEventListener("htmx:afterSwap", (event) => {
     init_tooltips(event.detail.elt);
 });

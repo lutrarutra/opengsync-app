@@ -29,25 +29,31 @@ class CommonOligoMuxForm(MultiStepForm):
             return True
         return bool(current_step.tables["library_table"]["library_type_id"].isin([LibraryType.TENX_MUX_OLIGO.id]).any())
     
-    @classmethod
-    def __get_multiplexed_samples(cls, df: pd.DataFrame) -> list[str]:
-        if "mux_type_id" in df.columns:
-            return df[
-                df["mux_type_id"].isin([MUXType.TENX_OLIGO.id, MUXType.TENX_ABC_HASH.id])
-            ]["sample_name"].unique().tolist()    
-        multiplexed_samples = set()
-        for sample_name, _df in df.groupby("sample_name"):
-            if LibraryType.TENX_MUX_OLIGO.id in _df["library_type_id"].values:
-                multiplexed_samples.add(sample_name)
-        return list(multiplexed_samples)
-    
-    @classmethod
-    def __get_abc_multiplexed_samples(cls, df: pd.DataFrame) -> list[str]:
-        multiplexed_samples = set()
-        for sample_name, _df in df.groupby("sample_name"):
-            if LibraryType.TENX_ANTIBODY_CAPTURE.id in _df["library_type_id"].values:
-                multiplexed_samples.add(sample_name)
-        return list(multiplexed_samples)
+    @staticmethod
+    def get_mux_table(sample_pooling_table: pd.DataFrame) -> pd.DataFrame:
+        df = sample_pooling_table.copy()
+        if "mux_read" not in df.columns:
+            df["mux_read"] = None
+        if "mux_pattern" not in df.columns:
+            df["mux_pattern"] = None
+        if "mux_barcode" not in df.columns:
+            df["mux_barcode"] = None
+
+        mux_data = {
+            "demux_name": [],
+            "sample_pool": [],
+            "barcode": [],
+            "pattern": [],
+            "read": [],
+        }
+        for (sample_name, sample_pool, mux_barcode, mux_pattern, mux_read), _ in df.groupby(["sample_name", "sample_pool", "mux_barcode", "mux_pattern", "mux_read"], dropna=False):
+            mux_data["demux_name"].append(sample_name)
+            mux_data["sample_pool"].append(sample_pool)
+            mux_data["barcode"].append(mux_barcode)
+            mux_data["pattern"].append(mux_pattern)
+            mux_data["read"].append(mux_read)
+
+        return pd.DataFrame(mux_data)
 
     def __init__(
         self,
@@ -73,39 +79,26 @@ class CommonOligoMuxForm(MultiStepForm):
             if self.lab_prep is None:
                 logger.error("LabPrep must be provided for mux_prep workflow")
                 raise ValueError("LabPrep must be provided for mux_prep workflow")
-
-            self.sample_table = db.pd.get_lab_prep_samples(self.lab_prep.id)
+            self.pooling_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id, expand_mux=True)
         elif workflow == "library_annotation":
             self.index_col = "sample_name"
-            self.sample_table = self.tables["library_table"]
+            self.pooling_table = self.tables["sample_pooling_table"]
         else:
             logger.error(f"Unsupported workflow: {workflow}")
             raise ValueError(f"Unsupported workflow: {workflow}")
-            
-        if CommonOligoMuxForm.is_abc_hashed(self):
-            self.multiplexed_samples = CommonOligoMuxForm.__get_abc_multiplexed_samples(self.sample_table)
-        else:
-            self.multiplexed_samples = CommonOligoMuxForm.__get_multiplexed_samples(self.sample_table)
-        
-        demux_name_col = TextColumn("demux_name", "Demultiplexed Name", 170, required=True, max_length=models.Sample.name.type.length, min_length=4, validation_fnc=utils.check_string)
 
-        if workflow == "library_annotation":
-            if seq_request is None:
-                raise ValueError("SeqRequest must be provided for library_annotation workflow")
-            if seq_request.submission_type == SubmissionType.RAW_SAMPLES:
-                pooling_table = self.tables["sample_pooling_table"]
-                if CommonOligoMuxForm.is_abc_hashed(self):
-                    pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_ANTIBODY_CAPTURE.identifier)]
-                else:
-                    pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_MUX_OLIGO.identifier)]
-                demux_name_col = DropdownColumn("demux_name", "Demultiplexed Name", 170, required=True, choices=pooling_table["sample_name"].tolist())
+        logger.debug(self.pooling_table)
+        self.pooling_table = self.pooling_table[self.pooling_table["mux_type_id"].isin([MUXType.TENX_OLIGO.id, MUXType.TENX_ABC_HASH.id])]
+        self.mux_table = CommonOligoMuxForm.get_mux_table(self.pooling_table)
+        logger.debug(self.mux_table)
+        demux_name_col = DropdownColumn("demux_name", "Demultiplexed Name", 170, required=True, choices=self.pooling_table["sample_name"].tolist(), read_only=True)
 
         columns = [
             demux_name_col,
-            DropdownColumn("sample_pool", "Sample (Pool) Name", 170, choices=self.multiplexed_samples, required=True),
+            DropdownColumn("sample_pool", "Sample Pool Name", 170, choices=self.pooling_table["sample_pool"].unique().tolist(), required=True, read_only=True),
             CategoricalDropDown("kit", "Kit", 250, categories=self.kits_mapping, required=False),
             TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-            TextColumn("sequence", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+            TextColumn("barcode", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
             TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
             DropdownColumn("read", "Read", 100, choices=["R2", "R1"]),
         ]
@@ -127,20 +120,7 @@ class CommonOligoMuxForm(MultiStepForm):
         )
 
         if not formdata:
-            if workflow == "library_annotation":
-                if seq_request is None:
-                    raise ValueError("SeqRequest must be provided for library_annotation workflow")
-                if seq_request.submission_type == SubmissionType.RAW_SAMPLES:
-                    pooling_table = self.tables["sample_pooling_table"]
-                    if CommonOligoMuxForm.is_abc_hashed(self):
-                        pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_ANTIBODY_CAPTURE.identifier)]
-                    else:
-                        pooling_table = pooling_table[pooling_table["library_name"].str.contains(LibraryType.TENX_MUX_OLIGO.identifier)]
-                    
-                    logger.debug(pooling_table)
-                    self.spreadsheet.set_data(pooling_table.rename(columns={
-                        "sample_name": "demux_name",
-                    }))
+            self.spreadsheet.set_data(self.mux_table)
 
     def fill_previous_form(self, previous_form: StepFile):
         df = previous_form.tables["sample_pooling_table"]
@@ -159,8 +139,8 @@ class CommonOligoMuxForm(MultiStepForm):
         self.df = self.spreadsheet.df
 
         kit_feature = pd.notna(self.df["kit"]) & pd.notna(self.df["feature"])
-        custom_feature = pd.notna(self.df["sequence"]) & pd.notna(self.df["pattern"]) & pd.notna(self.df["read"])
-        invalid_feature = (pd.notna(self.df["kit"]) | pd.notna(self.df["feature"])) & (pd.notna(self.df["sequence"]) | pd.notna(self.df["pattern"]) | pd.notna(self.df["read"]))
+        custom_feature = pd.notna(self.df["barcode"]) & pd.notna(self.df["pattern"]) & pd.notna(self.df["read"])
+        invalid_feature = (pd.notna(self.df["kit"]) | pd.notna(self.df["feature"])) & (pd.notna(self.df["barcode"]) | pd.notna(self.df["pattern"]) | pd.notna(self.df["read"]))
         
         kit_identifiers = self.df["kit"].dropna().unique().tolist()
         kits: dict[str, tuple[models.FeatureKit, pd.DataFrame]] = dict()
@@ -173,7 +153,7 @@ class CommonOligoMuxForm(MultiStepForm):
             self.df.loc[self.df["kit"] == identifier, "kit_id"] = kit.id
 
         duplicate_oligo = (
-            (self.df.duplicated(subset=["sample_pool", "sequence", "pattern", "read"], keep=False) & custom_feature) |
+            (self.df.duplicated(subset=["sample_pool", "barcode", "pattern", "read"], keep=False) & custom_feature) |
             (self.df.duplicated(subset=["sample_pool", "kit", "feature"], keep=False) & kit_feature)
         )
 
@@ -184,8 +164,8 @@ class CommonOligoMuxForm(MultiStepForm):
             for _, kit_row in kit_df[mask].iterrows():
                 self.df.loc[
                     (self.df["kit"] == identifier) & (self.df["feature"] == kit_row["name"]),
-                    ["sequence", "pattern", "read"]
-                ] = kit_row[["sequence", "pattern", "read"]].values
+                    ["barcode", "pattern", "read"]
+                ] = kit_row[["barcode", "pattern", "read"]].values
                 
         for idx, row in self.df.iterrows():
             # Not defined custom nor kit feature
@@ -200,7 +180,7 @@ class CommonOligoMuxForm(MultiStepForm):
             if (not custom_feature.at[idx] and not kit_feature.at[idx]):
                 self.spreadsheet.add_error(idx, "kit", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
                 self.spreadsheet.add_error(idx, "feature", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
-                self.spreadsheet.add_error(idx, "sequence", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
+                self.spreadsheet.add_error(idx, "barcode", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
                 self.spreadsheet.add_error(idx, "pattern", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
                 self.spreadsheet.add_error(idx, "read", MissingCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified."))
 
@@ -208,7 +188,7 @@ class CommonOligoMuxForm(MultiStepForm):
             elif custom_feature.at[idx] and kit_feature.at[idx]:
                 self.spreadsheet.add_error(idx, "kit", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 self.spreadsheet.add_error(idx, "feature", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
-                self.spreadsheet.add_error(idx, "sequence", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                self.spreadsheet.add_error(idx, "barcode", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 self.spreadsheet.add_error(idx, "pattern", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 self.spreadsheet.add_error(idx, "read", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
 
@@ -217,15 +197,15 @@ class CommonOligoMuxForm(MultiStepForm):
                     self.spreadsheet.add_error(idx, "kit", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 if pd.notna(row["feature"]):
                     self.spreadsheet.add_error(idx, "feature", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
-                if pd.notna(row["sequence"]):
-                    self.spreadsheet.add_error(idx, "sequence", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
+                if pd.notna(row["barcode"]):
+                    self.spreadsheet.add_error(idx, "barcode", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 if pd.notna(row["pattern"]):
                     self.spreadsheet.add_error(idx, "pattern", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
                 if pd.notna(row["read"]):
                     self.spreadsheet.add_error(idx, "read", InvalidCellValue("must have either 'Kit' (+ 'Feature', optional) or 'Feature + Sequence + Pattern + Read' specified, not both."))
 
             if duplicate_oligo.at[idx]:
-                self.spreadsheet.add_error(idx, "sequence", DuplicateCellValue("Definitions must be unique for each sample."))
+                self.spreadsheet.add_error(idx, "barcode", DuplicateCellValue("Definitions must be unique for each sample."))
                 self.spreadsheet.add_error(idx, "pattern", DuplicateCellValue("Definitions must be unique for each sample."))
                 self.spreadsheet.add_error(idx, "read", DuplicateCellValue("Definitions must be unique for each sample."))
                 self.spreadsheet.add_error(idx, "kit", DuplicateCellValue("Definitions must be unique for each sample."))

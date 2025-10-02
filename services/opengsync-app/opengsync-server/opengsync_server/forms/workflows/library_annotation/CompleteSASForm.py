@@ -66,8 +66,6 @@ class CompleteSASForm(MultiStepForm):
             for (library_name, pool_name), _ in self.library_table.groupby(["library_name", "pool"]):
                 self.barcode_table.loc[self.barcode_table["library_name"] == library_name, "pool"] = pool_name
             self.barcode_table = tools.check_indices(self.barcode_table, groupby="pool")
-
-        logger.debug(self.sample_pooling_table)
         
         self.library_table["mux_type_id"] = None
         for (library_name, mux_type_id), _df in self.sample_pooling_table.groupby(["library_name", "mux_type_id"]):

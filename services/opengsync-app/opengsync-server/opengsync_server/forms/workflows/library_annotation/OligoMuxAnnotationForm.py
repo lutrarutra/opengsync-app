@@ -30,8 +30,8 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
         )
 
     def fill_previous_form(self, previous_form: StepFile):
-        logger.debug(previous_form.tables["sample_pooling_table"])
-        self.spreadsheet.set_data(previous_form.tables["sample_pooling_table"])
+        mux_table = CommonOligoMuxForm.get_mux_table(previous_form.tables["sample_pooling_table"])
+        self.spreadsheet.set_data(mux_table)
     
     def process_request(self) -> Response:
         if not self.validate():
@@ -63,7 +63,7 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
             for _, pooling_row in sample_pooling_table[idx].iterrows():
                 pooling_data["sample_name"].append(mux_row["demux_name"])
                 pooling_data["library_name"].append(pooling_row["library_name"])
-                pooling_data["mux_barcode"].append(mux_row["sequence"])
+                pooling_data["mux_barcode"].append(mux_row["barcode"])
                 pooling_data["mux_pattern"].append(mux_row["pattern"])
                 pooling_data["mux_read"].append(mux_row["read"])
                 pooling_data["kit"].append(mux_row["kit"])
