@@ -12,7 +12,7 @@
     <div class="row">
         <div class="col-4">{{ project.owner.name }}</div>
         <div class="col-4">{{ project.timestamp_created_str("%-d. %b. %Y") }}</div>
-        <div class="col-4">{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</div>
+        <div class="col-4">{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }} {% endif %}</div>
     </div>
     {{ project_status_bar(project) }}
 </a>

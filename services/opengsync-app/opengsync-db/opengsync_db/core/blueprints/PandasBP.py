@@ -809,7 +809,7 @@ class PandasBP(DBBlueprint):
         return df
 
     @DBBlueprint.transaction
-    def get_lab_prep_samples(self, lab_prep_id: int) -> pd.DataFrame:
+    def get_lab_prep_pooling_table(self, lab_prep_id: int, expand_mux: bool = False) -> pd.DataFrame:
         query = sa.select(
             models.Library.id.label("library_id"), models.Library.name.label("library_name"),
             models.Library.type_id.label("library_type_id"), models.Library.sample_name.label("sample_pool"),
@@ -829,6 +829,14 @@ class PandasBP(DBBlueprint):
         df = pd.read_sql(query, self.db._engine).sort_values(["library_id", "sample_id"])
         df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
         df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
+
+        if expand_mux and not df.empty:
+            expanded = df["mux"].apply(pd.Series)
+            for col in expanded.columns:
+                expanded[f"mux_{col}"] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
+
+            df = pd.concat([df, expanded], axis=1)
+            
         return df
 
     @DBBlueprint.transaction

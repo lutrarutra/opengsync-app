@@ -49,10 +49,19 @@
         </ul>
         <div class="tab-content">
             <div class="d-flex align-items-center">
-                {{ select_input(form.assay_type, class="col-6") }}
+                {{ select_input(form.assay_type) }}
                 {{ checkbox_input(form.ocm_multiplexing, class="opt-checkbox col-3 pt-3") }}
                 {{ checkbox_input(form.nuclei_isolation, class="col-3 pt-3") }}
             </div>
+
+            {{ checkbox_input(form.antibody_multiplexing) }}
+            <div id="abc-mux-warning">
+                <p class="text-warning">
+                    ⚠️ If selecting 'Cell Surface Protein Capture' + 'Antibody Multiplexing' we will perform cell surface protein capture and multiplexing in the same library instead of preparing two separate libraries for antibody capture and multiplexing.
+                    If you have
+                </p>
+            </div>
+
             <div class="tab-pane fade show active" id="form-tab-spreadsheet" role="tabpanel" tabindex="0">
                 {{ spreadsheet_input(element=form.spreadsheet) }}
             </div>
@@ -108,7 +117,6 @@
 
         function update_optional_assays() {
             const assay_id = $("#assay_type").val();
-            console.log(assay_id);
             if (assay_id == -1) {
                 $("#ocm_multiplexing").addClass("disabled");
                 $("#ocm_multiplexing").prop("disabled", true);
@@ -127,13 +135,26 @@
             }
         }
 
+        function update_abc_mux_input() {
+            const is_checked = $("#antibody_multiplexing").is(":checked");
+
+            if (is_checked) {
+                $("#abc-mux-warning").css("display", "block");
+            } else {
+                $("#abc-mux-warning").css("display", "none");
+            }
+        }
+
         $(document).ready(function() {
             update_optional_assays();
+            update_abc_mux_input();
+
             window.onbeforeunload = function() {
                 return "Data will be lost if you leave the page, are you sure?";
             };
 
             $("#assay_type").on("change", update_optional_assays);
+            $("#antibody_multiplexing").on("change", update_abc_mux_input);
 
             $("#parse-spreadsheet-btn").on("click", function() {
                 var data = spread_sheet.getData();
@@ -147,6 +168,7 @@
                         "assay_type": $("#assay_type").val(),
                         "ocm_multiplexing": $("#ocm_multiplexing").is(":checked"),
                         "nuclei_isolation": $("#nuclei_isolation").is(":checked"),
+                        "antibody_multiplexing": $("#antibody_multiplexing").is(":checked"),
                         "columns": JSON.stringify(spread_sheet.getHeaders()),
                     },
                 });

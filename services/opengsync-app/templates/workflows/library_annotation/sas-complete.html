@@ -215,41 +215,44 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th scope="col" class="col-2">Sample Name</th>
-                            <th scope="col" class="col-2">Library Name</th>
-                            <th scope="col" class="col-2">Sample Pool</th>
+                            <th scope="col" class="col-1">Sample Name</th>
+                            <th scope="col" class="col-3">Library Name</th>
+                            <th scope="col" class="col-1">Sample Pool</th>
                             {% if mux_type in [MUXType.TENX_OLIGO, MUXType.TENX_ABC_HASH] %}
                             <th scope="col" class="col-2">Kit</th>
-                            <th scope="col" class="col-2">Feature</th>
+                            <th scope="col" class="col-1">Feature</th>
                             <th scope="col" class="col-1">Sequence</th>
                             <th scope="col" class="col-1">Pattern</th>
                             <th scope="col" class="col-1">Read</th>
-                            {% elif mux_type == MUXType.TENX_ON_CHIP %}
-                            <th scope="col" class="col-2">Barcode ID</th>
-                            {% elif mux_type == MUXType.TENX_FLEX_PROBE %}
+                            {% else %}
                             <th scope="col" class="col-2">Barcode ID</th>
                             {% endif %}
                         </tr>
                     </thead>
                     <tbody>
-                        {% for _, row in sample_pooling_table.iterrows() %}
+                        {% if mux_type in [MUXType.TENX_OLIGO, MUXType.TENX_ABC_HASH] %}
+                        {% for (sample_name, sample_pool, mux_barcode, mux_pattern, mux_read, kit, feature), _df in sample_pooling_table.groupby(["sample_name", "sample_pool", "mux_barcode", "mux_pattern", "mux_read", "kit", "feature"], dropna=False) %}
                         <tr>
-                            <th scope="row">{{ row["sample_name"] }}</th>
-                            <td>{{ row["library_name"] }}</td>
-                            <td>{{ row["sample_pool"] }}</td>
-                            {% if mux_type in [MUXType.TENX_OLIGO, MUXType.TENX_ABC_HASH] %}
-                            <td>{{ row["kit"] if row["kit"] }}</td>
-                            <td>{{ row["feature"] if row["feature"] }}</td>
-                            <td>{{ row["mux_barcode"] }}</td>
-                            <td>{{ row["mux_pattern"] }}</td>
-                            <td>{{ row["mux_read"] }}</td>
-                            {% elif mux_type == MUXType.TENX_ON_CHIP %}
-                            <td>{{ row["mux_barcode"] }}</td>
-                            {% elif mux_type == MUXType.TENX_FLEX_PROBE %}
-                            <td>{{ row["mux_barcode"] }}</td>
-                            {% endif %}
+                            <th scope="row">{{ sample_name }}</th>
+                            <td>{% for _, row in _df.iterrows() %}<span class="badge" >{{ row["library_name"] }}</span> {% endfor %}</td>
+                            <td>{{ sample_pool }}</td>
+                            <td>{{ kit if notna(kit) else "" }}</td>
+                            <td>{{ feature if notna(feature) else "" }}</td>
+                            <td>{{ mux_barcode }}</td>
+                            <td>{{ mux_pattern }}</td>
+                            <td>{{ mux_read }}</td>
                         </tr>
                         {% endfor %}
+                        {% else %}
+                        {% for (sample_name, sample_pool, mux_barcode), _df in sample_pooling_table.groupby(["sample_name", "sample_pool", "mux_barcode"], dropna=False) %}
+                        <tr>
+                            <th scope="row">{{ sample_name }}</th>
+                            <td>{% for _, row in _df.iterrows() %}<span class="badge" >{{ row["library_name"] }}</span>{% endfor %}</td>
+                            <td>{{ sample_pool }}</td>
+                            <td>{{ row["mux_barcode"] }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
                     </tbody>
                 </table>
                 {% endif %}

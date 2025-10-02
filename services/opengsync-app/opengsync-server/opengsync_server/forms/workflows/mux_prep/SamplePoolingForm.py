@@ -30,7 +30,7 @@ class SamplePoolingForm(HTMXFlaskForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
 
-        sample_table = db.pd.get_lab_prep_samples(self.lab_prep.id)
+        sample_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id)
         self.sample_table = sample_table[sample_table["mux_type"].notna()]
         self.mux_table = self.sample_table[["sample_id", "sample_name", "sample_pool"]].drop_duplicates()
 
@@ -58,7 +58,6 @@ class SamplePoolingForm(HTMXFlaskForm):
             return self.make_response()
 
         self.sample_table["new_sample_pool"] = utils.map_columns(self.sample_table, self.df, "sample_id", "sample_pool")
-        logger.debug(self.sample_table[["sample_name", "sample_pool", "new_sample_pool", "library_id", "library_type"]])
 
         old_libraries: dict[int, models.Library] = dict()
 

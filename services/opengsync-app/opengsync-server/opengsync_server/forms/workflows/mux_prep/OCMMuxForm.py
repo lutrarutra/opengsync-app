@@ -37,7 +37,7 @@ class OCMMuxForm(MultiStepForm):
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
 
-        self.sample_table = db.pd.get_lab_prep_samples(lab_prep.id)
+        self.sample_table = db.pd.get_lab_prep_pooling_table(lab_prep.id)
         self.sample_table = self.sample_table[(self.sample_table["mux_type"].isin([MUXType.TENX_ON_CHIP]))]
         self.mux_table = self.sample_table.drop_duplicates(subset=["sample_name", "sample_pool"], keep="first")
 

@@ -91,7 +91,6 @@
 
             function add_pool(pool_id) {
                 selected_pools.push(pool_id);
-                console.log(pool_id);
                 $(`#pool-row-${pool_id}`).addClass("selected");
                 const cloned = $(`#pool-row-${pool_id}`).clone();
                 cloned.attr("id", `selected-pool-row-${pool_id}`);
@@ -104,7 +103,6 @@
             }
 
             function remove_pool(pool_id) {
-                console.log('pool_id:');
                 selected_pools = selected_pools.filter(function(value, index, arr) {
                     return value != pool_id;
                 });

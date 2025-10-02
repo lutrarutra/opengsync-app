@@ -95,7 +95,6 @@
 
             if (avg_fragment_size && qubit_after) {
                 const molarity = qubit_after / (avg_fragment_size * 660) * 1000000;
-                console.log(molarity);
                 row.find(".molarity-after-col").first().find(".value").first().text(molarity.toFixed(2));
                 
                 if ({{ warning_min }} < molarity && molarity < {{ warning_max }}) {

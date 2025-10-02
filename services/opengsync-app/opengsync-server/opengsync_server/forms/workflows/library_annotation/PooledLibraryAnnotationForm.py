@@ -21,6 +21,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
     assay_type = SelectField("Assay Type", choices=[(-1, "")] + AssayType.as_selectable(), coerce=int, default=None)
     ocm_multiplexing = BooleanField("On-Chip Multiplexing for 10X GEM-X Libraries", description="Multiple samples per library using 10X On-Chip Multiplexing", default=False)
+    antibody_multiplexing = BooleanField("10X Cell Surface Protein Capture & Antibody Multiplexing in the same library.", description="Multiple samples per library with antibody-based cell tagging. Only available with cell surface protein capture.", default=False)
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False, description="I have isolated nuclei from my samples.")
 
     columns = [
@@ -56,6 +57,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         df = previous_form.tables["library_table"]
         self.spreadsheet.set_data(df)
         assay_type_id = previous_form.metadata.get("assay_type_id")
+        self.antibody_multiplexing.data = previous_form.metadata.get("antibody_multiplexing", False)
         self.nuclei_isolation.data = previous_form.metadata.get("nuclei_isolation", False)
         self.assay_type.data = assay_type_id
 
@@ -112,6 +114,10 @@ class PooledLibraryAnnotationForm(MultiStepForm):
                     missing_library_types = pd.Series(required_type_ids)[~missing_library_type_mask].apply(lambda x: LibraryType.get(x).name).to_list()
                     self.spreadsheet.add_general_error(f"Missing: {missing_library_types} library type(s) for sample '{sample_name}'")
 
+                if self.antibody_multiplexing.data:
+                    if LibraryType.TENX_ANTIBODY_CAPTURE.id not in _df["library_type_id"].values:
+                        self.spreadsheet.add_general_error(f"Antibody-based cell hashing multiplexing requires '10X Antibody Capture' library type for sample '{sample_name}'")
+
                 for idx, row in _df.iterrows():
                     library_type_id = row["library_type_id"]
                     if library_type_id not in required_type_ids and library_type_id not in optional_library_type_ids:
@@ -119,6 +125,12 @@ class PooledLibraryAnnotationForm(MultiStepForm):
                             idx, "library_type_id",  # type: ignore
                             InvalidCellValue(f"Library type '{LibraryType.get(library_type_id).name}' is not part of '{assay_type.name}' assay."),
                         )
+                    elif library_type_id == LibraryType.TENX_MUX_OLIGO.id and self.antibody_multiplexing.data:
+                        self.spreadsheet.add_error(
+                            idx, "library_type_id",  # type: ignore
+                            InvalidCellValue("Antibody-based cell hashing multiplexing cannot be combined with 10X Multiplexing Oligo."),
+                        )
+
 
         if len(self.spreadsheet._errors) > 0:
             return False
@@ -146,13 +158,18 @@ class PooledLibraryAnnotationForm(MultiStepForm):
             return self.make_response()
 
         self.metadata["assay_type_id"] = AssayType.get(self.assay_type.data).id
+        self.metadata["antibody_multiplexing"] = self.antibody_multiplexing.data
+        
         self.metadata["mux_type_id"] = None
         if self.ocm_multiplexing.data:
             self.metadata["mux_type_id"] = MUXType.TENX_ON_CHIP.id
         elif LibraryType.TENX_MUX_OLIGO.id in self.df["library_type_id"].values:
             self.metadata["mux_type_id"] = MUXType.TENX_OLIGO.id
+        elif self.antibody_multiplexing.data:
+            self.metadata["mux_type_id"] = MUXType.TENX_ABC_HASH.id
         elif self.assay_type.data in {AssayType.TENX_SC_16_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX}:
             self.metadata["mux_type_id"] = MUXType.TENX_FLEX_PROBE.id
+
         self.metadata["nuclei_isolation"] = self.nuclei_isolation.data
 
         library_table_data = {
@@ -167,6 +184,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
         sample_pooling_table = {
             "sample_name": [],
+            "sample_pool": [],
             "library_name": [],
         }
 
@@ -184,10 +202,11 @@ class PooledLibraryAnnotationForm(MultiStepForm):
                 library_table_data["pool"].append(row["pool"])
 
                 sample_pooling_table["sample_name"].append(row["sample_name"])
+                sample_pooling_table["sample_pool"].append(row["sample_name"])
                 sample_pooling_table["library_name"].append(library_name)
 
         sample_pooling_table = pd.DataFrame(sample_pooling_table)
-        sample_pooling_table["mux_type_id"] = None
+        sample_pooling_table["mux_type_id"] = self.metadata["mux_type_id"]
         self.add_table("sample_pooling_table", sample_pooling_table)
         
         library_table = pd.DataFrame(library_table_data)

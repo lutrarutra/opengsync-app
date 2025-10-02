@@ -30,7 +30,7 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     TENX_VISIUM = LibraryTypeEnum(7, "10X Visium Gene Expression", "10X Visium", "10XVISIUM", "Spatial Transcriptomics")
     
     # Optional 10X modalities
-    TENX_ANTIBODY_CAPTURE = LibraryTypeEnum(8, "10X Antibody Capture", "10X Antibody Capture", "10XABC", "Antibody Capture")
+    TENX_ANTIBODY_CAPTURE = LibraryTypeEnum(8, "10X Antibody Capture", "10X ABC", "10XABC", "Antibody Capture")
     TENX_MUX_OLIGO = LibraryTypeEnum(9, "10X Multiplexing Oligo Capture", "10X Oligo MUX", "10XOMUX", "Multiplexing Capture")
     TENX_CRISPR_SCREENING = LibraryTypeEnum(10, "10X CRISPR Screening", "10X CRISPR Screening", "10XCRISPR", "CRISPR Screening")
     TENX_VDJ_B = LibraryTypeEnum(11, "10X BCR Profiling (VDJ-B)", "10X VDJ B", "10XVDJB", "VDJ-B")
