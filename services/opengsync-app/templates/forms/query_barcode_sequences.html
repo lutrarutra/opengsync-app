@@ -7,6 +7,7 @@
     </div>
     <div class="modal-body" id="query_barcode_sequences-form" style="overflow-y: hidden; display: flex; flex-direction: column; height: 100%;">
         {{ form.csrf_token() }}
+        <div class="pt-2">
         <input type="search" autocomplete="off"
             class="form-control"
             value="{{ form.sequence.data if form.sequence.data else '' }}"
@@ -15,12 +16,9 @@
             hx-trigger="keyup changed delay:500ms" hx-swap="innerHTML"
             hx-post="{{ url_for('barcodes_htmx.query_barcode_sequences') }}"
             placeholder="Search...">
-        
-        <div class="pt-2 d-flex justify-content-evenly" style="gap: 20px; width: 100%;">
-            <h5 class="width: 100%; background-color: red;">Forward </h5>
-            <h5 class="width: 100%; background-color: red;">Reverse </h5>
         </div>
-        <div class="d-flex" style="gap: 20px; overflow-y: hidden; flex-grow: 1;" id="query_barcode_sequences-results">
+        
+        <div class="d-flex pt-2" style="gap: 20px; overflow-y: hidden; height: 100%;" id="query_barcode_sequences-results">
         </div>
     </div>
 </div>

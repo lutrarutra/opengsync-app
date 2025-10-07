@@ -23,7 +23,7 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         CommonOligoMuxForm.__init__(
             self,
-            seq_request=seq_request, lab_prep=None,
+            seq_request=seq_request, lab_prep=None, library=None,
             workflow=OligoMuxAnnotationForm._workflow_name,
             uuid=uuid, formdata=formdata,
             additional_columns=[]
@@ -55,13 +55,13 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
         }
 
         for _, mux_row in self.df.iterrows():
-            sample_data["sample_name"].append(mux_row["demux_name"])
+            sample_data["sample_name"].append(mux_row["sample_name"])
             if self.seq_request.submission_type == SubmissionType.RAW_SAMPLES:
-                idx = sample_pooling_table["sample_name"] == mux_row["demux_name"]
+                idx = sample_pooling_table["sample_name"] == mux_row["sample_name"]
             else:
                 idx = sample_pooling_table["sample_name"] == mux_row["sample_pool"]
             for _, pooling_row in sample_pooling_table[idx].iterrows():
-                pooling_data["sample_name"].append(mux_row["demux_name"])
+                pooling_data["sample_name"].append(mux_row["sample_name"])
                 pooling_data["library_name"].append(pooling_row["library_name"])
                 pooling_data["mux_barcode"].append(mux_row["barcode"])
                 pooling_data["mux_pattern"].append(mux_row["pattern"])

@@ -3,10 +3,9 @@ import pandas as pd
 from flask import url_for
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, FeatureType, SubmissionType, MUXType
+from opengsync_db.categories import LibraryType, FeatureType, MUXType
 
 from .... import logger, tools, db  # noqa F401
-from ....tools import utils
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, CategoricalDropDown, DropdownColumn, DuplicateCellValue
@@ -40,14 +39,14 @@ class CommonOligoMuxForm(MultiStepForm):
             df["mux_barcode"] = None
 
         mux_data = {
-            "demux_name": [],
+            "sample_name": [],
             "sample_pool": [],
             "barcode": [],
             "pattern": [],
             "read": [],
         }
         for (sample_name, sample_pool, mux_barcode, mux_pattern, mux_read), _ in df.groupby(["sample_name", "sample_pool", "mux_barcode", "mux_pattern", "mux_read"], dropna=False):
-            mux_data["demux_name"].append(sample_name)
+            mux_data["sample_name"].append(sample_name)
             mux_data["sample_pool"].append(sample_pool)
             mux_data["barcode"].append(mux_barcode)
             mux_data["pattern"].append(mux_pattern)
@@ -60,6 +59,7 @@ class CommonOligoMuxForm(MultiStepForm):
         workflow: str,
         seq_request: models.SeqRequest | None,
         lab_prep: models.LabPrep | None,
+        library: models.Library | None,
         formdata: dict | None,
         uuid: str | None,
         additional_columns: list[SpreadSheetColumn],
@@ -71,6 +71,7 @@ class CommonOligoMuxForm(MultiStepForm):
 
         self.seq_request = seq_request
         self.lab_prep = lab_prep
+        self.library = library
 
         self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.feature_kits.find(limit=None, sort_by="name", type=FeatureType.CMO)[0]}
 
@@ -80,22 +81,44 @@ class CommonOligoMuxForm(MultiStepForm):
                 logger.error("LabPrep must be provided for mux_prep workflow")
                 raise ValueError("LabPrep must be provided for mux_prep workflow")
             self.pooling_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id, expand_mux=True)
+            self.pooling_table = self.pooling_table[self.pooling_table["mux_type_id"].isin([MUXType.TENX_OLIGO.id, MUXType.TENX_ABC_HASH.id])]
+            self.mux_table = CommonOligoMuxForm.get_mux_table(self.pooling_table)
         elif workflow == "library_annotation":
             self.index_col = "sample_name"
             self.pooling_table = self.tables["sample_pooling_table"]
+            self.pooling_table = self.pooling_table[self.pooling_table["mux_type_id"].isin([MUXType.TENX_OLIGO.id, MUXType.TENX_ABC_HASH.id])]
+            self.mux_table = CommonOligoMuxForm.get_mux_table(self.pooling_table)
+        elif workflow == "library_remux":
+            if self.library is None:
+                logger.error("Library must be provided for library_remux workflow")
+                raise ValueError("Library must be provided for library_remux workflow")
+            self.index_col = "library_id"
+            data = {
+                "sample_id": [],
+                "sample_name": [],
+                "barcode": [],
+                "pattern": [],
+                "read": [],
+            }
+            for link in self.library.sample_links:
+                data["sample_id"].append(link.sample.id)
+                data["sample_name"].append(link.sample.name)
+                data["barcode"].append(link.mux.get("barcode") if link.mux is not None else None)
+                data["pattern"].append(link.mux.get("pattern") if link.mux is not None else None)
+                data["read"].append(link.mux.get("read") if link.mux is not None else None)
+
+            self.pooling_table = pd.DataFrame(data)
+            self.pooling_table["library_id"] = self.library.id
+            self.pooling_table["sample_pool"] = self.library.sample_name
+
+            self.mux_table = self.pooling_table[["sample_name", "sample_pool", "barcode", "pattern", "read"]].copy()
         else:
             logger.error(f"Unsupported workflow: {workflow}")
             raise ValueError(f"Unsupported workflow: {workflow}")
 
-        logger.debug(self.pooling_table)
-        self.pooling_table = self.pooling_table[self.pooling_table["mux_type_id"].isin([MUXType.TENX_OLIGO.id, MUXType.TENX_ABC_HASH.id])]
-        self.mux_table = CommonOligoMuxForm.get_mux_table(self.pooling_table)
-        logger.debug(self.mux_table)
-        demux_name_col = DropdownColumn("demux_name", "Demultiplexed Name", 170, required=True, choices=self.pooling_table["sample_name"].tolist(), read_only=True)
-
         columns = [
-            demux_name_col,
-            DropdownColumn("sample_pool", "Sample Pool Name", 170, choices=self.pooling_table["sample_pool"].unique().tolist(), required=True, read_only=True),
+            TextColumn("sample_name", "Demultiplexed Name", 170, required=True, read_only=True),
+            TextColumn("sample_pool", "Sample Pool Name", 170, required=True, read_only=True),
             CategoricalDropDown("kit", "Kit", 250, categories=self.kits_mapping, required=False),
             TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
             TextColumn("barcode", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
@@ -112,6 +135,9 @@ class CommonOligoMuxForm(MultiStepForm):
         if self.lab_prep is not None:
             self._context["lab_prep"] = self.lab_prep
             self.url_context["lab_prep_id"] = self.lab_prep.id
+        if self.library is not None:
+            self._context["library"] = self.library
+            self.url_context["library_id"] = self.library.id
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=self._csrf_token,
@@ -125,7 +151,7 @@ class CommonOligoMuxForm(MultiStepForm):
     def fill_previous_form(self, previous_form: StepFile):
         df = previous_form.tables["sample_pooling_table"]
         df = df.drop_duplicates(subset=["sample_name"]).rename(columns={
-            "sample_name": "demux_name",
+            "sample_name": "sample_name",
         })
         self.spreadsheet.set_data(df)
 
@@ -159,6 +185,7 @@ class CommonOligoMuxForm(MultiStepForm):
 
         for identifier, (kit, kit_df) in kits.items():
             view = self.df[self.df["kit"] == identifier]
+            kit_df["barcode"] = kit_df["sequence"]
             mask = kit_df["name"].isin(view["feature"])
 
             for _, kit_row in kit_df[mask].iterrows():

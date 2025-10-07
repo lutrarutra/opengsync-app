@@ -1,28 +1,52 @@
-<div style="width: 100%; overflow-y: auto; flex-grow: 1;">
-    <ul class="list-group">
-    {% if fc_df is defined %}
-    {% for _, row in fc_df.iterrows()%}
-        <a href="{{ url_for('kits_page.index_kit', index_kit_id=row['index_kit_id']) }}" class="list-group-item list-group-item-action" target="_blank" style="white-space: nowrap; overflow: hidden;">
-            <b>{{ row["type"].abbreviation }}</b>:
-            <i {% if row["hamming"] == 0 %}class="cemm-green"{% elif row["hamming"] < 3 %}class="cemm-yellow"{% else %}class="cemm-red"{% endif %}>{{ row["sequence"] }}</i>
-            <b>{{ row["name"] }}</b>
-            <span class="desc">hamming: {{ row["hamming"] }}</span>
-        </a>
-    {% endfor %}
-    {% endif %}
-    </ul>
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div style="width: 100%; display: flex; flex-direction: column;">
+    <div class="d-flex" style="width: 100%; justify-content: center;"><h5>Forward</h5></div>
+    <div class="d-flex pb-2" style="align-items: center; padding: 0 0.5rem; margin-right: 25px;">
+        <b style="width: 10%;">Type</b>
+        <b style="width: 30%;">Sequence</b>
+        <b style="width: 55%;">Name [Well]</b>
+        <b style="width: 5%; text-align: end;">Dist.</b>
+    </div>
+    <div style="overflow-y: auto; flex-grow: 1;">
+        <ul class="list-group" style="padding-right: 5px;">
+        {% if fc_df is defined %}
+        {% for _, row in fc_df.iterrows()%}
+            <a href="{{ url_for('kits_page.index_kit', index_kit_id=row['kit_id']) }}" class="list-group-item list-group-item-action" target="_blank" style="white-space: nowrap; overflow: hidden;">
+                <div class="d-flex" {{ tooltip(row['kit_name']) }}>
+                    <span style="width: 10%;"><b>{{ row["type"].abbreviation }}</b></span>
+                    <span style="width: 30%; font-family: monospace;" {% if row["hamming"] == 0 %}class="cemm-green"{% elif row["hamming"] < 3 %}class="cemm-yellow"{% else %}class="cemm-red"{% endif %}>{{ row["sequence"] }}</span>
+                    <span style="width: 55%;"><b>{{ row["kit_identifier"] }}</b>: {{ row["name"] }} [{{ row["well"] }}]</span>
+                    <span style="width: 5%;" class="text-secondary">{{ row["hamming"] }}</span>
+                </div>
+            </a>
+        {% endfor %}
+        {% endif %}
+        </ul>
+    </div>
 </div>
-<div style="width: 100%; overflow-y: auto; flex-grow: 1;">
-    <ul class="list-group">
-    {% if rc_df is defined %}
-    {% for _, row in rc_df.iterrows() %}
-        <a href="{{ url_for('kits_page.index_kit', index_kit_id=row['index_kit_id']) }}" class="list-group-item list-group-item-action" target="_blank" style="white-space: nowrap; overflow: hidden;">
-            <b>{{ row["type"].abbreviation }}</b>:
-            <i {% if row["hamming"] == 0 %}class="cemm-green"{% elif row["hamming"] < 3 %}class="cemm-yellow"{% else %}class="cemm-red"{% endif %}>{{ row["sequence"] }}</i>
-            <b>{{ row["name"] }}</b>
-            <span class="desc">hamming: {{ row["hamming"] }}</span>
-        </a>
-    {% endfor %}
-    {% endif %}
-    </ul>
+<div style="width: 100%; display: flex; flex-direction: column;">
+    <div class="d-flex" style="width: 100%; justify-content: center;"><h5>Reverse Complement</h5></div>
+    <div class="d-flex pb-2" style="align-items: center; padding: 0 0.5rem; margin-right: 25px;">
+        <b style="width: 10%;">Type</b>
+        <b style="width: 30%;">Sequence</b>
+        <b style="width: 55%;">Name [Well]</b>
+        <b style="width: 5%; text-align: end;">Dist.</b>
+    </div>
+    <div style="overflow-y: auto; flex-grow: 1;">
+        <ul class="list-group" style="padding-right: 5px;">
+        {% if rc_df is defined %}
+        {% for _, row in rc_df.iterrows()%}
+            <a href="{{ url_for('kits_page.index_kit', index_kit_id=row['kit_id']) }}" class="list-group-item list-group-item-action" target="_blank" style="white-space: nowrap; overflow: hidden;">
+                <div class="d-flex" {{ tooltip(row['kit_name']) }}>
+                    <span style="width: 10%;"><b>{{ row["type"].abbreviation }}</b></span>
+                    <span style="width: 30%; font-family: monospace;" {% if row["hamming"] == 0 %}class="cemm-green"{% elif row["hamming"] < 3 %}class="cemm-yellow"{% else %}class="cemm-red"{% endif %}>{{ row["sequence"] }}</span>
+                    <span style="width: 55%;"><b>{{ row["kit_identifier"] }}</b>: {{ row["name"] }} [{{ row["well"] }}]</span>
+                    <span style="width: 5%;" class="text-secondary">{{ row["hamming"] }}</span>
+                </div>
+            </a>
+        {% endfor %}
+        {% endif %}
+        </ul>
+    </div>
 </div>

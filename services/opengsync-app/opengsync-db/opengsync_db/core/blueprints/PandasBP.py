@@ -845,7 +845,8 @@ class PandasBP(DBBlueprint):
             models.Barcode.id.label("id"), models.Barcode.sequence.label("sequence"),
             models.Barcode.well.label("well"), models.Barcode.name.label("name"),
             models.Barcode.type_id.label("type_id"),
-            models.IndexKit.id.label("index_kit_id"), models.IndexKit.name.label("index_kit_name"),
+            models.IndexKit.id.label("kit_id"), models.IndexKit.name.label("kit_name"),
+            models.IndexKit.identifier.label("kit_identifier"),
         ).join(
             models.IndexKit,
             models.IndexKit.id == models.Barcode.index_kit_id
@@ -869,6 +870,45 @@ class PandasBP(DBBlueprint):
         return df
     
     @DBBlueprint.transaction
+    def get_library_sample_pool(self, library_id: int, expand_mux: bool = False) -> pd.DataFrame:
+        query = sa.select(
+            models.Sample.id.label("sample_id"), 
+            models.Sample.name.label("sample_name"),
+            models.Library.id.label("library_id"), 
+            models.Library.name.label("library_name"),
+            models.Library.type_id.label("library_type_id"),
+            models.Library.sample_name.label("sample_pool"),
+            models.links.SampleLibraryLink.mux.label("mux"),
+            models.Library.mux_type_id.label("mux_type_id"),
+        ).join(
+            models.links.SampleLibraryLink,
+            models.links.SampleLibraryLink.library_id == models.Library.id
+        ).join(
+            models.Sample,
+            models.Sample.id == models.links.SampleLibraryLink.sample_id
+        ).where(
+            models.Sample.id.in_(
+                sa.select(models.links.SampleLibraryLink.sample_id).where(
+                    models.links.SampleLibraryLink.library_id == library_id
+                )
+            )
+        )
+
+        df = pd.read_sql(query, self.db._engine)
+        df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
+        df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
+
+        if expand_mux and not df.empty:
+            expanded = df["mux"].apply(pd.Series)
+            for col in expanded.columns:
+                expanded[f"mux_{col}"] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
+
+            df = pd.concat([df, expanded], axis=1)
+
+        return df
+    
+    @DBBlueprint.transaction
     def query(self, query: sa.Select | str) -> pd.DataFrame:
         df = pd.read_sql(query, self.db._engine)
         return df
+    

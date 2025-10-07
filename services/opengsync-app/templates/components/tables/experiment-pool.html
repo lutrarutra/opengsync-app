@@ -33,14 +33,6 @@
                 <th class="col-1" scope="col" {{ tooltip("Sample molarity of the pool") }}>Molarity</th>
                 {{
                     table_col(
-                        table_container_id='experiment-pool-table', column_name='Owner', column_var='owner_id',
-                        sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=2,
-                    )
-                }}
-                {{
-                    table_col(
                         table_container_id='experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
                         sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
@@ -104,7 +96,6 @@
                         <div class="unit">nM</div>
                     </div>
                 </td>
-                <td><a href="{{ url_for('users_page.user', user_id=pool.owner_id, from='experiment@' + experiment.id | string) }}">{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></a></td>
                 <td>{{ pool.num_libraries }}</td>
             </tr>
             {% endfor %}

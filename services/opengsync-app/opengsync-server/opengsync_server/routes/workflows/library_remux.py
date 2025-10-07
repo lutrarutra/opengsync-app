@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, LibraryStatus, AccessType
+from opengsync_db.categories import LibraryType, LibraryStatus, AccessType, MUXType
 
 from ... import db, logger  # noqa
 from ...forms.workflows import remux as forms
@@ -20,14 +20,16 @@ def begin(current_user: models.User, library_id: int):
         raise exceptions.NoPermissionsException()
     if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
         raise exceptions.NoPermissionsException()
-
-    if library.type == LibraryType.TENX_SC_GEX_FLEX:
-        return forms.LibraryReMuxForm(library=library).make_response()
     
-    if library.type == LibraryType.TENX_SC_ABC_FLEX:
-        return forms.LibraryReFlexABCForm(library=library).make_response()
-    
-    raise exceptions.BadRequestException()
+    match library.mux_type:
+        case MUXType.TENX_FLEX_PROBE:
+            return forms.FlexReMuxForm(library=library).make_response()
+        case MUXType.TENX_OLIGO:
+            return forms.OligoReMuxForm(library=library).make_response()
+        case MUXType.TENX_ABC_HASH:
+            return forms.OligoReMuxForm(library=library).make_response()
+        case _:
+            raise exceptions.BadRequestException()
     
 
 @wrappers.htmx_route(library_remux_workflow, db=db, methods=["POST"])
@@ -41,11 +43,11 @@ def parse_flex_annotation(current_user: models.User, library_id: int):
     if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
         raise exceptions.NoPermissionsException()
         
-    return forms.LibraryReMuxForm(library=library, formdata=request.form).process_request()
+    return forms.FlexReMuxForm(library=library, formdata=request.form).process_request()
 
 
 @wrappers.htmx_route(library_remux_workflow, db=db, methods=["POST"])
-def parse_flex_abc_annotation(current_user: models.User, library_id: int):
+def parse_oligo_mux_reference(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         raise exceptions.NotFoundException()
     
@@ -54,5 +56,5 @@ def parse_flex_abc_annotation(current_user: models.User, library_id: int):
         raise exceptions.NoPermissionsException()
     if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
         raise exceptions.NoPermissionsException()
-        
-    return forms.LibraryReFlexABCForm(library=library, formdata=request.form).process_request()
+    
+    return forms.OligoReMuxForm(library=library, formdata=request.form).process_request()
