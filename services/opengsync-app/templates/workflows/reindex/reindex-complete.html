@@ -9,7 +9,7 @@
     </div> 
     <div class="modal-body tab-body" id="barcode-check-form">
         {{ form.csrf_token() }}
-        {% if groupby %}
+        {% if groupby is defined and groupby %}
         <ul class="nav nav-tabs" role="tablist">
             {% for group, _df in barcode_table.groupby(groupby) %}
             <li class="nav-item" role="presentation">
