@@ -61,6 +61,8 @@ class CompleteReindexForm(MultiStepForm):
 
             seq_i7s = df["sequence_i7"].values
             seq_i5s = df["sequence_i5"].values
+            kit_i7s = df["kit_i7_id"].values
+            kit_i5s = df["kit_i5_id"].values
             name_i7s = df["name_i7"].values
             name_i5s = df["name_i5"].values
 
@@ -83,8 +85,8 @@ class CompleteReindexForm(MultiStepForm):
             for j in range(max(len(seq_i7s), len(seq_i5s))):
                 library = db.libraries.add_index(
                     library_id=library.id,
-                    index_kit_i7_id=None,
-                    index_kit_i5_id=None,
+                    index_kit_i7_id=int(kit_i7s[j]) if len(kit_i7s) > j and pd.notna(kit_i7s[j]) else None,
+                    index_kit_i5_id=int(kit_i5s[j]) if len(kit_i5s) > j and pd.notna(kit_i5s[j]) else None,
                     name_i7=name_i7s[j] if len(name_i7s) > j and pd.notna(name_i7s[j]) else None,
                     name_i5=name_i5s[j] if len(name_i5s) > j and pd.notna(name_i5s[j]) else None,
                     sequence_i7=seq_i7s[j] if len(seq_i7s) > j and pd.notna(seq_i7s[j]) else None,
