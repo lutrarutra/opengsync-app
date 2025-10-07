@@ -1,12 +1,10 @@
 from typing import Optional
 
-import pandas as pd
-
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryStatus, MUXType
+from opengsync_db.categories import MUXType
 
 from .... import logger, db
 from ....tools import utils  # noqa F401
@@ -23,7 +21,7 @@ class OligoMuxForm(CommonOligoMuxForm):
     def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: Optional[str] = None):
         CommonOligoMuxForm.__init__(
             self,
-            lab_prep=lab_prep, seq_request=None,
+            lab_prep=lab_prep, seq_request=None, library=None,
             uuid=uuid, formdata=formdata, workflow=OligoMuxForm._workflow_name,
             additional_columns=[]
         )
@@ -32,7 +30,6 @@ class OligoMuxForm(CommonOligoMuxForm):
         if not self.validate():
             return self.make_response()
 
-        self.df["sample_name"]= self.df["demux_name"]
         self.df["mux_read"] = self.df["read"]
         self.df["mux_barcode"] = self.df["barcode"]
         self.df["mux_pattern"] = self.df["pattern"]

@@ -13,7 +13,7 @@
 {%- endmacro %}
 
 {% macro static_spreadsheet(element) -%}
-<div class="spreadsheet-container" {% if height %}style="height: {{ height }};"{% endif %}>
+<div class="spreadsheet-container" {% if height is defined and height %}style="height: {{ height }};"{% endif %}>
     <div id="{{ element._id }}" class="spreadsheet-grid">
     </div>
 </div>

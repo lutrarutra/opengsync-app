@@ -1,0 +1,79 @@
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+{% from "components/spreadsheet.jinja2" import spreadsheet_input, static_spreadsheet %}
+{% from "components/form_group.jinja2" import checkbox_input %}
+
+<div id="oligo_annotation-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Oligo Multiplexing Annotation</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                aria-controls="spreadsheet-tab" aria-selected="true">
+                Spreadsheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#sample_pool-tab" type="button" role="tab"
+                aria-controls="sample_pool-tab" aria-selected="false">
+                Sample Pool</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link help-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
+                {{ checkbox_input(form.apply_to_sample_pool) }}
+                {{ spreadsheet_input(element=form.spreadsheet) }}
+            </div>
+            <div class="tab-pane fade" id="sample_pool-tab" role="tabpanel" tabindex="1">
+                {{
+                    static_spreadsheet(library_sample_pool_table)
+                }}
+            </div>
+            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="2">
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.uuid }}
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success submit-form-btn" type="button" id="parse-spreadsheet-btn">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        $("#parse-spreadsheet-btn").click(function() {
+            var data = spread_sheet.getData();
+
+            htmx.ajax("POST", "{{ form.spreadsheet.post_url | safe }}", {
+                "target": "#oligo_annotation-form-container",
+                "swap": "outerHTML",
+                "values": {
+                    "spreadsheet": JSON.stringify(data),
+                    "csrf_token": "{{ form._csrf_token }}",
+                    "columns": JSON.stringify(spread_sheet.getHeaders()),
+                    "apply_to_sample_pool": $("#{{ form.apply_to_sample_pool.id }}").prop("checked"),
+                },
+            });
+
+            disable_button($(this));
+        });
+    });
+</script>
