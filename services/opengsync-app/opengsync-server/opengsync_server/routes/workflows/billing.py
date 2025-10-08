@@ -109,6 +109,8 @@ def download(current_user: models.User) -> Response:
         experiment_data["read_config"].append(experiment.read_config)
         experiment_data["num_lanes"].append(experiment.num_lanes)
 
+        lane_loaded_reads = {}
+        flowcell_loaded_reads = 0
         for lane in experiment.lanes:
             lane_data["experiment_name"].append(experiment.name)
             lane_data["lane"].append(lane.number)
@@ -119,11 +121,13 @@ def download(current_user: models.User) -> Response:
                 pools.append(link.pool.name)
                 if link.num_m_reads is not None:
                     num_m_reads_loaded += link.num_m_reads
+                    flowcell_loaded_reads += link.num_m_reads
                 else:
                     num_m_reads_loaded = None
                     break
             lane_data["num_m_reads_loaded"].append(num_m_reads_loaded or "")
             lane_data["pools"].append(", ".join(pools))
+            lane_loaded_reads[lane.number] = num_m_reads_loaded
 
         for pool in experiment.pools:
             info = ""
@@ -135,7 +139,7 @@ def download(current_user: models.User) -> Response:
             for link in pool.lane_links:
                 if link.num_m_reads is not None:
                     num_m_reads_loaded += link.num_m_reads
-                    lane_share[link.lane_num] = f"{link.num_m_reads / experiment.flowcell_type.max_m_reads_per_lane:.3%}"
+                    lane_share[link.lane_num] = f"{link.num_m_reads / lane_loaded_reads[link.lane_num]:.3%}"
                 else:
                     num_m_reads_loaded = None
                     info += "⚠️ Some lanes are missing number of loaded reads "
@@ -144,7 +148,7 @@ def download(current_user: models.User) -> Response:
             pool_data["lane_share"].append(lane_share or "")
             
             if num_m_reads_loaded is not None:
-                flowcell_share = (num_m_reads_loaded / experiment.flowcell_type.max_m_reads)
+                flowcell_share = (num_m_reads_loaded / flowcell_loaded_reads)
                 pool_data["flowcell_share"].append(f"{flowcell_share:.3%}")
             else:
                 pool_data["flowcell_share"].append("")
@@ -187,8 +191,8 @@ def download(current_user: models.User) -> Response:
 
     
     pools_df = pd.DataFrame(pool_data).sort_values(by=["experiment_name", "lanes"], ascending=[False, True]).reset_index(drop=True)
-    experiments_df = pd.DataFrame(experiment_data).sort_values(by=["experiment_name"], ascending=False).reset_index(drop=True)
     lanes_df = pd.DataFrame(lane_data).sort_values(by=["experiment_name", "lane"], ascending=[False, True]).reset_index(drop=True)
+    experiments_df = pd.DataFrame(experiment_data).sort_values(by=["experiment_name"], ascending=False).reset_index(drop=True)
     experiments_df["loaded_m_reads"] = ""
 
     for experiment in experiments:
