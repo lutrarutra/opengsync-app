@@ -20,8 +20,8 @@
     {% for sheet_name in sheets.keys() %}
     <li class="nav-item" role="presentation">
         <button class="nav-link {% if loop.index0 == 0 %}active{% endif %}" data-bs-toggle="tab"
-        data-bs-target="#file-{{ sheet_name }}-tab" type="button" role="tab"
-        aria-controls="file-{{ sheet_name }}-tab" aria-selected="true">
+        data-bs-target="#file-{{ loop.index }}-tab" type="button" role="tab"
+        aria-controls="file-{{ loop.index }}-tab" aria-selected="true">
         {{ sheet_name }}</button>
     </li>
     {% endfor %}
@@ -29,7 +29,7 @@
 
 <div class="tab-content pt-1" style="width: 100%; overflow-x: hidden;">
     {% for sheet_name, sheet_html in sheets.items() %}
-    <div class="tab-pane fade{% if loop.index0 == 0 %} show active{% endif %}" id="file-{{ sheet_name }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
+    <div class="tab-pane fade{% if loop.index0 == 0 %} show active{% endif %}" id="file-{{ loop.index }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
         <div style="width: 100%; overflow-x: auto;">
             {{ sheet_html | safe }}
         </div>

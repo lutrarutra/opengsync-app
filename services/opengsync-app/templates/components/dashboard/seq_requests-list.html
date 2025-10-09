@@ -16,7 +16,7 @@
 </a>
 {% endfor %}
 {% if limit == seq_requests | length %}
-<div hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests', page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+<div hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests', page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML" style="min-hieght: 50px; margin-top: 20px;">
     {{ spinner() }}
 </div>
 {% endif %}

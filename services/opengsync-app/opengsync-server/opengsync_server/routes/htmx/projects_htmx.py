@@ -392,7 +392,6 @@ def get_samples(current_user: models.User, project_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = page * PAGE_LIMIT
 
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
@@ -404,7 +403,7 @@ def get_samples(current_user: models.User, project_id: int, page: int = 0):
         if len(status_in) == 0:
             status_in = None
 
-    samples, n_pages = db.samples.find(offset=offset, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True)
+    samples, n_pages = db.samples.find(page=page, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in)
 
     return make_response(
         render_template(

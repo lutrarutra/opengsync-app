@@ -19,7 +19,7 @@
                 Edit Prep
             </button>
             {% if lab_prep.status == PrepStatus.PREPARING %}
-            <span {% if can_be_completed == false %}{{ tooltip("You must add libraries and complete 'Index Libraries'-workflow first!", category="success") }}{% endif %}>
+            <span {% if can_be_completed == false %}{{ tooltip("You must add libraries and complete 'Pool Libraries'-workflow first!", category="success") }}{% endif %}>
                 <button class="btn btn-success"
                     hx-post="{{ url_for('lab_preps_htmx.complete', lab_prep_id=lab_prep.id) }}"
                     _="on htmx:confirm(issueRequest)
@@ -309,9 +309,9 @@
                     {% if lab_prep.status != PrepStatus.PREPARING %}
                     {{ tooltip("You cannot edit completed prep.", category="warning") }}
                     {% else %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    data-bs-toggle="modal" data-bs-target="#xl-modal"
                     hx-get="{{ url_for('lab_preps_htmx.prep_table_upload_form', lab_prep_id=lab_prep.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                    hx-target="#xl-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click"{% endif %}>
                     <div class="flip-card-container">
                         <div class="card-front">

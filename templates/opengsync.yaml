@@ -18,7 +18,7 @@ db:
 
 
 # Make sure these match the paths specified in the docker-compose file
-app_root: "/usr/src/app"
+app_root: "/app"
 media_folder: "/media"
 uploads_folder: "/uploads"
 app_data_folder: "/app_data"

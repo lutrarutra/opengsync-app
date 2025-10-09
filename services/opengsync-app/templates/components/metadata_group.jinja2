@@ -5,17 +5,17 @@
 
 {% macro metadata_group(label, value, class="", input_id=none, unit=none) -%}
 {% set guid = random_guid() %}
-<div class="{{class}} form-group metadata-group" id="{{guid}}">
+<div class="{{ class }} form-group metadata-group" id="{{ guid }}">
     <label>{{ label }}</label>
     <div class="copyable-input {% if unit %}input-with-unit{% endif %}">
-        <input class="form-control" type="text" value="{{ value if value else '' }}" {% if input_id %}id="{{input_id}}"{% endif %} readonly>
+        <input class="form-control" type="text" value="{{ value if value else '' }}" {% if input_id %}id="{{ input_id }}"{% endif %} readonly>
         <a type="button" class="clipboard-btn" {{ tooltip("Click to copy.", position="top") }}
-        onclick="copy_value_to_clipboard('{{guid}}')">
+        onclick="copy_value_to_clipboard('{{ guid }}')">
             <i class="bi bi-clipboard not-copied-icon"></i>
             <i class="bi bi-clipboard-check copied-icon" style="display: none;"></i>
         </a>
         {% if unit %}
-        <span class="input-group-text unit-container">{{unit}}</span>
+        <span class="input-group-text unit-container">{{ unit }}</span>
         {% endif %}
     </div>
 </div>

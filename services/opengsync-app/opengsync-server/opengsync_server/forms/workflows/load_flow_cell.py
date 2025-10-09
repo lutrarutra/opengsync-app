@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response, flash, url_for
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
-from wtforms import FloatField, FieldList, FormField
+from wtforms import FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
 from opengsync_db import models
@@ -21,6 +21,12 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
     target_molarity = FloatField(validators=[OptionalValidator()])
     total_volume_ul = FloatField(validators=[OptionalValidator()])
 
+    avg_fragment_size = IntegerField("Avg. Fragment Size")
+    lane_molarity = FloatField("Lane Molarity")
+    sequencing_molarity = FloatField("Sequencing Molarity")
+    library_volume = FloatField("Library Volume")
+    eb_volume = FloatField("EB Volume")
+
     def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
@@ -31,7 +37,8 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
         self._context["enumerate"] = enumerate
         self._context["experiment"] = experiment
 
-    def __get_params(self, df: pd.DataFrame):
+    def prepare(self):
+        df = db.pd.get_experiment_lanes(self.experiment.id)
         row = df.iloc[0]
         lane_molarity = row["original_qubit_concentration"] / (row["avg_fragment_size"] * 660) * 1_000_000
 
@@ -59,15 +66,11 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
         if pd.notna(row["phi_x"]):
             self.phi_x.data = row["phi_x"]
 
-        self._context["avg_fragment_size"] = row["avg_fragment_size"]
-        self._context["lane_molarity"] = lane_molarity
-        self._context["library_volume"] = library_volume
-        self._context["eb_volume"] = eb_volume
-        self._context["sequencing_molarity"] = sequencing_molarity
-
-    def prepare(self):
-        df = db.pd.get_experiment_lanes(self.experiment.id)
-        self.__get_params(df)
+        self.avg_fragment_size.data = row["avg_fragment_size"]
+        self.lane_molarity.data = lane_molarity
+        self.sequencing_molarity.data = sequencing_molarity
+        self.library_volume.data = library_volume
+        self.eb_volume.data = eb_volume
     
     def process_request(self) -> Response:
         if not self.validate():

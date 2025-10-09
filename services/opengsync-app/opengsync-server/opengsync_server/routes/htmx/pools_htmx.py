@@ -264,9 +264,8 @@ def get_libraries(current_user: models.User, pool_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
 
-    libraries, n_pages = db.libraries.find(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, count_pages=True)
+    libraries, n_pages = db.libraries.find(page=page, pool_id=pool_id, sort_by=sort_by, descending=descending)
     
     return make_response(
         render_template(

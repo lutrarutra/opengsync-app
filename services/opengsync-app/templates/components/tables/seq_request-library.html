@@ -2,6 +2,7 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
 <div id="seq_request-library-table" class="table-container">
@@ -63,9 +64,21 @@
             {% for library in libraries %}
             <tr class="library-row" data-id="{{ library.id }}" data-name="{{ library.name }}">
                 <th scope="row">{{ library.id }}</th>
-                <td><a href="{{ url_for('libraries_page.library', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">
-                    {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
-                </a></td>
+                <td class="cm-callback"
+                {{
+                    context_menu([
+                        {"type": "copy", "value": library.name, "label": "Copy Name"},
+                        {"type": "hxdelete", "label": "Remove Library", "disabled": false if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_admin() else true, "config": {
+                            "url": url_for('seq_requests_htmx.remove_library', seq_request_id=seq_request.id, library_id=library.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
+                            "target": "#seq_request-library-table",
+                            "title": "Remove {library.name} from {seq_request.name}?".format(library=library, seq_request=seq_request)
+                        },}
+                    ])
+                }}>
+                    <a href="{{ url_for('libraries_page.library', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">
+                        {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
+                    </a>
+                </td>
                 <td>
                 {% if library.pool_id %}
                     <a href="{{ url_for('pools_page.pool', pool_id=library.pool_id, from='seq_request@' + seq_request.id | string)}}">{{ library.pool.name }}</a>
@@ -88,52 +101,4 @@
     </table>
     {{ spinner("seq_request-library-table-spinner") }}
     {{ pagination("seq_request-library-table", "seq_requests_htmx.get_libraries", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
-    <script>
-        let selected_library_id = null;
-        let selected_library_name = null;
-
-        function remove_library() {
-            Swal.fire({
-                title: `Remove library '${selected_library_name}' [${selected_library_id}] from '{{seq_request.name}}'-request ?`,
-                showDenyButton: true,
-                text: 'Are you sure?',
-                confirmButtonText: 'Yes',
-                icon: 'question',
-                denyButtonText: 'No'
-            }).then(function(e) {
-                if (e.isConfirmed) {
-                    htmx.ajax(
-                    "DELETE", "{{ url_for('seq_requests_htmx.remove_library', seq_request_id=seq_request.id) }}?library_id=" + selected_library_id,
-                    null, {
-                        target: "#seq_request-library-table",
-                        swapStyle: "outerHTML"
-                    });
-                }
-            });
-        }
-
-        $(document).ready(function() {
-            $(document).off("contextmenu", ".library-row").on("contextmenu", ".library-row", function(e) {
-                e.preventDefault();
-                const x = e.pageX;
-                const y = e.pageY;
-                selected_library_id = parseInt($(this).data("id"));
-                selected_library_name = $(this).data("name");
-                $("#copy-edit-menu").css({
-                    display: "block",
-                    left: x + 8, top: y + 8
-                }).empty().append([
-                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_admin() %}
-                    `<li><a class='dropdown-item' onclick='remove_library()'>Remove</a></li>`
-                    {% else %}
-                    `<li><a class='dropdown-item disabled' disabled>Remove</a></li>`
-                    {% endif %}
-                ]);
-
-                $("#right-click-bg").css({
-                    display: "block"
-                });
-            });
-        });
-    </script>
 </div>

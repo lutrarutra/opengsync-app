@@ -2,6 +2,7 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="index_kit-table" class="table-container">
     <table class="table">
@@ -45,8 +46,8 @@
             {% for index_kit in index_kits %}
             <tr>
                 <th scope="row">{{ index_kit.id }}</th>
-                <td><a href="{{ url_for('kits_page.index_kit', index_kit_id=index_kit.id) }}">{{ index_kit.identifier }}</a></td>
-                <td><a href="{{ url_for('kits_page.index_kit', index_kit_id=index_kit.id) }}">{{ index_kit.name }}</a></td>
+                <td  class="cm-callback" {{ context_menu([{"type": "copy", "value": index_kit.identifier, "label": "Copy Identifier",}]) }}><a href="{{ url_for('kits_page.index_kit', index_kit_id=index_kit.id) }}">{{ index_kit.identifier }}</a></td>
+                <td  class="cm-callback" {{ context_menu([{"type": "copy", "value": index_kit.name, "label": "Copy Name",}]) }}><a href="{{ url_for('kits_page.index_kit', index_kit_id=index_kit.id) }}">{{ index_kit.name }}</a></td>
                 <td>{{ index_kit.type.name }}</td>
                 <td>
                     {% for protocol in index_kit.supported_protocols %}

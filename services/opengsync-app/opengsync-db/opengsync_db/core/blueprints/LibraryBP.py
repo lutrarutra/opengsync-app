@@ -191,7 +191,7 @@ class LibraryBP(DBBlueprint):
         custom_query: Callable[[Query], Query] | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        count_pages: bool = False,
+        page: int | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.Library], int | None]:
 
@@ -204,10 +204,9 @@ class LibraryBP(DBBlueprint):
             type_in=type_in, status_in=status_in, pooled=pooled, status=status,
             custom_query=custom_query, project_id=project_id
         )
+        
         if options is not None:
             query = query.options(options)
-
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
         if sort_by is not None:
             attr = getattr(models.Library, sort_by)
@@ -217,6 +216,16 @@ class LibraryBP(DBBlueprint):
         
         if offset is not None:
             query = query.offset(offset)
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
+        else:
+            n_pages = None
 
         if limit is not None:
             query = query.limit(limit)

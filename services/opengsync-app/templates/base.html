@@ -223,20 +223,18 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/searchbar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/contextmenu.js') }}"></script>
     <script src="{{ url_for('static', filename='js/reverse_complement.js') }}"></script>
     <script src="{{ url_for('static', filename='js/confirm_close.js') }}"></script>
     <script src="{{ url_for('static', filename='js/flask-table.js') }}"></script>
     <script src="{{ url_for('static', filename='js/colors.js') }}"></script>
     <script src="{{ url_for('static', filename='js/cookie.js') }}"></script>
     <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/clipboard-btn.js') }}"></script>
     <script src="{{ url_for('static', filename='js/load_plotly.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/callbacks.js') }}"></script>
 
     <script type="text/javascript">
-        // right click menu
         $(document).on("click", "#right-click-bg", function(e) {
-            $("#copy-edit-menu").css({
+            $("#context-menu-container").css({
                 display: "none"
             }).children().remove();
             $("#right-click-bg").css({
@@ -246,7 +244,7 @@
 
         $(document).keyup(function(e) {
             if (e.key === "Escape") {
-                $("#copy-edit-menu").css({
+                $("#context-menu-container").css({
                     display: "none"
                 }).empty();
                 $("#right-click-bg").css({
@@ -269,28 +267,6 @@
             setTimeout(function () {
                 win.close();
             }, 1000);
-        }
-
-        function unsecuredCopyToClipboard(text) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-            } catch (err) {
-                console.error('Unable to copy to clipboard', err);
-            }
-            document.body.removeChild(textArea);
-        }
-
-        function copy_to_clipboard(text) {
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(text);
-            } else {
-                unsecuredCopyToClipboard(text);
-            }
         }
 
         // responsive navbar

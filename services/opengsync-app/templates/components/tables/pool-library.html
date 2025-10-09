@@ -102,7 +102,7 @@
             const y = e.pageY;
             selected_library_id = parseInt($(this).data("library-id"));
             selected_library_name = $(this).data("library-name");
-            $("#copy-edit-menu").css({
+            $("#context-menu-container").css({
                 display: "block",
                 left: x + 8, top: y + 8
             }).empty().append([

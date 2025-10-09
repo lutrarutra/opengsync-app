@@ -10,11 +10,11 @@ services:
                 - APPGROUP=${GROUP}
         restart: always
         command: >
-            gunicorn -w 4 --bind 0.0.0.0:${OPENGSYNC_PORT} 'wsgi:create_app(config_path="/usr/src/app/opengsync.yaml")'
+            gunicorn -w 4 --bind 0.0.0.0:${OPENGSYNC_PORT} 'wsgi:create_app(config_path="/app/opengsync.yaml")'
         volumes:
-            - ./services/opengsync-app/opengsync-server:/usr/src/app/opengsync-server
+            - ./services/opengsync-app/opengsync-server:/app/opengsync-server
             - ./services/opengsync-app/templates:/templates:ro
-            - ./opengsync.yaml:/usr/src/app/opengsync.yaml:ro
+            - ./opengsync.yaml:/app/opengsync.yaml:ro
             - ./services/opengsync-app/static/:/static/:ro
             - compiled_css:/static/style/compiled:ro
             - ./app_data:/app_data
@@ -63,7 +63,7 @@ services:
         environment:
             TZ: ${TIMEZONE}
         volumes:
-            - ./opengsync.yaml:/usr/src/app/opengsync.yaml:ro
+            - ./opengsync.yaml:/app/opengsync.yaml:ro
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
             - ${DATA_DIR}/logs/celery-worker:/logs
             - ${UPLOADS_DIR}:/uploads
@@ -88,7 +88,7 @@ services:
         environment:
             TZ: ${TIMEZONE}
         volumes:
-            - ./opengsync.yaml:/usr/src/app/opengsync.yaml:ro
+            - ./opengsync.yaml:/app/opengsync.yaml:ro
         depends_on:
             postgres:
                 condition: service_healthy
