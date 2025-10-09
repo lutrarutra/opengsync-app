@@ -45,6 +45,11 @@ class FeatureKitForm(HTMXFlaskForm):
             self.identifier.errors = ("Identifier is required.",)
             return False
         
+        self.identifier.data = self.identifier.data.strip()
+        if self.identifier.data.startswith("#"):
+            self.identifier.errors = ("Identifier cannot start with '#'.",)
+            return False
+        
         if self.name.data is None:
             self.name.errors = ("Name is required.",)
             return False

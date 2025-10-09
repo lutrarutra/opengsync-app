@@ -6,9 +6,9 @@ services:
             context: ./services/opengsync-app
             dockerfile: Dockerfile.dev
         volumes:
-            - ./services/opengsync-app/opengsync-server:/usr/src/app/opengsync-server
-            - ./services/opengsync-app/opengsync-db:/usr/src/app/opengsync-db
-            - ./opengsync.yaml:/usr/src/app/opengsync.yaml:ro
+            - ./services/opengsync-app/opengsync-server:/app/opengsync-server
+            - ./services/opengsync-app/opengsync-db:/app/opengsync-db
+            - ./opengsync.yaml:/app/opengsync.yaml:ro
             - ./services/opengsync-app/static/images:/static/images:ro
             - ./services/opengsync-app/static/js:/static/js:ro
             - ./services/opengsync-app/static/resources:/static/resources:ro
@@ -52,7 +52,7 @@ services:
         environment:
             TZ: ${TIMEZONE}
         volumes:
-            - ./opengsync.yaml:/usr/src/app/opengsync.yaml:ro
+            - ./opengsync.yaml:/app/opengsync.yaml:ro
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
             - ${DATA_DIR}/logs/celery-worker:/logs
             - ${UPLOADS_DIR}:/uploads
@@ -77,7 +77,7 @@ services:
         environment:
             TZ: ${TIMEZONE}
         volumes:
-            - ./opengsync.yaml:/usr/src/app/opengsync.yaml:ro
+            - ./opengsync.yaml:/app/opengsync.yaml:ro
         depends_on:
             postgres:
                 condition: service_healthy
@@ -128,9 +128,9 @@ services:
         container_name: sass-compiler-dev
         build: ./services/sass-compiler
         volumes:
-            - ./services/opengsync-app/static/style/sass:/usr/src/app/static/style/sass:ro
-            - compiled_css:/usr/src/app/static/style/compiled
-        command: "sass --watch /usr/src/app/static/style/sass:/usr/src/app/static/style/compiled"
+            - ./services/opengsync-app/static/style/sass:/app/static/style/sass:ro
+            - compiled_css:/app/static/style/compiled
+        command: "sass --watch /app/static/style/sass:/app/static/style/compiled"
         environment:
             - TZ=${TIMEZONE}
         healthcheck:

@@ -2,6 +2,7 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
 <div id="lab_prep-library-table" class="table-container">
@@ -64,9 +65,21 @@
             {% for library in libraries %}
             <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td class="library-name-cell" id="library-name-cell-{{library.id}}" data-id="{{ library.id }}"><a href="{{ url_for('libraries_page.library', library_id=library.id, from='lab_prep@' + lab_prep.id | string) }}">
-                    {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
-                </a></td>
+                <td class="cm-callback"
+                    {{ context_menu([
+                        {"type": "copy", "value": library.name, "label": "Copy Name"},
+                        {"type": "hxdelete", "label": "Remove Library" ,
+                        "disabled": false if lab_prep.status == PrepStatus.PREPARING else true, "config": 
+                        {
+                            "url": url_for("lab_preps_htmx.remove_library", lab_prep_id=lab_prep.id, _library_id=library.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
+                            "target": "#lab_prep-library-table", 
+                            "title": "Remove {library.name} from {lab_prep.name}?".format(library=library, lab_prep=lab_prep)
+                        },}
+                    ]) }}>
+                    <a href="{{ url_for('libraries_page.library', library_id=library.id, from='lab_prep@' + lab_prep.id | string) }}">
+                        {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
+                    </a>
+                </td>
                 <td>
                     <span {{ tooltip(library.type.name) }}>
                         {{ library.type.abbreviation }}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
@@ -84,48 +97,4 @@
     </table>
     {{ spinner("lab_prep-library-table-spinner") }}
     {{ pagination("lab_prep-library-table", "lab_preps_htmx.get_libraries", n_pages, active_page, context={"lab_prep_id": lab_prep.id}) }}
-    <script>
-        {% if lab_prep.status == PrepStatus.PREPARING %}
-        var selected_library_id = null;
-
-        function remove_library() {
-            Swal.fire({
-                title: `Remove library id='${selected_library_id}' from '{{lab_prep.name}}'-prep ?`,
-                showDenyButton: true,
-                text: 'Are you sure?',
-                confirmButtonText: 'Yes',
-                icon: 'question',
-                denyButtonText: 'No'
-            }).then(function(e) {
-                if (e.isConfirmed) {
-                    htmx.ajax(
-                        "DELETE", "{{ url_for('lab_preps_htmx.remove_library', lab_prep_id=lab_prep.id) }}?library_id=" + selected_library_id, null,
-                        { target: "#lab_prep-library-table", swapStyle: "outerHTML" }
-                    );
-                }
-            });
-        }
-        {% endif %}
-
-        $(document).off("contextmenu", ".library-name-cell").on("contextmenu", ".library-name-cell", function(e) {
-            e.preventDefault();
-            const x = e.pageX;
-            const y = e.pageY;
-            selected_library_id = $(this).data("id");
-            $("#copy-edit-menu").css({
-                display: "block",
-                left: x + 8, top: y + 8
-            }).empty().append([
-                {% if lab_prep.status == PrepStatus.PREPARING %}
-                `<li><a class="dropdown-item" onclick="remove_library()">Remove Library</a></li>`,
-                {% else %}
-                `<li><a class="dropdown-item disabled" disabled>Remove Library</a></li>`,
-                {% endif %}
-            ]);
-
-            $("#right-click-bg").css({
-                display: "block"
-            });
-        });
-    </script>
 </div>

@@ -65,36 +65,46 @@ class CommonBarcodeInputForm(MultiStepForm):
 
         if workflow == "library_annotation":
             self.index_col = "library_name"
-        else:
+            if (library_table := self.tables.get("library_table")) is None:
+                logger.error("Library table not found for library annotation workflow")
+                raise exceptions.InternalServerErrorException("Library table not found for library annotation workflow")
+            self.library_table = library_table
+        elif workflow == "library_pooling":
             self.index_col = "library_id"
+            if self.lab_prep is None:
+                logger.error("lab_prep must be provided for library pooling workflow")
+                raise ValueError("lab_prep must be provided for library pooling workflow")
+            
+            library_table = utils.get_barcode_table(db, self.lab_prep.libraries)
+            if self.lab_prep.prep_file is not None:
+                prep_table = pd.read_excel(os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
+                prep_table = prep_table.dropna(subset=["library_id", "library_name"])
+                self.library_table = prep_table[[col.label for col in self.columns if col.label in prep_table.columns]]
+                self.library_table["library_id"] = self.library_table["library_id"].astype(int)
+                self.library_table["library_type_id"] = utils.map_columns(library_table, library_table, "library_id", "library_type_id").astype(int)
+            else:
+                self.library_table = library_table
+        elif workflow == "reindex":
+            self.index_col = "library_id"
+            if (library_table := self.tables.get("library_table")) is None:
+                logger.error("Library table not found for reindex workflow")
+                raise exceptions.InternalServerErrorException("Library table not found for reindex workflow")
+            self.library_table = library_table
+        else:
+            raise exceptions.InternalServerErrorException(f"Workflow '{workflow}' not supported in CommonBarcodeInputForm")
 
         if self.index_col not in [col.label for col in self.columns]:
             logger.error(f"Index column '{self.index_col}' not found in columns")
             raise exceptions.InternalServerErrorException(f"Index column '{self.index_col}' not found in columns")
-        
-        if (library_table := self.tables.get("library_table")) is None:
-            if workflow == "library_pooling":
-                if self.lab_prep is None:
-                    logger.error("lab_prep must be provided for library pooling workflow")
-                    raise ValueError("lab_prep must be provided for library pooling workflow")
-                
-                library_table = utils.get_barcode_table(db, self.lab_prep.libraries)
-                if self.lab_prep.prep_file is not None:
-                    prep_table = pd.read_excel(os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
-                    prep_table = prep_table.dropna(subset=["library_id", "library_name"])
-                    self.library_table = prep_table[[col.label for col in self.columns if col.label in prep_table.columns]]
-                    self.library_table["library_type_id"] = library_table.set_index(self.index_col).loc[self.library_table["library_id"], "library_type_id"].values
-                else:
-                    self.library_table = library_table
-            else:
-                logger.error(f"Library table not found for workflow {workflow}")
-                raise exceptions.InternalServerErrorException("Library table not found for workflow")
-        else:
-            self.library_table = library_table
 
         self.barcode_table = self.library_table[
             self.library_table["library_type_id"] != LibraryType.TENX_SC_ATAC.id
         ].copy()
+        self.barcode_table["kit_i7"] = self.barcode_table["kit_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
+        self.barcode_table["kit_i5"] = self.barcode_table["kit_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
+        self.barcode_table["index_well"] = self.barcode_table["index_well"].apply(lambda x: x if pd.isna(x) else str(x).strip())
+        self.barcode_table["name_i7"] = self.barcode_table["name_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip())
+        self.barcode_table["name_i5"] = self.barcode_table["name_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip())
 
         if self.index_col not in self.barcode_table.columns:
             logger.error(f"Index column '{self.index_col}' not found in barcode_table")

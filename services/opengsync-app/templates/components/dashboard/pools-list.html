@@ -14,7 +14,7 @@
 </a>
 {% endfor %}
 {% if limit == pools | length %}
-<div hx-get="{{ url_for('pools_htmx.get_recent_pools', page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+<div hx-get="{{ url_for('pools_htmx.get_recent_pools', page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML" style="min-hieght: 50px; margin-top: 20px;">
     {{ spinner() }}
 </div>
 {% endif %}

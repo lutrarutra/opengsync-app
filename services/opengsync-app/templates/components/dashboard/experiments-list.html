@@ -12,7 +12,7 @@
 </a>
 {% endfor %}
 {% if limit == experiments | length %}
-<div hx-get="{{ url_for('experiments_htmx.get_recent_experiments', page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+<div hx-get="{{ url_for('experiments_htmx.get_recent_experiments', page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML" style="min-hieght: 50px; margin-top: 20px;">
     {{ spinner() }}
 </div>
 {% endif %}

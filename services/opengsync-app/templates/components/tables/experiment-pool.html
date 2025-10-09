@@ -2,6 +2,7 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="experiment-pool-table" class="table-container">
     <table class="table">
@@ -43,9 +44,19 @@
         </thead>
         <tbody>
             {% for pool in pools %}
-            <tr class="pool-row" data-id="{{ pool.id }}" data-name="{{ pool.name }}">
+            <tr>
                 <th scope="row">{{ pool.id }}</th>
-                <td>
+                <td class="cm-callback"
+                {{
+                    context_menu([
+                        {"type": "copy", "value": pool.name, "label": "Copy Name"},
+                        {"type": "hxdelete", "label": "Remove Pool", "disabled": false if experiment.status == ExperimentStatus.DRAFT else true, "config": {
+                            "url": url_for('experiments_htmx.remove_pool', experiment_id=experiment.id, _pool_id=pool.id, sort_by=sort_by, sort_order=sort_order),
+                            "target": "#experiment-pool-table",
+                            "title": "Remove {pool.name} from {experiment.name}?".format(pool=pool, experiment=experiment)
+                        },}
+                    ])
+                }}>
                     <a href="{{ url_for('pools_page.pool', pool_id=pool.id, from='experiment@' + experiment.id | string) }}">
                         {{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}
                     </a>
@@ -101,52 +112,4 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("experiment-pool-table-spinner") }}
-    {{ pagination("experiment-pool-table", "experiments_htmx.get_pools", n_pages, active_page, context={"experiment_id": experiment.id}) }}
-    <script>
-        let selected_pool_id = null;
-        let selected_pool_name = null;
-
-        function remove_pool() {
-            Swal.fire({
-                title: `Remove Pool from Experiment?`,
-                showDenyButton: true,
-                text: `You are removing pool '${selected_pool_name}' [${selected_pool_id}] from the experiment. Do you want to continue?`,
-                icon: 'question',
-                confirmButtonText: 'Yes',
-                denyButtonText: 'No'
-            }).then(function(e) {
-                if (e.isConfirmed) {
-                    htmx.ajax(
-                    "DELETE", "{{ url_for('experiments_htmx.remove_pool', experiment_id=experiment.id) }}?pool_id=" + selected_pool_id,
-                    null, {
-                        target: "#experiment-pool-table",
-                        swapStyle: "outerHTML"
-                    });
-                }
-            });
-        }
-
-        $(document).ready(function() {
-            $(document).off("contextmenu", ".pool-row").on("contextmenu", ".pool-row", function(e) {
-                e.preventDefault();
-                const x = e.pageX;
-                const y = e.pageY;
-
-                selected_pool_id = parseInt($(this).data("id"));
-                selected_pool_name = $(this).data("name");
-                $("#copy-edit-menu").css({
-                    display: "block",
-                    left: x + 8, top: y + 8
-                }).empty().append([
-                    `<li><a class='dropdown-item' onclick='remove_pool()'>Remove</a></li>`
-                ]);
-
-                $("#right-click-bg").css({
-                    display: "block"
-                });
-            });
-        });
-        
-    </script>
 </div>

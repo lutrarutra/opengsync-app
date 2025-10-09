@@ -14,7 +14,7 @@ from opengsync_db import exceptions as db_exceptions
 
 from .. import logger
 from ..core.LogBuffer import log_buffer
-from ..tools import utils, textgen
+from ..tools import routes as rt, textgen
 from . import exceptions as serv_exceptions
 from .RunTime import runtime
 
@@ -64,7 +64,7 @@ def _route_decorator(
     from .. import route_cache, flash_cache, limiter
 
     def decorator(fnc: Callable[..., Any]) -> Response:
-        routes, current_user_required = utils.infer_route(fnc, base=route)
+        routes, current_user_required = rt.infer_route(fnc, base=route)
 
         match current_user_required:
             case "required":
@@ -144,6 +144,12 @@ def _route_decorator(
 
             rollback = False
             try:
+                if (_args := {k: v for k, v in request.args.items() if k.startswith("_")}):
+                    try:
+                        _args = rt.validate_arguments(_fnc, _args)
+                    except ValueError as e:
+                        raise serv_exceptions.BadRequestException("Invalid query parameters") from e
+                    kwargs |= _args
                 return _fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
                 rollback = db.needs_commit if db is not None else False

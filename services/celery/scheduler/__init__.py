@@ -6,7 +6,7 @@ from pathlib import Path
 from celery import Celery
 from celery.schedules import crontab
 
-config = yaml.safe_load(open("/usr/src/app/opengsync.yaml"))
+config = yaml.safe_load(open("/app/opengsync.yaml"))
 
 REDIS_PORT = int(os.environ["REDIS_PORT"])
 

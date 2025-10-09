@@ -230,7 +230,7 @@ def uncomplete(current_user: models.User, lab_prep_id: int):
 
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
-def remove_library(current_user: models.User, lab_prep_id: int):
+def remove_library(current_user: models.User, lab_prep_id: int, _library_id: int, page: int = 0):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
@@ -240,18 +240,20 @@ def remove_library(current_user: models.User, lab_prep_id: int):
     if lab_prep.status != PrepStatus.PREPARING:
         raise exceptions.BadRequestException()
     
-    if (library_id := request.args.get("library_id")) is None:
-        raise exceptions.BadRequestException()
-    
-    try:
-        library_id = int(library_id)
-    except ValueError:
-        raise exceptions.BadRequestException()
-    
-    db.lab_preps.remove_library(lab_prep_id=lab_prep.id, library_id=library_id)
+    db.lab_preps.remove_library(lab_prep_id=lab_prep.id, library_id=_library_id)
 
-    flash("Library removed!", "success")
-    return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+
+    libraries, n_pages = db.libraries.find(page=page, limit=PAGE_LIMIT, lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending)
+    return make_response(
+        render_template(
+            "components/tables/lab_prep-library.html",
+            libraries=libraries, n_pages=n_pages, active_page=page,
+            sort_by=sort_by, sort_order=sort_order, lab_prep=lab_prep
+        )
+    )
 
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
@@ -265,9 +267,8 @@ def get_libraries(current_user: models.User, lab_prep_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
 
-    libraries, n_pages = db.libraries.find(offset=offset, lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending, count_pages=True)
+    libraries, n_pages = db.libraries.find(page=page, lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending)
     
     return make_response(
         render_template(
@@ -460,7 +461,6 @@ def get_samples(current_user: models.User, lab_prep_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
 
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
@@ -473,7 +473,7 @@ def get_samples(current_user: models.User, lab_prep_id: int, page: int = 0):
             status_in = None
 
     samples, n_pages = db.samples.find(
-        lab_prep_id=lab_prep_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True,
+        lab_prep_id=lab_prep_id, page=page, sort_by=sort_by, descending=descending,
         status_in=status_in
     )
 

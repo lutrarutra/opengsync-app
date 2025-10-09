@@ -367,33 +367,46 @@ def add_comment(current_user: models.User, experiment_id: int):
 
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
-def remove_pool(current_user: models.User, experiment_id: int):
+def remove_pool(current_user: models.User, experiment_id: int, _pool_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
         raise exceptions.NotFoundException()
     
-    if (pool_id := request.args.get("pool_id")) is None:
-        raise exceptions.BadRequestException()
-    
-    try:
-        pool_id = int(pool_id)
-    except ValueError:
-        raise exceptions.BadRequestException()
-    
-    if (_ := db.pools.get(pool_id)) is None:
+    if (_ := db.pools.get(_pool_id)) is None:
         raise exceptions.NotFoundException()
 
-    db.links.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
+    db.links.unlink_pool_experiment(experiment_id=experiment_id, pool_id=_pool_id)
+    logger.info(f"Removed pool (id='{_pool_id}') from experiment (id='{experiment_id}')")
 
-    logger.info(f"Removed pool (id='{pool_id}') from experiment (id='{experiment_id}')")
-    flash("Removed pool from experiment.", "success")
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    
+    experiment_lanes: dict[int, list[int]] = {}
+
+    if (experiment := db.experiments.get(experiment_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    pools, _ = db.pools.find(
+        experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None
+    )
+
+    for lane in experiment.lanes:
+        experiment_lanes[lane.number] = []
+        
+        for link in lane.pool_links:
+            experiment_lanes[lane.number].append(link.pool_id)
 
     return make_response(
-        redirect=url_for("experiments_page.experiment", experiment_id=experiment.id),
+        render_template(
+            "components/tables/experiment-pool.html",
+            pools=pools, n_pages=1, active_page=0,
+            sort_by=sort_by, sort_order=sort_order,
+            experiment=experiment, experiment_lanes=experiment_lanes
+        )
     )
-    
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def overview(current_user: models.User, experiment_id: int):
@@ -510,7 +523,6 @@ def get_pools(current_user: models.User, experiment_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
 
     if sort_by not in models.Pool.sortable_fields:
         raise exceptions.BadRequestException()
@@ -521,8 +533,7 @@ def get_pools(current_user: models.User, experiment_id: int, page: int = 0):
         raise exceptions.NotFoundException()
     
     pools, _ = db.pools.find(
-        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending,
-        limit=None
+        experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None
     )
 
     for lane in experiment.lanes:
@@ -625,7 +636,6 @@ def get_libraries(current_user: models.User, experiment_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
 
     if sort_by not in models.Library.sortable_fields:
         raise exceptions.BadRequestException()
@@ -634,7 +644,7 @@ def get_libraries(current_user: models.User, experiment_id: int, page: int = 0):
         raise exceptions.NotFoundException()
     
     libraries, n_pages = db.libraries.find(
-        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, count_pages=True
+        page=page, experiment_id=experiment_id, sort_by=sort_by, descending=descending
     )
 
     return make_response(

@@ -118,8 +118,8 @@ class SampleBP(DBBlueprint):
         status_in: Optional[list[SampleStatusEnum]] = None,
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        page: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False,
         options: ExecutableOption | None = None
     ) -> tuple[list[models.Sample], int | None]:
 
@@ -132,8 +132,6 @@ class SampleBP(DBBlueprint):
         if options is not None:
             query = query.options(options)
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
-
         if sort_by is not None:
             attr = getattr(models.Sample, sort_by)
             if descending:
@@ -142,6 +140,16 @@ class SampleBP(DBBlueprint):
         
         if offset is not None:
             query = query.offset(offset)
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
+        else:
+            n_pages = None
 
         if limit is not None:
             query = query.limit(limit)

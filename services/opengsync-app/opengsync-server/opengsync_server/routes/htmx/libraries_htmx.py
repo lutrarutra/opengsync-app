@@ -43,10 +43,10 @@ def get(current_user: models.User, page: int = 0):
             type_in = None
     
     libraries, n_pages = db.libraries.find(
-        offset=offset,
+        page=page,
         user_id=current_user.id if not current_user.is_insider() else None,
         sort_by=sort_by, descending=descending,
-        status_in=status_in, type_in=type_in, count_pages=True
+        status_in=status_in, type_in=type_in
     )
 
     return make_response(
@@ -235,7 +235,6 @@ def get_samples(current_user: models.User, library_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
 
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
@@ -250,7 +249,7 @@ def get_samples(current_user: models.User, library_id: int, page: int = 0):
     samples: list[models.Sample] = []
     
     samples, n_pages = db.samples.find(
-        offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True,
+        page=page, library_id=library_id, sort_by=sort_by, descending=descending,
         status_in=status_in
     )
 
@@ -380,7 +379,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
             raise exceptions.BadRequestException()
     
     libraries, n_pages = db.libraries.find(
-        sort_by=sort_by, descending=descending, offset=offset,
+        sort_by=sort_by, descending=descending, page=page,
         seq_request_id=seq_request_id,
         experiment_id=experiment_id,
         type_in=type_in,
@@ -389,7 +388,6 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
         pool_id=pool_id if workflow != "select_pool_libraries" else None,
         lab_prep_id=lab_prep_id if workflow != "library_prep" else None,
         in_lab_prep=False if workflow == "library_prep" else None,
-        count_pages=True,
     )
     context["workflow"] = workflow
 

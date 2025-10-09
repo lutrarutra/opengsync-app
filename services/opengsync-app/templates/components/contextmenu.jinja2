@@ -1,0 +1,3 @@
+{% macro context_menu(actions) %}
+data-context-menu='{{ {"actions": actions} | tojson }}'
+{% endmacro %}

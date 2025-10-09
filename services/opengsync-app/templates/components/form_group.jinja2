@@ -15,7 +15,7 @@
     {{ 
         field(
             class="form-control" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else "") + (" readonly" if readonly else ""), 
-            placeholder=((placeholder if placeholder else "") if disabled else (placeholder if placeholder else ("Required" if field.flags.required else "Optional"))),
+            placeholder="" if placeholder == false else (((placeholder if placeholder else "") if disabled else (placeholder if placeholder else ("Required" if field.flags.required else "Optional")))),
             readonly=readonly or disabled, value=field.data if field.data else "",
             onchange="htmx.trigger('#" + trigger_dest_id + "', 'change');" if trigger_dest_id else "",
             id=(id if id else field.name), autocomplete=autocomplete,
@@ -128,21 +128,21 @@
 {%- endmacro %}
 
 
-{% macro form_cell(field, class='', input_class='', unit=none) -%}
-<div class="{{class}} form-group {% if unit != '' %}input-with-unit{% endif %}">
+{% macro form_cell(field, class='', input_class='', unit=none) %}
+<div class="{{ class }} form-group {% if unit != '' %}input-with-unit{% endif %}">
     {{ 
         field(
-            class="form-control " + input_class + '' + (" is-invalid" if (field.errors) else ""), 
-            placeholder=field.errors | first,
+            class="form-control " + input_class + (" is-invalid" if (field.errors) else ""), 
+            placeholder=(field.errors | first) if field.errors else "",
             value=field.data if field.data else "",
             id=field.name, autocomplete="off",
-        ) 
+        )
     }}
     {% if unit %}
-    <span class="input-group-text unit-container">{{unit}}</span>
+    <span class="input-group-text unit-container">{{ unit }}</span>
     {% endif %}
 </div>
-{%- endmacro %}
+{% endmacro %}
 
 {% macro datepicker(field, class='', disabled=false) %}
     <a {% if field.description %}{{ tooltip(field.description, "top") }}{% endif %}>

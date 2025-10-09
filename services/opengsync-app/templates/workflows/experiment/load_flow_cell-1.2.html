@@ -3,26 +3,26 @@
 
 <div id="pool-dilution-form-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">1. Dilute Lanes</h1>
+        <h1 class="modal-title fs-5">1. Load Flow Cell <span class="desc">Combined Lanes</span></h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body" style="height: 100%; margin: 0; overflow-y: hidden;">
         <div id="pool-dilution-form">
             {{ form.csrf_token() }}
             <div class="row">
-                {{ form_group(form.phi_x, class="col-4 target_molarity-col", unit="%") }}
-                {{ form_group(form.target_molarity, class="col-4 target_molarity-col", unit="nM") }}
-                {{ form_group(form.measured_qubit, class="col-4 measured_qubit-col", unit="ng/μL") }}
+                {{ form_group(form.phi_x, class="col-4", unit="%") }}
+                {{ form_group(form.target_molarity, class="col-4", unit="nM", placeholder="Required") }}
+                {{ form_group(form.measured_qubit, class="col-4", unit="ng/μL", placeholder="Required") }}
             </div>
             <div class="row">
-                {{ metadata_group("Avg. Fragment Size", avg_fragment_size, "col-4 avg_fragment_size-col", unit="bp") }}
-                {{ metadata_group("Pool Molarity", '%0.2f' % lane_molarity, "col-4 lane_molarity-col", unit="nM") }}
-                {{ metadata_group("Sequencing Molarity", '%0.2f' % sequencing_molarity if sequencing_molarity, "sequencing_molarity-col col-4", unit="nM") }}
+                {{ form_group(form.avg_fragment_size, class="col-4", unit="bp", readonly=true) }}
+                {{ form_group(form.lane_molarity, class="col-4", unit="nM", readonly=true) }}
+                {{ form_group(form.sequencing_molarity, class="col-4", unit="nM", placeholder=false, readonly=true) }}
             </div>
             <div class="row">
-                {{ form_group(form.total_volume_ul, class="col-4 total_volume_ul-col", unit="μL") }}
-                {{ metadata_group("Library Volume", '%0.2f' % library_volume if library_volume, "library_volume-col col-4", unit="μL") }}
-                {{ metadata_group("EB Volume", '%0.2f' % eb_volume if eb_volume, "eb_volume-col col-4", unit="μL") }}
+                {{ form_group(form.total_volume_ul, class="col-4", unit="μL", placeholder="Required") }}
+                {{ form_group(form.library_volume, class="col-4", unit="μL", placeholder=false, readonly=true) }}
+                {{ form_group(form.eb_volume, class="col-4", unit="μL", placeholder=false, readonly=true) }}
             </div>
         </div>
     </div>
@@ -41,34 +41,45 @@
     </div>
     <script>
         $(document).ready(function() {
+            const measured_qubit_el = $("#{{ form.measured_qubit.id }}");
+            const total_volume_ul_el = $("#{{ form.total_volume_ul.id }}");
+            const target_molarity_el = $("#{{ form.target_molarity.id }}");
+
+            const avg_fragment_size_el = $("#{{ form.avg_fragment_size.id }}");
+            const lane_molarity_el = $("#{{ form.lane_molarity.id }}");
+            const sequencing_molarity_el = $("#{{ form.sequencing_molarity.id }}");
+            const library_volume_el = $("#{{ form.library_volume.id }}");
+            const eb_volume_el = $("#{{ form.eb_volume.id }}");
+
             function calculate_ratios() {
-                const row = $("#pool-dilution-form");
-                const measured_qubit = parseFloat(row.find(".measured_qubit-col input").first().val());
-                const total_volume_ul = parseFloat(row.find(".total_volume_ul-col input").first().val());
-                const target_molarity = parseFloat(row.find(".target_molarity-col input").first().val());
-                const avg_fragment_size = parseFloat(row.find(".avg_fragment_size-col input").first().val());
-                const lane_molarity = parseFloat(row.find(".lane_molarity-col input").first().val());
+                const measured_qubit = parseFloat(measured_qubit_el.val());
+                const total_volume_ul = parseFloat(total_volume_ul_el.val());
+                const target_molarity = parseFloat(target_molarity_el.val());
+                
+                const avg_fragment_size = parseInt(avg_fragment_size_el.val());
+                const lane_molarity = parseFloat(lane_molarity_el.val());
 
                 if (total_volume_ul && target_molarity && lane_molarity) {
                     const library_volume = total_volume_ul * target_molarity / lane_molarity;
                     const eb_volume = total_volume_ul - library_volume;
-                    row.find(".library_volume-col input").first().val(library_volume.toFixed(2));
-                    row.find(".eb_volume-col input").first().val(eb_volume.toFixed(2));
+                    library_volume_el.val(library_volume.toFixed(3));
+                    eb_volume_el.val(eb_volume.toFixed(3));
+
                     if (measured_qubit) {
                         const molarity = (measured_qubit / (660 * avg_fragment_size)) * 1000000;
-                        row.find(".sequencing_molarity-col input").first().val(molarity.toFixed(2));
+                        sequencing_molarity_el.val(molarity.toFixed(3));
                     } else {
-                        row.find(".sequencing_molarity-col input").first().val("");
+                        sequencing_molarity_el.val("");
                     }
                 } else {
-                    row.find(".library_volume-col input").first().val("");
-                    row.find(".eb_volume-col input").first().val("");
+                    library_volume_el.val("");
+                    eb_volume_el.val("");
                 }
 
             }
-            $(".total_volume_ul-col").on("input", calculate_ratios);
-            $(".target_molarity-col").on("input", calculate_ratios);
-            $(".measured_qubit-col").on("input", calculate_ratios);
+            measured_qubit_el.on("input", calculate_ratios);
+            total_volume_ul_el.on("input", calculate_ratios);
+            target_molarity_el.on("input", calculate_ratios);
         });
     </script>
 </div>
