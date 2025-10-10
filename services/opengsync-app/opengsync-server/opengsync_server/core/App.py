@@ -177,6 +177,7 @@ class App(Flask):
         @self.context_processor
         def inject_defaults():
             return dict(
+                uuid=uuid4,
                 current_query=None,
                 path_list=[],
                 context={},

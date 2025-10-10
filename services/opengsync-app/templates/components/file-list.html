@@ -1,65 +1,69 @@
 {% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link %}
 {% from "components/spinner.jinja2" import spinner %}
 
-<ul class="nav nav-tabs" role="tablist">
-    {% for file in files %}
-    <li class="nav-item" role="presentation">
-        <button class="nav-link {% if loop.index0 == 0 %}active{% endif %}" data-bs-toggle="tab"
-        data-bs-target="#file-{{ file.id }}-tab" type="button" role="tab"
-        aria-controls="file-{{ file.id }}-tab" aria-selected="true">
-        {{ file.type.name if file.type.name != "Custom" else file.name }}</button>
-    </li>
-    {% endfor %}
-</ul>
+<div class="file-list-container">
+    <ul class="nav nav-tabs" role="tablist">
+        {% for file in files %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if loop.index0 == 0 %}active{% endif %}" data-bs-toggle="tab"
+            data-bs-target="#file-{{ file.id }}-tab" type="button" role="tab"
+            aria-controls="file-{{ file.id }}-tab" aria-selected="true">
+            {{ file.type.name if file.type.name != "Custom" else file.name }}</button>
+        </li>
+        {% endfor %}
+    </ul>
 
-<div class="tab-content pt-1">
-    {% for file in files %}
-    <div class="tab-pane fade show {% if loop.index0 == 0 %}active{% endif %}" id="file-{{ file.id }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
-        <div class="row">
-            <div class="col-10">
-                <div class="row">
-                    {{ metadata_group("Filename", file.name + file.extension, class="col-4") }}
-                    {{ metadata_group_link("Uploader", file.uploader.name, url_for('users_page.user', user_id=file.uploader_id), class="col-2") }}
-                    {{ metadata_group("Size", file.size_str(), class="col-2") }}
-                    {{ metadata_group("Time", file.timestamp_str(), class="col-4") }}
+    <div class="tab-content pt-1">
+        {% for file in files %}
+        <div class="tab-pane fade show {% if loop.index0 == 0 %}active{% endif %}" id="file-{{ file.id }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
+            <div class="row">
+                <div class="col-10">
+                    <div class="row">
+                        {{ metadata_group("Filename", file.name + file.extension, class="col-4") }}
+                        {{ metadata_group_link("Uploader", file.uploader.name, url_for('users_page.user', user_id=file.uploader_id), class="col-2") }}
+                        {{ metadata_group("Size", file.size_str(), class="col-2") }}
+                        {{ metadata_group("Time", file.timestamp_str(), class="col-4") }}
+                    </div>
+                </div>
+                <div class="col-2 d-flex align-items-center justify-content-evenly">
+                    <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-primary" download style="margin-top: 10px;">
+                        Download
+                    </a>
+                    {% if file.type.name != "Sequencing Authorization Form" %}
+                    <button type="button" class="btn btn-danger" style="margin-top: 10px;"
+                    hx-delete="{{ url_for(delete, file_id=file.id, **delete_context) }}"
+                    _="on htmx:confirm(issueRequest)
+                    halt the event
+                    call Swal.fire({
+                        title: 'Delete file \'{{ file.name }}\'',
+                        showDenyButton: true,
+                        text: 'Are you sure?',
+                        icon: 'question',
+                        confirmButtonText: 'Yes',
+                        denyButtonText: 'No'
+                    })
+                    if result.isConfirmed issueRequest()">
+                        Delete
+                    </button>
+                    {% endif %}
                 </div>
             </div>
-            <div class="col-2 d-flex align-items-center justify-content-evenly">
-                <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-primary" download style="margin-top: 10px;">
-                    Download
-                </a>
-                {% if file.type.name != "Sequencing Authorization Form" %}
-                <button type="button" class="btn btn-danger" style="margin-top: 10px;"
-                hx-delete="{{ url_for(delete, file_id=file.id, **delete_context) }}"
-                _="on htmx:confirm(issueRequest)
-                halt the event
-                call Swal.fire({
-                    title: 'Delete file \'{{ file.name }}\'',
-                    showDenyButton: true,
-                    text: 'Are you sure?',
-                    icon: 'question',
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'No'
-                })
-                if result.isConfirmed issueRequest()">
-                    Delete
-                </button>
+            <div class="file-container">
+                {% if file.type == FileType.LANE_POOLING_TABLE %}
+                <div hx-get="{{ url_for('experiments_htmx.render_lane_sample_pooling_tables', file_id=file.id, experiment_id=experiment.id) }}" hx-trigger="intersect once">
+                    {{ spinner() }}
+                </div>
+                {% elif file.extension == ".pdf" %}
+                <embed src="{{ url_for('pdf_file',  file_id=file.id) }}" type="application/pdf" width="100%" height="1000px"/>
+                {% elif file.extension in [".png", ".jpg", ".jpeg"] %}
+                <img src="{{ url_for('img_file',  file_id=file.id) }}" alt="{{file.name}}" loading="lazy">
+                {% else %}
+                <div hx-get="{{ url_for('files_htmx.render_xlsx', file_id=file.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
+                </div>
                 {% endif %}
             </div>
         </div>
-        <div class="file-container">
-            {% if file.type == FileType.LANE_POOLING_TABLE %}
-            <div hx-get="{{ url_for('experiments_htmx.render_lane_sample_pooling_tables', file_id=file.id, experiment_id=experiment.id) }}" hx-trigger="intersect once">
-                {{ spinner() }}
-            </div>
-            {% elif file.extension == ".pdf" %}
-            <embed src="{{ url_for('pdf_file',  file_id=file.id) }}" type="application/pdf" width="100%" height="1000px"/>
-            {% elif file.extension in [".png", ".jpg", ".jpeg"] %}
-            <img src="{{ url_for('img_file',  file_id=file.id) }}" alt="{{file.name}}" loading="lazy">
-            {% else %}
-            <h4>File type {{file.extension}} not supported yet.</h4>
-            {% endif %}
-        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>

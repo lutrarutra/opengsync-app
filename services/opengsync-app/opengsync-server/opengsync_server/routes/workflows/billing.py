@@ -6,7 +6,6 @@ import pandas as pd
 from flask import Blueprint, request, Response, url_for
 from flask_htmx import make_response
 
-
 from opengsync_db import models
 
 from ... import db
