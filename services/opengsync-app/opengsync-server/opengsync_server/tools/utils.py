@@ -1,6 +1,7 @@
 from typing import Optional, Union, TypeVar, Sequence
 from pathlib import Path
 import itertools
+import json
 import difflib
 import string
 import unicodedata
@@ -9,8 +10,9 @@ import re
 import pandas as pd
 
 from opengsync_db import models, exceptions, DBHandler, categories
-from .. import logger
+from opengsync_db.categories.ExtendedEnum import DBEnum
 
+from .. import logger
 from .WeekTimeWindow import WeekTimeWindow
 
 tab_10_colors = [
@@ -503,3 +505,11 @@ def generate_valid_combinations(
     return res
 
 
+def to_json(df: pd.DataFrame) -> str:
+    df = df.copy()
+    
+    for col in df.select_dtypes(include=["object"]):
+        df[col] = df[col].apply(lambda x: f"{x.__class__.__name__}${x.id}" if isinstance(x, DBEnum) else x)
+
+    df = df.replace({pd.NA: None, float('nan'): None})
+    return json.dumps(df.to_dict(orient="list"))

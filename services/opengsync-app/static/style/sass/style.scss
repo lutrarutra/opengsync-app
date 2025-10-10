@@ -216,21 +216,33 @@ body {
         height: 100%;
         padding: 0 10px 0 10px;
         background-color: $gray-100;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .page-header-container {
+            background-color: $gray-100;
+            z-index: 10;
+        }
         
         .page-content {
             width: 100%;
+            height: 100%;
             overflow: hidden;
             margin: 0;
+            flex: 1;
+            >.tab-content {
+                height: 100%;
+                overflow: hidden;
+                >.tab-pane {
+                    height: 100%;
+                    overflow-y: auto;
+                }
+            }
         }
 
         .status_bar {
             padding-bottom: 5px;
-        }
-        .page-header-container {
-            position: sticky;
-            background-color: $gray-100;
-            top: 0;
-            z-index: 10;
         }
         .page-header {
             width: 100%;
@@ -295,11 +307,24 @@ body {
     }
 }
 
-.file-container {
-    overflow-y: auto;
-    overflow-x: auto;
-
+.file-list-container {
     height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .tab-content {
+        flex: 1;
+        border: red 1px solid;
+        .tab-pane {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            .file-container {
+                flex: 1;
+                overflow: auto;
+            }
+        }
+    }
 
     img {
         object-fit: fill;

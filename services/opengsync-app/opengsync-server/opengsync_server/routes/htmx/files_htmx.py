@@ -13,7 +13,7 @@ from opengsync_db import models
 from opengsync_db.categories import AccessType
 
 from ... import db, logger
-from ...tools import utils, FileBrowser
+from ...tools import utils, FileBrowser, univer
 from ...core import wrappers, exceptions
 from ...core.RunTime import runtime
 
@@ -34,17 +34,8 @@ def render_xlsx(current_user: models.User, file_id: int):
         logger.error(f"File not found: {filepath}")
         raise exceptions.NotFoundException()
     
-    wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True, rich_text=True)
-
-    sheets = {}
-    for sheet_name in wb.sheetnames:
-        active_sheet = wb[sheet_name]
-        df = pd.DataFrame(active_sheet.values).replace({np.nan: ""})
-        df.columns = df.iloc[0]
-        df = df.drop(0)
-        sheets[sheet_name] = df.to_html(classes="table")
-
-    return make_response(render_template("components/xlsx.html", sheets=sheets, file=file))
+    snapshot, col_style = univer.xlsx_to_univer_snapshot(filepath)
+    return make_response(render_template("components/univer-static.html", univer_snapshot=snapshot, col_style=col_style))
 
 
 @wrappers.resource_route(files_htmx, db=db, login_required=True)

@@ -1,8 +1,11 @@
-import os
 from pathlib import Path
 from datetime import datetime
+from uuid import uuid4
+
+import pandas as pd
 
 from .. import logger
+from ..tools import utils, univer
 from .App import App
 
 
@@ -92,3 +95,8 @@ def inject_jinja_format_filters(app: App):
     @app.template_filter()
     def root_name(path: str | Path) -> str:
         return Path(path).parts[0] if Path(path).parts else ""
+    
+    @app.template_filter()
+    def df_to_json(df: pd.DataFrame) -> str:
+        return utils.to_json(df)
+    

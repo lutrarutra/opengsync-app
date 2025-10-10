@@ -20,8 +20,8 @@ from ..core.RunTime import runtime
 
 if runtime.app.debug:
     @wrappers.page_route(runtime.app, db=db, login_required=False, limit_exempt=None, limit="3 per minute")
-    def test(current_user: models.User | None, number: int):
-        logger.debug(get_remote_address())
+    def test(current_user: models.User | None, number: int = 0):
+        from ..tools import univer
 
         if number > 5:
             raise exceptions.NotFoundException()
@@ -29,7 +29,10 @@ if runtime.app.debug:
         if limiter.current_limit:
             logger.debug(limiter.storage.clear(limiter.current_limit.key))
 
-        return render_template("test.html")
+        lab_prep = db.lab_preps[20]
+        path = os.path.join(runtime.app.media_folder, lab_prep.prep_file.path)
+        snapshot, col_style = univer.xlsx_to_univer_snapshot(path)
+        return render_template("test.html", univer_snapshot=snapshot, col_style=col_style)
 
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def mail_template(current_user: models.User):

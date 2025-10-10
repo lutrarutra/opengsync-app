@@ -1,83 +1,56 @@
-{% from "components/spreadsheet.jinja2" import spreadsheet %}
-{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
-
 {% extends "base.html" %}
 {% block content %}
 
-<div class="modal fade show" aria-hidden="false" tabindex="-1" data-bs-keyboard="false" data-bs-backdrop="static" style="display: block;">
-    <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="xl-modal-content">
-        <div class="modal-content" id="seq_request-form-container">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" >Title</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body tab-body">
-                <ul class="nav nav-tabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" data-bs-toggle="tab"
-                        data-bs-target="#tab-1" type="button" role="tab"
-                        aria-controls="tab-1" aria-selected="true">
-                        Tab 1</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab"
-                        data-bs-target="#tab-2" type="button" role="tab"
-                        aria-controls="tab-2" aria-selected="false">
-                        Tab 2</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab"
-                        data-bs-target="#tab-3" type="button" role="tab"
-                        aria-controls="tab-3" aria-selected="false">
-                        Tab 3</button>
-                    </li>
-                </ul>
-                <div class="tab-content">
-                    <div class="tab-pane fade show active" id="tab-1" role="tabpanel" tabindex="0">
-                        {{ spreadsheet() }}
-                    </div>
-                    <div class="tab-pane fade" id="tab-2" role="tabpanel" tabindex="1">
-                        Lorem ipsum, dolor sit amet consectetur adipisicing elit. Quaerat earum beatae nulla natus inventore saepe sequi. Consequuntur minus voluptates temporibus ullam impedit, libero veritatis magnam numquam omnis? Expedita explicabo labore sequi ut, dignissimos error perspiciatis, enim pariatur aliquam fuga non placeat natus, fugit architecto deleniti possimus quis! Est officiis debitis officia alias sequi magni nesciunt consectetur cum? Quis, voluptate. Sint consequatur doloribus est commodi doloremque suscipit! In accusantium vel qui sapiente atque debitis cum nostrum optio eligendi. Rerum dolores quibusdam reiciendis veritatis, tempora praesentium earum quasi magnam, exercitationem quae officia dolorem quos quidem enim corporis inventore recusandae ullam consequatur voluptates laudantium provident. Excepturi sint quia dicta odio saepe, sequi temporibus totam at nostrum placeat nesciunt tempora veniam illo deleniti ipsa consectetur nemo, rerum consequuntur pariatur laboriosam enim corporis nihil? Maxime, culpa. Sint exercitationem distinctio quas, explicabo qui repellendus voluptate velit, ullam necessitatibus, voluptates saepe repellat? Dolores est atque repellendus impedit autem aperiam et maiores debitis? Distinctio est aut neque repellat magnam, architecto facilis vel dolore veniam saepe dolorem doloribus error, temporibus at rerum molestias! Autem blanditiis totam quasi modi laborum reiciendis, accusantium pariatur. Nostrum quia voluptate facilis et dicta cum unde molestias quisquam dolore esse, itaque, a mollitia omnis quasi ex dolorum dolorem eligendi quidem adipisci dolores, incidunt aliquam? Laudantium corrupti facere temporibus eligendi, quam adipisci saepe dolorum iste itaque sit possimus natus obcaecati vel et placeat ducimus? Debitis totam, eum labore dolorum reprehenderit molestiae rem libero? Corrupti corporis, fugiat, voluptatibus vel sed reprehenderit alias velit debitis assumenda eaque tempore. Magnam ab recusandae deleniti beatae unde quaerat officia ducimus, nam debitis aperiam illum, aliquam rem nulla minima repellat qui quasi! Quam eum, saepe cumque soluta autem sequi mollitia quae expedita inventore magnam deserunt esse nobis similique ullam, quod debitis officiis excepturi ea voluptate delectus facilis ut veritatis! Ipsa possimus quisquam porro natus laborum maiores nemo minima, illum earum accusantium ab temporibus quo. Iure enim dolore veniam officia non, reprehenderit omnis? Delectus magnam, adipisci nisi voluptas non optio dicta quo aut. Itaque fugiat veritatis recusandae repellendus consequuntur, saepe ab voluptates aut reprehenderit blanditiis quidem sapiente reiciendis ducimus exercitationem aspernatur a consequatur eum explicabo vero necessitatibus rerum omnis tenetur. Dicta odio aut alias nostrum quisquam veritatis necessitatibus minus eos molestiae optio voluptate quo, expedita ratione beatae officiis? In cum quod ullam dolore quas odio fugit nulla quisquam, minima totam magni nisi, rerum adipisci nemo. Iure totam facilis veritatis! Commodi quae adipisci molestiae laudantium aut aperiam numquam atque cupiditate, velit quidem error voluptas facilis architecto ab repellendus! Architecto quaerat atque perferendis, culpa accusamus distinctio debitis totam recusandae iste minima nostrum qui molestiae aspernatur aut ipsa, eligendi reprehenderit odit saepe at mollitia, perspiciatis amet possimus? Veritatis est labore iusto illo quia ullam animi suscipit id odit non repudiandae ab nemo architecto autem doloribus ad, placeat quam odio accusantium. Quas voluptate odit, tempora veniam molestiae nam soluta laboriosam vitae quibusdam recusandae similique harum omnis voluptatum, voluptatibus dolorum ab cum? Explicabo facilis placeat, molestiae minus modi optio deleniti quo aliquam repellat doloribus unde recusandae consectetur repudiandae ipsam error dolorem debitis magni saepe, blanditiis in velit distinctio libero odio beatae. Rerum ipsa nobis harum aspernatur asperiores commodi tempore magni sunt eveniet atque quis sed facilis, ullam assumenda tempora unde incidunt. Recusandae, doloribus unde delectus saepe mollitia, repudiandae vero deleniti cupiditate sunt atque doloremque nostrum pariatur ipsam a voluptate aliquam praesentium tempore aliquid similique, dignissimos quaerat? Voluptate voluptates neque sunt tenetur animi cupiditate reiciendis beatae illo ex necessitatibus? Blanditiis, molestiae dignissimos sunt tenetur reprehenderit unde, minima cupiditate, harum at quisquam sit ad quam dolorum? Error itaque, possimus, delectus dolores amet veritatis reiciendis enim, eaque aperiam pariatur molestias in. Nobis maxime amet doloremque distinctio consectetur magnam. Rem deleniti dignissimos, error eaque maxime ullam delectus deserunt, laboriosam maiores saepe temporibus explicabo ad provident blanditiis tempore. Distinctio, quas? Quod optio maxime iusto ut sapiente consectetur in placeat nihil repudiandae cupiditate sit, nulla, distinctio aperiam sed perferendis adipisci corporis ipsum veritatis neque numquam illum autem? Dolorem cupiditate aperiam, provident corporis sit labore impedit velit quis laboriosam architecto harum, sed enim fuga ullam incidunt et maxime sint. Animi repellendus odio voluptas inventore pariatur assumenda autem veritatis eius facilis saepe, quis sit atque, accusantium eum fugiat ipsum reprehenderit quod adipisci perferendis eligendi sequi. Voluptate praesentium obcaecati culpa sunt quos eveniet dolores perferendis veritatis quas quis tempore ducimus id, libero pariatur mollitia atque aut quibusdam veniam, assumenda qui nam. Harum illo cumque enim quo voluptatum ducimus! Voluptatum id, aliquam tempora neque eligendi rem praesentium culpa libero ex distinctio laudantium, architecto nostrum voluptates illo enim voluptas qui? Optio mollitia sit eveniet! Provident tempore suscipit quidem consectetur quia amet, nihil, dignissimos totam rerum voluptatum dolore voluptate fuga ut tenetur cumque dolorum aliquam vero modi quisquam dolores! Eaque doloribus illo quam dignissimos placeat ullam voluptas debitis id distinctio, non reiciendis exercitationem eos consectetur voluptates, magni veritatis recusandae corrupti, dolor quibusdam? Nihil architecto dignissimos autem natus quod amet sequi debitis, explicabo deleniti voluptatum facere, commodi asperiores adipisci, quis perspiciatis excepturi in atque! Tempora, asperiores, quibusdam quam assumenda deserunt, numquam illo consectetur sapiente nemo inventore officiis fugiat? Natus quis praesentium ab quisquam dolorem, harum, perspiciatis pariatur voluptate est a fuga tenetur, dignissimos doloribus. Libero debitis, qui eum pariatur aut perferendis fugiat enim quae quos ab repellat quaerat consequuntur officiis maiores velit ratione quisquam iusto reprehenderit unde saepe. Quis animi laboriosam facilis exercitationem dolorum iusto, assumenda tenetur eius non sunt suscipit ex culpa! Quae, non dolorum sapiente ut eius quos vel ipsum architecto error, voluptatum facilis et iure possimus explicabo laboriosam nam sunt officiis? Id veniam doloribus, voluptates nihil aliquam qui iusto commodi temporibus provident sequi tempora veritatis laboriosam corporis, ex sunt perspiciatis. Maiores laborum magni assumenda magnam sunt eum adipisci necessitatibus doloremque dolorem voluptatibus, explicabo aut ea nihil, temporibus possimus vero quibusdam? Reiciendis aut fuga temporibus asperiores magni obcaecati fugiat, illo non enim exercitationem molestias beatae maxime animi, minima labore excepturi, tempore odit at ab. Sint qui nesciunt explicabo aut quo pariatur quaerat reiciendis excepturi. Quibusdam beatae consequatur nam voluptate quod ratione, eveniet odit. Ad alias placeat culpa similique nobis!
-                    </div>
-                    <div class="tab-pane fade" id="tab-3" role="tabpanel" tabindex="2">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <div class="text-nowrap text-muted footer-id">
-                </div>
-                <div class="footer-info">
-                    {{ spreadsheet_error_legend() }}
-                </div>
-                <div class="footer-controls">
-                    <button class="btn btn-success" type="button" id="submit-spreadsheet-btn">
-                        Submit
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<div id="univer" style="padding: 0; margin 0; height: 100%;"></div>
 
 <script>
-    $(document).ready(function() {
-        var spread_sheet = jspreadsheet(document.getElementById("spreadsheet-grid"), {
-            data: [
-                {% for i in range(500) %}
-                ["", "{{i}}", "{{i}}"],
-                {% endfor %}
+    const data = {{ univer_snapshot | tojson | safe }};
+    const col_style = {{ col_style | tojson | safe }};
+
+    $(async function() {
+        await load_univer();
+        // Core
+        const { createUniver } = UniverPresets;
+        const { LocaleType, mergeLocales } = UniverCore;
+        const { UniverSheetsCorePreset } = UniverPresetSheetsCore;
+
+        // Presets
+        const { UniverSheetsDataValidationPreset } = UniverPresetSheetsDataValidation;
+
+        const { univerAPI } = createUniver({
+            locale: LocaleType.EN_US,
+            locales: {
+                [LocaleType.EN_US]: mergeLocales(
+                    UniverPresetSheetsCoreEnUS,
+                    UniverPresetSheetsDataValidationEnUS,
+                ),
+            },
+            darkMode: false,
+            presets: [
+                UniverSheetsCorePreset({
+                    container: 'univer',
+                    toolbar: true,
+                    ribbonType: "simple",
+                    header: true,
+                    footer: {
+                        sheetBar: true,
+                        menus: true,
+                        zoomSlider: true,
+                    },
+                    contextMenu: true,
+                    disableAutoFocus: true,
+                }),
+                UniverSheetsDataValidationPreset({
+                }),
             ],
-            columns: [
-                { type: "dropdown", title: "title", width: 200, },
-                { type: "text", title: "title", width: 200 },
-                { type: "text", title: "title", width: 200 },
-            ],
-            minSpareRows: 10,
-            tableOverflow: true,
-            tableWidth: "100%",
-            tableHeight: "100%",
+
         });
+
+        const workbook = univerAPI.createUniverSheet(data);
+
+        for (const sheet of workbook.getSheets()) {
+            sheet.setColumnCustom(col_style[sheet.getSheetName()] || {});
+        }
     });
 </script>
-
 {% endblock content %}

@@ -314,7 +314,7 @@ def comment_form(current_user: models.User, seq_request_id: int):
         raise exceptions.MethodNotAllowedException()
 
 
-@seq_requests_htmx.route("file_form", methods=["GET", "POST"])
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def file_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
@@ -1032,11 +1032,8 @@ def get_pools(current_user: models.User, seq_request_id: int, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
 
-    pools, n_pages = db.pools.find(
-        seq_request_id=seq_request_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True
-    )
+    pools, n_pages = db.pools.find(seq_request_id=seq_request_id, page=page, sort_by=sort_by, descending=descending)
 
     return make_response(
         render_template(

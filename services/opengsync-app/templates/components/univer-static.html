@@ -1,0 +1,75 @@
+{% from "components/spinner.jinja2" import spinner %}
+
+{% set uid = uuid() %}
+<div id="{{ uid }}-loader" style="display: none; text-align: center; padding: 40px;">
+    <div class="spinner-border cemm-yellow" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+<div id="{{ uid }}" style="padding: 0; margin 0; height: 100%;">
+</div>
+
+<script>
+    $(async function() {
+        const $loader = $('#{{ uid }}-loader');
+        const $container = $('#{{ uid }}');
+        $loader.show();
+        $container.hide();
+
+        const data = {{ univer_snapshot | tojson | safe }};
+        const col_style = {{ col_style | tojson | safe }};
+
+        try {
+            await load_univer();
+            // Core
+            const { createUniver } = UniverPresets;
+            const { LocaleType, mergeLocales } = UniverCore;
+            const { UniverSheetsCorePreset } = UniverPresetSheetsCore;
+
+            // Presets
+            const { UniverSheetsDataValidationPreset } = UniverPresetSheetsDataValidation;
+
+            const { univerAPI } = createUniver({
+                locale: LocaleType.EN_US,
+                locales: {
+                    [LocaleType.EN_US]: mergeLocales(
+                        UniverPresetSheetsCoreEnUS,
+                        UniverPresetSheetsDataValidationEnUS,
+                    ),
+                },
+                darkMode: false,
+                presets: [
+                    UniverSheetsCorePreset({
+                        container: '{{ uid }}',
+                        toolbar: false,
+                        ribbonType: "simple",
+                        header: false,
+                        footer: {
+                            sheetBar: true,
+                            menus: true,
+                            statisticBar: false,
+                            zoomSlider: true,
+                        },
+                        contextMenu: true,
+                        disableAutoFocus: true,
+                    }),
+                    UniverSheetsDataValidationPreset({
+                    }),
+                ],
+
+            });
+
+            const workbook = univerAPI.createUniverSheet(data);
+
+            for (const sheet of workbook.getSheets()) {
+                sheet.setColumnCustom(col_style[sheet.getSheetName()] || {});
+            }
+            $loader.hide();
+            $container.show();
+        } catch(err) {
+            console.error("Error loading Univer Sheets:", err);
+            $loader.html('<div style="color: red;">Error loading Univer Sheets. Please try again later.</div>');
+        }
+        
+    });
+</script>
