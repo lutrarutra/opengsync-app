@@ -1,4 +1,4 @@
-{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link %}
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link, metadata_quantity %}
 {% from "components/status_bar.jinja2" import experiment_status_bar with context %}
 
 {% extends "base.html" %}
@@ -422,6 +422,7 @@
         </div>  
         {% if experiment.seq_run %}
         <div class="tab-pane fade" id="experiment-seq_run-tab" role="tabpanel" tabindex="8">
+            <h2>Metadata</h2>
             <div class="row">
                 {{
                     metadata_group_link(
@@ -446,7 +447,14 @@
                 {{ metadata_group("I2 Cycles", experiment.seq_run.i2_cycles, class="col") }}
                 {{ metadata_group("R2 Cycles", experiment.seq_run.r2_cycles, class="col") }}
             </div>
-        </div>  
+            <h2 class="pt-2">Statistics</h2>
+            <div class="row">
+                {{ metadata_quantity("Reads PF", experiment.seq_run.get_quantity("reads_pf"), class="col-3") }}
+                {{ metadata_quantity("Q>=30", experiment.seq_run.get_quantity("pct>=q30"), class="col-3") }}
+                {{ metadata_quantity("Occupied", experiment.seq_run.get_quantity("pct_occupied"), class="col-3") }}
+                {{ metadata_quantity("Phi X Aligned", experiment.seq_run.get_quantity("pct_aligned"), class="col-3") }}
+            </div>
+        </div>
         {% endif %}
         <div class="tab-pane fadee" id="experiment-projects-tab" role="tabpanel" tabindex="9">
             <div hx-get="{{ url_for('experiments_htmx.get_projects', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
