@@ -25,8 +25,8 @@ class CommonBarcodeMatchForm(MultiStepForm):
     i7_option = RadioField(
         "Index i7 was not found in the database. Please select how to proceed:",
         choices=[
-            ("forward", "I have provided i7 barcodes in forward orientation"),
-            ("rc", "I have provided i7 barcodes in reverse complement orientation"),
+            ("forward", "I have provided i7 barcode sequences in forward orientation"),
+            ("rc", "I have provided i7 barcode sequneces in reverse complement orientation"),
             ("idk", "I don't know in which orientation the i7 barcodes are provided"),
         ],
         validators=[OptionalValidator()],
@@ -34,8 +34,8 @@ class CommonBarcodeMatchForm(MultiStepForm):
     i5_option = RadioField(
         "Index i5 was not found in the database. Please select how to proceed:",
         choices=[
-            ("forward", "I have provided i5 barcodes in forward orientation"),
-            ("rc", "I have provided i5 barcodes in reverse complement orientation"),
+            ("forward", "I have provided i5 barcode sequences in forward orientation"),
+            ("rc", "I have provided i5 barcode sequences in reverse complement orientation"),
             ("idk", "I don't know in which orientation the i5 barcodes are provided"),
         ],
         validators=[OptionalValidator()],
