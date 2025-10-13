@@ -8,7 +8,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ project.identifier or project.title }} {% if project.group_id %}<span class="desc">{{ project.group.name }} {{ project.group.type.icon }}</span>{% endif %}</h1>
+            <h1>{{ project.identifier or project.title }}</h1>
         </div>
         <div class="page-controls">
             {% if current_user.is_insider() and project.status == ProjectStatus.PROCESSING %}
@@ -54,6 +54,11 @@
                 </button>
             </span>
         </div>
+    </div>
+
+    <div style="margin: 0; padding: 0;">
+        <p style="margin: 0; padding: 0;"><i>{{ project.title }}</i></p>
+        {% if project.group_id %}<p style="margin: 0; padding: 0;"><b>Group:</b> {{ project.group.name }} {{ project.group.type.icon }}</span></p>{% endif %}
     </div>
 
     <div class="status_bar">
