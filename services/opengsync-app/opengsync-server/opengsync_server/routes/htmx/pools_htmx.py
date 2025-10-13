@@ -21,7 +21,6 @@ def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
 
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
@@ -43,8 +42,7 @@ def get(current_user: models.User, page: int = 0):
             type_in = None
 
     pools, n_pages = db.pools.find(
-        sort_by=sort_by, descending=descending,
-        offset=offset, status_in=status_in, type_in=type_in, count_pages=True
+        sort_by=sort_by, descending=descending, page=page, status_in=status_in, type_in=type_in
     )
 
     return make_response(
@@ -394,11 +392,10 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
     
     pools, n_pages = db.pools.find(
-        sort_by=sort_by, descending=descending, offset=offset, status_in=status_in, experiment_id=experiment_id,
-        seq_request_id=seq_request_id, associated_to_experiment=associated_to_experiment, count_pages=True
+        sort_by=sort_by, descending=descending, page=page, status_in=status_in, experiment_id=experiment_id,
+        seq_request_id=seq_request_id, associated_to_experiment=associated_to_experiment
     )
 
     context["workflow"] = workflow
@@ -484,7 +481,7 @@ def get_recent_pools(current_user: models.User, page: int = 0):
     
     pools, _ = db.pools.find(
         status_in=[PoolStatus.STORED, PoolStatus.ACCEPTED], sort_by="id", descending=True,
-        limit=PAGE_LIMIT, offset=page * PAGE_LIMIT, count_pages=False
+        limit=PAGE_LIMIT, offset=page * PAGE_LIMIT
     )
     
     return make_response(render_template(
