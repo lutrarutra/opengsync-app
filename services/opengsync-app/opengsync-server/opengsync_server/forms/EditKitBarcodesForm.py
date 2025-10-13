@@ -144,7 +144,7 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
     
     columns = [
         SpreadSheetColumn("well", "Well", "text", 100, str, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-        SpreadSheetColumn("name", "Name", "text", 150, str, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, replace_white_spaces_with="")),
+        SpreadSheetColumn("name_i7", "Name", "text", 150, str, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, replace_white_spaces_with="")),
         SpreadSheetColumn("sequence_i7", "Sequence", "text", 300, str, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
     ]
 
@@ -184,22 +184,19 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
 
         duplicate_well = df.duplicated(subset="well", keep=False)
 
-        if self.index_kit.type == IndexType.DUAL_INDEX:
-            df.loc[df["name_i5"].isna(), "name_i5"] = df.loc[df["name_i5"].isna(), "name_i7"]
-
         for idx, row in df.iterrows():
             if row["well"] is None:
                 self.spreadsheet.add_error(idx, "well", DuplicateCellValue("Well is missing."))
             elif duplicate_well.at[idx]:
                 self.spreadsheet.add_error(idx, "well", DuplicateCellValue("Duplicate well."))
 
-            if row["name"] is None:
-                self.spreadsheet.add_error(idx, "name", MissingCellValue("Name is missing."))
+            if row["name_i7"] is None:
+                self.spreadsheet.add_error(idx, "name_i7", MissingCellValue("Name is missing."))
             if row["sequence_i7"] is None:
                 self.spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("Sequence is missing."))
             
-            if (row["name"] == df["name"]).sum() > 1:
-                self.spreadsheet.add_error(idx, "name", DuplicateCellValue("Duplicate name."))
+            if (row["name_i7"] == df["name_i7"]).sum() > 1:
+                self.spreadsheet.add_error(idx, "name_i7", DuplicateCellValue("Duplicate name."))
             if (row["sequence_i7"] == df["sequence_i7"]).sum() > 1:
                 self.spreadsheet.add_error(idx, "sequence_i7", DuplicateCellValue("Duplicate sequence."))
 
@@ -222,7 +219,7 @@ class EditSingleIndexKitBarcodesForm(HTMXFlaskForm):
                 well=row["well"],
             )
             db.barcodes.create(
-                name=row["name"],
+                name=row["name_i7"],
                 sequence=row["sequence_i7"] if not self.rc_sequence.data else models.Barcode.reverse_complement(row["sequence_i7"]),
                 well=row["well"],
                 adapter_id=adapter.id,

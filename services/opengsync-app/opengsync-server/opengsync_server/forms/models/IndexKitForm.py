@@ -93,8 +93,6 @@ class IndexKitForm(HTMXFlaskForm):
             logger.error("Index kit is not set.")
             raise ValueError("Index kit is not set.")
         
-        logger.debug(self.identifier.data)
-        
         self.index_kit.name = self.name.data  # type: ignore
         self.index_kit.identifier = self.identifier.data  # type: ignore
         self.index_kit.type_id = self.index_type_id.data  # type: ignore
