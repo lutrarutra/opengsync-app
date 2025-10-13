@@ -82,6 +82,8 @@ class CommonBarcodeInputForm(MultiStepForm):
                 self.library_table = prep_table[[col.label for col in self.columns if col.label in prep_table.columns]]
                 self.library_table["library_id"] = self.library_table["library_id"].astype(int)
                 self.library_table["library_type_id"] = utils.map_columns(library_table, library_table, "library_id", "library_type_id").astype(int)
+                self.barcode_table["kit_i7"] = self.barcode_table["kit_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
+                self.barcode_table["kit_i5"] = self.barcode_table["kit_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
             else:
                 self.library_table = library_table
         elif workflow == "reindex":
@@ -100,8 +102,7 @@ class CommonBarcodeInputForm(MultiStepForm):
         self.barcode_table = self.library_table[
             self.library_table["library_type_id"] != LibraryType.TENX_SC_ATAC.id
         ].copy()
-        self.barcode_table["kit_i7"] = self.barcode_table["kit_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
-        self.barcode_table["kit_i5"] = self.barcode_table["kit_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
+
         self.barcode_table["index_well"] = self.barcode_table["index_well"].apply(lambda x: x if pd.isna(x) else str(x).strip())
         self.barcode_table["name_i7"] = self.barcode_table["name_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip())
         self.barcode_table["name_i5"] = self.barcode_table["name_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip())
