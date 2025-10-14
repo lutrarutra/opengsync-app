@@ -81,7 +81,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         df["library_type"] = df["library_type_id"].apply(lambda x: LibraryType.get(int(x)).display_name if pd.notna(x) else None)
         df["genome"] = df["genome_id"].apply(lambda x: GenomeRef.get(int(x)).display_name if pd.notna(x) else None)
 
-        duplicate_sample_libraries = df.duplicated(subset=["sample_name", "library_type"])
+        duplicate_sample_libraries = df.duplicated(subset=["sample_name", "library_type"], keep=False)
         seq_request_samples = db.pd.get_seq_request_samples(self.seq_request.id)
 
         for idx, row in df.iterrows():
@@ -96,8 +96,8 @@ class PooledLibraryAnnotationForm(MultiStepForm):
                 if len(_df["genome_id"].unique()) > 1:
                     self.spreadsheet.add_general_error(f"Sample '{sample_name}' has multiple different genomes.")
         
-        if len(self.spreadsheet._errors) > 0:
-            return False
+        # if len(self.spreadsheet._errors) > 0:
+        #     return False
 
         if self.ocm_multiplexing.data and LibraryType.TENX_MUX_OLIGO.id in df["library_type_id"].values:
             self.spreadsheet.add_general_error("It is not possible to use '10X On-Chip Multiplexing' with '10X Multiplexing Oligo' library type.")

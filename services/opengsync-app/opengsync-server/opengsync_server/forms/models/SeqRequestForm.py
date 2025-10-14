@@ -203,7 +203,7 @@ class OrganizationSubForm(FlaskForm):
 
 
 class BillingSubForm(FlaskForm):
-    billing_is_organization = BooleanField("Billing Same as Organization", default=True)
+    billing_is_organization = BooleanField(default=True)
     
     billing_contact = StringField(
         "Billing Contact", validators=[DataRequired(), Length(max=models.Contact.name.type.length)],

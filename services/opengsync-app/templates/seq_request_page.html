@@ -497,7 +497,7 @@
                     {{ metadata_group("Group", "", class="col-6") }}
                     {% endif %}
                 </div>
-                {{ metadata_group_textarea("Description", seq_request.description if seq_request.description) }}
+                {{ metadata_group_textarea("Description", seq_request.description if seq_request.description else "") }}
 
                 <br>
                 <h4>Technical Requirements</h4>
