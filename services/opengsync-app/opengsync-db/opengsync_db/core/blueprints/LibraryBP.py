@@ -1,5 +1,5 @@
 import math
-from typing import Optional, Callable
+from typing import Optional, Callable, Iterator
 
 import sqlalchemy as sa
 from sqlalchemy.orm.query import Query
@@ -523,3 +523,58 @@ class LibraryBP(DBBlueprint):
         if (library := self.db.session.get(models.Library, id)) is None:
             raise exceptions.ElementDoesNotExist(f"Library with id {id} does not exist")
         return library
+
+    @DBBlueprint.transaction
+    def iter(
+        self,
+        user_id: int | None = None,
+        sample_id: int | None = None,
+        experiment_id: int | None = None,
+        seq_request_id: int | None = None,
+        assay_type: Optional[AssayTypeEnum] = None,
+        pool_id: int | None = None,
+        lab_prep_id: int | None = None,
+        in_lab_prep: Optional[bool] = None,
+        project_id: int | None = None,
+        type_in: Optional[list[LibraryTypeEnum]] = None,
+        status_in: Optional[list[LibraryStatusEnum]] = None,
+        pooled: Optional[bool] = None,
+        status: Optional[LibraryStatusEnum] = None,
+        custom_query: Callable[[Query], Query] | None = None,
+        limit: int | None = None,
+        chunk_size: int = 1000
+    ) -> Iterator[models.Library]:
+        """
+        Iterator that yields libraries based on query parameters.
+        Uses chunking to handle large datasets efficiently.
+        """
+        query = self.db.session.query(models.Library)
+        query = LibraryBP.where(
+            query,
+            user_id=user_id, sample_id=sample_id, experiment_id=experiment_id,
+            seq_request_id=seq_request_id, assay_type=assay_type,
+            pool_id=pool_id, lab_prep_id=lab_prep_id, in_lab_prep=in_lab_prep,
+            type_in=type_in, status_in=status_in, pooled=pooled, status=status,
+            custom_query=custom_query, project_id=project_id
+        )
+        offset = 0
+        while True:
+            chunk = query.limit(chunk_size).offset(offset).all()
+            if not chunk:
+                break
+            
+            for library in chunk:
+                yield library
+            
+            if limit and offset + chunk_size >= limit:
+                break
+                
+            offset += chunk_size
+
+    @DBBlueprint.transaction
+    def __iter__(self) -> Iterator[models.Library]:
+        return self.iter()
+    
+    @DBBlueprint.transaction
+    def __len__(self) -> int:
+        return self.db.session.query(models.Library).count()

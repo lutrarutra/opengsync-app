@@ -216,6 +216,16 @@ class CommonBarcodeInputForm(MultiStepForm):
                     ] = kit_row["sequence_i5"]
 
         for idx, row in self.df.iterrows():
+            if pd.notna(row["kit_i7"]):
+                if pd.isna(row["index_well"]) and pd.isna(row["name_i7"]):
+                    self.spreadsheet.add_error(idx, ["index_well", "name_i7"], MissingCellValue("'index_well' or 'name_i7' must be defined when kit is defined"))
+                    continue
+            
+            if pd.notna(row["kit_i5"]) and pd.notna(row["sequence_i5"]):
+                if pd.isna(row["index_well"]) and pd.isna(row["name_i5"]):
+                    self.spreadsheet.add_error(idx, ["index_well", "name_i5"], MissingCellValue("'index_well' or 'name_i5' must be defined when kit is defined"))
+                    continue
+            
             if row["library_name"] not in self.library_table["library_name"].values:
                 self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name'"))
 
@@ -255,6 +265,7 @@ class CommonBarcodeInputForm(MultiStepForm):
                 if pd.notna(row["sequence_i5"]) and len(row["sequence_i5"]) > models.LibraryIndex.sequence_i5.type.length:
                     self.spreadsheet.add_error(idx, "sequence_i5", InvalidCellValue(f"i5 sequence too long ({len(row['sequence_i5'])} > {models.LibraryIndex.sequence_i5.type.length})"))
                     continue
+
             else:
                 if pd.notna(row["kit_i7"]):
                     if pd.isna(row["index_well"]) and pd.isna(row["name_i7"]):
@@ -275,4 +286,5 @@ class CommonBarcodeInputForm(MultiStepForm):
         self.df.loc[(self.df["sequence_i7"].notna() & self.df["sequence_i5"].notna()), "index_type_id"] = IndexType.DUAL_INDEX.id
         self.df.loc[(self.df["sequence_i7"].notna() & self.df["sequence_i5"].isna()), "index_type_id"] = IndexType.SINGLE_INDEX.id
         self.spreadsheet.set_data(self.df)
+        self.kits = kits
         return len(self.spreadsheet._errors) == 0

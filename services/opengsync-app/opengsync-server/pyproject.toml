@@ -61,7 +61,8 @@ dependencies = [
     "tenacity >= 8.2.3",
     "pyyaml >= 6.0.1",
     "google-genai >= 1.28",
-    "flask-limiter >= 3.12"
+    "flask-limiter >= 3.12",
+    "framehints",
 ]
 
 [tool.flake8]

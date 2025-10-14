@@ -30,6 +30,8 @@ if runtime.app.debug:
             logger.debug(limiter.storage.clear(limiter.current_limit.key))
 
         lab_prep = db.lab_preps[20]
+        if not lab_prep.prep_file:
+            raise exceptions.BadRequestException("No prep file associated with this lab prep.")
         path = os.path.join(runtime.app.media_folder, lab_prep.prep_file.path)
         snapshot, col_style = univer.xlsx_to_univer_snapshot(path)
         return render_template("test.html", univer_snapshot=snapshot, col_style=col_style)

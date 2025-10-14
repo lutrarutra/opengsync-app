@@ -105,5 +105,11 @@ class SequencerBP(DBBlueprint):
         res = query.all()
         return res
 
+    @DBBlueprint.transaction
+    def __getitem__(self, sequencer_id: int) -> models.Sequencer:
+        sequencer = self.db.session.get(models.Sequencer, sequencer_id)
+        if not sequencer:
+            raise exceptions.ElementDoesNotExist(f"Sequencer with id {sequencer_id} does not exist")
+        return sequencer
 
         

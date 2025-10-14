@@ -128,11 +128,12 @@ def get_adapters(index_kit_id: int, page: int = 0):
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db)
-def render_table(current_user: models.User, index_kit_id: int):
+def render_table(index_kit_id: int):
     if (index_kit := db.index_kits.get(index_kit_id)) is None:
         raise exceptions.NotFoundException()
     
     df = db.pd.get_index_kit_barcodes(index_kit_id, per_index=True)
+    df = df.drop(columns=["adapter_id"])
 
     columns = []
     for i, col in enumerate(df.columns):
@@ -143,7 +144,7 @@ def render_table(current_user: models.User, index_kit_id: int):
         else:
             width = 150
         columns.append(TextColumn(col, col, width, max_length=1000))
-    
+        
     return make_response(
         render_template(
             "components/itable.html", index_kit=index_kit, columns=columns,

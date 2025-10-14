@@ -43,10 +43,10 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
 
     # RNA-seq
     POLY_A_RNA_SEQ = LibraryTypeEnum(101, "Poly-A RNA-Seq", "Poly-A RNA-Seq", "POLYARNA", "Gene Expression")
-    SMART_SEQ = LibraryTypeEnum(102, "SMART-Seq", "SMART-Seq", "SMARTSEQ", "Gene Expression")
-    SMART_SC_SEQ = LibraryTypeEnum(103, "SMART-Seq Single Cell", "SMART-Seq SC", "SMARTSEQSC", "Gene Expression")
+    SMART_SEQ = LibraryTypeEnum(102, "Smart-Seq2", "Smart-Seq2", "SMARTSEQ2", "Gene Expression")
+    SMART_SC_SEQ = LibraryTypeEnum(103, "Smart-Seq2 Single Cell", "Smart-Seq2 SC", "SMARTSEQSC2", "Gene Expression")
     RIBO_DEPL_RNA_SEQ = LibraryTypeEnum(104, "Stranded RNA-Seq Ribosomal RNA Depletion", "Ribosomal RNA Depletion", "RRNADEPL", "Gene Expression")
-    QUANT_SEQ = LibraryTypeEnum(105, "Transcriptome Fingerprinting 3' RNA-seq", "QUANT-seq", "QUANT", "Gene Expression")
+    QUANT_SEQ = LibraryTypeEnum(105, "QuantSeq 3' mRNA-Seq V2", "Quant-seq", "QUANTSEQ", "Gene Expression")
 
     WGS = LibraryTypeEnum(106, "Whole Genome Sequencing", "WGS", "WGS", "Gene Expression")
     WES = LibraryTypeEnum(107, "Whole Exome Sequencing", "WES", "WES", "Gene Expression")

@@ -62,6 +62,7 @@ class App(Flask):
         if DEBUG:
             self.jinja_env.undefined = StrictUndefined
 
+        self.jinja_env.globals["uuid"] = lambda: str(uuid4())
         log_buffer.set_log_dir(Path(opengsync_config["log_folder"]))
         log_buffer.start()
 
@@ -177,7 +178,6 @@ class App(Flask):
         @self.context_processor
         def inject_defaults():
             return dict(
-                uuid=uuid4,
                 current_query=None,
                 path_list=[],
                 context={},
