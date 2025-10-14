@@ -17,7 +17,7 @@ class DBHandler():
     def __init__(
         self, logger: Optional["loguru.Logger"] = None,
         expire_on_commit: bool = False, auto_open: bool = False,
-        lab_protocol_start_number: int = 1
+        lab_protocol_start_number: int = 1, auto_commit: bool = False
     ):
         self._logger = logger
         self._session: orm.Session | None = None
@@ -26,6 +26,7 @@ class DBHandler():
         self.lab_protocol_start_number = lab_protocol_start_number
         self.__needs_commit = False
         self.auto_open = auto_open
+        self.auto_commit = auto_commit
 
         from .blueprints.SeqRequestBP import SeqRequestBP
         from .blueprints.LibraryBP import LibraryBP
@@ -188,12 +189,15 @@ class DBHandler():
             return
         self._session = DBHandler.Session(autoflush=autoflush)
 
-    def close_session(self, commit: bool = True, rollback: bool = False) -> bool:
+    def close_session(self, commit: bool | None = None, rollback: bool = False) -> bool:
         """ returns True if db was modified """
         modified = False
         if self._session is None:
             self.warn("Session is already closed or was never opened.")
             return False
+        
+        if commit is None:
+            commit = self.auto_commit
 
         if commit and not rollback:
             if self.needs_commit:
@@ -209,8 +213,8 @@ class DBHandler():
             self.info("Rolling back transaction...")
             self._session.rollback()
         else:
-            if not commit and self.__needs_commit:
-                self.warn("Session was not committed, but changes were made. This may lead to data loss.")
+            if not commit and self.needs_commit:
+                self.warn("Session was not committed, but changes were made. This may lead to data loss. Use 'db.commit()', if you want changes to be written to the database.")
         self._session = DBHandler.Session.remove()
         return modified
 

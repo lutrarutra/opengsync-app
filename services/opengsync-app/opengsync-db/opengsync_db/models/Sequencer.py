@@ -31,3 +31,9 @@ class Sequencer(Base):
     
     def search_value(self) -> int:
         return self.id
+    
+    def __str__(self) -> str:
+        return f"Sequencer('{self.name}', '{self.model.name}')"
+    
+    def __repr__(self) -> str:
+        return self.__str__()

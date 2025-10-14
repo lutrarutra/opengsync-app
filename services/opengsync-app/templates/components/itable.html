@@ -8,7 +8,7 @@
 <script>
     var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
 
-    var spread_sheet = jspreadsheet(document.getElementById("{{ table_id }}"), {
+    jspreadsheet(document.getElementById("{{ table_id }}"), {
         data: data,
         columns: [
             {% for col in columns %}

@@ -174,7 +174,7 @@ def _route_decorator(
                 return response_handler(e)
             finally:
                 if db is not None:
-                    if db.close_session(rollback=rollback):
+                    if db.close_session(commit=True, rollback=rollback):
                         route_cache.clear()
 
                 if (msgs := runtime.app.consume_flashes(runtime.session)):
