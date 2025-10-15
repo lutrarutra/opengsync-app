@@ -174,20 +174,25 @@
             <h4>Barcodes</h4>
             {% for index in library.indices %}
             <div class="row">
-                {% if index.index_kit_i7_id %}
-                {{ metadata_group_link("Kit i7", index.index_kit_i7.name, url_for("kits_page.index_kit", index_kit_id=index.index_kit_i7_id, from="library@" + library.id | string), class="col-2") }}
-                {% else %}
-                {{ metadata_group("Kit i7", "", class="col-2") }}
-                {% endif %}
-                {{ metadata_group("Name i7", index.name_i5, class="col-2") }}
-                {{ metadata_group("Sequence i7", index.sequence_i7, class="col-2") }}
-                {% if index.index_kit_i5_id %}
-                {{ metadata_group_link("Kit i5", index.index_kit_i5.name, url_for("kits_page.index_kit", index_kit_id=index.index_kit_i5_id, from="library@" + library.id | string), class="col-2") }}
-                {% else %}
-                {{ metadata_group("Kit i5", "", class="col-2") }}
-                {% endif %}
-                {{ metadata_group("Name i5", index.name_i5, class="col-2") }}
-                {{ metadata_group("Sequence i5", index.sequence_i5, class="col-2") }}
+                <div class="row">
+                    {{ metadata_group("Orientation", index.orientation.name, class="col-4") }}
+                    {% if index.index_kit_i7_id %}
+                    {{ metadata_group_link("Kit i7", index.index_kit_i7.name, url_for("kits_page.index_kit", index_kit_id=index.index_kit_i7_id, from="library@" + library.id | string), class="col-4") }}
+                    {% else %}
+                    {{ metadata_group("Kit i7", "", class="col-4") }}
+                    {% endif %}
+                    {% if index.index_kit_i5_id %}
+                    {{ metadata_group_link("Kit i5", index.index_kit_i5.name, url_for("kits_page.index_kit", index_kit_id=index.index_kit_i5_id, from="library@" + library.id | string), class="col-4") }}
+                    {% else %}
+                    {{ metadata_group("Kit i5", "", class="col-4") }}
+                    {% endif %}
+                </div>
+                <div class="row">
+                    {{ metadata_group("Name i7", index.name_i7, class="col-3") }}
+                    {{ metadata_group("Sequence i7", index.sequence_i7, class="col-3") }}
+                    {{ metadata_group("Name i5", index.name_i5, class="col-3") }}
+                    {{ metadata_group("Sequence i5", index.sequence_i5, class="col-3") }}
+                </div>
             </div>
             {% endfor %}
         </div>

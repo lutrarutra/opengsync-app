@@ -231,6 +231,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
             mapping = dict(kit_i7_df[["sequence_i7", "name_i7"]].values.tolist())
             if rc_i7:
                 self.barcode_table["sequence_i7"] = self.barcode_table["sequence_i7"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
+            
             try:
                 self.barcode_table["name_i7"] = self.barcode_table["sequence_i7"].apply(lambda x: mapping[x])
             except KeyError as e:
@@ -241,9 +242,9 @@ class CommonBarcodeMatchForm(MultiStepForm):
             self.barcode_table["orientation_i7_id"] = BarcodeOrientation.FORWARD.id
         elif self.i7_option.data == "rc":
             self.barcode_table["sequence_i7"] = self.barcode_table["sequence_i7"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
-            self.barcode_table["orientation_i7_id"] = BarcodeOrientation.FORWARD.id
+            self.barcode_table["orientation_i7_id"] = BarcodeOrientation.FORWARD_NOT_VALIDATED.id
         elif self.i7_option.data == "forward":
-            self.barcode_table["orientation_i7_id"] = BarcodeOrientation.FORWARD.id
+            self.barcode_table["orientation_i7_id"] = BarcodeOrientation.FORWARD_NOT_VALIDATED.id
         
         if kit_i5_id := self.i5_kit.data:
             selected_i5 = next((name for kit_id, name in self.i5_kit.choices if kit_id == kit_i5_id), None)  # type: ignore
@@ -263,6 +264,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
             
             if rc_i5:
                 self.barcode_table["sequence_i5"] = self.barcode_table["sequence_i5"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
+            
             try:
                 self.barcode_table["name_i5"] = self.barcode_table["sequence_i5"].apply(lambda x: mapping[x])
             except KeyError as e:
@@ -274,9 +276,9 @@ class CommonBarcodeMatchForm(MultiStepForm):
             
         elif self.i5_option.data == "rc":
             self.barcode_table["sequence_i5"] = self.barcode_table["sequence_i5"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
-            self.barcode_table["orientation_i5_id"] = BarcodeOrientation.FORWARD.id
+            self.barcode_table["orientation_i5_id"] = BarcodeOrientation.FORWARD_NOT_VALIDATED.id
         elif self.i5_option.data == "forward":
-            self.barcode_table["orientation_i5_id"] = BarcodeOrientation.FORWARD.id
+            self.barcode_table["orientation_i5_id"] = BarcodeOrientation.FORWARD_NOT_VALIDATED.id
 
         self.metadata["barcode_match_form"] = {
             "i7_kit": kit_i7_id,
