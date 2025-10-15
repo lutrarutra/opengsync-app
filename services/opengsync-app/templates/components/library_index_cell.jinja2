@@ -1,39 +1,45 @@
+{% macro get_badge_color(index) %}
+{% if index.is_kit_index() %}badge-success{% elif not index.orientation %}badge-danger{% elif not index.orientation.validated %}badge-warning{% endif %}
+{% endmacro %}
+
 {% macro library_index_cell(library) %}
 {% if library.index_type in [IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX] %}
 <div>
     {% for index in library.indices %}
+    {% set badge_color = get_badge_color(index) %}
     {% if index.name_i7 %}
         {% if index.name_i7 == index.name_i5 %}
-        <span class="badge {% if index.is_kit_index() %} badge-success{% elif not index.orientation %} badge-danger{% else %}badge-warning{% endif %} index-badge" >{{ index.name_i7 }}</span>
+        <span class="badge index-badge {{ badge_color }}" >{{ index.name_i7 }}</span>
         {% else %}
-        <span class="badge {% if index.is_kit_index() %} badge-success{% elif not index.orientation %} badge-danger{% else %}badge-warning{% endif %} index-badge">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
+        <span class="badge index-badge {{ badge_color }}">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
         {% endif %}
     {% else %}
-    <span class="badge {% if index.is_kit_index() %} badge-success{% elif not index.orientation %} badge-danger{% else %}badge-warning{% endif %} index-badge">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
+    <span class="badge index-badge {{ badge_color }}">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
     {% endif %}
-    <span class="badge {% if index.is_kit_index() %} badge-success{% elif not index.orientation %} badge-danger{% else %}badge-warning{% endif %} index-badge" style="display: none;">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
+    <span class="badge index-badge {{ badge_color }}" style="display: none;">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
     {% endfor %}
 </div>
 {% elif library.index_type == IndexType.SINGLE_INDEX_I7 %}
 <div>
     {% for index in library.indices %}
+    {% set badge_color = get_badge_color(index) %}
     {% if index.name_i7 %}
-    <span class="badge index-badge">{{ index.name_i7 }}</span>
+    <span class="badge index-badge {{ badge_color }}">{{ index.name_i7 }}</span>
     {% else %}
-    <span class="badge index-badge">{{ index.sequence_i7 }}</span>
+    <span class="badge index-badge {{ badge_color }}">{{ index.sequence_i7 }}</span>
     {% endif %}
-    <span class="badge index-badge" style="display: none;">{{ index.sequence_i7 }}</span>
+    <span class="badge index-badge {{ badge_color }}" style="display: none;">{{ index.sequence_i7 }}</span>
     {% endfor %}
 </div>
 {% elif library.index_type == IndexType.TENX_ATAC_INDEX %}
 <div>
     {% for index in library.indices %}
     {% if index.name_i7 %}
-    <span class="badge index-badge">{{ index.name_i7 }}</span>
+    <span class="badge index-badge {{ badge_color }}">{{ index.name_i7 }}</span>
     {% else %}
-    <span class="badge index-badge">{{ index.sequence_i7 }}</span>
+    <span class="badge index-badge {{ badge_color }}">{{ index.sequence_i7 }}</span>
     {% endif %}
-    <span class="badge index-badge" style="display: none;">{{ index.sequence_i7 }}</span>
+    <span class="badge index-badge {{ badge_color }}" style="display: none;">{{ index.sequence_i7 }}</span>
     {% endfor %}
 </div>
 {% else %}
@@ -41,14 +47,14 @@
     {% for index in library.indices %}
     {% if index.name_i7 %}
         {% if index.name_i7 == index.name_i5 %}
-        <span class="badge index-badge" >{{ index.name_i7 }}</span>
+        <span class="badge index-badge {{ badge_color }}" >{{ index.name_i7 }}</span>
         {% else %}
-        <span class="badge index-badge">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
+        <span class="badge index-badge {{ badge_color }}">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
         {% endif %}
     {% else %}
-    <span class="badge index-badge">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
+    <span class="badge index-badge {{ badge_color }}">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
     {% endif %}
-    <span class="badge index-badge" style="display: none;">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
+    <span class="badge index-badge {{ badge_color }}" style="display: none;">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
     {% endfor %}
 </div>
 {% endif %}
