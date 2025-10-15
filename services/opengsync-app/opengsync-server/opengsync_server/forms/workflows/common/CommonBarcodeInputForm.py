@@ -4,7 +4,7 @@ import pandas as pd
 from flask import url_for
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, IndexType
+from opengsync_db.categories import LibraryType, IndexType, BarcodeOrientation
 
 from ....core import exceptions
 from ....core.RunTime import runtime
@@ -50,14 +50,16 @@ class CommonBarcodeInputForm(MultiStepForm):
         self.lab_prep = lab_prep
         self.pool = pool
 
-        self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.index_kits.find(limit=None, sort_by="name", type_in=[IndexType.DUAL_INDEX, IndexType.SINGLE_INDEX])[0]}
+        self.i7_kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.index_kits.find(limit=None, sort_by="name", type_in=[IndexType.DUAL_INDEX, IndexType.SINGLE_INDEX_I7, IndexType.COMBINATORIAL_DUAL_INDEX])[0]}
+        self.i5_kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.index_kits.find(limit=None, sort_by="name", type_in=[IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX])[0]}
+
         columns = [
             TextColumn("library_name", "Library Name", 250, required=True, read_only=True),
             TextColumn("index_well", "Index Well", 100, max_length=8),
-            CategoricalDropDown("kit_i7", "i7 Kit", 200, categories=self.kits_mapping, required=False),
+            CategoricalDropDown("kit_i7", "i7 Kit", 200, categories=self.i7_kit_mapping, required=False),
             TextColumn("name_i7", "i7 Name", 150, max_length=models.LibraryIndex.name_i7.type.length),
             TextColumn("sequence_i7", "i7 Sequence", 180, clean_up_fnc=CommonBarcodeInputForm.barcode_sequence_clean_up),
-            CategoricalDropDown("kit_i5", "i5 Kit", 200, categories=self.kits_mapping, required=False),
+            CategoricalDropDown("kit_i5", "i5 Kit", 200, categories=self.i5_kit_mapping, required=False),
             TextColumn("name_i5", "i5 Name", 150, max_length=models.LibraryIndex.name_i5.type.length),
             TextColumn("sequence_i5", "i5 Sequence", 180, clean_up_fnc=CommonBarcodeInputForm.barcode_sequence_clean_up),
         ]
@@ -151,16 +153,26 @@ class CommonBarcodeInputForm(MultiStepForm):
         kit_defined = self.df["kit_i7"].notna() & (self.df["index_well"].notna() | self.df["name_i7"].notna())
         manual_defined = self.df["sequence_i7"].notna()
 
-        self.df.loc[self.df["kit_i5"].isna(), "kit_i5"] = self.df.loc[self.df["kit_i5"].isna(), "kit_i7"]
-        self.df.loc[self.df["name_i5"].isna(), "name_i5"] = self.df.loc[self.df["name_i5"].isna(), "name_i7"]
+        # self.df.loc[self.df["kit_i5"].isna(), "kit_i5"] = self.df.loc[self.df["kit_i5"].isna(), "kit_i7"]
+        # self.df.loc[self.df["name_i5"].isna(), "name_i5"] = self.df.loc[self.df["name_i5"].isna(), "name_i7"]
 
         kit_identifiers = list(set(self.df["kit_i7"].dropna().unique().tolist() + self.df["kit_i5"].dropna().unique().tolist()))
         kits: dict[str, tuple[models.IndexKit, pd.DataFrame]] = dict()
 
         self.df["kit_i7_id"] = None
         self.df["kit_i5_id"] = None
+
         for identifier in kit_identifiers:
             kit = db.index_kits[identifier]
+            
+            if kit.type in [IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX]:
+                idx = (self.df["kit_i5"].isna() & (self.df["kit_i7"] == identifier))
+                self.df.loc[idx, "kit_i5"] = self.df.loc[idx, "kit_i7"]
+                
+            if kit.type == IndexType.DUAL_INDEX:
+                idx = (self.df["name_i5"].isna() & (self.df["kit_i7"] == identifier))
+                self.df.loc[idx, "name_i5"] = self.df.loc[idx, "name_i7"]
+            
             df = db.pd.get_index_kit_barcodes(kit.id, per_adapter=False, per_index=True)
             kits[identifier] = (kit, df)
             self.df.loc[self.df["kit_i7"] == identifier, "kit_i7_id"] = kit.id
@@ -169,46 +181,54 @@ class CommonBarcodeInputForm(MultiStepForm):
         for kit_identifier, (kit, kit_df) in kits.items():
             view = self.df[(self.df["kit_i7"] == kit_identifier) | (self.df["kit_i5"] == kit_identifier)]
             
-            if kit.type == IndexType.DUAL_INDEX:
-                mask = (
-                    (kit_df["well"].isin(view["index_well"].values)) |
-                    (kit_df["name_i7"].isin(view["name_i7"].values)) |
-                    (kit_df["name_i5"].isin(view["name_i5"].values))
-                )
-            elif kit.type == IndexType.SINGLE_INDEX:
-                mask = (
-                    (kit_df["well"].isin(view["index_well"].values)) |
-                    (kit_df["name_i7"].isin(view["name_i7"].values))
-                )
-            else:
-                raise exceptions.InternalServerErrorException(f"Only Dual and Single index kits are supported, but kit '{kit.identifier}' is of type '{kit.type.name}'")
+            match kit.type:
+                case IndexType.DUAL_INDEX:
+                    mask = (
+                        (kit_df["well"].isin(view["index_well"].values)) |
+                        (kit_df["name_i7"].isin(view["name_i7"].values)) |
+                        (kit_df["name_i5"].isin(view["name_i5"].values))
+                    )
+                case IndexType.COMBINATORIAL_DUAL_INDEX:
+                    mask = (
+                        (kit_df["name_i7"].isin(view["name_i7"].values)) |
+                        (kit_df["name_i5"].isin(view["name_i5"].values))
+                    )
+                case IndexType.SINGLE_INDEX_I7:
+                    mask = (
+                        (kit_df["well"].isin(view["index_well"].values)) |
+                        (kit_df["name_i7"].isin(view["name_i7"].values))
+                    )
+                case _:
+                    raise exceptions.InternalServerErrorException(f"Only Dual and Single index kits are supported, but kit '{kit.identifier}' is of type '{kit.type.name}'")
             
             for _, kit_row in kit_df[mask].iterrows():
-                self.df.loc[
-                    (self.df["kit_i7"] == kit_identifier) &
-                    (self.df["index_well"] == kit_row["well"]), "name_i7"
-                ] = kit_row["name_i7"]
+                if "well" in kit_row:
+                    self.df.loc[
+                        (self.df["kit_i7"] == kit_identifier) &
+                        (self.df["index_well"] == kit_row["well"]), "name_i7"
+                    ] = kit_row["name_i7"]
 
-                self.df.loc[
-                    (self.df["kit_i7"] == kit_identifier) &
-                    (self.df["index_well"] == kit_row["well"]), "sequence_i7"
-                ] = kit_row["sequence_i7"]
+                    self.df.loc[
+                        (self.df["kit_i7"] == kit_identifier) &
+                        (self.df["index_well"] == kit_row["well"]), "sequence_i7"
+                    ] = kit_row["sequence_i7"]
 
                 self.df.loc[
                     (self.df["kit_i7"] == kit_identifier) &
                     (self.df["name_i7"] == kit_row["name_i7"]), "sequence_i7"
                 ] = kit_row["sequence_i7"]
 
-                if kit.type == IndexType.DUAL_INDEX:
-                    self.df.loc[
-                        (self.df["kit_i5"] == kit_identifier) &
-                        (self.df["index_well"] == kit_row["well"]), "name_i5"
-                    ] = kit_row["name_i5"]
+                if kit.type in {IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX}:
+                    if "well" in kit_row:
+                        self.df.loc[
+                            (self.df["kit_i5"] == kit_identifier) &
+                            (self.df["index_well"] == kit_row["well"]), "name_i5"
+                        ] = kit_row["name_i5"]
 
-                    self.df.loc[
-                        (self.df["kit_i5"] == kit_identifier) &
-                        (self.df["index_well"] == kit_row["well"]), "sequence_i5"
-                    ] = kit_row["sequence_i5"]
+                        self.df.loc[
+                            (self.df["kit_i5"] == kit_identifier) &
+                            (self.df["index_well"] == kit_row["well"]), "sequence_i5"
+                        ] = kit_row["sequence_i5"]
 
                     self.df.loc[
                         (self.df["kit_i5"] == kit_identifier) &
@@ -242,7 +262,7 @@ class CommonBarcodeInputForm(MultiStepForm):
                         self.spreadsheet.add_error(idx, "name_i7", InvalidCellValue(f"i7 name '{row['name_i7']}' not found in kit '{kit_i7_label}'"))
                         continue
                 elif pd.notna(row["index_well"]):
-                    if row["index_well"] not in kit_i7_df["well"].values:
+                    if "well" not in kit_i7_df.columns or row["index_well"] not in kit_i7_df["well"].values:
                         self.spreadsheet.add_error(idx, "index_well", InvalidCellValue(f"i7 well '{row['index_well']}' not found in kit '{kit_i7_label}'"))
                         continue
                 
@@ -252,7 +272,7 @@ class CommonBarcodeInputForm(MultiStepForm):
                         if row["name_i5"] not in kit_i5_df["name_i5"].values:
                             self.spreadsheet.add_error(idx, "name_i5", InvalidCellValue(f"i5 name '{row['name_i5']}' not found in kit '{kit_i5_label}'"))
                             continue
-                    elif pd.notna(row["index_well"]):
+                    elif pd.notna(row["index_well"]) and "well" in kit_i5_df.columns:
                         if row["index_well"] not in kit_i5_df["well"].values:
                             self.spreadsheet.add_error(idx, "index_well", InvalidCellValue(f"i5 well '{row['index_well']}' not found in kit '{kit_i5_label}'"))
                             continue
@@ -272,10 +292,10 @@ class CommonBarcodeInputForm(MultiStepForm):
                         self.spreadsheet.add_error(idx, ["index_well", "name_i7"], MissingCellValue("'index_well' or 'name_i7' must be defined when kit is defined"))
                         continue
                 elif pd.notna(row["index_well"]) or pd.notna(row["name_i7"]):
-                    self.spreadsheet.add_error(idx, "kit_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
+                    self.spreadsheet.add_error(idx, ["kit_i7", "name_i7"], MissingCellValue("missing 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well' or 'sequence_i7'"))
                     continue
                 elif pd.isna(row["sequence_i7"]):
-                    self.spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("missing 'sequence_i7' or 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well'"))
+                    self.spreadsheet.add_error(idx, ["kit_i7", "name_i7"], MissingCellValue("missing 'kit_i7' + 'name_i7' or 'kit_i7' + 'index_well' or 'sequence_i7'"))
                     continue
                 
             if pd.isna(row["sequence_i7"]):
@@ -284,7 +304,13 @@ class CommonBarcodeInputForm(MultiStepForm):
 
         self.df["index_type_id"] = None
         self.df.loc[(self.df["sequence_i7"].notna() & self.df["sequence_i5"].notna()), "index_type_id"] = IndexType.DUAL_INDEX.id
-        self.df.loc[(self.df["sequence_i7"].notna() & self.df["sequence_i5"].isna()), "index_type_id"] = IndexType.SINGLE_INDEX.id
+        self.df.loc[(self.df["sequence_i7"].notna() & self.df["sequence_i5"].isna()), "index_type_id"] = IndexType.SINGLE_INDEX_I7.id
+        
+        self.df["orientation_i7_id"] = None
+        self.df["orientation_i5_id"] = None
+        self.df.loc[(self.df["kit_i7_id"].notna()), "orientation_i7_id"] = BarcodeOrientation.FORWARD.id
+        self.df.loc[self.df["kit_i5_id"].notna() & (self.df["index_type_id"] == IndexType.DUAL_INDEX.id), "orientation_i5_id"] = BarcodeOrientation.FORWARD.id
+        
         self.spreadsheet.set_data(self.df)
         self.kits = kits
         return len(self.spreadsheet._errors) == 0

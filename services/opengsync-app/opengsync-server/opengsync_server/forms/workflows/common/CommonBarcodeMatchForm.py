@@ -7,12 +7,13 @@ from wtforms import SelectField, RadioField
 from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import IndexType, IndexTypeEnum
+from opengsync_db.categories import IndexType, IndexTypeEnum, BarcodeOrientation
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa F401
 from ...MultiStepForm import MultiStepForm
 from ....core.RunTime import runtime
+from ....tools import utils
 
 
 class CommonBarcodeMatchForm(MultiStepForm):
@@ -27,7 +28,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         choices=[
             ("forward", "I have provided i7 barcode sequences in forward orientation"),
             ("rc", "I have provided i7 barcode sequneces in reverse complement orientation"),
-            ("idk", "I don't know in which orientation the i7 barcodes are provided"),
+            ("idk", "I don't know in which orientation the i7 barcodes are provided 🤷‍♂️"),
         ],
         validators=[OptionalValidator()],
     )
@@ -36,7 +37,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         choices=[
             ("forward", "I have provided i5 barcode sequences in forward orientation"),
             ("rc", "I have provided i5 barcode sequences in reverse complement orientation"),
-            ("idk", "I don't know in which orientation the i5 barcodes are provided"),
+            ("idk", "I don't know in which orientation the i5 barcodes are provided 🤷‍♂️"),
         ],
         validators=[OptionalValidator()],
     )
@@ -46,14 +47,16 @@ class CommonBarcodeMatchForm(MultiStepForm):
         return bool(
             current_step.tables["barcode_table"]["kit_i7"].isna().all() or
             current_step.tables["barcode_table"]["kit_i5"].isna().all()
-        )
+        ) # since all of the indices are reverse complemented in case of not forward orientation, we need .all()
     
     @staticmethod
     def check_index_type(barcode_table: pd.DataFrame) -> IndexTypeEnum | None:
         if (barcode_table["index_type_id"] == IndexType.DUAL_INDEX.id).all():
             return IndexType.DUAL_INDEX
-        elif (barcode_table["index_type_id"] == IndexType.SINGLE_INDEX.id).all():
-            return IndexType.SINGLE_INDEX
+        elif (barcode_table["index_type_id"] == IndexType.SINGLE_INDEX_I7.id).all():
+            return IndexType.SINGLE_INDEX_I7
+        elif (barcode_table["index_type_id"] == IndexType.COMBINATORIAL_DUAL_INDEX.id).all():
+            return IndexType.COMBINATORIAL_DUAL_INDEX
         elif (barcode_table["index_type_id"] == IndexType.TENX_ATAC_INDEX.id).all():
             return IndexType.TENX_ATAC_INDEX
         
@@ -79,19 +82,19 @@ class CommonBarcodeMatchForm(MultiStepForm):
         self._context["lab_prep"] = lab_prep
         self._context["pool"] = pool
 
-        logger.debug(self.uuid)
-
         self.barcode_table = self.tables["barcode_table"]
         self.index_type = CommonBarcodeMatchForm.check_index_type(self.barcode_table)
         self._context["index_type"] = self.index_type
-        if self.index_type == IndexType.DUAL_INDEX:
-            self.dual_index_prepare()
-        elif self.index_type == IndexType.SINGLE_INDEX:
-            self.single_index_prepare()
-        elif self.index_type == IndexType.TENX_ATAC_INDEX:
-            self.tenx_atac_index_prepare()
-        else:
-            logger.warning("Index type could not be determined")
+
+        match self.index_type:
+            case IndexType.DUAL_INDEX | IndexType.COMBINATORIAL_DUAL_INDEX:
+                self.dual_index_prepare()
+            case IndexType.SINGLE_INDEX_I7:
+                self.single_index_i7_prepare()
+            case IndexType.TENX_ATAC_INDEX:
+                self.tenx_atac_index_prepare()
+            case _:
+                logger.warning("Index type could not be determined")
 
         self.url_context = {}
         if seq_request is not None:
@@ -121,13 +124,8 @@ class CommonBarcodeMatchForm(MultiStepForm):
         self.i7_kit.data = 0
         self._context["barcodes"] = pd.DataFrame(columns=["kit_id", "kit"])
 
-    def single_index_prepare(self):
-        path = os.path.join(runtime.app.app_data_folder, "kits", f"{IndexType.SINGLE_INDEX.id}.pkl")
-        if not os.path.exists(path):
-            logger.warning(f"Singe-index barcode file not found: {path}")
-            barcodes = pd.DataFrame(columns=["kit_id", "kit", "sequence_i7"])
-        else:
-            barcodes = pd.read_pickle(path)
+    def single_index_i7_prepare(self):
+        barcodes = utils.get_index_kit_barcode_map(runtime.app.app_data_folder, types=[IndexType.SINGLE_INDEX_I7])
 
         df = self.barcode_table.copy()
         df["rc_sequence_i7"] = df["sequence_i7"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
@@ -161,12 +159,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         self._context["barcodes"] = barcodes
         
     def dual_index_prepare(self):
-        path = os.path.join(runtime.app.app_data_folder, "kits", f"{IndexType.DUAL_INDEX.id}.pkl")
-        if not os.path.exists(path):
-            logger.warning(f"Dual index barcode file not found: {path}")
-            barcodes = pd.DataFrame(columns=["kit_id", "kit", "sequence_i7", "sequence_i5"])
-        else:
-            barcodes = pd.read_pickle(path)
+        barcodes = utils.get_index_kit_barcode_map(runtime.app.app_data_folder, types=[IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX])
 
         df = self.barcode_table.copy()
         df["rc_sequence_i7"] = df["sequence_i7"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
@@ -225,7 +218,6 @@ class CommonBarcodeMatchForm(MultiStepForm):
         
         if kit_i7_id := self.i7_kit.data:
             selected_i7 = next((name for kit_id, name in self.i7_kit.choices if kit_id == kit_i7_id), None)  # type: ignore
-            logger.debug(f"Selected i7 kit: {selected_i7}")
             rc_i7 = selected_i7.endswith(" (Reverse Complement)") if selected_i7 else False
 
             if (kit_i7 := db.index_kits.get(kit_i7_id)) is None:
@@ -244,8 +236,14 @@ class CommonBarcodeMatchForm(MultiStepForm):
             except KeyError as e:
                 logger.error(f"Invalid i7 sequence in library table: {e}")
                 raise KeyError(f"Invalid i7 sequence in library table: {e}")
+            
+            self.barcode_table["kit_i7_id"] = kit_i7_id
+            self.barcode_table["orientation_i7_id"] = BarcodeOrientation.FORWARD.id
         elif self.i7_option.data == "rc":
             self.barcode_table["sequence_i7"] = self.barcode_table["sequence_i7"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
+            self.barcode_table["orientation_i7_id"] = BarcodeOrientation.FORWARD.id
+        elif self.i7_option.data == "forward":
+            self.barcode_table["orientation_i7_id"] = BarcodeOrientation.FORWARD.id
         
         if kit_i5_id := self.i5_kit.data:
             selected_i5 = next((name for kit_id, name in self.i5_kit.choices if kit_id == kit_i5_id), None)  # type: ignore
@@ -265,15 +263,20 @@ class CommonBarcodeMatchForm(MultiStepForm):
             
             if rc_i5:
                 self.barcode_table["sequence_i5"] = self.barcode_table["sequence_i5"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
-
             try:
                 self.barcode_table["name_i5"] = self.barcode_table["sequence_i5"].apply(lambda x: mapping[x])
             except KeyError as e:
                 logger.error(f"Invalid i5 sequence in library table: {e}")
                 raise KeyError(f"Invalid i5 sequence in library table: {e}")
             
+            self.barcode_table["kit_i5_id"] = kit_i5_id
+            self.barcode_table["orientation_i5_id"] = BarcodeOrientation.FORWARD.id
+            
         elif self.i5_option.data == "rc":
             self.barcode_table["sequence_i5"] = self.barcode_table["sequence_i5"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
+            self.barcode_table["orientation_i5_id"] = BarcodeOrientation.FORWARD.id
+        elif self.i5_option.data == "forward":
+            self.barcode_table["orientation_i5_id"] = BarcodeOrientation.FORWARD.id
 
         self.metadata["barcode_match_form"] = {
             "i7_kit": kit_i7_id,

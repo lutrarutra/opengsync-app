@@ -7,7 +7,6 @@ from .SelectSamplesForm import SelectSamplesForm  # noqa
 from .SubmitSeqRequestForm import SubmitSeqRequestForm  # noqa
 from .AddUserToGroupForm import AddUserToGroupForm  # noqa
 from .SampleAttributeTableForm import SampleAttributeTableForm  # noqa
-from .EditKitBarcodesForm import EditDualIndexKitBarcodesForm, EditKitTENXATACBarcodesForm, EditSingleIndexKitBarcodesForm  # noqa
 from .EditKitFeaturesForm import EditKitFeaturesForm  # noqa
 from .QueryBarcodeSequencesForm import QueryBarcodeSequencesForm  # noqa
 

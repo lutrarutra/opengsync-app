@@ -231,6 +231,18 @@ table.barcode-clashes-table tbody td.index-cell {
         background-color: $cemm-blue;
     }
 
+    td .badge.badge-success {
+        background-color: $cemm-green;
+    }
+
+    td .badge.badge-warning {
+        background-color: $cemm-yellow;
+    }
+
+    td .badge.badge-danger {
+        background-color: $cemm-red;
+    }
+
     tr:hover {
         td, th {
             background-color: $gray-200 !important;

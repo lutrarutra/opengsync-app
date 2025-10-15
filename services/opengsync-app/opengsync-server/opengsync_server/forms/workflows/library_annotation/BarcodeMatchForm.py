@@ -2,6 +2,7 @@ from flask import Response
 
 from opengsync_db import models
 
+from .... import logger
 from ..common import CommonBarcodeMatchForm
 from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm

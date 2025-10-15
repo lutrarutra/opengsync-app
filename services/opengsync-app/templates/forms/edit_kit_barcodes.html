@@ -10,10 +10,10 @@
     </div>
 
     <div class="modal-body" id="kit_barcodes-form">
-        {% if index_kit.type == IndexType.DUAL_INDEX %}
+        {% if index_kit.type in [IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX] %}
         {{ switch_input(form.rc_sequence_i7) }}
         {{ switch_input(form.rc_sequence_i5) }}
-        {% elif index_kit.type == IndexType.SINGLE_INDEX %}
+        {% elif index_kit.type == IndexType.SINGLE_INDEX_I7 %}
         {{ switch_input(form.rc_sequence) }}
         {% elif index_kit.type == IndexType.TENX_ATAC_INDEX %}
         {{ switch_input(form.rc_sequence) }}
@@ -46,10 +46,10 @@
             "values": {
                 "spreadsheet": JSON.stringify(data),
                 "columns": JSON.stringify(spread_sheet.getHeaders()),
-                {% if index_kit.type == IndexType.DUAL_INDEX %}
+                {% if index_kit.type in [IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX] %}
                 "rc_sequence_i7": $("#rc_sequence_i7").prop("checked"),
                 "rc_sequence_i5": $("#rc_sequence_i5").prop("checked"),
-                {% elif index_kit.type == IndexType.SINGLE_INDEX %}
+                {% elif index_kit.type == IndexType.SINGLE_INDEX_I7 %}
                 "rc_sequence": $("#rc_sequence").prop("checked"),
                 {% elif index_kit.type == IndexType.TENX_ATAC_INDEX %}
                 "rc_sequence": $("#rc_sequence").prop("checked"),

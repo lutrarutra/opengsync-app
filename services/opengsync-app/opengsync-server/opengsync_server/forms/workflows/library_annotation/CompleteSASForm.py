@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import (
     GenomeRef, LibraryType, FeatureType, MediaFileType, SampleStatus, PoolType, AttributeType,
-    AssayType, SubmissionType, MUXType, IndexType
+    AssayType, SubmissionType, MUXType, IndexType, BarcodeOrientation
 )
 
 from .... import db, logger, tools
@@ -45,6 +45,15 @@ class CompleteSASForm(MultiStepForm):
                 [LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id]
             )
         ]["library_name"]
+
+        if self.barcode_table is not None:
+            self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
+            self.barcode_table.loc[
+                pd.notna(self.barcode_table["orientation_i7_id"]) &
+                (self.barcode_table["orientation_i7_id"] != self.barcode_table["orientation_i5_id"]),
+                "orientation_id"
+            ] = None
+            logger.debug(self.barcode_table)
         
         spatial_library_type_ids = [t.id for t in LibraryType.get_visium_library_types()] + [LibraryType.OPENST.id]
         self.contains_spatial_samples = self.library_table["library_type_id"].isin(spatial_library_type_ids).any()
@@ -292,7 +301,7 @@ class CompleteSASForm(MultiStepForm):
                     index_type = IndexType.TENX_ATAC_INDEX
                 else:
                     if library_barcodes["sequence_i5"].isna().all():
-                        index_type = IndexType.SINGLE_INDEX
+                        index_type = IndexType.SINGLE_INDEX_I7
                     elif library_barcodes["sequence_i5"].isna().any():
                         logger.warning(f"{self.uuid}: Mixed index types found for library {library_row['library_name']}.")
                         index_type = IndexType.DUAL_INDEX
@@ -307,7 +316,16 @@ class CompleteSASForm(MultiStepForm):
                         logger.error(f"{self.uuid}: Index type mismatch for library {library_row['library_name']}. Expected {index_type}, found {IndexType.get(barcode_row['index_type_id'])}.")
                         logger.warning(self.barcode_table)
                         logger.warning(self.library_table)
-                        
+
+                    orientation = None
+                    if pd.notna(barcode_row["orientation_i7_id"]):
+                        orientation = BarcodeOrientation.get(int(barcode_row["orientation_i7_id"]))
+
+                    if orientation is not None and pd.notna(barcode_row["orientation_i5_id"]):
+                        if orientation.id != int(barcode_row["orientation_i5_id"]):
+                            logger.error(f"{self.uuid}: Conflicting orientations for i7 and i5 in library {library_row['library_name']}.")
+                            raise ValueError("Conflicting orientations for i7 and i5.")
+
                     library = db.libraries.add_index(
                         library_id=library.id,
                         sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,
@@ -316,6 +334,7 @@ class CompleteSASForm(MultiStepForm):
                         index_kit_i5_id=barcode_row["kit_i5_id"] if pd.notna(barcode_row["kit_i5_id"]) else None,
                         name_i7=barcode_row["name_i7"] if pd.notna(barcode_row["name_i7"]) else None,
                         name_i5=barcode_row["name_i5"] if pd.notna(barcode_row["name_i5"]) else None,
+                        orientation=orientation,
                     )
 
             for _, pooling_row in self.sample_pooling_table[self.sample_pooling_table["library_name"] == library_row["library_name"]].iterrows():

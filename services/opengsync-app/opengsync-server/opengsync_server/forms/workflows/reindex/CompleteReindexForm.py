@@ -72,7 +72,7 @@ class CompleteReindexForm(MultiStepForm):
                 index_type = IndexType.TENX_ATAC_INDEX
             else:
                 if df["sequence_i5"].isna().all():
-                    index_type = IndexType.SINGLE_INDEX
+                    index_type = IndexType.SINGLE_INDEX_I7
                 elif df["sequence_i5"].isna().any():
                     logger.warning(f"{self.uuid}: Mixed index types found for library {df['library_name']}.")
                     index_type = IndexType.DUAL_INDEX

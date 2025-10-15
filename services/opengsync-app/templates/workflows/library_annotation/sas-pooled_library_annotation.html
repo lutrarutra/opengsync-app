@@ -158,6 +158,7 @@
 
             $("#parse-spreadsheet-btn").on("click", function() {
                 var data = spread_sheet.getData();
+                disable_button($(this));
 
                 htmx.ajax("POST", "{{ form.spreadsheet.post_url }}", {
                     "target": "#sample-table-submission-container",
@@ -172,6 +173,7 @@
                         "columns": JSON.stringify(spread_sheet.getHeaders()),
                     },
                 });
+                
             });
         });
     </script>
