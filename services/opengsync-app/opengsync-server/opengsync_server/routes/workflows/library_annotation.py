@@ -89,6 +89,39 @@ def select_project(current_user: models.User, seq_request_id: int, workflow_type
         forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type)
     
     return forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type, formdata=request.form).process_request(user=current_user)
+
+@wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
+def parse_assay_form(current_user: models.User, seq_request_id: int, uuid: str):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        raise exceptions.NoPermissionsException()
+        
+    return forms.SelectAssayForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+
+
+@wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
+def parse_table(current_user: models.User, seq_request_id: int, uuid: str, form_type: Literal["pooled", "raw", "tech", "tech-multiplexed"]):
+    if form_type not in ["pooled", "raw", "tech", "tech-multiplexed"]:
+        raise exceptions.BadRequestException()
+    
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        raise exceptions.NoPermissionsException()
+    
+    if form_type == "pooled":
+        form = forms.PooledLibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
+    elif form_type == "raw":
+        form = forms.LibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
+    elif form_type == "tech":
+        form = forms.DefineSamplesForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
+    elif form_type == "tech-multiplexed":
+        form = forms.DefineMultiplexedSamplesForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
+
+    return form.process_request()
     
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST", "GET"])
@@ -136,40 +169,6 @@ def barcode_match(current_user: models.User, seq_request_id: int, uuid: str):
         raise exceptions.NoPermissionsException()
 
     return forms.BarcodeMatchForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
-
-
-@wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
-def parse_assay_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
-        raise exceptions.NoPermissionsException()
-        
-    return forms.SelectAssayForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
-
-
-@wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
-def parse_table(current_user: models.User, seq_request_id: int, uuid: str, form_type: Literal["pooled", "raw", "tech", "tech-multiplexed"]):
-    if form_type not in ["pooled", "raw", "tech", "tech-multiplexed"]:
-        raise exceptions.BadRequestException()
-    
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
-        raise exceptions.NoPermissionsException()
-    
-    if form_type == "pooled":
-        form = forms.PooledLibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
-    elif form_type == "raw":
-        form = forms.LibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
-    elif form_type == "tech":
-        form = forms.DefineSamplesForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
-    elif form_type == "tech-multiplexed":
-        form = forms.DefineMultiplexedSamplesForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
-
-    return form.process_request()
 
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])

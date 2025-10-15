@@ -392,6 +392,20 @@ def update_index_kits(
         pd.concat(res).to_pickle(kits_path / f"{type.id}.pkl")
 
 
+def get_index_kit_barcode_map(
+    app_data_folder: Path, types: list[categories.IndexTypeEnum] = categories.IndexType.as_list()
+) -> pd.DataFrame:
+    
+    barcodes = pd.DataFrame(columns=["kit_id", "kit", "sequence_i7", "sequence_i5"])
+
+    for type in types:
+        path = app_data_folder / "kits" / f"{type.id}.pkl"
+        if path.exists() and path.is_file():
+            barcodes = pd.concat([barcodes, pd.read_pickle(path)])
+        
+    return barcodes.reset_index(drop=True)
+
+
 def is_browser_friendly(mimetype: str | None) -> bool:
     if not mimetype:
         return False

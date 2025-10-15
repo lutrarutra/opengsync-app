@@ -8,7 +8,7 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import PoolType, SeqRequestStatus, LibraryStatus, LibraryType, IndexType
+from opengsync_db.categories import PoolType, SeqRequestStatus, LibraryStatus, LibraryType, IndexType, BarcodeOrientation
 
 from .... import logger, db, tools
 from ....core.RunTime import runtime
@@ -107,7 +107,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                         if len(df) != 1:
                             logger.warning(f"{self.uuid}: Expected 1 barcode for index type {library.index_type}, found {len(df)}.")
                         if df["sequence_i5"].isna().all():
-                            index_type = IndexType.SINGLE_INDEX
+                            index_type = IndexType.SINGLE_INDEX_I7
                         else:
                             index_type = IndexType.DUAL_INDEX
             else:
@@ -140,6 +140,15 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 if pool == "x" and pd.isna(row["sequence_i7"]):
                     continue
                 
+                orientation = None
+                if pd.notna(row["orientation_i7_id"]):
+                    orientation = BarcodeOrientation.get(row["orientation_id"])
+
+                if orientation is not None and pd.notna(row["orientation_i5_id"]):
+                    if orientation.id != row["orientation_i5_id"]:
+                        logger.error(f"{self.uuid}: Conflicting orientations for i7 and i5 in library {row['library_name']}.")
+                        raise ValueError("Conflicting orientations for i7 and i5.")
+                
                 library = db.libraries.add_index(
                     library_id=library.id,
                     index_kit_i7_id=int(row["kit_i7_id"]) if pd.notna(row["kit_i7_id"]) else None,
@@ -148,6 +157,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                     name_i5=row["name_i5"] if pd.notna(row["name_i5"]) else None,
                     sequence_i7=row["sequence_i7"],
                     sequence_i5=row["sequence_i5"] if pd.notna(row["sequence_i5"]) else None,
+                    orientation=orientation,
                 )
         
         if self.lab_prep.prep_file is not None:

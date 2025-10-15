@@ -9,7 +9,7 @@ from sqlalchemy.orm import aliased
 from ... import models, PAGE_LIMIT
 from ...categories import (
     LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus,
-    AccessType, AccessTypeEnum, AssayTypeEnum, IndexTypeEnum, MUXTypeEnum, LibraryType
+    AccessType, AccessTypeEnum, AssayTypeEnum, IndexTypeEnum, MUXTypeEnum, BarcodeOrientationEnum
 )
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -398,6 +398,7 @@ class LibraryBP(DBBlueprint):
         self, library_id: int,
         index_kit_i7_id: Optional[int], name_i7: Optional[str], sequence_i7: Optional[str],
         index_kit_i5_id: Optional[int], name_i5: Optional[str], sequence_i5: Optional[str],
+        orientation: Optional[BarcodeOrientationEnum],
         flush: bool = True
     ) -> models.Library:
 
@@ -419,7 +420,8 @@ class LibraryBP(DBBlueprint):
             name_i5=name_i5,
             sequence_i5=sequence_i5,
             index_kit_i7_id=index_kit_i7_id,
-            index_kit_i5_id=index_kit_i5_id
+            index_kit_i5_id=index_kit_i5_id,
+            _orientation=orientation.id if orientation is not None else None,
         ))
 
         self.db.session.add(library)
@@ -514,6 +516,7 @@ class LibraryBP(DBBlueprint):
                     index_kit_i5_id=index.index_kit_i5_id,
                     name_i5=index.name_i5,
                     sequence_i5=index.sequence_i5,
+                    orientation=index.orientation,
                 )
 
         return cloned_library

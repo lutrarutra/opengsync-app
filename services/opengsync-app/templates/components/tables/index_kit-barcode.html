@@ -8,9 +8,9 @@
                 <th scope="col" class="col-1">ID</th>
                 <th scope="col" class="col-2">Adapter</th>
                 <th scope="col" class="col-1">Well</th>
-                {% if index_kit.type == IndexType.SINGLE_INDEX %}
+                {% if index_kit.type == IndexType.SINGLE_INDEX_I7 %}
                 <th scope="col" class="col-2">Index i7</th>
-                {% elif index_kit.type == IndexType.DUAL_INDEX %}
+                {% elif index_kit.type in [IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX] %}
                 <th scope="col" class="col-2">Index i7</th>
                 <th scope="col" class="col-2">Index i5</th>
                 {% elif index_kit.type == IndexType.TENX_ATAC_INDEX %}
@@ -27,11 +27,11 @@
                 <th scope="row">{{ adapter.id }}</th>
                 <td>{{ adapter.name }}</td>
                 <td>{{ adapter.plate_well }}</td>
-                {% if index_kit.type == IndexType.SINGLE_INDEX %}
+                {% if index_kit.type == IndexType.SINGLE_INDEX_I7 %}
                 <td>{{ adapter.barcodes_i7[0].sequence }}</td>
-                {% elif index_kit.type == IndexType.DUAL_INDEX %}
-                <td>{{ adapter.barcodes_i7[0].sequence }}</td>
-                <td>{{ adapter.barcodes_i5[0].sequence }}</td>
+                {% elif index_kit.type in [IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX] %}
+                <td>{{ adapter.barcodes_i7[0].sequence or "" }}</td>
+                <td>{{ adapter.barcodes_i5[0].sequence or ""}}</td>
                 {% elif index_kit.type == IndexType.TENX_ATAC_INDEX %}
                 <td>{{ adapter.barcodes_i7[0].sequence }}</td>
                 <td>{{ adapter.barcodes_i7[1].sequence }}</td>

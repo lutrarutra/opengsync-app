@@ -45,7 +45,6 @@
 {%- endmacro %}
 
 {% macro spreadsheet_input(element, target_element_id=none, submit_btn_id=none, height=none, post_request_kwargs={}) -%}
-{% set uid = uuid().replace("-", "") %}
 <div class="spreadsheet-container" {% if height %}style="height: {{ height }};"{% endif %}>
     <div class="invalid-feedback-container">
         {% if element._errors %}
@@ -58,7 +57,7 @@
     <div id="{{ element.id }}" class="spreadsheet-grid"></div>
 </div>
 <script>
-    var spread_sheet_{{ uid }} = jspreadsheet(document.getElementById("{{ element.id }}"), {
+    var spread_sheet = jspreadsheet(document.getElementById("{{ element.id }}"), {
         data: {{ element.raw_data if element.raw_data else "[[null]]" }},
         columns: [
             {% for col in element.columns.values() %}
@@ -84,7 +83,7 @@
 
     {% if submit_btn_id %}
     $("#{{ submit_btn_id }}").on("click", function() {
-        var data = spread_sheet_{{ uid }}.getData();
+        var data = spread_sheet.getData();
 
         htmx.ajax("POST", "{{ element.post_url | safe }}", {
             "target": "#{{ target_element_id }}",

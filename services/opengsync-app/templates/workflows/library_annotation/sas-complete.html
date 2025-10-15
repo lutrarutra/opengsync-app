@@ -97,14 +97,22 @@
                                 {% for _, barcode_row in barcode_table[barcode_table["library_name"] == row["library_name"]].iterrows() %}
                                 {% if notna(barcode_row["name_i7"]) %}
                                     {% if barcode_row["name_i7"] == barcode_row["name_i5"] or isna(barcode_row["name_i5"]) %}
-                                    <span class="badge index-badge">{{ barcode_row["name_i7"] }}</span>
+                                    <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}">
+                                        {{ barcode_row["name_i7"] }}
+                                    </span>
                                     {% else %}
-                                    <span class="badge index-badge">{{ barcode_row["name_i7"] }}+{{ barcode_row["name_i5"] }}</span>
+                                    <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}">
+                                        {{ barcode_row["name_i7"] }}+{{ barcode_row["name_i5"] }}
+                                    </span>
                                     {% endif %}
                                 {% else %}
-                                <span class="badge index-badge">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
+                                <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}">
+                                    {{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}
+                                </span>
                                 {% endif %}
-                                <span class="badge index-badge" style="display: none;">{{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}</span>
+                                <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}" style="display: none;">
+                                    {{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}
+                                </span>
                                 {% endfor %}
                             </td>
                             {% endif %}
@@ -197,10 +205,10 @@
                                 {% for _, row in df.iterrows() %}
                                 {% if isna(row["library_name"]) %}
                                 {% for library in form.abc_libraries %}
-                                <span class="badge" >{{ library }}</span>
+                                <span class="badge">{{ library }}</span>
                                 {% endfor %}
                                 {% else %}
-                                <span class="badge" >{{ row["library_name"] }}</span>
+                                <span class="badge">{{ row["library_name"] }}</span>
                                 {% endif %}
                                 {% endfor %}
                             </td>

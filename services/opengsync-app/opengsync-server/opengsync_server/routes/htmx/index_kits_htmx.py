@@ -144,7 +144,7 @@ def render_table(index_kit_id: int):
         else:
             width = 150
         columns.append(TextColumn(col, col, width, max_length=1000))
-        
+
     return make_response(
         render_template(
             "components/itable.html", index_kit=index_kit, columns=columns,
@@ -217,15 +217,18 @@ def edit_barcodes(current_user: models.User, index_kit_id: int):
     if (index_kit := db.index_kits.get(index_kit_id)) is None:
         raise exceptions.NotFoundException()
     
-    if index_kit.type == IndexType.TENX_ATAC_INDEX:
-        cls = forms.EditKitTENXATACBarcodesForm
-    elif index_kit.type == IndexType.DUAL_INDEX:
-        cls = forms.EditDualIndexKitBarcodesForm
-    elif index_kit.type == IndexType.SINGLE_INDEX:
-        cls = forms.EditSingleIndexKitBarcodesForm
-    else:
-        logger.error(f"Unknown index kit type {index_kit.type}")
-        raise exceptions.BadRequestException()
+    match index_kit.type:
+        case IndexType.TENX_ATAC_INDEX:
+            cls = forms.workflows.edit_kit_barcodes.EditKitTENXATACBarcodesForm
+        case IndexType.DUAL_INDEX:
+            cls = forms.workflows.edit_kit_barcodes.EditDualIndexKitBarcodesForm
+        case IndexType.SINGLE_INDEX_I7:
+            cls = forms.workflows.edit_kit_barcodes.EditSingleIndexKitBarcodesForm
+        case IndexType.COMBINATORIAL_DUAL_INDEX:
+            cls = forms.workflows.edit_kit_barcodes.EditCombinatorialKitBarcodesForm
+        case _:
+            logger.error(f"Unknown index kit type {index_kit.type}")
+            raise exceptions.BadRequestException()
     
     if request.method == "GET":
         return cls(index_kit=index_kit).make_response()

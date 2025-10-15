@@ -134,6 +134,18 @@ input[type=number] {
     }
 }
 
+.badge.badge-success {
+    background-color: $cemm-green;
+}
+
+.badge.badge-warning {
+    background-color: $cemm-yellow;
+}
+
+.badge.badge-danger {
+    background-color: $cemm-red;
+}
+
 .row {
     --bs-gutter-x: 0 !important;
 }

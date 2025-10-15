@@ -579,7 +579,29 @@ class PandasBP(DBBlueprint):
                         else:
                             barcode_data["name_i5"].append(row["names"][i])
                             barcode_data["sequence_i5"].append(row["sequences"][i])
-            elif index_kit.type == categories.IndexType.SINGLE_INDEX:
+            elif index_kit.type == categories.IndexType.COMBINATORIAL_DUAL_INDEX:
+                barcode_data = {
+                    "adapter_id": [],
+                    "name_i7": [],
+                    "sequence_i7": [],
+                    "name_i5": [],
+                    "sequence_i5": [],
+                }
+                for _, row in df.iterrows():
+                    barcode_data["adapter_id"].append(row["adapter_id"])
+
+                    if row["types"][0] == categories.BarcodeType.INDEX_I7:
+                        barcode_data["name_i7"].append(row["names"][0])
+                        barcode_data["sequence_i7"].append(row["sequences"][0])
+                        barcode_data["name_i5"].append(None)
+                        barcode_data["sequence_i5"].append(None)
+                    else:
+                        barcode_data["name_i7"].append(None)
+                        barcode_data["sequence_i7"].append(None)
+                        barcode_data["name_i5"].append(row["names"][0])
+                        barcode_data["sequence_i5"].append(row["sequences"][0])
+
+            elif index_kit.type == categories.IndexType.SINGLE_INDEX_I7:
                 barcode_data = {
                     "well": [],
                     "adapter_id": [],

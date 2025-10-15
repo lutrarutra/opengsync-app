@@ -33,3 +33,4 @@ from .KitType import KitType, KitTypeEnum  # noqa: F401
 from .ProjectStatus import ProjectStatus, ProjectStatusEnum  # noqa: F401
 from .MUXType import MUXType, MUXTypeEnum  # noqa: F401
 from .DataPathType import DataPathType, DataPathTypeEnum  # noqa: F401
+from .BarcodeOrientation import BarcodeOrientation, BarcodeOrientationEnum  # noqa: F401
