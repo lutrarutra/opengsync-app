@@ -147,6 +147,7 @@ class DBHandler():
     def commit(self) -> None:
         if self._session is not None:
             self._session.commit()
+            self.__needs_commit = False
         else:
             raise Exception("Session is not open, cannot commit changes.")
 
