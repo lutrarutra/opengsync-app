@@ -39,6 +39,9 @@ def select():
         "library_name": [],
         "sequence_i7": [],
         "sequence_i5": [],
+        "kit_i7_id": [],
+        "kit_i5_id": [],
+        "index_type_id": [],
     }
 
     for _, row in form.library_table.iterrows():
@@ -51,6 +54,9 @@ def select():
             library_data["library_name"].append(library.name)
             library_data["sequence_i7"].append(index.sequence_i7)
             library_data["sequence_i5"].append(index.sequence_i5)
+            library_data["kit_i7_id"].append(index.index_kit_i7_id)
+            library_data["kit_i5_id"].append(index.index_kit_i5_id)
+            library_data["index_type_id"].append(index.type.id)
 
     for _, row in form.pool_table.iterrows():
         if (pool := db.pools.get(int(row["id"]))) is None:
@@ -63,6 +69,9 @@ def select():
                 library_data["library_name"].append(library.name)
                 library_data["sequence_i7"].append(index.sequence_i7)
                 library_data["sequence_i5"].append(index.sequence_i5)
+                library_data["kit_i7_id"].append(index.index_kit_i7_id)
+                library_data["kit_i5_id"].append(index.index_kit_i5_id)
+                library_data["index_type_id"].append(index.type.id)
 
     for _, row in form.lane_table.iterrows():
         if (lane := db.lanes.get(int(row["id"]))) is None:
@@ -76,6 +85,9 @@ def select():
                     library_data["library_name"].append(library.name)
                     library_data["sequence_i7"].append(index.sequence_i7)
                     library_data["sequence_i5"].append(index.sequence_i5)
+                    library_data["kit_i7_id"].append(index.index_kit_i7_id)
+                    library_data["kit_i5_id"].append(index.index_kit_i5_id)
+                    library_data["index_type_id"].append(index.type.id)
         
     libraries_df = pd.DataFrame(library_data)
     return wff.CheckBarcodeClashesForm(libraries_df).process_request()

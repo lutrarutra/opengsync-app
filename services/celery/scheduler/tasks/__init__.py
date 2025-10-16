@@ -24,7 +24,7 @@ logger.add(logdir / f"{date}.err", level="ERROR", colorize=False, rotation="1 da
 
 
 def connect() -> DBHandler:
-    db = DBHandler(logger=logger)
+    db = DBHandler(logger=logger, auto_commit=True)
     db.connect(
         user=os.environ["POSTGRES_USER"],
         password=os.environ["POSTGRES_PASSWORD"],

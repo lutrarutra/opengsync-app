@@ -13,6 +13,7 @@ def main():
     )
 
     db.create_tables()
+    db.commit()
 
 
 if __name__ == "__main__":
