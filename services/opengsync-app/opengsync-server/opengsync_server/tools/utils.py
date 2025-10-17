@@ -1,4 +1,4 @@
-from typing import Optional, Union, TypeVar, Sequence
+from typing import Optional, Union, TypeVar, Sequence, Literal
 from pathlib import Path
 import itertools
 import json
@@ -39,6 +39,11 @@ def to_identifier(n: int) -> str:
 
     return out
 
+def reverse_complement(seq: str | None) -> str:
+    if pd.isna(seq):
+        return ""
+    complement = {"A": "T", "T": "A", "C": "G", "G": "C", "N": "N", "+": "+"}
+    return "".join(complement.get(base, base) for base in reversed(seq))
 
 def _hamming_distance_shared_bases(seq1: str, seq2: str) -> int:
     """Calculate Hamming distance using only matching positions (shortest shared length)."""
@@ -46,15 +51,73 @@ def _hamming_distance_shared_bases(seq1: str, seq2: str) -> int:
     return sum(c1 != c2 and c1 != 'N' and c2 != 'N' for c1, c2 in zip(seq1[:min_len], seq2[:min_len]))
 
 
-def min_hamming_distances(seq_list: list[str]) -> list[int]:
+def min_hamming_distances(seq_list: list[str], rc: Literal["i7", "i5", "both", "i7i5"] | None = None) -> list[int]:
     distances = []
     for i, ref in enumerate(seq_list):
+        match rc:
+            case "i7":
+                ref_i7, ref_i5 = ref.split("+") if "+" in ref else (ref, "")
+                ref = reverse_complement(ref_i7) + "+" + ref_i5
+            case "i5":
+                ref_i7, ref_i5 = ref.split("+") if "+" in ref else (ref, "")
+                ref = ref_i7 + "+" + reverse_complement(ref_i5)
+            case "both":
+                ref = reverse_complement(ref)
+            case "i7i5":
+                ref_i7, ref_i5 = ref.split("+") if "+" in ref else (ref, "")
+                ref = reverse_complement(ref_i7) + "+" + reverse_complement(ref_i5)
+            case _:
+                pass
         other_seqs = seq_list[:i] + seq_list[i + 1:]
         distances.append(min(_hamming_distance_shared_bases(ref, other) for other in other_seqs))
     return distances
 
 
-def check_indices(df: pd.DataFrame, groupby: str | None = None) -> pd.DataFrame:
+def __get_combined_index(df: pd.DataFrame, indices: list[str]) -> pd.Series:
+    combined_index = pd.Series([""] * len(df), index=df.index, dtype="string")
+    for index in indices:
+        df[index] = df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
+        _max = int(df[index].str.len().max())
+        combined_index += "+" + df[index].str.ljust(_max, "N")
+
+    return combined_index.str.lstrip("+")
+
+def __check_indices(df: pd.DataFrame, indices: list[str], groupby: str | list[str] | None = None, rc: Literal["i7", "i5", "both", "i7i5"] | None = None) -> pd.DataFrame:
+    df["combined_index"] = ""
+    df["min_hamming_bases"] = None
+
+    if len(df) > 1:
+        if groupby is None:
+            df["combined_index"] = __get_combined_index(df, indices)     
+            if "sequence_i5" in df.columns:
+                same_barcode_in_different_indices = df["sequence_i7"] == df["sequence_i5"]
+                df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
+            
+            df["min_hamming_bases"] = df["combined_index"].apply(lambda x: len(x) - x.count("N") - x.count("+")).min()
+            df["min_hamming_bases"] = min_hamming_distances(df["combined_index"].tolist(), rc=rc)
+        else:
+            for _, _df in df.groupby(groupby):             
+                _df["combined_index"] = __get_combined_index(_df, indices)
+                if "sequence_i5" in _df.columns:
+                    same_barcode_in_different_indices = _df["sequence_i7"] == _df["sequence_i5"]
+                    _df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in i7 & i5 indices"
+
+                if len(_df) < 2:
+                    _df["min_hamming_bases"] = _df["combined_index"].apply(lambda x: len(x) - x.count("N") - x.count("+")).min()
+                else:
+                    _df["min_hamming_bases"] = min_hamming_distances(_df["combined_index"].tolist(), rc=rc)
+                
+                df.loc[_df.index, "combined_index"] = _df["combined_index"]
+                df.loc[_df.index, "min_hamming_bases"] = _df["min_hamming_bases"]
+    else:
+        df["combined_index"] = __get_combined_index(df, indices)
+        df["min_hamming_bases"] = df["combined_index"].apply(lambda x: len(x) - x.count("N") - x.count("+")).min()
+        
+    return df
+
+
+def check_indices(df: pd.DataFrame, groupby: str | list[str] | None = None) -> pd.DataFrame:
+    df = df.copy()
     df["error"] = None
     df["warning"] = None
 
@@ -62,52 +125,14 @@ def check_indices(df: pd.DataFrame, groupby: str | None = None) -> pd.DataFrame:
     if "sequence_i5" in df.columns and not df["sequence_i5"].isna().all():
         indices.append("sequence_i5")
 
-    df["combined_index"] = ""
-    df["min_hamming_bases"] = 5  # FIXME: This is a placeholder value due to bug
-    if len(df) > 1:
-        if groupby is None:
-            for index in indices:
-                df[index] = df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
-                _max = int(df[index].str.len().max())
-                df["combined_index"] += df[index].str.ljust(_max, "N")
-            
-            if "sequence_i5" in df.columns:
-                same_barcode_in_different_indices = df["sequence_i7"] == df["sequence_i5"]
-                df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
+    df = __check_indices(df, indices=indices, groupby=groupby)
 
-            df["min_hamming_bases"] = min_hamming_distances(df["combined_index"].tolist())
-        else:
-            for _, _df in df.groupby(groupby):
-                for index in indices:
-                    _df[index] = _df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
-                    _max = int(_df[index].str.len().max())
-                    _df["combined_index"] += _df[index].str.ljust(_max, "N")
-                if "sequence_i5" in _df.columns:
-                    same_barcode_in_different_indices = _df["sequence_i7"] == _df["sequence_i5"]
-                    _df.loc[same_barcode_in_different_indices, "warning"] = "Same barcode in different indices"
-
-                if len(_df) < 2:
-                    _df["min_hamming_bases"] = _df["combined_index"].apply(lambda x: len(x) - x.count("N"))
-                else:
-                    _df["min_hamming_bases"] = min_hamming_distances(_df["combined_index"].tolist())
-                
-                df.loc[_df.index, "combined_index"] = _df["combined_index"]
-                df.loc[_df.index, "min_hamming_bases"] = _df["min_hamming_bases"]
-    else:
-        if groupby is None:
-            for index in indices:
-                df[index] = df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
-                _max = int(df[index].str.len().max())
-                df["combined_index"] += df[index].str.ljust(_max, "N")
-        else:
-            for _, _df in df.groupby(groupby):
-                for index in indices:
-                    _df[index] = _df[index].apply(lambda x: x.strip() if pd.notna(x) else "")
-                    _max = int(_df[index].str.len().max())
-                    _df["combined_index"] += _df[index].str.ljust(_max, "N")
-                df.loc[_df.index, "combined_index"] = _df["combined_index"]
-                
-        df["min_hamming_bases"] = df["combined_index"].apply(lambda x: len(x) - x.count("N"))
+    df["rc_i7_min_hamming_bases"] = __check_indices(df.copy(), indices=indices, groupby=groupby, rc="i7")["min_hamming_bases"]
+    
+    if "sequence_i5" in df.columns:
+        df["rc_i5_min_hamming_bases"] = __check_indices(df.copy(), indices=indices, groupby=groupby, rc="i5")["min_hamming_bases"]
+        df["rc_min_hamming_bases"] = __check_indices(df.copy(), indices=indices, groupby=groupby, rc="both")["min_hamming_bases"]
+        df["rc_i7i5_min_hamming_bases"] = __check_indices(df.copy(), indices=indices, groupby=groupby, rc="i7i5")["min_hamming_bases"]
 
     df.loc[df["min_hamming_bases"] < 1, "error"] = "Hamming distance of 0 between barcode combination in two or more libraries."
     df.loc[df["min_hamming_bases"] < 3, "warning"] = "Small hamming distance between barcode combination in two or more libraries."

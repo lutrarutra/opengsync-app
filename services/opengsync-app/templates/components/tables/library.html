@@ -45,10 +45,11 @@
                     )
                 }}
                 <th scope="col" class="col-4">
+                    <span {{ tooltip("Green: Kit ✅️<br> Yellow: Maybe Forward ⚠️<br> Red: idk 🤷‍♂️", category="primary") }}>
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
                         <i class="bi bi-upc-scan"></i>
-                    </a>
+                    </a></span>
                 </th>
             </tr>
         </thead>
