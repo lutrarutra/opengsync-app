@@ -109,6 +109,9 @@ def check_experiment_barcode_clashes(current_user: models.User, experiment_id: i
         "pool": [],
         "sequence_i7": [],
         "sequence_i5": [],
+        "kit_i7_id": [],
+        "kit_i5_id": [],
+        "index_type_id": [],
     }
 
     for lane in experiment.lanes:
@@ -122,6 +125,9 @@ def check_experiment_barcode_clashes(current_user: models.User, experiment_id: i
                     library_data["pool"].append(pool_link.pool.name)
                     library_data["sequence_i7"].append(index.sequence_i7)
                     library_data["sequence_i5"].append(index.sequence_i5)
+                    library_data["kit_i7_id"].append(index.index_kit_i7_id)
+                    library_data["kit_i5_id"].append(index.index_kit_i5_id)
+                    library_data["index_type_id"].append(index.type.id)
 
     library_df = pd.DataFrame(library_data)
     return wff.CheckBarcodeClashesForm(library_df, groupby="lane").process_request()
@@ -142,6 +148,9 @@ def check_seq_request_barcode_clashes(current_user: models.User, seq_request_id:
         "pool_id": [],
         "sequence_i7": [],
         "sequence_i5": [],
+        "kit_i7_id": [],
+        "kit_i5_id": [],
+        "index_type_id": [],
     }
 
     for pool in seq_request.pools:
@@ -153,6 +162,10 @@ def check_seq_request_barcode_clashes(current_user: models.User, seq_request_id:
                 library_data["pool_id"].append(pool.id)
                 library_data["sequence_i7"].append(index.sequence_i7)
                 library_data["sequence_i5"].append(index.sequence_i5)
+                library_data["kit_i7_id"].append(index.index_kit_i7_id)
+                library_data["kit_i5_id"].append(index.index_kit_i5_id)
+                library_data["index_type_id"].append(index.type.id)
+
             
     library_df = pd.DataFrame(library_data)
     return wff.CheckBarcodeClashesForm(library_df, groupby="pool").process_request()
