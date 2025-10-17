@@ -168,6 +168,14 @@ def before_request():
     session["from_url"] = request.referrer
 
 
-@wrappers.page_route(runtime.app, login_required=False)
+@wrappers.api_route(runtime.app, login_required=False)
 def status():
+    logger.info(request.headers)
+    logger.info(f"X-Forwarded-Prefix: {request.headers.get('X-Forwarded-Prefix')}")
+    logger.info(f"X-Forwarded-Prefix: {request.headers.get('X-Forwarded-Server')}")
+    logger.info(url_for("status"))
+    logger.info(url_for("projects_page.projects"))
+    logger.info(url_for("projects_page.projects", _external=True))
+    logger.info(url_for('static', filename='images/favicon.svg'))
+    logger.info(url_for("static", filename='images/favicon.svg', _external=True))
     return make_response("OK", 200)

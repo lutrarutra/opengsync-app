@@ -86,7 +86,7 @@ def _route_decorator(
                     args = request.args
                     sorted_args = sorted((k, v) for k, v in args.items())
                     query_string = "?" + "&".join(f"{k}={v}" for k, v in sorted_args)
-                key = f"view/{user_id}{request.path}{query_string}"
+                key = f"{request.headers.get('X-Forwarded-Prefix', '/')}view/{user_id}{request.path}{query_string}"
                 return key
             
             def insider_cache_key() -> str:
@@ -97,13 +97,18 @@ def _route_decorator(
                     args = request.args
                     sorted_args = sorted((k, v) for k, v in args.items())
                     query_string = "?" + "&".join(f"{k}={v}" for k, v in sorted_args)
-                key = f"view/insider{request.path}{query_string}"
+
+                key = f"{request.headers.get('X-Forwarded-Prefix', '/')}view/insider{request.path}{query_string}"
                 return key
-            
+
+            def default_cache_key() -> str:
+                return f"{request.headers.get('X-Forwarded-Prefix', '/')}view/%s"
+
+
             fnc = route_cache.cached(
                 timeout=cache_timeout_seconds,
                 query_string=cache_query_string if cache_type == "global" else False,
-                key_prefix=user_cache_key if cache_type == "user" else insider_cache_key if cache_type == "insider" else "view/%s",  # type: ignore
+                key_prefix=user_cache_key if cache_type == "user" else insider_cache_key if cache_type == "insider" else default_cache_key,  # type: ignore
                 **(cache_kwargs or {})
             )(fnc)
 

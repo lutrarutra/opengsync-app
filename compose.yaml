@@ -122,7 +122,7 @@ services:
             TZ: ${TIMEZONE}
             OPENGSYNC_PORT: ${OPENGSYNC_PORT}
             OPENGSYNC_SERVER_NAME: ${OPENGSYNC_SERVER_NAME}
-        command: /bin/bash -c "envsubst < /etc/nginx/conf.d/conf.template | sed -e 's/§/$/g' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+        command: /bin/bash -c "nginx -g 'daemon off;'"
 
     redis-cache:
         user: "${USER}:${GROUP}"
