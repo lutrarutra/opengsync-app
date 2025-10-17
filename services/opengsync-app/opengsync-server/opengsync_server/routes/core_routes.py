@@ -4,11 +4,9 @@ from flask import (
     render_template,
     request,
     session,
-    make_response,
-    url_for
+    make_response
 )
 from flask_htmx import make_response as make_htmx_response
-from flask_limiter.util import get_remote_address
 
 from opengsync_db import models
 
@@ -47,7 +45,7 @@ if runtime.app.debug:
         wget_command = render_template("snippets/wget.sh.j2", token=token)
         style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
 
-        browse_link = url_for("file_share.browse", token=token, _external=True)
+        browse_link = runtime.url_for("file_share.browse", token=token, _external=True)
         seq_requests = db.seq_requests.find(project_id=project.id, limit=None, sort_by="id")[0]
         experiments = db.experiments.find(limit=None, sort_by="id")[0]
         
@@ -170,12 +168,4 @@ def before_request():
 
 @wrappers.api_route(runtime.app, login_required=False)
 def status():
-    logger.info(request.headers)
-    logger.info(f"X-Forwarded-Prefix: {request.headers.get('X-Forwarded-Prefix')}")
-    logger.info(f"X-Forwarded-Prefix: {request.headers.get('X-Forwarded-Server')}")
-    logger.info(url_for("status"))
-    logger.info(url_for("projects_page.projects"))
-    logger.info(url_for("projects_page.projects", _external=True))
-    logger.info(url_for('static', filename='images/favicon.svg'))
-    logger.info(url_for("static", filename='images/favicon.svg', _external=True))
     return make_response("OK", 200)
