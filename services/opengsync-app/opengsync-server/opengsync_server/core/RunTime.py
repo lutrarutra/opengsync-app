@@ -25,11 +25,9 @@ class RunTime:
         internal_path = furl_for(endpoint, **values)
 
         if external:
-            return f"{self.app.external_base_url}{internal_path}"
+            return f"https://{self.app.external_base_url}{internal_path}"
         
         return internal_path
             
-
-
 runtime = RunTime()
     
