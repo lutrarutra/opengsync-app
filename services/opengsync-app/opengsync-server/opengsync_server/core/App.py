@@ -52,6 +52,7 @@ class App(Flask):
     email_domain_white_list: list[str] | None
     secret_key: str
     share_path_mapping: dict[str, str]
+    external_base_url: str | None
     debug: bool
     personalization: dict
 
@@ -65,6 +66,12 @@ class App(Flask):
         self.jinja_env.globals["uuid"] = lambda: str(uuid4())
         log_buffer.set_log_dir(Path(opengsync_config["log_folder"]))
         log_buffer.start()
+
+        if (external_base_url := opengsync_config.get("external_base_url")):
+            from ..core import runtime
+            self.jinja_env.globals["url_for"] = runtime.url_for
+
+        self.external_base_url = external_base_url
 
         self.root_folder = Path(opengsync_config["app_root"])
         self.share_root = Path(opengsync_config["share_root"])

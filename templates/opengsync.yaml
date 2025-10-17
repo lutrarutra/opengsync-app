@@ -16,6 +16,7 @@ email_domain_white_list:
 db:
     lab_protocol_start_number: 1
 
+external_base_url: none
 
 # Make sure these match the paths specified in the docker-compose file
 app_root: "/app"

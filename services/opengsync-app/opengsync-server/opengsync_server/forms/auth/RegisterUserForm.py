@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from flask import flash, url_for, Response, render_template
+from flask import flash, Response, render_template, url_for
 from flask_htmx import make_response
 from wtforms import EmailField, SelectField
 from wtforms.validators import DataRequired, Length, Email, Optional as OptionalValidator
@@ -64,8 +64,7 @@ class RegisterUserForm(HTMXFlaskForm):
         user_role = UserRole.get(self.role.data)
 
         token = models.User.generate_registration_token(email=email, role=user_role, serializer=serializer)
-        logger.debug(user_role)
-        link = url_for("auth_page.register", token=token, _external=True)
+        link = runtime.url_for("auth_page.register", token=token, _external=True)
 
         style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
 

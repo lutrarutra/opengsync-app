@@ -2,7 +2,7 @@ import json
 import smtplib
 import os
 
-from flask import Response, url_for, flash, render_template
+from flask import Response, flash, render_template, url_for
 from flask_htmx import make_response
 from wtforms import StringField, BooleanField, SelectField
 from wtforms.validators import DataRequired
@@ -113,7 +113,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
         wget_command = render_template("snippets/wget.sh.j2", token=share_token.uuid)
         style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
 
-        browse_link = url_for("file_share.browse", token=share_token.uuid, _external=True)
+        browse_link = runtime.url_for("file_share.browse", token=share_token.uuid, _external=True)
 
         library_types = {library.type for library in self.project.libraries}
         tenx_contents = any(set(LibraryType.get_tenx_library_types()).intersection(library_types))

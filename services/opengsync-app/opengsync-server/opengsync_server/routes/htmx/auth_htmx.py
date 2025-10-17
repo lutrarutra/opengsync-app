@@ -72,7 +72,7 @@ def reset_password_email(current_user: models.User, user_id: int):
         raise exceptions.NoPermissionsException()
         
     token = user.generate_reset_token(serializer=serializer)
-    link = url_for("auth_page.reset_password_page", token=token, _external=True)
+    link = runtime.url_for("auth_page.reset_password_page", token=token, _external=True)
 
     try:
         mail_handler.send_email(
