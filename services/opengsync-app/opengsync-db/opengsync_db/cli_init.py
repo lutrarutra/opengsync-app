@@ -11,9 +11,10 @@ def main():
         port=os.environ["POSTGRES_PORT"],
         db=os.environ["POSTGRES_DB"],
     )
-
+    
+    db.open_session()
     db.create_tables()
-    db.commit()
+    db.close_session(commit=True)
 
 
 if __name__ == "__main__":

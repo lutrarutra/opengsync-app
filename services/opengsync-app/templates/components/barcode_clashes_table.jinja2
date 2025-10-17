@@ -11,12 +11,25 @@
             <th scope="col" class="col-2">Pool</th>
             {% endif %}
             <th scope="col" class="col-3">Combined Index <span class="desc">i7 + i5</span></th>
-            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (I1 + I2) in the pool") }}>Hamming Dist.</span></th>
+            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (i7 + i5)") }}>Hamming Dist.</span></th>
+            {% if "rc_min_hamming_bases" in df.columns %}
+            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7 + i5])") }}>RC Dist.</span></th>
+            {% endif %}
+            {% if "rc_i7i5_min_hamming_bases" in df.columns %}
+            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7] + RC[i5])") }}>RC i7+i5 Dist.</span></th>
+            {% endif %}
+            {% if "rc_i7_min_hamming_bases" in df.columns %}
+            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7] + i5)") }}>i7 RC Dist.</span></th>
+            {% endif %}
+            {% if "rc_i5_min_hamming_bases" in df.columns %}
+            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (i5 + RC[i5])") }}>i5 RC Dist.</span></th>
+            {% endif %}
             <th scope="col" class="col-2">
+                <span {{ tooltip("Green: Kit ✅️<br> Yellow: Maybe Forward ⚠️<br> Red: idk 🤷‍♂️", category="primary") }}>
                 Index
                 <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
                     <i class="bi bi-upc-scan"></i>
-                </a>
+                </a></span>
             </th>
         </tr>
     </thead>
@@ -37,11 +50,52 @@
             <td class="index-cell">{{ row["combined_index"] }}</td>
             <td {% if row["min_hamming_bases"] < 1 %}
             class="cemm-red"
-            {% elif row["min_hamming_bases"] < 2 %}
+            {% elif row["min_hamming_bases"] < 3 %}
             class="cemm-yellow"
             {% else %}
             class="cemm-green"
             {% endif %}>{{ row["min_hamming_bases"] }} bp</td>
+            
+            {% if "rc_min_hamming_bases" in df.columns %}
+            <td {% if row["rc_min_hamming_bases"] < 1 %}
+            class="cemm-red"
+            {% elif row["rc_min_hamming_bases"] < 3 %}
+            class="cemm-yellow"
+            {% else %}
+            class="cemm-green"
+            {% endif %}>{{ row["rc_min_hamming_bases"] }} bp</td>
+            {% endif %}
+
+            {% if "rc_i7i5_min_hamming_bases" in df.columns %}
+            <td {% if row["rc_i7i5_min_hamming_bases"] < 1 %}
+            class="cemm-red"
+            {% elif row["rc_i7i5_min_hamming_bases"] < 3 %}
+            class="cemm-yellow"
+            {% else %}
+            class="cemm-green"
+            {% endif %}>{{ row["rc_i7i5_min_hamming_bases"] }} bp</td>
+            {% endif %}
+            
+            {% if "rc_i7_min_hamming_bases" in df.columns %}
+            <td {% if row["rc_i7_min_hamming_bases"] < 1 %}
+            class="cemm-red"
+            {% elif row["rc_i7_min_hamming_bases"] < 3 %}
+            class="cemm-yellow"
+            {% else %}
+            class="cemm-green"
+            {% endif %}>{{ row["rc_i7_min_hamming_bases"] }} bp</td>
+            {% endif %}
+            
+            {% if "rc_i5_min_hamming_bases" in df.columns %}
+            <td {% if row["rc_i5_min_hamming_bases"] < 1 %}
+            class="cemm-red"
+            {% elif row["rc_i5_min_hamming_bases"] < 3 %}
+            class="cemm-yellow"
+            {% else %}
+            class="cemm-green"
+            {% endif %}>{{ row["rc_i5_min_hamming_bases"] }} bp</td>
+            {% endif %}
+
             <td class="barcode-cell">
                 {% if "name_i7" in df.columns and "name_i5" in df.columns %}
                 {% if row["name_i7"] == row["name_i5"] and row["name_i7"] %}

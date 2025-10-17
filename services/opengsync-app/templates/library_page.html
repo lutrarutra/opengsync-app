@@ -175,7 +175,7 @@
             {% for index in library.indices %}
             <div class="row">
                 <div class="row">
-                    {{ metadata_group("Orientation", index.orientation.name, class="col-4") }}
+                    {{ metadata_group("Orientation", index.orientation.name if index.orientation else "", class="col-4") }}
                     {% if index.index_kit_i7_id %}
                     {{ metadata_group_link("Kit i7", index.index_kit_i7.name, url_for("kits_page.index_kit", index_kit_id=index.index_kit_i7_id, from="library@" + library.id | string), class="col-4") }}
                     {% else %}
