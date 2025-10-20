@@ -114,11 +114,11 @@ class ProjectForm(HTMXFlaskForm):
                 raise ValueError(f"Group with id {self.group.selected.data} does not exist.")
             
             if self.project is not None:
-                if db.groups.get_user_affiliation(user_id=self.project.owner_id, group_id=group.id) is None:
+                if not self.project.owner.is_insider() and db.groups.get_user_affiliation(user_id=self.project.owner_id, group_id=group.id) is None:
                     self.group.search_bar.errors = ("Project owner must be part of the group.",)
                     return False
             else:
-                if db.groups.get_user_affiliation(user_id=user.id, group_id=group.id) is None:
+                if not user.is_insider() and db.groups.get_user_affiliation(user_id=user.id, group_id=group.id) is None:
                     self.group.search_bar.errors = ("You must be part of the group.",)
                     return False
                 
@@ -175,6 +175,7 @@ class ProjectForm(HTMXFlaskForm):
     
     def process_request(self, user: models.User) -> Response:
         if not self.validate(user=user):
+            logger.info(self.errors)
             return self.make_response()
         
         if self.project is None:

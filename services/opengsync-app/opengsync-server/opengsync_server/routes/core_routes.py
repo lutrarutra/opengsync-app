@@ -169,3 +169,9 @@ def before_request():
 @wrappers.api_route(runtime.app, login_required=False)
 def status():
     return make_response("OK", 200)
+
+
+@wrappers.api_route(runtime.app, login_required=False)
+def headers():
+    logger.info(request.headers)
+    return make_response("OK", 200)
