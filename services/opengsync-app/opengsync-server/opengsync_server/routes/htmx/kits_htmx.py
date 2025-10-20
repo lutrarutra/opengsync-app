@@ -5,7 +5,8 @@ from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import IndexType, KitType
-from ... import db, forms
+
+from ... import db, forms, logger
 from ...core import wrappers, exceptions
 
 
@@ -21,17 +22,17 @@ def get(page: int = 0):
     if sort_by not in models.IndexKit.sortable_fields:
         raise exceptions.BadRequestException()
     
-    if (type_in := request.args.get("type_id_in")) is not None:
+    if (type_in := request.args.get("kit_type_id_in")) is not None:
         type_in = json.loads(type_in)
         try:
-            type_in = [IndexType.get(int(status)) for status in type_in]
+            type_in = [KitType.get(int(status)) for status in type_in]
         except ValueError:
             raise exceptions.BadRequestException()
     
         if len(type_in) == 0:
             type_in = None
 
-    kits, n_pages = db.kits.find(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, count_pages=True)
+    kits, n_pages = db.kits.find(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, count_pages=True, type_in=type_in)
 
     return make_response(
         render_template(
@@ -54,7 +55,9 @@ def table_query():
     else:
         raise exceptions.BadRequestException()
     
-    if (type_in := request.args.get("type_id_in")) is not None:
+    logger.debug(request.args)
+    
+    if (type_in := request.args.get("kit_type_id_in")) is not None:
         type_in = json.loads(type_in)
         try:
             type_in = [KitType.get(int(status)) for status in type_in]

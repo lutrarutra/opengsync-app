@@ -521,7 +521,7 @@ def check_index_constraints(indices: list[str], must_have_bases: list[str] = ['T
 
 
 def generate_valid_combinations(
-    indices: list[str], additional_indices: list[str], must_have_bases: list[str] = ["A", "G"],
+    indices: list[str], additional_indices: list[str], must_have_bases: list[str] = ["C", "T"],
     max_iterations: int = 100_000, max_suggestions: int = 20, min_samples: int | None = None
 ) -> list[list[str]]:        
     if indices and check_index_constraints(indices, must_have_bases):

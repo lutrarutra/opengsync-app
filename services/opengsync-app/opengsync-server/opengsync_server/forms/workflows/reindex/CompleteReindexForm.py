@@ -4,7 +4,7 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, IndexType
+from opengsync_db.categories import LibraryType, IndexType, BarcodeOrientation
 
 from .... import logger, db  # noqa F401
 from .... import logger, tools, db  # noqa F401
@@ -32,8 +32,15 @@ class CompleteReindexForm(MultiStepForm):
         self.seq_request = seq_request
         self.lab_prep = lab_prep
         self.pool = pool
-        self.barcode_table = tools.check_indices(self.tables["barcode_table"])
         self.library_table = self.tables["library_table"]
+        self.barcode_table = self.tables["barcode_table"]
+        self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
+        self.barcode_table.loc[
+            pd.notna(self.barcode_table["orientation_i7_id"]) &
+            (self.barcode_table["orientation_i7_id"] != self.barcode_table["orientation_i5_id"]),
+            "orientation_id"
+        ] = None
+        self.barcode_table = tools.check_indices(self.barcode_table)
         self.index_col = self.metadata["index_col"]
         self._context["barcode_table"] = self.barcode_table
 
@@ -51,30 +58,23 @@ class CompleteReindexForm(MultiStepForm):
         self.post_url = url_for("reindex_workflow.complete_reindex", uuid=self.uuid, **self.url_context)
 
     def process_request(self) -> Response:
-        for _, row in self.library_table.iterrows():
-            if (library := db.libraries.get(row["library_id"])) is None:
-                logger.error(f"{self.uuid}: Library {row['library_id']} not found")
-                raise ValueError(f"{self.uuid}: Library {row['library_id']} not found")
+        for _, library_row in self.library_table.iterrows():
+            if (library := db.libraries.get(library_row["library_id"])) is None:
+                logger.error(f"{self.uuid}: Library {library_row['library_id']} not found")
+                raise ValueError(f"{self.uuid}: Library {library_row['library_id']} not found")
 
             library = db.libraries.remove_indices(library_id=library.id)
-            df = self.barcode_table[self.barcode_table[self.index_col] == row[self.index_col]].copy()
-
-            seq_i7s = df["sequence_i7"].values
-            seq_i5s = df["sequence_i5"].values
-            kit_i7s = df["kit_i7_id"].values
-            kit_i5s = df["kit_i5_id"].values
-            name_i7s = df["name_i7"].values
-            name_i5s = df["name_i5"].values
+            library_barcodes = self.barcode_table[self.barcode_table[self.index_col] == library_row[self.index_col]].copy()
 
             if library.type == LibraryType.TENX_SC_ATAC:
-                if len(df) != 4:
-                    logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for TENX_SC_ATAC library, found {len(df)}.")
+                if len(library_barcodes) != 4:
+                    logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for TENX_SC_ATAC library, found {len(library_barcodes)}.")
                 index_type = IndexType.TENX_ATAC_INDEX
             else:
-                if df["sequence_i5"].isna().all():
+                if library_barcodes["sequence_i5"].isna().all():
                     index_type = IndexType.SINGLE_INDEX_I7
-                elif df["sequence_i5"].isna().any():
-                    logger.warning(f"{self.uuid}: Mixed index types found for library {df['library_name']}.")
+                elif library_barcodes["sequence_i5"].isna().any():
+                    logger.warning(f"{self.uuid}: Mixed index types found for library {library_row['library_name']}.")
                     index_type = IndexType.DUAL_INDEX
                 else:
                     index_type = IndexType.DUAL_INDEX
@@ -82,15 +82,28 @@ class CompleteReindexForm(MultiStepForm):
             library.index_type = index_type
             db.libraries.update(library)
 
-            for j in range(max(len(seq_i7s), len(seq_i5s))):
+            for _, barcode_row in library_barcodes.iterrows():
+                if int(barcode_row["index_type_id"]) != index_type.id:
+                    logger.error(f"{self.uuid}: Index type mismatch for library {library_row['library_name']}. Expected {index_type}, found {IndexType.get(barcode_row['index_type_id'])}.")
+
+                orientation = None
+                if pd.notna(barcode_row["orientation_i7_id"]):
+                    orientation = BarcodeOrientation.get(int(barcode_row["orientation_i7_id"]))
+
+                if orientation is not None and pd.notna(barcode_row["orientation_i5_id"]):
+                    if orientation.id != int(barcode_row["orientation_i5_id"]):
+                        logger.error(f"{self.uuid}: Conflicting orientations for i7 and i5 in library {library_row['library_name']}.")
+                        raise ValueError("Conflicting orientations for i7 and i5.")
+
                 library = db.libraries.add_index(
                     library_id=library.id,
-                    index_kit_i7_id=int(kit_i7s[j]) if len(kit_i7s) > j and pd.notna(kit_i7s[j]) else None,
-                    index_kit_i5_id=int(kit_i5s[j]) if len(kit_i5s) > j and pd.notna(kit_i5s[j]) else None,
-                    name_i7=name_i7s[j] if len(name_i7s) > j and pd.notna(name_i7s[j]) else None,
-                    name_i5=name_i5s[j] if len(name_i5s) > j and pd.notna(name_i5s[j]) else None,
-                    sequence_i7=seq_i7s[j] if len(seq_i7s) > j and pd.notna(seq_i7s[j]) else None,
-                    sequence_i5=seq_i5s[j] if len(seq_i5s) > j and pd.notna(seq_i5s[j]) else None,
+                    sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,
+                    sequence_i5=barcode_row["sequence_i5"] if pd.notna(barcode_row["sequence_i5"]) else None,
+                    index_kit_i7_id=barcode_row["kit_i7_id"] if pd.notna(barcode_row["kit_i7_id"]) else None,
+                    index_kit_i5_id=barcode_row["kit_i5_id"] if pd.notna(barcode_row["kit_i5_id"]) else None,
+                    name_i7=barcode_row["name_i7"] if pd.notna(barcode_row["name_i7"]) else None,
+                    name_i5=barcode_row["name_i5"] if pd.notna(barcode_row["name_i5"]) else None,
+                    orientation=orientation,
                 )
 
         flash("Libraries Re-Indexed!", "success")
