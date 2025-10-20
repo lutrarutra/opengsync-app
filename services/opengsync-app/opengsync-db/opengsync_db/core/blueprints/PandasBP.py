@@ -732,6 +732,35 @@ class PandasBP(DBBlueprint):
 
             df = pd.concat([df.drop(columns=["attributes"]), expanded], axis=1)
         return df
+    
+    @DBBlueprint.transaction
+    def get_project_seq_requests(self, project_id: int) -> pd.DataFrame:
+        query = sa.select(
+            models.SeqRequest.id.label("seq_request_id"),
+            models.SeqRequest.name.label("seq_request_name"),
+            models.SeqRequest.status_id.label("status_id"),
+            models.Contact.name.label("contact_name"),
+            models.Contact.email.label("contact_email"),
+            models.Contact.phone.label("contact_phone"),
+        )
+
+        query = query.where(
+            sa.exists().where(
+                (models.Sample.project_id == models.Project.id) &
+                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                (models.Library.seq_request_id == models.SeqRequest.id) &
+                (models.Project.id == project_id)
+            )
+        )
+        query = query.join(
+            models.Contact,
+            models.Contact.id == models.SeqRequest.contact_person_id,
+        )
+
+        df = pd.read_sql(query, self.db._engine)
+        df["status"] = df["status_id"].map(categories.SeqRequestStatus.get)  # type: ignore
+        return df
 
     @DBBlueprint.transaction
     def get_project_libraries(self, project_id: int, collapse_lanes: bool = True) -> pd.DataFrame:

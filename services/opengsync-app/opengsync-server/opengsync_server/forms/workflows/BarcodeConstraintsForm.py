@@ -80,7 +80,7 @@ class BarcodeConstraintsForm(HTMXFlaskForm):
             self.kit.search_bar.data = kit.search_name()
             
             if kit.type == IndexType.TENX_ATAC_INDEX:
-                self.spreadsheet.add_general_error("10x ATAC index kits are not supported")
+                self.spreadsheet.add_general_error("10x ATAC index kits are not supported. 10X ATAC kits should be safe!")
                 return False
 
             barcodes_df = db.pd.get_index_kit_barcodes(kit.id, per_index=True)
