@@ -34,10 +34,10 @@
         <tbody>
             {% if current_path.parts %}
             <tr>
-                <td><a href="{{ url_for('browser_page.files', subpath=parent_dir if parent_dir else '', sort_by=sort_by, sort_order=sort_order) }}">../</a></td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
+                <td class="col-6"><a href="{{ url_for('browser_page.files', subpath=parent_dir if parent_dir else '', sort_by=sort_by, sort_order=sort_order) }}">../</a></td>
+                <td class="col-2">-</td>
+                <td class="col-2">-</td>
+                <td class="col-2">-</td>
             </tr>
             {% endif %}
             <tr hx-get="{{ url_for('files_htmx.files', subpath=current_path, sort_by=sort_by, sort_order=sort_order) }}" hx-trigger="intersect once" hx-swap="outerHTML">

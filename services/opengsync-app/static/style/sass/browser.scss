@@ -21,17 +21,13 @@
             z-index: 1;
         }
         tbody {
-            display: block;
             flex: 1;
             overflow-y: auto;
-
+            width: 100%;
             tr {
-                display: flex;
+                display: table;
                 width: 100%;
-            }
-
-            td {
-                flex: 1;
+                table-layout: fixed;
             }
         }
     }
@@ -39,6 +35,10 @@
         padding: 8px;
         text-align: left;
         border-bottom: 1px solid #ddd;
+        overflow-x: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
     }
     th {
         background-color: #f2f2f2;
