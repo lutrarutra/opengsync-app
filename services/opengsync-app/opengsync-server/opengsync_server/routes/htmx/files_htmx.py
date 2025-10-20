@@ -104,7 +104,7 @@ def files(current_user: models.User, subpath: Path = Path(), page: int = 0):
     sort_by = request.args.get("sort_by", "name")
     sort_order = request.args.get("sort_order", "asc" if sort_by == "name" else "desc")
 
-    PAGE_LIMIT = 20
+    PAGE_LIMIT = 50
 
     browser = FileBrowser(runtime.app.share_root, db=db)
     paths = browser.list_contents(
