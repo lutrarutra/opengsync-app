@@ -108,9 +108,10 @@ class ShareProjectDataForm(HTMXFlaskForm):
         self.project.share_token = share_token
         db.projects.update(self.project)
         
-        http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid)
-        sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid)
-        wget_command = render_template("snippets/wget.sh.j2", token=share_token.uuid)
+        outdir = self.project.identifier or "output"
+        http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
+        sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)
+        wget_command = render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
         style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
 
         browse_link = runtime.url_for("file_share.browse", token=share_token.uuid, _external=True)
@@ -131,6 +132,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
             sync_command=sync_command,
             http_command=http_command,
             wget_command=wget_command,
+            outdir=outdir
         )
 
         recipients = [user.email for user in self.selected_users]

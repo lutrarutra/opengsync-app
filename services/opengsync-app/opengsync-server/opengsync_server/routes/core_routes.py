@@ -39,10 +39,11 @@ if runtime.app.debug:
         import premailer
 
         project = db.projects[14]
+        outdir = "outdir"
         token = project.share_token.uuid  # type: ignore
-        http_command = render_template("snippets/rclone-http.sh.j2", token=token)
-        sync_command = render_template("snippets/rclone-sync.sh.j2", token=token)
-        wget_command = render_template("snippets/wget.sh.j2", token=token)
+        http_command = render_template("snippets/rclone-http.sh.j2", token=token, outdir=outdir)
+        sync_command = render_template("snippets/rclone-sync.sh.j2", token=token, outdir=outdir)
+        wget_command = render_template("snippets/wget.sh.j2", token=token, outdir=outdir)
         style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
 
         browse_link = runtime.url_for("file_share.browse", token=token, _external=True)
@@ -62,6 +63,7 @@ if runtime.app.debug:
             http_command=http_command,
             sync_command=sync_command,
             wget_command=wget_command,
+            outdir=outdir
         )
 
         content = premailer.transform(content)

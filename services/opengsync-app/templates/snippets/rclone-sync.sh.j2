@@ -1,6 +1,6 @@
 rclone sync \
     ":webdav,url='{{ url_for("webdav.share", token=token, _external=True) }}':/" \
-    <target path> \
+    {% if outdir is defined %}{{ outdir }}{% else %}output{% endif %} \
     --progress \
     --transfers=8 \
     --checkers=16 \
