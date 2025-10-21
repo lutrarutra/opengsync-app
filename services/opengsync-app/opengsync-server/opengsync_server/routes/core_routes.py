@@ -4,7 +4,8 @@ from flask import (
     render_template,
     request,
     session,
-    make_response
+    make_response,
+    jsonify
 )
 from flask_htmx import make_response as make_htmx_response
 

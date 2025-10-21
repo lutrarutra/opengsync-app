@@ -1,0 +1,1 @@
+from .shares import shares_api_bp  # noqa: F401
