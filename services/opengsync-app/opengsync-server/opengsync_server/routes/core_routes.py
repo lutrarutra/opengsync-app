@@ -4,7 +4,8 @@ from flask import (
     render_template,
     request,
     session,
-    make_response
+    make_response,
+    jsonify
 )
 from flask_htmx import make_response as make_htmx_response
 
@@ -170,4 +171,4 @@ def before_request():
 
 @wrappers.api_route(runtime.app, login_required=False)
 def status():
-    return make_response("OK", 200)
+    return jsonify({"status": "OK"}), 200

@@ -51,6 +51,9 @@ def _route_decorator(
     login_required: bool,
     debug: bool,
     strict_slashes: bool,
+    arg_params: list[str],
+    form_params: list[str],
+    json_params: list[str],
     response_handler: Callable[[Exception], Any],
     cache_timeout_seconds: int | None,
     cache_query_string: bool,
@@ -64,7 +67,7 @@ def _route_decorator(
     from .. import route_cache, flash_cache, limiter
 
     def decorator(fnc: Callable[..., Any]) -> Response:
-        routes, current_user_required = rt.infer_route(fnc, base=route)
+        routes, current_user_required, params = rt.infer_route(fnc, base=route, arg_params=arg_params, form_params=form_params, json_params=json_params)
 
         match current_user_required:
             case "required":
@@ -149,12 +152,11 @@ def _route_decorator(
 
             rollback = False
             try:
-                if (_args := {k: v for k, v in request.args.items() if k.startswith("_")}):
-                    try:
-                        _args = rt.validate_arguments(_fnc, _args)
-                    except ValueError as e:
-                        raise serv_exceptions.BadRequestException("Invalid query parameters") from e
-                    kwargs |= _args
+                try:
+                    kwargs |= rt.validate_arguments(_fnc, request)
+                except ValueError as e:
+                    raise serv_exceptions.BadRequestException("Invalid query parameters") from e
+                logger.debug(kwargs)
                 return _fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
                 rollback = db.needs_commit if db is not None else False
@@ -312,6 +314,9 @@ def page_route(
     db: DBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
+    arg_params: list[str] = [],
+    form_params: list[str] = [],
+    json_params: list[str] = [],
     cache_timeout_seconds: int | None = None,
     cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
@@ -326,6 +331,9 @@ def page_route(
         route=route,
         methods=methods,
         db=db,
+        arg_params=arg_params,
+        form_params=form_params,
+        json_params=json_params,
         login_required=login_required,
         debug=debug,
         strict_slashes=strict_slashes,
@@ -347,6 +355,9 @@ def htmx_route(
     db: DBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
+    arg_params: list[str] = [],
+    form_params: list[str] = [],
+    json_params: list[str] = [],
     cache_timeout_seconds: int | None = None,
     cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
@@ -361,6 +372,9 @@ def htmx_route(
         route=route,
         methods=methods,
         db=db,
+        arg_params=arg_params,
+        form_params=form_params,
+        json_params=json_params,
         login_required=login_required,
         debug=debug,
         strict_slashes=strict_slashes,
@@ -382,6 +396,9 @@ def api_route(
     db: DBHandler | None = None,
     login_required: bool = False,
     debug: bool = False,
+    arg_params: list[str] = [],
+    form_params: list[str] = [],
+    json_params: list[str] = [],
     cache_timeout_seconds: int | None = None,
     cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
@@ -396,6 +413,9 @@ def api_route(
         route=route,
         methods=methods,
         db=db,
+        arg_params=arg_params,
+        form_params=form_params,
+        json_params=json_params,
         login_required=login_required,
         debug=debug,
         strict_slashes=strict_slashes,
@@ -417,6 +437,9 @@ def resource_route(
     db: DBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
+    arg_params: list[str] = [],
+    form_params: list[str] = [],
+    json_params: list[str] = [],
     cache_timeout_seconds: int | None = None,
     cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
@@ -431,6 +454,9 @@ def resource_route(
         route=route,
         methods=methods,
         db=db,
+        arg_params=arg_params,
+        form_params=form_params,
+        json_params=json_params,
         login_required=login_required,
         debug=debug,
         strict_slashes=strict_slashes,
