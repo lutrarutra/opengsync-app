@@ -51,7 +51,7 @@
                     context_menu([
                         {"type": "copy", "value": pool.name, "label": "Copy Name"},
                         {"type": "hxdelete", "label": "Remove Pool", "disabled": false if experiment.status == ExperimentStatus.DRAFT else true, "config": {
-                            "url": url_for('experiments_htmx.remove_pool', experiment_id=experiment.id, _pool_id=pool.id, sort_by=sort_by, sort_order=sort_order),
+                            "url": url_for('experiments_htmx.remove_pool', experiment_id=experiment.id, pool_id=pool.id, sort_by=sort_by, sort_order=sort_order),
                             "target": "#experiment-pool-table",
                             "title": "Remove {pool.name} from {experiment.name}?".format(pool=pool, experiment=experiment)
                         },}

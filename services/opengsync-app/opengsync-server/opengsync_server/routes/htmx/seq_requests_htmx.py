@@ -467,9 +467,8 @@ def remove_library(current_user: models.User, seq_request_id: int, page: int = 0
     )
 
 
-
-@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
-def remove_sample(current_user: models.User, seq_request_id: int, _sample_id: int, page: int = 0):    
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"], arg_params=["sample_id"])
+def remove_sample(current_user: models.User, seq_request_id: int, sample_id: int, page: int = 0):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
     
@@ -481,7 +480,7 @@ def remove_sample(current_user: models.User, seq_request_id: int, _sample_id: in
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
         raise exceptions.NoPermissionsException()
     
-    if (sample := db.samples.get(_sample_id)) is None:
+    if (sample := db.samples.get(sample_id)) is None:
         raise exceptions.NotFoundException()
 
     for library_link in sample.library_links:

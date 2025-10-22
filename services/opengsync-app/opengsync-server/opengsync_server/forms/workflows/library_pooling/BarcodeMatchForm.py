@@ -27,6 +27,7 @@ class BarcodeMatchForm(CommonBarcodeMatchForm):
             return self.make_response()
 
         self.update_table("barcode_table", self.barcode_table)
+        logger.debug(self.barcode_table)
         form = CompleteLibraryPoolingForm(
             lab_prep=self.lab_prep,
             uuid=self.uuid,

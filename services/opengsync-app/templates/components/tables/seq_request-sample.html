@@ -53,7 +53,7 @@
                     context_menu([
                         {"type": "copy", "value": sample.name, "label": "Copy Name"},
                         {"type": "hxdelete", "label": "Remove Sample", "disabled": false if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_admin() else true, "config": {
-                            "url": url_for("seq_requests_htmx.remove_sample", seq_request_id=seq_request.id, _sample_id=sample.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
+                            "url": url_for("seq_requests_htmx.remove_sample", seq_request_id=seq_request.id, sample_id=sample.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
                             "target": "#seq_request-sample-table",
                             "text": "This will remove all libraries associated with the sample. If sample is multiplexed, all other multiplexed samples in the associated libraries will be removed. Are you sure?",
                             "title": "Remove {sample.name} from {seq_request.name}?".format(sample=sample, seq_request=seq_request)

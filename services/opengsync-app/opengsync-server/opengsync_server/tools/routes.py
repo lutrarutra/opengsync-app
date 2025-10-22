@@ -1,16 +1,14 @@
 import inspect
-import json
 import itertools
 from pathlib import Path
 from types import NoneType, UnionType
-from typing import get_type_hints, get_origin, get_args, Any, Callable, Literal, TypeVar, Generic
+from typing import get_type_hints, get_origin, get_args, Any, Callable, Literal
 
 from flask import Request
 
 from opengsync_db import models
 
 from .. import logger
-
 
 
 def __generate_routes(base: str, parts: list[tuple[str, str]], defaults: dict[str, int | str | None]):
@@ -117,52 +115,71 @@ def infer_route(
     return routes, current_user_required, params
 
 
-def validate_arguments(params: dict[str, dict[str, type]], request: Request) -> dict:
-    validated_args = {}
-
-    for name, param in params.items():
-        if name not in arguments:
-            if param.default != inspect.Parameter.empty:
-                validated_args[name] = param.default
+def validate_argument(value: Any, name: str, type_hint, origin, args):
+    if type_hint == int:
+        value = int(value)
+    elif type_hint == str:
+        value = str(value)
+    elif origin is Literal:
+        if all(isinstance(a, str) for a in args):
+            value = str(value)
+        elif all(isinstance(a, int) for a in args):
+            value = int(value)
+        else:
+            raise ValueError(f"Unsupported Literal types: {args}")
+    elif origin is UnionType:
+        non_none_args = [a for a in args if a is not NoneType]
+        if len(non_none_args) == 1:
+            base_type = non_none_args[0]
+            if base_type == int:
+                value = int(value)
+            elif base_type == str:
+                value = str(value)
             else:
-                raise ValueError(f"Missing required argument: {name}")
+                raise ValueError(f"Unsupported Optional base type: {base_type}")
+        else:
+            raise ValueError(f"Unsupported Union types: {args}")
+    elif type_hint == Path:
+        value = Path(value)
+    else:
+        raise ValueError(f"Unsupported type hint: {type_hint} ({name}), {origin}")
+    
+    return value
+    
+
+def validate_parameters(func: Callable, request: Request, kwargs: dict) -> dict:
+    sig = inspect.signature(func)
+    hints = get_type_hints(func)
+
+    args = request.args
+    form = request.form | request.files
+    json_data: dict = request.get_json(silent=True) or {}
+
+    for name, param in sig.parameters.items():
+        if name in kwargs:
             continue
         
-        type_hint = hints.get(name, str)
-        origin = get_origin(type_hint)
-        args = get_args(type_hint)
-
-        value = arguments[name]
-        if type_hint == int:
-            value = int(value)
-        elif type_hint == str:
-            value = str(value)
-        elif origin is Literal:
-            if all(isinstance(a, str) for a in args):
-                value = str(value)
-            elif all(isinstance(a, int) for a in args):
-                value = int(value)
-            else:
-                raise ValueError(f"Unsupported Literal types: {args}")
-        elif origin is UnionType:
-            non_none_args = [a for a in args if a is not NoneType]
-            if len(non_none_args) == 1:
-                base_type = non_none_args[0]
-                if base_type == int:
-                    value = int(value)
-                elif base_type == str:
-                    value = str(value)
-                else:
-                    raise ValueError(f"Unsupported Optional base type: {base_type}")
-            else:
-                raise ValueError(f"Unsupported Union types: {args}")
-        elif type_hint == Path:
-            value = Path(value)
+        if name in args:
+            value = args.get(name)
+        elif name in form:
+            value = form.get(name)
+        elif name in json_data:
+            value = json_data.get(name)
         else:
-            raise ValueError(f"Unsupported type hint: {type_hint} ({name}), {origin}")
-        
-        validated_args[name] = value
+            if param.default != inspect.Parameter.empty:
+                kwargs[name] = param.default
+                continue
+            else:
+                logger.debug(kwargs)
+                logger.debug(hints)
+                logger.debug(param)
+                raise ValueError(f"Missing required parameter: {name}")
             
-    return validated_args
+        type_hint = hints.get(name, str)
+
+        value = validate_argument(value, name, type_hint, get_origin(type_hint), get_args(type_hint))
+        kwargs[name] = value
+
+    return kwargs
     
     

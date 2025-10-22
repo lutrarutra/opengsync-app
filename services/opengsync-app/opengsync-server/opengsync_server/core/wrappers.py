@@ -107,7 +107,6 @@ def _route_decorator(
             def default_cache_key() -> str:
                 return f"{request.headers.get('X-Forwarded-Prefix', '/')}view/%s"
 
-
             fnc = route_cache.cached(
                 timeout=cache_timeout_seconds,
                 query_string=cache_query_string if cache_type == "global" else False,
@@ -131,11 +130,13 @@ def _route_decorator(
                 if limit is not None:
                     match limit_exempt:
                         case "insider":
-                            exempt_when = lambda: current_user.is_authenticated and current_user.is_insider()
+                            def exempt_when() -> bool:
+                                return current_user.is_authenticated and current_user.is_insider()
                         case "user":
-                            exempt_when = lambda: current_user.is_authenticated
+                            def exempt_when() -> bool:
+                                return current_user.is_authenticated
                         case _:
-                            exempt_when = None
+                            exempt_when = None  # type: ignore
                         
                     _fnc = limiter.limit(
                         limit, override_defaults=limit_override,
@@ -153,10 +154,9 @@ def _route_decorator(
             rollback = False
             try:
                 try:
-                    kwargs |= rt.validate_arguments(_fnc, request)
+                    kwargs = rt.validate_parameters(fnc, request, kwargs)
                 except ValueError as e:
                     raise serv_exceptions.BadRequestException("Invalid query parameters") from e
-                logger.debug(kwargs)
                 return _fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
                 rollback = db.needs_commit if db is not None else False

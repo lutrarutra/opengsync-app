@@ -229,8 +229,8 @@ def uncomplete(current_user: models.User, lab_prep_id: int):
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))
 
 
-@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
-def remove_library(current_user: models.User, lab_prep_id: int, _library_id: int, page: int = 0):
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"], arg_params=["library_id"])
+def remove_library(current_user: models.User, lab_prep_id: int, library_id: int, page: int = 0):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
@@ -240,7 +240,7 @@ def remove_library(current_user: models.User, lab_prep_id: int, _library_id: int
     if lab_prep.status != PrepStatus.PREPARING:
         raise exceptions.BadRequestException()
     
-    db.lab_preps.remove_library(lab_prep_id=lab_prep.id, library_id=_library_id)
+    db.lab_preps.remove_library(lab_prep_id=lab_prep.id, library_id=library_id)
 
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")

@@ -29,10 +29,17 @@ class CompleteLibraryPoolingForm(MultiStepForm):
         )
         self.lab_prep = lab_prep
         self._context["lab_prep"] = lab_prep
+        self.barcode_table = self.tables["barcode_table"]
 
     def prepare(self):
-        barcode_table = tools.check_indices(self.tables["barcode_table"], groupby="pool")
-        self._context["df"] = barcode_table
+        self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
+        self.barcode_table.loc[
+            pd.notna(self.barcode_table["orientation_i7_id"]) &
+            (self.barcode_table["orientation_i7_id"] != self.barcode_table["orientation_i5_id"]),
+            "orientation_id"
+        ] = None
+        self.barcode_table = tools.check_indices(self.barcode_table, groupby="pool")
+        self._context["df"] = self.barcode_table
         self._context["groupby"] = "pool"
 
     def validate(self) -> bool:
@@ -142,7 +149,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 
                 orientation = None
                 if pd.notna(row["orientation_i7_id"]):
-                    orientation = BarcodeOrientation.get(row["orientation_id"])
+                    orientation = BarcodeOrientation.get(row["orientation_i7_id"])
 
                 if orientation is not None and pd.notna(row["orientation_i5_id"]):
                     if orientation.id != row["orientation_i5_id"]:

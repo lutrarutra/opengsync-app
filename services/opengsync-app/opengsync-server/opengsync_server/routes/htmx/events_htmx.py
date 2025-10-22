@@ -89,7 +89,6 @@ def render_calendar_week(current_user: models.User, year: int | None = None, wee
         calendar.pop(datetime.fromisocalendar(year, week, 7))
         calendar.pop(datetime.fromisocalendar(year, week, 6))
 
-
     return make_response(render_template(
         "components/calendar/week.html",
         year=year, week=week, events=events,
