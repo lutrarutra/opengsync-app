@@ -137,7 +137,7 @@ class PandasBP(DBBlueprint):
         ]
 
         query = sa.select(*columns).where(
-            models.Lane.experiment_id == experiment_id if isinstance(experiment_id, int) else models.Experiment.name == experiment_id
+            ((models.Experiment.id == experiment_id) if isinstance(experiment_id, int) else (models.Experiment.name == experiment_id))
         )
         query = query.join(
             models.Lane,
@@ -167,7 +167,7 @@ class PandasBP(DBBlueprint):
         return df
 
     @DBBlueprint.transaction
-    def get_experiment_barcodes(self, experiment_id: int | str) -> pd.DataFrame:
+    def get_experiment_barcodes(self, experiment_id: int) -> pd.DataFrame:
         query = sa.select(
             models.Lane.id.label("lane_id"), models.Lane.number.label("lane"),
             models.Library.id.label("library_id"), models.Library.name.label("library_name"), models.Library.sample_name.label("sample_name"),
@@ -175,7 +175,7 @@ class PandasBP(DBBlueprint):
             models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
             models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
         ).where(
-            models.Lane.experiment_id == experiment_id if isinstance(experiment_id, int) else models.Experiment.name == experiment_id
+            models.Lane.experiment_id == experiment_id
         ).join(
             models.links.LanePoolLink,
             models.links.LanePoolLink.lane_id == models.Lane.id
@@ -195,13 +195,13 @@ class PandasBP(DBBlueprint):
         return df
 
     @DBBlueprint.transaction
-    def get_experiment_pools(self, experiment_id: int | str) -> pd.DataFrame:
+    def get_experiment_pools(self, experiment_id: int) -> pd.DataFrame:
         query = sa.select(
             models.Pool.id, models.Pool.name, models.Pool.status_id,
             models.Pool.num_m_reads_requested, models.Pool.qubit_concentration,
             models.Pool.avg_fragment_size,
         ).where(
-            models.Lane.experiment_id == experiment_id if isinstance(experiment_id, int) else models.Experiment.name == experiment_id
+            models.Pool.experiment_id == experiment_id
         )
 
         df = pd.read_sql(query, self.db._engine)
@@ -234,14 +234,14 @@ class PandasBP(DBBlueprint):
         return df
 
     @DBBlueprint.transaction
-    def get_experiment_lanes(self, experiment_id: int | str) -> pd.DataFrame:
+    def get_experiment_lanes(self, experiment_id: int) -> pd.DataFrame:
         query = sa.select(
             models.Lane.id, models.Lane.number.label("lane"),
             models.Lane.phi_x, models.Lane.original_qubit_concentration, models.Lane.total_volume_ul,
             models.Lane.library_volume_ul, models.Lane.avg_fragment_size, models.Lane.sequencing_qubit_concentration,
             models.Lane.target_molarity
         ).where(
-            models.Lane.experiment_id == experiment_id if isinstance(experiment_id, int) else models.Experiment.name == experiment_id
+            models.Lane.experiment_id == experiment_id
         ).order_by(models.Lane.number)
 
         df = pd.read_sql(query, self.db._engine)
@@ -249,7 +249,7 @@ class PandasBP(DBBlueprint):
         return df
 
     @DBBlueprint.transaction
-    def get_experiment_laned_pools(self, experiment_id: int | str) -> pd.DataFrame:
+    def get_experiment_laned_pools(self, experiment_id: int) -> pd.DataFrame:
         query = sa.select(
             models.Lane.id.label("lane_id"), models.Lane.number.label("lane"),
             models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
@@ -257,7 +257,7 @@ class PandasBP(DBBlueprint):
             models.Pool.avg_fragment_size, models.links.LanePoolLink.num_m_reads,
             models.PoolDilution.id.label("dilution_id"), models.PoolDilution.identifier.label("dilution"),
         ).where(
-            models.Lane.experiment_id == experiment_id if isinstance(experiment_id, int) else models.Experiment.name == experiment_id
+            models.Lane.experiment_id == experiment_id
         ).join(
             models.links.LanePoolLink,
             models.links.LanePoolLink.lane_id == models.Lane.id
@@ -491,7 +491,7 @@ class PandasBP(DBBlueprint):
         return df
 
     @DBBlueprint.transaction
-    def get_experiment_seq_qualities(self, experiment_id: int | str) -> pd.DataFrame:
+    def get_experiment_seq_qualities(self, experiment_id: int) -> pd.DataFrame:
         query = sa.select(
             models.Library.id.label("library_id"), models.Library.name.label("library_name"),
             models.SeqQuality.lane, models.SeqQuality.num_lane_reads, models.SeqQuality.num_library_reads,
@@ -504,7 +504,7 @@ class PandasBP(DBBlueprint):
             models.Library.id == models.SeqQuality.library_id,
             isouter=True
         ).where(
-            models.Lane.experiment_id == experiment_id if isinstance(experiment_id, int) else models.Experiment.name == experiment_id
+            models.Library.experiment_id == experiment_id
         )
 
         query = query.order_by(models.SeqQuality.lane, models.Library.id)
