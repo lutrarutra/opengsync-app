@@ -23,10 +23,10 @@ class LogBuffer:
         self.buffer: list[str] | None = None
         self.session_name: str | None = None
         self.src_prefix = os.path.dirname(os.path.abspath(__file__)).removesuffix("/opengsync_server/core")
-        print(f"LogBuffer initialized with src_prefix: {self.src_prefix}", flush=True)
 
     def set_log_dir(self, log_dir: Path):
         self.log_dir = log_dir
+        print(f"LogBuffer initialized with src_prefix: {self.src_prefix}", flush=True)
         if not self.log_dir.exists():
             os.makedirs(self.log_dir)
 

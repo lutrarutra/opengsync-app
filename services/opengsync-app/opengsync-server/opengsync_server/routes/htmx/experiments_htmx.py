@@ -366,19 +366,19 @@ def add_comment(current_user: models.User, experiment_id: int):
     return forms.comment.ExperimentCommentForm(experiment=experiment, formdata=request.form).process_request(user=current_user)
 
 
-@wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
-def remove_pool(current_user: models.User, experiment_id: int, _pool_id: int):
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"], arg_params=["pool_id"])
+def remove_pool(current_user: models.User, experiment_id: int, pool_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
         raise exceptions.NotFoundException()
     
-    if (_ := db.pools.get(_pool_id)) is None:
+    if (_ := db.pools.get(pool_id)) is None:
         raise exceptions.NotFoundException()
 
-    db.links.unlink_pool_experiment(experiment_id=experiment_id, pool_id=_pool_id)
-    logger.info(f"Removed pool (id='{_pool_id}') from experiment (id='{experiment_id}')")
+    db.links.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
+    logger.info(f"Removed pool (id='{pool_id}') from experiment (id='{experiment_id}')")
 
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")

@@ -70,7 +70,7 @@
                         {"type": "hxdelete", "label": "Remove Library" ,
                         "disabled": false if lab_prep.status == PrepStatus.PREPARING else true, "config": 
                         {
-                            "url": url_for("lab_preps_htmx.remove_library", lab_prep_id=lab_prep.id, _library_id=library.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
+                            "url": url_for("lab_preps_htmx.remove_library", lab_prep_id=lab_prep.id, library_id=library.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
                             "target": "#lab_prep-library-table", 
                             "title": "Remove {library.name} from {lab_prep.name}?".format(library=library, lab_prep=lab_prep)
                         },}
