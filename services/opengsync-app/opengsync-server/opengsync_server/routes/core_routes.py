@@ -19,16 +19,16 @@ from ..core.RunTime import runtime
 if runtime.app.debug:
     @wrappers.page_route(
         runtime.app, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60,
-        cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="3 per minute"
+        cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="3/minute;5/hour"
     )
-    def test(number: int = 0):
-        if number > 5:
-            return {"status": "error", "number": number, "key": limiter.current_limit.key}, 200
+    def test(string: str = ""):
+        if string != "ok":
+            raise exceptions.NoPermissionsException("Number too high")
 
         if limiter.current_limit:
             logger.debug(limiter.storage.clear(limiter.current_limit.key))
 
-        return {"status": "ok", "number": number, "key": limiter.current_limit.key}, 200
+        return {"status": "ok", "key": limiter.current_limit.key}, 200
 
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def mail_template(current_user: models.User):

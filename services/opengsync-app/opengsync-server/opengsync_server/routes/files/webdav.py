@@ -14,13 +14,13 @@ from ...core.RunTime import runtime
 webdav_bp = Blueprint("webdav", __name__, url_prefix="/files/webdav/")
 
 
-@wrappers.api_route(webdav_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20 per minute", methods=["GET", "PROPFIND", "OPTIONS", "HEAD"])
+@wrappers.api_route(webdav_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute;200/hour", methods=["GET", "PROPFIND", "OPTIONS", "HEAD"])
 def share(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
 
     if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
-        raise exceptions.NotFoundException("Token Not Found")
+        raise exceptions.NotFoundException("Invalid Token")
     
     if share_token.is_expired:
         raise exceptions.NoPermissionsException("Token expired")

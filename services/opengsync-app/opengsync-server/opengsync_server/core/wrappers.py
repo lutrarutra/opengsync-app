@@ -99,8 +99,6 @@ def _route_decorator(
                     limit, override_defaults=limit_override,
                     exempt_when=exempt_when
                 )(fnc)
-            else:
-                fnc = fnc
 
         if cache_timeout_seconds is not None:  # and not DEBUG:
             def user_cache_key() -> str:
