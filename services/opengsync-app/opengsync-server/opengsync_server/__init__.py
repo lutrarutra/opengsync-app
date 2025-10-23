@@ -37,6 +37,7 @@ pd.set_option('display.width', 1000)
 DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
 SECRET_KEY = os.environ["SECRET_KEY"]
 TIMEZONE = pytz.timezone(os.environ["TIMEZONE"])
+REDIS_PORT = int(os.environ["REDIS_PORT"])
 
 htmx = HTMX()
 bcrypt = Bcrypt()
@@ -54,5 +55,5 @@ file_handler = FileHandler()
 limiter = Limiter(
     lambda: request.headers.get("X-Real-IP", request.remote_addr, type=str),  # type: ignore
     default_limits=["1000 per day", "200 per hour"],
-    storage_uri="memory://"
+    storage_uri=f"redis://redis-cache:{REDIS_PORT}/3",
 )
