@@ -172,4 +172,6 @@ def status():
 @wrappers.api_route(runtime.app, login_required=False)
 def headers():
     logger.info(request.headers)
+    logger.info(request.headers.get("X-Real-IP", request.remote_addr, type=str))
+    logger.info(request.headers.get("X-Real-IP"))
     return make_response("OK", 200)
