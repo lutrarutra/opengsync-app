@@ -145,7 +145,7 @@ services:
     postgres:
         container_name: postgres
         user: "${USER}:${GROUP}"
-        image: postgres:17.6-alpine3.22
+        image: postgres:17-alpine
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -160,8 +160,9 @@ services:
         volumes:
             - ./templates/postgres/postgresql.conf:/etc/postgresql.conf
             - ${DB_DIR}/postgres:/var/lib/postgresql/data:z
-            - ${DATA_DIR}/db_backup/wal:/var/lib/postgresql/backup
-            - ${DATA_DIR}/db_backup/base:/var/lib/postgresql/base
+            - ${DATA_DIR}/db_backup/wal:/var/lib/postgresql/wal
+            # - ${DATA_DIR}/db_backup/base:/var/lib/postgresql/base
+            # - ${DATA_DIR}/db_backup/dump:/var/lib/postgresql/dump
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
             interval: 10s
@@ -216,6 +217,26 @@ services:
         restart: always
         command: >
             celery --broker=redis://redis-cache:${REDIS_PORT}/4 flower --port=5555 --basic-auth="${FLOWER_USER}:${FLOWER_PASSWORD}"
+
+    backup-service:
+        container_name: backup-service
+        build:
+            context: ./services/backup
+        environment:
+            TZ: ${TIMEZONE}
+            POSTGRES_DB: ${POSTGRES_DB}
+            POSTGRES_PASSWORD: ${POSTGRES_REPLICATOR_PASSWORD}
+            POSTGRES_USER: replicator
+            POSTGRES_PORT: ${POSTGRES_PORT}
+            POSTGRES_HOST: postgres
+        volumes:
+            - ${DATA_DIR}/db_backup/dump:/backups/dump
+            - ${DATA_DIR}/db_backup/base:/backups/base
+            - ${DATA_DIR}/logs/backup:/var/log
+        depends_on:
+            postgres:
+                condition: service_healthy
+        restart: always
 
 volumes:
     compiled_css:

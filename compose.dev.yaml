@@ -141,7 +141,7 @@ services:
 
     postgres:
         container_name: postgres-dev
-        image: postgres:17.6-alpine3.22
+        image: postgres:17-alpine
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

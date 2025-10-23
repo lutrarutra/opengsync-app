@@ -130,6 +130,7 @@ class CommonBarcodeInputForm(MultiStepForm):
             csrf_token=self._csrf_token,
             post_url=self.post_url, formdata=formdata, df=self.barcode_table
         )
+        self.kits = []
 
     def fill_previous_form(self, previous_form: StepFile):
         barcode_table = previous_form.tables["barcode_table"]
