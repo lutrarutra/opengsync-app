@@ -68,7 +68,7 @@ def _route_decorator(
 
     def decorator(fnc: Callable[..., Any]) -> Response:
         routes, current_user_required, params = rt.infer_route(fnc, base=route, arg_params=arg_params, form_params=form_params, json_params=json_params)
-
+        original_fnc = fnc
         match current_user_required:
             case "required":
                 if not login_required:
@@ -80,8 +80,29 @@ def _route_decorator(
 
         if login_required and db is None:
             raise ValueError("db must be provided if login_required is True")
+        
+        if limit_exempt == "all":
+            fnc = limiter.exempt(fnc)
+        else:
+            if limit is not None:
+                match limit_exempt:
+                    case "insider":
+                        def exempt_when() -> bool:
+                            return current_user.is_authenticated and current_user.is_insider()
+                    case "user":
+                        def exempt_when() -> bool:
+                            return current_user.is_authenticated
+                    case _:
+                        exempt_when = None  # type: ignore
+                    
+                fnc = limiter.limit(
+                    limit, override_defaults=limit_override,
+                    exempt_when=exempt_when
+                )(fnc)
+            else:
+                fnc = fnc
 
-        if cache_timeout_seconds is not None and not DEBUG:
+        if cache_timeout_seconds is not None:  # and not DEBUG:
             def user_cache_key() -> str:
                 query_string = ""
                 user_id = current_user.id if current_user.is_authenticated else "anon"
@@ -114,6 +135,9 @@ def _route_decorator(
                 **(cache_kwargs or {})
             )(fnc)
 
+        if login_required:
+            fnc = login_required_f(fnc)
+
         @wraps(fnc)
         def wrapper(*args, **kwargs):
             if debug:
@@ -124,40 +148,16 @@ def _route_decorator(
             if db is not None:
                 db.open_session()
             
-            if limit_exempt == "all":
-                _fnc = limiter.exempt(fnc)
-            else:
-                if limit is not None:
-                    match limit_exempt:
-                        case "insider":
-                            def exempt_when() -> bool:
-                                return current_user.is_authenticated and current_user.is_insider()
-                        case "user":
-                            def exempt_when() -> bool:
-                                return current_user.is_authenticated
-                        case _:
-                            exempt_when = None  # type: ignore
-                        
-                    _fnc = limiter.limit(
-                        limit, override_defaults=limit_override,
-                        exempt_when=exempt_when
-                    )(fnc)
-                else:
-                    _fnc = fnc
-
-            if login_required:
-                _fnc = login_required_f(_fnc)
-            
             if current_user_required != "no":
                 kwargs["current_user"] = current_user if current_user.is_authenticated else None
 
             rollback = False
             try:
                 try:
-                    kwargs = rt.validate_parameters(fnc, request, kwargs)
+                    kwargs = rt.validate_parameters(original_fnc, request, kwargs)
                 except ValueError as e:
                     raise serv_exceptions.BadRequestException("Invalid query parameters") from e
-                return _fnc(*args, **kwargs)
+                return fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
                 rollback = db.needs_commit if db is not None else False
                 _default_logger(blueprint, routes, args, kwargs, e, "InternalServerErrorException")

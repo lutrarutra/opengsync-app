@@ -5,7 +5,6 @@ from flask import (
     request,
     session,
     make_response,
-    jsonify
 )
 from flask_htmx import make_response as make_htmx_response
 
@@ -18,22 +17,18 @@ from ..core.RunTime import runtime
 
 
 if runtime.app.debug:
-    @wrappers.page_route(runtime.app, db=db, login_required=False, limit_exempt=None, limit="3 per minute")
-    def test(current_user: models.User | None, number: int = 0):
-        from ..tools import univer
-
+    @wrappers.page_route(
+        runtime.app, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60,
+        cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="3 per minute"
+    )
+    def test(number: int = 0):
         if number > 5:
-            raise exceptions.NotFoundException()
+            return {"status": "error", "number": number, "key": limiter.current_limit.key}, 200
 
         if limiter.current_limit:
             logger.debug(limiter.storage.clear(limiter.current_limit.key))
 
-        lab_prep = db.lab_preps[20]
-        if not lab_prep.prep_file:
-            raise exceptions.BadRequestException("No prep file associated with this lab prep.")
-        path = os.path.join(runtime.app.media_folder, lab_prep.prep_file.path)
-        snapshot, col_style = univer.xlsx_to_univer_snapshot(path)
-        return render_template("test.html", univer_snapshot=snapshot, col_style=col_style)
+        return {"status": "ok", "number": number, "key": limiter.current_limit.key}, 200
 
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def mail_template(current_user: models.User):
