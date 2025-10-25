@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 
 <div id="pool-table" class="table-container">
     <table class="table">
@@ -61,12 +62,8 @@
                     <a href="{{ url_for('pools_page.pool', pool_id=pool.id) }}">
                         {{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}
                     </a>
-                <td>
-                    {% for lib_type in pool.library_types %}
-                        <span class="badge">{{ lib_type.identifier }}</span>
-                    {% endfor %}
                 </td>
-                </td>
+                <td>{{ library_type_badge_list(pool.library_types) }}</td>
                 <td>{{ pool.status.icon }} {{ pool.status.name }}</td>
                 <td>{{ pool.type.display_name }}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=pool.owner_id) }}">{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></a></td>

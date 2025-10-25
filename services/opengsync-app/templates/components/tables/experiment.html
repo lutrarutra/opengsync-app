@@ -2,6 +2,7 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from 'components/spinner.jinja2' import spinner %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 
 <div id="experiment-table" class="table-container">
     <table class="table">
@@ -20,21 +21,23 @@
                         table_container_id='experiment-table', column_name='Name', column_var='name',
                         sort_url='experiments_htmx.get', sort_by=sort_by, sort_order=sort_order,
                         query_url="experiments_htmx.table_query", current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=3
+                        active_query_field=active_query_field, query_type="text", col_size=1
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='experiment-table', column_name='Status', column_var='status_id',
-                        sort_url='experiments_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_url='experiments_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
                         multiselect_choices=ExperimentStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
-                <th class="col-2" scope="col">Operator</th>
+                <th scope="col" class="col-2">Pools <span class="badge bg-success">Int.</span> <span class="badge">Ext.</span> <span class="badge bg-warning">Cstm.</span></th>
+                <th scope="col" class="col-2">Library Types</th>
+                <th scope="col" class="col-1">Operator</th>
                 {{
                     table_col(
                         table_container_id='experiment-table', column_name='Created', column_var='timestamp_created_utc',
-                        sort_url='experiments_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2
+                        sort_url='experiments_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
                 {{
@@ -51,7 +54,13 @@
             <tr>
                 <th scope="row">{{ experiment.id }}</th>
                 <td><a href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}">{{ experiment.name }}</a></td>
-                <td>{{ experiment.status.name }} {{ experiment.status.icon | safe }}</td>
+                <td>{{ experiment.status.icon | safe }} {{ experiment.status.name }}</td>
+                <td class="x-scroll-cell">
+                    {% for pool in experiment.pools %}
+                    <span class="badge{% if pool.type == PoolType.INTERNAL %} bg-success{% elif pool.type == PoolType.CUSTOM %} bg-warning{% endif %}"><a href="{{ url_for('pools_page.pool', pool_id=pool.id) }}">{{ pool.name }}</a></span>
+                    {% endfor %}
+                </td>
+                <td>{{ library_type_badge_list(experiment.library_types) }}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=experiment.operator_id) }}">{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></a></td>
                 <td>{{ experiment.timestamp_created_str("%Y-%m-%d") }}</td>
                 <td>{{ experiment.workflow.name }}</td>

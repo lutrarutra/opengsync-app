@@ -151,6 +151,17 @@ table input.table-query-input{
                 }
             }
 
+            td.x-scroll-cell {
+                padding: 0 5px;
+                overflow-x: auto;
+                white-space: nowrap;
+
+                &::-webkit-scrollbar {
+                    height: 4px;
+                    background: transparent;
+                }
+            }
+
             td, th {
                 padding-top: 8px !important;
                 padding-bottom: 8px !important;
@@ -215,6 +226,7 @@ table input.table-query-input{
                 color: $gray-500;
             }
         }
+
     }
 }
 
