@@ -12,7 +12,8 @@ from sqlalchemy.ext.mutable import MutableDict
 
 from .Base import Base
 from .. import localize
-from ..categories import ProjectStatus, ProjectStatusEnum
+from ..categories import ProjectStatus, ProjectStatusEnum, LibraryType, LibraryTypeEnum
+from . import links
 
 if TYPE_CHECKING:
     from .Sample import Sample
@@ -78,6 +79,27 @@ class Project(Base):
         ).where(
             Sample.project_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def library_types(self) -> list[LibraryTypeEnum]:
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            types = set()
+            for lib in self.libraries:
+                types.add(lib.type_id)
+            return [LibraryType.get(type_id) for type_id in sorted(types)]
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_types' attribute.")
+        from .Library import Library
+        from .Sample import Sample
+        type_ids = session.query(Library.type_id).filter(
+            sa.exists().where(
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Sample.project_id == self.id)
+            )
+        ).distinct().order_by(Library.type_id).all()
+        return [LibraryType.get(type_id) for (type_id,) in type_ids]
 
     @hybrid_property
     def num_data_paths(self) -> int:  # type: ignore[override]

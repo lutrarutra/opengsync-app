@@ -51,11 +51,11 @@
                     )
                 }}
                 <th scope="col" class="col-3">
-                    <span {{ tooltip("Green: Kit ✅️<br> Yellow: Maybe Forward ⚠️<br> Red: idk 🤷‍♂️", category="primary") }}>
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
                         <i class="bi bi-upc-scan"></i>
-                    </a></span>
+                    </a>
+                    <span class="badge bg-cemm-green">Kit</span> <span class="badge bg-cemm-blue">Checked</span> <span class="badge bg-cemm-yellow">Forward (maybe)</span> <span class="badge bg-cemm-red">Unknown</span>
                 </th>
             </tr>
         </thead>

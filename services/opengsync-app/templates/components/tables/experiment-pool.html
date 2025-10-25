@@ -3,6 +3,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/contextmenu.jinja2" import context_menu %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 
 <div id="experiment-pool-table" class="table-container">
     <table class="table">
@@ -95,11 +96,7 @@
                     </span>
                     {% endif %}
                 </td>
-                <td>
-                    {% for lib_type in pool.library_types %}
-                        <span class="badge">{{ lib_type.identifier }}</span>
-                    {% endfor %}
-                </td>
+                <td>{{ library_type_badge_list(pool.library_types) }}</td>
                 <td>{{ pool.status.icon }} {{ pool.status.name }}</td>
                 <td>
                     <div class="quantity-container" {{ tooltip("Planned / Requested") }}>

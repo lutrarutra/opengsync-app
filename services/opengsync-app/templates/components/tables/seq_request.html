@@ -2,6 +2,7 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 
 <div id="seq_request-table" class="table-container">
     <table class="table">
@@ -22,9 +23,10 @@
                         sort_url='seq_requests_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='seq_requests_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, col_size=5,
+                        active_query_field=active_query_field, col_size=4,
                     )
                 }}
+                <th scope="col" class="col-2">Library Types</th>
                 {{
                     table_col(
                         table_container_id='seq_request-table', column_name='Status', column_var='status_id',
@@ -42,14 +44,14 @@
                 {{
                     table_col(
                         table_container_id='seq_request-table', column_name='Group', column_var='group_id',
-                        sort_url='seq_requests_htmx.get', context={}, sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_url='seq_requests_htmx.get', context={}, sort_by=sort_by, sort_order=sort_order, col_size=1,
                         query_url='seq_requests_htmx.table_query', current_query=current_query, active_query_field=active_query_field
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='seq_request-table', column_name='Requestor', column_var='requestor_id',
-                        sort_url='seq_requests_htmx.get', context={}, sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_url='seq_requests_htmx.get', context={}, sort_by=sort_by, sort_order=sort_order, col_size=1,
                         query_url='seq_requests_htmx.table_query', current_query=current_query, active_query_field=active_query_field
                     )
                 }}
@@ -60,9 +62,10 @@
             <tr>
                 <th scope="row">{{ seq_request.id }}</th>
                 <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}">{{ seq_request.name }}</a></td>
+                <td>{{ library_type_badge_list(seq_request.library_types) }}</td>
                 <td>{{ seq_request.status.icon }} {{ seq_request.status.name }}</td>
                 <td>{{ seq_request.submission_type.abbreviation }}</td>
-                <td>{% if seq_request.group_id %}<a href="{{ url_for('groups_page.group', group_id=seq_request.group_id) }}">{{ seq_request.group.name }} {{ seq_request.group.type.icon }}</a>{% endif %}</td>
+                <td>{% if seq_request.group_id %}<a href="{{ url_for('groups_page.group', group_id=seq_request.group_id) }}">{{ seq_request.group.type.icon }} {{ seq_request.group.name }}</a>{% endif %}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=seq_request.requestor_id) }}">{{ seq_request.requestor.name }} <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></a></td>
             </tr>
             {% endfor %}

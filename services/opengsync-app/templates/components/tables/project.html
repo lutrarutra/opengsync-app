@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 
 <div id="project-table" class="table-container">
     <table class="table">
@@ -30,13 +31,14 @@
                         sort_url='projects_htmx.get', context={},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='projects_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=4
+                        active_query_field=active_query_field, query_type="text", col_size=3
                     )
                 }}
+                <th scope="col" class="col-2">Library Types</th>
                 {{
                     table_col(
                         table_container_id='project-table', column_name='Status', column_var='status_id',
-                        sort_url='projects_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_url='projects_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
                         multiselect_choices=ProjectStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
@@ -50,7 +52,7 @@
                     table_col(
                         table_container_id='project-table', column_name='Owner', column_var='owner_id',
                         sort_url='projects_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2
+                        sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
                 {{
@@ -68,6 +70,7 @@
                 <th scope="row">{{ project.id }}</th>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id) }}">{{ project.identifier or "" }}</a></td>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id) }}">{{ project.title }}</a></td>
+                <td>{{ library_type_badge_list(project.library_types) }}</td>
                 <td>{{ project.status.icon }} {{ project.status.name }}</td>
                 <td>{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=project.owner_id) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></a></td>

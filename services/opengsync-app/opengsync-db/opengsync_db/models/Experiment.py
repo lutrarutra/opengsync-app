@@ -8,7 +8,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
-from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellTypeEnum, ExperimentWorkFlow, ExperimentWorkFlowEnum
+from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellTypeEnum, ExperimentWorkFlow, ExperimentWorkFlowEnum, LibraryType, LibraryTypeEnum
 from .Base import Base
 from . import links
 
@@ -59,6 +59,18 @@ class Experiment(Base):
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="experiment", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp_created_utc", "timestamp_finished_utc", "status_id", "sequencer_id", "flowcell_type_id", "workflow_id"]
+
+    @hybrid_property
+    def library_types(self) -> list[LibraryTypeEnum]:
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            types = {library.type_id for library in self.libraries}
+            return [LibraryType.get(type_id) for type_id in sorted(types)]
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'library_types' attribute.")
+        from .Library import Library
+        type_ids = session.query(Library.type_id).filter(Library.experiment_id == self.id).distinct().order_by(Library.type_id).all()
+        return [LibraryType.get(type_id) for (type_id,) in type_ids]
 
     @hybrid_property
     def num_pools(self) -> int:  # type: ignore[override]
