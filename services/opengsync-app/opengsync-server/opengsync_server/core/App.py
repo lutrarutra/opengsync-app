@@ -65,7 +65,7 @@ class App(Flask):
 
         self.jinja_env.globals["uuid"] = lambda: str(uuid4())
         log_buffer.set_log_dir(Path(opengsync_config["log_folder"]))
-        log_buffer.start()
+        log_buffer.start("App Initialization")
 
         if (external_base_url := opengsync_config.get("external_base_url")):
             from ..core import runtime

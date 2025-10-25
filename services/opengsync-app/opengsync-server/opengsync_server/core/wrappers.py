@@ -100,7 +100,7 @@ def _route_decorator(
                     exempt_when=exempt_when
                 )(fnc)
 
-        if cache_timeout_seconds is not None:  # and not DEBUG:
+        if cache_timeout_seconds is not None and not DEBUG:
             def user_cache_key() -> str:
                 query_string = ""
                 user_id = current_user.id if current_user.is_authenticated else "anon"
@@ -138,10 +138,7 @@ def _route_decorator(
 
         @wraps(fnc)
         def wrapper(*args, **kwargs):
-            if debug:
-                log_buffer.start(str(request.url_rule))
-            else:
-                log_buffer.start()
+            log_buffer.start(f"{request.method} -> {request.path}")
 
             if db is not None:
                 db.open_session()
