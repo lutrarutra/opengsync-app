@@ -18,9 +18,10 @@
                     table_col(
                         table_container_id='seq_request-pool-table', column_name='Pool Name', column_var='name',
                         sort_url='seq_requests_htmx.get_pools', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order,
+                        sort_by=sort_by, sort_order=sort_order, col_size=3
                     )
                 }}
+                <th scope="col" class="col-2">Library Types</th>
                 {{
                     table_col(
                         table_container_id='seq_request-pool-table', column_name='Status', column_var='status_id',
@@ -53,6 +54,11 @@
                     <a href="{{ url_for('pools_page.pool', pool_id=pool.id, from='seq_request@' + seq_request.id | string) }}">
                         {{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}
                     </a>
+                </td>
+                <td>
+                    {% for lib_type in pool.library_types %}
+                        <span class="badge">{{ lib_type.identifier }}</span>
+                    {% endfor %}
                 </td>
                 <td>{{ pool.status.icon }} {{ pool.status.name }}</td>
                 <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
