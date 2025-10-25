@@ -4,21 +4,16 @@ from pathlib import Path
 import json
 
 DEFAULT_FMT = """{time}:
------------------------- [ BEGIN {session_name}] ------------------------
+------------------------ [ BEGIN: {session_name} ] ------------------------
 
-{message}
------------------------- [ END {session_name}] ------------------------
+{message}------------------------ [ END: {session_name} ] ------------------------
 """
 
 
 class LogBuffer:
     log_dir: Path | None
 
-    def __init__(
-        self,
-        stdout: bool = True,
-    ):
-        self.stdout = stdout
+    def __init__(self):
         self.log_dir = None
         self.buffer: list[str] | None = None
         self.session_name: str | None = None
@@ -43,54 +38,83 @@ class LogBuffer:
         self.buffer = []
         self.session_name = name
 
-    def parse_record(self, record: dict) -> str:
+    def parse_record(self, record: dict) -> tuple[str, str]:
         text = record.get("text", "")
         metadata = record.get("record", {})
+        level_name = metadata.get("level", {}).get("name", "INFO").upper()
         loc = ""
-
         if (file := metadata.get("file", {}).get("path")):
+            rel_file = file.removeprefix(self.src_prefix).lstrip('/')
             if (line := metadata.get("line")):
-                loc = f" in {file.removeprefix(self.src_prefix).lstrip('/')}:{line}"
-
-        fnc = metadata.get("module", "")
-        fnc += (f".{metadata.get('function', '')}()").replace(".()", "")
+                loc = f"{rel_file}:{line}"
+            else:
+                loc = f"{rel_file}"
             
-        msg = f"[{fnc}:{loc}]\n{text}"
-        return msg
-    
+        msg = f"[{level_name} {loc}] >\n{text}\n"
+        return msg, level_name
+        
     def flush(self):
-        """Flush buffered logs with per-message origins."""
+        """Flush buffered logs with per-message origins and level support."""
         if not self.buffer:
             return
         
         formatted_messages = []
+        info_buffer = []
+        error_buffer = []
         for record_str in self.buffer:
             try:
                 record = json.loads(record_str)
-                formatted_messages.append(self.parse_record(record))
+                parsed_msg, level_name = self.parse_record(record)
+                formatted_messages.append(parsed_msg)
+                
+                if level_name in ("INFO", "WARNING"):
+                    info_buffer.append(parsed_msg)
+                elif level_name in ("ERROR", "CRITICAL"):
+                    error_buffer.append(parsed_msg)
+                else:
+                    info_buffer.append(parsed_msg)
             except json.JSONDecodeError:
-                formatted_messages.append(f"[<unknown origin>]:\n{record_str}\n")
+                unknown_msg = f"[<unknown origin>]:\n{record_str}\n"
+                formatted_messages.append(unknown_msg)
+                info_buffer.append(unknown_msg)
         
+        all_logs = "".join(formatted_messages)
         log = DEFAULT_FMT.format(
-            level="INFO",
             time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            message="".join(formatted_messages),
-            session_name=self.session_name or "unknown"
+            message=all_logs,
+            session_name=self.session_name or "request"
         )
         
-        if self.stdout:
-            print(log, flush=True)
-
+        print(log, flush=True)
+        
         if self.log_dir:
-            log_path = self.log_dir / (datetime.now().strftime("%Y-%m-%d") + ".log")
-            err_path = self.log_dir / (datetime.now().strftime("%Y-%m-%d") + ".err")
-
-            with open(log_path, "a") as f:
-                f.write(log)
-            with open(err_path, "a") as f:
-                f.write(log)
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            log_path = self.log_dir / f"{date_str}.log"
+            err_path = self.log_dir / f"{date_str}.err"
+            
+            if info_buffer:
+                info_log = DEFAULT_FMT.format(
+                    time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    message="".join(info_buffer),
+                    session_name=self.session_name or "request"
+                )
+                with open(log_path, "a") as f:
+                    f.write(info_log)
+            
+            if error_buffer:
+                err_log = DEFAULT_FMT.format(
+                    time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    message="".join(error_buffer),
+                    session_name=self.session_name or "request"
+                )
+                with open(err_path, "a") as f:
+                    f.write(err_log)
         
         self.buffer = None
 
+    def __del__(self):
+        if self.buffer is not None:
+            self.flush()
 
-log_buffer = LogBuffer(stdout=True)
+
+log_buffer = LogBuffer()
