@@ -7,7 +7,7 @@ from flask import Blueprint, render_template, Response, send_from_directory
 
 from opengsync_db import models
 
-from ... import db, DEBUG, limiter
+from ... import db, DEBUG, limiter, logger
 from ...core import wrappers, exceptions
 from ...tools import utils, SharedFileBrowser
 from ...core.RunTime import runtime
@@ -15,7 +15,7 @@ from ...core.RunTime import runtime
 file_share_bp = Blueprint("file_share", __name__, url_prefix="/files/share/")
 
 
-@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute;200/hour")
+@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute")
 def validate(token: str):
     if (share_token := db.shares.get(token)) is None:
         raise exceptions.NotFoundException("Token Not Found")
@@ -26,7 +26,7 @@ def validate(token: str):
     return "OK", 200
 
 
-@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute;200/hour")
+@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=300, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute")
 def rclone(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
@@ -55,7 +55,6 @@ def rclone(token: str, subpath: Path = Path()):
             response.headers["Content-Type"] = mimetype
             response.headers["X-Accel-Redirect"] = file.as_posix().replace(SHARE_ROOT.as_posix(), "/nginx-share/")
             return response
-        raise exceptions.NotFoundException("File or directory not found")
 
     return render_template(
         "share/rclone.html", current_path=subpath,
@@ -64,7 +63,7 @@ def rclone(token: str, subpath: Path = Path()):
     )
 
 
-@wrappers.resource_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute;200/hour")
+@wrappers.resource_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute")
 def browse(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
@@ -95,7 +94,6 @@ def browse(token: str, subpath: Path = Path()):
                 response.headers["Content-Disposition"] = f"attachment; filename={file.name}"
             response.headers["X-Accel-Redirect"] = file.as_posix().replace(SHARE_ROOT.as_posix(), "/nginx-share/")
             return response
-        raise exceptions.NotFoundException("File or directory not found")
         
     paths = sorted(paths, key=lambda p: p.name.lower())
 
