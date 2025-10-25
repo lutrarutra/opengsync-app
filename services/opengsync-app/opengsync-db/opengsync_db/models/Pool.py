@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 from . import links
-from ..categories import PoolStatus, PoolStatusEnum, PoolType, PoolTypeEnum
+from ..categories import PoolStatus, PoolStatusEnum, PoolType, PoolTypeEnum, LibraryType, LibraryTypeEnum
 from .Experiment import Experiment
 
 if TYPE_CHECKING:
@@ -95,6 +95,20 @@ class Pool(Base):
         ).where(
             Library.pool_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def library_types(self) -> list[LibraryTypeEnum]:
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            types = set()
+            for lib in self.libraries:
+                types.add(lib.type_id)
+
+            return [LibraryType.get(type_id) for type_id in sorted(types)]
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_types' attribute.")
+        from .Library import Library
+        type_ids = session.query(Library.type_id).filter(Library.pool_id == self.id).distinct().order_by(Library.type_id).all()
+        return [LibraryType.get(type_id) for (type_id,) in type_ids]
 
     @property
     def status(self) -> PoolStatusEnum:
