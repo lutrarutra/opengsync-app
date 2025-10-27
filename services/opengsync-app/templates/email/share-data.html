@@ -22,7 +22,7 @@
 <hr>
 
 {% if internal_access_share %}
-{% include "email/custom/share-internal-access.html" %}
+{{ internal_share_content | safe }}
 {% endif %}
 
 <br>
@@ -31,7 +31,7 @@
     <b>You can copy the data with one of the following commands:</b>
     <ul>
         <li>
-            WebDAV <span class="desc">(Rclone, recommended, fastest, downloads only modified/missing files)</span>:
+            WebDAV <span class="desc">(Rclone, recommended, fastest, downloads only modified/missing files, might not work for older rclone < 1.6)</span>:
             <div class="code">{{ sync_command | highlight_sh | safe }}</div><br>
         </li>
         <li>

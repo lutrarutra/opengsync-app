@@ -51,13 +51,12 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 
 ```sh
 # ${USER} ${GROUP} from .env
-mkdir -p db && sudo chown -R ${USER}:${GROUP} db && sudo chmod -R 700 db
+mkdir -p db && sudo chown -R ${USER}:${GROUP} db && sudo chmod -R 750 db
 mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
 mkdir -p db/postgres && sudo chown -R ${USER}:${GROUP} db/postgres
+mkdir -p db/postgres && sudo chown -R ${USER}:${GROUP} db/archive && sudo chmod -R 750 db/archive
 
-mkdir -p data && sudo chown -R ${USER}:${GROUP} data && sudo chmod -R 700 data
-mkdir -p data/db_backup/wal && sudo chown -R ${USER}:${GROUP} data/db_backup/wal && sudo chmod -R 700 data/db_backup/wal
-mkdir -p data/db_backup/base && sudo chown -R ${USER}:${GROUP} data/db_backup/base && sudo chmod -R 700 data/db_backup/base
+mkdir -p data && sudo chown -R ${USER}:${GROUP} data && sudo chmod -R 750 data
 
 sudo mkdir -p ./data/media && sudo chown -R ${USER}:${GROUP} ./data/media && sudo chmod -R 700 ./data/media 
 sudo mkdir -p ./uploads && sudo chown -R ${USER}:${GROUP} ./uploads && sudo chmod -R 700 ./uploads
@@ -288,3 +287,18 @@ db.users["user@email.com"]
 #### Commit and Auto-Commit
 - For safety, auto-commit is not enabled by default. (`auto_commit=False`)
 - Use `db.commit()` to write changes to db.
+
+## Backup and Restore
+
+### WAL Archiving
+- Enabled by default in `templates/postgresql.conf`: `archive_command = 'cp %p /var/lib/postgresql/wal/%f'` (mounted on `${DB_DIR}/archive/wal`)
+
+### Nightly Base Backups (and DB Dumps)
+- Service: `backup-service` handles nightly base backups and dumps at 2:00 AM every day.
+- Base backup stored in `${DB_DIR}/archive/base`
+- DB dump stored in `${DB_DIR}/archive/dump`
+
+### Restore from Base Backup + WAL
+1. `tar -xzf <date>.tar.gz`
+2. `cp backups/base/<date> db/postgres/`
+5. `docker compose -f compose.yaml -p opengsync run --rm postgres` # should start the postgres successfully

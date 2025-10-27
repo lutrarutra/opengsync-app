@@ -1,6 +1,8 @@
 personalization:
     organization: "OpeNGSync"
     email: "contact@us.email"
+    internal_share_template: "custom/share-internal-access.html"
+
 
 sample_submission_windows:
     - weekday: 2

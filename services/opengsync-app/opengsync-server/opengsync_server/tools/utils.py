@@ -496,6 +496,12 @@ def filter_subpaths(paths: list[str]) -> list[str]:
     return filtered_paths
 
 
+def replace_substrings(text: str, substrings: dict[str, str]) -> str:
+    for k, v in substrings.items():
+        text = text.replace(k, v)
+    return text
+
+
 def check_index_constraints(indices: list[str], must_have_bases: list[str] = ['T', 'C']) -> bool:    
     bases = set([c.upper() for c in must_have_bases])
 

@@ -10,10 +10,10 @@ from flask_htmx import make_response as make_htmx_response
 
 from opengsync_db import models
 
-from ..core import exceptions
-from .. import db, logger, flash_cache, limiter
-from ..core import wrappers
+from ..core import exceptions, wrappers
+from ..tools import utils
 from ..core.RunTime import runtime
+from .. import db, logger, flash_cache, limiter
 
 
 if runtime.app.debug:
@@ -34,7 +34,7 @@ if runtime.app.debug:
     def mail_template(current_user: models.User):
         import premailer
 
-        project = db.projects[14]
+        project = db.projects["BSA_1059"]
         outdir = "outdir"
         token = project.share_token.uuid  # type: ignore
         http_command = render_template("snippets/rclone-http.sh.j2", token=token, outdir=outdir)
@@ -45,17 +45,29 @@ if runtime.app.debug:
         browse_link = runtime.url_for("file_share.browse", token=token, _external=True)
         seq_requests = db.seq_requests.find(project_id=project.id, limit=None, sort_by="id")[0]
         experiments = db.experiments.find(limit=None, sort_by="id")[0]
-        
+
+        internal_share_content = ""
+        if (template := runtime.app.personalization.get("internal_share_template")):
+            if os.path.exists(os.path.join(runtime.app.template_folder, template)):
+                internal_paths = project.data_paths
+                internal_paths = utils.filter_subpaths([data_path.path for data_path in internal_paths])
+                internal_paths = [utils.replace_substrings(path, runtime.app.share_path_mapping) for path in internal_paths]
+                internal_share_content = render_template(
+                    template, paths=internal_paths, project=project
+                )
+            else:
+                logger.info(f"Internal share template '{template}' not found.")
+            
         content = render_template(
             "email/share-data.html", style=style, browse_link=browse_link,
             tenx_contents=True,
+            internal_share_content=internal_share_content,
             author=current_user,
             project=project,
             seq_requests=seq_requests,
             experiments=experiments,
             internal_access_share=True,
             share_token=project.share_token,
-            share_path_mapping={"ok2": "replaced"},
             http_command=http_command,
             sync_command=sync_command,
             wget_command=wget_command,
