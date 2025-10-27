@@ -160,9 +160,7 @@ services:
         volumes:
             - ./templates/postgres/postgresql.conf:/etc/postgresql.conf
             - ${DB_DIR}/postgres:/var/lib/postgresql/data:z
-            - ${DATA_DIR}/db_backup/wal:/var/lib/postgresql/wal
-            # - ${DATA_DIR}/db_backup/base:/var/lib/postgresql/base
-            # - ${DATA_DIR}/db_backup/dump:/var/lib/postgresql/dump
+            - ${DB_DIR}/archive:/var/lib/postgresql/archive:z
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
             interval: 10s
@@ -230,8 +228,8 @@ services:
             POSTGRES_PORT: ${POSTGRES_PORT}
             POSTGRES_HOST: postgres
         volumes:
-            - ${DATA_DIR}/db_backup/dump:/backups/dump
-            - ${DATA_DIR}/db_backup/base:/backups/base
+            - ${DB_DIR}/backup/dump:/backups/dump
+            - ${DB_DIR}/backup/base:/backups/base
             - ${DATA_DIR}/logs/backup:/var/log
         depends_on:
             postgres:
