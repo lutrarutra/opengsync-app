@@ -21,7 +21,7 @@ test*.ipynb
 licensed/
 ~*.xlsx
 
-services/opengsync-app/templates/email/custom/
+services/opengsync-app/templates/custom/
 services/nginx/config/
 
 .snakemake/

@@ -122,13 +122,25 @@ class ShareProjectDataForm(HTMXFlaskForm):
         seq_requests = db.seq_requests.find(project_id=self.project.id, limit=None, sort_by="id")[0]
         experiments = db.experiments.find(project_id=self.project.id, limit=None, sort_by="id")[0]
 
+        internal_share_content = ""
+        if (template := runtime.app.personalization.get("internal_share_template")):
+            if os.path.exists(os.path.join(runtime.app.template_folder, template)):
+                internal_paths = self.project.data_paths
+                internal_paths = utils.filter_subpaths([data_path.path for data_path in internal_paths])
+                internal_paths = [utils.replace_substrings(path, runtime.app.share_path_mapping) for path in internal_paths]
+                internal_share_content = render_template(
+                    template, paths=internal_paths, project=self.project
+                )
+            else:
+                logger.info(f"Internal share template '{template}' not found.")
+
         content = render_template(
             "email/share-data.html", style=style, browse_link=browse_link,
             project=self.project, tenx_contents=tenx_contents, library_types=library_types,
             author=None if self.anonymous_send.data else current_user if current_user.is_insider() else None,
             seq_requests=seq_requests, experiments=experiments, share_token=share_token,
-            share_path_mapping=runtime.app.share_path_mapping,
             internal_access_share=self.internal_share.data,
+            internal_share_content=internal_share_content,
             sync_command=sync_command,
             http_command=http_command,
             wget_command=wget_command,
