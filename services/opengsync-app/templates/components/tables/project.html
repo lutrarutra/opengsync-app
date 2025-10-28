@@ -70,7 +70,7 @@
                 <th scope="row">{{ project.id }}</th>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id) }}">{{ project.identifier or "" }}</a></td>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id) }}">{{ project.title }}</a></td>
-                <td>{{ library_type_badge_list(project.library_types) }}</td>
+                <td class="x-scroll-cell">{{ library_type_badge_list(project.library_types) }}</td>
                 <td>{{ project.status.icon }} {{ project.status.name }}</td>
                 <td>{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=project.owner_id) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></a></td>

@@ -13,6 +13,7 @@ from ...MultiStepForm import MultiStepForm
 from .LibraryAnnotationForm import LibraryAnnotationForm
 from .SelectAssayForm import SelectAssayForm
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
+from .SampleAnnotationForm import SampleAnnotationForm
 
 
 class ProjectSelectForm(MultiStepForm):
@@ -108,11 +109,5 @@ class ProjectSelectForm(MultiStepForm):
         self.metadata["project_description"] = self.project_description.data
         self.update_data()
 
-        if SelectAssayForm.is_applicable(self):
-            next_form = SelectAssayForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif PooledLibraryAnnotationForm.is_applicable(self):
-            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        else:
-            next_form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        
+        next_form = SampleAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)        
         return next_form.make_response()

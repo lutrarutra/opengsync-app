@@ -87,7 +87,7 @@
                 <td>{{ library.status.icon }} {{ library.status.name }}</td>
                 <td>{% if library.pool_id %}<a href="{{ url_for('pools_page.pool', pool_id=library.pool_id, from='lab_prep@' + lab_prep.id | string)}}">{{ library.pool.name }}</a>{% endif %}</td>
                 <td><a href="{{ url_for('users_page.user', library_id=library.owner_id, from='lab_prep@' + lab_prep.id | string) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
-                <td class="barcode-cell">
+                <td class="x-scroll-cell">
                     {{ library_index_cell(library) }}
                 </td>
             </tr>

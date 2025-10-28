@@ -54,7 +54,7 @@
     This project consists of samples defined in following sequencing requests:
     <ol>
         {% for seq_request in seq_requests %}
-        <li><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, _external=True) }}">{{ seq_request.name }}</a> {% if seq_request.timestamp_submitted %}<span class="desc">(Submitted {{ seq_request.timestamp_submitted | format_datetime }}){% endif %}</span></li>
+        <li><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, _external=True) }}">{{ seq_request.name }}</a> {% if seq_request.timestamp_submitted %}<span class="desc">(Submitted {{ seq_request.timestamp_submitted | format_datetime("%Y-%m-%d") }}){% endif %}</span></li>
         {% endfor %}
     </ol>
 </p>
@@ -68,13 +68,13 @@
         {% else %}
         {% set completed = None %}
         {% endif %}
-        <li>{{ experiment.name }} {% if completed %}<span class="desc">{{ completed | format_datetime }}</span>{% endif %}</li>
+        <li>{{ experiment.name }} {% if completed %}<span class="desc">{{ completed | format_datetime("%Y-%m-%d") }}</span>{% endif %}</li>
         {% endfor %}
     </ol>
 </p>
 <hr>
 
-<p>Please note that the links are only available for a limited time. After they expire, you will need to request new ones.</p>
+<p>Please note that the links are only available for a limited time (until {{ share_token.expiration | format_datetime }}). After the token expires, you will need to request new one.</p>
 <p>
 We would kindly ask you to download your data within <b>90 days</b>.
 Please ensure that you have copied and backed up all of your data during this time.

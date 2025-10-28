@@ -8,8 +8,7 @@ from opengsync_db.categories import FeatureType
 from .... import tools, logger  # noqa
 from ..common.CommonFeatureAnnotationForm import CommonFeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
-from .FlexAnnotationForm import FlexAnnotationForm
-from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
+from .CompleteSASForm import CompleteSASForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
 
 
@@ -48,10 +47,8 @@ class FeatureAnnotationForm(CommonFeatureAnnotationForm):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         
         return next_form.make_response()
         

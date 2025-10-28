@@ -138,7 +138,6 @@ class PoolMappingForm(MultiStepForm):
 
     def process_request(self, user: models.User) -> Response:
         if not self.validate(user=user):
-            logger.debug(self.errors)
             return self.make_response()
 
         self.metadata["pool_contact_name"] = self.contact_name.data

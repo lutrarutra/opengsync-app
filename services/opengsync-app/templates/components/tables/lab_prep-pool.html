@@ -57,7 +57,7 @@
                         {{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}
                     </a>
                 </td>
-                <td>{{ library_type_badge_list(pool.library_types) }}</td>
+                <td class="x-scroll-cell">{{ library_type_badge_list(pool.library_types) }}</td>
                 <td>{{ pool.status.icon }} {{ pool.status.name }}</td>
                 <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                 <td>{{ pool.num_libraries }}</td>

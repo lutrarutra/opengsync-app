@@ -5,7 +5,7 @@
 
 <div id="sample-table-submission-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">4. Specify Library Pooling</h1>
+        <h1 class="modal-title fs-5">2. Sample Annotation</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
@@ -28,9 +28,7 @@
                 {{ spreadsheet_input(element=form.spreadsheet, target_element_id="sample-table-submission-container", submit_btn_id="parse-spreadsheet-btn") }}
             </div>
             <div class="tab-pane fade" id="form-tab-help" role="tabpanel" tabindex="1">
-                {% include "instructions/pooled_libraries.html" %}
             </div>
-
         </div>
     </div>
     <div class="modal-footer">

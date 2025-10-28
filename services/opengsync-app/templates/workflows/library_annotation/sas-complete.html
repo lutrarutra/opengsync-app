@@ -66,237 +66,257 @@
                 <div class="flow-graph-container" id="submission-overview-graph" style="padding: 10px 10px 10px 10px;"></div>
             </div>
             <div class="tab-pane fade" id="library-tab" role="tabpanel" tabindex="1">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="col-2">Library Name</th>
-                            <th scope="col" class="col-2">Library Type</th>
-                            {% if "pool" in library_table.columns %}
-                            <th scope="col" class="col-2">Pool</th>
-                            {% endif %}
-                            {% if barcode_table is not none %}
-                            <th scope="col" class="col-6">
-                                Barcode
-                                <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">
-                                        <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5M.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5M3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0z"/>
-                                    </svg>
-                                </a>
-                            </th>
-                            {% endif %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for _, row in library_table.iterrows() %}
-                        <tr>
-                            <th scope="row">{{ row["library_name"] }}</th>
-                            <td>{{ row["library_type"] }}</td>
-                            {% if "pool" in library_table %}<td>{{ row["pool"] }}</td>{% endif %}
-                            {% if barcode_table is not none %}
-                            <td class="barcode-cell">
-                                {% for _, barcode_row in barcode_table[barcode_table["library_name"] == row["library_name"]].iterrows() %}
-                                {% if notna(barcode_row["name_i7"]) %}
-                                    {% if barcode_row["name_i7"] == barcode_row["name_i5"] or isna(barcode_row["name_i5"]) %}
-                                    <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}">
-                                        {{ barcode_row["name_i7"] }}
-                                    </span>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-2">Library Name</th>
+                                <th scope="col" class="col-2">Library Type</th>
+                                <th scope="col" class="col-2">Reference</th>
+                                {% if "pool" in library_table.columns %}
+                                <th scope="col" class="col-2">Pool</th>
+                                {% endif %}
+                                {% if barcode_table is not none %}
+                                <th scope="col" class="col-4">
+                                    Barcode
+                                    <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc-scan" viewBox="0 0 16 16">
+                                            <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5M.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5M3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0z"/>
+                                        </svg>
+                                    </a>
+                                </th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for _, row in library_table.iterrows() %}
+                            <tr>
+                                <th scope="row">{{ row["library_name"] }}</th>
+                                <td>{{ row["library_type"] }}</td>
+                                <td>{{ row["genome"] }}</td>
+                                {% if "pool" in library_table %}<td>{{ row["pool"] }}</td>{% endif %}
+                                {% if barcode_table is not none %}
+                                <td class="x-scroll-cell">
+                                    {% for _, barcode_row in barcode_table[barcode_table["library_name"] == row["library_name"]].iterrows() %}
+                                    {% if notna(barcode_row["name_i7"]) %}
+                                        {% if barcode_row["name_i7"] == barcode_row["name_i5"] or isna(barcode_row["name_i5"]) %}
+                                        <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}">
+                                            {{ barcode_row["name_i7"] }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}">
+                                            {{ barcode_row["name_i7"] }}+{{ barcode_row["name_i5"] }}
+                                        </span>
+                                        {% endif %}
                                     {% else %}
                                     <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}">
-                                        {{ barcode_row["name_i7"] }}+{{ barcode_row["name_i5"] }}
+                                        {{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}
                                     </span>
                                     {% endif %}
-                                {% else %}
-                                <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}">
-                                    {{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}
-                                </span>
+                                    <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}" style="display: none;">
+                                        {{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}
+                                    </span>
+                                    {% endfor %}
+                                </td>
                                 {% endif %}
-                                <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}" style="display: none;">
-                                    {{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}
-                                </span>
-                                {% endfor %}
-                            </td>
-                            {% endif %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <div class="tab-pane fade" id="sample-tab" role="tabpanel" tabindex="2">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="col-2">Sample Name</th>
-                            <th scope="col" class="col-6">Libraries</th>
-                            {% for col in sample_table.columns %}
-                            {% if "_attr_" in col %}
-                            <th scope="col" class="col-1">{{ col.removeprefix("_attr_").replace("_", " ").title() }}</th>
-                            {% endif %}
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for _, row in sample_table.iterrows() %}
-                        <tr>
-                            <th scope="row">{{ row["sample_name"] }} <span class="desc">{% if isna(row["sample_id"])%}new{% else %}existing{% endif %}</span></th>
-                            <td>
-                                {% for library_name in sample_pooling_table[sample_pooling_table["sample_name"] == row["sample_name"]]["library_name"] %}
-                                <span class="badge" >{{ library_table[library_table["library_name"] == library_name]["library_type"].values[0] }}</span>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-2">Sample Name</th>
+                                <th scope="col" class="col-6">Libraries</th>
+                                {% for col in sample_table.columns %}
+                                {% if "_attr_" in col %}
+                                <th scope="col" class="col-1">{{ col.removeprefix("_attr_").replace("_", " ").title() }}</th>
+                                {% endif %}
                                 {% endfor %}
-                            </td>
-                            {% for col in sample_table.columns %}
-                            {% if "_attr_" in col %}
-                            <td>{{ row[col] }}</td>
-                            {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for _, row in sample_table.iterrows() %}
+                            <tr>
+                                <th scope="row">{{ row["sample_name"] }} <span class="desc">{% if isna(row["sample_id"])%}new{% else %}existing{% endif %}</span></th>
+                                <td class="x-scroll-cell">
+                                    {% for library_name in sample_pooling_table[sample_pooling_table["sample_name"] == row["sample_name"]]["library_name"] %}
+                                    <span class="badge" >{{ library_table[library_table["library_name"] == library_name]["library_type"].values[0] }}</span>
+                                    {% endfor %}
+                                </td>
+                                {% for col in sample_table.columns %}
+                                {% if "_attr_" in col %}
+                                <td>{{ row[col] }}</td>
+                                {% endif %}
+                                {% endfor %}
+                            </tr>
                             {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <div class="tab-pane fade" id="pool-tab" role="tabpanel" tabindex="3">
                 {% if pool_table is not none %}
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="col-8">Name</th>
-                            <th scope="col" class="col-2"># M. Reads Requested</th>
-                            <th scope="col" class="col-2"># Libraries</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for idx, row in pool_table.iterrows() %}
-                        <tr>
-                            <th scope="row">{{ row["pool_name"] }}</th>
-                            <td>{{ row["num_m_reads_requested"] }}</td>
-                            <td>{{ library_table[library_table["pool"] == row["pool_label"]] | length }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-8">Name</th>
+                                <th scope="col" class="col-2"># M. Reads Requested</th>
+                                <th scope="col" class="col-2"># Libraries</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for idx, row in pool_table.iterrows() %}
+                            <tr>
+                                <th scope="row">{{ row["pool_name"] }}</th>
+                                <td>{{ row["num_m_reads_requested"] }}</td>
+                                <td>{{ library_table[library_table["pool"] == row["pool_label"]] | length }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% endif %}
             </div>
             <div class="tab-pane fade" id="barcode-tab" role="tabpanel" tabindex="4">
                 {% if barcode_table is not none %}
-                {{ barcode_clashes_table(barcode_table) }}
+                <div class="table-container">
+                    {{ barcode_clashes_table(barcode_table) }}
+                </div>
                 {% endif %}
             </div>
             <div class="tab-pane fade" id="feature-tab" role="tabpanel" tabindex="5">
                 {% if feature_table is not none %}
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="col-2">Feature</th>
-                            <th scope="col" class="col-1">Kit</th>
-                            <th scope="col" class="col-1">Sequence</th>
-                            <th scope="col" class="col-1">Pattern</th>
-                            <th scope="col" class="col-1">Read</th>
-                            <th scope="col" class="col-6">Libraries</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for (feature, kit, sequence, pattern, read), df in feature_table.groupby(["feature", "kit", "sequence", "pattern", "read"], dropna=False) %}
-                        <tr>
-                            <th scope="row">{{ feature }}</th>
-                            <td>{{ kit if kit == kit }}</td>
-                            <td>{{ sequence }}</td>
-                            <td>{{ pattern }}</td>
-                            <td>{{ read }}</td>
-                            <td>
-                                {% for _, row in df.iterrows() %}
-                                {% if isna(row["library_name"]) %}
-                                {% for library in form.abc_libraries %}
-                                <span class="badge">{{ library }}</span>
-                                {% endfor %}
-                                {% else %}
-                                <span class="badge">{{ row["library_name"] }}</span>
-                                {% endif %}
-                                {% endfor %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-2">Feature</th>
+                                <th scope="col" class="col-1">Kit</th>
+                                <th scope="col" class="col-1">Sequence</th>
+                                <th scope="col" class="col-1">Pattern</th>
+                                <th scope="col" class="col-1">Read</th>
+                                <th scope="col" class="col-6">Libraries</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for (feature, kit, sequence, pattern, read), df in feature_table.groupby(["feature", "kit", "sequence", "pattern", "read"], dropna=False) %}
+                            <tr>
+                                <th scope="row">{{ feature }}</th>
+                                <td>{{ kit if kit == kit }}</td>
+                                <td>{{ sequence }}</td>
+                                <td>{{ pattern }}</td>
+                                <td>{{ read }}</td>
+                                <td class="x-scroll-cell">
+                                    {% for _, row in df.iterrows() %}
+                                    {% if isna(row["library_name"]) %}
+                                    {% for library in form.abc_libraries %}
+                                    <span class="badge">{{ library }}</span>
+                                    {% endfor %}
+                                    {% else %}
+                                    <span class="badge">{{ row["library_name"] }}</span>
+                                    {% endif %}
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% endif %}
             </div>
             <div class="tab-pane fade" id="mux-tab" role="tabpanel" tabindex="6">
                 {% if mux_type %}
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="col-1">Sample Name</th>
-                            <th scope="col" class="col-3">Library Name</th>
-                            <th scope="col" class="col-1">Sample Pool</th>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-1">Sample Name</th>
+                                <th scope="col" class="col-3">Library Name</th>
+                                <th scope="col" class="col-1">Sample Pool</th>
+                                {% if mux_type in [MUXType.TENX_OLIGO, MUXType.TENX_ABC_HASH] %}
+                                <th scope="col" class="col-2">Kit</th>
+                                <th scope="col" class="col-1">Feature</th>
+                                <th scope="col" class="col-1">Sequence</th>
+                                <th scope="col" class="col-1">Pattern</th>
+                                <th scope="col" class="col-1">Read</th>
+                                {% else %}
+                                <th scope="col" class="col-2">Barcode ID</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
                             {% if mux_type in [MUXType.TENX_OLIGO, MUXType.TENX_ABC_HASH] %}
-                            <th scope="col" class="col-2">Kit</th>
-                            <th scope="col" class="col-1">Feature</th>
-                            <th scope="col" class="col-1">Sequence</th>
-                            <th scope="col" class="col-1">Pattern</th>
-                            <th scope="col" class="col-1">Read</th>
+                            {% for (sample_name, sample_pool, mux_barcode, mux_pattern, mux_read, mux_kit, mux_feature), _df in sample_pooling_table.groupby(["sample_name", "sample_pool", "mux_barcode", "mux_pattern", "mux_read", "mux_kit", "mux_feature"], dropna=False) %}
+                            <tr>
+                                <th scope="row">{{ sample_name }}</th>
+                                <td>{% for _, row in _df.iterrows() %}<span class="badge" >{{ row["library_name"] }}</span> {% endfor %}</td>
+                                <td>{{ sample_pool }}</td>
+                                <td>{{ mux_kit if notna(mux_kit) else "" }}</td>
+                                <td>{{ mux_feature if notna(mux_feature) else "" }}</td>
+                                <td>{{ mux_barcode }}</td>
+                                <td>{{ mux_pattern }}</td>
+                                <td>{{ mux_read }}</td>
+                            </tr>
+                            {% endfor %}
                             {% else %}
-                            <th scope="col" class="col-2">Barcode ID</th>
+                            {% for (sample_name, sample_pool, mux_barcode), _df in sample_pooling_table.groupby(["sample_name", "sample_pool", "mux_barcode"], dropna=False) %}
+                            <tr>
+                                <th scope="row">{{ sample_name }}</th>
+                                <td class="x-scroll-cell">
+                                    {% for _, row in _df.iterrows() %}
+                                    <span class="badge"><a href="#">{{ row["library_name"] }}</a></span>
+                                    {% endfor %}
+                                </td>
+                                <td>{{ sample_pool }}</td>
+                                <td>{{ mux_barcode }}</td>
+                            </tr>
+                            {% endfor %}
                             {% endif %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if mux_type in [MUXType.TENX_OLIGO, MUXType.TENX_ABC_HASH] %}
-                        {% for (sample_name, sample_pool, mux_barcode, mux_pattern, mux_read, kit, feature), _df in sample_pooling_table.groupby(["sample_name", "sample_pool", "mux_barcode", "mux_pattern", "mux_read", "kit", "feature"], dropna=False) %}
-                        <tr>
-                            <th scope="row">{{ sample_name }}</th>
-                            <td>{% for _, row in _df.iterrows() %}<span class="badge" >{{ row["library_name"] }}</span> {% endfor %}</td>
-                            <td>{{ sample_pool }}</td>
-                            <td>{{ kit if notna(kit) else "" }}</td>
-                            <td>{{ feature if notna(feature) else "" }}</td>
-                            <td>{{ mux_barcode }}</td>
-                            <td>{{ mux_pattern }}</td>
-                            <td>{{ mux_read }}</td>
-                        </tr>
-                        {% endfor %}
-                        {% else %}
-                        {% for (sample_name, sample_pool, mux_barcode), _df in sample_pooling_table.groupby(["sample_name", "sample_pool", "mux_barcode"], dropna=False) %}
-                        <tr>
-                            <th scope="row">{{ sample_name }}</th>
-                            <td>{% for _, row in _df.iterrows() %}<span class="badge" >{{ row["library_name"] }}</span>{% endfor %}</td>
-                            <td>{{ sample_pool }}</td>
-                            <td>{{ row["mux_barcode"] }}</td>
-                        </tr>
-                        {% endfor %}
-                        {% endif %}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
                 {% endif %}
             </div>
             <div class="tab-pane fade" id="spatial-tab" role="tabpanel" tabindex="7">
                 {% if spatial_table is not none %}
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="col-3">Sample Name</th>
-                            <th scope="col" class="col-3">Library Name</th>
-                            <th scope="col" class="col-2">Image</th>
-                            {% if "slide" in spatial_table.columns %}
-                            <th scope="col" class="col-2">Slide</th>
-                            {% endif %}
-                            {% if "area" in spatial_table.columns %}
-                            <th scope="col" class="col-2">Area</th>
-                            {% endif %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for _, row in spatial_table.iterrows() %}
-                        <tr>
-                            <th scope="row">{{ row["sample_name"] }}</th>
-                            <th scope="row">{{ row["library_name"] }}</th>
-                            <td>{{ row["image"] }}</td>
-                            {% if "slide" in spatial_table.columns %}
-                            <td>{{ row["slide"] }}</td>
-                            {% endif %}
-                            {% if "area" in spatial_table.columns %}
-                            <td>{{ row["area"] }}</td>
-                            {% endif %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-3">Sample Name</th>
+                                <th scope="col" class="col-3">Library Name</th>
+                                <th scope="col" class="col-2">Image</th>
+                                {% if "slide" in spatial_table.columns %}
+                                <th scope="col" class="col-2">Slide</th>
+                                {% endif %}
+                                {% if "area" in spatial_table.columns %}
+                                <th scope="col" class="col-2">Area</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for _, row in spatial_table.iterrows() %}
+                            <tr>
+                                <th scope="row">{{ row["sample_name"] }}</th>
+                                <th scope="row">{{ row["library_name"] }}</th>
+                                <td>{{ row["image"] }}</td>
+                                {% if "slide" in spatial_table.columns %}
+                                <td>{{ row["slide"] }}</td>
+                                {% endif %}
+                                {% if "area" in spatial_table.columns %}
+                                <td>{{ row["area"] }}</td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% endif %}
             </div>
         </div>

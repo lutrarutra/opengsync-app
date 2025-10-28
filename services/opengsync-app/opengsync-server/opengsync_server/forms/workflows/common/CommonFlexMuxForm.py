@@ -8,7 +8,7 @@ from opengsync_db import models, exceptions
 from opengsync_db.categories import LibraryType, MUXType
 
 from .... import logger, tools, db  # noqa F401
-from ....tools.spread_sheet_components import InvalidCellValue
+from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
 
@@ -57,18 +57,17 @@ class CommonFlexMuxForm(MultiStepForm):
                 logger.error("LabPrep must be provided for mux_prep workflow")
                 raise ValueError("LabPrep must be provided for mux_prep workflow")
             
-            self.sample_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id)
-            self.flex_table = self.sample_table[
-                (self.sample_table["mux_type"].isin([MUXType.TENX_FLEX_PROBE])) &
-                (self.sample_table["library_type"].isin([LibraryType.TENX_SC_GEX_FLEX]))
+            sample_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id)
+            self.flex_table = sample_table[
+                (sample_table["mux_type"].isin([MUXType.TENX_FLEX_PROBE])) &
+                (sample_table["library_type"].isin([LibraryType.TENX_SC_GEX_FLEX]))
             ].copy()
-            self.flex_table["barcode_id"] = self.sample_table["mux"].apply(
+            self.flex_table["barcode_id"] = sample_table["mux"].apply(
                 lambda x: x.get("barcode") if pd.notna(x) and isinstance(x, dict) else None
             )
         elif workflow == "library_annotation":
             self.index_col = "sample_name"
-            self.sample_table = self.tables["library_table"]
-            self.flex_table = self.sample_table[self.sample_table['library_type_id'] == LibraryType.TENX_SC_GEX_FLEX.id]
+            self.flex_table = self.tables["sample_pooling_table"]
         elif workflow == "library_remux":
             if self.library is None:
                 logger.error("Library must be provided for library_remux workflow")
@@ -84,9 +83,9 @@ class CommonFlexMuxForm(MultiStepForm):
                 data["sample_name"].append(link.sample.name)
                 data["barcode_id"].append(link.mux.get("barcode") if link.mux is not None else None)
 
-            self.sample_table = pd.DataFrame(data)
-            self.sample_table["library_id"] = self.library.id
-            self.flex_table = self.sample_table.copy()
+            sample_table = pd.DataFrame(data)
+            sample_table["library_id"] = self.library.id
+            self.flex_table = sample_table.copy()
         else:
             logger.error(f"Unsupported workflow: {workflow}")
             raise ValueError(f"Unsupported workflow: {workflow}")
@@ -107,7 +106,8 @@ class CommonFlexMuxForm(MultiStepForm):
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=self._csrf_token,
             post_url=self.post_url, formdata=formdata,
-            allow_new_rows=workflow == "library_annotation"
+            allow_new_rows=workflow == "library_annotation",
+            df=self.flex_table
         )
 
     def prepare(self):
@@ -122,14 +122,16 @@ class CommonFlexMuxForm(MultiStepForm):
             return False
         
         df = self.spreadsheet.df
+
+        duplicated = df.duplicated(subset=["sample_pool", "barcode_id"], keep=False)
         
         for idx, row in df.iterrows():
-            if row["sample_name"] not in self.sample_table["sample_name"].values:
-                self.spreadsheet.add_error(idx, "sample_name", InvalidCellValue(f"Unknown sample '{row['sample_name']}'. Must be one of: {', '.join(self.sample_table['sample_name'])}"))
-
             if pd.notna(row["barcode_id"]) and row["barcode_id"] not in CommonFlexMuxForm.allowed_barcodes:
                 self.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"'Barcode ID' must be one of: {', '.join(CommonFlexMuxForm.allowed_barcodes)}"))
 
+            if duplicated.at[idx]:
+                self.spreadsheet.add_error(idx, "barcode_id", DuplicateCellValue("Duplicate 'Barcode ID' in the same 'Sample Pool' is not allowed."))
+                
         if len(self.spreadsheet._errors) > 0:
             return False
         

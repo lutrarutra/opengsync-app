@@ -4,29 +4,31 @@ from flask import Response
 from wtforms import BooleanField
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, MUXType, SubmissionType
+from opengsync_db.categories import LibraryType, SubmissionType, LibraryTypeEnum
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, tools, db
 from ....tools import utils
-from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue
+from ....tools.spread_sheet_components import TextColumn
 from ...MultiStepForm import MultiStepForm
 from ..common import CommonFlexMuxForm
-from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
-
+from .CompleteSASForm import CompleteSASForm
+from .OCMAnnotationForm import OCMAnnotationForm
+from .FeatureAnnotationForm import FeatureAnnotationForm
+from .VisiumAnnotationForm import VisiumAnnotationForm
+from .OpenSTAnnotationForm import OpenSTAnnotationForm
+from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 
 class FlexAnnotationForm(CommonFlexMuxForm):
     _template_path = "workflows/library_annotation/sas-flex_annotation.html"
     _workflow_name = "library_annotation"
     seq_request: models.SeqRequest
 
-    columns = [
-        DropdownColumn("sample_name", "Sample Pool", 300, required=True, choices=[]),
-        TextColumn("demux_name", "Demultiplexed Name", 300, required=True, clean_up_fnc=tools.make_alpha_numeric),
+    columns: list = [
+        TextColumn("sample_name", "Demultiplexed Name", 300, required=True, read_only=True),
+        TextColumn("sample_pool", "Sample Pool Name", 300, required=True, read_only=True),
         TextColumn("barcode_id", "Bardcode ID", 200, required=False, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, clean_up_fnc=CommonFlexMuxForm.padded_barcode_id),
     ]
-
-    single_plex = BooleanField("Single-Plex (do not fill the spreadsheet)", description="Samples were not multiplexed, i.e. one sample per library.", default=False)
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm, seq_request: models.SeqRequest) -> bool:
@@ -40,103 +42,62 @@ class FlexAnnotationForm(CommonFlexMuxForm):
             self, uuid=uuid, formdata=formdata, workflow=FlexAnnotationForm._workflow_name,
             seq_request=seq_request, library=None, lab_prep=None, columns=FlexAnnotationForm.columns
         )
-        self.flex_samples = self.flex_table["sample_name"].unique().tolist()
-
-        self.spreadsheet.columns["sample_name"].source = self.flex_samples
 
     def fill_previous_form(self, previous_form: StepFile):
-        self.spreadsheet.set_data(previous_form.tables["flex_table"])
-
-    def validate(self) -> bool:
-        if not super().validate():
-            return False
-        
-        if self.single_plex.data:
-            return True
-
-        if not self.spreadsheet.validate():
-            return False
-    
-        df = self.spreadsheet.df
-        duplicate_barcode = df.duplicated(subset=["sample_name", "barcode_id"], keep=False)
-        duplicate_samples = df.duplicated(subset=["sample_name", "demux_name"], keep=False)
-
-        if (~self.flex_table["sample_name"].isin(df["sample_name"])).any():
-            self.spreadsheet.add_general_error(f"Missing samples for library: {self.flex_table[~self.flex_table['sample_name'].isin(df['sample_name'])]['sample_name'].values.tolist()}")
-            return False
-
-        for i, (idx, row) in enumerate(df.iterrows()):
-            if duplicate_barcode.at[idx]:
-                self.spreadsheet.add_error(idx, "barcode_id", DuplicateCellValue("'Barcode ID' is not unique in the library."))
-
-            if duplicate_samples.at[idx]:
-                self.spreadsheet.add_error(idx, "demux_name", DuplicateCellValue("'Sample Name' is not unique in the library."))
-
-        if len(self.spreadsheet._errors) > 0:
-            return False
-        
-        self.flex_table = df
-        return True
+        mux_table = previous_form.tables["sample_pooling_table"]
+        mux_table["barcode_id"] = mux_table["mux_barcode"]
+        self.spreadsheet.set_data(mux_table)
     
     def process_request(self) -> Response:
         if not self.validate():
             return self.make_response()
         
-        logger.debug(self.sample_table)
-
-        if not self.single_plex.data:
-            self.metadata["mux_type_id"] = CommonFlexMuxForm.mux_type.id
-            if self.flex_table is None:
-                logger.error(f"{self.uuid}: Flex table is None.")
-                raise Exception("Flex table is None.")
-            
-            sample_table = self.tables["sample_table"]
-            sample_pooling_table = self.tables["sample_pooling_table"]
-            sample_pooling_table["library_type_id"] = utils.map_columns(sample_pooling_table, self.sample_table, "library_name", "library_type_id")
-            logger.debug(sample_pooling_table)
-
-            sample_data = {
-                "sample_name": [],
-            }
-
-            pooling_data = {
-                "sample_name": [],
-                "library_name": [],
-                "sample_pool": [],
-                "mux_barcode": [],
-                "mux_type_id": [],
-            }
-
-            for _, flex_row in self.flex_table.iterrows():
-                sample_data["sample_name"].append(flex_row["demux_name"])
-                for _, pooling_row in sample_pooling_table[sample_pooling_table["sample_name"] == flex_row["sample_name"]].iterrows():
-                    pooling_data["sample_name"].append(flex_row["demux_name"])
-                    pooling_data["library_name"].append(pooling_row["library_name"])
-                    if LibraryType.TENX_SC_ABC_FLEX.id == pooling_row["library_type_id"]:
-                        pooling_data["mux_barcode"].append(flex_row["barcode_id"].replace("BC", "AB") if pd.notna(flex_row["barcode_id"]) else None)
-                    else:
-                        pooling_data["mux_barcode"].append(flex_row["barcode_id"])
-                    pooling_data["sample_pool"].append(flex_row["sample_name"])
-                    pooling_data["mux_type_id"].append(MUXType.TENX_FLEX_PROBE.id)
-
-            sample_pooling_table = pd.DataFrame(pooling_data)
-            self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)
-            
-            sample_table = pd.DataFrame(sample_data)
-            sample_table["sample_id"] = None
-            if (project_id := self.metadata.get("project_id")) is not None:
-                if (project := db.projects.get(project_id)) is None:
-                    logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
-                    raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
-                
-                for sample in project.samples:
-                    sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
-
-            self.update_table("sample_table", sample_table, update_data=False)
-            self.add_table("flex_table", self.flex_table)
-            self.update_data()
-
-            logger.debug(sample_pooling_table)
+        sample_pooling_table = self.tables["sample_pooling_table"]
         
-        next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        self.metadata["mux_type_id"] = CommonFlexMuxForm.mux_type.id
+        if self.flex_table is None:
+            logger.error(f"{self.uuid}: Flex table is None.")
+            raise Exception("Flex table is None.")
+        
+        sample_pooling_table["mux_barcode"] = utils.map_columns(sample_pooling_table, self.df, idx_columns=["sample_name", "sample_pool"], col="barcode_id")
+
+        self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)
+
+        library_table_data = {
+            "library_name": [],
+            "sample_name": [],
+            "library_type": [],
+            "library_type_id": [],
+        }
+
+        def add_library(sample_pool: str, library_type: LibraryTypeEnum):
+            library_table_data["library_name"].append(f"{sample_pool}_{library_type.identifier}")
+            library_table_data["sample_name"].append(sample_pool)
+            library_table_data["library_type"].append(library_type.name)
+            library_table_data["library_type_id"].append(library_type.id)
+
+        for (sample_pool,), _ in sample_pooling_table.groupby(["sample_pool"], sort=False):
+            add_library(sample_pool, LibraryType.TENX_SC_GEX_FLEX)
+
+            if self.metadata["antibody_capture"]:
+                add_library(sample_pool, LibraryType.TENX_SC_ABC_FLEX)
+
+        library_table = pd.DataFrame(library_table_data)
+        library_table["seq_depth"] = None
+        self.update_table("library_table", library_table)
+                        
+        if self.metadata["workflow_type"] == "pooled":
+            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif OCMAnnotationForm.is_applicable(self):
+            next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif FeatureAnnotationForm.is_applicable(self):
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif OpenSTAnnotationForm.is_applicable(self):
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif VisiumAnnotationForm.is_applicable(self):
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        else:
+            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
+
         return next_form.make_response()
+    

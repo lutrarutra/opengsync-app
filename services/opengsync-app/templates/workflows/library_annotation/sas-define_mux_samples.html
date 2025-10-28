@@ -5,7 +5,7 @@
 
 <div id="assay-form-submission-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">2. Specify Multiplexed Samples</h1>
+        <h1 class="modal-title fs-5">How are the samples pooled?</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
@@ -56,72 +56,4 @@
             </button>
         </div>
     </div>
-    <script>
-        var assays = {
-            {% for assay_type in AssayType.as_list() %}
-            {{ assay_type.id }}: {
-                optional_library_types: [
-                    {% for library_type in assay_type.optional_library_types %}
-                    {{ library_type.id }},
-                    {% endfor %}
-                ],
-                multiplexing: {% if assay_type.oligo_multiplexing %}true{% else %}false{% endif %},
-            },
-            {% endfor %}
-        };
-
-        function update_optional_assays(assay_id) {
-            const optional_library_types = assays[assay_id].optional_library_types;
-            const multiplexing = assays[assay_id].multiplexing;
-            
-            $(".opt-checkbox input").each(function() {
-                $(this).addClass("disabled");
-                $(this).prop("disabled", true);
-                $(this).prop("checked", false);
-            });
-            $(".opt-checkbox label").each(function() {
-                $(this).addClass("text-muted");
-            });
-
-            if (multiplexing) {
-                $(".service-checkbox-multiplexing input").each(function() {
-                    $(this).removeClass("disabled");
-                    $(this).prop("disabled", false);
-                });
-
-                $(".service-checkbox-multiplexing label").each(function() {
-                    $(this).removeClass("text-muted");
-                });
-            } else {
-                $(".service-checkbox-multiplexing input").each(function() {
-                    $(this).addClass("disabled");
-                    $(this).prop("disabled", true);
-                    $(this).prop("checked", false);
-                });
-
-                $(".service-checkbox-multiplexing label").each(function() {
-                    $(this).addClass("text-muted");
-                });
-            }
-
-            optional_library_types.forEach(function(library_type_id) {
-                $(`.opt-checkbox-${library_type_id} input`).each(function() {
-                    $(this).removeClass("disabled");
-                    $(this).prop("disabled", false);
-                });
-
-                $(`.opt-checkbox-${library_type_id} label`).each(function() {
-                    $(this).removeClass("text-muted");
-                });
-            });
-        }
-
-        $(document).ready(function() {
-            update_optional_assays($("#assay_type").val());
-
-            $("#assay_type").on("change", function() {
-                update_optional_assays($(this).val());
-            });
-        });
-    </script>
 </div>
