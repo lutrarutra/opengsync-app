@@ -67,7 +67,7 @@
                     </span>
                 </td>
                 <td><a href="{{ url_for('pools_page.pool', pool_id=library.pool_id, from='experiment@' + experiment.id | string)}}">{{ library.pool.name }}</a></td>
-                <td class="barcode-cell">
+                <td class="x-scroll-cell">
                     {{ library_index_cell(library) }}
                 </td>
             </tr>

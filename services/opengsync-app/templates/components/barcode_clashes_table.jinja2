@@ -96,7 +96,7 @@
             {% endif %}>{{ row["rc_i5_min_hamming_bases"] }} bp</td>
             {% endif %}
 
-            <td class="barcode-cell">
+            <td class="x-scroll-cell">
                 {% if "name_i7" in df.columns and "name_i5" in df.columns %}
                 {% if row["name_i7"] == row["name_i5"] and row["name_i7"] %}
                 <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}" >{{ row["name_i7"] }}</span>

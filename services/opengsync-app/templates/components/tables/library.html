@@ -69,7 +69,7 @@
                 </td>
                 <td>{{ library.status.icon }} {{ library.status.name }}</td>
                 <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=library.seq_request_id) }}">{{ library.seq_request.name }}</a></td>
-                <td class="barcode-cell">
+                <td class="x-scroll-cell">
                     {{ library_index_cell(library) }}
                 </td>
             </tr>

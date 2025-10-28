@@ -12,6 +12,7 @@ from opengsync_db.categories import (
 )
 
 from .... import db, logger, tools
+from ....core import exceptions
 from ...MultiStepForm import MultiStepForm
 from ....core.RunTime import runtime
 
@@ -39,6 +40,22 @@ class CompleteSASForm(MultiStepForm):
         self.library_properties_table = self.tables.get("library_properties_table")
         self.comment_table = self.tables.get("comment_table")
         self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata["mux_type_id"] is not None else None
+
+        self.library_table["genome_id"] = GenomeRef.CUSTOM.id
+        for idx, row in self.library_table.iterrows():
+            sample_names = self.sample_pooling_table[self.sample_pooling_table["library_name"] == row["library_name"]]["sample_name"].unique()
+            sample_genome_ids = self.sample_table[self.sample_table["sample_name"].isin(sample_names)]["genome_id"].unique()
+            logger.debug(sample_genome_ids)
+            if len(sample_genome_ids) > 1:
+                logger.warning(f"{self.uuid}: Multiple genome references found for library {row['library_name']}: {sample_genome_ids}. Setting to CUSTOM.")
+                continue
+            elif len(sample_genome_ids) == 1:
+                self.library_table.at[idx, "genome_id"] = sample_genome_ids[0]  # type: ignore
+            else:
+                logger.error(f"{self.uuid}: No genome reference found for library {row['library_name']}.")
+                raise exceptions.InternalServerErrorException(f"No genome reference found for library {row['library_name']}.")
+            
+        self.library_table["genome"] = self.library_table["genome_id"].apply(lambda gid: GenomeRef.get(gid).display_name if pd.notna(gid) else None)
 
         self.abc_libraries = self.library_table[
             self.library_table["library_type_id"].isin(
@@ -202,7 +219,7 @@ class CompleteSASForm(MultiStepForm):
                     owner_id=user.id,
                     status=None if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES else SampleStatus.DRAFT
                 )
-                self.sample_table.at[idx, "sample_id"] = sample.id
+                self.sample_table.at[idx, "sample_id"] = sample.id  # type: ignore
 
             for attr in AttributeType.as_list():
                 attr_label = f"_attr_{attr.label}"
@@ -247,7 +264,7 @@ class CompleteSASForm(MultiStepForm):
                         num_m_reads_requested=library_row["num_m_reads_requested"]
                     )
 
-                self.pool_table.at[idx, "pool_id"] = pool.id
+                self.pool_table.at[idx, "pool_id"] = pool.id  # type: ignore
                 
             self.pool_table["pool_id"] = self.pool_table["pool_id"].astype(int)
 
@@ -286,7 +303,7 @@ class CompleteSASForm(MultiStepForm):
                 seq_depth_requested=library_row["seq_depth"] if "seq_depth" in library_row and pd.notna(library_row["seq_depth"]) else None,
             )
 
-            self.library_table.at[idx, "library_id"] = library.id
+            self.library_table.at[idx, "library_id"] = library.id  # type: ignore
             
             if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
                 if self.barcode_table is None:

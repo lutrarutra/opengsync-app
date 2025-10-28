@@ -44,7 +44,7 @@ if runtime.app.debug:
 
         browse_link = runtime.url_for("file_share.browse", token=token, _external=True)
         seq_requests = db.seq_requests.find(project_id=project.id, limit=None, sort_by="id")[0]
-        experiments = db.experiments.find(limit=None, sort_by="id")[0]
+        experiments = db.experiments.find(project_id=project.id, limit=None, sort_by="id")[0]
 
         internal_share_content = ""
         if (template := runtime.app.personalization.get("internal_share_template")):

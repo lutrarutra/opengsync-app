@@ -13,7 +13,7 @@ from .... import logger, db  # noqa F401
 from ....core import runtime
 from ....tools.spread_sheet_components import TextColumn, MissingCellValue, SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm
-from .CompleteSASForm import CompleteSASForm
+from .SelectAssayForm import SelectAssayForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
@@ -37,19 +37,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
         self.upload_path = os.path.join(runtime.app.uploads_folder.as_posix(), "seq_request")
         self.columns: list[SpreadSheetColumn] = SampleAttributeAnnotationForm.predefined_columns.copy()  # type: ignore
 
-        library_table = self.tables["library_table"]
         sample_table = self.tables["sample_table"]
-
-        library_table["is_mux_sample"] = False
-        library_table["is_flex_sample"] = False
-        for sample_name, _df in library_table.groupby("sample_name"):
-            if LibraryType.TENX_MUX_OLIGO.id in _df["library_type_id"].unique():
-                library_table.loc[library_table["sample_name"] == sample_name, "is_mux_sample"] = True
-            if LibraryType.TENX_SC_GEX_FLEX.id in _df["library_type_id"].unique():
-                library_table.loc[library_table["sample_name"] == sample_name, "is_flex_sample"] = True
-
-        self.update_table("library_table", library_table, False)
-
         df = sample_table[["sample_name"]].copy()
     
         for col in SampleAttributeAnnotationForm.predefined_columns:
@@ -149,5 +137,5 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         self.update_table("sample_table", self.sample_table)
         
-        next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
+        next_form = SelectAssayForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

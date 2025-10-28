@@ -60,7 +60,7 @@
                     <span class="badge{% if pool.type == PoolType.INTERNAL %} bg-success{% elif pool.type == PoolType.CUSTOM %} bg-warning{% endif %}"><a href="{{ url_for('pools_page.pool', pool_id=pool.id) }}">{{ pool.name }}</a></span>
                     {% endfor %}
                 </td>
-                <td>{{ library_type_badge_list(experiment.library_types) }}</td>
+                <td class="x-scroll-cell">{{ library_type_badge_list(experiment.library_types) }}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=experiment.operator_id) }}">{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></a></td>
                 <td>{{ experiment.timestamp_created_str("%Y-%m-%d") }}</td>
                 <td>{{ experiment.workflow.name }}</td>

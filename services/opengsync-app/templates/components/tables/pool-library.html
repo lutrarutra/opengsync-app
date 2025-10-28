@@ -64,7 +64,7 @@
                     </span>
                 </td>
                 <td><a href="{{ url_for('users_page.user', library_id=library.owner_id, from='pool@' + pool.id | string) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
-                <td class="barcode-cell">
+                <td class="x-scroll-cell">
                     {{ library_index_cell(library) }}
                 </td>
             </tr>

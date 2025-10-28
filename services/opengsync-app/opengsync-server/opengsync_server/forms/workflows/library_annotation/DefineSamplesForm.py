@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response, url_for
 
 from opengsync_db import models
-from opengsync_db.categories import AssayType, GenomeRef, LibraryType, LibraryTypeEnum, GenomeRefEnum
+from opengsync_db.categories import AssayType, GenomeRef, LibraryType
 
 from .... import logger, db
 from ....tools import utils
@@ -12,7 +12,7 @@ from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
-from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
+from .CompleteSASForm import CompleteSASForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
 
 
@@ -105,86 +105,6 @@ class DefineSamplesForm(MultiStepForm):
         if not self.validate():
             return self.make_response()
 
-        sample_table_data = {
-            "sample_name": [],
-        }
-
-        library_table_data = {
-            "library_name": [],
-            "sample_name": [],
-            "genome": [],
-            "genome_id": [],
-            "library_type": [],
-            "library_type_id": [],
-        }
-
-        sample_pooling_table = {
-            "sample_name": [],
-            "library_name": [],
-        }
-
-        def add_library(sample_name: str, library_type: LibraryTypeEnum, genome: GenomeRefEnum):
-            library_name = f"{sample_name}_{library_type.identifier}"
-
-            sample_pooling_table["sample_name"].append(sample_name)
-            sample_pooling_table["library_name"].append(library_name)
-
-            library_table_data["library_name"].append(library_name)
-            library_table_data["sample_name"].append(sample_name)
-            library_table_data["genome"].append(genome.name)
-            library_table_data["genome_id"].append(genome.id)
-            library_table_data["library_type"].append(library_type.name)
-            library_table_data["library_type_id"].append(library_type.id)
-
-        for _, row in self.df.iterrows():
-            sample_name = row["sample_name"]
-            genome = GenomeRef.get(row['genome_id'])
-
-            sample_table_data["sample_name"].append(sample_name)
-
-            for library_type in self.assay_type.library_types:
-                add_library(sample_name, library_type, genome)
-
-            if self.antibody_capture:
-                if self.assay_type in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
-                    add_library(sample_name, LibraryType.TENX_SC_ABC_FLEX, genome)
-                else:
-                    add_library(sample_name, LibraryType.TENX_ANTIBODY_CAPTURE, genome)
-
-            if self.vdj_b:
-                add_library(sample_name, LibraryType.TENX_VDJ_B, genome)
-
-            if self.vdj_t:
-                add_library(sample_name, LibraryType.TENX_VDJ_T, genome)
-
-            if self.vdj_t_gd:
-                add_library(sample_name, LibraryType.TENX_VDJ_T_GD, genome)
-
-            if self.crispr_screening:
-                add_library(sample_name, LibraryType.TENX_CRISPR_SCREENING, genome)
-
-        library_table = pd.DataFrame(library_table_data)
-        library_table["seq_depth"] = None
-
-        sample_table = pd.DataFrame(sample_table_data)
-        sample_table["sample_id"] = None
-
-        if (project_id := self.metadata.get("project_id")) is not None:
-            if (project := db.projects.get(project_id)) is None:
-                logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
-                raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
-            
-            for sample in project.samples:
-                sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
-
-        sample_pooling_table = pd.DataFrame(sample_pooling_table)
-        sample_pooling_table["mux_type_id"] = None
-
-        self.add_table("library_table", library_table)
-        self.add_table("sample_table", sample_table)
-        self.add_table("sample_pooling_table", sample_pooling_table)
-        self.update_data()
-
         if FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
@@ -192,5 +112,5 @@ class DefineSamplesForm(MultiStepForm):
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

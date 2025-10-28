@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response
 
 from opengsync_db import models
-from opengsync_db.categories import FeatureType, MUXType, SubmissionType
+from opengsync_db.categories import FeatureType, MUXType, LibraryType, AssayType, LibraryTypeEnum
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa
@@ -11,8 +11,9 @@ from ..common.CommonOligoMuxForm import CommonOligoMuxForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
-from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
+from .CompleteSASForm import CompleteSASForm
+from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 
 
 class OligoMuxAnnotationForm(CommonOligoMuxForm):
@@ -36,59 +37,68 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
     def process_request(self) -> Response:
         if not self.validate():
             return self.make_response()
-
-        sample_table = self.tables["sample_table"]
+    
         sample_pooling_table = self.tables["sample_pooling_table"]
 
-        sample_data = {"sample_name": []}
+        sample_pooling_table["mux_barcode"] = None
+        sample_pooling_table["mux_pattern"] = None
+        sample_pooling_table["mux_read"] = None
+        sample_pooling_table["mux_kit"] = None
+        sample_pooling_table["mux_feature"] = None
 
-        pooling_data = {
-            "sample_name": [],
+        for _, row in self.df.iterrows():
+            sample_name = row["sample_name"]
+            sample_pool = row["sample_pool"]
+            sample_pooling_table.loc[(sample_pooling_table["sample_name"] == sample_name) & (sample_pooling_table["sample_pool"] == sample_pool), "mux_barcode"] = row["barcode"]
+            sample_pooling_table.loc[(sample_pooling_table["sample_name"] == sample_name) & (sample_pooling_table["sample_pool"] == sample_pool), "mux_pattern"] = row["pattern"]
+            sample_pooling_table.loc[(sample_pooling_table["sample_name"] == sample_name) & (sample_pooling_table["sample_pool"] == sample_pool), "mux_read"] = row["read"]
+            sample_pooling_table.loc[(sample_pooling_table["sample_name"] == sample_name) & (sample_pooling_table["sample_pool"] == sample_pool), "mux_kit"] = row["kit"]
+            sample_pooling_table.loc[(sample_pooling_table["sample_name"] == sample_name) & (sample_pooling_table["sample_pool"] == sample_pool), "mux_feature"] = row["feature"]
+
+        if OligoMuxAnnotationForm.is_abc_hashed(self):
+            sample_pooling_table["mux_type_id"] = MUXType.TENX_ABC_HASH.id
+        else:
+            sample_pooling_table["mux_type_id"] = MUXType.TENX_OLIGO.id
+
+        library_table_data = {
             "library_name": [],
-            "mux_barcode": [],
-            "mux_pattern": [],
-            "mux_read": [],
-            "kit": [],
-            "feature": [],
-            "mux_type_id": [],
-            "sample_pool": [],
+            "sample_name": [],
+            "library_type": [],
+            "library_type_id": [],
         }
 
-        for _, mux_row in self.df.iterrows():
-            sample_data["sample_name"].append(mux_row["sample_name"])
-            if self.seq_request.submission_type == SubmissionType.RAW_SAMPLES:
-                idx = sample_pooling_table["sample_name"] == mux_row["sample_name"]
-            else:
-                idx = sample_pooling_table["sample_name"] == mux_row["sample_pool"]
-            for _, pooling_row in sample_pooling_table[idx].iterrows():
-                pooling_data["sample_name"].append(mux_row["sample_name"])
-                pooling_data["library_name"].append(pooling_row["library_name"])
-                pooling_data["mux_barcode"].append(mux_row["barcode"])
-                pooling_data["mux_pattern"].append(mux_row["pattern"])
-                pooling_data["mux_read"].append(mux_row["read"])
-                pooling_data["kit"].append(mux_row["kit"])
-                pooling_data["feature"].append(mux_row["feature"])
-                if OligoMuxAnnotationForm.is_abc_hashed(self):
-                    pooling_data["mux_type_id"].append(MUXType.TENX_ABC_HASH.id)
+        assay_type_enum = AssayType.get(self.metadata["assay_type_id"])
+
+        def add_library(sample_pool: str, library_type: LibraryTypeEnum):
+            library_table_data["library_name"].append(f"{sample_pool}_{library_type.identifier}")
+            library_table_data["sample_name"].append(sample_pool)
+            library_table_data["library_type"].append(library_type.name)
+            library_table_data["library_type_id"].append(library_type.id)
+
+        for (sample_pool,), _ in sample_pooling_table.groupby(["sample_pool"], sort=False):
+            for library_type in assay_type_enum.library_types:
+                add_library(sample_pool, library_type)
+
+            if self.metadata["antibody_capture"]:
+                if assay_type_enum in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
+                    add_library(sample_pool, LibraryType.TENX_SC_ABC_FLEX)
                 else:
-                    pooling_data["mux_type_id"].append(MUXType.TENX_OLIGO.id)
-                pooling_data["sample_pool"].append(mux_row["sample_pool"])
-        
-        sample_pooling_table = pd.DataFrame(pooling_data)
-        self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)
+                    add_library(sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE)
 
-        sample_table = pd.DataFrame(sample_data)
-        sample_table = sample_table.drop_duplicates().reset_index(drop=True)
-        sample_table["sample_id"] = None
-        if (project_id := self.metadata.get("project_id")) is not None:
-            if (project := db.projects.get(project_id)) is None:
-                logger.error(f"{self.uuid}: Project with ID {self.metadata['project_id']} does not exist.")
-                raise ValueError(f"Project with ID {self.metadata['project_id']} does not exist.")
-            
-            for sample in project.samples:
-                sample_table.loc[sample_table["sample_name"] == sample.name, "sample_id"] = sample.id
+            if self.metadata["vdj_b"]:
+                add_library(sample_pool, LibraryType.TENX_VDJ_B)
 
-        self.update_table("sample_table", sample_table, update_data=False)
+            if self.metadata["vdj_t"]:
+                add_library(sample_pool, LibraryType.TENX_VDJ_T)
+
+            if self.metadata["vdj_t_gd"]:
+                add_library(sample_pool, LibraryType.TENX_VDJ_T_GD)
+
+            if self.metadata["crispr_screening"]:
+                add_library(sample_pool, LibraryType.TENX_CRISPR_SCREENING)
+
+        library_table = pd.DataFrame(library_table_data)
+        library_table["seq_depth"] = None
                 
         kit_table = self.df[self.df["kit"].notna()][["kit"]].drop_duplicates().copy()
         kit_table["type_id"] = FeatureType.CMO.id
@@ -101,9 +111,12 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
                 kit_table = pd.concat([kit_table[kit_table["type_id"] != FeatureType.CMO.id], existing_kit_table])
                 self.update_table("kit_table", kit_table, update_data=False)
         
+        self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)
         self.update_data()
 
-        if FeatureAnnotationForm.is_applicable(self):
+        if self.metadata["workflow_type"] == "pooled":
+            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
@@ -112,6 +125,6 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
         elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
 
         return next_form.make_response()

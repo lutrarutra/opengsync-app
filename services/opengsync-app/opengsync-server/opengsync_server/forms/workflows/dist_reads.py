@@ -132,7 +132,6 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
 
     def process_request(self) -> Response:
         if not self.validate():
-            logger.debug(self.errors)  # FIXME: Erros not printed
             return self.make_response()
 
         links: dict[tuple[int, int], models.links.LanePoolLink] = {}
@@ -140,10 +139,13 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
             links[(link.lane_id, link.pool_id)] = link
 
         for pool_field in self.pool_reads_fields:
+            if pool_field.num_reads.data is None:
+                continue
+            
             if (pool := db.pools.get(pool_field.pool_id.data)) is None:
                 logger.error(f"Pool with id {pool_field.pool_id.data} does not exist")
                 raise ValueError(f"Pool with id {pool_field.pool_id.data} does not exist")
-
+            
             for link in pool.lane_links:
                 link.num_m_reads = pool_field.num_reads.data / self.experiment.num_lanes
                 

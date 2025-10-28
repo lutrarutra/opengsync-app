@@ -1,4 +1,4 @@
-from typing import Optional
+import pandas as pd
 
 from flask import Response
 from flask_wtf import FlaskForm
@@ -6,14 +6,17 @@ from wtforms import SelectField, TextAreaField, BooleanField, FormField, StringF
 from wtforms.validators import Optional as OptionalValidator, Length, DataRequired
 
 from opengsync_db import models
-from opengsync_db.categories import AssayType, GenomeRef, MUXType
+from opengsync_db.categories import AssayType, MUXType, LibraryTypeEnum, LibraryType
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa
 from ...MultiStepForm import MultiStepForm
-from .DefineSamplesForm import DefineSamplesForm
 from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm
-
+from .VisiumAnnotationForm import VisiumAnnotationForm
+from .FeatureAnnotationForm import FeatureAnnotationForm
+from .CompleteSASForm import CompleteSASForm
+from .OpenSTAnnotationForm import OpenSTAnnotationForm
+from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 
 class OptionalAssaysForm(FlaskForm):
     vdj_b = BooleanField("VDJ-B", description="BCR-sequencing", default=False)
@@ -42,10 +45,6 @@ class SelectAssayForm(MultiStepForm):
     optional_assays = FormField(OptionalAssaysForm)
     additional_services = FormField(AdditionalSerevicesForm)
 
-    @staticmethod
-    def is_applicable(current_step: MultiStepForm) -> bool:
-        return current_step.metadata["workflow_type"] == "tech"
-
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=SelectAssayForm._workflow_name,
@@ -54,6 +53,7 @@ class SelectAssayForm(MultiStepForm):
         )
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
+        self.sample_table = self.tables["sample_table"]
 
     def fill_previous_form(self, previous_form: StepFile):
         self.assay_type.data = previous_form.metadata.get("assay_type_id")
@@ -113,10 +113,6 @@ class SelectAssayForm(MultiStepForm):
         if self.errors:
             return False
         
-        genome_map = {}
-        for id, e in GenomeRef.as_tuples():
-            genome_map[e.display_name] = id
-        
         try:
             self.assay_type_enum = AssayType.get(int(self.assay_type.data))
         except ValueError:
@@ -172,9 +168,76 @@ class SelectAssayForm(MultiStepForm):
 
         if DefineMultiplexedSamplesForm.is_applicable(self):
             next_form = DefineMultiplexedSamplesForm(seq_request=self.seq_request, uuid=self.uuid)
-        else:
-            next_form = DefineSamplesForm(seq_request=self.seq_request, uuid=self.uuid)
+            return next_form.make_response()
+        
+        library_table_data = {
+            "library_name": [],
+            "sample_name": [],
+            "library_type": [],
+            "library_type_id": [],
+        }
 
+        sample_pooling_table = {
+            "sample_name": [],
+            "library_name": [],
+        }
+
+        def add_library(sample_name: str, library_type: LibraryTypeEnum):
+            library_name = f"{sample_name}_{library_type.identifier}"
+
+            sample_pooling_table["sample_name"].append(sample_name)
+            sample_pooling_table["library_name"].append(library_name)
+
+            library_table_data["library_name"].append(library_name)
+            library_table_data["sample_name"].append(sample_name)
+            library_table_data["library_type"].append(library_type.name)
+            library_table_data["library_type_id"].append(library_type.id)
+
+        for _, row in self.sample_table.iterrows():
+            sample_name = row["sample_name"]
+
+            for library_type in self.assay_type_enum.library_types:
+                add_library(sample_name, library_type)
+
+            if self.optional_assays.antibody_capture.data:
+                if self.assay_type in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
+                    add_library(sample_name, LibraryType.TENX_SC_ABC_FLEX)
+                else:
+                    add_library(sample_name, LibraryType.TENX_ANTIBODY_CAPTURE)
+
+            if self.optional_assays.vdj_b.data:
+                add_library(sample_name, LibraryType.TENX_VDJ_B)
+
+            if self.optional_assays.vdj_t.data:
+                add_library(sample_name, LibraryType.TENX_VDJ_T)
+
+            if self.optional_assays.vdj_t_gd.data:
+                add_library(sample_name, LibraryType.TENX_VDJ_T_GD)
+
+            if self.optional_assays.crispr_screening.data:
+                add_library(sample_name, LibraryType.TENX_CRISPR_SCREENING)
+
+        library_table = pd.DataFrame(library_table_data)
+        library_table["seq_depth"] = None
+
+        sample_pooling_table = pd.DataFrame(sample_pooling_table)
+        sample_pooling_table["mux_type_id"] = None
+
+        self.add_table("library_table", library_table)
+        self.add_table("sample_pooling_table", sample_pooling_table)
+        self.update_data()
+
+        if self.metadata["workflow_type"] == "pooled":
+            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif FeatureAnnotationForm.is_applicable(self):
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif OpenSTAnnotationForm.is_applicable(self):
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif VisiumAnnotationForm.is_applicable(self):
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        else:
+            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()
+
         
         

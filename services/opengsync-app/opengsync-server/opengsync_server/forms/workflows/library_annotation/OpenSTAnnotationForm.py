@@ -14,8 +14,7 @@ from .... import logger # noqa
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue
 from ...SpreadsheetInput import SpreadsheetInput
 from ...MultiStepForm import MultiStepForm
-from .FlexAnnotationForm import FlexAnnotationForm
-from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
+from .CompleteSASForm import CompleteSASForm
 
 
 class OpenSTAnnotationForm(MultiStepForm):
@@ -32,7 +31,7 @@ class OpenSTAnnotationForm(MultiStepForm):
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
-        return current_step.tables["library_table"]["library_type_id"].isin([LibraryType.OPENST.id]).any()
+        return bool(current_step.tables["library_table"]["library_type_id"].isin([LibraryType.OPENST.id]).any())
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
@@ -112,10 +111,6 @@ class OpenSTAnnotationForm(MultiStepForm):
         
         self.add_table("library_properties_table", library_properties_table)
         self.update_data()
-
-        if FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()
  

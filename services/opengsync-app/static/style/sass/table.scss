@@ -124,33 +124,6 @@ table input.table-query-input{
                 margin: 0 !important;
             }
 
-            td.barcode-cell {
-                height: 100%;
-                padding: 0 !important;
-                div {
-                    padding: 0 5px;
-                    height: 100%;
-                    overflow-y: auto;
-                    width: 100%;
-                    scrollbar-width: thin;
-                    scrollbar-color: #ccc transparent;
-
-                    &::-webkit-scrollbar {
-                        width: 4px;
-                    }
-
-                    &::-webkit-scrollbar-track {
-                        background: transparent;
-                    }
-
-                    &::-webkit-scrollbar-thumb {
-                        background: #ccc;
-                        border-radius: 4px;
-                        border-radius: 10px;
-                    }
-                }
-            }
-
             td.x-scroll-cell {
                 padding: 0 5px;
                 overflow-x: auto;
@@ -158,7 +131,14 @@ table input.table-query-input{
 
                 &::-webkit-scrollbar {
                     height: 4px;
-                    background: transparent;
+                }
+
+                &::-webkit-scrollbar-thumb {
+                    border-radius: 0px;
+                }
+
+                &::-webkit-scrollbar-track {
+                    border-radius: 0px;
                 }
             }
 
@@ -226,7 +206,6 @@ table input.table-query-input{
                 color: $gray-500;
             }
         }
-
     }
 }
 

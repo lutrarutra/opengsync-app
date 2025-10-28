@@ -4,13 +4,10 @@ from opengsync_db import models
 
 from .... import logger
 from ..common import CommonBarcodeMatchForm
-from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
-from .FlexAnnotationForm import FlexAnnotationForm
-from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
-from .OCMAnnotationForm import OCMAnnotationForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
+from .CompleteSASForm import CompleteSASForm
 
 
 class BarcodeMatchForm(CommonBarcodeMatchForm):
@@ -42,18 +39,12 @@ class BarcodeMatchForm(CommonBarcodeMatchForm):
             )
 
         self.update_table("barcode_table", self.barcode_table)
-        if OCMAnnotationForm.is_applicable(self):
-            next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OligoMuxAnnotationForm.is_applicable(self):
-            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OpenSTAnnotationForm.is_applicable(self):
+        if OpenSTAnnotationForm.is_applicable(self):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

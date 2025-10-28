@@ -321,31 +321,6 @@
                         </div>
                     </div>
                 </div>
-                {% if current_user.is_insider() %}
-                <div class="flip-card card{% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %} {% if seq_request.submission_type != SubmissionType.RAW_SAMPLES and current_user.is_insider() %}muted{% endif %}"
-                    style="width: 250px;"
-                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id, workflow_type='raw') }}"
-                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
-                    {% else %}{{ tooltip("You can no longer add samples after the request has been submitted.", category="warning") }}{% endif %}>
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/petri-dish.svg') }}" width="90px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Specify Samples <br><span class="desc">Raw Samples</span></h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Submit raw samples for library preparation, pooling, and sequencing. You can submit this workflow multiple times before submitting the request. The result of this workflow is same as workflow 'A', except the annotation process is more manual.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
                 {% endif %}
                 {% if seq_request.submission_type == SubmissionType.POOLED_LIBRARIES %}
                 <div class="flip-card card{% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %}"

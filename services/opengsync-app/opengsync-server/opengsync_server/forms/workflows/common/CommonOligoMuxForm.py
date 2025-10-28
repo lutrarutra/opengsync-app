@@ -45,7 +45,7 @@ class CommonOligoMuxForm(MultiStepForm):
             "pattern": [],
             "read": [],
         }
-        for (sample_name, sample_pool, mux_barcode, mux_pattern, mux_read), _ in df.groupby(["sample_name", "sample_pool", "mux_barcode", "mux_pattern", "mux_read"], dropna=False):
+        for (sample_name, sample_pool, mux_barcode, mux_pattern, mux_read), _ in df.groupby(["sample_name", "sample_pool", "mux_barcode", "mux_pattern", "mux_read"], dropna=False, sort=False):
             mux_data["sample_name"].append(sample_name)
             mux_data["sample_pool"].append(sample_pool)
             mux_data["barcode"].append(mux_barcode)
@@ -121,9 +121,9 @@ class CommonOligoMuxForm(MultiStepForm):
             TextColumn("sample_pool", "Sample Pool Name", 170, required=True, read_only=True),
             CategoricalDropDown("kit", "Kit", 250, categories=self.kits_mapping, required=False),
             TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
-            TextColumn("barcode", "Sequence", 150, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
-            TextColumn("pattern", "Pattern", 200, max_length=models.Feature.pattern.type.length, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
-            DropdownColumn("read", "Read", 100, choices=["R2", "R1"]),
+            TextColumn("barcode", "Sequence", 200, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),
+            TextColumn("pattern", "Pattern", 180, max_length=models.Feature.pattern.type.length, clean_up_fnc=lambda x: x.strip() if pd.notna(x) else None),
+            DropdownColumn("read", "Read", 80, choices=["R2", "R1"]),
         ]
 
         self.columns = additional_columns + columns
