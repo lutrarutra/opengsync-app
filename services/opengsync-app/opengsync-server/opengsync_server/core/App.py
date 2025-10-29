@@ -58,7 +58,11 @@ class App(Flask):
 
     def __init__(self, config_path: str):
         opengsync_config = yaml.safe_load(open(config_path))
-        super().__init__(__name__, static_folder=opengsync_config["static_folder"], template_folder=opengsync_config["template_folder"])
+        super().__init__(
+            __name__,
+            static_folder=opengsync_config["static_folder"],
+            template_folder=opengsync_config["template_folder"],
+        )
 
         if DEBUG:
             self.jinja_env.undefined = StrictUndefined
@@ -67,8 +71,9 @@ class App(Flask):
         log_buffer.set_log_dir(Path(opengsync_config["log_folder"]))
         log_buffer.start("App Initialization")
 
-        if (external_base_url := opengsync_config.get("external_base_url")):
+        if external_base_url := opengsync_config.get("external_base_url"):
             from ..core import runtime
+
             self.jinja_env.globals["url_for"] = runtime.url_for
 
         self.external_base_url = external_base_url
@@ -85,13 +90,15 @@ class App(Flask):
             raise FileNotFoundError(f"Static folder not found: {self.static_folder}")
 
         if not os.path.exists(self.template_folder):
-            raise FileNotFoundError(f"Template folder not found: {self.template_folder}")
+            raise FileNotFoundError(
+                f"Template folder not found: {self.template_folder}"
+            )
 
         file_handler.init_app(
             media_folder=self.media_folder,
             uploads_folder=self.uploads_folder,
             app_data_folder=self.app_data_folder,
-            share_root=self.share_root
+            share_root=self.share_root,
         )
 
         self.debug = DEBUG
@@ -103,7 +110,13 @@ class App(Flask):
 
         REDIS_PORT = int(os.environ["REDIS_PORT"])
 
-        route_cache.init_app(self, config={"CACHE_TYPE": "redis", "CACHE_REDIS_URL": f"redis://redis-cache:{REDIS_PORT}/0"})
+        route_cache.init_app(
+            self,
+            config={
+                "CACHE_TYPE": "redis",
+                "CACHE_REDIS_URL": f"redis://redis-cache:{REDIS_PORT}/0",
+            },
+        )
         msf_cache.connect("redis-cache", REDIS_PORT, 1)
         flash_cache.connect("redis-cache", REDIS_PORT, 2)
 
@@ -121,7 +134,9 @@ class App(Flask):
         self.config["SESSION_TYPE"] = "redis"
         self.config["SESSION_PERMANENT"] = False
         self.config["SESSION_USE_SIGNER"] = True
-        self.config["SESSION_COOKIE_SECURE"] = False  # True does not work, at least not without https
+        self.config["SESSION_COOKIE_SECURE"] = (
+            False  # True does not work, at least not without https
+        )
         self.config["SESSION_REDIS"] = session_cache
 
         Session(self)
@@ -146,18 +161,22 @@ class App(Flask):
             db=os.environ["POSTGRES_DB"],
         )
 
-        if (windows := opengsync_config.get("sample_submission_windows")):
+        if windows := opengsync_config.get("sample_submission_windows"):
             self.sample_submission_windows = tools.utils.parse_time_windows(windows)
         else:
             self.sample_submission_windows = None
 
-        if (whitelist := opengsync_config.get("email_domain_white_list")):
+        if whitelist := opengsync_config.get("email_domain_white_list"):
             self.email_domain_white_list = whitelist
         else:
             self.email_domain_white_list = None
-            logger.warning("No email domain white list configured. All domains are allowed.")
+            logger.warning(
+                "No email domain white list configured. All domains are allowed."
+            )
 
-        db.lab_protocol_start_number = int(opengsync_config["db"]["lab_protocol_start_number"])
+        db.lab_protocol_start_number = int(
+            opengsync_config["db"]["lab_protocol_start_number"]
+        )
 
         @login_manager.user_loader
         def load_user(user_id: int) -> models.User | None:
@@ -168,7 +187,7 @@ class App(Flask):
 
         @login_manager.unauthorized_handler
         def unauthorized():
-            next = url_for(request.endpoint, **request.view_args)   # type: ignore
+            next = url_for(request.endpoint, **request.view_args)  # type: ignore
             return redirect(url_for("auth_page.auth", next=next))
 
         @self.context_processor
@@ -180,6 +199,7 @@ class App(Flask):
             return dict(uuid4=uuid4)
 
         from .jfilters import inject_jinja_format_filters
+
         inject_jinja_format_filters(self)
 
         @self.context_processor
@@ -226,7 +246,11 @@ class App(Flask):
                 MUXType=categories.MUXType,
                 DataPathType=categories.DataPathType,
                 ExperimentWorkFlow=categories.ExperimentWorkFlow,
-                SpreadSheetErrors=[ssc.InvalidCellValue(""), ssc.MissingCellValue(""), ssc.DuplicateCellValue("")],
+                SpreadSheetErrors=[
+                    ssc.InvalidCellValue(""),
+                    ssc.MissingCellValue(""),
+                    ssc.DuplicateCellValue(""),
+                ],
                 isna=pd.isna,
                 notna=pd.notna,
             )

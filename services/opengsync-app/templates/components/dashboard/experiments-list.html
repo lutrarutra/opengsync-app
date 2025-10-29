@@ -2,7 +2,12 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 {% for experiment in experiments %}
+{% if loop.last and limit == loop.index %}
+<a class="element-banner" href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}"
+hx-get="{{ url_for('experiments_htmx.get_recent_experiments', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#experiments-htmx-indicator" hx-swap="outerHTML" hx-indicator="#experiments-htmx-indicator">
+{% else %}
 <a class="element-banner" href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}">
+{% endif %}
     <div class="row">
         <div class="title col-4">{{ experiment.name }}</div>
         <div class="description col-4">{{ experiment.operator.name }}</span></div>
@@ -11,8 +16,4 @@
     {{ experiment_status_bar(experiment) }}
 </a>
 {% endfor %}
-{% if limit == experiments | length %}
-<div hx-get="{{ url_for('experiments_htmx.get_recent_experiments', page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML" style="min-hieght: 50px; margin-top: 20px;">
-    {{ spinner() }}
-</div>
-{% endif %}
+{{ spinner(id="experiments-htmx-indicator") }}

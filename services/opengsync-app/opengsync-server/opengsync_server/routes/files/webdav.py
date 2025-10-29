@@ -21,10 +21,10 @@ def share(token: str, subpath: Path = Path()):
 
     if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
         raise exceptions.NotFoundException("Invalid Token")
-    
+
     if share_token.is_expired:
         raise exceptions.NoPermissionsException("Token expired")
-    
+
     if limiter.current_limit:
         limiter.storage.clear(limiter.current_limit.key)
 
@@ -54,7 +54,7 @@ def share(token: str, subpath: Path = Path()):
         depth = request.headers.get("Depth", "1")
         if depth not in ("0", "1", "infinity"):
             raise exceptions.BadRequestException("Invalid Depth header")
-        
+
         depth = 0 if depth == "0" else 1
         resources = browser.propfind(subpath, depth=depth)
         xml = render_template("share/webdav.xml", resources=resources)
@@ -64,7 +64,7 @@ def share(token: str, subpath: Path = Path()):
     elif request.method == "GET":
         if (path := browser.get_file(subpath)) is None:
             raise exceptions.NotFoundException("File not found")
-        
+
         if not path.is_file():
             raise exceptions.BadRequestException("Subpath must be a file")
 
@@ -84,4 +84,3 @@ def share(token: str, subpath: Path = Path()):
         return response
     else:
         raise exceptions.MethodNotAllowedException()
-

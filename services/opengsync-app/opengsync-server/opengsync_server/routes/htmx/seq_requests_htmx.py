@@ -1134,7 +1134,7 @@ def store_samples(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get_recent_seq_requests(current_user: models.User, page: int = 0):
     PAGE_LIMIT = 10
-
+    
     if current_user.is_insider():
         def __order_by_status_and_time(q):
             return q.order_by(
