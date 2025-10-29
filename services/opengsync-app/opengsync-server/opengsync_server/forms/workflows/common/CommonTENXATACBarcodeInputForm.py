@@ -54,6 +54,7 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
         self.seq_request = seq_request
         self.lab_prep = lab_prep
         self.pool = pool
+        self.kits = []
 
         if workflow == "library_annotation":
             self.index_col = "library_name"
@@ -230,6 +231,7 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
                     self.spreadsheet.add_error(idx, ["kit", "name", "sequence_1", "sequence_2", "sequence_3", "sequence_4"], MissingCellValue("missing 'Sequence 1/2/3/4' or 'Name' + 'Kit' or 'Index Well' + 'Kit'"))
         
         self.df["index_type_id"] = IndexType.TENX_ATAC_INDEX.id
+        self.kits = kits
         return len(self.spreadsheet._errors) == 0
 
     def get_barcode_table(self) -> pd.DataFrame:

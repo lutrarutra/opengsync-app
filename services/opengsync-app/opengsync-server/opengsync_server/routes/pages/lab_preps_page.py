@@ -27,7 +27,7 @@ def lab_prep(current_user: models.User, lab_prep_id: int):
     can_be_completed = len(lab_prep.libraries) > 0
     contains_mux_libraries = False
     for library in lab_prep.libraries:
-        if library.status.id < LibraryStatus.POOLED.id:
+        if library.status.id < LibraryStatus.POOLED.id or not library.is_indexed():
             can_be_completed = False
         
         if library.mux_type is not None:

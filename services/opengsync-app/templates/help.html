@@ -2,9 +2,7 @@
 {% set active_page = "help-page" %}
 {% block content %}
 <div class="page-content">
-    {% if current_user.is_insider() %}
     {% include 'sops.html' %}
-    {% endif %}
     <h2 class="pt-3"><i class="bi bi-info-circle"></i> Privacy Notice</h2>
     <p>
         This website uses only essential cookies to ensure the proper functionality of the website.

@@ -58,13 +58,6 @@
                 {% endif %}>{{ row["min_hamming_bases"] }} bp</td>
 
                 <td class="x-scroll-cell">
-                    {% if row["index_type_id"] == IndexType.TENX_ATAC_INDEX.id %}
-                    <span class="badge index-badge index-badges-{{ uuid }}" >{{ row["name"] }}</span>
-                    <span class="badge index-badge index-badges-{{ uuid }}" style="display: none;">{{ row["sequence_1"] }}</span>
-                    <span class="badge index-badge index-badges-{{ uuid }}" style="display: none;">{{ row["sequence_2"] }}</span>
-                    <span class="badge index-badge index-badges-{{ uuid }}" style="display: none;">{{ row["sequence_3"] }}</span>
-                    <span class="badge index-badge index-badges-{{ uuid }}" style="display: none;">{{ row["sequence_4"] }}</span>
-                    {% else %}
                     {% if "name_i7" in df.columns and "name_i5" in df.columns %}
                     {% if row["name_i7"] == row["name_i5"] and row["name_i7"] %}
                     <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}" >{{ row["name_i7"] }}</span>
@@ -79,7 +72,6 @@
                     {% else %}
                     <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
                     <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}" style="display: none;">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
-                    {% endif %}
                     {% endif %}
                 </td>
 

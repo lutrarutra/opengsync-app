@@ -18,6 +18,7 @@ from .CompleteSASForm import CompleteSASForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 
+
 class OptionalAssaysForm(FlaskForm):
     vdj_b = BooleanField("VDJ-B", description="BCR-sequencing", default=False)
     vdj_t = BooleanField("VDJ-T", description="TCR-sequencing", default=False)
@@ -71,10 +72,9 @@ class SelectAssayForm(MultiStepForm):
             self.additional_services.oligo_multiplexing.data = True
             self.additional_services.oligo_multiplexing_kit.data = previous_form.metadata.get("oligo_multiplexing_kit", "")
         elif previous_form.metadata.get("mux_type_id") == MUXType.TENX_ON_CHIP.id:
-            self.additional_services.ocm_multiplexing.data = True    
+            self.additional_services.ocm_multiplexing.data = True
 
         self.additional_info.data = previous_form.metadata.get("additional_info", "")
-
 
     def validate(self) -> bool:
         if not super().validate():

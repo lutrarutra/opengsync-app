@@ -1,13 +1,17 @@
+import os
+
 import pandas as pd
+import openpyxl
+from openpyxl.utils import get_column_letter
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, IndexType, BarcodeOrientation
+from opengsync_db.categories import IndexType, BarcodeOrientation
 
-from .... import logger, db  # noqa F401
 from .... import logger, tools, db  # noqa F401
+from ....core import exceptions, runtime
 from ...MultiStepForm import MultiStepForm
 
 
@@ -35,12 +39,17 @@ class CompleteReindexForm(MultiStepForm):
         self.library_table = self.tables["library_table"]
         self.barcode_table = self.tables["barcode_table"]
         self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
+        self.barcode_table = tools.check_indices(self.barcode_table)
+
+        if (tenx_atac_barcode_table := self.tables.get("tenx_atac_barcode_table")) is not None:
+            self.barcode_table = pd.concat([self.barcode_table, tenx_atac_barcode_table], ignore_index=True)
+        
         self.barcode_table.loc[
             pd.notna(self.barcode_table["orientation_i7_id"]) &
             (self.barcode_table["orientation_i7_id"] != self.barcode_table["orientation_i5_id"]),
             "orientation_id"
         ] = None
-        self.barcode_table = tools.check_indices(self.barcode_table)
+        
         self.index_col = self.metadata["index_col"]
         self._context["barcode_table"] = self.barcode_table
 
@@ -58,53 +67,126 @@ class CompleteReindexForm(MultiStepForm):
         self.post_url = url_for("reindex_workflow.complete_reindex", uuid=self.uuid, **self.url_context)
 
     def process_request(self) -> Response:
-        for _, library_row in self.library_table.iterrows():
-            if (library := db.libraries.get(library_row["library_id"])) is None:
-                logger.error(f"{self.uuid}: Library {library_row['library_id']} not found")
-                raise ValueError(f"{self.uuid}: Library {library_row['library_id']} not found")
+        if not self.validate():
+            return self.make_response()
+        
+        barcode_table = self.tables["barcode_table"]
+        tenx_atac_barcode_table = self.tables.get("tenx_atac_barcode_table")
+        
+        for (library_id, index_type_id), _ in self.barcode_table.groupby(["library_id", "index_type_id"], dropna=False):
+            library = db.libraries[int(library_id)]
+
+            try:
+                index_type_id = int(index_type_id)
+                index_type = IndexType.get(index_type_id)
+            except ValueError:
+                logger.error(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
+                raise exceptions.InternalServerErrorException(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
 
             library = db.libraries.remove_indices(library_id=library.id)
-            library_barcodes = self.barcode_table[self.barcode_table[self.index_col] == library_row[self.index_col]].copy()
-
-            if library.type == LibraryType.TENX_SC_ATAC:
-                if len(library_barcodes) != 4:
-                    logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for TENX_SC_ATAC library, found {len(library_barcodes)}.")
-                index_type = IndexType.TENX_ATAC_INDEX
-            else:
-                if library_barcodes["sequence_i5"].isna().all():
-                    index_type = IndexType.SINGLE_INDEX_I7
-                elif library_barcodes["sequence_i5"].isna().any():
-                    logger.warning(f"{self.uuid}: Mixed index types found for library {library_row['library_name']}.")
-                    index_type = IndexType.DUAL_INDEX
-                else:
-                    index_type = IndexType.DUAL_INDEX
-
+            
             library.index_type = index_type
             db.libraries.update(library)
 
-            for _, barcode_row in library_barcodes.iterrows():
-                if int(barcode_row["index_type_id"]) != index_type.id:
-                    logger.error(f"{self.uuid}: Index type mismatch for library {library_row['library_name']}. Expected {index_type}, found {IndexType.get(barcode_row['index_type_id'])}.")
+            match index_type:
+                case IndexType.TENX_ATAC_INDEX:
+                    if tenx_atac_barcode_table is None:
+                        logger.error(f"{self.uuid}: TENX_ATAC_INDEX selected but no tenx_atac_barcode_table found.")
+                        raise exceptions.InternalServerErrorException(f"{self.uuid}: TENX_ATAC_INDEX selected but no tenx_atac_barcode_table found.")
+                    
+                    df = tenx_atac_barcode_table[tenx_atac_barcode_table["library_id"] == library.id]
+                    if index_type == IndexType.TENX_ATAC_INDEX:
+                        if len(df) != 4:
+                            logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for index type {library.index_type}, found {len(df)}.")
+                case _:
+                    df = barcode_table[barcode_table["library_id"] == library.id]
+                    if len(df) != 1:
+                        logger.warning(f"{self.uuid}: Expected 1 barcode for index type {library.index_type}, found {len(df)}.")
 
-                orientation = None
-                if pd.notna(barcode_row["orientation_i7_id"]):
-                    orientation = BarcodeOrientation.get(int(barcode_row["orientation_i7_id"]))
+            for _, row in df.iterrows():
+                if index_type == IndexType.TENX_ATAC_INDEX:
+                    for i in range(1, 5):
+                        if pd.isna(row[f"sequence_{i}"]):
+                            logger.error(f"{self.uuid}: Missing sequence_{i} for TENX_ATAC_INDEX in library {row['library_name']}.")
+                            raise ValueError(f"Missing sequence_{i} for TENX_ATAC_INDEX in library {row['library_name']}.")
+                        
+                        library = db.libraries.add_index(
+                            library_id=library.id,
+                            index_kit_i7_id=int(row["kit_id"]) if pd.notna(row["kit_id"]) else None,
+                            index_kit_i5_id=None,
+                            name_i7=row["name"] or None,
+                            name_i5=None,
+                            sequence_i7=row[f"sequence_{i}"],
+                            sequence_i5=None,
+                            orientation=BarcodeOrientation.FORWARD if pd.notna(row["kit_id"]) else None,
+                        )
+                else:
+                    orientation = None
+                    if pd.notna(row["orientation_i7_id"]):
+                        orientation = BarcodeOrientation.get(row["orientation_i7_id"])
 
-                if orientation is not None and pd.notna(barcode_row["orientation_i5_id"]):
-                    if orientation.id != int(barcode_row["orientation_i5_id"]):
-                        logger.error(f"{self.uuid}: Conflicting orientations for i7 and i5 in library {library_row['library_name']}.")
-                        raise ValueError("Conflicting orientations for i7 and i5.")
+                    if orientation is not None and pd.notna(row["orientation_i5_id"]):
+                        if orientation.id != row["orientation_i5_id"]:
+                            logger.error(f"{self.uuid}: Conflicting orientations for i7 and i5 in library {row['library_name']}.")
+                            raise ValueError("Conflicting orientations for i7 and i5.")
+                    library = db.libraries.add_index(
+                        library_id=library.id,
+                        index_kit_i7_id=int(row["kit_i7_id"]) if pd.notna(row["kit_i7_id"]) else None,
+                        index_kit_i5_id=int(row["kit_i5_id"]) if pd.notna(row["kit_i5_id"]) else None,
+                        name_i7=row["name_i7"] if pd.notna(row["name_i7"]) else None,
+                        name_i5=row["name_i5"] if pd.notna(row["name_i5"]) else None,
+                        sequence_i7=row["sequence_i7"],
+                        sequence_i5=row["sequence_i5"] if pd.notna(row["sequence_i5"]) else None,
+                        orientation=orientation,
+                    )
 
-                library = db.libraries.add_index(
-                    library_id=library.id,
-                    sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,
-                    sequence_i5=barcode_row["sequence_i5"] if pd.notna(barcode_row["sequence_i5"]) else None,
-                    index_kit_i7_id=barcode_row["kit_i7_id"] if pd.notna(barcode_row["kit_i7_id"]) else None,
-                    index_kit_i5_id=barcode_row["kit_i5_id"] if pd.notna(barcode_row["kit_i5_id"]) else None,
-                    name_i7=barcode_row["name_i7"] if pd.notna(barcode_row["name_i7"]) else None,
-                    name_i5=barcode_row["name_i5"] if pd.notna(barcode_row["name_i5"]) else None,
-                    orientation=orientation,
-                )
+        if self.lab_prep is not None and self.lab_prep.prep_file is not None:
+            path = os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path)
+            wb = openpyxl.load_workbook(path)
+            active_sheet = wb["prep_table"]
+            
+            column_mapping: dict[str, str] = {}
+            for col_i in range(1, min(active_sheet.max_column, 96)):
+                col = get_column_letter(col_i + 1)
+                column_name = active_sheet[f"{col}1"].value
+                column_mapping[column_name] = col
+
+            for i, ((library_id, index_type_id), _) in enumerate(self.barcode_table.groupby(["library_id", "index_type_id"], dropna=False)):
+                library = db.libraries[int(library_id)]
+                
+                try:
+                    index_type_id = int(index_type_id)
+                    index_type = IndexType.get(index_type_id)
+                except ValueError:
+                    logger.error(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
+                    raise exceptions.InternalServerErrorException(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
+
+                if index_type == IndexType.TENX_ATAC_INDEX:
+                    if tenx_atac_barcode_table is None:
+                        logger.error(f"{self.uuid}: TENX_ATAC_INDEX selected but no tenx_atac_barcode_table found.")
+                        raise exceptions.InternalServerErrorException(f"{self.uuid}: TENX_ATAC_INDEX selected but no tenx_atac_barcode_table found.")
+                    
+                    active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"].value = library.sequences_i7_str(sep=";")
+                    active_sheet[f"{column_mapping['sequence_i5']}{i + 2}"].value = None
+                    active_sheet[f"{column_mapping['name_i7']}{i + 2}"].value = ";".join(set([index.name_i7 for index in library.indices if index.name_i7]))
+                    active_sheet[f"{column_mapping['name_i5']}{i + 2}"].value = None
+                    active_sheet[f"{column_mapping['pool']}{i + 2}"].value = library.pool.name if library.pool is not None else None
+                    active_sheet[f"{column_mapping['kit_i7']}{i + 2}"].value = ";".join(set([index.index_kit_i7.identifier for index in library.indices if index.index_kit_i7]))
+                    active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = None
+                    active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = next(iter(barcode_table[barcode_table["library_id"] == library.id]["index_well"].tolist()), None)
+                else:
+
+                    active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"].value = library.sequences_i7_str(sep=";")
+                    active_sheet[f"{column_mapping['sequence_i5']}{i + 2}"].value = library.sequences_i5_str(sep=";")
+                    active_sheet[f"{column_mapping['name_i7']}{i + 2}"].value = ";".join([index.name_i7 for index in library.indices if index.name_i7])
+                    active_sheet[f"{column_mapping['name_i5']}{i + 2}"].value = ";".join([index.name_i5 for index in library.indices if index.name_i5])
+                    active_sheet[f"{column_mapping['pool']}{i + 2}"].value = library.pool.name if library.pool is not None else None
+                    active_sheet[f"{column_mapping['kit_i7']}{i + 2}"].value = ";".join([index.index_kit_i7.identifier for index in library.indices if index.index_kit_i7])
+                    active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = ";".join([index.index_kit_i5.identifier for index in library.indices if index.index_kit_i5])
+                    active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = next(iter(barcode_table[barcode_table["library_id"] == library.id]["index_well"].tolist()), None)
+
+            logger.debug(f"Overwriting existing file: {os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path)}")
+            wb.save(path)
 
         flash("Libraries Re-Indexed!", "success")
         self.complete()

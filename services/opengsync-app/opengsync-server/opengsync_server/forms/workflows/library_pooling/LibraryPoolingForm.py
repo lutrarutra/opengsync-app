@@ -1,21 +1,27 @@
+import os
 import pandas as pd
-
-from flask import Response
+from flask import url_for, Response
 
 from opengsync_db import models
 
 from .... import logger, db  # noqa F401
-from ....tools.spread_sheet_components import IntegerColumn, TextColumn, InvalidCellValue
-from ..common import CommonBarcodeInputForm
-from .BarcodeMatchForm import BarcodeMatchForm
-from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm
+from ....core import runtime
+from ....tools.spread_sheet_components import TextColumn, IntegerColumn, InvalidCellValue
+from ...MultiStepForm import MultiStepForm
+from ...SpreadsheetInput import SpreadsheetInput
 from .CompleteLibraryPoolingForm import CompleteLibraryPoolingForm
 
 
-class BarcodeInputForm(CommonBarcodeInputForm):
-    _template_path = "workflows/library_pooling/barcode-input.html"
+class LibraryPoolingForm(MultiStepForm):
+    _template_path = "workflows/library_pooling/library_pooling.html"
     _workflow_name = "library_pooling"
-    lab_prep: models.LabPrep
+    _step_name = "library_pooling"
+
+    columns: list = [
+        IntegerColumn("library_id", "Library ID", 100, required=True, read_only=True),
+        TextColumn("library_name", "Library Name", 300, required=True, read_only=True),
+        TextColumn("pool", "Pool", 300, required=True),
+    ]
 
     def __init__(
         self,
@@ -23,14 +29,31 @@ class BarcodeInputForm(CommonBarcodeInputForm):
         formdata: dict | None,
         uuid: str | None
     ):
-        CommonBarcodeInputForm.__init__(
-            self, uuid=uuid, workflow=BarcodeInputForm._workflow_name,
-            formdata=formdata,
-            pool=None, lab_prep=lab_prep, seq_request=None,
-            additional_columns=[
-                IntegerColumn("library_id", "Library ID", 100, required=True, read_only=True),
-                TextColumn("pool", "Pool", 100, required=False, max_length=models.Pool.name.type.length),
-            ]
+        MultiStepForm.__init__(
+            self, workflow=CompleteLibraryPoolingForm._workflow_name,
+            step_name=CompleteLibraryPoolingForm._step_name, uuid=uuid,
+            formdata=formdata, step_args={}
+        )
+        self.lab_prep = lab_prep
+        self._context["lab_prep"] = lab_prep
+
+        self.library_table = db.pd.get_lab_prep_libraries(lab_prep_id=lab_prep.id)
+
+        if self.library_table["pool"].isna().any():
+            if self.lab_prep.prep_file is not None:
+                prep_table = pd.read_excel(os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
+                prep_table = prep_table.dropna(subset=["library_id", "library_name"])
+                for idx, row in self.library_table[self.library_table["pool"].isna()].iterrows():
+                    self.library_table.at[idx, "pool"] = next(iter(prep_table[  # type: ignore
+                        (prep_table["library_id"] == row["library_id"])
+                    ]["pool"].values.tolist()), None)
+
+        self.post_url = url_for("library_pooling_workflow.upload_pooling_form", uuid=self.uuid, lab_prep_id=self.lab_prep.id)
+
+        self.spreadsheet = SpreadsheetInput(
+            columns=LibraryPoolingForm.columns,
+            csrf_token=self._csrf_token,
+            post_url=self.post_url, formdata=formdata, df=self.library_table
         )
     
     def validate(self) -> bool:
@@ -39,6 +62,8 @@ class BarcodeInputForm(CommonBarcodeInputForm):
         
         if not self.spreadsheet.validate():
             return False
+        
+        self.df = self.spreadsheet.df
 
         if self.df.loc[~self.df["pool"].astype(str).str.strip().str.lower().isin(["x", "t"]), "pool"].isna().all():
             self.df.loc[self.df["pool"].isna(), "pool"] = "1"
@@ -79,16 +104,9 @@ class BarcodeInputForm(CommonBarcodeInputForm):
             self._context["active_tab"] = "spreadsheet"
             return self.make_response()
         
-        barcode_table = self.df
-        self.metadata["index_col"] = self.index_col
+        self.add_table("pooling_table", self.df)
         self.add_table("library_table", self.library_table)
-        self.add_table("barcode_table", barcode_table)
         self.update_data()
 
-        if TENXATACBarcodeInputForm.is_applicable(self):
-            form = TENXATACBarcodeInputForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
-        elif BarcodeMatchForm.is_applicable(self):
-            form = BarcodeMatchForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
-        else:
-            form = CompleteLibraryPoolingForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
+        form = CompleteLibraryPoolingForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         return form.make_response()

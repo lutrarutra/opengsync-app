@@ -1,13 +1,12 @@
 {% from 'components/form_group.jinja2' import form_group, select_input, switch_input %}
 {% from "components/table_input.jinja2" import table_input %}
-{% from "components/spinner.jinja2" import spinner %}
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 {% from "components/search_select.jinja2" import search_select_field %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
-<div id="reindex-form-container" class="modal-content">
+<div id="library_pooling-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >Specify Barcodes</h1>
+        <h1 class="modal-title fs-5" >Library Pooling</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
@@ -19,35 +18,17 @@
                 aria-controls="spreadsheet-tab" aria-selected="true">
                 Spreadsheet</button>
             </li>
-            {% if kits is defined and kits %}
-            {% for identifier, df in kits.items() %}
-                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                data-bs-target="#kit-{{ identifier }}-tab" type="button" role="tab"
-                aria-controls="kit-{{ identifier }}-tab" aria-selected="true">
-                {{ identifier }}</button>
-            </li>
-            {% endfor %}
-            {% endif %}
         </ul>
-        <div class="tab-content">
+        <div class="tab-content" id="library_pooling-form">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                 {{ 
                     spreadsheet_input(
                         element=form.spreadsheet,
                         submit_btn_id="submit-spreadsheet-btn",
-                        target_element_id="reindex-form-container",
+                        target_element_id="library_pooling-form-container",
                     )
                 }}
             </div>
-            {% if kits is defined and kits %}
-            {% for identifier, (kit, df) in kits.items() %}
-            <div class="tab-pane fade" id="kit-{{ identifier }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
-                <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                    {{ spinner() }}
-                </div>
-            </div>
-            {% endfor %}
-            {% endif %}
         </div>
     </div>
     <div class="modal-footer">
@@ -57,11 +38,6 @@
             {{ spreadsheet_error_legend() }}
         </div>
         <div class="footer-controls">
-            <button type="button" class="btn btn-warning submit-form-btn"
-            hx-target="#reindex-form-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('reindex_workflow.previous', uuid=form.uuid, **form.url_context) }}">
-                Back
-            </button>
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
                 Submit
             </button>
