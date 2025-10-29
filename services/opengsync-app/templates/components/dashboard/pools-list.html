@@ -2,7 +2,12 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 {% for pool in pools %}
+{% if loop.last and limit == loop.index %}
+<a class="element-banner" href="{{ url_for('pools_page.pool', pool_id=pool.id) }}"
+hx-get="{{ url_for('pools_htmx.get_recent_pools', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#pools-htmx-indicator" hx-swap="outerHTML" hx-indicator="#pools-htmx-indicator">
+{% else %}
 <a class="element-banner" href="{{ url_for('pools_page.pool', pool_id=pool.id) }}">
+{% endif %}
     <div class="row">
         <div class="title col-3">{{ pool.name }}</div>
         <div class="col-2">BA: {% if pool.avg_fragment_size %}✅{% else %}⚠️{% endif %}</div>
@@ -13,8 +18,4 @@
     {{ pool_status_bar(pool) }}
 </a>
 {% endfor %}
-{% if limit == pools | length %}
-<div hx-get="{{ url_for('pools_htmx.get_recent_pools', page=current_page + 1) }}" hx-trigger="intersect once" hx-swap="outerHTML" style="min-hieght: 50px; margin-top: 20px;">
-    {{ spinner() }}
-</div>
-{% endif %}
+{{ spinner(id="pools-htmx-indicator") }}

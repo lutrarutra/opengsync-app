@@ -81,7 +81,7 @@ def _route_decorator(
         if login_required and db is None:
             raise ValueError("db must be provided if login_required is True")
         
-        if limit_exempt == "all":
+        if limit_exempt == "all" or DEBUG:
             fnc = limiter.exempt(fnc)
         else:
             if limit is not None:
