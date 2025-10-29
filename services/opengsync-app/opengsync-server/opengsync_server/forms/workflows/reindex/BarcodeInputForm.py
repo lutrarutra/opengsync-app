@@ -60,6 +60,7 @@ class BarcodeInputForm(CommonBarcodeInputForm):
 
     def process_request(self) -> Response:
         if not self.validate():
+            self._context["kits"] = self.kits
             return self.make_response()
         
         barcode_table = self.df

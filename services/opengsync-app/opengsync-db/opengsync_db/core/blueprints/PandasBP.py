@@ -662,7 +662,6 @@ class PandasBP(DBBlueprint):
         df["type"] = df["type_id"].map(categories.FeatureType.get)  # type: ignore
 
         return df
-    
 
     @DBBlueprint.transaction
     def get_project_features(self, project_id: int) -> pd.DataFrame:
@@ -848,17 +847,47 @@ class PandasBP(DBBlueprint):
             models.Library.type_id.label("library_type_id"),
             models.Library.genome_ref_id.label("genome_ref_id"),
             models.Pool.id.label("pool_id"), models.Pool.name.label("pool"),
+        ).where(
+            models.Library.lab_prep_id == lab_prep_id
         ).outerjoin(
             models.Pool,
             models.Pool.id == models.Library.pool_id
-        ).where(
-            models.Library.lab_prep_id == lab_prep_id
         )
 
         df = pd.read_sql(query, self.db._engine)
         df["status"] = df["status_id"].map(categories.LibraryStatus.get)  # type: ignore
         df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
         df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
+
+        return df
+    
+    @DBBlueprint.transaction
+    def get_lab_prep_barcodes(self, lab_prep_id: int) -> pd.DataFrame:
+        query = sa.select(
+            models.Library.sample_name.label("sample_name"),
+            models.Library.id.label("library_id"), models.Library.name.label("library_name"),
+            models.Library.type_id.label("library_type_id"),
+            models.Library.genome_ref_id.label("reference_id"),
+            models.Library.seq_request_id.label("seq_request_id"),
+            models.Library.index_type_id.label("index_type_id"),
+            models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
+            models.LibraryIndex.index_kit_i7_id.label("kit_i7_id"), models.LibraryIndex.index_kit_i5_id.label("kit_i5_id"),
+            models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
+            models.Pool.id.label("pool_id"), models.Pool.name.label("pool"),
+        ).where(
+            models.Library.lab_prep_id == lab_prep_id
+        ).join(
+            models.Pool,
+            models.Pool.id == models.Library.pool_id,
+            isouter=True
+        ).join(
+            models.LibraryIndex,
+            models.LibraryIndex.library_id == models.Library.id,
+            isouter=True
+        )
+
+        df = pd.read_sql(query, self.db._engine)
+        df["index_type"] = df["index_type_id"].apply(lambda x: categories.IndexType.get(x) if pd.notna(x) else None)  # type: ignore
 
         return df
 
@@ -926,9 +955,9 @@ class PandasBP(DBBlueprint):
     @DBBlueprint.transaction
     def get_library_sample_pool(self, library_id: int, expand_mux: bool = False) -> pd.DataFrame:
         query = sa.select(
-            models.Sample.id.label("sample_id"), 
+            models.Sample.id.label("sample_id"),
             models.Sample.name.label("sample_name"),
-            models.Library.id.label("library_id"), 
+            models.Library.id.label("library_id"),
             models.Library.name.label("library_name"),
             models.Library.type_id.label("library_type_id"),
             models.Library.sample_name.label("sample_pool"),

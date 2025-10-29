@@ -5,25 +5,25 @@
 
 <div id="library_pooling-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">3. Check Barcode Clashes</h1>
+        <h1 class="modal-title fs-5">Check Barcode Clashes</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body" id="library_pooling-form">
         {{ form.csrf_token() }}
         <ul class="nav nav-tabs" role="tablist">
-            {% for group, _df in df.groupby(groupby) %}
+            {% for group, _df in form.barcode_table.groupby("pool") %}
             <li class="nav-item" role="presentation">
                 <button class="nav-link {% if loop.index0 == 0%}active{% endif %} {% if _df['error'].notna().any() %}cemm-red{% elif _df['warning'].notna().any() %}cemm-yellow{% else %}cemm-green{% endif %}" data-bs-toggle="tab"
                 id="spreadsheet-tab-btn"
-                data-bs-target="#group-{{ group }}-tab" type="button" role="tab"
-                aria-controls="group-{{ group }}-tab" aria-selected="true">{{ group }}
+                data-bs-target="#group-{{ loop.index }}-tab" type="button" role="tab"
+                aria-controls="group-{{ loop.index }}-tab" aria-selected="true">{{ group }}
                 </button>
             </li>
             {% endfor %}
         </ul>
         <div class="tab-content">
-            {% for group, _df in df.groupby(groupby) %}
-            <div class="tab-pane fade {% if loop.index0 == 0%}show active{% endif %}" id="group-{{ group }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
+            {% for group, _df in form.barcode_table.groupby("pool") %}
+            <div class="tab-pane fade {% if loop.index0 == 0%}show active{% endif %}" id="group-{{ loop.index }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
                 {{ barcode_clashes_table(_df) }}
             </div>
             {% endfor %}

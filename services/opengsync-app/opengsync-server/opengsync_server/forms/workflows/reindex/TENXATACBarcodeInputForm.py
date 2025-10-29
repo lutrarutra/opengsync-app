@@ -4,6 +4,7 @@ from opengsync_db import models
 
 from .... import logger, db  # noqa F401
 from ....tools.spread_sheet_components import InvalidCellValue, IntegerColumn
+from ...MultiStepForm import StepFile
 from ..common import CommonTENXATACBarcodeInputForm
 from .CompleteReindexForm import CompleteReindexForm
 from .BarcodeMatchForm import BarcodeMatchForm
@@ -29,6 +30,10 @@ class TENXATACBarcodeInputForm(CommonTENXATACBarcodeInputForm):
                 IntegerColumn("library_id", "Library ID", 100, required=True, read_only=True),
             ]
         )
+
+    def fill_previous_form(self, previous_form: StepFile):
+        barcode_table = previous_form.tables["tenx_atac_barcode_table"]
+        self.spreadsheet.set_data(barcode_table)
 
     def validate(self) -> bool:
         if not super().validate():
@@ -59,6 +64,7 @@ class TENXATACBarcodeInputForm(CommonTENXATACBarcodeInputForm):
     
     def process_request(self) -> Response:
         if not self.validate():
+            self._context["kits"] = self.kits
             return self.make_response()
         
         self.metadata["index_col"] = self.index_col

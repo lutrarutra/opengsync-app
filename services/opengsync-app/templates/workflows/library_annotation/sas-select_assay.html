@@ -171,9 +171,9 @@
                 $("#additional_services-oligo_multiplexing").removeClass("disabled");
                 $("#additional_services-oligo_multiplexing").prop("disabled", false);
             } else {
-                $("#additional_services-ocm_multiplexing").addClass("disabled");
-                $("#additional_services-ocm_multiplexing").prop("disabled", true);
-                $("#additional_services-ocm_multiplexing").prop("checked", false);
+                $("#additional_services-oligo_multiplexing").addClass("disabled");
+                $("#additional_services-oligo_multiplexing").prop("disabled", true);
+                $("#additional_services-oligo_multiplexing").prop("checked", false);
             }
 
             optional_library_types.forEach(function(library_type_id) {
@@ -243,7 +243,6 @@
                 $("#multiome-mux-warning").css("display", "block");
             } else {
                 $("#multiome-mux-warning").css("display", "none");
-                $("#additional_services-oligo_multiplexing").prop("checked", false);
             }
         }
 
@@ -256,9 +255,9 @@
 
             $("#optional_assays-antibody_multiplexing").on("change", update_abc_mux_input);
             $("#assay_type").on("change", function() {
-                update_optional_assays();
                 update_multiome_mux_input();
                 update_oligo_multiplexing_kit_input();
+                update_optional_assays();
             });
             $("#optional_assays-antibody_capture").on("change", update_antibody_kit_input);
             $("#additional_services-oligo_multiplexing").on("change", function() {
