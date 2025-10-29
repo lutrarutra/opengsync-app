@@ -36,6 +36,7 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
     
     def process_request(self) -> Response:
         if not self.validate():
+            self._context["kits"] = self.kits
             return self.make_response()
     
         sample_pooling_table = self.tables["sample_pooling_table"]

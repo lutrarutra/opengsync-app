@@ -72,6 +72,7 @@ class CommonOligoMuxForm(MultiStepForm):
         self.seq_request = seq_request
         self.lab_prep = lab_prep
         self.library = library
+        self.kits = []
 
         self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.feature_kits.find(limit=None, sort_by="name", type=FeatureType.CMO)[0]}
 
@@ -142,7 +143,7 @@ class CommonOligoMuxForm(MultiStepForm):
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=self._csrf_token,
             post_url=url_for(f"{workflow}_workflow.parse_oligo_mux_reference", uuid=self.uuid, **self.url_context),
-            formdata=formdata, allow_new_rows=True
+            formdata=formdata
         )
 
         if not formdata:
@@ -238,10 +239,10 @@ class CommonOligoMuxForm(MultiStepForm):
                 self.spreadsheet.add_error(idx, "kit", DuplicateCellValue("Definitions must be unique for each sample."))
                 self.spreadsheet.add_error(idx, "feature", DuplicateCellValue("Definitions must be unique for each sample."))
 
+        self.kits = kits
         if len(self.spreadsheet._errors) > 0:
             return False
         
         self.df["custom_feature"] = custom_feature
         self.df["kit_feature"] = kit_feature
-
         return True
