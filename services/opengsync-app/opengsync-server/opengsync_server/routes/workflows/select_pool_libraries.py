@@ -1,7 +1,7 @@
 from flask import Blueprint, Response, url_for, request, flash
 from flask_htmx import make_response
 
-from opengsync_db import models, exceptions as db_exceptions
+from opengsync_db import models
 from opengsync_db.categories import LibraryStatus
 
 from ... import db, logger

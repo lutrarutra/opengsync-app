@@ -9,7 +9,7 @@ from opengsync_db.categories import LibraryType, IndexType
 from ....core import exceptions
 from ....core.RunTime import runtime
 from .... import logger, db  # noqa F401
-from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue
+from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, CategoricalDropDown
 from .... import logger, tools, db  # noqa F401
 from ....tools import utils
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
@@ -31,17 +31,6 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
         sequence = tools.make_alpha_numeric(sequence, keep=[], replace_white_spaces_with="")
         sequence = sequence.upper()  # type: ignore
         return sequence
-    
-    columns = [
-        TextColumn("library_name", "Library Name", 250, required=True, read_only=True),
-        TextColumn("index_well", "Index Well", 100, max_length=8),
-        TextColumn("kit", "Kit", 200, max_length=models.Kit.name.type.length),
-        TextColumn("name", "Barcode Name", 150, max_length=models.LibraryIndex.name_i7.type.length),
-        TextColumn("sequence_1", "Sequence 1", 180, clean_up_fnc=barcode_sequence_clean_up),
-        TextColumn("sequence_2", "Sequence 2", 180, clean_up_fnc=barcode_sequence_clean_up),
-        TextColumn("sequence_3", "Sequence 3", 180, clean_up_fnc=barcode_sequence_clean_up),
-        TextColumn("sequence_4", "Sequence 4", 180, clean_up_fnc=barcode_sequence_clean_up),
-    ]
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
@@ -65,16 +54,11 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
         self.seq_request = seq_request
         self.lab_prep = lab_prep
         self.pool = pool
-        self.columns = additional_columns + CommonTENXATACBarcodeInputForm.columns
 
         if workflow == "library_annotation":
             self.index_col = "library_name"
         else:
             self.index_col = "library_id"
-
-        if self.index_col not in [col.label for col in self.columns]:
-            logger.error(f"Index column '{self.index_col}' not found in columns")
-            raise exceptions.InternalServerErrorException(f"Index column '{self.index_col}' not found in columns")
         
         if (library_table := self.tables.get("library_table")) is None:
             if workflow == "library_pooling":
@@ -121,8 +105,13 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
                 data["name"].append(row["name_i7"])
                 if self.index_col != "library_name":
                     data["library_name"].append(row["library_name"])
+
+                seqs = []
                 for i, seq in enumerate(row["sequence_i7"].split(";") if pd.notna(row["sequence_i7"]) else [None] * 4):
-                    data[f"sequence_{i + 1}"].append(seq)
+                    seqs.append(seq)
+
+                for i in range(4):
+                    data[f"sequence_{i + 1}"].append(seqs[i] if i < len(seqs) else None)
 
             self.barcode_table = pd.DataFrame(data)
             
@@ -142,6 +131,24 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
             self.url_context["pool_id"] = pool.id
         
         self.post_url = url_for(f"{workflow}_workflow.upload_tenx_atac_barcode_form", uuid=self.uuid, **self.url_context)
+
+        self.kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.index_kits.find(limit=None, sort_by="name", type_in=[IndexType.TENX_ATAC_INDEX])[0]}
+
+        columns = [
+            TextColumn("library_name", "Library Name", 250, required=True, read_only=True),
+            TextColumn("index_well", "Index Well", 100, max_length=8),
+            CategoricalDropDown("kit", "Kit", 200, categories=self.kit_mapping, required=False),
+            TextColumn("name", "Barcode Name", 150, max_length=models.LibraryIndex.name_i7.type.length),
+            TextColumn("sequence_1", "Sequence 1", 180, clean_up_fnc=CommonTENXATACBarcodeInputForm.barcode_sequence_clean_up),
+            TextColumn("sequence_2", "Sequence 2", 180, clean_up_fnc=CommonTENXATACBarcodeInputForm.barcode_sequence_clean_up),
+            TextColumn("sequence_3", "Sequence 3", 180, clean_up_fnc=CommonTENXATACBarcodeInputForm.barcode_sequence_clean_up),
+            TextColumn("sequence_4", "Sequence 4", 180, clean_up_fnc=CommonTENXATACBarcodeInputForm.barcode_sequence_clean_up),
+        ]
+        self.columns = additional_columns + columns
+
+        if self.index_col not in [col.label for col in self.columns]:
+            logger.error(f"Index column '{self.index_col}' not found in columns")
+            raise exceptions.InternalServerErrorException(f"Index column '{self.index_col}' not found in columns")
             
         self.spreadsheet = SpreadsheetInput(
             columns=self.columns,
@@ -168,6 +175,40 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
             self.df["sequence_3"].notna() &
             self.df["sequence_4"].notna()
         )
+
+        kit_identifiers = self.df["kit"].dropna().unique().tolist()
+        self.df["kit_id"] = None
+        kits: dict[str, tuple[models.IndexKit, pd.DataFrame]] = {}
+        for identifier in kit_identifiers:
+            kit = db.index_kits[identifier]
+
+            if kit.type != IndexType.TENX_ATAC_INDEX:
+                logger.error(f"Index kit '{identifier}' is not of type TENX_ATAC_INDEX")
+                raise exceptions.InternalServerErrorException(f"Index kit '{identifier}' is not of type TENX_ATAC_INDEX")
+            
+            df = db.pd.get_index_kit_barcodes(kit.id, per_adapter=False, per_index=True)
+            kits[identifier] = (kit, df)
+            self.df.loc[self.df["kit"] == identifier, "kit_id"] = kit.id
+
+        self.df.loc[self.df["kit_id"].notna(), "kit_id"] = self.df.loc[self.df["kit_id"].notna(), "kit_id"].astype(int)
+
+        for kit_identifier, (kit, kit_df) in kits.items():
+            view = self.df[self.df["kit"] == kit_identifier]
+            mask = (
+                kit_df["well"].isin(view["index_well"].values) |
+                kit_df["name"].isin(view["name"].values)
+            )
+
+            for _, kit_row in kit_df[mask].iterrows():
+                self.df.loc[
+                    (self.df["kit"] == kit_identifier) &
+                    (self.df["index_well"] == kit_row["well"]), "name"
+                ] = kit_row["name"]
+                for i in range(1, 5):
+                    self.df.loc[
+                        (self.df["kit"] == kit_identifier) &
+                        (self.df["name"] == kit_row["name"]), f"sequence_{i}"
+                    ] = kit_row[f"sequence_{i}"]
 
         for idx, row in self.df.iterrows():
             if row["library_name"] not in self.library_table["library_name"].values:

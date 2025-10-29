@@ -1,9 +1,10 @@
 from flask import Response
 
 from opengsync_db import models
+from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa F401
-from ....tools.spread_sheet_components import InvalidCellValue, IntegerColumn
+from ....tools.spread_sheet_components import InvalidCellValue, IntegerColumn, TextColumn
 from ..common import CommonTENXATACBarcodeInputForm
 from .CompleteLibraryPoolingForm import CompleteLibraryPoolingForm
 from .BarcodeMatchForm import BarcodeMatchForm
@@ -26,8 +27,13 @@ class TENXATACBarcodeInputForm(CommonTENXATACBarcodeInputForm):
             pool=None, lab_prep=lab_prep, seq_request=None,
             additional_columns=[
                 IntegerColumn("library_id", "Library ID", 100, required=True, read_only=True),
+                TextColumn("pool", "Pool", 100, required=False, max_length=models.Pool.name.type.length),
             ]
         )
+
+    def fill_previous_form(self, previous_form: StepFile):
+        barcode_table = previous_form.tables["tenx_atac_barcode_table"]
+        self.spreadsheet.set_data(barcode_table)
 
     def validate(self) -> bool:
         if not super().validate():
