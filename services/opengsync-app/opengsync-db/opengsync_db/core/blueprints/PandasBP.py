@@ -275,12 +275,33 @@ class PandasBP(DBBlueprint):
         return df
 
     @DBBlueprint.transaction
-    def get_pool_libraries(self, pool_id: int, per_index: bool = True) -> pd.DataFrame:
+    def get_pool_libraries(self, pool_id: int) -> pd.DataFrame:
         columns = [
-            models.Pool.id.label("pool_id"),
+            models.Pool.id.label("pool_id"), models.Pool.name.label("pool"),
             models.Library.id.label("library_id"), models.Library.name.label("library_name"),
+            models.Library.index_type_id.label("index_type_id"),
+        ]
+        query = sa.select(*columns).where(
+            models.Pool.id == pool_id
+        ).join(
+            models.Library,
+            models.Library.pool_id == models.Pool.id
+        )
+
+        query = query.order_by(models.Library.id)
+
+        df = pd.read_sql(query, self.db._engine)
+        return df
+
+    @DBBlueprint.transaction
+    def get_pool_barcodes(self, pool_id: int) -> pd.DataFrame:
+        columns = [
+            models.Pool.id.label("pool_id"), models.Pool.name.label("pool"),
+            models.Library.id.label("library_id"), models.Library.name.label("library_name"),
+            models.Library.index_type_id.label("index_type_id"),
             models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
             models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
+            models.LibraryIndex.index_kit_i7_id.label("kit_i7_id"), models.LibraryIndex.index_kit_i5_id.label("kit_i5_id"),
         ]
         query = sa.select(*columns).where(
             models.Pool.id == pool_id
@@ -295,11 +316,8 @@ class PandasBP(DBBlueprint):
 
         query = query.order_by(models.Library.id)
 
-        df = pd.read_sql(query, self.db._engine).drop(columns=["pool_id"])
-        
-        if not per_index:
-            df = df.groupby(df.columns.difference(["name_i7", "sequence_i7", "name_i5", "sequence_i5"]).tolist(), as_index=False, dropna=False).agg({"name_i7": list, "sequence_i7": list, "name_i5": list, "sequence_i5": list}).rename(columns={"name_i7": "names_i7", "sequence_i7": "sequences_i7", "name_i5": "names_i5", "sequence_i5": "sequences_i5"})
-
+        df = pd.read_sql(query, self.db._engine)
+    
         return df
 
     @DBBlueprint.transaction
@@ -847,6 +865,7 @@ class PandasBP(DBBlueprint):
             models.Library.type_id.label("library_type_id"),
             models.Library.genome_ref_id.label("genome_ref_id"),
             models.Pool.id.label("pool_id"), models.Pool.name.label("pool"),
+            models.Library.index_type_id.label("index_type_id"),
         ).where(
             models.Library.lab_prep_id == lab_prep_id
         ).outerjoin(
@@ -858,6 +877,7 @@ class PandasBP(DBBlueprint):
         df["status"] = df["status_id"].map(categories.LibraryStatus.get)  # type: ignore
         df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
         df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
+        df["index_type"] = df["index_type_id"].apply(lambda x: categories.IndexType.get(x) if pd.notna(x) else None)  # type: ignore
 
         return df
     

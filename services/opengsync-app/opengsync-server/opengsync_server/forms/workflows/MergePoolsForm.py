@@ -34,25 +34,13 @@ class MergePoolsForm(MultiStepForm):
             workflow=MergePoolsForm._workflow_name, step_args={}
         )
         self.pool_table = self.tables["pool_table"]
+        self.barcode_table = self.tables["barcode_table"]
         self.pool_table["num_m_reads_requested"] = 0
+        self.library_table = self.tables["library_table"]
         self.post_url = url_for("merge_pools_workflow.merge", uuid=uuid)
-        
-        dfs = []
-        for pool_id in self.pool_table["id"].tolist():
-            if (pool := db.pools.get(int(pool_id))) is None:
-                logger.error(f"Pool {pool_id} not found")
-                raise exceptions.ElementDoesNotExist(f"Pool {pool_id} not found")
-            
-            if pool.num_m_reads_requested is not None:
-                self.pool_table.loc[self.pool_table["id"] == pool_id, "num_m_reads_requested"] = pool.num_m_reads_requested
-
-            df = db.pd.get_pool_libraries(pool_id=pool.id)
-            df["pool_id"] = pool.id
-            df["pool_name"] = pool.name
-            dfs.append(df)
-
-        self.library_table = pd.concat(dfs, ignore_index=True).reset_index(drop=True)
-        self._context["library_table"] = tools.check_indices(self.library_table)
+        logger.debug(self.barcode_table)
+        self._context["barcode_table"] = tools.check_indices(self.barcode_table)
+        self._context["library_table"] = self.library_table
 
     def prepare(self):
         self.num_m_reads_requested.data = self.pool_table["num_m_reads_requested"].sum()

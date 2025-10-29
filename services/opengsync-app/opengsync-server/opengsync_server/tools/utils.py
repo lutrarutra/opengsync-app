@@ -82,6 +82,7 @@ def __get_combined_index(df: pd.DataFrame, indices: list[str]) -> pd.Series:
 
     return combined_index.str.lstrip("+")
 
+
 def __check_indices(df: pd.DataFrame, indices: list[str], groupby: str | list[str] | None = None, rc: Literal["i7", "i5", "both", "i7i5"] | None = None) -> pd.DataFrame:
     df["combined_index"] = ""
     df["min_hamming_bases"] = None
@@ -109,9 +110,12 @@ def __check_indices(df: pd.DataFrame, indices: list[str], groupby: str | list[st
                 
                 df.loc[_df.index, "combined_index"] = _df["combined_index"]
                 df.loc[_df.index, "min_hamming_bases"] = _df["min_hamming_bases"]
-    else:
+    elif len(df) == 1:
         df["combined_index"] = __get_combined_index(df, indices)
         df["min_hamming_bases"] = df["combined_index"].apply(lambda x: len(x) - x.count("N") - x.count("+")).min()
+    else:
+        df["combined_index"] = ""
+        df["min_hamming_bases"] = None
         
     return df
 
@@ -315,9 +319,11 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
         "kit_i5": [],
         "name_i5": [],
         "sequence_i5": [],
+        "index_type_id": [],
     }
     
     for library in libraries:
+        library_data["index_type_id"].append(library.index_type_id)
         library_data["library_id"].append(library.id)
         library_data["library_name"].append(library.name)
         library_data["library_type_id"].append(library.type.id)
@@ -347,7 +353,7 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
                     kit_i7 = None
                 kit_i7s.append(kit_i7 or "")
                 names_i7.append(name_i7 or "")
-                sequences_i7.append(";".join(seqs_i7))
+                sequences_i7.append(";".join(seqs_i7) if pd.notna(seqs_i7).any() and seqs_i7 else "")
 
             kit_i5s = []
             names_i5 = []

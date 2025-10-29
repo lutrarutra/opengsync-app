@@ -212,6 +212,8 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
                     ] = kit_row[f"sequence_{i}"]
 
         for idx, row in self.df.iterrows():
+            if row["index_well"] == "del":
+                continue
             if row["library_name"] not in self.library_table["library_name"].values:
                 self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name'"))
 
