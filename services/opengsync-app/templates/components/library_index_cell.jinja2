@@ -7,11 +7,11 @@
 {% for index in library.indices %}
 {% set badge_color = get_badge_color(index) %}
 {% if index.name_i7 %}
-    {% if index.name_i7 == index.name_i5 %}
-    <span class="badge index-badge {{ badge_color }}" >{{ index.name_i7 }}</span>
-    {% else %}
-    <span class="badge index-badge {{ badge_color }}">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
-    {% endif %}
+{% if index.name_i7 == index.name_i5 %}
+<span class="badge index-badge {{ badge_color }}" >{{ index.name_i7 }}</span>
+{% else %}
+<span class="badge index-badge {{ badge_color }}">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
+{% endif %}
 {% else %}
 <span class="badge index-badge {{ badge_color }}">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
 {% endif %}
@@ -28,22 +28,24 @@
 <span class="badge index-badge {{ badge_color }}" style="display: none;">{{ index.sequence_i7 }}</span>
 {% endfor %}
 {% elif library.index_type == IndexType.TENX_ATAC_INDEX %}
-    {% for index in library.indices %}
-    {% if index.name_i7 %}
-    <span class="badge index-badge {{ badge_color }}">{{ index.name_i7 }}</span>
-    {% else %}
-    <span class="badge index-badge {{ badge_color }}">{{ index.sequence_i7 }}</span>
-    {% endif %}
-    <span class="badge index-badge {{ badge_color }}" style="display: none;">{{ index.sequence_i7 }}</span>
-    {% endfor %}
+{% for index in library.indices %}
+{% set badge_color = get_badge_color(index) %}
+{% if index.name_i7 %}
+<span class="badge index-badge {{ badge_color }}">{{ index.name_i7 }}</span>
+{% else %}
+<span class="badge index-badge {{ badge_color }}">{{ index.sequence_i7 }}</span>
+{% endif %}
+<span class="badge index-badge {{ badge_color }}" style="display: none;">{{ index.sequence_i7 }}</span>
+{% endfor %}
 {% else %}
 {% for index in library.indices %}
+{% set badge_color = get_badge_color(index) %}
 {% if index.name_i7 %}
-    {% if index.name_i7 == index.name_i5 %}
-    <span class="badge index-badge {{ badge_color }}" >{{ index.name_i7 }}</span>
-    {% else %}
-    <span class="badge index-badge {{ badge_color }}">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
-    {% endif %}
+{% if index.name_i7 == index.name_i5 %}
+<span class="badge index-badge {{ badge_color }}" >{{ index.name_i7 }}</span>
+{% else %}
+<span class="badge index-badge {{ badge_color }}">{{ index.name_i7 }}{% if index.name_i5 %}+{{ index.name_i5 }}{% endif %}</span>
+{% endif %}
 {% else %}
 <span class="badge index-badge {{ badge_color }}">{{ index.sequence_i7 }}{% if index.sequence_i5 %}+{{ index.sequence_i5 }}{% endif %}</span>
 {% endif %}

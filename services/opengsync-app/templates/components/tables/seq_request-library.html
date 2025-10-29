@@ -67,11 +67,16 @@
                 {{
                     context_menu([
                         {"type": "copy", "value": library.name, "label": "Copy Name"},
-                        {"type": "hxdelete", "label": "Remove Library", "disabled": false if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_admin() else true, "config": {
+                        {"type": "hxdelete", "label": "Remove Library", "disabled": false if current_user.is_admin() or seq_request.status == SeqRequestStatus.DRAFT or (library.status < LibraryStatus.SEQUENCED and current_user.is_insider())  else true, "config": {
                             "url": url_for('seq_requests_htmx.remove_library', seq_request_id=seq_request.id, library_id=library.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
                             "target": "#seq_request-library-table",
                             "title": "Remove {library.name} from {seq_request.name}?".format(library=library, seq_request=seq_request)
-                        },}
+                        },},
+                        {"type": "hxpost", "label": "Re-Sequence Library", "disabled": false if current_user.is_insider() else true, "config": {
+                            "url": url_for('seq_requests_htmx.reseq_library', seq_request_id=seq_request.id, library_id=library.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
+                            "target": "#seq_request-library-table",
+                            "title": "Re-Sequence {library.name} in {seq_request.name}?".format(library=library, seq_request=seq_request)
+                        },},
                     ])
                 }}>
                     <a href="{{ url_for('libraries_page.library', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">

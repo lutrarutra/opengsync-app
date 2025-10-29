@@ -55,6 +55,18 @@ def upload_barcode_form(current_user: models.User, lab_prep_id: int, uuid: str) 
 
 
 @wrappers.htmx_route(library_pooling_workflow, db=db, methods=["POST"])
+def upload_tenx_atac_barcode_form(current_user: models.User, lab_prep_id: int, uuid: str) -> Response:
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    form = forms.TENXATACBarcodeInputForm(uuid=uuid, lab_prep=lab_prep, formdata=request.form)
+    return form.process_request()
+
+
+@wrappers.htmx_route(library_pooling_workflow, db=db, methods=["POST"])
 def barcode_match(current_user: models.User, lab_prep_id: int, uuid: str):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()

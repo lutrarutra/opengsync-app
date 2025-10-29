@@ -1,0 +1,54 @@
+<h2 class="pt-3"><i class="bi bi-info-circle"></i> Standard Operating Procedures (SOPs)</h2>
+<div class="p-3">
+
+    <h5><i class="bi bi-question-circle"></i> <b>I need to Re-Sequence a single/several Library from sequencing request</b></h5>
+    <b>Steps:</b>
+    <ol>
+        <li>Open the sequencing request page containing the library you want to re-sequence.</li>
+        <li>Go to 'Libraries'-tab.</li>
+        <li>Find the library you want to re-sequence and click the "Re-Sequence Library"-button in the context menu (right-click on library name).</li>
+    </ol>
+    <b>Notes:</b>
+    <ul>
+        <li>The re-sequenced library will be cloned to the same sequencing request.</li>
+        <li>The cloned library will not be associated with any pool. You need to add it to a pool manually.</li>
+        <li>Re-Sequenced Libraries will be marked with '(re: X)' where X indicates the number of times the library has been cloned.</li>
+    </ul>
+
+    <h5><i class="bi bi-question-circle"></i> <b>I have a library that is prepared but not pooled</b></h5>
+    <b>Steps:</b>
+    <ol>
+        <li>Open 'Pools'-page.</li>
+        <li>Click "New Pool"-button on top right.</li>
+        <li>Fill in the pool details -> complete</li>
+        <li>Go to the newly created pool's page -> 'Workflows'-tab.</li>
+        <li>Click "Add Libraries"-button and select the prepared library from the list.</li>
+    </ol>
+</div>
+<div class="accordion" id="sops-accordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-1" aria-expanded="true" aria-controls="sops-accordiod-collapse-1">
+                <b>I need to Re-Sequence whole pool</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-1" class="accordion-collapse collapse show" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>Open the pool page of the pool you want to re-sequence.</li>
+                    <li>Click the "Clone Pool"-button on top right.</li>
+                    <li>Give the new pool a name, e.g. add suffix '_re' and fill other fields as required. -> complete</li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>The libraries associated with the original pool will be cloned to the new pool.</li>
+                    <li>Each cloned library will retain its original sequencing request.</li>
+                    <li>Re-Sequenced Pools and Libraries will be marked with '(re: X)' where X indicates the number of times the pool/library has been cloned.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+

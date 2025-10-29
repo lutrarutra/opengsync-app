@@ -2,119 +2,129 @@
 
 {% macro barcode_clashes_table(df) %}
 {% set uuid = uuid4() %}
-<table class="table barcode-clashes-table">
-    <thead>
-        <tr>
-            <th scope="col" class="col-1">Library ID</th>
-            <th scope="col" class="col-3">Name</th>
-            {% if "pool" in df.columns %}
-            <th scope="col" class="col-2">Pool</th>
-            {% endif %}
-            <th scope="col" class="col-3">Combined Index <span class="desc">i7 + i5</span></th>
-            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (i7 + i5)") }}>Hamming Dist.</span></th>
-            {% if "rc_min_hamming_bases" in df.columns %}
-            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7 + i5])") }}>RC Dist.</span></th>
-            {% endif %}
-            {% if "rc_i7i5_min_hamming_bases" in df.columns %}
-            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7] + RC[i5])") }}>RC i7+i5 Dist.</span></th>
-            {% endif %}
-            {% if "rc_i7_min_hamming_bases" in df.columns %}
-            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7] + i5)") }}>i7 RC Dist.</span></th>
-            {% endif %}
-            {% if "rc_i5_min_hamming_bases" in df.columns %}
-            <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (i5 + RC[i5])") }}>i5 RC Dist.</span></th>
-            {% endif %}
-            <th scope="col" class="col-2">
-                Index
-                <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
-                    <i class="bi bi-upc-scan"></i>
-                </a>
-                <span class="badge bg-cemm-green">Kit</span> <span class="badge bg-cemm-blue">Checked</span> <span class="badge bg-cemm-yellow">Forward (maybe)</span> <span class="badge bg-cemm-red">Unknown</span>
-            </th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for _, row in df.iterrows() %}
-        {% if row["error"] %}
-        <tr {{ tooltip(row["error"], category="error") }}>
-        {% elif row["warning"] %}
-        <tr {{ tooltip(row["warning"], category="warning") }}>
-        {% else %}
-        <tr>
-        {% endif %}
-            <th scope="row">{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_id"] if "library_id" in row else "" }}</th>
-            <td>{{ row["library_name"] }}</td>
-            {% if "pool" in df.columns %}
-            <td>{{ row["pool"] }}</td>
-            {% endif %}
-            <td class="index-cell">{{ row["combined_index"] }}</td>
-            <td {% if row["min_hamming_bases"] < 1 %}
-            class="cemm-red"
-            {% elif row["min_hamming_bases"] < 3 %}
-            class="cemm-yellow"
+<div class="table-container">
+    <table class="table barcode-clashes-table">
+        <thead>
+            <tr>
+                <th scope="col" class="col-1">Library ID</th>
+                <th scope="col" class="col-2">Name</th>
+                {% if "pool" in df.columns %}
+                <th scope="col" class="col-2">Pool</th>
+                {% endif %}
+                <th scope="col" class="col-2">Combined Index <span class="desc">i7 + i5</span></th>
+                <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (i7 + i5)") }}>Hamming Dist.</span></th>
+                <th scope="col" class="col-3">
+                    Index
+                    <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
+                        <i class="bi bi-upc-scan"></i>
+                    </a>
+                    <span class="badge bg-cemm-green">Kit</span> <span class="badge bg-cemm-blue">Checked</span> <span class="badge bg-cemm-yellow">Forward (maybe)</span> <span class="badge bg-cemm-red">Unknown</span>
+                </th>
+                {% if "rc_min_hamming_bases" in df.columns %}
+                <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7 + i5])") }}>RC Dist.</span></th>
+                {% endif %}
+                {% if "rc_i7i5_min_hamming_bases" in df.columns %}
+                <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7] + RC[i5])") }}>RC i7+i5 Dist.</span></th>
+                {% endif %}
+                {% if "rc_i7_min_hamming_bases" in df.columns %}
+                <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (RC[i7] + i5)") }}>i7 RC Dist.</span></th>
+                {% endif %}
+                {% if "rc_i5_min_hamming_bases" in df.columns %}
+                <th scope="col" class="col-1"><span {{ tooltip("Smallest pair-wise Hamming distance between concatenated barcode sequences (i5 + RC[i5])") }}>i5 RC Dist.</span></th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for _, row in df.iterrows() %}
+            {% if row["error"] %}
+            <tr {{ tooltip(row["error"], category="error") }}>
+            {% elif row["warning"] %}
+            <tr {{ tooltip(row["warning"], category="warning") }}>
             {% else %}
-            class="cemm-green"
-            {% endif %}>{{ row["min_hamming_bases"] }} bp</td>
-            
-            {% if "rc_min_hamming_bases" in df.columns %}
-            <td {% if row["rc_min_hamming_bases"] < 1 %}
-            class="cemm-red"
-            {% elif row["rc_min_hamming_bases"] < 3 %}
-            class="cemm-yellow"
-            {% else %}
-            class="cemm-green"
-            {% endif %}>{{ row["rc_min_hamming_bases"] }} bp</td>
+            <tr>
             {% endif %}
+                <th scope="row">{% if row["error"] %}❌{% elif row["warning"] %}⚠️{% else %}✅{% endif %} {{ row["library_id"] if "library_id" in row else "" }}</th>
+                <td>{{ row["library_name"] }}</td>
+                {% if "pool" in df.columns %}
+                <td>{{ row["pool"] }}</td>
+                {% endif %}
+                <td class="index-cell">{{ row["combined_index"] }}</td>
+                <td {% if row["min_hamming_bases"] < 1 %}
+                class="cemm-red"
+                {% elif row["min_hamming_bases"] < 3 %}
+                class="cemm-yellow"
+                {% else %}
+                class="cemm-green"
+                {% endif %}>{{ row["min_hamming_bases"] }} bp</td>
 
-            {% if "rc_i7i5_min_hamming_bases" in df.columns %}
-            <td {% if row["rc_i7i5_min_hamming_bases"] < 1 %}
-            class="cemm-red"
-            {% elif row["rc_i7i5_min_hamming_bases"] < 3 %}
-            class="cemm-yellow"
-            {% else %}
-            class="cemm-green"
-            {% endif %}>{{ row["rc_i7i5_min_hamming_bases"] }} bp</td>
-            {% endif %}
-            
-            {% if "rc_i7_min_hamming_bases" in df.columns %}
-            <td {% if row["rc_i7_min_hamming_bases"] < 1 %}
-            class="cemm-red"
-            {% elif row["rc_i7_min_hamming_bases"] < 3 %}
-            class="cemm-yellow"
-            {% else %}
-            class="cemm-green"
-            {% endif %}>{{ row["rc_i7_min_hamming_bases"] }} bp</td>
-            {% endif %}
-            
-            {% if "rc_i5_min_hamming_bases" in df.columns %}
-            <td {% if row["rc_i5_min_hamming_bases"] < 1 %}
-            class="cemm-red"
-            {% elif row["rc_i5_min_hamming_bases"] < 3 %}
-            class="cemm-yellow"
-            {% else %}
-            class="cemm-green"
-            {% endif %}>{{ row["rc_i5_min_hamming_bases"] }} bp</td>
-            {% endif %}
+                <td class="x-scroll-cell">
+                    {% if row["index_type_id"] == IndexType.TENX_ATAC_INDEX.id %}
+                    <span class="badge index-badge index-badges-{{ uuid }}" >{{ row["name"] }}</span>
+                    <span class="badge index-badge index-badges-{{ uuid }}" style="display: none;">{{ row["sequence_1"] }}</span>
+                    <span class="badge index-badge index-badges-{{ uuid }}" style="display: none;">{{ row["sequence_2"] }}</span>
+                    <span class="badge index-badge index-badges-{{ uuid }}" style="display: none;">{{ row["sequence_3"] }}</span>
+                    <span class="badge index-badge index-badges-{{ uuid }}" style="display: none;">{{ row["sequence_4"] }}</span>
+                    {% else %}
+                    {% if "name_i7" in df.columns and "name_i5" in df.columns %}
+                    {% if row["name_i7"] == row["name_i5"] and row["name_i7"] %}
+                    <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}" >{{ row["name_i7"] }}</span>
+                    {% else %}
+                    {% if row["name_i7"] %}
+                    <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}">{{ row["name_i7"] }}{% if row["name_i5"] %}+{{ row["name_i5"] }}{% endif %}</span>
+                    {% else %}
+                    <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                    {% endif %}
+                    {% endif %}
+                    <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}" style="display: none;">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                    {% else %}
+                    <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                    <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}" style="display: none;">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                    {% endif %}
+                    {% endif %}
+                </td>
 
-            <td class="x-scroll-cell">
-                {% if "name_i7" in df.columns and "name_i5" in df.columns %}
-                {% if row["name_i7"] == row["name_i5"] and row["name_i7"] %}
-                <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}" >{{ row["name_i7"] }}</span>
+                {% if "rc_min_hamming_bases" in df.columns %}
+                <td {% if row["rc_min_hamming_bases"] < 1 %}
+                class="cemm-red"
+                {% elif row["rc_min_hamming_bases"] < 3 %}
+                class="cemm-yellow"
                 {% else %}
-                {% if row["name_i7"] %}
-                <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}">{{ row["name_i7"] }}{% if row["name_i5"] %}+{{ row["name_i5"] }}{% endif %}</span>
+                class="cemm-green"
+                {% endif %}>{{ row["rc_min_hamming_bases"] }} bp</td>
+                {% endif %}
+
+                {% if "rc_i7i5_min_hamming_bases" in df.columns %}
+                <td {% if row["rc_i7i5_min_hamming_bases"] < 1 %}
+                class="cemm-red"
+                {% elif row["rc_i7i5_min_hamming_bases"] < 3 %}
+                class="cemm-yellow"
                 {% else %}
-                <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                class="cemm-green"
+                {% endif %}>{{ row["rc_i7i5_min_hamming_bases"] }} bp</td>
                 {% endif %}
-                {% endif %}
-                <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}" style="display: none;">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                
+                {% if "rc_i7_min_hamming_bases" in df.columns %}
+                <td {% if row["rc_i7_min_hamming_bases"] < 1 %}
+                class="cemm-red"
+                {% elif row["rc_i7_min_hamming_bases"] < 3 %}
+                class="cemm-yellow"
                 {% else %}
-                <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
-                <span class="badge index-badge index-badges-{{ uuid }} {% if notna(row['kit_i7_id']) and (notna(row['kit_i5_id']) or (row['index_type_id'] == IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(row.get('orientation_id')) %}badge-danger{% else %}badge-warning{% endif %}" style="display: none;">{{ row["sequence_i7"] }}{% if row["sequence_i5"] %}+{{ row["sequence_i5"] }}{% endif %}</span>
+                class="cemm-green"
+                {% endif %}>{{ row["rc_i7_min_hamming_bases"] }} bp</td>
                 {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+                
+                {% if "rc_i5_min_hamming_bases" in df.columns %}
+                <td {% if row["rc_i5_min_hamming_bases"] < 1 %}
+                class="cemm-red"
+                {% elif row["rc_i5_min_hamming_bases"] < 3 %}
+                class="cemm-yellow"
+                {% else %}
+                class="cemm-green"
+                {% endif %}>{{ row["rc_i5_min_hamming_bases"] }} bp</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endmacro %}
