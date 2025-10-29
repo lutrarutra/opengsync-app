@@ -1,5 +1,6 @@
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
+{% from "components/spinner.jinja2" import spinner %}
 
 <div id="cmo-reference-form-container" class="modal-content">
     <div class="modal-header">
@@ -27,6 +28,15 @@
                 aria-controls="cmo-1-example-tab" aria-selected="true">
                 Example 1.</button>
             </li>
+            {% if kits is defined and kits %}
+            {% for identifier, df in kits.items() %}
+                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#kit-{{ identifier }}-tab" type="button" role="tab"
+                aria-controls="kit-{{ identifier }}-tab" aria-selected="true">
+                {{ identifier }}</button>
+            </li>
+            {% endfor %}
+            {% endif %}
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
@@ -44,6 +54,15 @@
             <div class="tab-pane fade" id="cmo-1-example-tab" role="tabpanel" tabindex="2">
                 {% include "examples/oligo_mux_annotation.html" %}
             </div>
+            {% if kits is defined and kits %}
+            {% for identifier, (kit, df) in kits.items() %}
+            <div class="tab-pane fade" id="kit-{{ identifier }}-tab" role="tabpanel" tabindex="{{ loop.index + 2 }}">
+                <div hx-get="{{ url_for('feature_kits_htmx.render_table', feature_kit_id=kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
         </div>
     </div>
     <div class="modal-footer">
