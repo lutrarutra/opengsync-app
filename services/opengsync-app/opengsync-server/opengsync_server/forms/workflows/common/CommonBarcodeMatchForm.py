@@ -44,10 +44,13 @@ class CommonBarcodeMatchForm(MultiStepForm):
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
-        return bool(
-            current_step.tables["barcode_table"]["kit_i7"].isna().all() or
-            current_step.tables["barcode_table"]["kit_i5"].isna().all()
-        ) # since all of the indices are reverse complemented in case of not forward orientation, we need .all()
+        df = current_step.tables["barcode_table"]
+        logger.debug(df)
+        df = df[df["index_well"] != "del"]
+        return not df.empty and (
+            df["kit_i7"].isna().all() or
+            df["kit_i5"].isna().all()
+        )  # since all of the indices are reverse complemented in case of not forward orientation, we need .all()
     
     @staticmethod
     def check_index_type(barcode_table: pd.DataFrame) -> IndexTypeEnum | None:

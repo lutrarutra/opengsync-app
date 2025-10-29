@@ -36,6 +36,9 @@ class BarcodeInputForm(CommonBarcodeInputForm):
             return False
         
         for idx, row in self.df.iterrows():
+            if row["index_well"] == "del":
+                continue
+            
             if row["library_id"] not in self.library_table["library_id"].values:
                 self.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
             else:

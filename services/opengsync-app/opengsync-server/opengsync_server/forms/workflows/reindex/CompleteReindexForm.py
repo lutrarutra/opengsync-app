@@ -12,6 +12,7 @@ from opengsync_db.categories import IndexType, BarcodeOrientation
 
 from .... import logger, tools, db  # noqa F401
 from ....core import exceptions, runtime
+from ....tools import utils
 from ...MultiStepForm import MultiStepForm
 
 
@@ -38,6 +39,8 @@ class CompleteReindexForm(MultiStepForm):
         self.pool = pool
         self.library_table = self.tables["library_table"]
         self.barcode_table = self.tables["barcode_table"]
+        self.barcode_table = self.barcode_table[self.barcode_table["index_well"] != "del"]
+        logger.debug(self.barcode_table)
         self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
         self.barcode_table = tools.check_indices(self.barcode_table)
 
@@ -73,7 +76,7 @@ class CompleteReindexForm(MultiStepForm):
         barcode_table = self.tables["barcode_table"]
         tenx_atac_barcode_table = self.tables.get("tenx_atac_barcode_table")
         
-        for (library_id, index_type_id), _ in self.barcode_table.groupby(["library_id", "index_type_id"], dropna=False):
+        for (library_id, index_type_id), _ in self.library_table.groupby(["library_id", "index_type_id"], dropna=False):
             library = db.libraries[int(library_id)]
 
             try:
@@ -84,7 +87,6 @@ class CompleteReindexForm(MultiStepForm):
                 raise exceptions.InternalServerErrorException(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
 
             library = db.libraries.remove_indices(library_id=library.id)
-            
             library.index_type = index_type
             db.libraries.update(library)
 
@@ -95,16 +97,16 @@ class CompleteReindexForm(MultiStepForm):
                         raise exceptions.InternalServerErrorException(f"{self.uuid}: TENX_ATAC_INDEX selected but no tenx_atac_barcode_table found.")
                     
                     df = tenx_atac_barcode_table[tenx_atac_barcode_table["library_id"] == library.id]
-                    if index_type == IndexType.TENX_ATAC_INDEX:
-                        if len(df) != 4:
-                            logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for index type {library.index_type}, found {len(df)}.")
                 case _:
                     df = barcode_table[barcode_table["library_id"] == library.id]
-                    if len(df) != 1:
-                        logger.warning(f"{self.uuid}: Expected 1 barcode for index type {library.index_type}, found {len(df)}.")
 
+            if df["index_well"].eq("del").all():
+                continue
+            
             for _, row in df.iterrows():
                 if index_type == IndexType.TENX_ATAC_INDEX:
+                    if len(df) != 4:
+                        logger.warning(f"{self.uuid}: Expected 4 barcodes (i7) for index type {library.index_type}, found {len(df)}.")
                     for i in range(1, 5):
                         if pd.isna(row[f"sequence_{i}"]):
                             logger.error(f"{self.uuid}: Missing sequence_{i} for TENX_ATAC_INDEX in library {row['library_name']}.")
@@ -121,6 +123,9 @@ class CompleteReindexForm(MultiStepForm):
                             orientation=BarcodeOrientation.FORWARD if pd.notna(row["kit_id"]) else None,
                         )
                 else:
+                    if len(df) != 1:
+                        logger.warning(f"{self.uuid}: Expected 1 barcode for index type {library.index_type}, found {len(df)}.")
+
                     orientation = None
                     if pd.notna(row["orientation_i7_id"]):
                         orientation = BarcodeOrientation.get(row["orientation_i7_id"])

@@ -96,6 +96,35 @@ class CommonBarcodeInputForm(MultiStepForm):
             if (library_table := self.tables.get("library_table")) is None:
                 logger.error("Library table not found for reindex workflow")
                 raise exceptions.InternalServerErrorException("Library table not found for reindex workflow")
+            
+            if self.lab_prep is not None:
+                if self.lab_prep.prep_file is not None:
+                    prep_table = pd.read_excel(os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
+                    prep_table = prep_table.dropna(subset=["library_id", "library_name"])
+                    prep_table["library_id"] = prep_table["library_id"].astype(int)
+                    prep_table["kit_i7"] = prep_table["kit_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
+                    prep_table["kit_i5"] = prep_table["kit_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
+                    prep_table["index_well"] = prep_table["index_well"].apply(lambda x: x if pd.isna(x) else str(x).strip())
+                    prep_table["name_i7"] = prep_table["name_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip())
+                    prep_table["name_i5"] = prep_table["name_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip())
+
+                    for idx, row in library_table[library_table["sequence_i7"].isna()].iterrows():
+                        library_table.at[idx, "kit_i7"] = next(iter(prep_table[  # type: ignore
+                            (prep_table["library_id"] == row["library_id"])
+                        ]["kit_i7"].values.tolist()), None)
+                        library_table.at[idx, "kit_i5"] = next(iter(prep_table[  # type: ignore
+                            (prep_table["library_id"] == row["library_id"])
+                        ]["kit_i5"].values.tolist()), None)
+                        library_table.at[idx, "index_well"] = next(iter(prep_table[  # type: ignore
+                            (prep_table["library_id"] == row["library_id"])
+                        ]["index_well"].values.tolist()), None)
+                        library_table.at[idx, "name_i7"] = next(iter(prep_table[  # type: ignore
+                            (prep_table["library_id"] == row["library_id"])
+                        ]["name_i7"].values.tolist()), None)
+                        library_table.at[idx, "name_i5"] = next(iter(prep_table[  # type: ignore
+                            (prep_table["library_id"] == row["library_id"])
+                        ]["name_i5"].values.tolist()), None)
+                        
             self.library_table = library_table
         else:
             raise exceptions.InternalServerErrorException(f"Workflow '{workflow}' not supported in CommonBarcodeInputForm")
@@ -237,6 +266,9 @@ class CommonBarcodeInputForm(MultiStepForm):
                     ] = kit_row["sequence_i5"]
 
         for idx, row in self.df.iterrows():
+            if row["index_well"] == "del":
+                continue
+                
             if pd.notna(row["kit_i7"]):
                 if pd.isna(row["index_well"]) and pd.isna(row["name_i7"]):
                     self.spreadsheet.add_error(idx, ["index_well", "name_i7"], MissingCellValue("'index_well' or 'name_i7' must be defined when kit is defined"))
