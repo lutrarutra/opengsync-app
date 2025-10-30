@@ -455,7 +455,7 @@ def update_index_kits(db: DBHandler, app_data_folder: Path):
                             kit=kit.identifier,
                             name=row["name_i7"],
                             sequence=row["sequence_i7"],
-                            well=row["well"],
+                            well=row["well"] if "well" in row else None,
                             index_type_id=kit.type.id,
                             barcode_type_id=categories.BarcodeType.INDEX_I7.id,
                         )
@@ -465,7 +465,7 @@ def update_index_kits(db: DBHandler, app_data_folder: Path):
                             kit=kit.identifier,
                             name=row["name_i5"],
                             sequence=row["sequence_i5"],
-                            well=row["well"],
+                            well=row["well"] if "well" in row else None,
                             index_type_id=kit.type.id,
                             barcode_type_id=categories.BarcodeType.INDEX_I5.id,
                         )
