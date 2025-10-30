@@ -22,6 +22,14 @@
                 aria-controls="form-tab-help" aria-selected="false">
                 Help</button>
             </li>
+            {% if project_id %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#form-tab-project-samples" type="button" role="tab"
+                aria-controls="form-tab-project-samples" aria-selected="false">
+                Project Samples</button>
+            </li>
+            {% endif %}
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="form-tab-spreadsheet" role="tabpanel" tabindex="0">
@@ -29,6 +37,13 @@
             </div>
             <div class="tab-pane fade" id="form-tab-help" role="tabpanel" tabindex="1">
             </div>
+            {% if project_id %}
+            <div class="tab-pane fade" id ="form-tab-project-samples" role="tabpanel" tabindex="2">
+                <div hx-get="{{ url_for('projects_htmx.render_sample_table', project_id=project_id) }}" hx-swap="outerHTML" hx-trigger="intersect once">
+                    {{ spinner() }}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
     <div class="modal-footer">

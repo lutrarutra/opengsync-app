@@ -54,8 +54,6 @@ class CompleteLibraryPoolingForm(MultiStepForm):
 
         if len(self.pooling_table["pool"].unique()) == 1:
             self.pooling_table["pool"] = "1"
-
-        logger.debug(self.pooling_table)
         
         # if all the experiment_ids are the same in the pool we can link it with the experiment
         experiment_mappings = {}

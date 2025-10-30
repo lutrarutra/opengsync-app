@@ -13,7 +13,7 @@
         columns: [
             {% for col in columns %}
             {%- if col.type == "text" or col.type == "numeric" -%}
-            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}{% if col.read_only %},  readOnly: true{% endif %} },
             {%- elif col["type"] == "dropdown" -%}
             { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
             {%- endif -%}

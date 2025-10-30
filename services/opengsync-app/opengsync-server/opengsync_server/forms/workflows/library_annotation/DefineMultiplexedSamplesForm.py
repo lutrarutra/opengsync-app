@@ -18,6 +18,7 @@ from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .CompleteSASForm import CompleteSASForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .OCMAnnotationForm import OCMAnnotationForm
+from .LibraryAnnotationForm import LibraryAnnotationForm
 
 
 class DefineMultiplexedSamplesForm(MultiStepForm):
@@ -130,6 +131,21 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
     def process_request(self) -> Response:
         if not self.validate():
             return self.make_response()
+        
+        if self.assay_type == AssayType.CUSTOM:
+            sample_pooling_table = {
+                "sample_pool": [],
+                "sample_name": [],
+            }
+            for (sample_name, sample_pool), _ in self.df.groupby(["sample_name", "pool"]):
+                sample_pooling_table["sample_pool"].append(sample_pool)
+                sample_pooling_table["sample_name"].append(sample_name)
+                
+            sample_pooling_table = pd.DataFrame(sample_pooling_table)
+            self.add_table("sample_pooling_table", sample_pooling_table)
+            self.update_data()
+            next_form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+            return next_form.make_response()
 
         library_table_data = {
             "library_name": [],

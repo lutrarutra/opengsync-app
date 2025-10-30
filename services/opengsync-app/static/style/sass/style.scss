@@ -542,6 +542,13 @@ span.id-desc::after {
     }
 }
 
+.code-highlight {
+    font-family: monospace, monospace;
+    background-color: $gray-200;
+    padding: 2px 4px 2px 4px;
+    border-radius: 3px;
+}
+
 .input-help {
     padding-bottom: 10px;
 }

@@ -96,9 +96,11 @@ class TextColumn(SpreadSheetColumn):
 
     def validate(self, value: Any, column_values: Sequence[Any]):
         super().validate(value, column_values)
-        value = self.clean_up(value)
-        if value is None:
+        if pd.isna(value):
+            if self.required:
+                raise MissingCellValue(f"Missing value for '{self.label}'")
             return
+        value = self.clean_up(value)
         value = str(value)
         if len(value) < self.min_length:
             raise InvalidCellValue(f"Value for '{self.label}' is too short. Minimum length is {self.min_length}.")

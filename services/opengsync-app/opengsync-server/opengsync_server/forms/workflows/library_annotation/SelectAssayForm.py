@@ -3,10 +3,10 @@ import pandas as pd
 from flask import Response
 from flask_wtf import FlaskForm
 from wtforms import SelectField, TextAreaField, BooleanField, FormField, StringField
-from wtforms.validators import Optional as OptionalValidator, Length, DataRequired
+from wtforms.validators import Optional as OptionalValidator, Length
 
 from opengsync_db import models
-from opengsync_db.categories import AssayType, MUXType, LibraryTypeEnum, LibraryType
+from opengsync_db.categories import AssayType, MUXType, LibraryTypeEnum, LibraryType, SubmissionType
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa
@@ -41,7 +41,7 @@ class SelectAssayForm(MultiStepForm):
     _workflow_name = "library_annotation"
     _step_name = "specify_assay"
 
-    assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), validators=[DataRequired()], coerce=int)
+    assay_type = SelectField("Assay Type", choices=[(-1, "Select Assay Type")] + AssayType.as_selectable(), validators=[OptionalValidator()], coerce=int, default=-1)
     additional_info = TextAreaField("Additional Information", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)])
     optional_assays = FormField(OptionalAssaysForm)
     additional_services = FormField(AdditionalSerevicesForm)
@@ -83,8 +83,11 @@ class SelectAssayForm(MultiStepForm):
         if self.assay_type.data is None:
             self.assay_type.errors = ("Please select an assay type.",)
         
-        if (assay_type := AssayType.get(self.assay_type.data)) == AssayType.CUSTOM:
-            self.assay_type.errors = ("Please select an assay type.",)
+        try:
+            self.assay_type_enum = AssayType.get(int(self.assay_type.data))
+        except ValueError:
+            self.assay_type.errors = ("Invalid assay type",)
+            return False
         
         if self.optional_assays.antibody_capture.data and not self.optional_assays.antibody_capture_kit.data:
             self.optional_assays.antibody_capture_kit.errors = ("Please specify an antibody capture kit.",)
@@ -107,16 +110,10 @@ class SelectAssayForm(MultiStepForm):
             self.additional_services.oligo_multiplexing_kit.errors = ("Please select only one multiplexing method.",)
             self.additional_services.ocm_multiplexing.errors = ("Please select only one multiplexing method.",)
 
-        if self.optional_assays.antibody_multiplexing.data and assay_type in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
+        if self.optional_assays.antibody_multiplexing.data and self.assay_type_enum in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
             self.optional_assays.antibody_multiplexing.errors = ("Antibody-based cell hashing multiplexing is not available with 10X Flex assays.",)
 
         if self.errors:
-            return False
-        
-        try:
-            self.assay_type_enum = AssayType.get(int(self.assay_type.data))
-        except ValueError:
-            self.assay_type.errors = ("Invalid assay type",)
             return False
 
         return True
@@ -227,7 +224,7 @@ class SelectAssayForm(MultiStepForm):
         self.add_table("sample_pooling_table", sample_pooling_table)
         self.update_data()
 
-        if self.metadata["workflow_type"] == "pooled":
+        if self.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id:
             next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

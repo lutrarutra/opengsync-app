@@ -1,10 +1,9 @@
 import pandas as pd
 
 from flask import Response
-from wtforms import BooleanField
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, SubmissionType, LibraryTypeEnum
+from opengsync_db.categories import LibraryType, SubmissionType, LibraryTypeEnum, SubmissionType
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, tools, db
@@ -54,7 +53,6 @@ class FlexAnnotationForm(CommonFlexMuxForm):
         
         sample_pooling_table = self.tables["sample_pooling_table"]
         
-        self.metadata["mux_type_id"] = CommonFlexMuxForm.mux_type.id
         if self.flex_table is None:
             logger.error(f"{self.uuid}: Flex table is None.")
             raise Exception("Flex table is None.")
@@ -86,7 +84,7 @@ class FlexAnnotationForm(CommonFlexMuxForm):
         library_table["seq_depth"] = None
         self.update_table("library_table", library_table)
                         
-        if self.metadata["workflow_type"] == "pooled":
+        if self.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id:
             next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OCMAnnotationForm.is_applicable(self):
             next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

@@ -133,6 +133,11 @@
     </div>
     <script>
         var assays = {
+            "-1": {
+                optional_library_types: [],
+                oligo_multiplexing: false,
+                ocm_multiplexing: false
+            },
             {% for assay_type in AssayType.as_list() %}
             {{ assay_type.id }}: {
                 optional_library_types: [
@@ -148,10 +153,14 @@
 
         function update_optional_assays() {
             const assay_id = $("#assay_type").val();
-            const optional_library_types = assays[assay_id].optional_library_types;
-            const oligo_multiplexing = assays[assay_id].oligo_multiplexing;
-            const ocm_multiplexing = assays[assay_id].ocm_multiplexing;
-            const antibody_capture = assays[assay_id].optional_library_types.includes({{LibraryType.TENX_ANTIBODY_CAPTURE.id}}) || assays[assay_id].optional_library_types.includes({{LibraryType.TENX_SC_ABC_FLEX.id}});
+            if (assay_id === -1) {
+                return;
+            }
+
+            const optional_library_types = assays[assay_id].optional_library_types || assay_id == {{ AssayType.CUSTOM.id }};
+            const oligo_multiplexing = assays[assay_id].oligo_multiplexing || assay_id == {{ AssayType.CUSTOM.id }};
+            const ocm_multiplexing = assays[assay_id].ocm_multiplexing || assay_id == {{ AssayType.CUSTOM.id }};
+            const antibody_capture = assays[assay_id].optional_library_types.includes({{LibraryType.TENX_ANTIBODY_CAPTURE.id}}) || assays[assay_id].optional_library_types.includes({{LibraryType.TENX_SC_ABC_FLEX.id}}) || assay_id == {{ AssayType.CUSTOM.id }};
             
             $(".opt-checkbox input").each(function() {
                 $(this).addClass("disabled");
@@ -191,11 +200,23 @@
                 $("#additional_services-ocm_multiplexing").prop("disabled", true);
                 $("#additional_services-ocm_multiplexing").prop("checked", false);
             }
+
+            if (assay_id == {{ AssayType.CUSTOM.id }}) {
+                $(".opt-checkbox input").each(function() {
+                    $(this).removeClass("disabled");
+                    $(this).prop("disabled", false);
+                });
+                return;
+            }
             update_antibody_kit_input();
         }
 
 
         function update_oligo_multiplexing_kit_input() {
+            const assay_id = $("#assay_type").val();
+            if (assay_id === -1) {
+                return;
+            }
             const is_checked = $("#additional_services-oligo_multiplexing").is(":checked");
             if (is_checked) {
                 $("#additional_services-oligo_multiplexing_kit").removeClass("disabled");
@@ -210,6 +231,10 @@
         }
 
         function update_antibody_kit_input() {
+            const assay_id = $("#assay_type").val();
+            if (assay_id === -1) {
+                return;
+            }
             const is_checked = $("#optional_assays-antibody_capture").is(":checked");
             if (is_checked) {
                 $("#optional_assays-antibody_capture_kit").removeClass("disabled");
@@ -227,6 +252,10 @@
         }
 
         function update_abc_mux_input() {
+            const assay_id = $("#assay_type").val();
+            if (assay_id === -1) {
+                return;
+            }
             const is_checked = $("#optional_assays-antibody_multiplexing").is(":checked");
 
             if (is_checked) {
@@ -237,8 +266,11 @@
         }
 
         function update_multiome_mux_input() {
-            const is_checked = $("#additional_services-oligo_multiplexing").is(":checked");
             const assay_id = $("#assay_type").val();
+            if (assay_id === -1) {
+                return;
+            }
+            const is_checked = $("#additional_services-oligo_multiplexing").is(":checked");
             if (assay_id == {{ AssayType.TENX_SC_MULTIOME.id }} && is_checked) {
                 $("#multiome-mux-warning").css("display", "block");
             } else {

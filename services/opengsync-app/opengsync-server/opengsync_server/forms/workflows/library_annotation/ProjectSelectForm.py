@@ -10,9 +10,6 @@ from opengsync_server.forms.MultiStepForm import StepFile
 from .... import db, logger  # noqa F401
 from ...SearchBar import OptionalSearchBar
 from ...MultiStepForm import MultiStepForm
-from .LibraryAnnotationForm import LibraryAnnotationForm
-from .SelectAssayForm import SelectAssayForm
-from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 from .SampleAnnotationForm import SampleAnnotationForm
 
 
@@ -25,15 +22,13 @@ class ProjectSelectForm(MultiStepForm):
     new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.title.type.length)])
     project_description = TextAreaField("Project Description", validators=[OptionalValidator(), Length(max=models.Project.description.type.length)], description="New projects only: brief context/background of the project.")
 
-    def __init__(self, seq_request: models.SeqRequest, workflow_type: Literal["raw", "pooled", "tech"], formdata: dict | None = None, uuid: Optional[str] = None):
+    def __init__(self, seq_request: models.SeqRequest, formdata: dict | None = None, uuid: Optional[str] = None):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, step_name=ProjectSelectForm._step_name,
-            workflow=ProjectSelectForm._workflow_name, step_args={"workflow_type": workflow_type}
+            workflow=ProjectSelectForm._workflow_name, step_args={}
         )
-        self.workflow_type = workflow_type
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
-        self._context["workflow_type"] = workflow_type
 
     def fill_previous_form(self, previous_form: StepFile):
         if (project_id := previous_form.metadata.get("project_id")) is not None:
@@ -100,9 +95,9 @@ class ProjectSelectForm(MultiStepForm):
         if not validated:
             return self.make_response()
 
+        self.metadata["submission_type_id"] = self.seq_request.submission_type.id
         self.metadata["project_title"] = self.project_title
         self.metadata["workflow"] = "library_annotation"
-        self.metadata["workflow_type"] = self.workflow_type
         self.metadata["project_id"] = self.project_id
         self.metadata["seq_request_id"] = self.seq_request.id
         self.metadata["user_id"] = user.id

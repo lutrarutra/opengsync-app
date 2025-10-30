@@ -478,6 +478,32 @@ def get_sample_attributes(current_user: models.User, project_id: int):
         )
     )
 
+@wrappers.htmx_route(projects_htmx, db=db)
+def render_sample_table(current_user: models.User, project_id: int):
+    if (project := db.projects.get(project_id)) is None:
+        raise exceptions.NotFoundException()
+
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.EDIT:
+        raise exceptions.NoPermissionsException()
+    if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+        raise exceptions.NoPermissionsException()
+    
+    df = db.pd.get_project_samples(project_id=project_id)
+
+    columns = [
+        TextColumn("sample_name", "Sample Name", 400, read_only=True),
+    ]
+    
+    return make_response(
+        render_template(
+            "components/itable.html",
+            spreadsheet_data=df[["sample_name"]].replace({np.nan: ""}).values.tolist(),
+            columns=columns,
+            table_id="sample-attribute-table"
+        )
+    )
+
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def edit_sample_attributes(current_user: models.User, project_id: int):
