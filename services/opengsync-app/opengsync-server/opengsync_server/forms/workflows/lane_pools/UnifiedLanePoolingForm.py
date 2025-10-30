@@ -64,12 +64,12 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
                 logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
                 raise ValueError(f"Pool with id {row['pool_id']} does not exist")
             
-            df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")]
+            df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")]  # type: ignore
             
             for dilution in pool.dilutions:
                 sample_sub_form.dilution.data = dilution.identifier
-                df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str()))
-                df.at[idx, "qubit_concentration"] = dilution.qubit_concentration
+                df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str())) # type: ignore
+                df.at[idx, "qubit_concentration"] = dilution.qubit_concentration # type: ignore
         
         # https://knowledge.illumina.com/library-preparation/dna-library-prep/library-preparation-dna-library-prep-reference_material-list/000001240
         df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
@@ -140,7 +140,9 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
                 data["dilution"].append(link.dilution.identifier if link.dilution else "Orig.")
 
         df = pd.DataFrame(data)
-        df["share"] = df["num_m_reads"] / df["num_m_reads"].sum()
+        df["share"] = None
+        for _, _df in df.groupby("lane"):
+            df.loc[_df.index, "share"] = _df["num_m_reads"] / _df["num_m_reads"].sum()
         df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
         df["pipet"] = df["target_concentration"] / df["molarity"] * df["share"] * df["target_total_volume"]
             
@@ -154,7 +156,8 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
                 break
             
         if old_file:
-            os.remove(os.path.join(runtime.app.media_folder, old_file.path))
+            if os.path.exists(os.path.join(runtime.app.media_folder, old_file.path)):
+                os.remove(os.path.join(runtime.app.media_folder, old_file.path))
             db.media_files.delete(file_id=old_file.id)
             logger.info(f"Old file '{old_file.path}' removed.")
 
