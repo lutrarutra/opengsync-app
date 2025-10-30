@@ -72,19 +72,19 @@ class LanePoolingForm(HTMXFlaskForm):
                 sample_sub_form.pool_id.data = row["pool_id"]
                 sample_sub_form.lane.data = lane
                 sample_sub_form.m_reads.data = row["num_m_reads"]
-                df.at[idx, "sub_form_idx"] = counter
+                df.at[idx, "sub_form_idx"] = counter # type: ignore
 
                 if (pool := db.pools.get(row["pool_id"])) is None:
                     logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
                     raise ValueError(f"Pool with id {row['pool_id']} does not exist")
                 
-                df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")]
+                df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")] # type: ignore
                 sample_sub_form.dilution.data = "Orig."
                 
                 for dilution in pool.dilutions:
                     sample_sub_form.dilution.data = dilution.identifier
-                    df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str()))
-                    df.at[idx, "qubit_concentration"] = dilution.qubit_concentration
+                    df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str())) # type: ignore
+                    df.at[idx, "qubit_concentration"] = dilution.qubit_concentration # type: ignore
 
                 counter += 1
         

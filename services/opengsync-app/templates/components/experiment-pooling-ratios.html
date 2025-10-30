@@ -32,11 +32,11 @@
             <tbody>
                 {% for _, row in df.iterrows() %}
                 <tr class="pool-row-{{lane}}">
-                    <th>{{ row["pool_name"] }}</th>
+                    <th>{{ row["pool"] }}</th>
                     <td><b>{{ row['dilution'] }}</b></td>
                     <td>
                         <div class="quantity-container">
-                            <div class="value">{{ row["num_m_reads_requested"]  }}</div>
+                            <div class="value">{{ row["num_m_reads"]  }}</div>
                             <div class="unit">M</div>
                         </div>
                     </td>

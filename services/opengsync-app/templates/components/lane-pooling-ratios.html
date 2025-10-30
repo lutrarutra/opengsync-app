@@ -15,8 +15,8 @@
             <div class="row">
                 {{ metadata_group("Target Concentration", target_concentration, class="col-3", unit="nM") }}
                 {{ metadata_group("Target Total Volume", target_total_volume, class="col-3", unit="μL") }}
-                {{ metadata_group("Library Volume", "%0.1f" % _df["pipet"].sum(), class="col-3", unit="μL") }}
-                {{ metadata_group("EB Volume", "%0.1f" % (target_total_volume - _df["pipet"].sum()), class="col-3", unit="μL") }}
+                {{ metadata_group("Library Volume", "%0.2f" % _df["pipet"].sum(), class="col-3", unit="μL") }}
+                {{ metadata_group("EB Volume", "%0.2f" % (target_total_volume - _df["pipet"].sum()), class="col-3", unit="μL") }}
             </div>
             <table class="table">
                 <thead>
@@ -34,11 +34,11 @@
                 <tbody>
                     {% for _, row in _df.iterrows() %}
                     <tr class="pool-row-{{lane}}">
-                        <th>{{ row["pool_name"] }}</th>
+                        <th>{{ row["pool"] }}</th>
                         <td><b>{{ row['dilution'] }}</b></td>
                         <td>
                             <div class="quantity-container">
-                                <div class="value">{{ row["num_m_reads_requested"]  }}</div>
+                                <div class="value">{{ row["num_m_reads"]  }}</div>
                                 <div class="unit">M</div>
                             </div>
                         </td>
