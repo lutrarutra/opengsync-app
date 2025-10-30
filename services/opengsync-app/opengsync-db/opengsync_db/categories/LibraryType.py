@@ -16,7 +16,7 @@ class LibraryTypeEnum(DBEnum):
 
 
 class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
-    CUSTOM = LibraryTypeEnum(0, "Custom", "Custom", "Custom", "Custom")
+    CUSTOM = LibraryTypeEnum(0, "Custom", "Custom", "CUSTOM", "Custom")
 
     # 10X Base Technologies
     TENX_SC_GEX_FLEX = LibraryTypeEnum(1, "10X Flex Gene Expression", "10X Flex GEX", "10XFLEXGEX", "Gene Expression")

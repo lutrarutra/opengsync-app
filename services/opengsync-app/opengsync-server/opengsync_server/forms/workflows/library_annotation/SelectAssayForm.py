@@ -17,6 +17,7 @@ from .FeatureAnnotationForm import FeatureAnnotationForm
 from .CompleteSASForm import CompleteSASForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
+from .LibraryAnnotationForm import LibraryAnnotationForm
 
 
 class OptionalAssaysForm(FlaskForm):
@@ -122,13 +123,12 @@ class SelectAssayForm(MultiStepForm):
         if not self.validate():
             return self.make_response()
         
-        assay_type = AssayType.get(self.assay_type.data)
         oligo_multiplexing = self.additional_services.oligo_multiplexing.data
         ocm_multiplexing = self.additional_services.ocm_multiplexing.data
         antibody_multiplexing = self.optional_assays.antibody_multiplexing.data
-        flex_barcode_multiplexing = assay_type in [AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]
+        flex_barcode_multiplexing = self.assay_type_enum in [AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]
         
-        self.metadata["assay_type_id"] = assay_type.id
+        self.metadata["assay_type_id"] = self.assay_type_enum.id
         self.metadata["mux_type_id"] = None
         self.metadata["oligo_multiplexing_kit"] = self.additional_services.oligo_multiplexing_kit.data
         self.metadata["antibody_capture_kit"] = self.optional_assays.antibody_capture_kit.data
@@ -166,6 +166,20 @@ class SelectAssayForm(MultiStepForm):
         if DefineMultiplexedSamplesForm.is_applicable(self):
             next_form = DefineMultiplexedSamplesForm(seq_request=self.seq_request, uuid=self.uuid)
             return next_form.make_response()
+        if self.assay_type_enum == AssayType.CUSTOM:
+            sample_pooling_table = {
+                "sample_pool": [],
+                "sample_name": [],
+            }
+            for (sample_name,), _ in self.sample_table.groupby(["sample_name"], sort=False):
+                sample_pooling_table["sample_pool"].append(sample_name)
+                sample_pooling_table["sample_name"].append(sample_name)
+                
+            sample_pooling_table = pd.DataFrame(sample_pooling_table)
+            self.add_table("sample_pooling_table", sample_pooling_table)
+            self.update_data()
+            next_form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+            return next_form.make_response()
         
         library_table_data = {
             "library_name": [],
@@ -197,7 +211,7 @@ class SelectAssayForm(MultiStepForm):
                 add_library(sample_name, library_type)
 
             if self.optional_assays.antibody_capture.data:
-                if self.assay_type in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
+                if self.assay_type_enum in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
                     add_library(sample_name, LibraryType.TENX_SC_ABC_FLEX)
                 else:
                     add_library(sample_name, LibraryType.TENX_ANTIBODY_CAPTURE)
