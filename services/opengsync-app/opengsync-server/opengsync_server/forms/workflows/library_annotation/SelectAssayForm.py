@@ -191,6 +191,7 @@ class SelectAssayForm(MultiStepForm):
         sample_pooling_table = {
             "sample_name": [],
             "library_name": [],
+            "sample_pool": [],
         }
 
         def add_library(sample_name: str, library_type: LibraryTypeEnum):
@@ -198,6 +199,7 @@ class SelectAssayForm(MultiStepForm):
 
             sample_pooling_table["sample_name"].append(sample_name)
             sample_pooling_table["library_name"].append(library_name)
+            sample_pooling_table["sample_pool"].append(sample_name)
 
             library_table_data["library_name"].append(library_name)
             library_table_data["sample_name"].append(sample_name)
