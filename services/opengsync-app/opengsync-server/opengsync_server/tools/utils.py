@@ -401,40 +401,113 @@ def map_columns(dst: pd.DataFrame, src: pd.DataFrame, idx_columns: list[str] | s
     return pd.Series(dst[idx_columns].apply(lambda row: mapping.get(tuple(row), None) if isinstance(row, pd.Series) else mapping.get(row), axis=1))
 
 
-def update_index_kits(
-    db: DBHandler, app_data_folder: Path,
-    types: list[categories.IndexTypeEnum] = categories.IndexType.as_list()
-):
+def update_index_kits(db: DBHandler, app_data_folder: Path):
     import pandas as pd
     kits_path = app_data_folder / "kits"
     kits_path.mkdir(parents=True, exist_ok=True)
 
-    for type in types:
-        res = []
-        for kit in db.index_kits.find(limit=None, sort_by="id", descending=True, type_in=[type])[0]:
-            df = db.pd.get_index_kit_barcodes(kit.id, per_index=True)
-            df["kit_id"] = kit.id
-            df["kit"] = kit.identifier
-            res.append(df)
+    data = {
+        "kit_id": [],
+        "kit": [],
+        "name": [],
+        "sequence": [],
+        "well": [],
+        "index_type_id": [],
+        "barcode_type_id": [],
+    }
 
-        if len(res) == 0:
-            continue
+    def add_barcode(kit_id: int, kit: str, name: str, sequence: str, well: str, index_type_id: int, barcode_type_id: int):
+        data["kit_id"].append(kit_id)
+        data["kit"].append(kit)
+        data["name"].append(name)
+        data["sequence"].append(sequence)
+        data["well"].append(well)
+        data["index_type_id"].append(index_type_id)
+        data["barcode_type_id"].append(barcode_type_id)
 
-        pd.concat(res).to_pickle(kits_path / f"{type.id}.pkl")
+    for kit in db.index_kits.find(limit=None, sort_by="id", descending=True)[0]:
+        df = db.pd.get_index_kit_barcodes(kit.id, per_index=True)
+        for _, row in df.iterrows():
+            match kit.type:
+                case categories.IndexType.DUAL_INDEX:
+                    add_barcode(
+                        kit_id=kit.id,
+                        kit=kit.identifier,
+                        name=row["name_i7"],
+                        sequence=row["sequence_i7"],
+                        well=row["well"],
+                        index_type_id=kit.type.id,
+                        barcode_type_id=categories.BarcodeType.INDEX_I7.id,
+                    )
+                    add_barcode(
+                        kit_id=kit.id,
+                        kit=kit.identifier,
+                        name=row["name_i5"],
+                        sequence=row["sequence_i5"],
+                        well=row["well"],
+                        index_type_id=kit.type.id,
+                        barcode_type_id=categories.BarcodeType.INDEX_I5.id,
+                    )
+                case categories.IndexType.COMBINATORIAL_DUAL_INDEX:
+                    if pd.notna(row["name_i7"]):
+                        add_barcode(
+                            kit_id=kit.id,
+                            kit=kit.identifier,
+                            name=row["name_i7"],
+                            sequence=row["sequence_i7"],
+                            well=row["well"],
+                            index_type_id=kit.type.id,
+                            barcode_type_id=categories.BarcodeType.INDEX_I7.id,
+                        )
+                    if pd.notna(row["name_i5"]):
+                        add_barcode(
+                            kit_id=kit.id,
+                            kit=kit.identifier,
+                            name=row["name_i5"],
+                            sequence=row["sequence_i5"],
+                            well=row["well"],
+                            index_type_id=kit.type.id,
+                            barcode_type_id=categories.BarcodeType.INDEX_I5.id,
+                        )
+
+                case categories.IndexType.SINGLE_INDEX_I7:
+                    add_barcode(
+                        kit_id=kit.id,
+                        kit=kit.identifier,
+                        name=row["name_i7"],
+                        sequence=row["sequence_i7"],
+                        well=row["well"],
+                        index_type_id=kit.type.id,
+                        barcode_type_id=categories.BarcodeType.INDEX_I7.id,
+                    )
+                case categories.IndexType.TENX_ATAC_INDEX:
+                    for i in range(1, 5):
+                        add_barcode(
+                            kit_id=kit.id,
+                            kit=kit.identifier,
+                            name=row["name"],
+                            sequence=row[f"sequence_{i}"],
+                            well=row["well"],
+                            index_type_id=kit.type.id,
+                            barcode_type_id=categories.BarcodeType.INDEX_I7.id,
+                        )
+
+    pd.DataFrame(data).to_pickle(kits_path / "barcodes.pkl")
 
 
 def get_index_kit_barcode_map(
-    app_data_folder: Path, types: list[categories.IndexTypeEnum] = categories.IndexType.as_list()
+    app_data_folder: Path, barcode_types: list[categories.BarcodeTypeEnum] | None = None, index_types: list[categories.IndexTypeEnum] | None = None
 ) -> pd.DataFrame:
-    
-    barcodes = pd.DataFrame(columns=["kit_id", "kit", "sequence_i7", "sequence_i5"])
-
-    for type in types:
-        path = app_data_folder / "kits" / f"{type.id}.pkl"
-        if path.exists() and path.is_file():
-            barcodes = pd.concat([barcodes, pd.read_pickle(path)])
+    path = app_data_folder / "kits" / "barcodes.pkl"
+    if path.exists() and path.is_file():
+        df = pd.read_pickle(path)
+        if barcode_types is not None:
+            df = df[df["barcode_type_id"].isin([bt.id for bt in barcode_types])]
+        if index_types is not None:
+            df = df[df["index_type_id"].isin([it.id for it in index_types])]
+        return df.reset_index(drop=True)
         
-    return barcodes.reset_index(drop=True)
+    return pd.DataFrame(columns=["kit_id", "kit", "name", "sequence", "well", "index_type_id"])
 
 
 def is_browser_friendly(mimetype: str | None) -> bool:

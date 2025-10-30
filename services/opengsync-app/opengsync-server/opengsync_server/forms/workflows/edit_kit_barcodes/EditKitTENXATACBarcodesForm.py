@@ -108,6 +108,6 @@ class EditKitTENXATACBarcodesForm(HTMXFlaskForm):
                     type=BarcodeType.INDEX_I7,
                 )
         
-        utils.update_index_kits(db, runtime.app.app_data_folder, types=[IndexType.TENX_ATAC_INDEX])
+        utils.update_index_kits(db, runtime.app.app_data_folder)
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("kits_page.index_kit", index_kit_id=self.index_kit.id)))
