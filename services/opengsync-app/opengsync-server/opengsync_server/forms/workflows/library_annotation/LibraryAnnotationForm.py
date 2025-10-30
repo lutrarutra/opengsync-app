@@ -3,11 +3,10 @@ import pandas as pd
 from flask import Response, url_for
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, GenomeRef, MUXType, LibraryTypeEnum
+from opengsync_db.categories import LibraryType, MUXType, LibraryTypeEnum
 
 from .... import logger, db
-from ....tools import utils
-from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, DropdownColumn, FloatColumn, CategoricalDropDown
+from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, DropdownColumn, CategoricalDropDown
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
 from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
@@ -17,6 +16,7 @@ from .CompleteSASForm import CompleteSASForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .OCMAnnotationForm import OCMAnnotationForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
+from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 
 
 class LibraryAnnotationForm(MultiStepForm):
@@ -36,7 +36,7 @@ class LibraryAnnotationForm(MultiStepForm):
         self.sample_pools = self.sample_pooling_table["sample_pool"].unique().tolist()
 
         self.columns = [
-            DropdownColumn("sample_pool", "Sample Pool", 300, required=True, choices=self.sample_pools),
+            DropdownColumn("sample_pool", "Sample Name (Pool)", 300, required=True, choices=self.sample_pools),
             CategoricalDropDown("library_type_id", "Library Type", 300, categories=dict(LibraryType.as_selectable()), required=True),
         ]
 
@@ -127,6 +127,8 @@ class LibraryAnnotationForm(MultiStepForm):
             next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif PooledLibraryAnnotationForm.is_applicable(self):
+            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):

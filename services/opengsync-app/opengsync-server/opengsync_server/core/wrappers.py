@@ -108,7 +108,7 @@ def _route_decorator(
                     args = request.args
                     sorted_args = sorted((k, v) for k, v in args.items())
                     query_string = "?" + "&".join(f"{k}={v}" for k, v in sorted_args)
-                key = f"{request.headers.get('X-Forwarded-Prefix', '/')}view/{user_id}{request.path}{query_string}"
+                key = f"{request.method}-{request.headers.get('X-Forwarded-Prefix', '/')}view/{user_id}{request.path}{query_string}"
                 return key
             
             def insider_cache_key() -> str:
@@ -120,11 +120,11 @@ def _route_decorator(
                     sorted_args = sorted((k, v) for k, v in args.items())
                     query_string = "?" + "&".join(f"{k}={v}" for k, v in sorted_args)
 
-                key = f"{request.headers.get('X-Forwarded-Prefix', '/')}view/insider{request.path}{query_string}"
+                key = f"{request.method}-{request.headers.get('X-Forwarded-Prefix', '/')}view/insider{request.path}{query_string}"
                 return key
 
             def default_cache_key() -> str:
-                return f"{request.headers.get('X-Forwarded-Prefix', '/')}view/%s"
+                return f"{request.method}-{request.headers.get('X-Forwarded-Prefix', '/')}view/%s"
 
             fnc = route_cache.cached(
                 timeout=cache_timeout_seconds,
