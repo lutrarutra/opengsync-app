@@ -1,6 +1,7 @@
 from flask import Response, url_for
 
 from opengsync_db import models
+from opengsync_db.categories import SubmissionType
 
 from .... import logger, db
 from ....tools.spread_sheet_components import TextColumn
@@ -21,7 +22,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
-        return current_step.metadata["workflow_type"] == "pooled"
+        return current_step.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id
 
     def __init__(
         self, seq_request: models.SeqRequest, uuid: str,

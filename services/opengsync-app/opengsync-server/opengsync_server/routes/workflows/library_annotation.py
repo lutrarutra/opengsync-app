@@ -30,27 +30,14 @@ def download_seq_auth_form():
 
 
 @wrappers.htmx_route(library_annotation_workflow, db=db)
-def begin(current_user: models.User, seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
-    if workflow_type not in ["raw", "pooled", "tech"]:
-        raise exceptions.BadRequestException()
-    
+def begin(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
-    
-    if workflow_type == "pooled":
-        if seq_request.submission_type != SubmissionType.POOLED_LIBRARIES:
-            raise exceptions.BadRequestException()
-    elif workflow_type == "raw":
-        if seq_request.submission_type != SubmissionType.RAW_SAMPLES:
-            raise exceptions.BadRequestException()
-    elif workflow_type == "tech":
-        if seq_request.submission_type != SubmissionType.RAW_SAMPLES:
-            raise exceptions.BadRequestException()
 
     if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
         raise exceptions.NoPermissionsException()
 
-    form = forms.ProjectSelectForm(workflow_type=workflow_type, seq_request=seq_request)
+    form = forms.ProjectSelectForm(seq_request=seq_request)
     return form.make_response()
         
 
@@ -75,10 +62,7 @@ def previous(current_user: models.User, seq_request_id: int, uuid: str):
 
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
-def select_project(current_user: models.User, seq_request_id: int, workflow_type: Literal["raw", "pooled", "tech"]):
-    if workflow_type not in ["tech", "raw", "pooled"]:
-        raise exceptions.BadRequestException()
-    
+def select_project(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
     
@@ -86,9 +70,9 @@ def select_project(current_user: models.User, seq_request_id: int, workflow_type
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
-        forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type)
+        forms.ProjectSelectForm(seq_request=seq_request)
     
-    return forms.ProjectSelectForm(seq_request=seq_request, workflow_type=workflow_type, formdata=request.form).process_request(user=current_user)
+    return forms.ProjectSelectForm(seq_request=seq_request, formdata=request.form).process_request(user=current_user)
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_sample_annotation_form(current_user: models.User, seq_request_id: int, uuid: str):

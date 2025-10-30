@@ -6,7 +6,7 @@ import pandas as pd
 from flask import Response, url_for
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, AttributeType
+from opengsync_db.categories import AttributeType
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa F401
@@ -23,7 +23,8 @@ class SampleAttributeAnnotationForm(MultiStepForm):
     _step_name = "sample_attribute_annotation"
 
     predefined_columns = [
-        TextColumn("sample_name", "Sample Name", 170, required=True, read_only=True)
+        TextColumn("sample_name", "Sample Name", 200, required=True, read_only=True),
+        TextColumn("sample_id", "Sample ID", 170, required=True, read_only=True),
     ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for t in AttributeType.as_list()[1:]]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
@@ -38,7 +39,8 @@ class SampleAttributeAnnotationForm(MultiStepForm):
         self.columns: list[SpreadSheetColumn] = SampleAttributeAnnotationForm.predefined_columns.copy()  # type: ignore
 
         sample_table = self.tables["sample_table"]
-        df = sample_table[["sample_name"]].copy()
+        df = sample_table[["sample_name", "sample_id"]].copy()
+        df.loc[df["sample_id"].isna(), "sample_id"] = "new"
     
         for col in SampleAttributeAnnotationForm.predefined_columns:
             if col.label in df.columns:
@@ -66,6 +68,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
     def fill_previous_form(self, previous_form: StepFile):
         df = previous_form.tables["sample_table"]
+        df.loc[df["sample_id"].isna(), "sample_id"] = "new"
         for col in df.columns:
             if col.startswith("_attr_"):
                 col = col.removeprefix("_attr_")
@@ -117,11 +120,10 @@ class SampleAttributeAnnotationForm(MultiStepForm):
                     self.spreadsheet.add_error(idx, col, MissingCellValue("Missing value"))
                     validated = False
 
-        if len(self.spreadsheet._errors) > 0 or not validated:
+        if not validated or len(self.spreadsheet._errors) > 0:
             return False
 
         self.df = df.dropna(how="all")
-
         return True
 
     def process_request(self) -> Response:
@@ -131,7 +133,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
         for idx, row in self.df.iterrows():
             sample_name = row["sample_name"]
             for col in self.df.columns:
-                if col == "sample_name" or self.df[col].isna().all():
+                if col in ["sample_name", "sample_id"] or self.df[col].isna().all():
                     continue
                 self.sample_table.loc[self.sample_table["sample_name"] == sample_name, f"_attr_{col}"] = row[col]
 

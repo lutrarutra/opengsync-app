@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response
 
 from opengsync_db import models
-from opengsync_db.categories import FeatureType, MUXType, LibraryType, AssayType, LibraryTypeEnum
+from opengsync_db.categories import FeatureType, MUXType, LibraryType, AssayType, LibraryTypeEnum, SubmissionType
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa
@@ -115,7 +115,7 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
         self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)
         self.update_data()
 
-        if self.metadata["workflow_type"] == "pooled":
+        if self.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id:
             next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

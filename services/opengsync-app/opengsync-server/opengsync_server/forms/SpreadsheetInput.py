@@ -131,7 +131,7 @@ class SpreadsheetInput(FlaskForm):
                         self.add_error(idx, label, e)
                     continue
                     
-                self.__df.at[idx, label] = column.clean_up(row[label])
+                self.__df.at[idx, label] = column.clean_up(row[label])  # type: ignore
 
         if len(self._errors) > 0:
             return False

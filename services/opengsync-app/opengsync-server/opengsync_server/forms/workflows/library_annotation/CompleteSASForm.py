@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import (
     GenomeRef, LibraryType, FeatureType, MediaFileType, SampleStatus, PoolType, AttributeType,
-    AssayType, SubmissionType, MUXType, IndexType, BarcodeOrientation
+    AssayType, SubmissionType, MUXType, IndexType, BarcodeOrientation, SubmissionType
 )
 
 from .... import db, logger, tools
@@ -40,12 +40,12 @@ class CompleteSASForm(MultiStepForm):
         self.library_properties_table = self.tables.get("library_properties_table")
         self.comment_table = self.tables.get("comment_table")
         self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata["mux_type_id"] is not None else None
+        self.submission_type = SubmissionType.get(self.metadata["submission_type_id"])
 
         self.library_table["genome_id"] = GenomeRef.CUSTOM.id
         for idx, row in self.library_table.iterrows():
             sample_names = self.sample_pooling_table[self.sample_pooling_table["library_name"] == row["library_name"]]["sample_name"].unique()
             sample_genome_ids = self.sample_table[self.sample_table["sample_name"].isin(sample_names)]["genome_id"].unique()
-            logger.debug(sample_genome_ids)
             if len(sample_genome_ids) > 1:
                 logger.warning(f"{self.uuid}: Multiple genome references found for library {row['library_name']}: {sample_genome_ids}. Setting to CUSTOM.")
                 continue
@@ -109,8 +109,6 @@ class CompleteSASForm(MultiStepForm):
         self._context["comment_table"] = self.comment_table
         self._context["pool_table"] = self.pool_table
 
-        input_type = "raw" if "pool" not in self.library_table.columns else "pooled"
-
         LINK_WIDTH_UNIT = 1
         nodes = []
         links = []
@@ -151,7 +149,7 @@ class CompleteSASForm(MultiStepForm):
                     nodes.append(library_node)
                     node_idx += 1
 
-                    if input_type == "pooled":
+                    if self.submission_type == SubmissionType.POOLED_LIBRARIES:
                         for _, library_row in self.library_table[self.library_table["library_name"] == row["library_name"]].iterrows():
                             if (pool_node := pool_nodes.get(library_row["pool"])) is None:
                                 pool_node = {
@@ -165,7 +163,7 @@ class CompleteSASForm(MultiStepForm):
                             links.append({
                                 "source": library_node["node"],
                                 "target": pool_node["node"],
-                                "value": LINK_WIDTH_UNIT * len(self.sample_pooling_table[self.sample_pooling_table["library_name"] == row["library_name"]]),
+                                "value": LINK_WIDTH_UNIT * len(self.sample_pooling_table[self.sample_pooling_table["library_name"] == row["library_name"]].drop_duplicates(["sample_pool"])),
                             })
 
                 links.append({

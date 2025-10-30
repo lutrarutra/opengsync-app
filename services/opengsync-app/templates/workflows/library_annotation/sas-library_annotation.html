@@ -33,8 +33,7 @@
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="form-tab-spreadsheet" role="tabpanel" tabindex="0">
-                {{ checkbox_input(form.nuclei_isolation) }}
-                {{ spreadsheet_input(element=form.spreadsheet) }}
+                {{ spreadsheet_input(element=form.spreadsheet, target_element_id="sample-table-submission-container", submit_btn_id="parse-spreadsheet-btn") }}
             </div>
             <div class="tab-pane fade" id="form-tab-help" role="tabpanel" tabindex="1">
                 {% include "instructions/raw_libraries.html" %}
@@ -62,26 +61,4 @@
             </button>
         </div>
     </div>
-    <script>
-        $(document).ready(function() {
-            window.onbeforeunload = function() {
-                return "Data will be lost if you leave the page, are you sure?";
-            };
-
-                $("#parse-spreadsheet-btn").on("click", function() {
-                var data = spread_sheet.getData();
-
-                htmx.ajax("POST", "{{ form.spreadsheet.post_url }}", {
-                    "target": "#sample-table-submission-container",
-                    "swap": "outerHTML",
-                    "values": {
-                        "spreadsheet": JSON.stringify(data),
-                        "csrf_token": "{{ form.spreadsheet.csrf_token }}",
-                        "nuclei_isolation": $("#nuclei_isolation").is(":checked"),
-                        "columns": JSON.stringify(spread_sheet.getHeaders()),
-                    },
-                });
-            });
-        });
-    </script>
 </div>

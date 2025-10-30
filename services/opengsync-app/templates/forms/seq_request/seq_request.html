@@ -289,7 +289,7 @@
                 update_billing_is_organization();
             });
 
-            $("#organization_form-organization_address").on("keydown", function(){
+            $("#organization_form-organization_address").on("change", function(){
                 if ($("#billing_form-billing_is_organization").is(":checked")){
                     $("#billing_form-billing_address").val($(this).val());
                 }

@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response, url_for
 
 from opengsync_db import models
-from opengsync_db.categories import MUXType, AssayType, LibraryTypeEnum, LibraryType
+from opengsync_db.categories import MUXType, AssayType, LibraryTypeEnum, LibraryType, SubmissionType
 
 from .... import logger, db  # noqa
 from ....tools import utils
@@ -31,7 +31,7 @@ class OCMAnnotationForm(MultiStepForm):
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
-        return current_step.metadata["mux_type_id"] == MUXType.TENX_ON_CHIP.id
+        return (current_step.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id) and (current_step.metadata["mux_type_id"] == MUXType.TENX_ON_CHIP.id)
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
@@ -91,7 +91,6 @@ class OCMAnnotationForm(MultiStepForm):
         if not self.validate():
             return self.make_response()
 
-        self.metadata["mux_type_id"] = MUXType.TENX_ON_CHIP.id
         self.sample_pooling_table["mux_barcode"] = utils.map_columns(self.sample_pooling_table, self.df, idx_columns=["sample_name", "sample_pool"], col="barcode_id")
         self.update_table("sample_pooling_table", self.sample_pooling_table, update_data=False)
 
@@ -134,7 +133,7 @@ class OCMAnnotationForm(MultiStepForm):
 
         self.update_data()
 
-        if self.metadata["workflow_type"] == "pooled":
+        if self.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id:
             next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

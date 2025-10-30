@@ -21,8 +21,8 @@ class SampleAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-sample_annotation.html"
 
     columns = [
-        TextColumn("sample_name", "Sample Name", 200, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=utils.make_alpha_numeric, validation_fnc=utils.check_string, unique=True),
-        CategoricalDropDown("genome_id", "Genome", 200, categories=dict(GenomeRef.as_selectable()), required=True),
+        TextColumn("sample_name", "Sample Name", 300, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=utils.make_alpha_numeric, validation_fnc=utils.check_string, unique=True),
+        CategoricalDropDown("genome_id", "Genome", 300, categories=dict(GenomeRef.as_selectable()), required=True),
     ]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
@@ -38,6 +38,7 @@ class SampleAnnotationForm(MultiStepForm):
             post_url=url_for('library_annotation_workflow.parse_sample_annotation_form', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=True
         )
+        self._context["project_id"] = self.metadata.get("project_id")
 
     def fill_previous_form(self, previous_form: StepFile):
         self.spreadsheet.set_data(previous_form.tables["sample_table"])
