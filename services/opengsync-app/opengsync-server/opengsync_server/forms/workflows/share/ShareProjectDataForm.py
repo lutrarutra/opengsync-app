@@ -4,8 +4,8 @@ import os
 
 from flask import Response, flash, render_template, url_for
 from flask_htmx import make_response
-from wtforms import StringField, BooleanField, SelectField
-from wtforms.validators import DataRequired
+from wtforms import StringField, BooleanField, SelectField, EmailField
+from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 from opengsync_db import models
 from opengsync_db.categories import AccessType, LibraryType
@@ -17,23 +17,20 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 
 
 class ShareProjectDataForm(HTMXFlaskForm):
-    selected_users: list[models.User]
     _template_path = "workflows/share_project_data/share-1.html"
-
+    
     anonymous_send = BooleanField("Anonymous Send")
     internal_share = BooleanField("Internal Access Share", default=False)
     time_valid_min = SelectField("Link Validity Period: ", choices=[
-        (60 * 1, "1 Hour"),
-        (60 * 3, "3 Hours"),
-        (60 * 6, "6 Hours"),
-        (60 * 12, "12 Hours"),
         (60 * 24, "24 Hours"),
-        (60 * 38, "2 Days"),
         (60 * 72, "3 Days"),
         (60 * 24 * 7, "1 Week"),
-    ], default=60 * 24 * 3, coerce=int)
+        (60 * 24 * 14, "2 Week"),
+        (60 * 24 * 30, "1 Month"),
+    ], default=60 * 24 * 14, coerce=int)
 
-    send_to_owner = BooleanField("Send to Project Owner: ", default=True)
+    send_to_owner = BooleanField("Send to Project Owner: ", default=False)
+    custom_email = EmailField("Recipient: ", validators=[OptionalValidator()])
     selected_user_ids = StringField(validators=[DataRequired()])
     error_dummy = StringField()
 
@@ -54,6 +51,10 @@ class ShareProjectDataForm(HTMXFlaskForm):
         if not current_user.is_insider() and self.time_valid_min.data > self.time_valid_min.default:
             self.error_dummy.errors = (f"You don't have permissions to create that lasts more than {self.time_valid_min.default}",)
             return False
+        
+        if not current_user.is_insider() and self.custom_email.data:
+            self.error_dummy.errors = ("You don't have permissions to send to custom email addresses.",)
+            return False
 
         if len(self.paths) == 0:
             self.error_dummy.errors = ("No data paths available to share.",)
@@ -72,7 +73,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
             if self.project.owner_id not in selected_user_ids:
                 selected_user_ids.append(self.project.owner_id)
         
-        self.selected_users = []
+        self.recipients = []
         for user_id in set(selected_user_ids):
             if (user := db.users.get(user_id)) is None:
                 logger.error(f"User with id {user_id} not found.")
@@ -82,9 +83,12 @@ class ShareProjectDataForm(HTMXFlaskForm):
             if access_type < AccessType.VIEW:
                 self.error_dummy.errors = (f"User '{user.id}' does not have access to the project.",)
                 return False
-            self.selected_users.append(user)
+            self.recipients.append(user.email)
 
-        if not self.selected_users:
+        if self.custom_email.data:
+            self.recipients.append(self.custom_email.data)
+
+        if not self.recipients:
             self.error_dummy.errors = ("No valid users selected.",)
             return False
         
@@ -92,6 +96,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
 
     def process_request(self, current_user: models.User) -> Response:
         if not self.validate(current_user):
+            logger.debug(self.errors)
             return self.make_response()
         
         if (share_token := self.project.share_token) is not None:
@@ -146,17 +151,15 @@ class ShareProjectDataForm(HTMXFlaskForm):
             wget_command=wget_command,
             outdir=outdir
         )
-
-        recipients = [user.email for user in self.selected_users]
         
         try:
             mail_handler.send_email(
-                recipients=recipients,
+                recipients=self.recipients,
                 subject=f"[{self.project.identifier or f'P{self.project.id}'}]: {runtime.app.personalization['organization']} Shared Project Data",
                 body=content, mime_type="html",
             )
         except smtplib.SMTPException as e:
-            logger.error(f"Failed to send email to {recipients}: {e}")
+            logger.error(f"Failed to send email to {self.recipients}: {e}")
             raise e
 
         flash("Data Share Email Sent!", "success")

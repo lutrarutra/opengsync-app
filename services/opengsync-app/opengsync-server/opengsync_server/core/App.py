@@ -284,8 +284,10 @@ class App(Flask):
         self.register_blueprint(routes.htmx.kits_htmx)
         self.register_blueprint(routes.htmx.share_tokens_htmx)
 
-        self.register_blueprint(routes.plotting.plots_api)
         self.register_blueprint(routes.api.shares_api_bp)
+        self.register_blueprint(routes.api.barcodes_api_bp)
+
+        self.register_blueprint(routes.plotting.plots_api)
         self.register_blueprint(routes.files.file_share_bp)
         self.register_blueprint(routes.files.webdav_bp)
 

@@ -5,9 +5,9 @@ from flask import Response, url_for
 from opengsync_db import models
 from opengsync_db.categories import AssayType, LibraryType, LibraryTypeEnum, MUXType
 
-from .... import logger, db
+from .... import logger, db  # noqa F401
 from ....tools import utils
-from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue
+from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue, DropdownColumn
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
 from .VisiumAnnotationForm import VisiumAnnotationForm
@@ -15,7 +15,6 @@ from .FeatureAnnotationForm import FeatureAnnotationForm
 from .CompleteSASForm import CompleteSASForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
 from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
-from .CompleteSASForm import CompleteSASForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .OCMAnnotationForm import OCMAnnotationForm
 from .LibraryAnnotationForm import LibraryAnnotationForm
@@ -25,11 +24,6 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-define_mux_samples.html"
     _workflow_name = "library_annotation"
     _step_name = "define_mux_samples"
-
-    columns: list = [
-        TextColumn("sample_name", "Sample Name", 300, required=True, read_only=True),
-        TextColumn("pool", "Sample Pool", 300, max_length=models.Library.name.type.length, min_length=4, validation_fnc=utils.check_string),
-    ]
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
@@ -45,9 +39,13 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         self._context["seq_request"] = seq_request
 
         self.sample_table = self.tables["sample_table"]
+        self.columns: list = [
+            DropdownColumn("sample_name", "Sample Name", 300, required=True, choices=self.sample_table["sample_name"].tolist(), read_only=False),
+            TextColumn("pool", "Sample Pool", 300, max_length=models.Library.name.type.length, min_length=4, validation_fnc=utils.check_string),
+        ]
         
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=DefineMultiplexedSamplesForm.columns, csrf_token=self._csrf_token,
+            columns=self.columns, csrf_token=self._csrf_token,
             post_url=url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, uuid=self.uuid, form_type="tech-multiplexed"),
             formdata=formdata, allow_new_rows=True, df=self.sample_table
         )
@@ -76,7 +74,6 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         
         df = self.spreadsheet.df
 
-        sample_name_counts = df["sample_name"].value_counts()
         seq_request_samples = db.pd.get_seq_request_samples(self.seq_request.id)
 
         selected_library_types = [t.abbreviation for t in self.assay_type.library_types]
@@ -106,9 +103,6 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                     df.at[idx, "pool"] = f"hto_pool_{i + 1}"  # type: ignore
 
         for idx, row in df.iterrows():
-            if sample_name_counts[row["sample_name"]] > 1:
-                self.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue("duplicate 'Sample Name'"))
-
             duplicate_library = (seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.abbreviation).isin(selected_library_types))
             if (duplicate_library).any():
                 library_type = seq_request_samples.loc[duplicate_library, "library_type"].iloc[0]  # type: ignore

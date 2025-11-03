@@ -34,8 +34,10 @@
                     {{ switch_input(form.internal_share, class="col-3") }}
                     {% endif %}
                 </div>
-
-                {{ select_input(form.time_valid_min) }}
+                <div class="row">
+                    {{ select_input(form.time_valid_min, class="col-6") }}
+                    {{ form_group(form.custom_email, class="col-6", disabled=not current_user.is_insider()) }}
+                </div>
 
                 <div class="pt-2">
                     <h4>Project Group Members</h4>
@@ -103,11 +105,6 @@
         var selected_users = [];
 
         $("#submit-select_users-form-btn").off("click").on("click", function() {
-            if (selected_users.length === 0 && !$("#send_to_owner").is(":checked")) {
-                $(".invalid-feedback-container").html("<p>Select at least one user.</p>");
-                return false;
-            }
-
             htmx.ajax("POST", "{{ form.post_url | safe }}", {
                 target: "#share_project_data-form-container",
                 swap: "outerHTML",
@@ -119,6 +116,7 @@
                     send_to_owner: $("#send_to_owner").is(":checked"),
                     time_valid_min: parseInt($("#time_valid_min").val()),
                     internal_share: $("#internal_share").is(":checked"),
+                    custom_email: $("#custom_email").val(),
                 },
             });
         });

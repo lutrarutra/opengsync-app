@@ -125,20 +125,30 @@ table input.table-query-input{
             }
 
             td.x-scroll-cell {
-                padding: 0 5px;
-                overflow-x: auto;
-                white-space: nowrap;
+                padding: 0 !important;
+                
+                .scroll-container {
+                    scrollbar-gutter: stable;
+                    padding: 0 5px;
+                    display: flex;
+                    flex-direction: row;
+                    gap: 5px;
+                    align-items: center;
+                    height: 100%;
+                    overflow-x: auto;
+                    white-space: nowrap;
 
-                &::-webkit-scrollbar {
-                    height: 4px;
-                }
+                    &::-webkit-scrollbar {
+                        height: 4px;
+                    }
 
-                &::-webkit-scrollbar-thumb {
-                    border-radius: 0px;
-                }
+                    &::-webkit-scrollbar-thumb {
+                        border-radius: 0px;
+                    }
 
-                &::-webkit-scrollbar-track {
-                    border-radius: 0px;
+                    &::-webkit-scrollbar-track {
+                        border-radius: 0px;
+                    }
                 }
             }
 
