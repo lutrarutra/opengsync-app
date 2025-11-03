@@ -163,7 +163,7 @@ class CompleteSASForm(MultiStepForm):
                             links.append({
                                 "source": library_node["node"],
                                 "target": pool_node["node"],
-                                "value": LINK_WIDTH_UNIT * len(self.sample_pooling_table[self.sample_pooling_table["library_name"] == row["library_name"]].drop_duplicates(["sample_pool"])),
+                                "value": LINK_WIDTH_UNIT * len(self.sample_pooling_table[self.sample_pooling_table["library_name"] == row["library_name"]]),
                             })
 
                 links.append({

@@ -118,7 +118,7 @@ def pdf_file(file_id: int, current_user: models.User):
 
     response = make_response(data)
     response.headers["Content-Type"] = "application/pdf"
-    response.headers["Content-Disposition"] = "inline; filename=auth_form.pdf"
+    response.headers["Content-Disposition"] = f"inline; filename={file.name}.pdf"
     return response
 
 

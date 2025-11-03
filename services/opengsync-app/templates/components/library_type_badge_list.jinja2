@@ -1,5 +1,7 @@
 {% macro library_type_badge_list(library_types) %}
-{% for library_type in library_types %}
-<span class="badge">{{ library_type.identifier }}</span>
-{% endfor %}
+<div class="scroll-container">
+    {% for library_type in library_types %}
+    <span class="badge">{{ library_type.identifier }}</span>
+    {% endfor %}
+</div>
 {% endmacro %}

@@ -17,7 +17,7 @@
     <td class="col-2">
         {% for data_path in browser_path.data_paths %}
             {% if data_path.project %}
-            <a href="{{ url_for('projects_page.project', project_id=data_path.project.id) }}"><span class="badge">{{ data_path.project.identifier if data_path.project.identifier else data_path.project.name }}</span></a>
+            <a href="{{ url_for('projects_page.project', project_id=data_path.project.id) }}"><span class="badge">{{ data_path.project.identifier or data_path.project.title }}</span></a>
             {% endif %}
             {% if data_path.experiment %}
             <span class="badge">{{ data_path.experiment.name }}</span>

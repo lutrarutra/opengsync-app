@@ -67,12 +67,14 @@
                 {% endif %}
                 <td><a href="{{ url_for('projects_page.project', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}">{{ sample.project.title }}</a></td>
                 <td class="x-scroll-cell">
-                    {% for library_link in sample.library_links %}
-                    {% set library = library_link.library %}
-                    {% if seq_request.id == library.seq_request_id %}
-                    <span class="badge"><a href="{{ url_for('libraries_page.library', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">{{ library.type.abbreviation }}</a></span>
-                    {% endif %}
-                    {% endfor %}
+                    <div class="scroll-container">
+                        {% for library_link in sample.library_links %}
+                        {% set library = library_link.library %}
+                        {% if seq_request.id == library.seq_request_id %}
+                        <span class="badge"><a href="{{ url_for('libraries_page.library', library_id=library.id, from='seq_request@' + seq_request.id | string) }}">{{ library.type.abbreviation }}</a></span>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
                 </td>
             </tr>
             {% endfor %}
