@@ -219,6 +219,12 @@ class LabPrep(Base):
     def search_description(self) -> str:
         return self.identifier
     
+    def __repr__(self) -> str:
+        return f"LabPrep(id={self.id}, name='{self.name}')"
+    
+    def __str__(self) -> str:
+        return self.__repr__()
+    
     __table_args__ = (
         sa.Index(
             "trgm_lab_prep_name_idx",

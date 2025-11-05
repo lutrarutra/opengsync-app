@@ -20,7 +20,6 @@ def get(current_user: models.User, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
 
     if (status_in := request.args.get("status_id_in")) is not None:
         status_in = json.loads(status_in)
@@ -319,7 +318,6 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
     sort_by = request.args.get("sort_by", "id")
     sort_order = request.args.get("sort_order", "desc")
     descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
     context = {}
 
     if (status_in := request.args.get("status_id_in")) is not None:
@@ -374,7 +372,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
             lab_prep_id = int(lab_prep_id)
             if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
                 raise exceptions.NotFoundException()
-            context["lab_prep"] = lab_prep
+            context["lab_prep_id"] = lab_prep.id
         except ValueError:
             raise exceptions.BadRequestException()
     

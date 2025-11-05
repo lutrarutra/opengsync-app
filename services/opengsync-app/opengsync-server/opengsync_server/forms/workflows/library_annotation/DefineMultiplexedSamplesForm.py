@@ -163,7 +163,6 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
             library_table_data["library_type_id"].append(library_type.id)
 
         for (sample_pool,), _df in self.df.groupby(["pool"], sort=False):
-            
             for library_type in self.assay_type.library_types:
                 add_library(sample_pool, library_type)
             

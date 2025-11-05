@@ -43,7 +43,7 @@ class LibraryAnnotationForm(MultiStepForm):
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=self._csrf_token,
             post_url=url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, form_type='raw', uuid=self.uuid),
-            formdata=formdata, allow_new_rows=True
+            formdata=formdata, allow_new_rows=True, df=self.sample_pooling_table.drop_duplicates(subset=["sample_pool"])
         )
         self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata.get("mux_type_id") is not None else None
 
@@ -104,7 +104,7 @@ class LibraryAnnotationForm(MultiStepForm):
             library_table_data["library_type_id"].append(library_type.id)
             return library_name
 
-        for (sample_pool, sample_name), _df in self.sample_pooling_table.groupby(["sample_pool", "sample_name"]):
+        for (sample_pool, sample_name), _df in self.sample_pooling_table.groupby(["sample_pool", "sample_name"], sort=False):
             for _, row in self.df.loc[self.df["sample_pool"] == sample_pool].iterrows():
                 library_name = add_library(sample_pool, row["library_type"])
 

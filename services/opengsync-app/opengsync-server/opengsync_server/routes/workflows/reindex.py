@@ -1,4 +1,4 @@
-
+from typing import Optional
 from flask import Blueprint, request, Response
 
 from opengsync_db import models
@@ -76,10 +76,18 @@ def previous(current_user: models.User, uuid: str):
 def begin(current_user: models.User) -> Response:
     context = get_context(current_user, request.args)
         
-    form = SelectSamplesForm(
-        "reindex", context=context,
-        select_libraries=True
-    )
+    if isinstance(lab_prep := context.get("lab_prep"), models.LabPrep):
+        form = SelectSamplesForm(
+            "reindex", context=context,
+            select_libraries=True,
+            selected_libraries=[library for library in lab_prep.libraries if not library.is_indexed()]
+        )
+    else:
+        form = SelectSamplesForm(
+            "reindex", context=context,
+            select_libraries=True,
+        )
+        
     return form.make_response()
 
 
