@@ -75,8 +75,21 @@ class CompleteReindexForm(MultiStepForm):
         
         barcode_table = self.tables["barcode_table"]
         tenx_atac_barcode_table = self.tables.get("tenx_atac_barcode_table")
+
+        self.library_table["index_type_id"] = None
+        for _, row in barcode_table.iterrows():
+            self.library_table.loc[
+                self.library_table["library_id"] == row["library_id"],
+                "index_type_id"
+            ] = row["index_type_id"]
+        if tenx_atac_barcode_table is not None:
+            for _, row in tenx_atac_barcode_table.iterrows():
+                self.library_table.loc[
+                    self.library_table["library_id"] == row["library_id"],
+                    "index_type_id"
+                ] = row["index_type_id"]
         
-        for (library_id, index_type_id), _ in self.library_table.groupby(["library_id", "index_type_id"], dropna=False):
+        for (library_id, index_type_id), _ in self.library_table.groupby(["library_id", "index_type_id"], dropna=False, sort=False):
             library = db.libraries[int(library_id)]
 
             try:
@@ -166,29 +179,32 @@ class CompleteReindexForm(MultiStepForm):
                     logger.error(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
                     raise exceptions.InternalServerErrorException(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
 
-                if index_type == IndexType.TENX_ATAC_INDEX:
-                    if tenx_atac_barcode_table is None:
-                        logger.error(f"{self.uuid}: TENX_ATAC_INDEX selected but no tenx_atac_barcode_table found.")
-                        raise exceptions.InternalServerErrorException(f"{self.uuid}: TENX_ATAC_INDEX selected but no tenx_atac_barcode_table found.")
-                    
-                    active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"].value = library.sequences_i7_str(sep=";")
-                    active_sheet[f"{column_mapping['sequence_i5']}{i + 2}"].value = None
-                    active_sheet[f"{column_mapping['name_i7']}{i + 2}"].value = ";".join(set([index.name_i7 for index in library.indices if index.name_i7]))
-                    active_sheet[f"{column_mapping['name_i5']}{i + 2}"].value = None
-                    active_sheet[f"{column_mapping['pool']}{i + 2}"].value = library.pool.name if library.pool is not None else None
-                    active_sheet[f"{column_mapping['kit_i7']}{i + 2}"].value = ";".join(set([index.index_kit_i7.identifier for index in library.indices if index.index_kit_i7]))
-                    active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = None
-                    active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = next(iter(barcode_table[barcode_table["library_id"] == library.id]["index_well"].tolist()), None)
-                else:
+                try:
+                    if index_type == IndexType.TENX_ATAC_INDEX:
+                        if tenx_atac_barcode_table is None:
+                            logger.error(f"{self.uuid}: TENX_ATAC_INDEX selected but no tenx_atac_barcode_table found.")
+                            raise exceptions.InternalServerErrorException(f"{self.uuid}: TENX_ATAC_INDEX selected but no tenx_atac_barcode_table found.")
+                        
+                        active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"].value = library.sequences_i7_str(sep=";")
+                        active_sheet[f"{column_mapping['sequence_i5']}{i + 2}"].value = None
+                        active_sheet[f"{column_mapping['name_i7']}{i + 2}"].value = ";".join(set([index.name_i7 for index in library.indices if index.name_i7]))
+                        active_sheet[f"{column_mapping['name_i5']}{i + 2}"].value = None
+                        active_sheet[f"{column_mapping['pool']}{i + 2}"].value = library.pool.name if library.pool is not None else None
+                        active_sheet[f"{column_mapping['kit_i7']}{i + 2}"].value = ";".join(set([index.index_kit_i7.identifier for index in library.indices if index.index_kit_i7]))
+                        active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = None
+                        active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = next(iter(barcode_table[barcode_table["library_id"] == library.id]["index_well"].tolist()), None)
+                    else:
 
-                    active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"].value = library.sequences_i7_str(sep=";")
-                    active_sheet[f"{column_mapping['sequence_i5']}{i + 2}"].value = library.sequences_i5_str(sep=";")
-                    active_sheet[f"{column_mapping['name_i7']}{i + 2}"].value = ";".join([index.name_i7 for index in library.indices if index.name_i7])
-                    active_sheet[f"{column_mapping['name_i5']}{i + 2}"].value = ";".join([index.name_i5 for index in library.indices if index.name_i5])
-                    active_sheet[f"{column_mapping['pool']}{i + 2}"].value = library.pool.name if library.pool is not None else None
-                    active_sheet[f"{column_mapping['kit_i7']}{i + 2}"].value = ";".join([index.index_kit_i7.identifier for index in library.indices if index.index_kit_i7])
-                    active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = ";".join([index.index_kit_i5.identifier for index in library.indices if index.index_kit_i5])
-                    active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = next(iter(barcode_table[barcode_table["library_id"] == library.id]["index_well"].tolist()), None)
+                        active_sheet[f"{column_mapping['sequence_i7']}{i + 2}"].value = library.sequences_i7_str(sep=";")
+                        active_sheet[f"{column_mapping['sequence_i5']}{i + 2}"].value = library.sequences_i5_str(sep=";")
+                        active_sheet[f"{column_mapping['name_i7']}{i + 2}"].value = ";".join([index.name_i7 for index in library.indices if index.name_i7])
+                        active_sheet[f"{column_mapping['name_i5']}{i + 2}"].value = ";".join([index.name_i5 for index in library.indices if index.name_i5])
+                        active_sheet[f"{column_mapping['pool']}{i + 2}"].value = library.pool.name if library.pool is not None else None
+                        active_sheet[f"{column_mapping['kit_i7']}{i + 2}"].value = ";".join([index.index_kit_i7.identifier for index in library.indices if index.index_kit_i7])
+                        active_sheet[f"{column_mapping['kit_i5']}{i + 2}"].value = ";".join([index.index_kit_i5.identifier for index in library.indices if index.index_kit_i5])
+                        active_sheet[f"{column_mapping['index_well']}{i + 2}"].value = next(iter(barcode_table[barcode_table["library_id"] == library.id]["index_well"].tolist()), None)
+                except AttributeError as e:
+                    logger.error(f"{self.uuid}: Error updating prep file for library {library.name}: {e}")
 
             logger.debug(f"Overwriting existing file: {os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path)}")
             wb.save(path)

@@ -40,7 +40,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=PooledLibraryAnnotationForm.columns, csrf_token=self._csrf_token,
             post_url=url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, form_type='pooled', uuid=self.uuid),
-            formdata=formdata, allow_new_rows=True, df=self.library_table
+            formdata=formdata, allow_new_rows=False, df=self.library_table
         )
 
     def fill_previous_form(self, previous_form: StepFile):
