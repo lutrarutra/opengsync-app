@@ -57,6 +57,7 @@ def download(current_user: models.User) -> Response:
     
     pool_data = {
         "experiment_name": [],
+        "read_config": [],
         "lanes": [],
         "pool_name": [],
         "pool_type": [],
@@ -133,6 +134,7 @@ def download(current_user: models.User) -> Response:
             pool_data["pool_id"].append(pool.id)
             pool_data["pool_name"].append(pool.name)
             pool_data["pool_type"].append(pool.type.name)
+            pool_data["read_config"].append(experiment.read_config)
             num_m_reads_loaded = 0
             lane_share = {}
             for link in pool.lane_links:
@@ -200,9 +202,9 @@ def download(current_user: models.User) -> Response:
         ])
         experiments_df.loc[experiments_df["experiment_name"] == experiment.name, "loaded_m_reads"] = experiment_loaded_reads
         if experiment_loaded_reads > experiment.workflow.flow_cell_type.max_m_reads:
-            pools_df.loc[pools_df["experiment_name"] == experiment.name, "info"] += "⚠️ Total loaded reads for experiment exceeds flow cell capacity "
+            pools_df.loc[pools_df["experiment_name"] == experiment.name, "info"] += "⚠️ Total loaded reads for experiment exceeds flow cell capacity "  # type: ignore
         elif experiment_loaded_reads < experiment.workflow.flow_cell_type.max_m_reads:
-            pools_df.loc[pools_df["experiment_name"] == experiment.name, "info"] += "⚠️ Total loaded reads for experiment is below flow cell capacity "
+            pools_df.loc[pools_df["experiment_name"] == experiment.name, "info"] += "⚠️ Total loaded reads for experiment is below flow cell capacity "  # type: ignore
 
     pools_df["info"] = pools_df["info"].str.strip()
     file_name = f"billing_{datetime.now().strftime('%Y%m%d')}.xlsx"

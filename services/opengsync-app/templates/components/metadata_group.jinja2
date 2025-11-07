@@ -23,23 +23,37 @@
 
 {% macro metadata_quantity(label, quantity, class="", input_id=none, compact=true, decimals=2) -%}
 {% set guid = random_guid() %}
-{% if compact and compact is not none %}
-{% set quantity = quantity.compact() %}
-{% endif %}
-<div class="{{class}} form-group metadata-group" id="{{guid}}">
-    <label>{{ label }}</label>
-    <div class="copyable-input {% if quantity.unit.symbol %}input-with-unit{% endif %}">
-        <input class="form-control" type="text" value="{{ quantity.value_to_str() if quantity else '' }}" {% if input_id %}id="{{input_id}}"{% endif %} readonly>
-        <a type="button" class="clipboard-btn" {{ tooltip("Click to copy.", position="top") }}
-        onclick="copy_value_to_clipboard('{{guid}}')">
-            <i class="bi bi-clipboard not-copied-icon"></i>
-            <i class="bi bi-clipboard-check copied-icon" style="display: none;"></i>
-        </a>
-        {% if quantity.unit.symbol %}
-        <span class="input-group-text unit-container">{{ quantity.unit.symbol }}</span>
-        {% endif %}
+{% if quantity %}
+    {% if compact %}
+    {% set quantity = quantity.compact() %}
+    {% endif %}
+    <div class="{{class}} form-group metadata-group" id="{{guid}}">
+        <label>{{ label }}</label>
+        <div class="copyable-input {% if quantity.unit.symbol %}input-with-unit{% endif %}">
+            <input class="form-control" type="text" value="{{ quantity.value_to_str() if quantity else '' }}" {% if input_id %}id="{{input_id}}"{% endif %} readonly>
+            <a type="button" class="clipboard-btn" {{ tooltip("Click to copy.", position="top") }}
+            onclick="copy_value_to_clipboard('{{guid}}')">
+                <i class="bi bi-clipboard not-copied-icon"></i>
+                <i class="bi bi-clipboard-check copied-icon" style="display: none;"></i>
+            </a>
+            {% if quantity.unit.symbol %}
+            <span class="input-group-text unit-container">{{ quantity.unit.symbol }}</span>
+            {% endif %}
+        </div>
     </div>
-</div>
+{% else %}
+    <div class="{{class}} form-group metadata-group" id="{{guid}}">
+        <label>{{ label }}</label>
+        <div class="copyable-input">
+            <input class="form-control" type="text" value="" {% if input_id %}id="{{input_id}}"{% endif %} readonly>
+            <a type="button" class="clipboard-btn" {{ tooltip("Click to copy.", position="top") }}
+            onclick="copy_value_to_clipboard('{{guid}}')">
+                <i class="bi bi-clipboard not-copied-icon"></i>
+                <i class="bi bi-clipboard-check copied-icon" style="display: none;"></i>
+            </a>
+        </div>
+    </div>
+{% endif %}
 {%- endmacro %}
 
 {% macro metadata_group_select(label, value, options, class="") -%}
