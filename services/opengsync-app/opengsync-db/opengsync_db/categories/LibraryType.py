@@ -42,8 +42,8 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     OPENST = LibraryTypeEnum(50, "Open Spatial Transcriptomics", "Open-ST", "OPENST", "Spatial Transcriptomics")
 
     # Parse Single-Cell
-    PARSE_SC = LibraryTypeEnum(70, "Parse Single-Cell Gene Expression", "Parse SC GEX", "PARSESCGEX", "Gene Expression")
-    PARSE_CRISPR = LibraryTypeEnum(70, "Parse Single-Cell Crispr", "Parse SC Crispr", "PARSESCCRISPR", "Crispr Screening")
+    PARSE_SC = LibraryTypeEnum(70, "Parse Single-Cell Gene Expression", "Parse SC GEX", "PARSEGEX", "Gene Expression")
+    PARSE_CRISPR = LibraryTypeEnum(71, "Parse Single-Cell CRISPR", "Parse SC Crispr", "PARSECRISPR", "Crispr Screening")
 
     # RNA-seq
     POLY_A_RNA_SEQ = LibraryTypeEnum(101, "Poly-A RNA-Seq", "Poly-A RNA-Seq", "POLYARNA", "Gene Expression")
