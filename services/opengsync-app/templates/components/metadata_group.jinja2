@@ -23,7 +23,7 @@
 
 {% macro metadata_quantity(label, quantity, class="", input_id=none, compact=true, decimals=2) -%}
 {% set guid = random_guid() %}
-{% if compact %}
+{% if compact and compact is not None %}
 {% set quantity = quantity.compact() %}
 {% endif %}
 <div class="{{class}} form-group metadata-group" id="{{guid}}">
