@@ -1,7 +1,12 @@
 {% from 'components/form_group.jinja2' import form_group %}
 {% from 'components/spinner.jinja2' import spinner %}
 {% from 'components/spreadsheet.jinja2' import static_spreadsheet %}
-
+{% if selected_experiments is not defined %}
+    {% set selected_experiments = [] %}
+{% endif %}
+{% if selected_experiments_ids is not defined %}
+    {% set selected_experiments_ids = [] %}
+{% endif %}
 <div id="select-experiments-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Select Experiments for Billing</h1>
@@ -59,7 +64,6 @@
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ form.uuid }}
         </div>
         <div class="footer-info"></div>
         <div class="footer-controls">
