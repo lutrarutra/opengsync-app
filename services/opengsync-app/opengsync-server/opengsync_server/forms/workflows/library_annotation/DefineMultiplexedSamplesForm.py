@@ -10,14 +10,12 @@ from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue, DropdownColumn
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput
-from .VisiumAnnotationForm import VisiumAnnotationForm
-from .FeatureAnnotationForm import FeatureAnnotationForm
-from .CompleteSASForm import CompleteSASForm
-from .OpenSTAnnotationForm import OpenSTAnnotationForm
 from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .OCMAnnotationForm import OCMAnnotationForm
-from .LibraryAnnotationForm import LibraryAnnotationForm
+from .CustomAssayAnnotationForm import CustomAssayAnnotationFrom
+from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
+from .ParseMuxAnnotationForm import ParseMuxAnnotationForm
 
 
 class DefineMultiplexedSamplesForm(MultiStepForm):
@@ -46,7 +44,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=self._csrf_token,
-            post_url=url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, uuid=self.uuid, form_type="tech-multiplexed"),
+            post_url=url_for('library_annotation_workflow.parse_mux_definition_form', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=True, df=self.sample_table
         )
 
@@ -57,6 +55,9 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         self.vdj_t = self.metadata["vdj_t"]
         self.vdj_t_gd = self.metadata["vdj_t_gd"]
         self.crispr_screening = self.metadata["crispr_screening"]
+        self.parse_tcr = self.metadata.get("parse_tcr", False)
+        self.parse_bcr = self.metadata.get("parse_bcr", False)
+        self.parse_crispr = self.metadata.get("parse_crispr", False)
 
     def fill_previous_form(self, previous_form: StepFile):
         sample_pooling_table = previous_form.tables["sample_pooling_table"].rename(
@@ -102,7 +103,12 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 else:
                     df.at[idx, "pool"] = f"hto_pool_{i + 1}"  # type: ignore
 
+        duplicate_definition = df.duplicated(subset=["sample_name", "pool"], keep=False)
+
         for idx, row in df.iterrows():
+            if duplicate_definition.at[idx]:
+                self.spreadsheet.add_error(idx, "pool", DuplicateCellValue(f"Sample '{row['sample_name']}' is assigned to pool '{row['pool']}' multiple times."))
+
             duplicate_library = (seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.abbreviation).isin(selected_library_types))
             if (duplicate_library).any():
                 library_type = seq_request_samples.loc[duplicate_library, "library_type"].iloc[0]  # type: ignore
@@ -138,7 +144,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
             sample_pooling_table = pd.DataFrame(sample_pooling_table)
             self.add_table("sample_pooling_table", sample_pooling_table)
             self.update_data()
-            next_form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+            next_form = CustomAssayAnnotationFrom(seq_request=self.seq_request, uuid=self.uuid)
             return next_form.make_response()
 
         library_table_data = {
@@ -162,6 +168,11 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
             library_table_data["library_type"].append(library_type.name)
             library_table_data["library_type_id"].append(library_type.id)
 
+        def link_sample(sample_name: str, sample_pool: str, library_type: LibraryTypeEnum):
+            sample_pooling_table["sample_name"].append(sample_name)
+            sample_pooling_table["sample_pool"].append(sample_pool)
+            sample_pooling_table["library_name"].append(f"{sample_pool}_{library_type.identifier}")
+
         for (sample_pool,), _df in self.df.groupby(["pool"], sort=False):
             for library_type in self.assay_type.library_types:
                 add_library(sample_pool, library_type)
@@ -174,53 +185,47 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
 
             if self.mux_type == MUXType.TENX_OLIGO:
                 add_library(sample_pool, LibraryType.TENX_MUX_OLIGO)
-
             if self.vdj_b:
                 add_library(sample_pool, LibraryType.TENX_VDJ_B)
-
             if self.vdj_t:
                 add_library(sample_pool, LibraryType.TENX_VDJ_T)
-
             if self.vdj_t_gd:
                 add_library(sample_pool, LibraryType.TENX_VDJ_T_GD)
-
             if self.crispr_screening:
                 add_library(sample_pool, LibraryType.TENX_CRISPR_SCREENING)
+            if self.parse_crispr:
+                add_library(sample_pool, LibraryType.PARSE_SC_CRISPR)
+            if self.parse_tcr:
+                add_library(sample_pool, LibraryType.PARSE_EVERCODE_TCR)
+            if self.parse_bcr:
+                add_library(sample_pool, LibraryType.PARSE_EVERCODE_BCR)
 
             for _, row in _df.iterrows():
                 sample_name = row["sample_name"]
 
                 for library_type in self.assay_type.library_types:
-                    sample_pooling_table["sample_name"].append(sample_name)
-                    sample_pooling_table["sample_pool"].append(sample_pool)
-                    sample_pooling_table["library_name"].append(f"{sample_pool}_{library_type.identifier}")
+                    link_sample(sample_name, sample_pool, library_type)
                 if self.mux_type == MUXType.TENX_OLIGO:
-                    sample_pooling_table["sample_name"].append(sample_name)
-                    sample_pooling_table["sample_pool"].append(sample_pool)
-                    sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_MUX_OLIGO.identifier}")
+                    link_sample(sample_name, sample_pool, LibraryType.TENX_MUX_OLIGO)
                 if self.antibody_capture:
-                    sample_pooling_table["sample_name"].append(sample_name)
-                    sample_pooling_table["sample_pool"].append(sample_pool)
                     if self.assay_type in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
-                        sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_SC_ABC_FLEX.identifier}")
+                        link_sample(sample_name, sample_pool, LibraryType.TENX_SC_ABC_FLEX)
                     else:
-                        sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_ANTIBODY_CAPTURE.identifier}")
+                        link_sample(sample_name, sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE)
                 if self.vdj_b:
-                    sample_pooling_table["sample_name"].append(sample_name)
-                    sample_pooling_table["sample_pool"].append(sample_pool)
-                    sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_VDJ_B.identifier}")
+                    link_sample(sample_name, sample_pool, LibraryType.TENX_VDJ_B)
                 if self.vdj_t:
-                    sample_pooling_table["sample_name"].append(sample_name)
-                    sample_pooling_table["sample_pool"].append(sample_pool)
-                    sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_VDJ_T.identifier}")
+                    link_sample(sample_name, sample_pool, LibraryType.TENX_VDJ_T)
                 if self.vdj_t_gd:
-                    sample_pooling_table["sample_name"].append(sample_name)
-                    sample_pooling_table["sample_pool"].append(sample_pool)
-                    sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_VDJ_T_GD.identifier}")
+                    link_sample(sample_name, sample_pool, LibraryType.TENX_VDJ_T_GD)
                 if self.crispr_screening:
-                    sample_pooling_table["sample_name"].append(sample_name)
-                    sample_pooling_table["sample_pool"].append(sample_pool)
-                    sample_pooling_table["library_name"].append(f"{sample_pool}_{LibraryType.TENX_CRISPR_SCREENING.identifier}")
+                    link_sample(sample_name, sample_pool, LibraryType.TENX_CRISPR_SCREENING)
+                if self.parse_crispr:
+                    link_sample(sample_name, sample_pool, LibraryType.PARSE_SC_CRISPR)
+                if self.parse_tcr:
+                    link_sample(sample_name, sample_pool, LibraryType.PARSE_EVERCODE_TCR)
+                if self.parse_bcr:
+                    link_sample(sample_name, sample_pool, LibraryType.PARSE_EVERCODE_BCR)
 
         library_table = pd.DataFrame(library_table_data)
         library_table["seq_depth"] = None
@@ -236,16 +241,12 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
 
         if OligoMuxAnnotationForm.is_applicable(self):
             next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OCMAnnotationForm.is_applicable(self):
             next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
+            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif ParseMuxAnnotationForm.is_applicable(self):
+            next_form = ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
+            raise Exception("No applicable next form found after DefineMultiplexedSamplesForm")
         return next_form.make_response()

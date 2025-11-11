@@ -17,17 +17,19 @@ from .FeatureAnnotationForm import FeatureAnnotationForm
 from .OCMAnnotationForm import OCMAnnotationForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
+from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
+from .ParseMuxAnnotationForm import ParseMuxAnnotationForm
 
 
-class LibraryAnnotationForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-library_annotation.html"
+class CustomAssayAnnotationFrom(MultiStepForm):
+    _template_path = "workflows/library_annotation/sas-custom_assay_annotation.html"
     _workflow_name = "library_annotation"
-    _step_name = "library_annotation"
+    _step_name = "custom_assay_annotation"
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
-            self, uuid=uuid, workflow=LibraryAnnotationForm._workflow_name,
-            step_name=LibraryAnnotationForm._step_name,
+            self, uuid=uuid, workflow=CustomAssayAnnotationFrom._workflow_name,
+            step_name=CustomAssayAnnotationFrom._step_name,
             formdata=formdata, step_args={}
         )
         self.seq_request = seq_request
@@ -42,7 +44,7 @@ class LibraryAnnotationForm(MultiStepForm):
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=self._csrf_token,
-            post_url=url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, form_type='raw', uuid=self.uuid),
+            post_url=url_for('library_annotation_workflow.parse_custom_assay_annotation_form', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=True, df=self.sample_pooling_table.drop_duplicates(subset=["sample_pool"])
         )
         self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata.get("mux_type_id") is not None else None
@@ -127,14 +129,18 @@ class LibraryAnnotationForm(MultiStepForm):
             next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif ParseMuxAnnotationForm.is_applicable(self):
+            next_form = ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif PooledLibraryAnnotationForm.is_applicable(self):
             next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif FeatureAnnotationForm.is_applicable(self):
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
+            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
             next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

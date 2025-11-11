@@ -1,10 +1,9 @@
 import os
-from typing import Literal
 
 from flask import Blueprint, request, send_file
 
 from opengsync_db import models
-from opengsync_db.categories import SubmissionType, AccessType
+from opengsync_db.categories import AccessType
 
 from ... import db, logger
 from ...forms.workflows import library_annotation as forms
@@ -94,28 +93,45 @@ def parse_assay_form(current_user: models.User, seq_request_id: int, uuid: str):
         
     return forms.SelectAssayForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
-
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
-def parse_table(current_user: models.User, seq_request_id: int, uuid: str, form_type: Literal["pooled", "raw", "tech", "tech-multiplexed"]):
-    if form_type not in ["pooled", "raw", "tech", "tech-multiplexed"]:
-        raise exceptions.BadRequestException()
-    
+def parse_pooled_library_annotation_form(current_user: models.User, seq_request_id: int, uuid: str):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
     
     if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
         raise exceptions.NoPermissionsException()
     
-    if form_type == "pooled":
-        form = forms.PooledLibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
-    elif form_type == "raw":
-        form = forms.LibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
-    elif form_type == "tech":
-        form = forms.DefineSamplesForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
-    elif form_type == "tech-multiplexed":
-        form = forms.DefineMultiplexedSamplesForm(uuid=uuid, seq_request=seq_request, formdata=request.form)
+    return forms.PooledLibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
-    return form.process_request()
+@wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
+def parse_custom_assay_annotation_form(current_user: models.User, seq_request_id: int, uuid: str):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        raise exceptions.NoPermissionsException()
+    
+    return forms.CustomAssayAnnotationFrom(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+
+@wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
+def parse_mux_definition_form(current_user: models.User, seq_request_id: int, uuid: str):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        raise exceptions.NoPermissionsException()
+    
+    return forms.DefineMultiplexedSamplesForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+
+@wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
+def parse_parse_mux_annotation(current_user: models.User, seq_request_id: int, uuid: str):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        raise exceptions.NoPermissionsException()
+    
+    return forms.ParseMuxAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
     
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST", "GET"])
@@ -229,6 +245,16 @@ def parse_flex_annotation(current_user: models.User, seq_request_id: int, uuid: 
         raise exceptions.NoPermissionsException()
     
     return forms.FlexAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+
+@wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
+def parse_parse_crispr_guide_annotation(current_user: models.User, seq_request_id: int, uuid: str):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        raise exceptions.NoPermissionsException()
+    
+    return forms.ParseCRISPRGuideAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])

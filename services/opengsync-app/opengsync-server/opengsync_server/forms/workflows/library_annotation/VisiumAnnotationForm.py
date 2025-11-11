@@ -15,6 +15,7 @@ from ....tools.spread_sheet_components import TextColumn, DropdownColumn, Duplic
 from ...SpreadsheetInput import SpreadsheetInput
 from ...MultiStepForm import MultiStepForm
 from .CompleteSASForm import CompleteSASForm
+from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
 
 
 class VisiumAnnotationForm(MultiStepForm):
@@ -122,6 +123,9 @@ class VisiumAnnotationForm(MultiStepForm):
         self.add_table("library_properties_table", library_properties_table)
         self.update_data()
 
-        next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
+        if ParseCRISPRGuideAnnotationForm.is_applicable(self):
+            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        else:
+            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()
  

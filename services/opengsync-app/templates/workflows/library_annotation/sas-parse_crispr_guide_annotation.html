@@ -1,0 +1,69 @@
+{% from "components/spreadsheet.jinja2" import spreadsheet_input, static_spreadsheet %}
+{% from 'components/form_group.jinja2' import form_group %}
+{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
+
+<div id="parse_crispr_guide_annotation-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Parse Biosciences CRISPR Detect Annotation</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="spreadsheet-tab-btn"
+                data-bs-target="#spreadsheet-tab" type="button" role="tab"
+                aria-controls="spreadsheet-tab" aria-selected="true">
+                Spreadsheet</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link help-tab-btn" data-bs-toggle="tab"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="parse_crispr_guide_annotation-form">
+            <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
+                {{ spreadsheet_input(element=form.spreadsheet, target_element_id="parse_crispr_guide_annotation-form-container", submit_btn_id="submit-spreadsheet-btn") }}
+            </div>
+            <div class="tab-pane" id="help-tab" role="tabpanel" tabindex="1">
+                <div class="help">
+                    <p>© 2025 Parse Biosciences</p>
+                    <p>CRISPR analysis also requires that guide RNA sequences be supplied to the pipeline. This is done via a csv file with data fields shown below. The first line starting with a hash character (#) is a header. This is followed by data lines, one for each guide (three shown). There are four required columns in the csv file; A unique guide name, the 5’ prefix sequence, the guide sequence itself, the 3’ suffix sequence, and an optional fifth column for target gene name.</p>
+                    <b>Determining the prefix and suffix sequence</b>
+                    <p>The general structure of the prefix, gRNA, and suffix sequences in the gRNA library vector is the following: </p>
+                    <p>{prefix} {gRNA sequence} {suffix}</p>
+                    <p>Most CROP-seq based vectors will include the gRNA sequence between these prefix and suffix sequences:</p>
+                    <pre class="code">Prefix: GGCTTTATATATCTTGTGGAAAGGACGAAACACCG
+Suffix: GTTTAAGAGCTATGCTGGA</pre>
+                    <p>Structure of most CROP-seq based vectors</p>
+                    <pre class="code">{GGCTTTATATATCTTGTGGAAAGGACGAAACACCG} {gRNA sequence} {GTTTAAGAGCTATGCTGGA}</pre>
+                    <p>Your specific vector may have different sequences. To identify these sequences, you can use either a vector map of the gRNA plasmid library or view the actual sequences in the FASTQ files of Read 1 of the CRISPR libraries. In either case, to identify the prefix, select at least 10 bp of sequence that are directly upstream of the gRNA sequence. To identify the suffix, select at least 10bp of sequence that are directly downstream of the gRNA sequence.</p>
+                    <pre class="code">Guide Name,Target Gene,Prefix,Guide Sequence,Suffix
+GAPDH_1,GAPDH,TTCGATTTCTTGGCTTTATATATCTTGTGGAAAGGACGAAACACCG,GCGGTGAGAAGCGCAGTCGG,GTTTAAGAGCTATGCTGGAAACAGCATAGCAAG
+GAPDH_2,GAPDH,TTCGATTTCTTGGCTTTATATATCTTGTGGAAAGGACGAAACACCG,GTGGCCAGCAGCTCCGTGGG,GTTTAAGAGCTATGCTGGAAACAGCATAGCAAG
+PTEN_1,PTEN,TTCGATTTCTTGGCTTTATATATCTTGTGGAAAGGACGAAACACCG,GCGTATTGTATCCGCCACCG,GTTTAAGAGCTATGCTGGAAACAGCATAGCAAG</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+            {{ form.uuid }}
+        </div>
+        <div class="footer-info">
+            {{ spreadsheet_error_legend() }}
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-warning submit-form-btn"
+            hx-target="#parse_crispr_guide_annotation-form-container" hx-swap="outerHTML"
+            hx-get="{{ url_for('library_annotation_workflow.previous', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+                Back
+            </button>
+            <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">
+                Next
+            </button>
+        </div>
+    </div>
+</div>

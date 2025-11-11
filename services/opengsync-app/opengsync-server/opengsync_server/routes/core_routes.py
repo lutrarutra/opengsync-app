@@ -78,7 +78,7 @@ if runtime.app.debug:
         return content
 
 
-@wrappers.page_route(runtime.app, db=db, login_required=False, cache_timeout_seconds=1000, cache_type="global")
+@wrappers.page_route(runtime.app, db=db, login_required=False, cache_timeout_seconds=1000, cache_type="user")
 def help():
     return render_template("help.html")
 

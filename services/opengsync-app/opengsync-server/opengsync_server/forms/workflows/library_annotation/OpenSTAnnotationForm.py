@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pandas as pd
 
 from wtforms import TextAreaField
@@ -15,6 +13,8 @@ from ....tools.spread_sheet_components import TextColumn, DropdownColumn, Duplic
 from ...SpreadsheetInput import SpreadsheetInput
 from ...MultiStepForm import MultiStepForm
 from .CompleteSASForm import CompleteSASForm
+from .VisiumAnnotationForm import VisiumAnnotationForm
+from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
 
 
 class OpenSTAnnotationForm(MultiStepForm):
@@ -111,6 +111,13 @@ class OpenSTAnnotationForm(MultiStepForm):
         
         self.add_table("library_properties_table", library_properties_table)
         self.update_data()
-        next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
+
+        if VisiumAnnotationForm.is_applicable(self):
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
+            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        else:
+            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
+        
         return next_form.make_response()
  

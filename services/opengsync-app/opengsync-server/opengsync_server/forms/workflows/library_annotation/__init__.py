@@ -3,9 +3,8 @@ from typing import TYPE_CHECKING
 from .ProjectSelectForm import ProjectSelectForm  # noqa: F401
 from .SelectAssayForm import SelectAssayForm  # noqa: F401
 from .SampleAnnotationForm import SampleAnnotationForm  # noqa: F401
-from .DefineSamplesForm import DefineSamplesForm  # noqa: F401
 from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm  # noqa: F401
-from .LibraryAnnotationForm import LibraryAnnotationForm  # noqa: F401
+from .CustomAssayAnnotationForm import CustomAssayAnnotationFrom  # noqa: F401
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm  # noqa: F401
 from .PoolMappingForm import PoolMappingForm    # noqa: F401
 from .BarcodeInputForm import BarcodeInputForm  # noqa: F401
@@ -19,6 +18,8 @@ from .CompleteSASForm import CompleteSASForm  # noqa: F401
 from .BarcodeMatchForm import BarcodeMatchForm  # noqa: F401
 from .OCMAnnotationForm import OCMAnnotationForm  # noqa: F401
 from .OpenSTAnnotationForm import OpenSTAnnotationForm  # noqa: F401
+from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm  # noqa: F401
+from .ParseMuxAnnotationForm import ParseMuxAnnotationForm  # noqa: F401
 
 
 if TYPE_CHECKING:
@@ -28,23 +29,31 @@ if TYPE_CHECKING:
 _steps: list[type["MultiStepForm"]] = [
     ProjectSelectForm,
     SampleAnnotationForm,
+    SampleAttributeAnnotationForm,
     SelectAssayForm,
-    DefineSamplesForm,
+
+    # if multiplexed ->
     DefineMultiplexedSamplesForm,
-    LibraryAnnotationForm,
+    CustomAssayAnnotationFrom,
+    OligoMuxAnnotationForm,
+    OCMAnnotationForm,
+    FlexAnnotationForm,
+    ParseMuxAnnotationForm,
+    
+    # if pooled ->
     PooledLibraryAnnotationForm,
     PoolMappingForm,
     BarcodeInputForm,
     BarcodeMatchForm,
     TENXATACBarcodeInputForm,
-    VisiumAnnotationForm,
-    OligoMuxAnnotationForm,
+
+    # optional assays ->
     FeatureAnnotationForm,
-    FlexAnnotationForm,
-    SampleAttributeAnnotationForm,
+    OpenSTAnnotationForm,
+    VisiumAnnotationForm,
+    ParseCRISPRGuideAnnotationForm,
+
     CompleteSASForm,
-    OCMAnnotationForm,
-    OpenSTAnnotationForm
 ]
 
 steps = dict([(s._step_name, s) for s in _steps])

@@ -77,7 +77,7 @@
         {{ field.label }}
     </a>
     <div class="select-container">
-        <select class="form-control select-field {% if field.errors %}is-invalid{% endif %} {'disabled' if disabled else ''}" 
+        <select class="form-control select-field {% if field.errors %}is-invalid{% endif %} {{ 'disabled' if disabled else '' }}" 
         {% if disabled %}disabled{% endif %}
         name="{{ field.name }}" id="{{ field.id }}">
             {% for choice in field.iter_choices() %}

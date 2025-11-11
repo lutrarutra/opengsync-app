@@ -4,7 +4,7 @@
     {% if current_user.is_authenticated and current_user.is_insider() %}
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-1" aria-expanded="true" aria-controls="sops-accordiod-collapse-1">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-1" aria-expanded="false" aria-controls="sops-accordiod-collapse-1">
                 <b><i class="bi bi-question-circle"></i> I need to Re-Sequence whole pool</b>
             </button>
         </h2>
@@ -27,7 +27,7 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-2" aria-expanded="true" aria-controls="sops-accordiod-collapse-2">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-2" aria-expanded="false" aria-controls="sops-accordiod-collapse-2">
                 <b><i class="bi bi-question-circle"></i> I need to Re-Sequence a single/several Library from sequencing request</b>
             </button>
         </h2>
@@ -50,7 +50,7 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3" aria-expanded="true" aria-controls="sops-accordiod-collapse-3">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3" aria-expanded="false" aria-controls="sops-accordiod-collapse-3">
                 <b><i class="bi bi-question-circle"></i> I have a library that is prepared but not pooled</b>
             </button>
         </h2>
@@ -69,7 +69,7 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-4" aria-expanded="true" aria-controls="sops-accordiod-collapse-4">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-4" aria-expanded="false" aria-controls="sops-accordiod-collapse-4">
                 <b><i class="bi bi-question-circle"></i> I need to remove index from a library</b>
             </button>
         </h2>
@@ -84,6 +84,48 @@
                 </ol>
             </div>
         </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-5" aria-expanded="false" aria-controls="sops-accordiod-collapse-5">
+                <b><i class="bi bi-question-circle"></i> During library prep, there are more samples than wells in a plate</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-5" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>In prep_table (Excel sheet), add column <b>plate</b>.</li>
+                    <li>Assign each sample to a plate, e.g.  <span class="code-highlight">plate_1</span>,  <span class="code-highlight">plate_2</span>, etc.</li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Each <b>plate_well</b> must be unique for the same <b>plate</b>.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-6" aria-expanded="false" aria-controls="sops-accordiod-collapse-6">
+                <b><i class="bi bi-question-circle"></i> I need to change library type (or other properties of a library)</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-6" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>On dashboard, select workflow 'Edit Libraries'</li>
+                    <li>Select libraries you want to modify</li>
+                    <li>Modify as required.</li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>If the library is already sequenced and demultiplexed, do not change the name of the library.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
     {% endif %}
 </div>
 

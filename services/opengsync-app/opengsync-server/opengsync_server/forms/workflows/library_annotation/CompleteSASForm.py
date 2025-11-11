@@ -84,6 +84,18 @@ class CompleteSASForm(MultiStepForm):
         else:
             self._context["spatial_table"] = None
 
+        self.contains_crispr_guides = self.library_table["library_type_id"].isin([LibraryType.PARSE_SC_CRISPR.id]).any()
+
+        if self.contains_crispr_guides:
+            if (table := self.tables.get("crispr_guide_table")) is None:
+                logger.error(f"{self.uuid}: CRISPR guide table not found for CRISPR guide samples.")
+                raise Exception("CRISPR guide table not found for CRISPR guide samples.")
+            
+            crispr_guide_table = table[["guide_name", "target_gene", "prefix", "guide_sequence", "suffix"]].copy()
+            self._context["crispr_guide_table"] = crispr_guide_table
+        else:
+            self._context["crispr_guide_table"] = None
+
         self._context["mux_type"] = self.mux_type
 
         if self.barcode_table is not None:
@@ -268,6 +280,8 @@ class CompleteSASForm(MultiStepForm):
 
         self.library_table["library_id"] = None
         for idx, library_row in self.library_table.iterrows():
+            library_type = LibraryType.get(library_row["library_type_id"])
+
             if self.library_properties_table is not None:
                 visium_row = self.library_properties_table[self.library_properties_table["library_name"] == library_row["library_name"]].iloc[0]
                 properties = dict([(k, v) for k, v in visium_row.to_dict().items() if pd.notna(v)])
@@ -275,6 +289,16 @@ class CompleteSASForm(MultiStepForm):
                 properties.pop("sample_name", None)
             else:
                 properties = None
+
+            if library_type == LibraryType.PARSE_SC_CRISPR:
+                if (crispr_guide_table := self.tables.get("crispr_guide_table")) is None:
+                    logger.error(f"{self.uuid}: CRISPR guide table not found.")
+                    raise ValueError("CRISPR guide table not found.")
+                
+                if properties is None:
+                    properties = {}
+
+                properties["crispr_guides"] = crispr_guide_table.to_dict(orient="records")
 
             if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
                 if self.pool_table is None:
@@ -290,7 +314,7 @@ class CompleteSASForm(MultiStepForm):
                 name=library_row["library_name"],
                 sample_name=library_row["sample_name"],
                 seq_request_id=self.seq_request.id,
-                library_type=LibraryType.get(library_row["library_type_id"]),
+                library_type=library_type,
                 owner_id=user.id,
                 genome_ref=GenomeRef.get(library_row["genome_id"]),
                 pool_id=pool_id,
@@ -383,6 +407,8 @@ class CompleteSASForm(MultiStepForm):
                         "pattern": pooling_row["mux_pattern"],
                         "read": pooling_row["mux_read"]
                     }
+                elif pooling_row["mux_type_id"] == MUXType.PARSE_WELLS.id:
+                    mux = { "barcode": pooling_row["mux_barcode"] }
                 else:
                     mux = None
                 
@@ -442,6 +468,16 @@ class CompleteSASForm(MultiStepForm):
                 elif comment_row["context"] == "i5_option":
                     db.comments.create(
                         text=comment_row['text'],
+                        author_id=user.id, seq_request_id=self.seq_request.id
+                    )
+                elif comment_row["context"] == "parse_chemistry":
+                    db.comments.create(
+                        text=f"Parse Chemistry: {comment_row['text']}",
+                        author_id=user.id, seq_request_id=self.seq_request.id
+                    )
+                elif comment_row["context"] == "parse_kit":
+                    db.comments.create(
+                        text=f"Parse Kit: {comment_row['text']}",
                         author_id=user.id, seq_request_id=self.seq_request.id
                     )
                 else:

@@ -3,7 +3,7 @@
 
 <div id="complete-sas-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >12. Complete Submission</h1>
+        <h1 class="modal-title fs-5" >Complete Submission</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
@@ -60,6 +60,12 @@
                 aria-controls="spatial-tab" aria-selected="true">
                 Spatial ({{ spatial_table.shape[0] if spatial_table is not none else "0" }})</button>
             </li>
+            <li class="nav-item" role="presentation"
+            {% if crispr_guide_table is none %}{{ tooltip("No CRISPR guide libraries detected.", category="warning") }}{% endif %}>
+                <button class="nav-link {% if crispr_guide_table is none %}disabled{% endif %}" data-bs-toggle="tab"
+                data-bs-target="#crispr-guides-tab" type="button" role="tab"
+                aria-controls="crispr-guides-tab" aria-selected="true">
+                CRISPR Guides ({{ crispr_guide_table.shape[0] if crispr_guide_table is not none else "0" }})</button>
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="overview-tab" role="tabpanel" tabindex="0">
@@ -248,7 +254,7 @@
                                 <th scope="col" class="col-1">Pattern</th>
                                 <th scope="col" class="col-1">Read</th>
                                 {% else %}
-                                <th scope="col" class="col-2">Barcode ID</th>
+                                <th scope="col" class="col-2">{% if mux_type == MUXType.PARSE_WELL %}WELL{% else %}Barcode ID{% endif %}</th>
                                 {% endif %}
                             </tr>
                         </thead>
@@ -314,6 +320,34 @@
                                 {% if "area" in spatial_table.columns %}
                                 <td>{{ row["area"] }}</td>
                                 {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+            <div class="tab-pane fade" id="crispr-guides-tab" role="tabpanel" tabindex="8">
+                {% if crispr_guide_table is not none %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-2">Guide Name</th>
+                                <th scope="col" class="col-2">Target Gene</th>
+                                <th scope="col" class="col-2">Prefix</th>
+                                <th scope="col" class="col-2">Guide Sequence</th>
+                                <th scope="col" class="col-2">Suffix</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for _, row in crispr_guide_table.iterrows() %}
+                            <tr>
+                                <th scope="row">{{ row["guide_name"] }}</th>
+                                <td>{{ row["target_gene"] }}</td>
+                                <td>{{ row["prefix"] }}</td>
+                                <td>{{ row["guide_sequence"] }}</td>
+                                <td>{{ row["suffix"] }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

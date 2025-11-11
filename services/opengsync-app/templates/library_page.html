@@ -61,6 +61,13 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#library-crispr-tab" type="button" role="tab"
+            aria-controls="library-crispr-tab" aria-selected="true"
+            {% if library.type != LibraryType.PARSE_SC_CRISPR %}disabled{% endif %}>
+            CRISPR</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-multiplexing-tab" type="button" role="tab"
             aria-controls="library-multiplexing-tab" aria-selected="true"
             {% if not library.is_multiplexed() %}disabled{% endif %}>
@@ -233,6 +240,13 @@
         {% if library.type in LibraryType.get_spatial_library_types() %}
         <div class="tab-pane fade" id="library-spatial-tab" role="tabpanel" tabindex="4">
             <div hx-get="{{ url_for('libraries_htmx.get_spatial_annotation', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        {% endif %}
+        {% if library.type == LibraryType.PARSE_SC_CRISPR %}
+        <div class="tab-pane fade" id="library-crispr-tab" role="tabpanel" tabindex="5">
+            <div hx-get="{{ url_for('libraries_htmx.get_crispr_guides', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

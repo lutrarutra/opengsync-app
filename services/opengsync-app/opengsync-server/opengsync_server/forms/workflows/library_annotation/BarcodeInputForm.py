@@ -11,6 +11,7 @@ from .CompleteSASForm import CompleteSASForm
 from .BarcodeMatchForm import BarcodeMatchForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
 from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm
+from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
 
 
 class BarcodeInputForm(CommonBarcodeInputForm):
@@ -35,16 +36,18 @@ class BarcodeInputForm(CommonBarcodeInputForm):
         self.add_table("barcode_table", barcode_table)
         self.update_data()
 
-        if TENXATACBarcodeInputForm.is_applicable(self):
-            next_form = TENXATACBarcodeInputForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif BarcodeMatchForm.is_applicable(self):
+        if BarcodeMatchForm.is_applicable(self):
             next_form = BarcodeMatchForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif TENXATACBarcodeInputForm.is_applicable(self):
+            next_form = TENXATACBarcodeInputForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif FeatureAnnotationForm.is_applicable(self):
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
+            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
             next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

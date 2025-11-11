@@ -6,17 +6,18 @@ from opengsync_db import models
 from opengsync_db.categories import LibraryType, SubmissionType, LibraryTypeEnum, SubmissionType
 from opengsync_server.forms.MultiStepForm import StepFile
 
-from .... import logger, tools, db
+from .... import logger, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn
 from ...MultiStepForm import MultiStepForm
 from ..common import CommonFlexMuxForm
 from .CompleteSASForm import CompleteSASForm
-from .OCMAnnotationForm import OCMAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
+from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
+from .ParseMuxAnnotationForm import ParseMuxAnnotationForm
 
 class FlexAnnotationForm(CommonFlexMuxForm):
     _template_path = "workflows/library_annotation/sas-flex_annotation.html"
@@ -86,14 +87,16 @@ class FlexAnnotationForm(CommonFlexMuxForm):
                         
         if self.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id:
             next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OCMAnnotationForm.is_applicable(self):
-            next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif ParseMuxAnnotationForm.is_applicable(self):
+            next_form = ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
+            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
             next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
 

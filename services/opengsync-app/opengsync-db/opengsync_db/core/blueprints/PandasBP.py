@@ -416,6 +416,26 @@ class PandasBP(DBBlueprint):
             expanded[col] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
 
         return df
+    
+    @DBBlueprint.transaction
+    def get_project_crispr_guides(self, project_id: int) -> pd.DataFrame:
+        query = sa.select(
+            models.Library.id.label("library_id"),
+            models.Library.name.label("library_name"),
+            models.Library.sample_name.label("sample_pool"),
+            models.Library.properties.label("properties"),
+        ).where(
+            sa.exists().where(
+                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                (models.Sample.project_id == project_id)
+            ),
+            models.Library.type_id == categories.LibraryType.PARSE_SC_CRISPR.id
+        )
+
+        df = pd.read_sql(query, self.db._engine)
+
+        return df
 
     @DBBlueprint.transaction
     def get_seq_request_libraries(

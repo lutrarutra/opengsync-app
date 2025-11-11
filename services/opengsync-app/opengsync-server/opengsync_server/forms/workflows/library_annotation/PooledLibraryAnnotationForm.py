@@ -39,7 +39,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=PooledLibraryAnnotationForm.columns, csrf_token=self._csrf_token,
-            post_url=url_for('library_annotation_workflow.parse_table', seq_request_id=seq_request.id, form_type='pooled', uuid=self.uuid),
+            post_url=url_for('library_annotation_workflow.parse_pooled_library_annotation_form', seq_request_id=seq_request.id, uuid=self.uuid),
             formdata=formdata, allow_new_rows=False, df=self.library_table
         )
 

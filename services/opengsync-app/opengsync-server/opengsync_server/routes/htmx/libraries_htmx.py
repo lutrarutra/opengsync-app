@@ -161,6 +161,32 @@ def get_spatial_annotation(current_user: models.User, library_id: int):
 
 
 @wrappers.htmx_route(libraries_htmx, db=db)
+def get_crispr_guides(current_user: models.User, library_id: int):
+    if (library := db.libraries.get(library_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if not current_user.is_insider() and library.owner_id != current_user.id:
+        raise exceptions.NoPermissionsException()
+    
+    if library.type != LibraryType.PARSE_SC_CRISPR:
+        raise exceptions.BadRequestException()
+    
+    df = pd.DataFrame(library.properties.get("crispr_guides", [])) if library.properties else pd.DataFrame(columns=["guide_name", "target_gene", "prefix", "guide_sequence", "suffix"])
+    df = df[["guide_name", "target_gene", "prefix", "guide_sequence", "suffix"]]
+    
+    columns = []
+    for col in df.columns:
+        columns.append(TextColumn(col, col.replace("_", " ").title(), 200, max_length=1000))
+
+    return make_response(
+        render_template(
+            "components/itable.html", columns=columns,
+            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
+        )
+    )
+
+
+@wrappers.htmx_route(libraries_htmx, db=db)
 def table_query(current_user: models.User):
     if (word := request.args.get("name")) is not None:
         field_name = "name"
