@@ -17,7 +17,8 @@ from .FeatureAnnotationForm import FeatureAnnotationForm
 from .CompleteSASForm import CompleteSASForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
-from .LibraryAnnotationForm import LibraryAnnotationForm
+from .CustomAssayAnnotationForm import CustomAssayAnnotationFrom
+from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
 
 
 class OptionalAssaysForm(FlaskForm):
@@ -28,6 +29,17 @@ class OptionalAssaysForm(FlaskForm):
     antibody_capture = BooleanField("Cell Surface Protein Capture", description="Antibody Capture", default=False)
     antibody_multiplexing = BooleanField("+ Sample Multiplexing with Antibody-based Cell Hashing", description="Multiple samples per library with antibody-based cell tagging. Only available with cell surface protein capture.", default=False)
     antibody_capture_kit = StringField(description="Antibody Capture Kit", validators=[OptionalValidator(), Length(max=64)])
+    
+    parse_mux = BooleanField("Multiple Samples per Sub-Library", description="Multiple samples per sub-library with Parse Biosciences multiplexing technology.", default=False)
+    parse_tcr = BooleanField(LibraryType.PARSE_EVERCODE_TCR.name, default=False)
+    parse_bcr = BooleanField(LibraryType.PARSE_EVERCODE_BCR.name, default=False)
+    parse_crispr = BooleanField(LibraryType.PARSE_SC_CRISPR.name, default=False)
+    
+    Parse_kits = [(1, "WT_mini"), (2, "WT"), (3, "WT_mega"), (4, "WT_mega_384"), (5, "WT_penta"), (6, "WT_penta_384")]
+    parse_kit = SelectField(validators=[OptionalValidator()], choices=[(-1, "")] + Parse_kits, coerce=int, default=-1)
+
+    Parse_chemistries = [(1, "v1"), (2, "v2"), (3, "v3")]
+    parse_chemistry = SelectField(validators=[OptionalValidator()], choices=[(-1, "")] + Parse_chemistries, coerce=int, default=-1)
 
 
 class AdditionalSerevicesForm(FlaskForm):
@@ -67,6 +79,13 @@ class SelectAssayForm(MultiStepForm):
         self.optional_assays.crispr_screening.data = previous_form.metadata.get("crispr_screening", False)
         self.optional_assays.antibody_multiplexing.data = previous_form.metadata.get("antibody_multiplexing", False)
 
+        self.optional_assays.parse_kit.data = previous_form.metadata.get("parse_kit", -1)
+        self.optional_assays.parse_chemistry.data = previous_form.metadata.get("parse_chemistry", -1)
+        self.optional_assays.parse_crispr.data = previous_form.metadata.get("parse_crispr", False)
+        self.optional_assays.parse_mux.data = previous_form.metadata["mux_type_id"] == MUXType.PARSE_WELLS.id
+        self.optional_assays.parse_tcr.data = previous_form.metadata.get("parse_tcr", False)
+        self.optional_assays.parse_bcr.data = previous_form.metadata.get("parse_bcr", False)
+
         self.optional_assays.antibody_capture_kit.data = previous_form.metadata.get("antibody_capture_kit", "")
         
         if previous_form.metadata.get("mux_type_id") == MUXType.TENX_OLIGO.id:
@@ -90,6 +109,12 @@ class SelectAssayForm(MultiStepForm):
             self.assay_type.errors = ("Invalid assay type",)
             return False
         
+        if self.assay_type_enum == AssayType.PARSE:
+            if self.optional_assays.parse_kit.data == -1:
+                self.optional_assays.parse_kit.errors = ("Please select a Parse kit.",)
+            if self.optional_assays.parse_chemistry.data == -1:
+                self.optional_assays.parse_chemistry.errors = ("Please select a Parse chemistry.",)
+        
         if self.optional_assays.antibody_capture.data and not self.optional_assays.antibody_capture_kit.data:
             self.optional_assays.antibody_capture_kit.errors = ("Please specify an antibody capture kit.",)
         
@@ -111,6 +136,12 @@ class SelectAssayForm(MultiStepForm):
             self.additional_services.oligo_multiplexing_kit.errors = ("Please select only one multiplexing method.",)
             self.additional_services.ocm_multiplexing.errors = ("Please select only one multiplexing method.",)
 
+        if self.optional_assays.parse_mux.data and self.assay_type_enum != AssayType.PARSE:
+            self.optional_assays.parse_mux.errors = ("Parse Biosciences multiplexing is only available with Parse Biosciences assays.",)
+
+        if self.optional_assays.parse_mux.data and (self.additional_services.oligo_multiplexing.data or self.additional_services.ocm_multiplexing.data or self.optional_assays.antibody_multiplexing.data):
+            self.optional_assays.parse_mux.errors = ("Please select only one multiplexing method.",)
+
         if self.optional_assays.antibody_multiplexing.data and self.assay_type_enum in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
             self.optional_assays.antibody_multiplexing.errors = ("Antibody-based cell hashing multiplexing is not available with 10X Flex assays.",)
 
@@ -127,6 +158,7 @@ class SelectAssayForm(MultiStepForm):
         ocm_multiplexing = self.additional_services.ocm_multiplexing.data
         antibody_multiplexing = self.optional_assays.antibody_multiplexing.data
         flex_barcode_multiplexing = self.assay_type_enum in [AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]
+        parse_multiplexing = self.optional_assays.parse_mux.data
         
         self.metadata["assay_type_id"] = self.assay_type_enum.id
         self.metadata["mux_type_id"] = None
@@ -142,6 +174,8 @@ class SelectAssayForm(MultiStepForm):
             self.metadata["mux_type_id"] = MUXType.TENX_FLEX_PROBE.id
         elif antibody_multiplexing:
             self.metadata["mux_type_id"] = MUXType.TENX_ABC_HASH.id
+        elif parse_multiplexing:
+            self.metadata["mux_type_id"] = MUXType.PARSE_WELLS.id
             
         self.metadata["nuclei_isolation"] = self.additional_services.nuclei_isolation.data
         self.metadata["antibody_capture"] = self.optional_assays.antibody_capture.data
@@ -152,6 +186,12 @@ class SelectAssayForm(MultiStepForm):
         self.metadata["crispr_screening"] = self.optional_assays.crispr_screening.data
         self.metadata["additional_info"] = self.additional_info.data
 
+        self.metadata["parse_kit"] = self.optional_assays.parse_kit.data
+        self.metadata["parse_chemistry"] = self.optional_assays.parse_chemistry.data
+        self.metadata["parse_crispr"] = self.optional_assays.parse_crispr.data
+        self.metadata["parse_tcr"] = self.optional_assays.parse_tcr.data
+        self.metadata["parse_bcr"] = self.optional_assays.parse_bcr.data
+
         if self.additional_services.oligo_multiplexing_kit.data:
             self.add_comment(context="oligo_multiplexing_kit", text=self.additional_services.oligo_multiplexing_kit.data)
 
@@ -160,6 +200,12 @@ class SelectAssayForm(MultiStepForm):
 
         if self.additional_info.data:
             self.add_comment(context="assay_tech_selection", text=self.additional_info.data)
+        
+        if (parse_chemistry := dict(OptionalAssaysForm.Parse_chemistries).get(self.optional_assays.parse_chemistry.data)) is not None:
+            self.add_comment(context="parse_chemistry", text=parse_chemistry)
+
+        if (parse_kit := dict(OptionalAssaysForm.Parse_kits).get(self.optional_assays.parse_kit.data)) is not None:
+            self.add_comment(context="parse_kit", text=parse_kit)
 
         self.update_data()
 
@@ -178,7 +224,7 @@ class SelectAssayForm(MultiStepForm):
             sample_pooling_table = pd.DataFrame(sample_pooling_table)
             self.add_table("sample_pooling_table", sample_pooling_table)
             self.update_data()
-            next_form = LibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+            next_form = CustomAssayAnnotationFrom(seq_request=self.seq_request, uuid=self.uuid)
             return next_form.make_response()
         
         library_table_data = {
@@ -230,6 +276,15 @@ class SelectAssayForm(MultiStepForm):
             if self.optional_assays.crispr_screening.data:
                 add_library(sample_name, LibraryType.TENX_CRISPR_SCREENING)
 
+            if self.optional_assays.parse_crispr.data:
+                add_library(sample_name, LibraryType.PARSE_SC_CRISPR)
+            
+            if self.optional_assays.parse_tcr.data:
+                add_library(sample_name, LibraryType.PARSE_EVERCODE_TCR)
+
+            if self.optional_assays.parse_bcr.data:
+                add_library(sample_name, LibraryType.PARSE_EVERCODE_BCR)
+
         library_table = pd.DataFrame(library_table_data)
         library_table["seq_depth"] = None
 
@@ -248,6 +303,8 @@ class SelectAssayForm(MultiStepForm):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
+            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
             next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

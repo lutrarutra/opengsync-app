@@ -18,3 +18,4 @@ class MUXType(ExtendedEnum[MUXTypeEnum], enum_type=MUXTypeEnum):
     TENX_ON_CHIP = MUXTypeEnum(2, "10X On-Chip Multiplexing", "OCM")
     TENX_FLEX_PROBE = MUXTypeEnum(3, "10X Flex Probe Multiplexing", "Flex")
     TENX_ABC_HASH = MUXTypeEnum(4, "10X Antibody-based Cell Hashing Multiplexing", "ABC")
+    PARSE_WELLS = MUXTypeEnum(5, "Parse Biosciences Well-based Multiplexing", "Parse")

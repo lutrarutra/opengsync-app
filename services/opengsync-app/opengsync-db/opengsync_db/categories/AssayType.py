@@ -34,7 +34,7 @@ class AssayType(ExtendedEnum[AssayTypeEnum], enum_type=AssayTypeEnum):
 
     # Special
     OPENST = AssayTypeEnum(50, "Open Spatial Transcriptomics", "Open-ST", library_types=[LibraryType.OPENST])
-    PARSE = AssayTypeEnum(51, "Parse Single-Cell Gene Expression", "Parse SC GEX", library_types=[LibraryType.PARSE_SC, LibraryType.PARSE_CRISPR])
+    PARSE = AssayTypeEnum(51, "Parse Biosciences Single-Cell Sequencing", "Parse SC", library_types=[LibraryType.PARSE_SC_GEX], optional_library_types=[LibraryType.PARSE_SC_CRISPR, LibraryType.PARSE_EVERCODE_TCR, LibraryType.PARSE_EVERCODE_BCR])
 
     # RNA
     POLY_A_RNA_SEQ = AssayTypeEnum(101, "Poly-A RNA-Seq", "Poly-A RNA-Seq", library_types=[LibraryType.POLY_A_RNA_SEQ])

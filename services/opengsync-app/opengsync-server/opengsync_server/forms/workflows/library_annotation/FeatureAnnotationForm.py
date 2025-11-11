@@ -10,6 +10,7 @@ from ..common.CommonFeatureAnnotationForm import CommonFeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .CompleteSASForm import CompleteSASForm
 from .OpenSTAnnotationForm import OpenSTAnnotationForm
+from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
 
 
 class FeatureAnnotationForm(CommonFeatureAnnotationForm):
@@ -47,6 +48,8 @@ class FeatureAnnotationForm(CommonFeatureAnnotationForm):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
+            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
             next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         
