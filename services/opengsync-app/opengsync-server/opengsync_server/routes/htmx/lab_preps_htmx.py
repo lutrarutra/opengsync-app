@@ -446,6 +446,22 @@ def get_pools(current_user: models.User, lab_prep_id: int, page: int = 0):
         )
     )
 
+@wrappers.htmx_route(lab_preps_htmx, db=db)
+def checklist(current_user: models.User, lab_prep_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    checklist = lab_prep.get_checklist()
+    return make_response(
+        render_template(
+            "components/checklists/lab_prep.html",
+            lab_prep=lab_prep, **checklist
+        )
+    )
+
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_samples(current_user: models.User, lab_prep_id: int, page: int = 0):

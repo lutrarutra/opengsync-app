@@ -33,7 +33,6 @@ class CompleteLibraryPoolingForm(MultiStepForm):
         self.barcode_table = db.pd.get_lab_prep_barcodes(self.lab_prep.id)
         self.barcode_table["pool"] = utils.map_columns(self.barcode_table, self.pooling_table, "library_id", "pool")
         self.barcode_table = utils.check_indices(self.barcode_table, groupby="pool")
-        logger.debug(self.tables["library_table"])
 
     def validate(self) -> bool:
         validated = super().validate()
@@ -63,7 +62,14 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                     
         if len(self.pooling_table["pool"].unique()) > 1:
             for pool_suffix, df in self.pooling_table.groupby("pool"):
-                logger.debug(f"Creating pool for suffix: {pool_suffix}")
+                if pool_suffix == "t":
+                    continue
+                if pool_suffix == "x":
+                    for _, row in df.iterrows():
+                        library = db.libraries[int(row["library_id"])]
+                        library.status = LibraryStatus.FAILED
+                        db.libraries.update(library)
+                    continue
                 pool = db.pools.create(
                     name=f"{self.lab_prep.name}_{pool_suffix}", pool_type=PoolType.INTERNAL,
                     contact_email=user.email, contact_name=user.name, owner_id=user.id,

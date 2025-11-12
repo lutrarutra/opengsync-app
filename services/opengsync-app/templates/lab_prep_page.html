@@ -13,11 +13,68 @@
             <h1>{{ lab_prep.display_name }} <span class="desc">{{ lab_prep.protocol.name }} - {{ lab_prep.assay_type.abbreviation }} - {{ lab_prep.status.name }} {{ lab_prep.status.icon }}</span></h1>
         </div>
         <div class="page-controls">
-            <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
-            hx-get="{{ url_for('lab_preps_htmx.get_form', form_type='edit', lab_prep_id=lab_prep.id) }}"
-            hx-swap="innerHTML" hx-trigger="click">
-                Edit Prep
-            </button>
+            <div class="dropdown">
+                <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Manage
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
+                        hx-get="{{ url_for('lab_preps_htmx.get_form', form_type='edit', lab_prep_id=lab_prep.id) }}"
+                        hx-swap="innerHTML" hx-trigger="click">
+                            Edit Prep
+                        </button>
+                    </li>
+                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                                hx-get="{{ url_for('reseq_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                                hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                                hx-swap="innerHTML">
+                            Re-Sequence Libraries
+                        </button>
+                    <li>
+                        <button class="dropdown-item"
+                            hx-delete="{{ url_for('lab_preps_htmx.delete', lab_prep_id=lab_prep.id) }}"
+                            _="on htmx:confirm(issueRequest)
+                            halt the event
+                            call Swal.fire({
+                                title: 'Delete Library Prep?',
+                                showDenyButton: true,
+                                text: 'You will not be able to undo this. Are you sure?',
+                                icon: 'question',
+                                confirmButtonText: 'Yes',
+                                denyButtonText: 'No'
+                            })
+                            if result.isConfirmed issueRequest()" {% if lab_prep.status == PrepStatus.PREPARING %}disabled{% endif %}>
+                            Delete Prep
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item"
+                            hx-post="{{ url_for('lab_preps_htmx.uncomplete', lab_prep_id=lab_prep.id) }}"
+                            _="on htmx:confirm(issueRequest)
+                            halt the event
+                            call Swal.fire({
+                                title: 'Undo Library Prep?',
+                                showDenyButton: true,
+                                text: 'This will change the status of all \'Pooled\' libraries to \'Preparing\'. Are you sure?',
+                                icon: 'question',
+                                confirmButtonText: 'Yes',
+                                denyButtonText: 'No'
+                            })
+                            if result.isConfirmed issueRequest()"
+                            {% if can_be_completed == false or lab_prep.status < PrepStatus.COMPLETED %}disabled{% endif %}>
+                            Undo Prep
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" class="dropdown-item" data-bs-toggle="modal"
+                        data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                        hx-get="{{ url_for('lab_preps_htmx.file_form', lab_prep_id=lab_prep.id) }}">
+                            Attach File
+                        </button>
+                    </li>
+                </ul>
+            </div>
             {% if lab_prep.status == PrepStatus.PREPARING %}
             <span {% if can_be_completed == false %}{{ tooltip("You must add libraries and complete 'Pool Libraries'-workflow first!", category="success") }}{% endif %}>
                 <button class="btn btn-success"
@@ -37,47 +94,8 @@
                     Complete Prep
                 </button>
             </span>
-            {% if lab_prep.status == PrepStatus.PREPARING %}
-            <button class="btn btn-danger"
-                hx-delete="{{ url_for('lab_preps_htmx.delete', lab_prep_id=lab_prep.id) }}"
-                _="on htmx:confirm(issueRequest)
-                halt the event
-                call Swal.fire({
-                    title: 'Delete Library Prep?',
-                    showDenyButton: true,
-                    text: 'You will not be able to undo this. Are you sure?',
-                    icon: 'question',
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'No'
-                })
-                if result.isConfirmed issueRequest()">
-                Delete Prep
-            </button>
             {% endif %}
-            {% endif %}
-            {% if lab_prep.status >= PrepStatus.COMPLETED %}
-            <button class="btn btn-warning"
-                hx-post="{{ url_for('lab_preps_htmx.uncomplete', lab_prep_id=lab_prep.id) }}"
-                _="on htmx:confirm(issueRequest)
-                halt the event
-                call Swal.fire({
-                    title: 'Undo Library Prep?',
-                    showDenyButton: true,
-                    text: 'This will change the status of all \'Pooled\' libraries to \'Preparing\'. Are you sure?',
-                    icon: 'question',
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'No'
-                })
-                if result.isConfirmed issueRequest()"
-                {% if can_be_completed == false %}disabled{% endif %}>
-                Undo Prep
-            </button>
-            {% endif %}
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-            data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-            hx-get="{{ url_for('lab_preps_htmx.file_form', lab_prep_id=lab_prep.id) }}">
-                Attach File
-            </button>
+
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Template
@@ -104,8 +122,8 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
-            data-bs-target="#lab_prep-workflows-tab" type="button" role="tab"
-            aria-controls="lab_prep-workflows-tab" aria-selected="true">Workflows</button>
+            data-bs-target="#lab_prep-checklist-tab" type="button" role="tab"
+            aria-controls="lab_prep-checklist-tab" aria-selected="true">Checklist ({{ checklist_steps_completed }}/{{ checklist_total_steps }})</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -173,259 +191,17 @@
             </div>
         </div>
 
-        <div class="tab-pane fade" id="lab_prep-workflows-tab" role="tabpanel" tabindex="1">
+        <div class="tab-pane fade" id="lab_prep-checklist-tab" role="tabpanel" tabindex="1">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h3>Workflows</h3>
+                    <h3>Checklist</h3>
+                </div>
+                <div style="height: 100%; display: flex; align-items: center;">
+                    <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
                 </div>
             </div>
-            <div class="workflow-container">
-                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
-                    {% if lab_prep.status != PrepStatus.PREPARING %}
-                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
-                    {% else %}
-                    data-bs-toggle="modal" data-bs-target="#xl-modal"
-                    hx-get="{{ url_for('library_prep_workflow.begin', lab_prep_id=lab_prep.id) }}"
-                    hx-target="#xl-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click"{% endif %}>
-                    <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="120px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Add Libraries</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Select libraries to prepare</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
-                    {% if lab_prep.status != PrepStatus.PREPARING %}
-                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
-                    {% else %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('mux_prep_workflow.sample_pooling', lab_prep_id=lab_prep.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click"{% endif %}>
-                    <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/select.svg') }}" width="120px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Multiplexing Pooling Form</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Assign multiplexed samples to pools.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
-                    {% if lab_prep.status != PrepStatus.PREPARING %}
-                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
-                    {% else %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_OLIGO.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click"{% endif %}>
-                    <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/barcode.svg') }}" width="120px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Oligo Multiplexing Prep</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Pool samples in to libraries using oligos. Specify multiplexing barcodes.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
-                    {% if lab_prep.status != PrepStatus.PREPARING %}
-                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
-                    {% else %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_FLEX_PROBE.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click"{% endif %}>
-                    <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/barcode.svg') }}" width="120px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Flex Multiplexing Prep</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Pool samples in to libraries using probe barcodes (10X Flex). Specify multiplexing barcodes.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
-                    {% if lab_prep.status != PrepStatus.PREPARING %}
-                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
-                    {% else %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_ON_CHIP.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click"{% endif %}>
-                    <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/barcode.svg') }}" width="120px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">On-Chip Multiplexing Prep</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Pool samples in libraries using on-chip multiplexing (OCM). Specify multiplexing barcodes.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
-                    {% if lab_prep.status != PrepStatus.PREPARING %}
-                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
-                    {% else %}
-                    data-bs-toggle="modal" data-bs-target="#xl-modal"
-                    hx-get="{{ url_for('lab_preps_htmx.prep_table_upload_form', lab_prep_id=lab_prep.id) }}"
-                    hx-target="#xl-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click"{% endif %}>
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/prepare.svg') }}" width="120px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Upload Prep Table <span class="desc">{{ lab_prep.protocol.abbreviation }}</span></h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Upload prep table</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
-                    {% if lab_prep.status != PrepStatus.PREPARING %}
-                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
-                    {% else %}
-                    data-bs-toggle="modal" data-bs-target="#xl-modal"
-                    hx-get="{{ url_for('ba_report_workflow.begin', lab_prep_id=lab_prep.id) }}"
-                    hx-target="#xl-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click"{% endif %}>
-                    <div class="flip-card-container {% if lab_prep.status != PrepStatus.PREPARING %}disabled{% endif %}">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/analyzer.svg') }}" width="80px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Bio Analyzer Report</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Upload results form Bio Analyzer.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card"
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('reindex_workflow.begin', lab_prep_id=lab_prep.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click">
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/barcode.svg') }}" width="110px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Index Libraries</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Make changes to library indices.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
-                    {% if lab_prep.status != PrepStatus.PREPARING %}
-                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
-                    {% else %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('library_pooling_workflow.begin', lab_prep_id=lab_prep.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click" {% endif %}>
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/licensed/pool.svg') }}" width="110px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Pool Libraries</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Pool libraries in the prep.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card card{% if lab_prep.status != PrepStatus.PREPARING %} disabled text-muted{% endif %}"
-                    {% if lab_prep.status != PrepStatus.PREPARING %}
-                    {{ tooltip("You cannot edit completed prep.", category="warning") }}
-                    {% else %}
-                    data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('reseq_workflow.begin', lab_prep_id=lab_prep.id) }}"
-                    hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                    hx-swap="innerHTML" hx-trigger="click" {% endif %}>
-                    <div class="flip-card-container">
-                        <div class="card-front">
-                            <div class="card-icon">
-                                <img src="{{ url_for('static', filename='images/redo.svg') }}" width="70px">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">Re-Sequence Libraries</h5>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <div class="text-container">
-                                <p class="card-text">Clone libraries for re-sequencing. Libraries will be added to the original sequencing request.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div hx-get="{{ url_for('lab_preps_htmx.checklist', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
             </div>
         </div>
 

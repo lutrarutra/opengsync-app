@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, url_for, request
 from opengsync_db import models
 from opengsync_db.categories import LibraryStatus
 
-from ... import db
+from ... import db, logger
 from ...core import wrappers, exceptions
 lab_preps_page_bp = Blueprint("lab_preps_page", __name__)
 
@@ -36,6 +36,20 @@ def lab_prep(current_user: models.User, lab_prep_id: int):
         if can_be_completed and contains_mux_libraries:
             break
         
+    checklist = lab_prep.get_checklist()
+    steps = [
+        checklist["libraries_added"],
+        checklist["samples_pooled"],
+        checklist["library_fragment_sizes_measured"],
+        checklist["libraries_indexed"],
+        checklist["libraries_pooled"],
+        checklist["oligo_mux_annotated"],
+        checklist["flex_mux_annotated"],
+        checklist["on_chip_mux_annotated"],
+    ]
+    logger.debug(steps)
+    steps_completed = sum(1 for item in steps if item)
+        
     path_list = [
         ("Preps", url_for("lab_preps_page.lab_preps")),
         (f"Prep {lab_prep.id}", ""),
@@ -51,5 +65,5 @@ def lab_prep(current_user: models.User, lab_prep_id: int):
 
     return render_template(
         "lab_prep_page.html", lab_prep=lab_prep, can_be_completed=can_be_completed, path_list=path_list,
-        contains_mux_libraries=contains_mux_libraries
+        contains_mux_libraries=contains_mux_libraries, checklist_steps_completed=steps_completed, checklist_total_steps=len(steps)
     )

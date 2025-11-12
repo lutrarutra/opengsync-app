@@ -1,0 +1,207 @@
+<div class="accordion p-1" id="sops-accordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-1" aria-expanded="false" aria-controls="sops-accordiod-collapse-1">
+                <b>{% if libraries_added %}✅{% else %}⚠️{% endif %} Add Libraries to the Prep</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-1" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#xl-modal"
+                        hx-get="{{ url_for('library_prep_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#xl-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML">Begin</button> 'Add Libraries' - Workflow
+                    </li>
+                    <li>Select libraries</li>
+                    <li>Complete workflow</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-2" aria-expanded="false" aria-controls="sops-accordiod-collapse-2">
+                <b>{% if mux_required %}{% if samples_pooled is none %}❗{% else %}🔘{% endif %}{% else %}🚫{% endif %} Specify how Samples are Multiplexed</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-2" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn"data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('mux_prep_workflow.sample_pooling', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal" hx-swap="innerHTML" {% if not mux_required %}disabled{% endif %}>Begin</button> 'Sample Multiplexing' - Workflow
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Required only when multiple samples are multiplexed into a library</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3" aria-expanded="false" aria-controls="sops-accordiod-collapse-3">
+                <b>{% if not oligo_mux_required %}🚫{% else %}{% if oligo_mux_annotated is none %}❗{% elif oligo_mux_annotated %}✅{% else %}⚠️{% endif %}{% endif %} Oligo Multiplexing Prep</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_OLIGO.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML" {% if not oligo_mux_required %}disabled{% endif %}>Begin</button> 'Oligo Multiplexing Prep' - Workflow
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Only required when Oligo multiplexing library is included in the prep.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-4" aria-expanded="false" aria-controls="sops-accordiod-collapse-4">
+                <b>{% if not flex_mux_required %}🚫{% else %}{% if flex_mux_annotated is none %}❗{% elif flex_mux_annotated %}✅{% else %}⚠️{% endif %}{% endif %} Flex Multiplexing Prep</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-4" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_FLEX_PROBE.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML" {% if not flex_mux_required %}disabled{% endif %}>Begin</button> 'Flex Multiplexing Prep' - Workflow
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Only required when multiplexed Flex library is included in the prep.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-5" aria-expanded="false" aria-controls="sops-accordiod-collapse-5">
+                <b>{% if not on_chip_mux_required %}🚫{% else %}{% if on_chip_mux_annotated is none %}❗{% elif on_chip_mux_annotated %}✅{% else %}⚠️{% endif %}{% endif %} On-Chip Multiplexing Prep</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-5" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_ON_CHIP.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML" {% if not on_chip_mux_required %}disabled{% endif %}>Begin</button> 'On-Chip Multiplexing Prep' - Workflow
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Only required when On-Chip multiplexed library is included in the prep.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-6" aria-expanded="false" aria-controls="sops-accordiod-collapse-6">
+                <b>{% if prep_table_submitted is none %}❗{% elif prep_table_submitted %}✅{% else %}⚠️{% endif %} Submit Prep-Table</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-6" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        Download 
+                        <a class="btn btn-primary" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='rows') }}"
+                        {% if lab_prep.libraries | length == 0 %}onclick="confirmation(event)"{% endif %}>Rows</a>
+                        or
+                        <a class="btn btn-primary" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='columns') }}"
+                        {% if lab_prep.libraries | length == 0 %}onclick="confirmation(event)"{% endif %}>Columns</a>
+                    </li>
+                    <li>
+                        Fill the template as required and <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('lab_preps_htmx.prep_table_upload_form', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML">Upload</button> the completed prep-table.
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-7" aria-expanded="false" aria-controls="sops-accordiod-collapse-7">
+                <b>{% if library_fragment_sizes_measured is none %}❗{% elif library_fragment_sizes_measured %}✅{% else %}⚠️{% endif %} Measure Library Fragment Size (BA)</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-7" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#xl-modal"
+                        hx-get="{{ url_for('ba_report_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#xl-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML">Begin</button> 'Bio Analyzer' - Workflow
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-8" aria-expanded="false" aria-controls="sops-accordiod-collapse-8">
+                <b>{% if libraries_indexed is none %}❗{% elif libraries_indexed %}✅{% else %}⚠️{% endif %} Index Libraries</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-8" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('reindex_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML">Begin</button> 'Index Libraries' - Workflow
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-9" aria-expanded="false" aria-controls="sops-accordiod-collapse-9">
+                <b>{% if libraries_pooled is none %}❗{% elif libraries_pooled %}✅{% else %}⚠️{% endif %} Pool Libraries</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-9" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('library_pooling_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML">Begin</button> 'Pool Libraries' - Workflow
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
