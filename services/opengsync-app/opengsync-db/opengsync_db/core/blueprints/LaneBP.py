@@ -97,3 +97,9 @@ class LaneBP(DBBlueprint):
 
         if flush:
             self.db.flush()
+
+    @DBBlueprint.transaction
+    def __getitem__(self, id: int) -> models.Lane:
+        if (lane := self.db.session.get(models.Lane, id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Lane with id {id} does not exist")
+        return lane

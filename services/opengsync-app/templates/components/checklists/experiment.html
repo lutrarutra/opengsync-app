@@ -1,0 +1,288 @@
+<div class="accordion p-1" id="sops-accordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-1" aria-expanded="false" aria-controls="sops-accordiod-collapse-1">
+                <b>{% if pools_added %}✅{% else %}⚠️{% endif %} Add Pools to the Experiment</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-1" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" hx-get="{{ url_for('select_experiment_pools_workflow.begin', experiment_id=experiment.id) }}"
+                        hx-target="#xl-modal-content" data-bs-toggle="modal"
+                        data-bs-target="#xl-modal">Begin</button> 'Add Pools' - Workflow
+                    </li>
+                    <li>Select pools</li>
+                    <li>Complete workflow</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-2" aria-expanded="false" aria-controls="sops-accordiod-collapse-2">
+                <b>{% if lanes_assigned is none %}❗{% elif lanes_assigned %}✅{% else %}⚠️{% endif %} Assign Lane to each pool</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-2" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>In <b>'Pools'</b>-tab, select lane(s) for each pool.</li>
+                </ol>
+                {% if not lanes_assigned %}
+                <b>Pools without lane:</b>
+                <ul>
+                    {% for pool in experiment.pools %}
+                    {% if not pool.lane_links %}
+                    <li>{{ pool.name }}</li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3" aria-expanded="false" aria-controls="sops-accordiod-collapse-3">
+                <b>{% if lanes_assigned is none %}❗{% else %}🔘{% endif %} Check Barcode Clashes</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('check_barcode_clashes_workflow.check_experiment_barcode_clashes', experiment_id=experiment.id) }}"
+                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Check Clashes</button>
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-4" aria-expanded="false" aria-controls="sops-accordiod-collapse-4">
+                <b>{% if reads_assigned is none %}❗{% elif reads_assigned %}✅{% else %}⚠️{% endif %} Assign Target Number of Reads to be Sequenced for each Pool</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-4" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                    <button class="btn-primary btn" 
+                        hx-get="{{ url_for('dist_reads_workflow.begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content"
+                        hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">Assign</button> reads to each pool
+                    </li>
+                </ol>
+                {% if not reads_assigned %}
+                <b>Pools without assigned reads:</b>
+                <ul>
+                    {% for pool in missing_pool_reads %}
+                    <li>{{ pool }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-5" aria-expanded="false" aria-controls="sops-accordiod-collapse-5">
+                <b>{% if pool_qubits_measured is none %}❗{% elif pool_qubits_measured %}✅{% else %}⚠️{% endif %} Measure Qubit for each Pool</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-5" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                        hx-get="{{ url_for('qubit_measure_workflow.begin', experiment_id=experiment.id) }}"
+                        hx-target="#xl-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML" hx-trigger="click">Begin</button> 'Qubit Concentration' - Workflow
+                    </li>
+                </ol>
+                {% if not pool_qubits_measured %}
+                <b>Pools without measured qubit concentration:</b>
+                <ul>
+                    {% for pool in experiment.pools %}
+                    {% if not pool.qubit_concentration %}
+                    <li>{{ pool.name }}</li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-6" aria-expanded="false" aria-controls="sops-accordiod-collapse-6">
+                <b>{% if pool_fragment_sizes_measured is none %}❗{% elif pool_fragment_sizes_measured %}✅{% else %}⚠️{% endif %} Measure Pool Fragment Size (BA)</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-6" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                        hx-get="{{ url_for('ba_report_workflow.begin', experiment_id=experiment.id) }}"
+                        hx-target="#xl-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML" hx-trigger="click">Begin</button> 'Bio Analyzer Report' - Workflow
+                    </li>
+                </ol>
+                {% if not pool_fragment_sizes_measured %}
+                <b>Pools without measured fragment size:</b>
+                <ul>
+                    {% for pool in experiment.pools %}
+                    {% if not pool.avg_fragment_size %}
+                    <li>{{ pool.name }}</li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-7" aria-expanded="false" aria-controls="sops-accordiod-collapse-7">
+                <b>{% if lanes_assigned is none %}❗{% else %}🔘{% endif %} Dilute Pools for Pooling (Optional)</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-7" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn"
+                        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('dilute_pools_workflow.begin', experiment_id=experiment.id) }}"
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button> 'Dilute Pools' - Workflow.
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-8" aria-expanded="false" aria-controls="sops-accordiod-collapse-8">
+                <b>{% if laning_completed is none %}❗{% elif laning_completed %}✅{% else %}⚠️{% endif %} Lane Pools (Pooling into Lanes)</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-8" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn"
+                        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('lane_pools_workflow.begin', experiment_id=experiment.id) }}"
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button> 'Lane Pools' - Workflow.
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Optional when all lanes have only one pool.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-9" aria-expanded="false" aria-controls="sops-accordiod-collapse-9">
+                <b>{% if lane_qubit_measured is none %}❗{% elif lane_qubit_measured %}✅{% else %}⚠️{% endif %} Measure Qubit for each Lane</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-9" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                        hx-get="{{ url_for('qubit_measure_workflow.begin', experiment_id=experiment.id) }}"
+                        hx-target="#xl-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML" hx-trigger="click">Begin</button> 'Qubit Concentration' - Workflow
+                    </li>
+                    <li>Select lanes from 'Lanes'-tab</li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Optional when all lanes have only one pool; lane Qubit concentration is assumed to be the pool's Qubit concentration.</li>
+                </ul>
+                {% if not lane_qubit_measured %}
+                <b>Lanes without measured qubit concentration:</b>
+                <ul>
+                    {% for lane in missing_lane_qubits %}
+                    <li>{{ lane }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-10" aria-expanded="false" aria-controls="sops-accordiod-collapse-10">
+                <b>{% if lane_fragment_size_measured is none %}❗{% elif lane_fragment_size_measured %}✅{% else %}⚠️{% endif %} Measure Lane Fragment Size (BA)</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-10" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                        hx-get="{{ url_for('ba_report_workflow.begin', experiment_id=experiment.id) }}"
+                        hx-target="#xl-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML" hx-trigger="click">Begin</button> 'Bio Analyzer Report' - Workflow
+                    </li>
+                    <li>Select lanes from 'Lanes'-tab</li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Optional when all lanes have only one pool; lane fragment size is assumed to be the pool's fragment size.</li>
+                </ul>
+                {% if not lane_fragment_size_measured %}
+                <b>Lanes without measured fragment size:</b>
+                <ul>
+                    {% for lane in missing_lane_fragment_sizes %}
+                    <li>{{ lane }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-11" aria-expanded="false" aria-controls="sops-accordiod-collapse-11">
+                <b>{% if flowcell_loaded is none %}❗{% elif flowcell_loaded %}✅{% else %}⚠️{% endif %} Load Flowcell</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-11" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn"
+                        data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('load_flow_cell_workflow.begin', experiment_id=experiment.id) }}"
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button> 'Load Flow Cell' - Workflow.
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+</div>

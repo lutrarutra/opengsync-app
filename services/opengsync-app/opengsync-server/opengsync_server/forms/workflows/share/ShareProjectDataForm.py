@@ -8,7 +8,7 @@ from wtforms import StringField, BooleanField, SelectField, EmailField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import AccessType, LibraryType
+from opengsync_db.categories import AccessType, LibraryType, ProjectStatus
 
 from .... import db, logger, mail_handler
 from ....tools import utils
@@ -32,6 +32,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
     send_to_owner = BooleanField("Send to Project Owner: ", default=False)
     custom_email = EmailField("Recipient: ", validators=[OptionalValidator()])
     selected_user_ids = StringField(validators=[DataRequired()])
+    mark_project_delivered = BooleanField("Mark Project as Delivered", default=True)
     error_dummy = StringField()
 
     def __init__(self, project: models.Project, formdata: dict | None = None):
@@ -110,6 +111,8 @@ class ShareProjectDataForm(HTMXFlaskForm):
             paths=self.paths,
         )
 
+        if self.mark_project_delivered.data:
+            self.project.status = ProjectStatus.DELIVERED
         self.project.share_token = share_token
         db.projects.update(self.project)
         

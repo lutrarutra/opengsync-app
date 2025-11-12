@@ -15,7 +15,8 @@
                 {{ form_group(form.measured_qubit, class="col-4", unit="ng/μL", placeholder="Required") }}
             </div>
             <div class="row">
-                {{ form_group(form.avg_fragment_size, class="col-4", unit="bp", readonly=true) }}
+                {{ form_group(form.avg_fragment_size, class="col-2", unit="bp", readonly=true) }}
+                {{ form_group(form.qubit_concentration, class="col-2", unit="ng/μL", readonly=true) }}
                 {{ form_group(form.lane_molarity, class="col-4", unit="nM", readonly=true) }}
                 {{ form_group(form.sequencing_molarity, class="col-4", unit="nM", placeholder=false, readonly=true) }}
             </div>
@@ -80,6 +81,7 @@
             measured_qubit_el.on("input", calculate_ratios);
             total_volume_ul_el.on("input", calculate_ratios);
             target_molarity_el.on("input", calculate_ratios);
+            calculate_ratios();
         });
     </script>
 </div>

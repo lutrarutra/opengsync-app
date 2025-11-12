@@ -32,44 +32,13 @@ def experiment(current_user: models.User, experiment_id: int):
     ) is None:
         raise exceptions.NotFoundException()
 
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-
     experiment_lanes: dict[int, list[int]] = {}
-    all_lanes_qced = len(experiment.lanes) > 0
-    flow_cell_ready = len(experiment.lanes) > 0
-    all_pools_qced = len(experiment.pools) > 0
 
     for lane in experiment.lanes:
-        all_lanes_qced = all_lanes_qced and lane.is_qced()
-        flow_cell_ready = flow_cell_ready and lane.is_loaded()
         experiment_lanes[lane.number] = []
 
         for link in lane.pool_links:
             experiment_lanes[lane.number].append(link.pool_id)
-
-    all_pools_laned = len(experiment.pools) > 0
-
-    qubit_concentration_measured = len(experiment.pools) > 0
-    avg_framgnet_size_measured = len(experiment.pools) > 0
-    for pool in experiment.pools:
-        laned = False
-        for pool_ids in experiment_lanes.values():
-            if pool.id in pool_ids:
-                laned = True
-                break
-        all_pools_laned = all_pools_laned and laned
-
-        if not pool.is_qced():
-            all_lanes_qced = False
-
-        qubit_concentration_measured = qubit_concentration_measured and pool.qubit_concentration is not None
-        avg_framgnet_size_measured = avg_framgnet_size_measured and pool.avg_fragment_size is not None
-
-        if not all_pools_laned and not qubit_concentration_measured and not avg_framgnet_size_measured and not all_pools_qced:
-            break
-    
-    can_be_loaded = all_pools_laned and qubit_concentration_measured and avg_framgnet_size_measured
 
     path_list = [
         ("Experiments", url_for("experiments_page.experiments")),
@@ -90,11 +59,19 @@ def experiment(current_user: models.User, experiment_id: int):
                 (f"Experiment {experiment_id}", ""),
             ]
 
-    laning_completed = False
-    for file in experiment.media_files:
-        if file.type == MediaFileType.LANE_POOLING_TABLE:
-            laning_completed = True
-            break
+    checklist = experiment.get_checklist()
+    steps = [
+        checklist["pools_added"],
+        checklist["lanes_assigned"],
+        checklist["reads_assigned"],
+        checklist["pool_qubits_measured"],
+        checklist["pool_fragment_sizes_measured"],
+        checklist["lane_qubit_measured"],
+        checklist["lane_fragment_size_measured"],
+        checklist["laning_completed"],
+        checklist["flowcell_loaded"],
+    ]
+    steps_completed = sum(1 for item in steps if item)
 
     return render_template(
         "experiment_page.html",
@@ -104,12 +81,6 @@ def experiment(current_user: models.User, experiment_id: int):
         experiment_lanes=experiment_lanes,
         selected_sequencer=experiment.sequencer.name,
         selected_user=experiment.operator,
-        all_pools_laned=all_pools_laned,
-        qubit_concentration_measured=qubit_concentration_measured,
-        avg_framgnet_size_measured=avg_framgnet_size_measured,
-        can_be_loaded=can_be_loaded,
-        all_lanes_qced=all_lanes_qced,
-        flow_cell_ready=flow_cell_ready,
-        laning_completed=laning_completed,
-        all_pools_qced=all_pools_qced
+        checklist_steps_completed=steps_completed,
+        checklist_total_steps=len(steps)
     )
