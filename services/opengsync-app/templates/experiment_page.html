@@ -177,7 +177,7 @@
                     <h3>Checklist</h3>
                 </div>
                 <div style="height: 100%; display: flex; align-items: center;">
-                    <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites</p>
+                    <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
                 </div>
             </div>
             <div hx-get="{{ url_for('experiments_htmx.checklist', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">

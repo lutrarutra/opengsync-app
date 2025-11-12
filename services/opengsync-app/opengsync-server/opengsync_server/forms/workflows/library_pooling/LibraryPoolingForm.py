@@ -49,6 +49,7 @@ class LibraryPoolingForm(MultiStepForm):
                     ]["pool"].values.tolist()), None)
 
         self.post_url = url_for("library_pooling_workflow.upload_pooling_form", uuid=self.uuid, lab_prep_id=self.lab_prep.id)
+        self.library_table.loc[self.library_table["pool"].notna(), "pool"] = self.library_table.loc[self.library_table["pool"].notna(), "pool"].astype(str).str.strip().str.removeprefix(f"{self.lab_prep.name}_")
 
         self.spreadsheet = SpreadsheetInput(
             columns=LibraryPoolingForm.columns,

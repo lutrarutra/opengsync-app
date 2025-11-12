@@ -58,6 +58,9 @@ class CommonFlexMuxForm(MultiStepForm):
                 raise ValueError("LabPrep must be provided for mux_prep workflow")
             
             sample_table = db.pd.get_lab_prep_pooling_table(self.lab_prep.id)
+            sample_table = sample_table[
+                sample_table["mux_type"].isin([MUXType.TENX_FLEX_PROBE])
+            ]
             self.flex_table = sample_table[
                 (sample_table["mux_type"].isin([MUXType.TENX_FLEX_PROBE])) &
                 (sample_table["library_type"].isin([LibraryType.TENX_SC_GEX_FLEX]))
@@ -65,9 +68,11 @@ class CommonFlexMuxForm(MultiStepForm):
             self.flex_table["barcode_id"] = sample_table["mux"].apply(
                 lambda x: x.get("barcode") if pd.notna(x) and isinstance(x, dict) else None
             )
+            self.sample_table = sample_table.copy()
         elif workflow == "library_annotation":
             self.index_col = "sample_name"
             self.flex_table = self.tables["sample_pooling_table"]
+            self.sample_table = self.flex_table.copy()
         elif workflow == "library_remux":
             if self.library is None:
                 logger.error("Library must be provided for library_remux workflow")
@@ -86,6 +91,7 @@ class CommonFlexMuxForm(MultiStepForm):
             sample_table = pd.DataFrame(data)
             sample_table["library_id"] = self.library.id
             self.flex_table = sample_table.copy()
+            self.sample_table = sample_table.copy()
         else:
             logger.error(f"Unsupported workflow: {workflow}")
             raise ValueError(f"Unsupported workflow: {workflow}")

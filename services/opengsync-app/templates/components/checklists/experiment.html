@@ -58,7 +58,7 @@
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('check_barcode_clashes_workflow.check_experiment_barcode_clashes', experiment_id=experiment.id) }}"
-                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Check Clashes</button>
+                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if lanes_assigned is none %}disabled{% endif %}>Check Clashes</button>
                     </li>
                 </ol>
             </div>
@@ -77,7 +77,7 @@
                     <li>
                     <button class="btn-primary btn" 
                         hx-get="{{ url_for('dist_reads_workflow.begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content"
-                        hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">Assign</button> reads to each pool
+                        hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal" {% if reads_assigned is none %}disabled{% endif %}>Assign</button> reads to each pool
                     </li>
                 </ol>
                 {% if not reads_assigned %}
@@ -106,7 +106,7 @@
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-get="{{ url_for('qubit_measure_workflow.begin', experiment_id=experiment.id) }}"
                         hx-target="#xl-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML" hx-trigger="click">Begin</button> 'Qubit Concentration' - Workflow
+                        hx-swap="innerHTML" hx-trigger="click" {% if pool_qubits_measured is none %}disabled{% endif %}>Begin</button> 'Qubit Concentration' - Workflow
                     </li>
                 </ol>
                 {% if not pool_qubits_measured %}
@@ -137,7 +137,7 @@
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-get="{{ url_for('ba_report_workflow.begin', experiment_id=experiment.id) }}"
                         hx-target="#xl-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML" hx-trigger="click">Begin</button> 'Bio Analyzer Report' - Workflow
+                        hx-swap="innerHTML" hx-trigger="click" {% if pool_fragment_sizes_measured is none %}disabled{% endif %}>Begin</button> 'Bio Analyzer Report' - Workflow
                     </li>
                 </ol>
                 {% if not pool_fragment_sizes_measured %}
@@ -167,7 +167,7 @@
                         <button class="btn-primary btn"
                         data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('dilute_pools_workflow.begin', experiment_id=experiment.id) }}"
-                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button> 'Dilute Pools' - Workflow.
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if lanes_assigned is none %}disabled{% endif %}>Begin</button> 'Dilute Pools' - Workflow.
                     </li>
                 </ol>
             </div>
@@ -187,7 +187,7 @@
                         <button class="btn-primary btn"
                         data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('lane_pools_workflow.begin', experiment_id=experiment.id) }}"
-                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button> 'Lane Pools' - Workflow.
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if laning_completed is none %}disabled{% endif %}>Begin</button> 'Lane Pools' - Workflow.
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -212,7 +212,7 @@
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-get="{{ url_for('qubit_measure_workflow.begin', experiment_id=experiment.id) }}"
                         hx-target="#xl-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML" hx-trigger="click">Begin</button> 'Qubit Concentration' - Workflow
+                        hx-swap="innerHTML" hx-trigger="click" {% if lane_qubit_measured is none %}disabled{% endif %}>Begin</button> 'Qubit Concentration' - Workflow
                     </li>
                     <li>Select lanes from 'Lanes'-tab</li>
                 </ol>
@@ -246,7 +246,7 @@
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-get="{{ url_for('ba_report_workflow.begin', experiment_id=experiment.id) }}"
                         hx-target="#xl-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML" hx-trigger="click">Begin</button> 'Bio Analyzer Report' - Workflow
+                        hx-swap="innerHTML" hx-trigger="click" {% if lane_fragment_size_measured is none %}disabled{% endif %}>Begin</button> 'Bio Analyzer Report' - Workflow
                     </li>
                     <li>Select lanes from 'Lanes'-tab</li>
                 </ol>
@@ -279,10 +279,10 @@
                         <button class="btn-primary btn"
                         data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('load_flow_cell_workflow.begin', experiment_id=experiment.id) }}"
-                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button> 'Load Flow Cell' - Workflow.
+                        hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if flowcell_loaded is none %}disabled{% endif %}>Begin</button> 'Load Flow Cell' - Workflow.
                     </li>
                 </ol>
             </div>
         </div>
-
+    </div>
 </div>
