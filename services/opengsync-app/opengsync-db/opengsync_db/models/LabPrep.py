@@ -55,9 +55,9 @@ class LabPrep(Base):
         flex_mux_required = any(library.mux_type == MUXType.TENX_FLEX_PROBE for library in self.libraries)
         on_chip_mux_required = any(library.mux_type == MUXType.TENX_ON_CHIP for library in self.libraries)
 
-        oligo_mux_annotated = True if oligo_mux_required else None
-        flex_mux_annotated = True if flex_mux_required else None
-        on_chip_mux_annotated = True if on_chip_mux_required else None
+        oligo_mux_annotated = True
+        flex_mux_annotated = True
+        on_chip_mux_annotated = True
 
         oligo_mux_libraries_annotations_missing = set()
         flex_mux_libraries_annotations_missing = set()

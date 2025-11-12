@@ -31,7 +31,6 @@ class CompleteLibraryPoolingForm(MultiStepForm):
         self._context["lab_prep"] = lab_prep
         self.pooling_table = self.tables["pooling_table"]
         self.barcode_table = db.pd.get_lab_prep_barcodes(self.lab_prep.id)
-        logger.debug(self.barcode_table)
         self.barcode_table["pool"] = utils.map_columns(self.barcode_table, self.pooling_table, "library_id", "pool")
         self.barcode_table = utils.check_indices(self.barcode_table, groupby="pool")
 
