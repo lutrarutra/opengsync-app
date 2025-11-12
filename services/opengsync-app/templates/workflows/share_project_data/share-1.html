@@ -24,16 +24,20 @@
         </ul>
         <div class="tab-content ba">
             <div class="tab-pane fade show active" id="share_project_data-form-tab" role="tabpanel" tabindex="0">
-                <div class="row pb-3 pt-3">
+                <div class="row pb-2 pt-3">
                     <div style="display: flex; gap: 10px;" class="col-6">
-                        {{ switch_input(form.send_to_owner) }}
-                        {{ project.owner.email }}
+                        {{ switch_input(form.send_to_owner) }} {{ project.owner.email }}
                     </div>
                     {% if current_user.is_insider() %}
                     {{ switch_input(form.anonymous_send, class="col-3") }}
                     {{ switch_input(form.internal_share, class="col-3") }}
                     {% endif %}
                 </div>
+                {% if current_user.is_insider() %}
+                <div class="pb-3">
+                    {{ switch_input(form.mark_project_delivered, class="col-6") }}
+                </div>
+                {% endif %}
                 <div class="row">
                     {{ select_input(form.time_valid_min, class="col-6") }}
                     {{ form_group(form.custom_email, class="col-6", disabled=not current_user.is_insider()) }}
@@ -117,6 +121,7 @@
                     time_valid_min: parseInt($("#time_valid_min").val()),
                     internal_share: $("#internal_share").is(":checked"),
                     custom_email: $("#custom_email").val(),
+                    mark_project_delivered: $("#mark_project_delivered").is(":checked"),
                 },
             });
         });

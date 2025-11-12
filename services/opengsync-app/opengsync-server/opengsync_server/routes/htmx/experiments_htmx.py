@@ -8,7 +8,7 @@ from flask import Blueprint, url_for, render_template, flash, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow, ProjectStatus, DataPathType
+from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow, ProjectStatus, DataPathType, MediaFileType
 
 from ... import db, forms, logger
 from ...core.RunTime import runtime
@@ -759,6 +759,24 @@ def get_recent_experiments(current_user: models.User, page: int = 0):
         "components/dashboard/experiments-list.html", experiments=experiments, sort_by=sort_by,
         current_page=page, limit=PAGE_LIMIT
     ))
+
+
+@wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
+def checklist(current_user: models.User, experiment_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (experiment := db.experiments.get(experiment_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    checklist = experiment.get_checklist()
+    
+    return make_response(
+        render_template(
+            "components/checklists/experiment.html",
+            **checklist, experiment=experiment
+        )
+    )
 
 
 @wrappers.htmx_route(experiments_htmx, db=db)

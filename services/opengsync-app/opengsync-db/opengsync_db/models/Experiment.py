@@ -60,6 +60,67 @@ class Experiment(Base):
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp_created_utc", "timestamp_finished_utc", "status_id", "sequencer_id", "flowcell_type_id", "workflow_id"]
 
+    def get_checklist(self) -> dict:
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open for checklist")
+        
+        from ..categories import MediaFileType
+        pools_added = len(self.pools) > 0
+        lanes_assigned = self.workflow.combined_lanes or all(len(pool.lane_links) > 0 for pool in self.pools) if pools_added else None
+        reads_assigned = True if pools_added else None
+        missing_pool_reads = set()
+
+        for lane in self.lanes:
+            if len(lane.pool_links) == 1:
+                continue
+            
+            for pool_link in lane.pool_links:
+                if pool_link.num_m_reads is None:
+                    reads_assigned = False if pools_added else None
+                    missing_pool_reads.add(pool_link.pool.name)
+
+        pool_qubits_measured = all(pool.qubit_concentration is not None for pool in self.pools) if pools_added else None
+        pool_fragment_sizes_measured = all(pool.avg_fragment_size is not None for pool in self.pools) if pools_added else None
+        laning_completed = all(len(lane.pool_links) == 1 for lane in self.lanes) if pools_added else None
+
+        if not laning_completed:
+            for file in self.media_files:
+                if file.type == MediaFileType.LANE_POOLING_TABLE:
+                    laning_completed = True if pools_added else None
+                    break
+                
+        lane_qubit_measured = True if laning_completed else None
+        lane_fragment_size_measured = True if laning_completed else None
+        missing_lane_qubits = set()
+        missing_lane_fragment_sizes = set()
+
+        for lane in self.lanes:
+            _lane_qubit_measured = lane.original_qubit_concentration is not None or ((len(lane.pool_links) == 1) and (lane.pool_links[0].pool.qubit_concentration is not None))
+            _lane_fragment_size_measured = lane.avg_fragment_size is not None or ((len(lane.pool_links) == 1) and (lane.pool_links[0].pool.avg_fragment_size is not None))
+
+            lane_qubit_measured = lane_qubit_measured and _lane_qubit_measured
+            lane_fragment_size_measured = lane_fragment_size_measured and _lane_fragment_size_measured
+            if not _lane_qubit_measured:
+                missing_lane_qubits.add(f"Lane {lane.number}")
+            if not _lane_fragment_size_measured:
+                missing_lane_fragment_sizes.add(f"Lane {lane.number}")
+
+        flowcell_loaded = all(lane.is_loaded() for lane in self.lanes) if (lane_qubit_measured and lane_fragment_size_measured) else None
+        return {
+            "pools_added": pools_added,
+            "lanes_assigned": lanes_assigned,
+            "reads_assigned": reads_assigned,
+            "missing_pool_reads": missing_pool_reads,
+            "pool_qubits_measured": pool_qubits_measured,
+            "pool_fragment_sizes_measured": pool_fragment_sizes_measured,
+            "lane_qubit_measured": lane_qubit_measured,
+            "missing_lane_qubits": missing_lane_qubits,
+            "lane_fragment_size_measured": lane_fragment_size_measured,
+            "missing_lane_fragment_sizes": missing_lane_fragment_sizes,
+            "laning_completed": laning_completed,
+            "flowcell_loaded": flowcell_loaded,
+        }
+
     @hybrid_property
     def library_types(self) -> list[LibraryTypeEnum]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
