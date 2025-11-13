@@ -63,7 +63,7 @@ class SeqRequest(Base):
     billing_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[billing_contact_id], cascade="save-update, merge")
 
     seq_auth_form_file: Mapped[Optional["MediaFile"]] = relationship(
-        "MediaFile", lazy="joined", viewonly=True,
+        "MediaFile", lazy="joined", viewonly=True, uselist=False,
         primaryjoin=f"and_(SeqRequest.id == MediaFile.seq_request_id, MediaFile.type_id == {MediaFileType.SEQ_AUTH_FORM.id})",
     )
 

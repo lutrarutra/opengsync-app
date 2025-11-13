@@ -1,6 +1,7 @@
 from typing import Optional, TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
+from sqlalchemy import orm
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
@@ -59,6 +60,15 @@ class Lane(Base):
             self.target_molarity is not None and
             self.phi_x is not None
         )
+    
+    def get_loaded_reads(self) -> float:
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open for checklist")
+        reads = 0.0
+        for link in self.pool_links:
+            if link.num_m_reads is not None:
+                reads += link.num_m_reads
+        return reads
 
     @property
     def original_molarity(self) -> float | None:

@@ -106,7 +106,7 @@ class LabPrep(Base):
         ) if libraries_added else None
 
         libraries_indexed = all(
-            library.is_indexed() for library in self.libraries
+            library.is_indexed() or library.status == LibraryStatus.FAILED for library in self.libraries
         ) if libraries_added else None
 
         libraries_pooled = all(

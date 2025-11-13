@@ -172,11 +172,7 @@ class LanePoolingForm(HTMXFlaskForm):
         filename = f"lane_pooling_{self.experiment.id}"
         extension = ".tsv"
 
-        old_file = None
-        for file in self.experiment.media_files:
-            if file.type == MediaFileType.LANE_POOLING_TABLE:
-                old_file = file
-                break
+        old_file = self.experiment.lane_pooling_table
             
         if old_file:
             db.media_files.delete(file_id=old_file.id)

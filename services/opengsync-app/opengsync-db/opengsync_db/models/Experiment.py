@@ -8,7 +8,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
-from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellTypeEnum, ExperimentWorkFlow, ExperimentWorkFlowEnum, LibraryType, LibraryTypeEnum
+from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellTypeEnum, ExperimentWorkFlow, ExperimentWorkFlowEnum, LibraryType, LibraryTypeEnum, MediaFileType
 from .Base import Base
 from . import links
 
@@ -42,12 +42,16 @@ class Experiment(Base):
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
 
     operator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
-    operator: Mapped["User"] = relationship("User", lazy="joined")
+    operator: Mapped["User"] = relationship("User", lazy="select")
 
     sequencer_id: Mapped[int] = mapped_column(sa.ForeignKey("sequencer.id"), nullable=False)
     sequencer: Mapped["Sequencer"] = relationship("Sequencer", lazy="select")
 
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name, post_update=True)
+    lane_pooling_table: Mapped[Optional["MediaFile"]] = relationship(
+        "MediaFile", lazy="select", viewonly=True, uselist=False,
+        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type_id ==  {MediaFileType.LANE_POOLING_TABLE.id})",
+    )
 
     pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select", back_populates="experiment")
     libraries: Mapped[list["Library"]] = relationship("Library", lazy="select", back_populates="experiment")
@@ -64,7 +68,6 @@ class Experiment(Base):
         if orm.object_session(self) is None:
             raise orm.exc.DetachedInstanceError("Session must be open for checklist")
         
-        from ..categories import MediaFileType
         pools_added = len(self.pools) > 0
         lanes_assigned = self.workflow.combined_lanes or all(len(pool.lane_links) > 0 for pool in self.pools) if pools_added else None
         reads_assigned = True if pools_added else None
@@ -84,13 +87,16 @@ class Experiment(Base):
         laning_completed = all(len(lane.pool_links) == 1 for lane in self.lanes) if pools_added else None
 
         if not laning_completed:
-            for file in self.media_files:
-                if file.type == MediaFileType.LANE_POOLING_TABLE:
-                    laning_completed = True if pools_added else None
-                    break
+            if self.lane_pooling_table is not None:
+                laning_completed = True if pools_added else None
                 
-        lane_qubit_measured = True if laning_completed else None
-        lane_fragment_size_measured = True if laning_completed else None
+        for pool in self.pools:
+            if len(pool.lane_links) < 1:
+                laning_completed = False if pools_added else None
+                break
+                
+        lane_qubit_measured = True
+        lane_fragment_size_measured = True
         missing_lane_qubits = set()
         missing_lane_fragment_sizes = set()
 
@@ -105,7 +111,21 @@ class Experiment(Base):
             if not _lane_fragment_size_measured:
                 missing_lane_fragment_sizes.add(f"Lane {lane.number}")
 
-        flowcell_loaded = all(lane.is_loaded() for lane in self.lanes) if (lane_qubit_measured and lane_fragment_size_measured) else None
+        # if the lane fragment sizes are not measured, check that we have the prerequisites
+        if not lane_fragment_size_measured:
+            if not laning_completed:
+                lane_fragment_size_measured = None
+
+        if not lane_qubit_measured:
+            if not laning_completed:
+                lane_qubit_measured = None
+
+        flowcell_loaded = all(lane.is_loaded() for lane in self.lanes)
+        # if not all lanes are loaded, check that we have the prerequisites
+        if not flowcell_loaded:
+             if not lane_qubit_measured or not lane_fragment_size_measured:
+                 flowcell_loaded = None
+
         return {
             "pools_added": pools_added,
             "lanes_assigned": lanes_assigned,
@@ -120,6 +140,16 @@ class Experiment(Base):
             "laning_completed": laning_completed,
             "flowcell_loaded": flowcell_loaded,
         }
+    
+    def get_loaded_reads(self) -> float:
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open for checklist")
+        reads = 0.0
+        for lane in self.lanes:
+            for link in lane.pool_links:
+                if link.num_m_reads is not None:
+                    reads += link.num_m_reads
+        return reads
 
     @hybrid_property
     def library_types(self) -> list[LibraryTypeEnum]:
