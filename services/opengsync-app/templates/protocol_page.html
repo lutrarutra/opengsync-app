@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% set active_page = "protocols-page" %}
+{% block content %}
+<div class="page-header-container">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>{{ protocol.name }} <span class="desc">{{ protocol.assay_type.abbreviation }}</span></h1>
+        </div>
+        <div class="page-controls">
+            {% if current_user.is_insider() %}
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Manage
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <button type="button" class="dropdown-item"  data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                            hx-get="{{ url_for('protocols_htmx.edit', protocol_id=protocol.id) }}"
+                            hx-target="#xl-modal-content" data-bs-toggle="modal"
+                            hx-swap="innerHTML">
+                            Edit
+                        </button>
+                        <button type="button" class="dropdown-item"  data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
+                            hx-get="{{ url_for('protocols_htmx.add_kits', protocol_id=protocol.id) }}"
+                            hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                            hx-swap="innerHTML">
+                            Add Kits
+                        </button>
+                    </li>
+                    <li>
+                        <span {% if not current_user.is_admin() %} {{ tooltip("Only admin can delete protocol.", "left", "warning") }} {% endif %}>
+                            <button type="button" class="dropdown-item"
+                                {% if current_user.is_admin() %}
+                                hx-delete="{{ url_for('protocols_htmx.delete', protocol_id=protocol.id) }}"
+                                _="on htmx:confirm(issueRequest)
+                                halt the event
+                                call Swal.fire({
+                                    title: 'Delete Protocol \'{{ protocol.name }}\'',
+                                    icon: 'warning',
+                                    showDenyButton: true,
+                                    text: 'Proceed?',
+                                    confirmButtonText: 'Yes',
+                                    denyButtonText: 'No'
+                                })
+                                if result.isConfirmed issueRequest()"
+                                {% else %}disabled{%endif%}>
+                                Delete
+                            </button>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <ul class="nav nav-tabs page-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#protocol-kits-tab" type="button" role="tab"
+            aria-controls="protocol-kits-tab" aria-selected="true">
+            Kits</button>
+        </li>
+    </ul>
+</div>
+
+<div class="page-content">
+    <div class="tab-content pt-3">
+        <div class="tab-pane fade show active" id="protocol-kits-tab" role="tabpanel" tabindex="0">
+            <div hx-get="{{ url_for('protocols_htmx.get_kits', protocol_id=protocol.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

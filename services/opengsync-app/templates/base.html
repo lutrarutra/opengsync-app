@@ -105,6 +105,7 @@
                 <ul>
                     {% if current_user.is_authenticated and current_user.is_insider() %}
                     <li><a class="nav-link {{'active' if active_page == 'kits-page' else ''}}" href="{{ url_for('kits_page.kits') }}">Kits</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'protocols-page' else ''}}" href="{{ url_for('protocols_page.protocols') }}">Protocols</a></li>
                     {% endif %}
                     <li><a class="nav-link {{'active' if active_page == 'barcodes-page' else ''}}" href="{{ url_for('kits_page.index_kits') }}">Barcodes</a></li>
                     <li><a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" href="{{ url_for('kits_page.feature_kits') }}">Features</a></li>

@@ -66,7 +66,7 @@
                         {{ library.type.abbreviation }}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
                     </span>
                 </td>
-                <td><a href="{{ url_for('pools_page.pool', pool_id=library.pool_id, from='experiment@' + experiment.id | string)}}">{{ library.pool.name }}</a></td>
+                <td>{% if library.pool_id %}<a href="{{ url_for('pools_page.pool', pool_id=library.pool_id, from='experiment@' + experiment.id | string)}}">{{ library.pool.name }}</a>{% endif %}</td>
                 <td class="x-scroll-cell">
                     {{ library_index_cell(library) }}
                 </td>
