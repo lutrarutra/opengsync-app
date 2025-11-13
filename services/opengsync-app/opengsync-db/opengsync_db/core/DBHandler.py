@@ -55,6 +55,7 @@ class DBHandler():
         from .blueprints.ShareBP import ShareBP
         from .blueprints.DataPathBP import DataPathBP
         from .blueprints.PandasBP import PandasBP
+        from .blueprints.ProtocolBP import ProtocolBP
 
         self.seq_requests = SeqRequestBP("seq_requests", self)
         self.libraries = LibraryBP("libraries", self)
@@ -82,6 +83,7 @@ class DBHandler():
         self.groups = GroupBP("groups", self)
         self.shares = ShareBP("shares", self)
         self.data_paths = DataPathBP("data_paths", self)
+        self.protocols = ProtocolBP("protocols", self)
         self.pd = PandasBP("pd", self)
 
     def connect(

@@ -21,6 +21,13 @@ if TYPE_CHECKING:
     from . import PoolDilution
 
 
+class ProtocolKitLink(Base):
+    __tablename__ = "protocol_kit_link"
+
+    protocol_id: Mapped[int] = mapped_column(sa.ForeignKey("protocol.id"), primary_key=True)
+    kit_id: Mapped[int] = mapped_column(sa.ForeignKey("kit.id"), primary_key=True)
+
+
 class UserAffiliation(Base):
     __tablename__ = "user_affiliation"
 

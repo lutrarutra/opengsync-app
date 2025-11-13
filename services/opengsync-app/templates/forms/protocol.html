@@ -1,0 +1,37 @@
+{% from 'components/form_group.jinja2' import form_group, select_input, checkbox_input %}
+{% from 'components/search_select.jinja2' import search_select_field %}
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+
+<div class="modal-content" id="protocol-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if protocol_form.form_type == "create" %}Create{% elif protocol_form.form_type == "edit" %}Edit{% endif %} Protocol</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body" id="protocol-form">
+        {{ protocol_form.csrf_token() }}
+        <div class="row">
+            {{ form_group(protocol_form.name, class="col-6") }}
+            {{ select_input(protocol_form.assay_type, class="col-3") }}
+            {{ form_group(protocol_form.read_structure, class="col-3") }}
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            {% if protocol_form.form_type == "edit" %}
+            <button class="btn btn-success" hx-include="#protocol-form" hx-target="#protocol-form-container" hx-swap="outerHTML"
+                hx-post="{{ url_for('protocols_htmx.edit', protocol_id=protocol.id) }}">Submit</button>
+            {% elif protocol_form.form_type == "create" %}
+            <button class="btn btn-success" hx-include="#protocol-form" hx-target="#protocol-form-container"
+                hx-swap="outerHTML" hx-post="{{ url_for('protocols_htmx.create') }}">Create</button>
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -283,6 +283,7 @@ class App(Flask):
         self.register_blueprint(routes.htmx.groups_htmx)
         self.register_blueprint(routes.htmx.kits_htmx)
         self.register_blueprint(routes.htmx.share_tokens_htmx)
+        self.register_blueprint(routes.htmx.protocols_htmx)
 
         self.register_blueprint(routes.api.shares_api_bp)
         self.register_blueprint(routes.api.barcodes_api_bp)
@@ -330,6 +331,7 @@ class App(Flask):
         self.register_blueprint(routes.pages.groups_page_bp)
         self.register_blueprint(routes.pages.share_tokens_page_bp)
         self.register_blueprint(routes.pages.browser_page_bp)
+        self.register_blueprint(routes.pages.protocols_page_bp)
 
         log_buffer.flush()
 

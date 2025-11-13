@@ -29,3 +29,4 @@ from . import links  # noqa: F401
 from .SharePath import SharePath  # noqa: F401
 from .ShareToken import ShareToken  # noqa: F401
 from .DataPath import DataPath  # noqa: F401
+from .Protocol import Protocol  # noqa: F401

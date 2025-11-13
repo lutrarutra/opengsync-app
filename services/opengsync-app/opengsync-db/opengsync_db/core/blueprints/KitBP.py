@@ -56,6 +56,8 @@ class KitBP(DBBlueprint):
         self,
         type: KitTypeEnum | None = None,
         type_in: list[KitTypeEnum] | None = None,
+        protocol: models.Protocol | None = None,
+        not_in_protocol: models.Protocol | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = 0,
         sort_by: Optional[str] = None, descending: bool = False,
         count_pages: bool = False
@@ -68,6 +70,22 @@ class KitBP(DBBlueprint):
 
         if type_in is not None:
             query = query.where(models.Kit.kit_type_id.in_([t.id for t in type_in]))
+
+        if protocol is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.links.ProtocolKitLink.protocol_id == protocol.id) &
+                    (models.links.ProtocolKitLink.kit_id == models.Kit.id)
+                )
+            )
+
+        if not_in_protocol is not None:
+            query = query.where(
+                ~sa.exists().where(
+                    (models.links.ProtocolKitLink.protocol_id == not_in_protocol.id) &
+                    (models.links.ProtocolKitLink.kit_id == models.Kit.id)
+                )
+            )
 
         if sort_by is not None:
             if sort_by not in models.Kit.sortable_fields:

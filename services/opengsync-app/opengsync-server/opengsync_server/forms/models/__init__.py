@@ -12,3 +12,4 @@ from .GroupForm import GroupForm # noqa
 from .IndexKitForm import IndexKitForm # noqa
 from .FeatureKitForm import FeatureKitForm # noqa
 from .KitForm import KitForm # noqa
+from .ProtocolForm import ProtocolForm  # noqa
