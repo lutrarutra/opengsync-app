@@ -28,7 +28,7 @@ if runtime.app.debug:
         if limiter.current_limit:
             logger.debug(limiter.storage.clear(limiter.current_limit.key))
 
-        return {"status": "ok", "key": limiter.current_limit.key}, 200
+        return {"status": "ok", "key": limiter.current_limit.key}, 200  # type: ignore
 
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def mail_template(current_user: models.User):

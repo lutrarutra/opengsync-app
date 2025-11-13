@@ -165,8 +165,6 @@ def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: 
     filepath = os.path.join(runtime.app.media_folder, file.path)
     df = pd.read_csv(filepath, sep="\t")
 
-    logger.debug(df)
-
     if "lane" not in df.columns:
         target_molarity = df["target_molarity"].values[0]
         target_total_volume = df["target_total_volume"].values[0]

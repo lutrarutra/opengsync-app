@@ -149,11 +149,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         filename = f"lane_pooling_{self.experiment.id}"
         extension = ".tsv"
 
-        old_file = None
-        for file in self.experiment.media_files:
-            if file.type == MediaFileType.LANE_POOLING_TABLE:
-                old_file = file
-                break
+        old_file = self.experiment.lane_pooling_table
             
         if old_file:
             if os.path.exists(os.path.join(runtime.app.media_folder, old_file.path)):

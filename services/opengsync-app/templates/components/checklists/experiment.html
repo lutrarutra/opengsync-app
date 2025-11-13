@@ -1,3 +1,5 @@
+{% from "components/spinner.jinja2" import spinner %}
+
 <div class="accordion p-1" id="sops-accordion">
     <div class="accordion-item">
         <h2 class="accordion-header">
@@ -80,14 +82,45 @@
                         hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal" {% if reads_assigned is none %}disabled{% endif %}>Assign</button> reads to each pool
                     </li>
                 </ol>
-                {% if not reads_assigned %}
-                <b>Pools without assigned reads:</b>
-                <ul>
-                    {% for pool in missing_pool_reads %}
-                    <li>{{ pool }}</li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col">Pool</th>
+                            <th>Lane</th>
+                            <th>Reads</th>
+                            <th>Lane Share</th>
+                            <th>Flowcell Share</th>
+                        </thead>
+                        <tbody>
+                            {% for lane in experiment.lanes %}
+                            {% for link in lane.pool_links %}
+                            <tr>
+                                <th scope="row">{{ link.pool.name }}</th>
+                                <th>{{ link.lane_num }}</th>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ link.num_m_reads }}</div>
+                                        <div class="unit">M</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{% if link.num_m_reads %}{{ "%.1f" | format(100 * link.num_m_reads / lane.get_loaded_reads()) if lane.get_loaded_reads() else "" }}{% endif %}</div>
+                                        <div class="unit">%</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{% if link.num_m_reads %}{{ "%.1f" | format(100 * link.num_m_reads / experiment.get_loaded_reads()) if experiment.get_loaded_reads() else "" }}{% endif %}</div>
+                                        <div class="unit">%</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -109,16 +142,27 @@
                         hx-swap="innerHTML" hx-trigger="click" {% if pool_qubits_measured is none %}disabled{% endif %}>Begin</button> 'Qubit Concentration' - Workflow
                     </li>
                 </ol>
-                {% if not pool_qubits_measured %}
-                <b>Pools without measured qubit concentration:</b>
-                <ul>
-                    {% for pool in experiment.pools %}
-                    {% if not pool.qubit_concentration %}
-                    <li>{{ pool.name }}</li>
-                    {% endif %}
-                    {% endfor %}
-                </ul>
-                {% endif %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col">Pool</th>
+                            <th>Qubit Concentration</th>
+                        </thead>
+                        <tbody>
+                        {% for pool in experiment.pools %}
+                            <tr>
+                                <th scope="row">{{ pool.name }}</th>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ pool.qubit_concentration }}</div>
+                                        <div class="unit">ng/μL</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -140,16 +184,31 @@
                         hx-swap="innerHTML" hx-trigger="click" {% if pool_fragment_sizes_measured is none %}disabled{% endif %}>Begin</button> 'Bio Analyzer Report' - Workflow
                     </li>
                 </ol>
-                {% if not pool_fragment_sizes_measured %}
-                <b>Pools without measured fragment size:</b>
-                <ul>
-                    {% for pool in experiment.pools %}
-                    {% if not pool.avg_fragment_size %}
-                    <li>{{ pool.name }}</li>
-                    {% endif %}
-                    {% endfor %}
-                </ul>
-                {% endif %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-2">Pool</th>
+                            <th class="col-2">Average Fragment Size</th>
+                            <th class="col-8">Report</th>
+                        </thead>
+                        <tbody>
+                        {% for pool in experiment.pools %}
+                            <tr>
+                                <th scope="row">{{ pool.name }}</th>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ pool.avg_fragment_size }}</div>
+                                        <div class="unit">bp</div>
+                                    </div>
+                                </td>
+                                <td class="x-scroll-cell">
+                                    <span class="scroll-container">{% if pool.ba_report_id %}<span class="desc">{{ pool.ba_report.timestamp | format_datetime }}</span> <a href="{{ url_for('pdf_file', file_id=pool.ba_report_id) }}" target="_blank">{{ pool.ba_report.name }}</a></span>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -170,6 +229,9 @@
                         hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if lanes_assigned is none %}disabled{% endif %}>Begin</button> 'Dilute Pools' - Workflow.
                     </li>
                 </ol>
+                <div hx-get="{{ url_for('experiments_htmx.get_pool_dilutions', experiment_id=experiment.id) }}" hx-trigger="intersect once">
+                    {{ spinner() }}
+                </div>
             </div>
         </div>
     </div>
@@ -194,6 +256,13 @@
                 <ul>
                     <li>Optional when all lanes have only one pool.</li>
                 </ul>
+                {% if experiment.lane_pooling_table %}
+                <div class="file-container">
+                    <div hx-get="{{ url_for('experiments_htmx.render_lane_sample_pooling_tables', file_id=experiment.lane_pooling_table.id, experiment_id=experiment.id) }}" hx-trigger="intersect once">
+                        {{ spinner() }}
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -220,14 +289,33 @@
                 <ul>
                     <li>Optional when all lanes have only one pool; lane Qubit concentration is assumed to be the pool's Qubit concentration.</li>
                 </ul>
-                {% if not lane_qubit_measured %}
-                <b>Lanes without measured qubit concentration:</b>
-                <ul>
-                    {% for lane in missing_lane_qubits %}
-                    <li>{{ lane }}</li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col">Lane</th>
+                            <th>Qubit Concentration</th>
+                        </thead>
+                        <tbody>
+                        {% for lane in experiment.lanes %}
+                            <tr>
+                                <th scope="row">{{ lane.number }}</th>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">
+                                            {% if lane.original_qubit_concentration is not none %}
+                                            {{ lane.original_qubit_concentration }}
+                                            {% elif lane.pool_links | length == 1 %}
+                                            <span class="desc">pool</span> {{ lane.pool_links[0].pool.qubit_concentration }}
+                                            {% endif %}
+                                        </div>
+                                        <div class="unit">ng/μL</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -254,14 +342,47 @@
                 <ul>
                     <li>Optional when all lanes have only one pool; lane fragment size is assumed to be the pool's fragment size.</li>
                 </ul>
-                {% if not lane_fragment_size_measured %}
-                <b>Lanes without measured fragment size:</b>
-                <ul>
-                    {% for lane in missing_lane_fragment_sizes %}
-                    <li>{{ lane }}</li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-1">Lane</th>
+                            <th class="col-2">Avg. Fragment Size</th>
+                            <th class="col-9">Report</th>
+                        </thead>
+                        <tbody>
+                        {% for lane in experiment.lanes %}
+                            <tr>
+                                <th scope="row">{{ lane.number }}</th>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">
+                                            {% if lane.avg_fragment_size is not none %}
+                                            {{ lane.avg_fragment_size }}
+                                            {% elif lane.pool_links | length == 1 %}
+                                            <span class="desc">pool</span> {{ lane.pool_links[0].pool.avg_fragment_size }}
+                                            {% endif %}
+                                        </div>
+                                        <div class="unit">bp</div>
+                                    </div>
+                                </td>
+                                <td class="x-scroll-cell">
+                                    {% if lane.ba_report_id %}
+                                    <span class="scroll-container">
+                                        <span class="desc">{{ lane.ba_report.timestamp | format_datetime }}</span>
+                                        <a href="{{ url_for('pdf_file', file_id=lane.ba_report_id) }}" target="_blank">{{ lane.ba_report.name }}</a>
+                                    </span>
+                                    {% elif lane.pool_links | length == 1 and lane.pool_links[0].pool.ba_report_id %}
+                                    <span class="scroll-container">
+                                        <span class="desc">{{ lane.pool_links[0].pool.ba_report.timestamp | format_datetime }}</span>
+                                        <a href="{{ url_for('pdf_file', file_id=lane.pool_links[0].pool.ba_report_id) }}" target="_blank">{{ lane.pool_links[0].pool.ba_report.name }}</a>
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -282,6 +403,55 @@
                         hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if flowcell_loaded is none %}disabled{% endif %}>Begin</button> 'Load Flow Cell' - Workflow.
                     </li>
                 </ol>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col">Lane</th>
+                            <th>Sequencing Concentration</th>
+                            <th>Library Volume</th>
+                            <th>Total Volume</th>
+                            <th>Target Molarity</th>
+                            <th>Phi X %</th>
+                        </thead>
+                        <tbody>
+                            {% for lane in experiment.lanes %}
+                            <tr>
+                                <th scope="row">{{ lane.number }}</th>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ "%.4f" | format(lane.sequencing_qubit_concentration) if lane.sequencing_qubit_concentration is not none else "" }}</div>
+                                        <div class="unit">ng/μL</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ "%.2f" | format(lane.library_volume_ul) if lane.library_volume_ul is not none else "" }}</div>
+                                        <div class="unit">μL</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ "%.2f" | format(lane.total_volume_ul) if lane.total_volume_ul is not none else "" }}</div>
+                                        <div class="unit">μL</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ "%.3f" | format(lane.target_molarity) if lane.target_molarity is not none else "" }}</div>
+                                        <div class="unit">nM</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ "%.2f" | format(lane.phi_x) if lane.phi_x is not none else "" }}</div>
+                                        <div class="unit">%</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
