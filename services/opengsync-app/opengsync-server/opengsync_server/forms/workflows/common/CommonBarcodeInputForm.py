@@ -175,8 +175,11 @@ class CommonBarcodeInputForm(MultiStepForm):
         
         self.df = self.spreadsheet.df
 
-        self.df.loc[self.df["kit_i7"].notna(), "kit_i7"] = self.df.loc[self.df["kit_i7"].notna(), "kit_i7"]
-        self.df.loc[self.df["kit_i5"].notna(), "kit_i5"] = self.df.loc[self.df["kit_i5"].notna(), "kit_i5"]
+        self.df.loc[self.df["kit_i7"].notna(), "kit_i7"] = self.df.loc[self.df["kit_i7"].notna(), "kit_i7"].astype(str).str.strip()
+        self.df.loc[self.df["kit_i5"].notna(), "kit_i5"] = self.df.loc[self.df["kit_i5"].notna(), "kit_i5"].astype(str).str.strip()
+        self.df.loc[self.df["name_i7"].notna(), "name_i7"] = self.df.loc[self.df["name_i7"].notna(), "name_i7"].astype(str).str.strip()
+        self.df.loc[self.df["name_i5"].notna(), "name_i5"] = self.df.loc[self.df["name_i5"].notna(), "name_i5"].astype(str).str.strip()
+        self.df.loc[self.df["index_well"].notna(), "index_well"] = self.df.loc[self.df["index_well"].notna(), "index_well"].astype(str).str.strip()
 
         self.df.loc[self.df["index_well"].notna(), "index_well"] = self.df.loc[self.df["index_well"].notna(), "index_well"].str.strip().str.replace(r'(?<=[A-Z])0+(?=\d)', '', regex=True)
 
@@ -288,7 +291,6 @@ class CommonBarcodeInputForm(MultiStepForm):
             if kit_defined.at[idx]:
                 kit_i7_label = row["kit_i7"]
                 kit_i7, kit_i7_df = kits[row["kit_i7"]]
-                kit_i5, kit_i5_df = kits[row["kit_i5"]]
                 
                 if pd.notna(row["name_i7"]):
                     if row["name_i7"] not in kit_i7_df["name_i7"].values:
@@ -299,16 +301,18 @@ class CommonBarcodeInputForm(MultiStepForm):
                         self.spreadsheet.add_error(idx, "index_well", InvalidCellValue(f"i7 well '{row['index_well']}' not found in kit '{kit_i7_label}'"))
                         continue
                 
-                if kit_i5.type == IndexType.DUAL_INDEX:
-                    kit_i5_label = row["kit_i5"]
-                    if pd.notna(row["name_i5"]):
-                        if row["name_i5"] not in kit_i5_df["name_i5"].values:
-                            self.spreadsheet.add_error(idx, "name_i5", InvalidCellValue(f"i5 name '{row['name_i5']}' not found in kit '{kit_i5_label}'"))
-                            continue
-                    elif pd.notna(row["index_well"]) and "well" in kit_i5_df.columns:
-                        if row["index_well"] not in kit_i5_df["well"].values:
-                            self.spreadsheet.add_error(idx, "index_well", InvalidCellValue(f"i5 well '{row['index_well']}' not found in kit '{kit_i5_label}'"))
-                            continue
+                if pd.notna(row["kit_i5"]):
+                    kit_i5, kit_i5_df = kits[row["kit_i5"]]
+                    if kit_i5.type == IndexType.DUAL_INDEX:
+                        kit_i5_label = row["kit_i5"]
+                        if pd.notna(row["name_i5"]):
+                            if row["name_i5"] not in kit_i5_df["name_i5"].values:
+                                self.spreadsheet.add_error(idx, "name_i5", InvalidCellValue(f"i5 name '{row['name_i5']}' not found in kit '{kit_i5_label}'"))
+                                continue
+                        elif pd.notna(row["index_well"]) and "well" in kit_i5_df.columns:
+                            if row["index_well"] not in kit_i5_df["well"].values:
+                                self.spreadsheet.add_error(idx, "index_well", InvalidCellValue(f"i5 well '{row['index_well']}' not found in kit '{kit_i5_label}'"))
+                                continue
 
             elif manual_defined.at[idx]:
                 if pd.notna(row["sequence_i7"]) and len(row["sequence_i7"]) > models.LibraryIndex.sequence_i7.type.length:

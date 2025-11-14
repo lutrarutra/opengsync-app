@@ -45,8 +45,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         df = current_step.tables["barcode_table"]
         df = df[df["index_well"] != "del"]
         return not df.empty and bool((
-            df["kit_i7"].isna().all() or
-            df["kit_i5"].isna().all()
+            df["kit_i7"].isna().all() and df["kit_i5"].isna().all()
         ))  # since all of the indices are reverse complemented in case of not forward orientation, we need .all()
     
     @staticmethod
