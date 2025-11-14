@@ -110,21 +110,6 @@ def edit(current_user: models.User, protocol_id: int):
 
     return form.make_response()
 
-@wrappers.htmx_route(protocols_htmx, db=db, methods=["GET", "POST"])
-def add_kits(current_user: models.User, protocol_id: int):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    if (protocol := db.protocols.get(protocol_id)) is None:
-        raise exceptions.NotFoundException()
-
-    form = forms.AddKitsToProtocolForm(formdata=request.form, protocol=protocol)
-
-    if request.method == "POST":
-        return form.process_request()
-
-    return form.make_response()
-
 
 @wrappers.htmx_route(protocols_htmx, db=db)
 def get_kits(current_user: models.User, protocol_id: int):
@@ -162,10 +147,48 @@ def remove_kit(current_user: models.User, protocol_id: int, kit_id: int):
     if (kit := db.kits.get(kit_id)) is None:
         raise exceptions.NotFoundException()
     
-    if kit not in protocol.kits:
-        raise exceptions.BadRequestException("Kit not associated with protocol.")
+    links = db.links.get_protocol_kit_links(protocol=protocol, kit=kit)
     
-    protocol.kits.remove(kit)
+    for link in links:
+        protocol.kit_links.remove(link)
+
+    db.protocols.update(protocol)
+    db.flush()
+
+    sort_by = request.args.get("sort_by", "name")
+    sort_order = request.args.get("sort_order", "asc")
+    descending = sort_order == "desc"
+
+    if sort_by not in models.Protocol.sortable_fields:
+        raise exceptions.BadRequestException()
+    
+    kits, _ = db.kits.find(protocol=protocol, count_pages=False, limit=None, sort_by=sort_by, descending=descending)
+
+    return make_response(
+        render_template(
+            "components/tables/protocol-kit.html",
+            protocol=protocol, kits=kits,
+            sort_by=sort_by, sort_order=sort_order,
+        )
+    )
+
+@wrappers.htmx_route(protocols_htmx, db=db, methods=["DELETE"])
+def remove_kit_combination(current_user: models.User, protocol_id: int, kit_id: int, combination_num: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (protocol := db.protocols.get(protocol_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if (kit := db.kits.get(kit_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    links = db.links.get_protocol_kit_links(protocol=protocol, kit=kit)
+    
+    for link in links:
+        if link.combination_num == combination_num:
+            protocol.kit_links.remove(link)
+        
     db.protocols.update(protocol)
     db.flush()
 

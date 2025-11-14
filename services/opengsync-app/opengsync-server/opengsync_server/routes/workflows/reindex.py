@@ -1,4 +1,3 @@
-from typing import Optional
 from flask import Blueprint, request, Response
 
 from opengsync_db import models

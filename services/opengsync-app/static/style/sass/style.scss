@@ -64,7 +64,7 @@ pre.code {
             text-align: right !important;
         }
         td.jexcel_dropdown {
-            text-align: center !important;
+            text-align: left !important;
         }
     }
     thead td {
@@ -151,6 +151,10 @@ input[type=number] {
         color: $white !important;
         text-decoration: none;
     }
+}
+
+.badge.cm-callback:hover {
+    cursor: pointer;
 }
 
 .badge.badge-success {

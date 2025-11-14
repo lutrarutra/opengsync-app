@@ -21,10 +21,10 @@
                             Edit
                         </button>
                         <button type="button" class="dropdown-item"  data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                            hx-get="{{ url_for('protocols_htmx.add_kits', protocol_id=protocol.id) }}"
+                            hx-get="{{ url_for('add_kits_to_protocol_workflow.begin', protocol_id=protocol.id) }}"
                             hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                             hx-swap="innerHTML">
-                            Add Kits
+                            Edit Combinations
                         </button>
                     </li>
                     <li>

@@ -101,6 +101,10 @@ class LabPrep(Base):
                 
         prep_table_submitted = (self.prep_file is not None) if (libraries_added and samples_muxed) else None
 
+        protocols_selected = all(
+            library.protocol_id is not None for library in self.libraries
+        ) if (libraries_added and samples_muxed) else None
+
         library_fragment_sizes_measured = all(
             library.avg_fragment_size is not None for library in self.libraries
         ) if libraries_added else None
@@ -131,6 +135,7 @@ class LabPrep(Base):
             "oligo_mux_libraries_annotations_missing": oligo_mux_libraries_annotations_missing,
             "flex_mux_libraries_annotations_missing": flex_mux_libraries_annotations_missing,
             "on_chip_mux_libraries_annotations_missing": on_chip_mux_libraries_annotations_missing,
+            "protocols_selected": protocols_selected,
         }
 
     @hybrid_property

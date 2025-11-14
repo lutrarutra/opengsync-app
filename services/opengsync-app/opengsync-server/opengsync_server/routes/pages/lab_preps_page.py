@@ -46,6 +46,7 @@ def lab_prep(current_user: models.User, lab_prep_id: int):
         checklist["oligo_mux_annotated"],
         checklist["flex_mux_annotated"],
         checklist["on_chip_mux_annotated"],
+        checklist["protocols_selected"],
     ]
     steps_completed = sum(1 for item in steps if item)
         

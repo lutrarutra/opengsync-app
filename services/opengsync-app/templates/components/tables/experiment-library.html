@@ -2,6 +2,7 @@
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
 <div id="experiment-library-table" class="table-container">
@@ -56,7 +57,12 @@
             {% for library in libraries %}
             <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td class="library-name-cell" id="library-name-cell-{{library.id}}">
+                <td class="library-name-cell cm-callback" id="library-name-cell-{{library.id}}"
+                {{
+                    context_menu([
+                        {"type": "copy", "value": library.name, "label": "Copy Name"},
+                    ])
+                }}>
                     <a href="{{ url_for('libraries_page.library', library_id=library.id, from='experiment@' + experiment.id | string) }}">
                     {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
                     </a>

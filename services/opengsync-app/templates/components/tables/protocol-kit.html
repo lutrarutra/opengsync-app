@@ -28,9 +28,10 @@
                         table_container_id='protocol-kit-table', column_name='Name', column_var='name',
                         sort_url='protocols_htmx.get_kits', sort_by=sort_by, sort_order=sort_order,
                         query_url='protocols_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=7, context={'protocol_id': protocol.id}
+                        active_query_field=active_query_field, query_type="text", col_size=6, context={'protocol_id': protocol.id}
                     )
                 }}
+                <th scope="col" class="col-2">Combinations</th>
                 {{
                     table_col(
                         table_container_id='protocol-kit-table', column_name='Type', column_var='kit_type_id',
@@ -51,7 +52,8 @@
                         {"type": "hxdelete", "label": "Remove Kit", "disabled": false if current_user.is_insider() else true, "config": {
                             "url": url_for('protocols_htmx.remove_kit', protocol_id=protocol.id, kit_id=kit.id, sort_by=sort_by, sort_order=sort_order),
                             "target": "#protocol-kit-table",
-                            "title": "Remove {kit.name} from {protocol.name}?".format(kit=kit, protocol=protocol)
+                            "title": "Remove '{kit.name}' from '{protocol.name}'?".format(kit=kit, protocol=protocol),
+                            "text": "This will remove all combinations associated with this kit. Do you want to proceed?"
                         },},
                     ])
                 }}><a 
@@ -71,6 +73,21 @@
                     {% else %}
                     href="{{ url_for('kits_page.kit', kit_id=kit.id) }}"
                     {% endif %}>{{ kit.name }}</a>
+                </td>
+                <td>
+                    {% for link in kit.protocol_links %}
+                    {% if link.protocol_id == protocol.id %}
+                    <span class="badge cm-callback" {{
+                        context_menu([
+                            {"type": "hxdelete", "label": "Remove Combination", "disabled": false if current_user.is_insider() else true, "config": {
+                                "url": url_for('protocols_htmx.remove_kit_combination', protocol_id=protocol.id, kit_id=kit.id, combination_num=link.combination_num, sort_by=sort_by, sort_order=sort_order),
+                                "target": "#protocol-kit-table",
+                                "title": "Remove combination '{link.combination_num}' ({kit.name}) from {protocol.name}?".format(link=link, kit=kit, protocol=protocol)
+                            },},
+                        ])
+                    }}>{{ link.combination_num }}</span>
+                    {% endif %}
+                    {% endfor %}
                 </td>
                 <td>{{ kit.kit_type.name }}</td>
             </tr>

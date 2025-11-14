@@ -1,13 +1,12 @@
-from typing import ClassVar
+from typing import ClassVar, TYPE_CHECKING
 
 import sqlalchemy as sa
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm import Mapped, mapped_column
 
+from .links import ProtocolKitLink
 from ..categories import KitType, KitTypeEnum
-
-
 from .Base import Base
-
 
 class Kit(Base):
     __tablename__ = "kit"
@@ -16,6 +15,11 @@ class Kit(Base):
     identifier: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True, unique=True)
 
     kit_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+
+    protocol_links: Mapped[list[ProtocolKitLink]] = relationship(
+        ProtocolKitLink, lazy="select", cascade="save-update, merge, delete, delete-orphan",
+        order_by="links.ProtocolKitLink.combination_num",
+    )
     
     sortable_fields: ClassVar[list[str]] = ["id", "name", "identifier", "kit_type_id"]
 

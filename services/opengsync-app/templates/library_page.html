@@ -128,24 +128,35 @@
                     metadata_group_link(
                         "Prep", library.lab_prep.name,
                         url_for("lab_preps_page.lab_prep", lab_prep_id=library.lab_prep_id, from="library@" + library.id | string),
-                        class="col-4"
+                        class="col-3"
                     )
                 }}
                 {% else %}
-                {{ metadata_group("Prep", "External", class="col-4") }}
+                {{ metadata_group("Prep", "External", class="col-3") }}
                 {% endif %}
                 {{
                     metadata_group(
                         "Multiplexing Type",
                         library.mux_type.name if library.mux_type else "",
-                        class="col-4"
+                        class="col-3"
                     )
                 }}
+                {% if library.protocol_id %}
+                {{ 
+                    metadata_group_link(
+                        "Protocol", library.protocol.name,
+                        url_for("protocols_page.protocol", protocol_id=library.protocol_id, from="library@" + library.id | string),
+                        class="col-5"
+                    )
+                }}
+                {% else %}
+                {{ metadata_group("Protocol", "", class="col-5") }}
+                {% endif %}
                 {{
                     metadata_group(
                         "Nuclei Isolation",
                         "Yes" if library.nuclei_isolation else "No",
-                        class="col-4"
+                        class="col-1"
                     )
                 }}
             </div>

@@ -294,3 +294,15 @@ class LinkBP(DBBlueprint):
     @DBBlueprint.transaction
     def update_laned_pool_link(self, link: models.links.LanePoolLink):
         self.db.session.add(link)
+
+    @DBBlueprint.transaction
+    def get_protocol_kit_links(
+        self, protocol: models.Protocol, kit: models.Kit,
+    ) -> list[models.links.ProtocolKitLink]:
+        query = self.db.session.query(models.links.ProtocolKitLink)
+        query = query.where(
+            models.links.ProtocolKitLink.protocol_id == protocol.id,
+            models.links.ProtocolKitLink.kit_id == kit.id,
+        )
+        links = query.all()
+        return links

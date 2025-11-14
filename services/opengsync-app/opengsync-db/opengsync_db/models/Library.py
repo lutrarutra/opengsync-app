@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from .LabPrep import LabPrep
     from .Experiment import Experiment
     from .DataPath import DataPath
+    from .Protocol import Protocol
 
 
 @dataclass
@@ -86,6 +87,9 @@ class Library(Base):
     
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="libraries", lazy="select")
+
+    protocol_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("protocol.id"), nullable=True)
+    protocol: Mapped[Optional["Protocol"]] = relationship("Protocol", lazy="select")
 
     sample_links: Mapped[list[links.SampleLibraryLink]] = relationship(
         links.SampleLibraryLink, back_populates="library", lazy="select",
