@@ -1,3 +1,5 @@
+{% from "components/confirm.jinja2" import confirm_action_button %}
+
 {% extends "base.html" %}
 {% set active_page = "protocols-page" %}
 {% block content %}
@@ -20,6 +22,8 @@
                             hx-swap="innerHTML">
                             Edit
                         </button>
+                    </li>
+                    <li>
                         <button type="button" class="dropdown-item"  data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
                             hx-get="{{ url_for('add_kits_to_protocol_workflow.begin', protocol_id=protocol.id) }}"
                             hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
@@ -29,23 +33,16 @@
                     </li>
                     <li>
                         <span {% if not current_user.is_admin() %} {{ tooltip("Only admin can delete protocol.", "left", "warning") }} {% endif %}>
-                            <button type="button" class="dropdown-item"
-                                {% if current_user.is_admin() %}
-                                hx-delete="{{ url_for('protocols_htmx.delete', protocol_id=protocol.id) }}"
-                                _="on htmx:confirm(issueRequest)
-                                halt the event
-                                call Swal.fire({
-                                    title: 'Delete Protocol \'{{ protocol.name }}\'',
-                                    icon: 'warning',
-                                    showDenyButton: true,
-                                    text: 'Proceed?',
-                                    confirmButtonText: 'Yes',
-                                    denyButtonText: 'No'
-                                })
-                                if result.isConfirmed issueRequest()"
-                                {% else %}disabled{%endif%}>
-                                Delete
-                            </button>
+                            {{ 
+                                confirm_action_button(
+                                    text="Delete",
+                                    title="Delete Protocol " + protocol.name,
+                                    url=url_for('protocols_htmx.delete', protocol_id=protocol.id),
+                                    method="hx-delete",
+                                    class="dropdown-item",
+                                    disabled=not current_user.is_admin(),
+                                )
+                            }}
                         </span>
                     </li>
                 </ul>

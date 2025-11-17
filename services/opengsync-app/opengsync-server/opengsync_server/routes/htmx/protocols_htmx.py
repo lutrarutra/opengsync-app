@@ -208,3 +208,16 @@ def remove_kit_combination(current_user: models.User, protocol_id: int, kit_id: 
             sort_by=sort_by, sort_order=sort_order,
         )
     )
+
+
+@wrappers.htmx_route(protocols_htmx, db=db, methods=["DELETE"])
+def delete(current_user: models.User, protocol_id: int):
+    if not current_user.is_admin():
+        raise exceptions.NoPermissionsException()
+    
+    if (protocol := db.protocols.get(protocol_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    db.protocols.delete(protocol)
+    flash(f"Protocol '{protocol.name}' deleted.", "success")
+    return make_response(redirect=url_for("protocols_page.protocols"))

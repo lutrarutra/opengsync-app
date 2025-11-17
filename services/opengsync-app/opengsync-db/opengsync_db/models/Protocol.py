@@ -10,7 +10,7 @@ from .Base import Base
 from . import links
 
 if TYPE_CHECKING:
-    from .Kit import Kit
+    from .Library import Library
 
 
 class Protocol(Base):
@@ -26,6 +26,11 @@ class Protocol(Base):
     kit_links: Mapped[list[links.ProtocolKitLink]] = relationship(
         links.ProtocolKitLink, lazy="select", cascade="save-update, merge, delete, delete-orphan",
         order_by="links.ProtocolKitLink.combination_num",
+    )
+
+    libraries: Mapped[list["Library"]] = relationship(
+        "Library", back_populates="protocol", lazy="select",
+        cascade="save-update, merge, delete, delete-orphan",
     )
 
     @property
