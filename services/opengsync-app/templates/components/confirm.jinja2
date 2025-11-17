@@ -1,0 +1,17 @@
+{% macro confirm_action_button(text, title, url, class="", container="button", method="hx-get", body="Do you want to proceed?", icon="warning", disabled=false) %}
+<{{ container }} type="button" class="{{ class }}"
+    {% if not disabled %}
+    {{ method }}="{{ url }}"
+    _='on htmx:confirm(issueRequest)
+        halt the event
+        call Swal.fire({
+            title: {{ title | tojson }},
+            icon: "{{ icon }}",
+            showDenyButton: true,
+            text: {{ body|tojson }},
+            confirmButtonText: "Yes",
+            denyButtonText: "No"
+        })
+        if result.isConfirmed issueRequest()'
+    {% else %}disabled{%endif%}>{{ text }}</{{ container }}>
+{% endmacro %}
