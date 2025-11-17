@@ -1,4 +1,4 @@
-{% macro confirm_action_button(text, title, url, class="", container="button", method="hx-get", body="Do you want to proceed?", icon="warning", disabled=false) %}
+{% macro confirm_action_button(text, title, url, class="btn btn-primary", container="button", method="hx-get", body="Do you want to proceed?", icon="warning", disabled=false) %}
 <{{ container }} type="button" class="{{ class }}"
     {% if not disabled %}
     {{ method }}="{{ url }}"

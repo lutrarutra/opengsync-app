@@ -88,7 +88,7 @@ class Library(Base):
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="libraries", lazy="select")
 
-    protocol_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("protocol.id"), nullable=True)
+    protocol_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("protocol.id", ondelete="SET NULL"), nullable=True)
     protocol: Mapped[Optional["Protocol"]] = relationship("Protocol", lazy="select")
 
     sample_links: Mapped[list[links.SampleLibraryLink]] = relationship(
