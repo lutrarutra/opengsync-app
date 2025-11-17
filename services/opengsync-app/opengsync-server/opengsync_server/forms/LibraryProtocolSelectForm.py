@@ -72,6 +72,9 @@ class LibraryProtocolSelectForm(HTMXFlaskForm):
                 column_name = active_sheet[f"{col}1"].value
                 column_mapping[column_name] = col
 
+            if "library_kits" not in column_mapping:
+                return df
+
             for row_i in range(2, active_sheet.max_row + 1):
                 library_id = active_sheet[f"{column_mapping['library_id']}{row_i}"].value
                 library_kits = active_sheet[f"{column_mapping['library_kits']}{row_i}"].value
@@ -105,6 +108,8 @@ class LibraryProtocolSelectForm(HTMXFlaskForm):
             return self.make_response()
 
         for _, row in self.df.iterrows():
+            if pd.isna(row["library_id"]):
+                continue
             library = db.libraries[int(row["library_id"])]
             library.protocol_id = int(row["protocol_id"]) if pd.notna(row["protocol_id"]) else None
             db.libraries.update(library)
