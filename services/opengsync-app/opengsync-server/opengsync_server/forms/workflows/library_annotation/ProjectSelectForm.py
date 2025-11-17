@@ -1,5 +1,3 @@
-from typing import Optional, Literal
-
 from flask import Response
 from wtforms import StringField, FormField, TextAreaField
 from wtforms.validators import Optional as OptionalValidator, Length
@@ -22,7 +20,7 @@ class ProjectSelectForm(MultiStepForm):
     new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.title.type.length)])
     project_description = TextAreaField("Project Description", validators=[OptionalValidator(), Length(max=models.Project.description.type.length)], description="New projects only: brief context/background of the project.")
 
-    def __init__(self, seq_request: models.SeqRequest, formdata: dict | None = None, uuid: Optional[str] = None):
+    def __init__(self, seq_request: models.SeqRequest, formdata: dict | None = None, uuid: str | None = None):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, step_name=ProjectSelectForm._step_name,
             workflow=ProjectSelectForm._workflow_name, step_args={}

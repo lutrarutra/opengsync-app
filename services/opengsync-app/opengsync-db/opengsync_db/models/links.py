@@ -26,6 +26,7 @@ class ProtocolKitLink(Base):
 
     protocol_id: Mapped[int] = mapped_column(sa.ForeignKey("protocol.id"), primary_key=True)
     kit_id: Mapped[int] = mapped_column(sa.ForeignKey("kit.id"), primary_key=True)
+    combination_num: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, primary_key=True)
 
 
 class UserAffiliation(Base):

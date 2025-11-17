@@ -82,7 +82,6 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                     db.libraries.update(library)
                     
         elif len(self.pooling_table["pool"].unique()) > 0:
-            logger.debug("Creating single pool for all libraries")
             pool = db.pools.create(
                 name=self.lab_prep.name, pool_type=PoolType.INTERNAL,
                 contact_email=user.email, contact_name=user.name, owner_id=user.id,
@@ -112,7 +111,6 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 request_ids.add(library.seq_request_id)
                 active_sheet[f"{column_mapping['pool']}{i + 2}"].value = pool
 
-            logger.debug(f"Overwriting existing file: {os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path)}")
             wb.save(path)
 
         for request_id in request_ids:

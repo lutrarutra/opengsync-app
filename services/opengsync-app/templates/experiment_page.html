@@ -296,10 +296,18 @@
             </div>
             <h2 class="pt-2">Statistics</h2>
             <div class="row">
-                {{ metadata_quantity("Reads PF", experiment.seq_run.get_quantity("reads_pf"), class="col-3") }}
-                {{ metadata_quantity("Q>=30", experiment.seq_run.get_quantity("pct>=q30"), class="col-3") }}
-                {{ metadata_quantity("Occupied", experiment.seq_run.get_quantity("pct_occupied"), class="col-3") }}
-                {{ metadata_quantity("Phi X Aligned", experiment.seq_run.get_quantity("pct_aligned"), class="col-3") }}
+                {{ metadata_quantity("Reads PF", experiment.seq_run.get_quantity("reads_pf"), class="col-4") }}
+                {{ metadata_quantity("Reads", experiment.seq_run.get_quantity("reads"), class="col-4") }}
+                {% if experiment.seq_run.get_quantity("reads") and experiment.seq_run.get_quantity("reads_pf") %}
+                {{ metadata_group("Reads PF %", "%.1f" | format (100.0 * experiment.seq_run.get_quantity("reads_pf").value / experiment.seq_run.get_quantity("reads").value), unit="%", class="col-4") }}
+                {% else %}
+                {{ metadata_group("Reads PF %", "N/A", class="col-4") }}
+                {% endif %}
+            </div>
+            <div class="row">
+                {{ metadata_quantity("Q>=30", experiment.seq_run.get_quantity("pct>=q30"), class="col-4") }}
+                {{ metadata_quantity("Occupied", experiment.seq_run.get_quantity("pct_occupied"), class="col-4") }}
+                {{ metadata_quantity("Phi X Aligned", experiment.seq_run.get_quantity("pct_aligned"), class="col-4") }}
             </div>
         </div>
         {% endif %}

@@ -180,6 +180,9 @@ def remove_library(current_user: models.User, pool_id: int):
     library.pool_id = None
     if library.status == LibraryStatus.POOLED:
         library.status = LibraryStatus.STORED
+
+    if library.experiment_id == pool.experiment_id:
+        library.experiment_id = None
     db.libraries.update(library)
 
     flash("Library removed from pool", "success")

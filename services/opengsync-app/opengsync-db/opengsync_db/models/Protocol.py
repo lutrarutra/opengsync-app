@@ -23,7 +23,10 @@ class Protocol(Base):
     
     sortable_fields: ClassVar[list[str]] = ["id", "name", "assay_type_id"]
 
-    kits: Mapped[list["Kit"]] = relationship("Kit", secondary=links.ProtocolKitLink.__tablename__, lazy="select", cascade="save-update, merge")
+    kit_links: Mapped[list[links.ProtocolKitLink]] = relationship(
+        links.ProtocolKitLink, lazy="select", cascade="save-update, merge, delete, delete-orphan",
+        order_by="links.ProtocolKitLink.combination_num",
+    )
 
     @property
     def assay_type(self) -> AssayTypeEnum:

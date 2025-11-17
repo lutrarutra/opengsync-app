@@ -149,10 +149,53 @@
     <div class="accordion-item">
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-7" aria-expanded="false" aria-controls="sops-accordiod-collapse-7">
-                <b>{% if library_fragment_sizes_measured is none %}❗{% elif library_fragment_sizes_measured %}✅{% else %}⚠️{% endif %} Measure Library Fragment Size (BA)</b>
+                <b>{% if protocols_selected is none %}❗{% elif protocols_selected %}✅{% else %}⚠️{% endif %} Select Library Protocols</b>
             </button>
         </h2>
         <div id="sops-accordiod-collapse-7" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('lab_preps_htmx.protocol_form', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML">Begin</button> 'Select Library Protocols' - Workflow
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>In prep-table, 'library_kits' should list of identifiers separated by ';'.</li>
+                    <li>If possible, protocol will be automatically assigned based on the combination of 'library_kits'.</li>
+                </ul>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-3">Library</th>
+                            <th scope="col" class="col-3">Type</th>
+                            <th scope="col" class="col-6">Protocol</th>
+                        </thead>
+                        <tbody>
+                        {% for library in lab_prep.libraries %}
+                            <tr>
+                                <th scope="row">{{ library.name }}</th>
+                                <td>{{ library.type.name }}</td>
+                                <td>{% if library.protocol %}{{ library.protocol.name }}{% else %}<span class="text-muted">Not Selected</span>{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-8" aria-expanded="false" aria-controls="sops-accordiod-collapse-8">
+                <b>{% if library_fragment_sizes_measured is none %}❗{% elif library_fragment_sizes_measured %}✅{% else %}⚠️{% endif %} Measure Library Fragment Size (BA)</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-8" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
             <div class="accordion-body">
                 <b>Steps:</b>
                 <ol>
@@ -168,11 +211,11 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-8" aria-expanded="false" aria-controls="sops-accordiod-collapse-8">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-9" aria-expanded="false" aria-controls="sops-accordiod-collapse-9">
                 <b>{% if libraries_indexed is none %}❗{% elif libraries_indexed %}✅{% else %}⚠️{% endif %} Index Libraries</b>
             </button>
         </h2>
-        <div id="sops-accordiod-collapse-8" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+        <div id="sops-accordiod-collapse-9" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
             <div class="accordion-body">
                 <b>Steps:</b>
                 <ol>
@@ -188,11 +231,11 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-9" aria-expanded="false" aria-controls="sops-accordiod-collapse-9">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-10" aria-expanded="false" aria-controls="sops-accordiod-collapse-10">
                 <b>{% if libraries_pooled is none %}❗{% elif libraries_pooled %}✅{% else %}⚠️{% endif %} Pool Libraries</b>
             </button>
         </h2>
-        <div id="sops-accordiod-collapse-9" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+        <div id="sops-accordiod-collapse-10" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
             <div class="accordion-body">
                 <b>Steps:</b>
                 <ol>

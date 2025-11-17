@@ -671,3 +671,22 @@ def get_mux_table(current_user: models.User, lab_prep_id: int):
             spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
         )
     )
+
+
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
+def protocol_form(current_user: models.User, lab_prep_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if request.method == "GET":
+        form = forms.LibraryProtocolSelectForm(lab_prep=lab_prep)
+        return form.make_response()
+    elif request.method == "POST":
+        form = forms.LibraryProtocolSelectForm(lab_prep=lab_prep, formdata=request.form)
+        return form.process_request()
+    else:
+        raise exceptions.MethodNotAllowedException()
+

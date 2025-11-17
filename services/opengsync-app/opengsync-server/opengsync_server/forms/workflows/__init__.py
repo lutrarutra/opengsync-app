@@ -10,3 +10,4 @@ from . import library_pooling  # noqa: F401
 from . import dist_reads  # noqa: F401
 from . import remux  # noqa: F401
 from . import edit_kit_barcodes  # noqa: F401
+from . import add_protocol_kits  # noqa: F401

@@ -1035,3 +1035,25 @@ class PandasBP(DBBlueprint):
         df = pd.read_sql(query, self.db._engine)
         return df
     
+    @DBBlueprint.transaction
+    def get_protocol_kits(self, protocol_id: int | None = None) -> pd.DataFrame:
+        query = sa.select(
+            models.links.ProtocolKitLink.protocol_id.label("protocol_id"),
+            models.Kit.id.label("kit_id"),
+            models.Kit.name.label("kit_name"),
+            models.Kit.identifier.label("kit_identifier"),
+            models.links.ProtocolKitLink.combination_num,
+        )
+
+        if protocol_id is not None:
+            query = query.where(
+                models.links.ProtocolKitLink.protocol_id == protocol_id
+            )
+        
+        query = query.join(
+            models.Kit,
+            models.Kit.id == models.links.ProtocolKitLink.kit_id
+        )
+
+        df = pd.read_sql(query, self.db._engine)
+        return df
