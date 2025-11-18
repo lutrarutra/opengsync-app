@@ -275,3 +275,29 @@ def get_affiliations(current_user: models.User, user_id: int, page: int = 0):
             sort_by=sort_by, sort_order=sort_order
         )
     )
+
+@wrappers.htmx_route(users_htmx, db=db)
+def get_api_tokens(current_user: models.User, user_id: int, page: int = 0):
+    if (user := db.users.get(user_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if user.id != current_user.id and not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    sort_by = request.args.get("sort_by", "created_utc")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+
+    tokens, n_pages = db.api_tokens.find(
+        offset=offset, owner=user, sort_by=sort_by, descending=descending, count_pages=True
+    )
+    
+    return make_response(
+        render_template(
+            "components/tables/user-api_token.html",
+            user=user, tokens=tokens,
+            active_page=page, n_pages=n_pages,
+            sort_by=sort_by, sort_order=sort_order
+        )
+    )

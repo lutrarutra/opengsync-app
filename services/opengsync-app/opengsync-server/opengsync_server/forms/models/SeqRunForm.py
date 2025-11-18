@@ -88,7 +88,7 @@ class SeqRunForm(HTMXFlaskForm):
 
         if (experiment := db.experiments.get(seq_run.experiment_name)) is not None:
             if seq_run.status == RunStatus.FINISHED:
-                experiment.status = ExperimentStatus.FINISHED
+                experiment.status = ExperimentStatus.SEQUENCED
                 db.experiments.update(experiment)
             elif seq_run.status == RunStatus.FAILED:
                 experiment.status = ExperimentStatus.FAILED

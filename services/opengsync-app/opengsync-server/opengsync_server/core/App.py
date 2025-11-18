@@ -284,6 +284,7 @@ class App(Flask):
         self.register_blueprint(routes.htmx.kits_htmx)
         self.register_blueprint(routes.htmx.share_tokens_htmx)
         self.register_blueprint(routes.htmx.protocols_htmx)
+        self.register_blueprint(routes.htmx.api_tokens_htmx)
 
         self.register_blueprint(routes.api.shares_api_bp)
         self.register_blueprint(routes.api.barcodes_api_bp)
@@ -316,6 +317,7 @@ class App(Flask):
         self.register_blueprint(routes.workflows.billing_workflow)
         self.register_blueprint(routes.workflows.check_barcode_constraints_workflow)
         self.register_blueprint(routes.workflows.add_kits_to_protocol_workflow)
+        self.register_blueprint(routes.workflows.select_library_protocols_workflow)
 
         self.register_blueprint(routes.pages.samples_page_bp)
         self.register_blueprint(routes.pages.projects_page_bp)

@@ -22,3 +22,4 @@ from .share_project_data import share_project_data_workflow  # noqa: F401
 from .billing import billing_workflow  # noqa: F401
 from .check_barcode_constraints import check_barcode_constraints_workflow  # noqa: F401
 from .add_kits_to_protocol import add_kits_to_protocol_workflow  # noqa: F401
+from .select_library_protocols import select_library_protocols_workflow  # noqa: F401

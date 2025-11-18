@@ -1,3 +1,15 @@
+function swal_message(title, icon, text=null, timer=2000) {
+    Swal.fire({
+        position: 'top',
+        icon: icon,
+        title: title,
+        text: text,
+        showConfirmButton: false,
+        timer: timer,
+        toast: true
+    });
+};
+
 function copy_value_to_clipboard(uuid) {
     const s = $("#" + uuid + " input").first().val();
 
@@ -48,23 +60,9 @@ function copy_to_clipboard(text) {
         successful = false;
     }
     if (successful) {
-        Swal.fire({
-            position: 'top',
-            icon: 'success',
-            title: `Copied to clipboard`,
-            showConfirmButton: false,
-            timer: 1000,
-            toast: true
-        });
+        swal_message('Copied to clipboard', 'success');
     } else {
-        Swal.fire({
-            position: 'top',
-            icon: 'error',
-            title: `Failed to copy to clipboard`,
-            showConfirmButton: false,
-            timer: 1000,
-            toast: true
-        });
+        swal_message('Copy to clipboard failed', 'error');
     }
 }
 

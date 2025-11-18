@@ -1,0 +1,21 @@
+{% from 'components/metadata_group.jinja2' import metadata_group %}
+
+<div class="modal-content" id="api_token-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >API Token Created</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <p>Please copy the token now. <b>You won't be able to see it again.</b></p>
+        {{ metadata_group("Token", token.uuid) }}
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+    </div>
+</div>
+<script>
+    swal_message("API Token Created!", "success");
+</script>

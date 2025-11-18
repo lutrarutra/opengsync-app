@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from .Library import Library
     from .MediaFile import MediaFile
     from .LabPrep import LabPrep
+    from .APIToken import APIToken
 
 
 class UserMixin():
@@ -86,8 +87,29 @@ class User(Base, UserMixin):
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="owner", lazy="select")
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", back_populates="uploader", lazy="select")
     preps: Mapped[list["LabPrep"]] = relationship("LabPrep", back_populates="creator", lazy="select")
+    api_tokens: Mapped[list["APIToken"]] = relationship("APIToken", back_populates="owner", lazy="select", cascade="all, delete-orphan")
 
     sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_samples", "num_projects", "num_seq_requests"]
+
+    @hybrid_property
+    def num_api_tokens(self) -> int:  # type: ignore[override]
+        if "api_tokens" in orm.attributes.instance_state(self).unloaded:
+            return len(self.api_tokens)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_api_tokens' attribute.")
+        
+        from .APIToken import APIToken
+        return session.query(sa.func.count(APIToken.uuid)).filter(APIToken.owner_id == self.id).scalar()
+    
+    @num_api_tokens.expression
+    def num_api_tokens(cls) -> sa.ScalarSelect[int]:
+        from .APIToken import APIToken
+        return sa.select(
+            sa.func.count(APIToken.uuid)
+        ).where(
+            APIToken.owner_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]

@@ -750,7 +750,7 @@ def get_recent_experiments(current_user: models.User, page: int = 0):
     experiments, _ = db.experiments.find(
         sort_by=sort_by, descending=True,
         limit=PAGE_LIMIT, offset=page * PAGE_LIMIT,
-        status_in=[ExperimentStatus.DRAFT, ExperimentStatus.LOADED, ExperimentStatus.SEQUENCING, ExperimentStatus.FINISHED]
+        status_in=[ExperimentStatus.DRAFT, ExperimentStatus.LOADED, ExperimentStatus.SEQUENCING, ExperimentStatus.SEQUENCED]
     )
 
     return make_response(render_template(

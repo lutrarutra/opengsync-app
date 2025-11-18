@@ -20,3 +20,4 @@ from .groups_htmx import groups_htmx   # noqa: F401
 from .kits_htmx import kits_htmx   # noqa: F401
 from .share_tokens_htmx import share_tokens_htmx   # noqa: F401
 from .protocols_htmx import protocols_htmx   # noqa: F401
+from .api_tokens_htmx import api_tokens_htmx   # noqa: F401

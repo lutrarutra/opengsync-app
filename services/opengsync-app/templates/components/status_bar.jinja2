@@ -54,8 +54,8 @@
 </div>
 {% else %}
 <div class="progress-stacked">
-    {% set fill_pct = (100 / ExperimentStatus.FINISHED.id + 1) %}
-    {% for status_id in range(0, ExperimentStatus.FINISHED.id + 1) %}
+    {% set fill_pct = (100 / ExperimentStatus.DEMULTIPLEXED.id + 1) %}
+    {% for status_id in range(0, ExperimentStatus.DEMULTIPLEXED.id + 1) %}
     {% set status = ExperimentStatus.get(status_id) %}
     <div class="progress" role="progressbar" aria-valuenow="{{ fill_pct }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ fill_pct }}%"
     {{ tooltip(status.description, position='top', category='warning') }}>

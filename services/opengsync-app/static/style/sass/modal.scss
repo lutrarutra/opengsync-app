@@ -104,7 +104,8 @@
 }
 
 .modal-sm, .modal-fullscreen-sm-down {
-    --bs-modal-max-width: 400px !important;
+    --bs-modal-max-width: 100vw !important;
+    --bs-modal-width: 500px !important;
     .modal-content {
         .modal-header {
             height: 60px;

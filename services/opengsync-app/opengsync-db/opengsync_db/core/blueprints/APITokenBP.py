@@ -8,7 +8,7 @@ from ... import models, PAGE_LIMIT
 from .. import exceptions
 
 
-class ShareBP(DBBlueprint):
+class APITokenBP(DBBlueprint):
     @classmethod
     def where(
         cls,
@@ -17,7 +17,7 @@ class ShareBP(DBBlueprint):
         custom_query: Callable | None = None,
     ):
         if owner_id is not None:
-            query = query.where(models.ShareToken.owner_id == owner_id)
+            query = query.where(models.APIToken.owner_id == owner_id)
 
         if custom_query is not None:
             query = custom_query(query)
@@ -29,15 +29,12 @@ class ShareBP(DBBlueprint):
         self,
         owner: models.User,
         time_valid_min: int,
-        paths: list[str],
         flush: bool = True,
-    ) -> models.ShareToken:
-        token = models.ShareToken(
+    ) -> models.APIToken:
+        token = models.APIToken(
             owner=owner,
             time_valid_min=time_valid_min,
         )
-        for path in paths:
-            token.paths.append(models.SharePath(path=path))
 
         self.db.session.add(token)
 
@@ -46,11 +43,17 @@ class ShareBP(DBBlueprint):
         return token
 
     @DBBlueprint.transaction
-    def get(self, uuid: str, options: ExecutableOption | None = None) -> models.ShareToken | None:
+    def get(self, id: int | str, options: ExecutableOption | None = None) -> models.APIToken | None:
         if options is None:
-            token = self.db.session.get(models.ShareToken, uuid)
+            if isinstance(id, int):
+                token = self.db.session.get(models.APIToken, id)
+            elif isinstance(id, str):
+                token = self.db.session.query(models.APIToken).filter(models.APIToken.uuid == id).first()
         else:
-            token = self.db.session.query(models.ShareToken).options(options).filter(models.ShareToken.uuid == uuid).first()
+            if isinstance(id, int):
+                token = self.db.session.query(models.APIToken).options(options).filter(models.APIToken.id == id).first()
+            elif isinstance(id, str):
+                token = self.db.session.query(models.APIToken).options(options).filter(models.APIToken.uuid == id).first()
         return token
 
     @DBBlueprint.transaction
@@ -61,17 +64,17 @@ class ShareBP(DBBlueprint):
         sort_by: str | None = None, descending: bool = False,
         count_pages: bool = False,
         options: ExecutableOption | None = None,
-    ) -> tuple[list[models.ShareToken], int | None]:
-        query = self.db.session.query(models.ShareToken)
+    ) -> tuple[list[models.APIToken], int | None]:
+        query = self.db.session.query(models.APIToken)
 
-        query = ShareBP.where(query, owner_id=owner.id if owner is not None else None)
+        query = APITokenBP.where(query, owner_id=owner.id if owner is not None else None)
         if options is not None:
             query = query.options(options)
 
         n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
         if sort_by is not None:
-            attr = getattr(models.ShareToken, sort_by)
+            attr = getattr(models.APIToken, sort_by)
             if descending:
                 attr = attr.desc()
             query = query.order_by(attr)
@@ -86,15 +89,15 @@ class ShareBP(DBBlueprint):
         return tokens, n_pages
 
     @DBBlueprint.transaction
-    def update(self, token: models.ShareToken):
+    def update(self, token: models.APIToken):
         self.db.session.add(token)
 
     @DBBlueprint.transaction
-    def delete(self, token: models.ShareToken):
+    def delete(self, token: models.APIToken):
         self.db.session.delete(token)
     
     @DBBlueprint.transaction
-    def __getitem__(self, uuid: str) -> models.ShareToken:
-        if (token := self.get(uuid)) is None:
-            raise exceptions.ElementDoesNotExist(f"Share token with UUID {uuid} not found.")
+    def __getitem__(self, key: int | str) -> models.APIToken:
+        if (token := self.get(key)) is None:
+            raise exceptions.ElementDoesNotExist(f"API Token with ID/UUID '{key}' not found.")
         return token

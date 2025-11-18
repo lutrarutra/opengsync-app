@@ -1,0 +1,55 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+
+<div id="user-api_token-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col" class="col-1">UUID</th>
+                {{
+                    table_col(
+                        table_container_id='user-api_token-table', column_name='Expiration', column_var='expiration',
+                        sort_url='users_htmx.get_api_tokens', sort_by=sort_by, sort_order=sort_order, col_size=3, context={"user_id": user.id}
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='user-api_token-table', column_name='Owner', column_var='owner_id',
+                        sort_url='users_htmx.get_api_tokens', sort_by=sort_by, sort_order=sort_order, col_size=3, context={"user_id": user.id}
+                    )
+                }}
+                {{
+                    table_col(
+                        table_container_id='user-api_token-table', column_name='Valid Min', column_var='time_valid_min',
+                        sort_url='users_htmx.get_api_tokens', sort_by=sort_by, sort_order=sort_order, col_size=1, context={"user_id": user.id}
+                    )
+                }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for token in tokens %}
+            <tr>
+                <th scope="row" class="cm-callback" {{
+                    context_menu([
+                        {"type": "hxpost", "label": "Deactivate", "disabled": false if current_user.is_admin() or current_user.id == user.id else true, "config": {
+                            "url": url_for('api_tokens_htmx.deactivate', token_id=token.id, user_id=user.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
+                            "target": "#user-api_token-table",
+                            "title": "Do you want to deactivate this token?"
+                        },},
+                    ])
+                }}><i class="bi bi-shield-lock"></i></th>
+                <td>
+                    {% if token.is_expired %}🔴{% else %}🟢{% endif %}
+                    {{ token.expiration | format_datetime }}
+                </td>
+                <td><a href="{{ url_for('users_page.user', user_id=token.owner_id) }}">{{ token.owner.name }}{% if current_user.id == token.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
+                <td>{{ token.time_valid_min }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ spinner("user-api_token-table-spinner") }}
+    {{ pagination("user-api_token-table", "users_htmx.get_api_tokens", n_pages, active_page, context={"user_id": user.id}) }}
+</div>
