@@ -1,21 +1,22 @@
 from pathlib import Path
 
-from flask import Blueprint, Response, jsonify
+from flask import Blueprint, jsonify
 
-from opengsync_db import models, exceptions as dbexc
 from opengsync_db.categories import DataPathType
 
 
 from ...core import wrappers, exceptions, runtime
-from ... import db
+from ... import db, logger
 
 
 shares_api_bp = Blueprint("shares_api", __name__, url_prefix="/api/shares/")
 
-def get_share_path(real_path: str) -> str | None:
+def get_share_path(real_path: str) -> Path | None:
     for key, prefix in runtime.app.share_path_mapping.items():
         if real_path.startswith(prefix):
-            return key
+            if not real_path.replace(prefix, "", 1):
+                raise exceptions.BadRequestException(f"Path '{real_path}' is the root of share path mapping '{key}' and is not allowed.")
+            return Path(key) / real_path.replace(prefix, "", 1)
     return None
 
 def get_real_path(share_path: str) -> str | None:
@@ -25,11 +26,10 @@ def get_real_path(share_path: str) -> str | None:
     return None
     
 
-@wrappers.api_route(shares_api_bp, db=db, methods=["POST"], json_params=["api_token", "project_id", "path"])
-def add_data_path_to_project(api_token: str, project_id: int, path: str, path_type_id: int = 0):
-    if (token := db.api_tokens.get(api_token)) is None:
-        raise exceptions.NotFoundException(f"Invalid API token '{api_token}'.")
-    
+@wrappers.api_route(shares_api_bp, db=db, methods=["POST"], json_params=["project_id", "path", "path_type_id"])
+def add_data_path_to_project(project_id: int, path: str, path_type_id: int = 0):
+    path = Path(path).resolve().as_posix()
+
     try:
         path_type = DataPathType.get(path_type_id)
     except ValueError:
@@ -37,9 +37,6 @@ def add_data_path_to_project(api_token: str, project_id: int, path: str, path_ty
     
     if not Path(path).is_absolute():
         raise exceptions.BadRequestException(f"Path '{path}' is not an absolute path.")
-        
-    if token.is_expired:
-        raise exceptions.NoPermissionsException("API token is expired.")
     
     if (project := db.projects.get(project_id)) is None:
         raise exceptions.NotFoundException(f"Project with ID '{project_id}' not found.")
@@ -50,6 +47,16 @@ def add_data_path_to_project(api_token: str, project_id: int, path: str, path_ty
     if not (p := runtime.app.share_root / share_path).exists():
         raise exceptions.NotFoundException(f"Share path '{path}' does not exist on server.")
     
+    # make sure path does not .. out of share root
+    try:
+        p.resolve().relative_to(runtime.app.share_root.resolve())
+    except ValueError:
+        raise exceptions.BadRequestException(f"Path '{path}' is outside of share root.")
+    
+    share_path = p.relative_to(runtime.app.share_root).as_posix()
+
+    logger.debug(share_path)
+
     if p.is_dir() and path_type != DataPathType.DIRECTORY:
         raise exceptions.BadRequestException(f"Path '{path}' is a directory, but path type is not DIRECTORY.")
     
@@ -69,14 +76,8 @@ def add_data_path_to_project(api_token: str, project_id: int, path: str, path_ty
 
     return jsonify({"result": "success", "share_path": share_path, "path": path, "type": path_type.name}), 200
 
-@wrappers.api_route(shares_api_bp, db=db, methods=["DELETE"], json_params=["api_token", "project_id"])
-def remove_data_paths_from_project(api_token: str, project_id: int):
-    if (token := db.api_tokens.get(api_token)) is None:
-        raise exceptions.NotFoundException(f"Invalid API token '{api_token}'.")
-    
-    if token.is_expired:
-        raise exceptions.NoPermissionsException("API token is expired.")
-    
+@wrappers.api_route(shares_api_bp, db=db, methods=["DELETE"], json_params=["project_id"])
+def remove_data_paths_from_project(project_id: int):    
     if (project := db.projects.get(project_id)) is None:
         raise exceptions.NotFoundException(f"Project with ID '{project_id}' not found.")
     

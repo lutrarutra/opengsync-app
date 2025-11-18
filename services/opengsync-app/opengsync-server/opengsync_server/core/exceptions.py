@@ -22,6 +22,13 @@ class NoPermissionsException(OpeNGSyncServerException):
     def response(self) -> DBEnum:
         return HTTPResponse.FORBIDDEN
 
+class UnauthorizedException(OpeNGSyncServerException):
+    def __init__(self, message: str = "Authentication is required and has failed or has not yet been provided."):
+        super().__init__(message)
+
+    @property
+    def response(self) -> DBEnum:
+        return HTTPResponse.UNAUTHORIZED
 
 class NotFoundException(OpeNGSyncServerException):
     def __init__(self, message: str = "The resource does not exist."):

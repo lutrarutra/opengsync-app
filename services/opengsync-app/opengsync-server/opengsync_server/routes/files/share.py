@@ -15,7 +15,7 @@ from ...core.RunTime import runtime
 file_share_bp = Blueprint("file_share", __name__, url_prefix="/files/share/")
 
 
-@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute")
+@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute", api_token_required=False)
 def validate(token: str):
     if (share_token := db.shares.get(token)) is None:
         raise exceptions.NotFoundException("Token Not Found")
@@ -26,7 +26,7 @@ def validate(token: str):
     return "OK", 200
 
 
-@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=300, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute")
+@wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=300, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute", api_token_required=False)
 def rclone(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
