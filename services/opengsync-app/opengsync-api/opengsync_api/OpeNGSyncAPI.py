@@ -37,8 +37,7 @@ class OpeNGSyncAPI:
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
-            print(f"{response.status_code}: {response.text}")
-            raise
+            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
         return response.json()
     
     def remove_data_paths(
@@ -59,8 +58,7 @@ class OpeNGSyncAPI:
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
-            print(f"{response.status_code}: {response.text}")
-            raise
+            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
         return response.json()
 
     def query_sequence_i7(self, sequence: str, limit: int = 10) -> pd.DataFrame:
@@ -73,8 +71,7 @@ class OpeNGSyncAPI:
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
-            print(f"{response.status_code}: {response.text}")
-            raise
+            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
         data = response.json()
         fc_results = pd.DataFrame(data["fc_results"])
         fc_results["orientation"] = "forward"
@@ -108,8 +105,7 @@ class OpeNGSyncAPI:
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
-            print(f"{response.status_code}: {response.text}")
-            raise
+            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
         return response.json()
     
     def __str__(self):

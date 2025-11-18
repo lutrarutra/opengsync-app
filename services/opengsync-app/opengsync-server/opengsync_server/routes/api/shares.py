@@ -12,16 +12,28 @@ from ... import db, logger
 shares_api_bp = Blueprint("shares_api", __name__, url_prefix="/api/shares/")
 
 def get_share_path(real_path: str) -> Path | None:
-    for key, prefix in runtime.app.share_path_mapping.items():
-        if real_path.startswith(prefix):
+    # sort by length of prefix descending to match longest prefix first
+    key_value = list(runtime.app.share_path_mapping.items())
+    key_value.sort(key=lambda x: len(x[1]), reverse=True)
+
+    rp = Path(real_path).resolve()
+
+    for key, prefix in key_value:
+        if rp.is_relative_to(prefix):
             if not real_path.replace(prefix, "", 1):
                 raise exceptions.BadRequestException(f"Path '{real_path}' is the root of share path mapping '{key}' and is not allowed.")
-            return Path(key) / real_path.replace(prefix, "", 1)
+            share_path = Path(key) / real_path.replace(prefix, "", 1).lstrip("/")
+            return share_path
     return None
 
 def get_real_path(share_path: str) -> str | None:
-    for key, prefix in runtime.app.share_path_mapping.items():
-        if share_path.startswith(key):
+    # sort by length of prefix descending to match longest prefix first
+    key_value = list(runtime.app.share_path_mapping.items())
+    key_value.sort(key=lambda x: len(x[1]), reverse=True)
+    sp = Path(share_path).resolve()
+
+    for key, prefix in key_value:
+        if sp.is_relative_to(key):
             return share_path.replace(key, prefix, 1)
     return None
 
@@ -40,7 +52,7 @@ def resolve_share_path(path: str, path_type_id: int) -> tuple[str, DataPathTypeE
         raise exceptions.BadRequestException(f"Invalid share path '{path}'. Path must start with one of: {', '.join(runtime.app.share_path_mapping.values())}")
     
     if not (p := runtime.app.share_root / share_path).exists():
-        raise exceptions.NotFoundException(f"Share path '{path}' ({p.as_posix()}) does not exist on server.")
+        raise exceptions.NotFoundException(f"Share path '{share_path}' ({path} -> {p.as_posix()}) does not exist on server.")
     
     # make sure path does not .. out of share root
     try:
