@@ -29,14 +29,27 @@ def __get_flash_msg(msg: str) -> str:
     ) or msg
 
 
-def _default_logger(blueprint: Blueprint | Flask, routes, args, kwargs, e: Exception, exc_type: str) -> None:
-    logger.error(
+def _default_logger(blueprint: Blueprint | Flask, routes, args, kwargs, e: Exception, exc_type: str, type: Literal["error", "warning", "info"] | None = None) -> None:
+    if type is None:
+        match e:
+            case serv_exceptions.NoPermissionsException | serv_exceptions.NotFoundException | serv_exceptions.BadRequestException | serv_exceptions.MethodNotAllowedException | db_exceptions.ElementDoesNotExist:
+                type = "warning"
+
+    match type:
+        case "warning":
+            log_func = logger.warning
+        case "info":
+            log_func = logger.info
+        case _:
+            log_func = logger.error
+
+    log_func(
         f"\n-------- {exc_type} --------"
         f"\n\tBlueprint: {blueprint}"
         f"\n\tRoute: {routes}"
         f"\n\targs: {args}"
         f"\n\tkwargs: {kwargs}"
-        f"\n\tError: {e.__repr__()}"
+        f"\n\tError: {e}"
         f"\n\tMessage: {e}"
         f"\n\tTraceback: {traceback.format_exc()}"
         f"\n-------- END ERROR --------"
@@ -163,18 +176,22 @@ def _route_decorator(
                         raise serv_exceptions.NoPermissionsException(f"Invalid API token '{api_token}'.")
                     if token.is_expired:
                         raise serv_exceptions.NoPermissionsException("API token is expired.")
+                    
+                    if limiter.current_limit is not None:
+                        limiter.storage.clear(limiter.current_limit.key)
+
                 return fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
                 rollback = db.needs_commit if db is not None else False
-                _default_logger(blueprint, routes, args, kwargs, e, "InternalServerErrorException")
+                _default_logger(blueprint, routes, args, kwargs, e, "InternalServerErrorException", "error")
                 return response_handler(e)
             except serv_exceptions.OpeNGSyncServerException as e:
                 rollback = db.needs_commit if db is not None else False
-                _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncServerException")
+                _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncServerException", None)
                 return response_handler(e)
             except db_exceptions.OpeNGSyncDBException as e:
                 rollback = db.needs_commit if db is not None else False
-                _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncDBException")
+                _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncDBException", None)
                 return response_handler(e)
             except RateLimitExceeded as e:
                 logger.warning(f"Rate limit exceeded on route {routes} for IP {request.remote_addr}")
@@ -183,7 +200,7 @@ def _route_decorator(
                 rollback = db.needs_commit if db is not None else False
                 if runtime.app.debug and response_handler.__name__ != "_htmx_handler":
                     raise e
-                _default_logger(blueprint, routes, args, kwargs, e, "Exception")
+                _default_logger(blueprint, routes, args, kwargs, e, "Exception", "error")
                 return response_handler(e)
             finally:
                 if db is not None:
