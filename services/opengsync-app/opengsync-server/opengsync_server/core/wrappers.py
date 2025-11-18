@@ -1,12 +1,14 @@
 import os
+from re import match
 from typing import Callable, Literal, Any, Sequence
 from functools import wraps
 import traceback
 
-from flask import Blueprint, Flask, render_template, flash, request, Response
+from flask import Blueprint, Flask, render_template, flash, request, Response, Request
 from flask_htmx import make_response
 from flask_login import login_required as login_required_f, current_user
 from flask_limiter.errors import RateLimitExceeded
+from flask_limiter import Limiter
 
 from opengsync_db import DBHandler
 from opengsync_db.categories import HTTPResponse
@@ -55,6 +57,34 @@ def _default_logger(blueprint: Blueprint | Flask, routes, args, kwargs, e: Excep
         f"\n-------- END ERROR --------"
     )
 
+# def on_limit_breach(response_handler: Literal["_htmx_handler", "_api_handler", "_page_handler", "_resource_handler"]) -> Callable[[Request, str], Response]:
+#     limit_breach_fnc = None
+
+#     match response_handler:
+#         case "_htmx_handler":
+#             def htmx_limit_breach(request: Request, limit: str):
+#                 logger.warning(f"Rate limit '{limit}' exceeded for IP {request.remote_addr} on route {request.path}")
+#                 return _htmx_handler(serv_exceptions.TooManyRequestsException())
+#             limit_breach_fnc = limit_breach
+
+#         case "_api_handler"
+#             def limit_breach(request: Request, limit: str):
+#                 logger.warning(f"Rate limit '{limit}' exceeded for IP {request.remote_addr} on route {request.path}")
+#                 return _api_handler(serv_exceptions.TooManyRequestsException())
+#         case "_page_handler":
+#             def limit_breach(request: Request, limit: str):
+#                 logger.warning(f"Rate limit '{limit}' exceeded for IP {request.remote_addr} on route {request.path}")
+#                 return _page_handler(serv_exceptions.TooManyRequestsException())
+            
+#         case "_resource_handler":
+#             def limit_breach(request: Request, limit: str):
+#                 logger.warning(f"Rate limit '{limit}' exceeded for IP {request.remote_addr} on route {request.path}")
+#                 return _resource_handler(serv_exceptions.TooManyRequestsException())
+        
+                
+
+#     return limit_breach_fnc
+    
 
 def _route_decorator(
     blueprint: Blueprint | Flask,
@@ -194,7 +224,7 @@ def _route_decorator(
                 _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncDBException", None)
                 return response_handler(e)
             except RateLimitExceeded as e:
-                logger.warning(f"Rate limit exceeded on route {routes} for IP {request.remote_addr}")
+                
                 return response_handler(serv_exceptions.TooManyRequestsException())
             except Exception as e:
                 rollback = db.needs_commit if db is not None else False

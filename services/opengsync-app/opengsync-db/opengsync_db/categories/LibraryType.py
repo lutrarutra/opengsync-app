@@ -48,11 +48,9 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     PARSE_EVERCODE_BCR = LibraryTypeEnum(73, "Parse Biosciences Evercode BCR Immune Profiling", "Parse Evercode BCR", "PARSBCR", "BCR Profiling")
 
     # RNA-seq
-    POLY_A_RNA_SEQ = LibraryTypeEnum(101, "Poly-A RNA-Seq", "Poly-A RNA-Seq", "POLYARNA", "Gene Expression")
-    SMART_SEQ = LibraryTypeEnum(102, "Smart-Seq2", "Smart-Seq2", "SMARTSEQ2", "Gene Expression")
+    BULK_RNA_SEQ = LibraryTypeEnum(100, "Bulk RNA-Seq", "Bulk RNA-Seq", "BULKRNA", "Gene Expression")
+
     SMART_SC_SEQ = LibraryTypeEnum(103, "Smart-Seq2 Single Cell", "Smart-Seq2 SC", "SMARTSEQSC2", "Gene Expression")
-    RIBO_DEPL_RNA_SEQ = LibraryTypeEnum(104, "Stranded RNA-Seq Ribosomal RNA Depletion", "Ribosomal RNA Depletion", "RRNADEPL", "Gene Expression")
-    QUANT_SEQ = LibraryTypeEnum(105, "QuantSeq 3' mRNA-Seq V2", "Quant-seq", "QUANTSEQ", "Gene Expression")
 
     WGS = LibraryTypeEnum(106, "Whole Genome Sequencing", "WGS", "WGS", "Gene Expression")
     WES = LibraryTypeEnum(107, "Whole Exome Sequencing", "WES", "WES", "Gene Expression")
@@ -74,9 +72,9 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
         if lab_protocol == LabProtocol.CUSTOM:
             return LibraryType.as_list()
         return {
-            LabProtocol.RNA_SEQ: [LibraryType.POLY_A_RNA_SEQ, LibraryType.IMMUNE_SEQ],
-            LabProtocol.QUANT_SEQ: [LibraryType.QUANT_SEQ],
-            LabProtocol.SMART_SEQ: [LibraryType.SMART_SEQ, LibraryType.SMART_SC_SEQ],
+            LabProtocol.RNA_SEQ: [LibraryType.BULK_RNA_SEQ, LibraryType.IMMUNE_SEQ],
+            LabProtocol.QUANT_SEQ: [LibraryType.BULK_RNA_SEQ],
+            LabProtocol.SMART_SEQ: [LibraryType.BULK_RNA_SEQ, LibraryType.SMART_SC_SEQ],
             LabProtocol.WGS: [LibraryType.WGS, LibraryType.ARTIC_SARS_COV_2, LibraryType.RR_BS_SEQ, LibraryType.WG_BS_SEQ, LibraryType.RR_EM_SEQ, LibraryType.WG_EM_SEQ],
             LabProtocol.WES: [LibraryType.WES],
             LabProtocol.TENX: [
