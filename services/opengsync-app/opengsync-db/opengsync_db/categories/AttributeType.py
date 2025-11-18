@@ -11,7 +11,7 @@ class AttributeTypeEnum(DBEnum):
 class AttributeType(ExtendedEnum[AttributeTypeEnum], enum_type=AttributeTypeEnum):
     CUSTOM = AttributeTypeEnum(0, "Custom", "custom")
     SEX = AttributeTypeEnum(1, "Sex", "sex")
-    PHENOTYPE = AttributeTypeEnum(2, "Phenotype", "phenotype")
+    # PHENOTYPE = AttributeTypeEnum(2, "Phenotype", "phenotype")
     GENOTYPE = AttributeTypeEnum(2, "Genotype", "genotype")
     CELL_TYPE = AttributeTypeEnum(3, "Cell Type", "cell_type")
     CONDITION = AttributeTypeEnum(4, "Condition", "condition")

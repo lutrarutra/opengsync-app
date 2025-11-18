@@ -37,10 +37,7 @@ class AssayType(ExtendedEnum[AssayTypeEnum], enum_type=AssayTypeEnum):
     PARSE = AssayTypeEnum(51, "Parse Biosciences Single-Cell Sequencing", "Parse SC", library_types=[LibraryType.PARSE_SC_GEX], optional_library_types=[LibraryType.PARSE_SC_CRISPR, LibraryType.PARSE_EVERCODE_TCR, LibraryType.PARSE_EVERCODE_BCR])
 
     # RNA
-    POLY_A_RNA_SEQ = AssayTypeEnum(101, "Poly-A RNA-Seq", "Poly-A RNA-Seq", library_types=[LibraryType.POLY_A_RNA_SEQ])
-    RIBO_DEPL_RNA_SEQ = AssayTypeEnum(102, "Ribo Depletion RNA-Seq", "Ribo Depletion RNA-Seq", library_types=[LibraryType.RIBO_DEPL_RNA_SEQ])
-    QUANT_SEQ = AssayTypeEnum(103, "QuantSeq 3' mRNA-Seq V2", "Quant-Seq", library_types=[LibraryType.QUANT_SEQ])
-    SMART_SEQ = AssayTypeEnum(104, "Full-length RNA-seq from single cells using Smart-seq2", "Smart-Seq2", library_types=[LibraryType.SMART_SEQ])
+    BULK_RNA_SEQ = AssayTypeEnum(100, "Bulk RNA-Seq", "Bulk RNA-Seq", library_types=[LibraryType.BULK_RNA_SEQ])
     
     WGS = AssayTypeEnum(105, "Whole Genome Sequencing", "WGS", library_types=[LibraryType.WGS])
     WES = AssayTypeEnum(106, "Whole Exome Sequencing", "WES", library_types=[LibraryType.WES])
