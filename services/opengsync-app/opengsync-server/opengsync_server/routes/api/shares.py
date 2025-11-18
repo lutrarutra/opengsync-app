@@ -12,7 +12,11 @@ from ... import db, logger
 shares_api_bp = Blueprint("shares_api", __name__, url_prefix="/api/shares/")
 
 def get_share_path(real_path: str) -> Path | None:
-    for key, prefix in runtime.app.share_path_mapping.items():
+    # sort by length of prefix descending to match longest prefix first
+    key_value = list(zip(runtime.app.share_path_mapping.keys(), runtime.app.share_path_mapping.values()))
+    key_value.sort(key=lambda x: len(x[1]), reverse=True)
+
+    for key, prefix in key_value:
         if real_path.startswith(prefix):
             if not real_path.replace(prefix, "", 1):
                 raise exceptions.BadRequestException(f"Path '{real_path}' is the root of share path mapping '{key}' and is not allowed.")
@@ -20,7 +24,11 @@ def get_share_path(real_path: str) -> Path | None:
     return None
 
 def get_real_path(share_path: str) -> str | None:
-    for key, prefix in runtime.app.share_path_mapping.items():
+    # sort by length of prefix descending to match longest prefix first
+    key_value = list(zip(runtime.app.share_path_mapping.keys(), runtime.app.share_path_mapping.values()))
+    key_value.sort(key=lambda x: len(x[1]), reverse=True)
+    
+    for key, prefix in key_value:
         if share_path.startswith(key):
             return share_path.replace(key, prefix, 1)
     return None
