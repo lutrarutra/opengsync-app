@@ -118,6 +118,8 @@ class LabPrep(Base):
             for library in self.libraries
         ) if (libraries_added and libraries_indexed) else None
 
+        lab_prep_completed = self.status >= PrepStatus.COMPLETED if (libraries_added and libraries_pooled) else None
+
         return {
             "libraries_added": libraries_added,
             "samples_pooled": samples_pooled,
@@ -136,6 +138,7 @@ class LabPrep(Base):
             "flex_mux_libraries_annotations_missing": flex_mux_libraries_annotations_missing,
             "on_chip_mux_libraries_annotations_missing": on_chip_mux_libraries_annotations_missing,
             "protocols_selected": protocols_selected,
+            "lab_prep_completed": lab_prep_completed,
         }
 
     @hybrid_property
