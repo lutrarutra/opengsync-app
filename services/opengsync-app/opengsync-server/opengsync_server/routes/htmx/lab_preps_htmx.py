@@ -177,8 +177,9 @@ def complete(current_user: models.User, lab_prep_id: int):
         raise exceptions.NotFoundException()
     
     for pool in lab_prep.pools:
-        pool.status = PoolStatus.STORED
-        db.pools.update(pool)
+        if pool.status < PoolStatus.STORED:
+            pool.status = PoolStatus.STORED
+            db.pools.update(pool)
 
     for library in lab_prep.libraries:
         is_prepared = True

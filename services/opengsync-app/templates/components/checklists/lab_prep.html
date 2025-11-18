@@ -1,4 +1,5 @@
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/confirm.jinja2" import confirm_action_button %}
 
 <div class="accordion p-1" id="sops-accordion">
     <div class="accordion-item">
@@ -15,7 +16,7 @@
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#xl-modal"
                         hx-get="{{ url_for('library_prep_workflow.begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#xl-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML">Begin</button> 'Add Libraries' - Workflow
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Add Libraries' - Workflow
                     </li>
                     <li>Select libraries</li>
                     <li>Complete workflow</li>
@@ -36,7 +37,8 @@
                     <li>
                         <button class="btn-primary btn"data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('mux_prep_workflow.sample_pooling', lab_prep_id=lab_prep.id) }}"
-                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal" hx-swap="innerHTML" {% if not mux_required %}disabled{% endif %}>Begin</button> 'Sample Multiplexing' - Workflow
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal" hx-swap="innerHTML"
+                        {% if not mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Sample Multiplexing' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -60,7 +62,7 @@
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_OLIGO.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML" {% if not oligo_mux_required %}disabled{% endif %}>Begin</button> 'Oligo Multiplexing Prep' - Workflow
+                        hx-swap="innerHTML" {% if not oligo_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Oligo Multiplexing Prep' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -84,7 +86,7 @@
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_FLEX_PROBE.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML" {% if not flex_mux_required %}disabled{% endif %}>Begin</button> 'Flex Multiplexing Prep' - Workflow
+                        hx-swap="innerHTML" {% if not flex_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Flex Multiplexing Prep' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -108,7 +110,7 @@
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_ON_CHIP.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML" {% if not on_chip_mux_required %}disabled{% endif %}>Begin</button> 'On-Chip Multiplexing Prep' - Workflow
+                        hx-swap="innerHTML" {% if not on_chip_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'On-Chip Multiplexing Prep' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -140,7 +142,7 @@
                         Fill the template as required and <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('lab_preps_htmx.prep_table_upload_form', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML">Upload</button> the completed prep-table.
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Upload</button> the completed prep-table.
                     </li>
                 </ol>
             </div>
@@ -160,7 +162,7 @@
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('select_library_protocols_workflow.begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML">Begin</button> 'Select Library Protocols' - Workflow
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Select Library Protocols' - Workflow
                     </li>
                 </ol>
                 <b>Notes:</b>
@@ -203,7 +205,7 @@
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#xl-modal"
                         hx-get="{{ url_for('ba_report_workflow.begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#xl-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML">Begin</button> 'Bio Analyzer' - Workflow
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Bio Analyzer' - Workflow
                     </li>
                 </ol>
             </div>
@@ -223,7 +225,7 @@
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('reindex_workflow.begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML">Begin</button> 'Index Libraries' - Workflow
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Index Libraries' - Workflow
                     </li>
                 </ol>
             </div>
@@ -243,10 +245,41 @@
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                         hx-get="{{ url_for('library_pooling_workflow.begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
-                        hx-swap="innerHTML">Begin</button> 'Pool Libraries' - Workflow
+                        hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Pool Libraries' - Workflow
                     </li>
                 </ol>
             </div>
         </div>
     </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-11" aria-expanded="false" aria-controls="sops-accordiod-collapse-11">
+                <b>{% if lab_prep_completed is none %}❗{% elif lab_prep_completed %}✅{% else %}⚠️{% endif %} Complete Lab Prep</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-11" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                text="Complete Prep",
+                                title="Complete Library Prep?",
+                                class="btn btn-success",
+                                url=url_for('lab_preps_htmx.complete', lab_prep_id=lab_prep.id),
+                                disabled=lab_prep_completed is not false,
+                                method="hx-post",
+                            )
+                        }}
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>Sets the status of all pools to "Stored".</li>
+                    <li>Sets the status of the lab prep to "Completed".</li>
+                    <li>Sets the status of sequencing requests to "Prepared" if all libraries in it are prepared.</li>
+                </ul>
+            </div>
+        </div>
 </div>

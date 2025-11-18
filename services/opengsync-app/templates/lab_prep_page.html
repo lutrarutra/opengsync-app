@@ -1,8 +1,8 @@
 {% from "components/tooltip.jinja2" import tooltip %}
-{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_link, metadata_group_email_link %}
 {% from "components/form_group.jinja2" import form_group %}
-{% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/confirm.jinja2" import confirm_action_button %}
 
 {% extends "base.html" %}
 {% set active_page = "lab_preps-page" %}
@@ -32,39 +32,30 @@
                             Re-Sequence Libraries
                         </button>
                     <li>
-                        <button class="dropdown-item"
-                            hx-delete="{{ url_for('lab_preps_htmx.delete', lab_prep_id=lab_prep.id) }}"
-                            _="on htmx:confirm(issueRequest)
-                            halt the event
-                            call Swal.fire({
-                                title: 'Delete Library Prep?',
-                                showDenyButton: true,
-                                text: 'You will not be able to undo this. Are you sure?',
-                                icon: 'question',
-                                confirmButtonText: 'Yes',
-                                denyButtonText: 'No'
-                            })
-                            if result.isConfirmed issueRequest()" {% if lab_prep.status == PrepStatus.PREPARING %}disabled{% endif %}>
-                            Delete Prep
-                        </button>
+                        {{
+                            confirm_action_button(
+                                text="Delete Prep",
+                                title="Delete Library Prep?",
+                                body="You will not be able to undo this. Are you sure?",
+                                method="hx-delete",
+                                url=url_for('lab_preps_htmx.delete', lab_prep_id=lab_prep.id),
+                                class="dropdown-item",
+                                disabled=lab_prep.status >= PrepStatus.COMPLETED,
+                            )
+                        }}
                     </li>
                     <li>
-                        <button class="dropdown-item"
-                            hx-post="{{ url_for('lab_preps_htmx.uncomplete', lab_prep_id=lab_prep.id) }}"
-                            _="on htmx:confirm(issueRequest)
-                            halt the event
-                            call Swal.fire({
-                                title: 'Undo Library Prep?',
-                                showDenyButton: true,
-                                text: 'This will change the status of all \'Pooled\' libraries to \'Preparing\'. Are you sure?',
-                                icon: 'question',
-                                confirmButtonText: 'Yes',
-                                denyButtonText: 'No'
-                            })
-                            if result.isConfirmed issueRequest()"
-                            {% if can_be_completed == false or lab_prep.status < PrepStatus.COMPLETED %}disabled{% endif %}>
-                            Undo Prep
-                        </button>
+                        {{
+                            confirm_action_button(
+                                text="Uncomplete Prep",
+                                title="Undo Library Prep?",
+                                body="This will change the status of all 'Pooled' libraries to 'Preparing'. Are you sure?",
+                                method="hx-post",
+                                url=url_for('lab_preps_htmx.uncomplete', lab_prep_id=lab_prep.id),
+                                class="dropdown-item",
+                                disabled=lab_prep.status < PrepStatus.COMPLETED
+                            )
+                        }}
                     </li>
                     <li>
                         <button type="button" class="dropdown-item" data-bs-toggle="modal"
@@ -72,42 +63,6 @@
                         hx-get="{{ url_for('lab_preps_htmx.file_form', lab_prep_id=lab_prep.id) }}">
                             Attach File
                         </button>
-                    </li>
-                </ul>
-            </div>
-            {% if lab_prep.status == PrepStatus.PREPARING %}
-            <span {% if can_be_completed == false %}{{ tooltip("You must add libraries and complete 'Pool Libraries'-workflow first!", category="success") }}{% endif %}>
-                <button class="btn btn-success"
-                    hx-post="{{ url_for('lab_preps_htmx.complete', lab_prep_id=lab_prep.id) }}"
-                    _="on htmx:confirm(issueRequest)
-                    halt the event
-                    call Swal.fire({
-                        title: 'Complete Library Prep?',
-                        showDenyButton: true,
-                        text: 'Are you sure?',
-                        icon: 'question',
-                        confirmButtonText: 'Yes',
-                        denyButtonText: 'No'
-                    })
-                    if result.isConfirmed issueRequest()"
-                    {% if can_be_completed == false %}disabled{% endif %}>
-                    Complete Prep
-                </button>
-            </span>
-            {% endif %}
-
-            <div class="dropdown">
-                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    Template
-                </button>
-                <ul class="dropdown-menu">
-                    <li>
-                        <a class="dropdown-item" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='rows') }}"
-                        {% if lab_prep.libraries | length == 0 %}onclick="confirmation(event)"{% endif %}>Rows</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='columns') }}"
-                        {% if lab_prep.libraries | length == 0 %}onclick="confirmation(event)"{% endif %}>Columns</a>
                     </li>
                 </ul>
             </div>
