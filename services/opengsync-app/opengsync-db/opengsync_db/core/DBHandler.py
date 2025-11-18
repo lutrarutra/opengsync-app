@@ -52,10 +52,11 @@ class DBHandler():
         from .blueprints.SeqRunBP import SeqRunBP
         from .blueprints.EventBP import EventBP
         from .blueprints.GroupBP import GroupBP
-        from .blueprints.ShareBP import ShareBP
+        from .blueprints.ShareTokenBP import ShareTokenBP
         from .blueprints.DataPathBP import DataPathBP
         from .blueprints.PandasBP import PandasBP
         from .blueprints.ProtocolBP import ProtocolBP
+        from .blueprints.APITokenBP import APITokenBP
 
         self.seq_requests = SeqRequestBP("seq_requests", self)
         self.libraries = LibraryBP("libraries", self)
@@ -81,9 +82,10 @@ class DBHandler():
         self.seq_runs = SeqRunBP("seq_runs", self)
         self.events = EventBP("events", self)
         self.groups = GroupBP("groups", self)
-        self.shares = ShareBP("shares", self)
+        self.shares = ShareTokenBP("shares", self)
         self.data_paths = DataPathBP("data_paths", self)
         self.protocols = ProtocolBP("protocols", self)
+        self.api_tokens = APITokenBP("api_tokens", self)
         self.pd = PandasBP("pd", self)
 
     def connect(

@@ -133,7 +133,8 @@ class PandasBP(DBBlueprint):
             models.Library.seq_request_id.label("seq_request_id"),
             models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
             models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
-            models.LibraryIndex._orientation.label("orientation_id")
+            models.LibraryIndex._orientation.label("orientation_id"),
+            models.Protocol.read_structure.label("read_structure"), models.Protocol.name.label("protocol_name")
         ]
 
         query = sa.select(*columns).where(
@@ -154,6 +155,11 @@ class PandasBP(DBBlueprint):
         ).join(
             models.LibraryIndex,
             models.LibraryIndex.library_id == models.Library.id,
+            isouter=True
+        ).join(
+            models.Protocol,
+            models.Protocol.id == models.Library.protocol_id,
+            isouter=True
         )
 
         query = query.order_by(models.Lane.number, models.Pool.id, models.Library.id)
@@ -162,7 +168,7 @@ class PandasBP(DBBlueprint):
         df["reference"] = df["reference_id"].map(categories.GenomeRef.get)  # type: ignore
         df["orientation"] = df["orientation_id"].apply(lambda x: categories.BarcodeOrientation.get(x) if x else None)  # type: ignore
 
-        df = df[["lane", "sample_name", "library_name", "library_type", "reference", "seq_request_id", "sequence_i7", "sequence_i5", "orientation"]]
+        df = df[["lane", "sample_name", "library_name", "library_type", "reference", "seq_request_id", "sequence_i7", "sequence_i5", "orientation", "read_structure", "protocol_name", "pool_name", "library_id"]]
 
         return df
 

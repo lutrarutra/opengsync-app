@@ -20,6 +20,10 @@ db:
 
 external_base_url: none
 
+share_path_mapping:
+    PROCESSED_DATA: "/projects"
+    RAW_DATA: "/raw_data"
+
 # Make sure these match the paths specified in the docker-compose file
 app_root: "/app"
 media_folder: "/media"

@@ -158,7 +158,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('lab_preps_htmx.protocol_form', lab_prep_id=lab_prep.id) }}"
+                        hx-get="{{ url_for('select_library_protocols_workflow.begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML">Begin</button> 'Select Library Protocols' - Workflow
                     </li>

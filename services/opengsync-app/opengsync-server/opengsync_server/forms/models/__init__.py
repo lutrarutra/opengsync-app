@@ -13,3 +13,4 @@ from .IndexKitForm import IndexKitForm # noqa
 from .FeatureKitForm import FeatureKitForm # noqa
 from .KitForm import KitForm # noqa
 from .ProtocolForm import ProtocolForm  # noqa
+from .APIToken import APITokenForm  # noqa

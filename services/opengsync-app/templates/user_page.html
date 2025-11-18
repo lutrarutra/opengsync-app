@@ -89,6 +89,12 @@
             aria-controls="user-groups-tab" aria-selected="false">
             Groups ({{ user.num_affiliations }})</button>
         </li>
+        <li>
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#user-api_tokens-tab" type="button" role="tab"
+            aria-controls="user-api_tokens-tab" aria-selected="false">
+            API ({{ user.num_api_tokens }})</button>
+        </li>
     </ul>
 </div>
 <div class="page-content">
@@ -112,6 +118,25 @@
         </div>
         <div class="tab-pane fade" id="user-groups-tab" role="tabpanel" tabindex="3">
             <div hx-get="{{ url_for('users_htmx.get_affiliations', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="user-api_tokens-tab" role="tabpanel" tabindex="4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>API Tokens</h2>
+                </div>
+                <div>
+                    {% if current_user.is_admin() or current_user.id == user.id %}
+                    <button class="btn btn-primary"
+                    hx-get="{{ url_for('api_tokens_htmx.create', user_id=user.id) }}"
+                    data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content">
+                        New Token
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div hx-get="{{ url_for('users_htmx.get_api_tokens', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

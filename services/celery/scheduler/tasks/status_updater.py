@@ -33,7 +33,8 @@ def __find_finished_libraries(q):
         models.Experiment.id == models.Library.experiment_id,
     ).where(
         models.Experiment.status_id.in_([
-            categories.ExperimentStatus.FINISHED.id,
+            categories.ExperimentStatus.SEQUENCED.id,
+            categories.ExperimentStatus.DEMULTIPLEXED.id,
             categories.ExperimentStatus.ARCHIVED.id,
         ])
     )
@@ -45,7 +46,8 @@ def __find_sequenced_pools(q):
         models.Experiment.id == models.Pool.experiment_id,
     ).where(
         models.Experiment.status_id.in_([
-            categories.ExperimentStatus.FINISHED.id,
+            categories.ExperimentStatus.SEQUENCED.id,
+            categories.ExperimentStatus.DEMULTIPLEXED.id,
             categories.ExperimentStatus.ARCHIVED.id,
         ])
     )
@@ -107,10 +109,10 @@ def update_statuses(db: DBHandler):
         ],
     )[0]:
         if experiment.seq_run is None:
-            experiment.status = categories.ExperimentStatus.FINISHED
+            experiment.status = categories.ExperimentStatus.SEQUENCED
         else:
             if experiment.seq_run.status == categories.RunStatus.FINISHED:
-                experiment.status = categories.ExperimentStatus.FINISHED
+                experiment.status = categories.ExperimentStatus.SEQUENCED
             elif experiment.seq_run.status == categories.RunStatus.ARCHIVED:
                 experiment.status = categories.ExperimentStatus.ARCHIVED
             else:
