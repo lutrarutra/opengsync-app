@@ -538,25 +538,20 @@ class PandasBP(DBBlueprint):
     def get_experiment_seq_qualities(self, experiment_id: int) -> pd.DataFrame:
         query = sa.select(
             models.Library.id.label("library_id"), models.Library.name.label("library_name"),
-            models.SeqQuality.lane, models.SeqQuality.num_lane_reads, models.SeqQuality.num_library_reads,
-            models.SeqQuality.mean_quality_pf_r1, models.SeqQuality.q30_perc_r1,
-            models.SeqQuality.mean_quality_pf_r2, models.SeqQuality.q30_perc_r2,
-            models.SeqQuality.mean_quality_pf_i1, models.SeqQuality.q30_perc_i1,
-            models.SeqQuality.mean_quality_pf_i2, models.SeqQuality.q30_perc_i2,
+            models.SeqQuality.lane, models.SeqQuality.num_reads, models.SeqQuality.qc
+        ).where(
+            models.SeqQuality.experiment_id == experiment_id
         ).join(
             models.Library,
             models.Library.id == models.SeqQuality.library_id,
             isouter=True
-        ).where(
-            models.Library.experiment_id == experiment_id
         )
 
-        query = query.order_by(models.SeqQuality.lane, models.Library.id)
+        # query = query.order_by(models.SeqQuality.lane, models.Library.id)
         df = pd.read_sql(query, self.db._engine)
 
-        df.loc[df["library_name"].isna(), "library_id"] = -1
-        df.loc[df["library_name"].isna(), "library_name"] = "Undetermined"
-        df["library_id"] = df["library_id"].astype(int)
+        df.loc[df["library_id"].isna(), "library_name"] = "Undetermined"
+        df["library_id"] = df["library_id"].astype(pd.Int64Dtype())
 
         return df
 

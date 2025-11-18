@@ -348,50 +348,50 @@ class LibraryBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def set_seq_quality(
-        self, library_id: Optional[int], experiment_id: int, lane: int,
-        num_lane_reads: int, num_library_reads: int,
-        mean_quality_pf_r1: float, q30_perc_r1: float,
-        mean_quality_pf_i1: float, q30_perc_i1: float,
-        mean_quality_pf_r2: Optional[float], q30_perc_r2: Optional[float],
-        mean_quality_pf_i2: Optional[float], q30_perc_i2: Optional[float],
+        self, library_id: int | None, experiment_id: int, lane: int, num_reads: int, qc: dict | None = None,
     ) -> models.SeqQuality:
         if library_id is not None:
             if (library := self.db.session.get(models.Library, library_id)) is None:
                 raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
             
-            library.status = LibraryStatus.SEQUENCED
+            if library.status < LibraryStatus.SEQUENCED:
+                library.status = LibraryStatus.SEQUENCED
             if library.pool is not None:
-                library.pool.status = PoolStatus.SEQUENCED
+                if library.pool.status < PoolStatus.SEQUENCED:
+                    library.pool.status = PoolStatus.SEQUENCED
+            
             self.db.session.add(library)
             
         if (quality := self.db.session.query(models.SeqQuality).where(
-            models.SeqQuality.library_id == library_id,
+            (models.SeqQuality.library_id == library_id) if library_id is not None else (models.SeqQuality.library_id.is_(None)),
             models.SeqQuality.experiment_id == experiment_id,
             models.SeqQuality.lane == lane,
         ).first()) is not None:
-            quality.num_lane_reads = num_lane_reads
-            quality.num_library_reads = num_library_reads
-            quality.mean_quality_pf_r1 = mean_quality_pf_r1
-            quality.q30_perc_r1 = q30_perc_r1
-            quality.mean_quality_pf_i1 = mean_quality_pf_i1
-            quality.q30_perc_i1 = q30_perc_i1
-            quality.mean_quality_pf_r2 = mean_quality_pf_r2
-            quality.q30_perc_r2 = q30_perc_r2
-            quality.mean_quality_pf_i2 = mean_quality_pf_i2
-            quality.q30_perc_i2 = q30_perc_i2
+            quality.num_reads = num_reads
+            quality.qc = qc
         else:
             quality = models.SeqQuality(
                 library_id=library_id, lane=lane, experiment_id=experiment_id,
-                num_lane_reads=num_lane_reads, num_library_reads=num_library_reads,
-                mean_quality_pf_r1=mean_quality_pf_r1, q30_perc_r1=q30_perc_r1,
-                mean_quality_pf_i1=mean_quality_pf_i1, q30_perc_i1=q30_perc_i1,
-                mean_quality_pf_r2=mean_quality_pf_r2, q30_perc_r2=q30_perc_r2,
-                mean_quality_pf_i2=mean_quality_pf_i2, q30_perc_i2=q30_perc_i2,
+                num_reads=num_reads, qc=qc
             )
 
         self.db.session.add(quality)
 
         return quality
+    
+    @DBBlueprint.transaction
+    def remove_seq_quality(
+        self, library_id: int | None, experiment_id: int, lane: int, flush: bool = True
+    ):
+        quality_query = self.db.session.query(models.SeqQuality).where(
+            (models.SeqQuality.library_id == library_id) if library_id is not None else (models.SeqQuality.library_id.is_(None)),
+            models.SeqQuality.experiment_id == experiment_id,
+            models.SeqQuality.lane == lane,
+        )
+        quality_query.delete(synchronize_session="fetch")
+
+        if flush:
+            self.db.flush()
 
     @DBBlueprint.transaction
     def add_index(

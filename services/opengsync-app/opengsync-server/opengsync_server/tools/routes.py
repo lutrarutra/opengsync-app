@@ -1,3 +1,5 @@
+import json
+
 import inspect
 import itertools
 from pathlib import Path
@@ -132,9 +134,16 @@ def validate_argument(value: Any, name: str, type_hint, origin, args):
         if len(non_none_args) == 1:
             base_type = non_none_args[0]
             if base_type == int:
-                value = int(value)
+                if value is not None:
+                    value = int(value)
             elif base_type == str:
-                value = str(value)
+                if value is not None:
+                    value = str(value)
+            elif base_type == dict:
+                if isinstance(value, str):
+                    value = json.loads(value)
+                elif not isinstance(value, dict):
+                    raise ValueError(f"Expected dict or JSON string for parameter: {name}")
             else:
                 raise ValueError(f"Unsupported Optional base type: {base_type}")
         else:
@@ -147,15 +156,18 @@ def validate_argument(value: Any, name: str, type_hint, origin, args):
     return value
     
 
-def validate_parameters(func: Callable, request: Request, kwargs: dict) -> dict:
+def validate_parameters(func: Callable, request: Request, kwargs: dict) -> tuple[dict, dict]:
     sig = inspect.signature(func)
     hints = get_type_hints(func)
 
-    args = request.args
-    form = request.form | request.files
+    args = dict(request.args)
+    form = dict(request.form | request.files)
     json_data: dict = request.get_json(silent=True) or {}
 
+    additional_kwargs = args | form | json_data
+
     for name, param in sig.parameters.items():
+        additional_kwargs.pop(name, None)
         if name in kwargs:
             continue
         
@@ -170,9 +182,6 @@ def validate_parameters(func: Callable, request: Request, kwargs: dict) -> dict:
                 kwargs[name] = param.default
                 continue
             else:
-                logger.debug(kwargs)
-                logger.debug(hints)
-                logger.debug(param)
                 raise ValueError(f"Missing required parameter: {name}")
             
         type_hint = hints.get(name, str)
@@ -180,6 +189,6 @@ def validate_parameters(func: Callable, request: Request, kwargs: dict) -> dict:
         value = validate_argument(value, name, type_hint, get_origin(type_hint), get_args(type_hint))
         kwargs[name] = value
 
-    return kwargs
+    return kwargs, additional_kwargs
     
     

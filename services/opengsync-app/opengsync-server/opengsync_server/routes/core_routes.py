@@ -176,12 +176,12 @@ def before_request():
     session["from_url"] = request.referrer
 
 
-@wrappers.api_route(runtime.app, login_required=False)
+@wrappers.api_route(runtime.app, login_required=False, api_token_required=False)
 def status():
     return make_response("OK", 200)
 
 
-@wrappers.api_route(runtime.app, login_required=False)
+@wrappers.api_route(runtime.app, login_required=False, api_token_required=False)
 def headers():
     logger.info(request.headers)
     logger.info(request.headers.get("X-Real-IP", request.remote_addr, type=str))

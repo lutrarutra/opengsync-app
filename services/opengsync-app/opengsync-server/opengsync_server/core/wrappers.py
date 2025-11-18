@@ -56,6 +56,7 @@ def _route_decorator(
     json_params: list[str],
     response_handler: Callable[[Exception], Any],
     cache_timeout_seconds: int | None,
+    api_token_required: bool,
     cache_query_string: bool,
     cache_type: Literal["user", "insider", "global"],
     cache_kwargs: dict[str, Any] | None,
@@ -149,9 +150,19 @@ def _route_decorator(
             rollback = False
             try:
                 try:
-                    kwargs = rt.validate_parameters(original_fnc, request, kwargs)
+                    kwargs, additional_kwargs = rt.validate_parameters(original_fnc, request, kwargs)
                 except ValueError as e:
                     raise serv_exceptions.BadRequestException("Invalid query parameters") from e
+                
+                if api_token_required:
+                    if db is None:
+                        raise serv_exceptions.InternalServerErrorException("Database handler is required for API token validation.")
+                    if (api_token := additional_kwargs.pop("api_token", None)) is None:
+                        raise serv_exceptions.UnauthorizedException("API token is required but not provided.")
+                    if (token := db.api_tokens.get(api_token)) is None:
+                        raise serv_exceptions.NoPermissionsException(f"Invalid API token '{api_token}'.")
+                    if token.is_expired:
+                        raise serv_exceptions.NoPermissionsException("API token is expired.")
                 return fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
                 rollback = db.needs_commit if db is not None else False
@@ -331,6 +342,7 @@ def page_route(
         json_params=json_params,
         login_required=login_required,
         debug=debug,
+        api_token_required=False,
         strict_slashes=strict_slashes,
         response_handler=_page_handler,
         cache_timeout_seconds=cache_timeout_seconds,
@@ -372,6 +384,7 @@ def htmx_route(
         json_params=json_params,
         login_required=login_required,
         debug=debug,
+        api_token_required=False,
         strict_slashes=strict_slashes,
         response_handler=_htmx_handler,
         cache_timeout_seconds=cache_timeout_seconds,
@@ -394,6 +407,7 @@ def api_route(
     arg_params: list[str] = [],
     form_params: list[str] = [],
     json_params: list[str] = [],
+    api_token_required: bool = True,
     cache_timeout_seconds: int | None = None,
     cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
@@ -403,6 +417,8 @@ def api_route(
     limit_exempt: Literal["all", "insider", "user", None] = "insider",
     limit_override: bool = False,
 ) -> Callable[[Callable[..., Any]], Response]:
+    if api_token_required and "api_token" not in json_params:
+        json_params.append("api_token")
     return _route_decorator(
         blueprint=blueprint,
         route=route,
@@ -413,6 +429,7 @@ def api_route(
         json_params=json_params,
         login_required=login_required,
         debug=debug,
+        api_token_required=api_token_required,
         strict_slashes=strict_slashes,
         response_handler=_api_handler,
         cache_timeout_seconds=cache_timeout_seconds,
@@ -454,6 +471,7 @@ def resource_route(
         json_params=json_params,
         login_required=login_required,
         debug=debug,
+        api_token_required=False,
         strict_slashes=strict_slashes,
         response_handler=_resource_handler,
         cache_timeout_seconds=cache_timeout_seconds,

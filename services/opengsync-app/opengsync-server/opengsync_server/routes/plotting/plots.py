@@ -1,4 +1,5 @@
 import json
+import pandas as pd
 
 from flask import Blueprint, request, url_for, render_template
 from flask_htmx import make_response
@@ -9,7 +10,7 @@ import plotly.graph_objects as go
 
 from opengsync_db import models
 
-from ... import db
+from ... import db, logger
 from ...core import wrappers, exceptions
 
 plots_api = Blueprint("plots_api", __name__, url_prefix="/plots/")
@@ -42,23 +43,29 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
     df = db.pd.get_experiment_seq_qualities(experiment_id)
     if len(df) == 0:
         return make_response()
-
+    
     df["lane"] = df["lane"].astype(str)
-    df["perc_reads"] = df["num_library_reads"] / df["num_lane_reads"]
-    mapping = df.groupby("library_id")["num_library_reads"].sum().to_dict()
+    df["num_lane_reads"] = df.groupby("lane")["num_reads"].transform("sum")
+    df["perc_reads"] = df["num_reads"] / df["num_lane_reads"]
+    mapping = df.groupby("library_id")["num_reads"].sum().to_dict()
+    mapping[None] = df.loc[df["library_id"].isna(), "num_reads"].sum()
     df["num_total_library_reads"] = df["library_id"].map(mapping)
     df = df.sort_values(by=["lane", "num_total_library_reads"], ascending=[True, True])
 
-    df["y_ticks"] = df.apply(lambda row: f"<a href='{url_for('libraries_page.library', library_id=row['library_id'])}?from=experiment@{experiment.id}' target='_self'>{row['library_name']}</a>", axis=1)
-    df.loc[df["library_id"] == -1, "y_ticks"] = "Undetermined"
+    df["y_ticks"] = df.apply(
+        lambda row: f"<a href='{url_for('libraries_page.library', library_id=row['library_id'])}?from=experiment@{experiment.id}' target='_self'>{row['library_name']}</a>"
+        if pd.notna(row["library_id"]) else "", axis=1  # type: ignore
+    )
+    
+    df.loc[df["library_id"].isna(), "y_ticks"] = "Undetermined"
 
     fig = go.Figure()
 
     barplot = px.bar(
-        df, x="num_library_reads", y="y_ticks", color="lane", barmode="group",
+        df, x="num_reads", y="y_ticks", color="lane", barmode="group",
         text=df["perc_reads"].apply(lambda x: f"{x * 100:.1f} %"),
         labels={
-            "num_library_reads": "# Reads",
+            "num_reads": "# Reads",
             "y_ticks": "Library",
             "lane": "Lane",
             "text": "%-Reads in Lane"
