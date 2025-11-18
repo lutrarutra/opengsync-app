@@ -13,14 +13,27 @@ class OpeNGSyncAPI:
         response = requests.get(f"{self.base_url}/status")
         return response
     
-    def add_data_path_to_project(self, project_id: int, path: str, path_type: categories.DataPathTypeEnum):
+    def add_data_path(
+        self,
+        path: str, path_type: categories.DataPathTypeEnum,
+        seq_request_id: int | None = None,
+        project_id: int | None = None,
+        experiment_id: int | None = None,
+        library_id: int | None = None,
+    ):
+        if seq_request_id is None and project_id is None and experiment_id is None and library_id is None:
+            raise ValueError("At least one of seq_request_id, project_id, experiment_id, or library_id must be provided.")
+        
         payload = {
             "api_token": self.api_token,
             "project_id": project_id,
+            "seq_request_id": seq_request_id,
+            "experiment_id": experiment_id,
+            "library_id": library_id,
             "path": path,
             "path_type_id": path_type.id
         }
-        response = requests.post(f"{self.base_url}/api/shares/add_data_path_to_project/", json=payload)
+        response = requests.post(f"{self.base_url}/api/shares/add_data_path/", json=payload)
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
@@ -28,13 +41,26 @@ class OpeNGSyncAPI:
             raise
         return response.json()
     
-    def remove_data_paths_from_project(self, project_id: int):
+    def remove_data_paths(
+        self,
+        project_id: int | None = None,
+        seq_request_id: int | None = None,
+        experiment_id: int | None = None,
+        library_id: int | None = None,
+    ):
         payload = {
             "api_token": self.api_token,
             "project_id": project_id,
+            "seq_request_id": seq_request_id,
+            "experiment_id": experiment_id,
+            "library_id": library_id,
         }
-        response = requests.post(f"{self.base_url}/api/shares/remove_data_paths_from_project/", json=payload)
-        response.raise_for_status()
+        response = requests.delete(f"{self.base_url}/api/shares/remove_data_paths/", json=payload)
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            print(f"{response.status_code}: {response.text}")
+            raise
         return response.json()
 
     def query_sequence_i7(self, sequence: str, limit: int = 10) -> pd.DataFrame:
@@ -44,7 +70,11 @@ class OpeNGSyncAPI:
             "limit": limit
         }
         response = requests.post(f"{self.base_url}/api/barcodes/query_sequence_i7/", json=payload)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            print(f"{response.status_code}: {response.text}")
+            raise
         data = response.json()
         fc_results = pd.DataFrame(data["fc_results"])
         fc_results["orientation"] = "forward"
@@ -75,7 +105,11 @@ class OpeNGSyncAPI:
             "qc": qc
         }
         response = requests.post(f"{self.base_url}/api/stats/set_library_lane_reads/", json=payload)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            print(f"{response.status_code}: {response.text}")
+            raise
         return response.json()
     
     def __str__(self):
