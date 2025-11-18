@@ -40,7 +40,7 @@ def resolve_share_path(path: str, path_type_id: int) -> tuple[str, DataPathTypeE
         raise exceptions.BadRequestException(f"Invalid share path '{path}'. Path must start with one of: {', '.join(runtime.app.share_path_mapping.values())}")
     
     if not (p := runtime.app.share_root / share_path).exists():
-        raise exceptions.NotFoundException(f"Share path '{path}' does not exist on server.")
+        raise exceptions.NotFoundException(f"Share path '{path}' ({p.as_posix()}) does not exist on server.")
     
     # make sure path does not .. out of share root
     try:
