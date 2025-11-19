@@ -24,7 +24,7 @@
                 }}
                 {{
                     table_col(
-                        table_container_id='sample-library-table', column_name='Type', column_var='type_id',
+                        table_container_id='sample-library-table', column_name='Library Type', column_var='type_id',
                         sort_url='samples_htmx.get_libraries', context={"sample_id": sample.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
                         multiselect_choices=LibraryType.as_list(), multiselect_selected=type_in
