@@ -11,7 +11,7 @@
             {{ lab_prep_form.csrf_token() }}
             <div class="row">
                 {{ select_input(lab_prep_form.service_type, class="col-4") }}
-                {{ select_input(lab_prep_form.protocol, class="col-4") }}
+                {{ select_input(lab_prep_form.checklist_type, class="col-4") }}
                 {{ form_group(lab_prep_form.name, class="col-4", placeholder="XXXX") }}
             </div>
         </div>
@@ -33,13 +33,13 @@
         </div>
     </div>
     <script>
-        var protocol_identifiers = {{ identifiers | tojson }};
+        var checklist_identifiers = {{ identifiers | tojson }};
 
         $(document).ready(function() {
             {% if lab_prep_form.form_type == "create" %}
             $("#protocol").on("change", function(){
                 const protocol = $(this).val();
-                $("#name").attr("placeholder", protocol_identifiers[protocol] + "XXX");
+                $("#name").attr("placeholder", checklist_identifiers[protocol] + "XXX");
             });
             {% endif %}
         });

@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from wtforms import StringField, SelectField
 
 from opengsync_db import models
-from opengsync_db.categories import LabProtocol, ServiceType
+from opengsync_db.categories import LabChecklistType, ServiceType
 
 from ... import db, logger  # noqa F401
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -15,8 +15,8 @@ class LabPrepForm(HTMXFlaskForm):
     _template_path = "forms/lab_prep.html"
     _form_label = "lab_prep_form"
 
-    protocol = SelectField("Checklist", choices=LabProtocol.as_selectable(), coerce=int)
-    service_type = SelectField("Assay Type", choices=ServiceType.as_selectable(), coerce=int)
+    checklist_type = SelectField("Checklist", choices=LabChecklistType.as_selectable(), coerce=int)
+    service_type = SelectField("Service", choices=ServiceType.as_selectable(), coerce=int)
     name = StringField("Name")
 
     def __init__(self, form_type: Literal["create", "edit"], lab_prep: Optional[models.LabPrep] = None, formdata: dict | None = None):
@@ -24,7 +24,7 @@ class LabPrepForm(HTMXFlaskForm):
         self.form_type = form_type
         self.lab_prep = lab_prep
         self._context["lab_prep"] = lab_prep
-        self._context["identifiers"] = dict([(pool_type.id, pool_type.identifier) for pool_type in LabProtocol.as_list()])
+        self._context["identifiers"] = dict([(pool_type.id, pool_type.identifier) for pool_type in LabChecklistType.as_list()])
 
         if self.form_type == "edit" and self.lab_prep is None:
             logger.error("lab_prep must be provided if form_type is 'edit'.")
@@ -32,7 +32,7 @@ class LabPrepForm(HTMXFlaskForm):
     
     def prepare(self):
         if self.lab_prep is not None:
-            self.protocol.data = self.lab_prep.protocol_id
+            self.checklist_type.data = self.lab_prep.checklist_type_id
             self.name.data = self.lab_prep.name
             self.service_type.data = self.lab_prep.service_type_id
 
@@ -41,9 +41,9 @@ class LabPrepForm(HTMXFlaskForm):
             return False
         
         try:
-            protocol = LabProtocol.get(self.protocol.data)
+            protocol = LabChecklistType.get(self.checklist_type.data)
         except ValueError:
-            self.protocol.errors = ("Invalid protocol",)
+            self.checklist_type.errors = ("Invalid protocol",)
             return False
         
         try:
@@ -60,8 +60,8 @@ class LabPrepForm(HTMXFlaskForm):
             if not self.name.data:
                 self.name.errors = ("Name is required",)
                 validated = False
-            if protocol != self.lab_prep.protocol:
-                self.protocol.errors = ("Cannot change protocol",)
+            if protocol != self.lab_prep.checklist_type:
+                self.checklist_type.errors = ("Cannot change checklist type",)
                 validated = False
 
         return validated
@@ -81,7 +81,7 @@ class LabPrepForm(HTMXFlaskForm):
     def __create_lab_prep(self, user: models.User) -> models.LabPrep:
         lab_prep = db.lab_preps.create(
             name=self.name.data,
-            protocol=LabProtocol.get(self.protocol.data),
+            checklist_type=LabChecklistType.get(self.checklist_type.data),
             creator_id=user.id,
             service_type=ServiceType.get(self.service_type.data)
         )

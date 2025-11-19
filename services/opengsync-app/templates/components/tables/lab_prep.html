@@ -24,9 +24,9 @@
                 }}
                 {{
                     table_col(
-                        table_container_id='lab_prep-table', column_name='Checklist', column_var='protocol_id',
+                        table_container_id='lab_prep-table', column_name='Checklist', column_var='checklist_type_id',
                         sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=2, multiselect_choices=LabProtocol.as_list(), multiselect_selected=protocol_in
+                        col_size=2, multiselect_choices=LabChecklistType.as_list(), multiselect_selected=checklist_type_in
                     )
                 }}
                 {{
@@ -65,7 +65,7 @@
             <tr>
                 <th scope="row">{{ lab_prep.id }}</th>
                 <td><a href="{{ url_for('lab_preps_page.lab_prep', lab_prep_id=lab_prep.id) }}">{{ lab_prep.display_name }}</a></td>
-                <td>{{ lab_prep.protocol.name }}</td>
+                <td>{{ lab_prep.checklist_type.name }}</td>
                 <td>{{ lab_prep.status.icon }} {{ lab_prep.status.name }}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=lab_prep.creator_id) }}">{{ lab_prep.creator.name }} <span class="desc">{{ "me" if current_user.id == lab_prep.creator_id }}</span></a></td>
                 <td>{{ lab_prep.num_libraries }}</td>

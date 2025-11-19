@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import openpyxl
 
-from opengsync_db.categories import LabProtocol
+from opengsync_db.categories import LabChecklistType
 
 common_columns = [
     "library_id",
@@ -42,36 +42,36 @@ def common_prep_table_test(table_path: str):
 
 
 def test_default_table():
-    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.CUSTOM.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabChecklistType.CUSTOM.prep_file_name))
 
 
 def test_rna_table():
-    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.RNA_SEQ.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabChecklistType.RNA_SEQ.prep_file_name))
 
 
 def test_wgs_table():
-    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.WGS.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabChecklistType.WGS.prep_file_name))
 
 
 def test_qseq_table():
-    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.QUANT_SEQ.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabChecklistType.QUANT_SEQ.prep_file_name))
 
 
 def test_tenx_table():
-    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.TENX.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabChecklistType.TENX.prep_file_name))
     assert "10X_table" in wb.sheetnames
-    tenx_table = pd.read_excel(os.path.join(prep_table_template_dir, LabProtocol.TENX.prep_file_name), "10X_table")
+    tenx_table = pd.read_excel(os.path.join(prep_table_template_dir, LabChecklistType.TENX.prep_file_name), "10X_table")
     for col in ["sample_num", "sample_name"]:
         assert col in tenx_table.columns, f"Column not found: {col}"
     assert "FLEX_table" in wb.sheetnames
-    flex_table = pd.read_excel(os.path.join(prep_table_template_dir, LabProtocol.TENX.prep_file_name), "FLEX_table")
+    flex_table = pd.read_excel(os.path.join(prep_table_template_dir, LabChecklistType.TENX.prep_file_name), "FLEX_table")
     for col in ["sample_num", "sample_name"]:
         assert col in flex_table.columns, f"Column not found: {col}"
 
 
 def test_smartseq_table():
-    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.SMART_SEQ.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabChecklistType.SMART_SEQ.prep_file_name))
 
 
 def test_wes_table():
-    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabProtocol.WES.prep_file_name))
+    wb = common_prep_table_test(os.path.join(prep_table_template_dir, LabChecklistType.WES.prep_file_name))

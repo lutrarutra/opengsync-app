@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Kit import Kit
-from ..categories import IndexType, IndexTypeEnum, LabProtocol, LabProtocolEnum, KitType
+from ..categories import IndexType, IndexTypeEnum, LabChecklistType, LabChecklistTypeEnum, KitType
 
 
 if TYPE_CHECKING:
@@ -36,8 +36,8 @@ class IndexKit(Kit):
         self.type_id = value.id
     
     @property
-    def supported_protocols(self) -> list[LabProtocolEnum]:
-        return [LabProtocol.get(protocol_id) for protocol_id in self.supported_protocol_ids]
+    def supported_protocols(self) -> list[LabChecklistTypeEnum]:
+        return [LabChecklistType.get(protocol_id) for protocol_id in self.supported_protocol_ids]
     
     def supported_protocols_str(self, sep: str = ", ") -> str:
         return sep.join([protocol.name for protocol in self.supported_protocols])

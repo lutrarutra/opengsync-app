@@ -10,7 +10,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ lab_prep.display_name }} <span class="desc">{{ lab_prep.protocol.name }} - {{ lab_prep.service_type.abbreviation }} - {{ lab_prep.status.name }} {{ lab_prep.status.icon }}</span></h1>
+            <h1>{{ lab_prep.display_name }} <span class="desc">{{ lab_prep.checklist_type.name }} - {{ lab_prep.service_type.abbreviation }} - {{ lab_prep.status.name }} {{ lab_prep.status.icon }}</span></h1>
         </div>
         <div class="page-controls">
             <div class="dropdown">
@@ -234,7 +234,7 @@
             <h4>Metadata</h4>
             <div class="row">
                 {{ metadata_group("Name", lab_prep.name, class="col-3") }}
-                {{ metadata_group("Protocol", lab_prep.protocol.display_name, class="col-3") }}
+                {{ metadata_group("Protocol", lab_prep.checklist_type.display_name, class="col-3") }}
                 {{ metadata_group("Status", lab_prep.status.display_name, class="col-3") }}
                 {{ metadata_group("Assay", lab_prep.service_type.abbreviation, class="col-3") }}
             </div>

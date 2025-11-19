@@ -244,7 +244,7 @@ class App(Flask):
                 IndexType=categories.IndexType,
                 EventType=categories.EventType,
                 PrepStatus=categories.PrepStatus,
-                LabProtocol=categories.LabProtocol,
+                LabChecklistType=categories.LabChecklistType,
                 PoolType=categories.PoolType,
                 KitType=categories.KitType,
                 AffiliationType=categories.AffiliationType,

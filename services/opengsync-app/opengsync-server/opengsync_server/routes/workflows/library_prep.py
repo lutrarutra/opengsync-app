@@ -2,7 +2,7 @@ from flask import Blueprint, request, Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryStatus, LibraryType, LabProtocol
+from opengsync_db.categories import LibraryStatus, LibraryType, LabChecklistType
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -28,10 +28,10 @@ def begin(current_user: models.User, lab_prep_id: int) -> Response:
         raise exceptions.NotFoundException()
     
     _args = args.copy()
-    if lab_prep.protocol == LabProtocol.CUSTOM:
+    if lab_prep.checklist_type == LabChecklistType.CUSTOM:
         _args["library_type_filter"] = None
     else:
-        _args["library_type_filter"] = LibraryType.get_protocol_library_types(lab_prep.protocol)
+        _args["library_type_filter"] = LibraryType.get_check_list_library_types(lab_prep.checklist_type)
 
     form = SelectSamplesForm(**_args, context={"lab_prep": lab_prep})
     return form.make_response()
@@ -46,10 +46,10 @@ def select(current_user: models.User, lab_prep_id: int) -> Response:
         raise exceptions.NotFoundException()
     
     _args = args.copy()
-    if lab_prep.protocol == LabProtocol.CUSTOM:
+    if lab_prep.checklist_type == LabChecklistType.CUSTOM:
         _args["library_type_filter"] = None
     else:
-        _args["library_type_filter"] = LibraryType.get_protocol_library_types(lab_prep.protocol)
+        _args["library_type_filter"] = LibraryType.get_check_list_library_types(lab_prep.checklist_type)
     
     form = SelectSamplesForm(formdata=request.form, context={"lab_prep": lab_prep}, **_args)
     

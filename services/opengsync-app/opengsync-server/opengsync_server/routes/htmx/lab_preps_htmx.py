@@ -13,7 +13,7 @@ from flask import Blueprint, render_template, request, flash, url_for, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import LabProtocol, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType, SampleStatus
+from opengsync_db.categories import LabChecklistType, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType, SampleStatus
 
 from ... import db, forms, logger
 from ...core import wrappers, exceptions
@@ -47,7 +47,7 @@ def get(current_user: models.User, page: int = 0):
     if (protocol_in := request.args.get("protocol_id_in")) is not None:
         protocol_in = json.loads(protocol_in)
         try:
-            protocol_in = [LabProtocol.get(int(protocol_)) for protocol_ in protocol_in]
+            protocol_in = [LabChecklistType.get(int(protocol_)) for protocol_ in protocol_in]
         except ValueError:
             raise exceptions.BadRequestException()
     
@@ -55,7 +55,7 @@ def get(current_user: models.User, page: int = 0):
             protocol_in = None
 
     lab_preps, n_pages = db.lab_preps.find(
-        status_in=status_in, protocol_in=protocol_in,
+        status_in=status_in, checklist_type_in=protocol_in,
         offset=offset, limit=PAGE_LIMIT, sort_by=sort_by, descending=descending, count_pages=True
     )
     
@@ -86,19 +86,19 @@ def table_query():
         if len(status_in) == 0:
             status_in = None
 
-    if (protocol_in := request.args.get("protocol_id_in")) is not None:
-        protocol_in = json.loads(protocol_in)
+    if (checklist_type_in := request.args.get("checklist_type_id_in")) is not None:
+        checklist_type_in = json.loads(checklist_type_in)
         try:
-            protocol_in = [LabProtocol.get(int(protocol_)) for protocol_ in protocol_in]
+            checklist_type_in = [LabChecklistType.get(int(checklist_type)) for checklist_type in checklist_type_in]
         except ValueError:
             raise exceptions.BadRequestException()
     
-        if len(protocol_in) == 0:
-            protocol_in = None
+        if len(checklist_type_in) == 0:
+            checklist_type_in = None
 
     lab_preps: list[models.LabPrep] = []
     if field_name == "name":
-        lab_preps = db.lab_preps.query(name=word, protocol_in=protocol_in, status_in=status_in)
+        lab_preps = db.lab_preps.query(name=word, checklist_type_in=checklist_type_in, status_in=status_in)
     elif field_name == "id":
         try:
             _id = int(word)
@@ -107,13 +107,13 @@ def table_query():
         except ValueError:
             pass
     elif field_name == "creator_id":
-        lab_preps = db.lab_preps.query(creator=word, protocol_in=protocol_in, status_in=status_in)
+        lab_preps = db.lab_preps.query(creator=word, checklist_type_in=checklist_type_in, status_in=status_in)
 
     return make_response(
         render_template(
             "components/tables/lab_prep.html",
             current_query=word, active_query_field=field_name,
-            lab_preps=lab_preps, protocol_in=protocol_in, status_in=status_in
+            lab_preps=lab_preps, checklist_type_in=checklist_type_in, status_in=status_in
         )
     )
 
@@ -295,7 +295,7 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
         logger.error("Static folder not set")
         raise ValueError("Static folder not set")
 
-    filepath = os.path.join(runtime.app.static_folder, "resources", "templates", "library_prep", lab_prep.protocol.prep_file_name)
+    filepath = os.path.join(runtime.app.static_folder, "resources", "templates", "library_prep", lab_prep.checklist_type.prep_file_name)
 
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
@@ -405,7 +405,7 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
         
     return Response(
         bytes_io, mimetype=mimetype,
-        headers={"Content-disposition": f"attachment; filename={lab_prep.name}_{lab_prep.protocol.abbreviation}_{direction}.xlsx"}
+        headers={"Content-disposition": f"attachment; filename={lab_prep.name}_{lab_prep.checklist_type.abbreviation}_{direction}.xlsx"}
     )
 
 
