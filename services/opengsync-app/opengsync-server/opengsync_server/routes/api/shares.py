@@ -69,7 +69,7 @@ def resolve_share_path(path: str, path_type_id: int) -> tuple[str, DataPathTypeE
     return p.relative_to(runtime.app.share_root).as_posix(), path_type
     
 
-@wrappers.api_route(shares_api_bp, db=db, methods=["POST"], json_params=["project_id", "seq_request_id", "experiment_id", "library_id", "path", "path_type_id"])
+@wrappers.api_route(shares_api_bp, db=db, methods=["POST"], json_params=["project_id", "seq_request_id", "experiment_id", "library_id", "path", "path_type_id"], limit="3/second", limit_override=True)
 def add_data_path(
     path: str, path_type_id: int,
     seq_request_id: int | None = None,

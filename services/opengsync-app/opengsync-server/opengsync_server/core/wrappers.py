@@ -31,60 +31,36 @@ def __get_flash_msg(msg: str) -> str:
     ) or msg
 
 
-def _default_logger(blueprint: Blueprint | Flask, routes, args, kwargs, e: Exception, exc_type: str, type: Literal["error", "warning", "info"] | None = None) -> None:
-    if type is None:
-        match e:
-            case serv_exceptions.NoPermissionsException | serv_exceptions.NotFoundException | serv_exceptions.BadRequestException | serv_exceptions.MethodNotAllowedException | db_exceptions.ElementDoesNotExist:
-                type = "warning"
+def _default_logger(blueprint: Blueprint | Flask, args, kwargs, e: Exception, exc_type: str, level: Literal["error", "warning", "info"] | None = None, depth: int = 1) -> None:
+    if level is None:
+        _level: str = {
+            serv_exceptions.NoPermissionsException: "info",
+            serv_exceptions.NotFoundException: "info",
+            serv_exceptions.BadRequestException: "info",
+            db_exceptions.ElementDoesNotExist: "info",
+        }.get(type(e), "error")
+    else:
+        _level = level
 
-    match type:
-        case "warning":
-            log_func = logger.warning
-        case "info":
-            log_func = logger.info
-        case _:
-            log_func = logger.error
+    log_func = {
+        "warning": logger.opt(depth=depth).warning,
+        "info": logger.opt(depth=depth).info,
+        "error": logger.opt(depth=depth).error,
+    }.get(_level, logger.opt(depth=depth).error)
 
-    log_func(
-        f"\n-------- {exc_type} --------"
-        f"\n\tBlueprint: {blueprint}"
-        f"\n\tRoute: {routes}"
-        f"\n\targs: {args}"
-        f"\n\tkwargs: {kwargs}"
-        f"\n\tError: {e}"
-        f"\n\tMessage: {e}"
-        f"\n\tTraceback: {traceback.format_exc()}"
-        f"\n-------- END ERROR --------"
-    )
-
-# def on_limit_breach(response_handler: Literal["_htmx_handler", "_api_handler", "_page_handler", "_resource_handler"]) -> Callable[[Request, str], Response]:
-#     limit_breach_fnc = None
-
-#     match response_handler:
-#         case "_htmx_handler":
-#             def htmx_limit_breach(request: Request, limit: str):
-#                 logger.warning(f"Rate limit '{limit}' exceeded for IP {request.remote_addr} on route {request.path}")
-#                 return _htmx_handler(serv_exceptions.TooManyRequestsException())
-#             limit_breach_fnc = limit_breach
-
-#         case "_api_handler"
-#             def limit_breach(request: Request, limit: str):
-#                 logger.warning(f"Rate limit '{limit}' exceeded for IP {request.remote_addr} on route {request.path}")
-#                 return _api_handler(serv_exceptions.TooManyRequestsException())
-#         case "_page_handler":
-#             def limit_breach(request: Request, limit: str):
-#                 logger.warning(f"Rate limit '{limit}' exceeded for IP {request.remote_addr} on route {request.path}")
-#                 return _page_handler(serv_exceptions.TooManyRequestsException())
-            
-#         case "_resource_handler":
-#             def limit_breach(request: Request, limit: str):
-#                 logger.warning(f"Rate limit '{limit}' exceeded for IP {request.remote_addr} on route {request.path}")
-#                 return _resource_handler(serv_exceptions.TooManyRequestsException())
-        
-                
-
-#     return limit_breach_fnc
-    
+    if _level == "error":
+        log_func(
+            f"\n-------- {exc_type} --------"
+            f"\nBlueprint: {blueprint}"
+            f"\nPath: {request.path}"
+            f"\nargs: {args}"
+            f"\nkwargs: {kwargs}"
+            f"\nError: {e.__repr__()}"
+            f"\nTraceback:\n{traceback.format_exc().replace("\n", "\n\t")}"
+            f"\n-------- END ERROR --------"
+        )
+    else:
+        log_func(f"{request.path}: {e.__repr__()}")
 
 def _route_decorator(
     blueprint: Blueprint | Flask,
@@ -125,7 +101,7 @@ def _route_decorator(
         if login_required and db is None:
             raise ValueError("db must be provided if login_required is True")
         
-        if limit_exempt == "all" or DEBUG:
+        if limit_exempt == "all":
             fnc = limiter.exempt(fnc)
         else:
             if limit is not None:
@@ -206,31 +182,30 @@ def _route_decorator(
                         raise serv_exceptions.NoPermissionsException(f"Invalid API token '{api_token}'.")
                     if token.is_expired:
                         raise serv_exceptions.NoPermissionsException("API token is expired.")
-                    
-                    if limiter.current_limit is not None:
-                        limiter.storage.clear(limiter.current_limit.key)
+                
+                    runtime.session["clear_rate_limit"] = False
 
                 return fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
                 rollback = db.needs_commit if db is not None else False
-                _default_logger(blueprint, routes, args, kwargs, e, "InternalServerErrorException", "error")
+                _default_logger(blueprint, args, kwargs, e, "InternalServerErrorException", "error")
                 return response_handler(e)
             except serv_exceptions.OpeNGSyncServerException as e:
                 rollback = db.needs_commit if db is not None else False
-                _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncServerException", None)
+                _default_logger(blueprint, args, kwargs, e, "OpeNGSyncServerException", None)
                 return response_handler(e)
             except db_exceptions.OpeNGSyncDBException as e:
                 rollback = db.needs_commit if db is not None else False
-                _default_logger(blueprint, routes, args, kwargs, e, "OpeNGSyncDBException", None)
+                _default_logger(blueprint, args, kwargs, e, "OpeNGSyncDBException", None)
                 return response_handler(e)
             except RateLimitExceeded as e:
-                
+                logger.warning(f"Rate limit exceeded for IP {request.remote_addr} on route {request.path}")
                 return response_handler(serv_exceptions.TooManyRequestsException())
             except Exception as e:
                 rollback = db.needs_commit if db is not None else False
                 if runtime.app.debug and response_handler.__name__ != "_htmx_handler":
                     raise e
-                _default_logger(blueprint, routes, args, kwargs, e, "Exception", "error")
+                _default_logger(blueprint, args, kwargs, e, "Exception", "error")
                 return response_handler(e)
             finally:
                 if db is not None:
@@ -240,7 +215,7 @@ def _route_decorator(
                 if (msgs := runtime.app.consume_flashes(runtime.session)):
                     if runtime.session.sid:
                         flash_cache.add(runtime.session.sid, msgs)
-
+                
                 log_buffer.flush()
 
         if debug:

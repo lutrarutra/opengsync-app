@@ -68,12 +68,12 @@ class App(Flask):
             self.jinja_env.undefined = StrictUndefined
 
         self.jinja_env.globals["uuid"] = lambda: str(uuid4())
-        log_buffer.set_log_dir(Path(opengsync_config["log_folder"]))
+        log_buffer.set_log_dir(Path(opengsync_config["log_folder"]), debug=DEBUG)
         log_buffer.start("App Initialization")
 
-        if external_base_url := opengsync_config.get("external_base_url"):
-            from ..core import runtime
+        from ..core import runtime
 
+        if external_base_url := opengsync_config.get("external_base_url"):
             self.jinja_env.globals["url_for"] = runtime.url_for
 
         self.external_base_url = external_base_url
@@ -197,6 +197,13 @@ class App(Flask):
         @self.context_processor
         def inject_uuid():
             return dict(uuid4=uuid4)
+
+        @self.after_request
+        def clear_limit(response):
+            if runtime.session.get("clear_rate_limit"):
+                if limiter.current_limit is not None:
+                    limiter.storage.clear(limiter.current_limit.key)
+            return response
 
         from .jfilters import inject_jinja_format_filters
 

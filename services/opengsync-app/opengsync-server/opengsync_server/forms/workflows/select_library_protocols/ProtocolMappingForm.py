@@ -45,8 +45,9 @@ class ProtocolMappingForm(MultiStepForm):
             raise ValueError("Lab prep has no prep file associated with it.")
         
         df = pd.read_excel(os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path), sheet_name="prep_table")
-        if "library_kits" not in df.columns:
-            df["library_kits"] = None
+        if "library_kits" not in df.columns or df["library_kits"].isna().all():
+            raise ValueError("Prep file does not contain library kit information.")
+        
         self.library_table = df[["library_id", "library_name", "library_kits"]].copy()
         self.library_table = self.library_table[self.library_table["library_id"].notna()]
         self.library_table["library_id"] = self.library_table["library_id"].astype(pd.Int64Dtype())
@@ -118,8 +119,6 @@ class ProtocolMappingForm(MultiStepForm):
 
         self.add_table("library_table", self.library_table)
         self.update_data()
-
-        logger.debug(self.library_table)
 
         next_form = LibraryProtocolSelectForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         return next_form.make_response()
