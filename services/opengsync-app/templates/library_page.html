@@ -121,7 +121,7 @@
                     {{ metadata_group("Type", library.type.abbreviation, class="col-3") }}
                     {{ metadata_group("Assay", library.assay_type.abbreviation, class="col-3") }}
                     {{ metadata_group("Sample/Pool Name", library.sample_name, class="col-3") }}
-                    {{ metadata_group("Genome Reference", library.genome_ref.name, class="col-3") }}
+                    {{ metadata_group("Genome Reference", library.genome_ref.display_name, class="col-3") }}
                 </div>
                 {% if library.lab_prep_id %}
                 {{ 

@@ -15,7 +15,7 @@ class LabPrepForm(HTMXFlaskForm):
     _template_path = "forms/lab_prep.html"
     _form_label = "lab_prep_form"
 
-    protocol = SelectField("Protocol", choices=LabProtocol.as_selectable(), coerce=int)
+    protocol = SelectField("Checklist", choices=LabProtocol.as_selectable(), coerce=int)
     assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), coerce=int)
     name = StringField("Name")
 
