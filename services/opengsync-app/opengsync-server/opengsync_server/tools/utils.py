@@ -416,7 +416,7 @@ def update_index_kits(db: DBHandler, app_data_folder: Path):
         "barcode_type_id": [],
     }
 
-    def add_barcode(kit_id: int, kit: str, name: str, sequence: str, well: str, index_type_id: int, barcode_type_id: int):
+    def add_barcode(kit_id: int, kit: str, name: str, sequence: str, well: str | None, index_type_id: int, barcode_type_id: int):
         data["kit_id"].append(kit_id)
         data["kit"].append(kit)
         data["name"].append(name)
@@ -576,7 +576,8 @@ def filter_subpaths(paths: list[str]) -> list[str]:
 
 
 def replace_substrings(text: str, substrings: dict[str, str]) -> str:
-    for k, v in substrings.items():
+    _sorted_substrings = sorted(substrings.items(), key=lambda x: len(x[0]), reverse=True)
+    for k, v in _sorted_substrings:
         text = text.replace(k, v)
     return text
 
