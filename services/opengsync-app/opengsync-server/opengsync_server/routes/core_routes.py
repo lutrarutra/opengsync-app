@@ -25,8 +25,7 @@ if runtime.app.debug:
         if string != "ok":
             raise exceptions.NoPermissionsException("Number too high")
 
-        if limiter.current_limit:
-            logger.debug(limiter.storage.clear(limiter.current_limit.key))
+        runtime.session["clear_rate_limit"] = True
 
         return {"status": "ok", "key": limiter.current_limit.key}, 200  # type: ignore
 

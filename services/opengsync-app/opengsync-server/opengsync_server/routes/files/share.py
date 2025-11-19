@@ -37,8 +37,7 @@ def rclone(token: str, subpath: Path = Path()):
     if share_token.is_expired:
         raise exceptions.NoPermissionsException("Token expired")
     
-    if limiter.current_limit:
-        limiter.storage.clear(limiter.current_limit.key)
+    runtime.session["clear_rate_limit"] = True
 
     SHARE_ROOT = runtime.app.share_root
 
@@ -74,8 +73,7 @@ def browse(token: str, subpath: Path = Path()):
     if share_token.is_expired:
         raise exceptions.NoPermissionsException("Token expired")
     
-    if limiter.current_limit:
-        limiter.storage.clear(limiter.current_limit.key)
+    runtime.session["clear_rate_limit"] = True
 
     SHARE_ROOT = runtime.app.share_root
 
