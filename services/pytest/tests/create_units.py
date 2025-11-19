@@ -5,7 +5,7 @@ from opengsync_db import DBHandler, models
 
 from opengsync_db.categories import (
     LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlowEnum, SequencerModel,
-    ReadType, ExperimentStatus, PoolType, SubmissionType, MediaFileType, GenomeRef, AssayType,
+    ReadType, ExperimentStatus, PoolType, SubmissionType, MediaFileType, GenomeRef, ServiceType,
     GroupType
 )
 
@@ -72,9 +72,9 @@ def create_library(db: DBHandler, user: models.User, seq_request: models.SeqRequ
         sample_name=_uuid,
         owner_id=user.id,
         seq_request_id=seq_request.id,
-        library_type=LibraryType.POLY_A_RNA_SEQ,
+        library_type=LibraryType.BULK_RNA_SEQ,
         genome_ref=GenomeRef.CUSTOM,
-        assay_type=AssayType.CUSTOM,
+        service_type=ServiceType.CUSTOM,
     )
 
 

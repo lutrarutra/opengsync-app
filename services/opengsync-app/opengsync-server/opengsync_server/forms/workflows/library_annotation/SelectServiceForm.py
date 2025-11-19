@@ -6,7 +6,7 @@ from wtforms import SelectField, TextAreaField, BooleanField, FormField, StringF
 from wtforms.validators import Optional as OptionalValidator, Length
 
 from opengsync_db import models
-from opengsync_db.categories import AssayType, MUXType, LibraryTypeEnum, LibraryType, SubmissionType
+from opengsync_db.categories import ServiceType, MUXType, LibraryTypeEnum, LibraryType, SubmissionType
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa
@@ -49,20 +49,20 @@ class AdditionalSerevicesForm(FlaskForm):
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False)
 
 
-class SelectAssayForm(MultiStepForm):
-    _template_path = "workflows/library_annotation/sas-select_assay.html"
+class SelectServiceForm(MultiStepForm):
+    _template_path = "workflows/library_annotation/sas-select_service.html"
     _workflow_name = "library_annotation"
-    _step_name = "specify_assay"
+    _step_name = "select_service"
 
-    assay_type = SelectField("Assay Type", choices=[(-1, "Select Assay Type")] + AssayType.as_selectable(), validators=[OptionalValidator()], coerce=int, default=-1)
+    service_type = SelectField("Service Type", choices=[(-1, "Select Service")] + ServiceType.as_selectable(), validators=[OptionalValidator()], coerce=int, default=-1)
     additional_info = TextAreaField("Additional Information", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)])
     optional_assays = FormField(OptionalAssaysForm)
     additional_services = FormField(AdditionalSerevicesForm)
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(
-            self, uuid=uuid, formdata=formdata, workflow=SelectAssayForm._workflow_name,
-            step_name=SelectAssayForm._step_name,
+            self, uuid=uuid, formdata=formdata, workflow=SelectServiceForm._workflow_name,
+            step_name=SelectServiceForm._step_name,
             step_args={}
         )
         self.seq_request = seq_request
@@ -70,7 +70,7 @@ class SelectAssayForm(MultiStepForm):
         self.sample_table = self.tables["sample_table"]
 
     def fill_previous_form(self, previous_form: StepFile):
-        self.assay_type.data = previous_form.metadata.get("assay_type_id")
+        self.service_type.data = previous_form.metadata.get("service_type_id")
         self.additional_services.nuclei_isolation.data = previous_form.metadata.get("nuclei_isolation", False)
         self.optional_assays.antibody_capture.data = previous_form.metadata.get("antibody_capture", False)
         self.optional_assays.vdj_b.data = previous_form.metadata.get("vdj_b", False)
@@ -100,16 +100,16 @@ class SelectAssayForm(MultiStepForm):
         if not super().validate():
             return False
 
-        if self.assay_type.data is None:
-            self.assay_type.errors = ("Please select an assay type.",)
+        if self.service_type.data is None:
+            self.service_type.errors = ("Please select an assay type.",)
         
         try:
-            self.assay_type_enum = AssayType.get(int(self.assay_type.data))
+            self.service_type_enum = ServiceType.get(int(self.service_type.data))
         except ValueError:
-            self.assay_type.errors = ("Invalid assay type",)
+            self.service_type.errors = ("Invalid assay type",)
             return False
         
-        if self.assay_type_enum == AssayType.PARSE:
+        if self.service_type_enum == ServiceType.PARSE:
             if self.optional_assays.parse_kit.data == -1:
                 self.optional_assays.parse_kit.errors = ("Please select a Parse kit.",)
             if self.optional_assays.parse_chemistry.data == -1:
@@ -136,13 +136,13 @@ class SelectAssayForm(MultiStepForm):
             self.additional_services.oligo_multiplexing_kit.errors = ("Please select only one multiplexing method.",)
             self.additional_services.ocm_multiplexing.errors = ("Please select only one multiplexing method.",)
 
-        if self.optional_assays.parse_mux.data and self.assay_type_enum != AssayType.PARSE:
+        if self.optional_assays.parse_mux.data and self.service_type_enum != ServiceType.PARSE:
             self.optional_assays.parse_mux.errors = ("Parse Biosciences multiplexing is only available with Parse Biosciences assays.",)
 
         if self.optional_assays.parse_mux.data and (self.additional_services.oligo_multiplexing.data or self.additional_services.ocm_multiplexing.data or self.optional_assays.antibody_multiplexing.data):
             self.optional_assays.parse_mux.errors = ("Please select only one multiplexing method.",)
 
-        if self.optional_assays.antibody_multiplexing.data and self.assay_type_enum in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
+        if self.optional_assays.antibody_multiplexing.data and self.service_type_enum in [ServiceType.TENX_SC_SINGLE_PLEX_FLEX, ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX]:
             self.optional_assays.antibody_multiplexing.errors = ("Antibody-based cell hashing multiplexing is not available with 10X Flex assays.",)
 
         if self.errors:
@@ -157,10 +157,10 @@ class SelectAssayForm(MultiStepForm):
         oligo_multiplexing = self.additional_services.oligo_multiplexing.data
         ocm_multiplexing = self.additional_services.ocm_multiplexing.data
         antibody_multiplexing = self.optional_assays.antibody_multiplexing.data
-        flex_barcode_multiplexing = self.assay_type_enum in [AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]
+        flex_barcode_multiplexing = self.service_type_enum in [ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX]
         parse_multiplexing = self.optional_assays.parse_mux.data
         
-        self.metadata["assay_type_id"] = self.assay_type_enum.id
+        self.metadata["service_type_id"] = self.service_type_enum.id
         self.metadata["mux_type_id"] = None
         self.metadata["oligo_multiplexing_kit"] = self.additional_services.oligo_multiplexing_kit.data
         self.metadata["antibody_capture_kit"] = self.optional_assays.antibody_capture_kit.data
@@ -212,7 +212,7 @@ class SelectAssayForm(MultiStepForm):
         if DefineMultiplexedSamplesForm.is_applicable(self):
             next_form = DefineMultiplexedSamplesForm(seq_request=self.seq_request, uuid=self.uuid)
             return next_form.make_response()
-        if self.assay_type_enum == AssayType.CUSTOM:
+        if self.service_type_enum == ServiceType.CUSTOM:
             sample_pooling_table = {
                 "sample_pool": [],
                 "sample_name": [],
@@ -255,11 +255,11 @@ class SelectAssayForm(MultiStepForm):
         for _, row in self.sample_table.iterrows():
             sample_name = row["sample_name"]
 
-            for library_type in self.assay_type_enum.library_types:
+            for library_type in self.service_type_enum.library_types:
                 add_library(sample_name, library_type)
 
             if self.optional_assays.antibody_capture.data:
-                if self.assay_type_enum in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
+                if self.service_type_enum in [ServiceType.TENX_SC_SINGLE_PLEX_FLEX, ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX]:
                     add_library(sample_name, LibraryType.TENX_SC_ABC_FLEX)
                 else:
                     add_library(sample_name, LibraryType.TENX_ANTIBODY_CAPTURE)

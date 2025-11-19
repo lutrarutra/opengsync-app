@@ -2,7 +2,7 @@ import math
 from typing import Optional
 
 import sqlalchemy as sa
-from ...categories import AssayType, AssayTypeEnum
+from ...categories import ServiceType, ServiceTypeEnum
 from ... import PAGE_LIMIT, models
 from ..DBBlueprint import DBBlueprint
 
@@ -12,14 +12,14 @@ class ProtocolBP(DBBlueprint):
     def create(
         self,
         name: str,
-        assay_type: AssayTypeEnum,
+        service_type: ServiceTypeEnum,
         read_structure: str | None = None,
         flush: bool = True
     ) -> models.Protocol:
 
         protocol = models.Protocol(
             name=name,
-            assay_type_id=assay_type.id,
+            service_type_id=service_type.id,
             read_structure=read_structure
         )
         self.db.session.add(protocol)
@@ -39,8 +39,8 @@ class ProtocolBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        assay_type: AssayTypeEnum | None = None,
-        assay_type_in: list[AssayTypeEnum] | None = None,
+        service_type: ServiceTypeEnum | None = None,
+        service_type_in: list[ServiceTypeEnum] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = 0,
         sort_by: Optional[str] = None, descending: bool = False,
         count_pages: bool = False
@@ -48,11 +48,11 @@ class ProtocolBP(DBBlueprint):
 
         query = self.db.session.query(models.Protocol)
 
-        if assay_type is not None:
-            query = query.where(models.Protocol.assay_type_id == assay_type.id)
+        if service_type is not None:
+            query = query.where(models.Protocol.service_type_id == service_type.id)
 
-        if assay_type_in is not None:
-            query = query.where(models.Protocol.assay_type_id.in_([t.id for t in assay_type_in]))
+        if service_type_in is not None:
+            query = query.where(models.Protocol.service_type_id.in_([t.id for t in service_type_in]))
 
         if sort_by is not None:
             if sort_by not in models.Protocol.sortable_fields:
@@ -76,12 +76,12 @@ class ProtocolBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query(
-        self, word: str, limit: int | None = PAGE_LIMIT, assay_type: Optional[AssayTypeEnum] = None,
+        self, word: str, limit: int | None = PAGE_LIMIT, service_type: Optional[ServiceTypeEnum] = None,
     ) -> list[models.Protocol]:
         query = self.db.session.query(models.Protocol)
 
-        if assay_type is not None:
-            query = query.where(models.Protocol.assay_type_id == assay_type.id)
+        if service_type is not None:
+            query = query.where(models.Protocol.service_type_id == service_type.id)
 
         query = query.order_by(sa.func.similarity(models.Protocol.name, word).desc())
 

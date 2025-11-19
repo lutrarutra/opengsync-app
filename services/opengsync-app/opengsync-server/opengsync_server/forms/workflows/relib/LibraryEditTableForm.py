@@ -2,7 +2,7 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, GenomeRef, AssayType
+from opengsync_db.categories import LibraryType, GenomeRef, ServiceType
 
 from .... import logger, db
 from ....core import exceptions
@@ -23,7 +23,7 @@ class LibraryEditTableForm(MultiStepForm):
         TextColumn("library_name", "Library Name", 250, required=True, max_length=models.Library.name.type.length, min_length=4, validation_fnc=utils.check_string),
         CategoricalDropDown("library_type_id", "Library Type", 300, categories=dict(LibraryType.as_selectable()), required=True),
         CategoricalDropDown("genome_id", "Genome", 300, categories=dict(GenomeRef.as_selectable()), required=True),
-        CategoricalDropDown("assay_type_id", "Assay Type", 300, categories=dict(AssayType.as_selectable()), required=True),
+        CategoricalDropDown("service_type_id", "Assay Type", 300, categories=dict(ServiceType.as_selectable()), required=True),
         DropdownColumn("nuclei_isolation", "Nuclei", 100, choices=["Yes", "No"], required=True),
     ]
 
@@ -92,7 +92,7 @@ class LibraryEditTableForm(MultiStepForm):
             library.type = LibraryType.get(row["library_type_id"])
             library.genome_ref = GenomeRef.get(row["genome_id"])
             library.nuclei_isolation = bool(row["nuclei_isolation"] == "Yes")
-            library.assay_type = AssayType.get(row["assay_type_id"])
+            library.service_type = ServiceType.get(row["service_type_id"])
             db.libraries.update(library)
 
         flash("Changed Saved!", "success")

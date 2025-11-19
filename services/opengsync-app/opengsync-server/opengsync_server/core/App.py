@@ -236,7 +236,7 @@ class App(Flask):
                 GenomeRef=categories.GenomeRef,
                 LibraryType=categories.LibraryType,
                 PoolStatus=categories.PoolStatus,
-                AssayType=categories.AssayType,
+                ServiceType=categories.ServiceType,
                 SampleStatus=categories.SampleStatus,
                 RunStatus=categories.RunStatus,
                 SubmissionType=categories.SubmissionType,

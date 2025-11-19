@@ -5,7 +5,7 @@ from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from opengsync_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, MediaFileType, AssayTypeEnum, AssayType, MUXType, LibraryStatus
+from opengsync_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, MediaFileType, ServiceTypeEnum, ServiceType, MUXType, LibraryStatus
 
 from .Base import Base
 from . import links
@@ -28,7 +28,7 @@ class LabPrep(Base):
 
     protocol_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
-    assay_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    service_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     creator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     creator: Mapped["User"] = relationship("User", back_populates="preps", lazy="joined")
@@ -288,12 +288,12 @@ class LabPrep(Base):
         self.status_id = value.id
 
     @property
-    def assay_type(self) -> AssayTypeEnum:
-        return AssayType.get(self.assay_type_id)
+    def service_type(self) -> ServiceTypeEnum:
+        return ServiceType.get(self.service_type_id)
     
-    @assay_type.setter
-    def assay_type(self, value: AssayTypeEnum):
-        self.assay_type_id = value.id
+    @service_type.setter
+    def service_type(self, value: ServiceTypeEnum):
+        self.service_type_id = value.id
 
     @property
     def identifier(self) -> str:

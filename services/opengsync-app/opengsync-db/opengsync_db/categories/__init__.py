@@ -1,4 +1,4 @@
-from .AssayType import AssayType, AssayTypeEnum  # noqa: F401
+from .ServiceType import ServiceType, ServiceTypeEnum  # noqa: F401
 from .BarcodeType import BarcodeType, BarcodeTypeEnum  # noqa: F401
 from .DataDeliveryMode import DataDeliveryMode, DataDeliveryModeEnum  # noqa: F401
 from .DeliveryStatus import DeliveryStatus, DeliveryStatusEnum  # noqa: F401

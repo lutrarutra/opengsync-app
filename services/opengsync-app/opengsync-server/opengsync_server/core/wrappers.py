@@ -31,14 +31,14 @@ def __get_flash_msg(msg: str) -> str:
     ) or msg
 
 
-def _default_logger(blueprint: Blueprint | Flask, args, kwargs, e: Exception, exc_type: str, level: Literal["error", "warning", "info"] | None = None, depth: int = 1) -> None:
+def _default_logger(exc: Exception, exc_type: str, level: Literal["error", "warning", "info"] | None = None, depth: int = 1) -> None:
     if level is None:
         _level: str = {
             serv_exceptions.NoPermissionsException: "info",
             serv_exceptions.NotFoundException: "info",
             serv_exceptions.BadRequestException: "info",
             db_exceptions.ElementDoesNotExist: "info",
-        }.get(type(e), "error")
+        }.get(type(exc), "error")
     else:
         _level = level
 
@@ -51,16 +51,13 @@ def _default_logger(blueprint: Blueprint | Flask, args, kwargs, e: Exception, ex
     if _level == "error":
         log_func(
             f"\n-------- {exc_type} --------"
-            f"\nBlueprint: {blueprint}"
             f"\nPath: {request.path}"
-            f"\nargs: {args}"
-            f"\nkwargs: {kwargs}"
-            f"\nError: {e.__repr__()}"
+            f"\nError: {exc.__repr__()}"
             f"\nTraceback:\n{traceback.format_exc().replace("\n", "\n\t")}"
             f"\n-------- END ERROR --------"
         )
     else:
-        log_func(f"{request.path}: {e.__repr__()}")
+        log_func(f"{request.path}: {exc.__repr__()}")
 
 def _route_decorator(
     blueprint: Blueprint | Flask,
@@ -188,15 +185,15 @@ def _route_decorator(
                 return fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
                 rollback = db.needs_commit if db is not None else False
-                _default_logger(blueprint, args, kwargs, e, "InternalServerErrorException", "error")
+                _default_logger(e, "InternalServerErrorException", "error")
                 return response_handler(e)
             except serv_exceptions.OpeNGSyncServerException as e:
                 rollback = db.needs_commit if db is not None else False
-                _default_logger(blueprint, args, kwargs, e, "OpeNGSyncServerException", None)
+                _default_logger(e, "OpeNGSyncServerException", None)
                 return response_handler(e)
             except db_exceptions.OpeNGSyncDBException as e:
                 rollback = db.needs_commit if db is not None else False
-                _default_logger(blueprint, args, kwargs, e, "OpeNGSyncDBException", None)
+                _default_logger(e, "OpeNGSyncDBException", None)
                 return response_handler(e)
             except RateLimitExceeded as e:
                 logger.warning(f"Rate limit exceeded for IP {request.remote_addr} on route {request.path}")
@@ -205,7 +202,7 @@ def _route_decorator(
                 rollback = db.needs_commit if db is not None else False
                 if runtime.app.debug and response_handler.__name__ != "_htmx_handler":
                     raise e
-                _default_logger(blueprint, args, kwargs, e, "Exception", "error")
+                _default_logger(e, "Exception", "error")
                 return response_handler(e)
             finally:
                 if db is not None:

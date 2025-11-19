@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response
 
 from opengsync_db import models
-from opengsync_db.categories import FeatureType, MUXType, LibraryType, AssayType, LibraryTypeEnum, SubmissionType
+from opengsync_db.categories import FeatureType, MUXType, LibraryType, ServiceType, LibraryTypeEnum, SubmissionType
 from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db  # noqa
@@ -71,7 +71,7 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
             "library_type_id": [],
         }
 
-        assay_type_enum = AssayType.get(self.metadata["assay_type_id"])
+        service_type_enum = ServiceType.get(self.metadata["service_type_id"])
 
         def add_library(sample_pool: str, library_type: LibraryTypeEnum):
             library_table_data["library_name"].append(f"{sample_pool}_{library_type.identifier}")
@@ -80,11 +80,11 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
             library_table_data["library_type_id"].append(library_type.id)
 
         for (sample_pool,), _ in sample_pooling_table.groupby(["sample_pool"], sort=False):
-            for library_type in assay_type_enum.library_types:
+            for library_type in service_type_enum.library_types:
                 add_library(sample_pool, library_type)
 
             if self.metadata["antibody_capture"]:
-                if assay_type_enum in [AssayType.TENX_SC_SINGLE_PLEX_FLEX, AssayType.TENX_SC_4_PLEX_FLEX, AssayType.TENX_SC_16_PLEX_FLEX]:
+                if service_type_enum in [ServiceType.TENX_SC_SINGLE_PLEX_FLEX, ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX]:
                     add_library(sample_pool, LibraryType.TENX_SC_ABC_FLEX)
                 else:
                     add_library(sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE)

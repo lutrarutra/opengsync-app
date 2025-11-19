@@ -9,7 +9,7 @@ from sqlalchemy.orm import aliased
 from ... import models, PAGE_LIMIT
 from ...categories import (
     LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus,
-    AccessType, AccessTypeEnum, AssayTypeEnum, IndexTypeEnum, MUXTypeEnum, BarcodeOrientationEnum
+    AccessType, AccessTypeEnum, ServiceTypeEnum, IndexTypeEnum, MUXTypeEnum, BarcodeOrientationEnum
 )
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -22,7 +22,7 @@ class LibraryBP(DBBlueprint):
         query: Query,
         user_id: int | None = None, sample_id: int | None = None,
         experiment_id: int | None = None, seq_request_id: int | None = None,
-        assay_type: Optional[AssayTypeEnum] = None,
+        service_type: Optional[ServiceTypeEnum] = None,
         pool_id: int | None = None, lab_prep_id: int | None = None,
         in_lab_prep: Optional[bool] = None,
         project_id: int | None = None,
@@ -69,8 +69,8 @@ class LibraryBP(DBBlueprint):
         if pool_id is not None:
             query = query.where(models.Library.pool_id == pool_id)
 
-        if assay_type is not None:
-            query = query.where(models.Library.assay_type_id == assay_type.id)
+        if service_type is not None:
+            query = query.where(models.Library.service_type_id == service_type.id)
 
         if lab_prep_id is not None:
             query = query.where(models.Library.lab_prep_id == lab_prep_id)
@@ -101,7 +101,7 @@ class LibraryBP(DBBlueprint):
         owner_id: int,
         seq_request_id: int,
         genome_ref: GenomeRefEnum,
-        assay_type: AssayTypeEnum,
+        service_type: ServiceTypeEnum,
         original_library_id: int | None = None,
         properties: Optional[dict | None] = None,
         index_type: IndexTypeEnum | None = None,
@@ -143,7 +143,7 @@ class LibraryBP(DBBlueprint):
             seq_request_id=seq_request_id,
             genome_ref_id=genome_ref.id if genome_ref is not None else None,
             type_id=library_type.id,
-            assay_type_id=assay_type.id,
+            service_type_id=service_type.id,
             owner_id=owner_id,
             pool_id=pool_id,
             lab_prep_id=lab_prep_id,
@@ -179,7 +179,7 @@ class LibraryBP(DBBlueprint):
         sample_id: int | None = None,
         experiment_id: int | None = None,
         seq_request_id: int | None = None,
-        assay_type: Optional[AssayTypeEnum] = None,
+        service_type: Optional[ServiceTypeEnum] = None,
         pool_id: int | None = None,
         lab_prep_id: int | None = None,
         in_lab_prep: Optional[bool] = None,
@@ -199,7 +199,7 @@ class LibraryBP(DBBlueprint):
         query = LibraryBP.where(
             query,
             user_id=user_id, sample_id=sample_id, experiment_id=experiment_id,
-            seq_request_id=seq_request_id, assay_type=assay_type,
+            seq_request_id=seq_request_id, service_type=service_type,
             pool_id=pool_id, lab_prep_id=lab_prep_id, in_lab_prep=in_lab_prep,
             type_in=type_in, status_in=status_in, pooled=pooled, status=status,
             custom_query=custom_query, project_id=project_id
@@ -282,7 +282,7 @@ class LibraryBP(DBBlueprint):
         sample_id: int | None = None,
         experiment_id: int | None = None,
         seq_request_id: int | None = None,
-        assay_type: Optional[AssayTypeEnum] = None,
+        service_type: Optional[ServiceTypeEnum] = None,
         pool_id: int | None = None,
         lab_prep_id: int | None = None,
         in_lab_prep: Optional[bool] = None,
@@ -298,7 +298,7 @@ class LibraryBP(DBBlueprint):
         query = LibraryBP.where(
             query,
             user_id=user_id, sample_id=sample_id, experiment_id=experiment_id,
-            seq_request_id=seq_request_id, assay_type=assay_type,
+            seq_request_id=seq_request_id, service_type=service_type,
             pool_id=pool_id, lab_prep_id=lab_prep_id, in_lab_prep=in_lab_prep,
             type_in=type_in, status_in=status_in, pooled=pooled, status=status,
             custom_query=custom_query
@@ -484,7 +484,7 @@ class LibraryBP(DBBlueprint):
             seq_request_id=seq_request_id,
             owner_id=library.owner_id,
             genome_ref=library.genome_ref,
-            assay_type=library.assay_type,
+            service_type=library.service_type,
             mux_type=library.mux_type,
             properties=library.properties,
             index_type=library.index_type,
@@ -534,7 +534,7 @@ class LibraryBP(DBBlueprint):
         sample_id: int | None = None,
         experiment_id: int | None = None,
         seq_request_id: int | None = None,
-        assay_type: Optional[AssayTypeEnum] = None,
+        service_type: Optional[ServiceTypeEnum] = None,
         pool_id: int | None = None,
         lab_prep_id: int | None = None,
         in_lab_prep: Optional[bool] = None,
@@ -555,7 +555,7 @@ class LibraryBP(DBBlueprint):
         query = LibraryBP.where(
             query,
             user_id=user_id, sample_id=sample_id, experiment_id=experiment_id,
-            seq_request_id=seq_request_id, assay_type=assay_type,
+            seq_request_id=seq_request_id, service_type=service_type,
             pool_id=pool_id, lab_prep_id=lab_prep_id, in_lab_prep=in_lab_prep,
             type_in=type_in, status_in=status_in, pooled=pooled, status=status,
             custom_query=custom_query, project_id=project_id

@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
-from ...categories import LabProtocolEnum, LibraryStatus, PrepStatusEnum, AssayTypeEnum
+from ...categories import LabProtocolEnum, LibraryStatus, PrepStatusEnum, ServiceTypeEnum
 from ..DBBlueprint import DBBlueprint
 from .. import exceptions
 
@@ -17,7 +17,7 @@ class LabPrepBP(DBBlueprint):
         name: str | None,
         creator_id: int,
         protocol: LabProtocolEnum,
-        assay_type: AssayTypeEnum,
+        service_type: ServiceTypeEnum,
         flush: bool = True
     ) -> models.LabPrep:
         if (creator := self.db.session.get(models.User, creator_id)) is None:
@@ -33,7 +33,7 @@ class LabPrepBP(DBBlueprint):
             prep_number=number,
             creator_id=creator.id,
             protocol_id=protocol.id,
-            assay_type_id=assay_type.id,
+            service_type_id=service_type.id,
         )
 
         self.db.session.add(lab_prep)

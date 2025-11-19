@@ -32,7 +32,7 @@
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active form-container" id="form-tab-form" role="tabpanel" tabindex="0">
-                {{ select_input(form.assay_type) }}
+                {{ select_input(form.service_type) }}
                 {{ form.csrf_token() }}
                 {{ form.optional_assays.csrf_token() }}
                 {{ form.additional_services.csrf_token() }}
@@ -106,18 +106,18 @@
             </div>
             <div class="tab-pane fade" id="form-tab-form-assay" role="tabpanel" tabindex="2">
                 <ul>
-                    {% for assay_type in AssayType.as_list() %}
-                    <li><b>{{ assay_type.name }}</b> {% if assay_type.platform %}<span class="desc">{{ assay_type.platform }}</span>{% endif %}</li>
+                    {% for service_type in ServiceType.as_list() %}
+                    <li><b>{{ service_type.name }}</b> {% if service_type.platform %}<span class="desc">{{ service_type.platform }}</span>{% endif %}</li>
                     Library Types:
                     <ul class="h-list" style="width: 60%; padding-left: 15px;">
-                        {% for library_type in assay_type.library_types %}
+                        {% for library_type in service_type.library_types %}
                         <li><span {{ tooltip(library_type.name) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
                         {% endfor %}
                     </ul>
-                    {% if assay_type.optional_library_types | length %}
+                    {% if service_type.optional_library_types | length %}
                     Optional Assays:
                     <ul class="h-list" style="width: 60%; padding-left: 15px;">
-                        {% for library_type in assay_type.optional_library_types %}
+                        {% for library_type in service_type.optional_library_types %}
                         <li><span {{ tooltip(library_type.name) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
                         {% endfor %}
                     </ul>
@@ -154,29 +154,29 @@
                 oligo_multiplexing: false,
                 ocm_multiplexing: false
             },
-            {% for assay_type in AssayType.as_list() %}
-            {{ assay_type.id }}: {
+            {% for service_type in ServiceType.as_list() %}
+            {{ service_type.id }}: {
                 optional_library_types: [
-                    {% for library_type in assay_type.optional_library_types %}
+                    {% for library_type in service_type.optional_library_types %}
                     {{ library_type.id }},
                     {% endfor %}
                 ],
-                oligo_multiplexing: {% if assay_type.oligo_multiplexing %}true{% else %}false{% endif %},
-                ocm_multiplexing: {% if assay_type.ocm_multiplexing %}true{% else %}false{% endif %}
+                oligo_multiplexing: {% if service_type.oligo_multiplexing %}true{% else %}false{% endif %},
+                ocm_multiplexing: {% if service_type.ocm_multiplexing %}true{% else %}false{% endif %}
             },
             {% endfor %}
         };
 
         function update_optional_assays() {
-            const assay_id = $("#assay_type").val();
+            const assay_id = $("#service_type").val();
             if (assay_id == -1 || assay_id == "-1") {
                 return;
             }
 
-            const optional_library_types = assays[assay_id].optional_library_types || assay_id == {{ AssayType.CUSTOM.id }};
-            const oligo_multiplexing = assays[assay_id].oligo_multiplexing || assay_id == {{ AssayType.CUSTOM.id }};
-            const ocm_multiplexing = assays[assay_id].ocm_multiplexing || assay_id == {{ AssayType.CUSTOM.id }};
-            const antibody_capture = assays[assay_id].optional_library_types.includes({{LibraryType.TENX_ANTIBODY_CAPTURE.id}}) || assays[assay_id].optional_library_types.includes({{LibraryType.TENX_SC_ABC_FLEX.id}}) || assay_id == {{ AssayType.CUSTOM.id }};
+            const optional_library_types = assays[assay_id].optional_library_types || assay_id == {{ ServiceType.CUSTOM.id }};
+            const oligo_multiplexing = assays[assay_id].oligo_multiplexing || assay_id == {{ ServiceType.CUSTOM.id }};
+            const ocm_multiplexing = assays[assay_id].ocm_multiplexing || assay_id == {{ ServiceType.CUSTOM.id }};
+            const antibody_capture = assays[assay_id].optional_library_types.includes({{LibraryType.TENX_ANTIBODY_CAPTURE.id}}) || assays[assay_id].optional_library_types.includes({{LibraryType.TENX_SC_ABC_FLEX.id}}) || assay_id == {{ ServiceType.CUSTOM.id }};
         
             $(".opt-checkbox input").each(function() {
                 $(this).addClass("disabled");
@@ -237,7 +237,7 @@
                 $("#additional_services-ocm_multiplexing").prop("checked", false);
             }
 
-            if (assay_id == {{ AssayType.CUSTOM.id }}) {
+            if (assay_id == {{ ServiceType.CUSTOM.id }}) {
                 $(".opt-checkbox input").each(function() {
                     $(this).removeClass("disabled");
                     $(this).prop("disabled", false);
@@ -249,7 +249,7 @@
 
 
         function update_oligo_multiplexing_kit_input() {
-            const assay_id = $("#assay_type").val();
+            const assay_id = $("#service_type").val();
             if (assay_id === -1) {
                 return;
             }
@@ -267,7 +267,7 @@
         }
 
         function update_antibody_kit_input() {
-            const assay_id = $("#assay_type").val();
+            const assay_id = $("#service_type").val();
             if (assay_id === -1) {
                 return;
             }
@@ -288,7 +288,7 @@
         }
 
         function update_abc_mux_input() {
-            const assay_id = $("#assay_type").val();
+            const assay_id = $("#service_type").val();
             if (assay_id === -1) {
                 return;
             }
@@ -302,12 +302,12 @@
         }
 
         function update_multiome_mux_input() {
-            const assay_id = $("#assay_type").val();
+            const assay_id = $("#service_type").val();
             if (assay_id === -1) {
                 return;
             }
             const is_checked = $("#additional_services-oligo_multiplexing").is(":checked");
-            if (assay_id == {{ AssayType.TENX_SC_MULTIOME.id }} && is_checked) {
+            if (assay_id == {{ ServiceType.TENX_SC_MULTIOME.id }} && is_checked) {
                 $("#multiome-mux-warning").css("display", "block");
             } else {
                 $("#multiome-mux-warning").css("display", "none");
@@ -322,7 +322,7 @@
             update_multiome_mux_input();
 
             $("#optional_assays-antibody_multiplexing").on("change", update_abc_mux_input);
-            $("#assay_type").on("change", function() {
+            $("#service_type").on("change", function() {
                 update_multiome_mux_input();
                 update_oligo_multiplexing_kit_input();
                 update_optional_assays();

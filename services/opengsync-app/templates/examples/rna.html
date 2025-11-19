@@ -6,12 +6,12 @@
     $(document).ready(function() {
         jspreadsheet(document.getElementById('rna-example'), {
             data: [
-                ["sample_1", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.POLY_A_RNA_SEQ.name }}", "rna_pool"],
-                ["sample_2", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.POLY_A_RNA_SEQ.name }}", "rna_pool"],
-                ["sample_3", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.POLY_A_RNA_SEQ.name }}", "rna_pool"],
-                ["sample_4", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.POLY_A_RNA_SEQ.name }}", "rna_pool"],
-                ["sample_5", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.POLY_A_RNA_SEQ.name }}", "rna_pool"],
-                ["sample_6", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.POLY_A_RNA_SEQ.name }}", "rna_pool"],
+                ["sample_1", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.BULK_RNA_SEQ.name }}", "rna_pool"],
+                ["sample_2", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.BULK_RNA_SEQ.name }}", "rna_pool"],
+                ["sample_3", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.BULK_RNA_SEQ.name }}", "rna_pool"],
+                ["sample_4", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.BULK_RNA_SEQ.name }}", "rna_pool"],
+                ["sample_5", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.BULK_RNA_SEQ.name }}", "rna_pool"],
+                ["sample_6", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.BULK_RNA_SEQ.name }}", "rna_pool"],
             ],
             columns: [
                 {% for col in form.spreadsheet.columns.values() %}

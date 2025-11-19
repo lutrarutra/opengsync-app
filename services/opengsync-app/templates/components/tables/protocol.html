@@ -24,9 +24,9 @@
                 }}
                 {{
                     table_col(
-                        table_container_id='protocol-table', column_name='Assay', column_var='assay_type_id',
+                        table_container_id='protocol-table', column_name='Assay', column_var='service_type_id',
                         sort_url='protocols_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=AssayType.as_list(), multiselect_selected=assay_type_in
+                        multiselect_choices=ServiceType.as_list(), multiselect_selected=service_type_in
                     )
                 }}
                 <th scope="col" class="col-2">
@@ -43,7 +43,7 @@
                         {{ protocol.name }}
                     </a>
                 </td>
-                <td>{{ protocol.assay_type.name }}</td>
+                <td>{{ protocol.service_type.name }}</td>
                 <td>{{ protocol.read_structure or "" }}</td>
             </tr>
             {% endfor %}
