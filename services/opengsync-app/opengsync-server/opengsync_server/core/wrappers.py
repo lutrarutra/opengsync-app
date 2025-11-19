@@ -180,7 +180,7 @@ def _route_decorator(
                     if token.is_expired:
                         raise serv_exceptions.NoPermissionsException("API token is expired.")
                 
-                    runtime.session["clear_rate_limit"] = False
+                    runtime.session["clear_rate_limit"] = True
 
                 return fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:
