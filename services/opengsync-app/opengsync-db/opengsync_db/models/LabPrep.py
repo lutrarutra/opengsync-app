@@ -5,7 +5,7 @@ from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from opengsync_db.categories import LabProtocol, LabProtocolEnum, PrepStatus, PrepStatusEnum, MediaFileType, ServiceTypeEnum, ServiceType, MUXType, LibraryStatus
+from opengsync_db.categories import LabChecklistType, LabChecklistTypeEnum, PrepStatus, PrepStatusEnum, MediaFileType, ServiceTypeEnum, ServiceType, MUXType, LibraryStatus
 
 from .Base import Base
 from . import links
@@ -26,7 +26,7 @@ class LabPrep(Base):
     name: Mapped[str] = mapped_column(sa.String(32), nullable=False, index=True)
     prep_number: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
-    protocol_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    checklist_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
     service_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
@@ -272,12 +272,12 @@ class LabPrep(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @property
-    def protocol(self) -> LabProtocolEnum:
-        return LabProtocol.get(self.protocol_id)
+    def checklist_type(self) -> LabChecklistTypeEnum:
+        return LabChecklistType.get(self.checklist_type_id)
     
-    @protocol.setter
-    def protocol(self, value: LabProtocolEnum):
-        self.protocol_id = value.id
+    @checklist_type.setter
+    def checklist_type(self, value: LabChecklistTypeEnum):
+        self.checklist_type_id = value.id
 
     @property
     def status(self) -> PrepStatusEnum:
@@ -297,7 +297,7 @@ class LabPrep(Base):
 
     @property
     def identifier(self) -> str:
-        return f"{self.protocol.identifier}{self.prep_number:04d}"
+        return f"{self.checklist_type.identifier}{self.prep_number:04d}"
     
     @property
     def display_name(self) -> str:

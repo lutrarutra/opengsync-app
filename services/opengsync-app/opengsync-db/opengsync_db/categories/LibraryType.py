@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from .ExtendedEnum import DBEnum, ExtendedEnum
-from .LabProtocol import LabProtocol, LabProtocolEnum
+from .LabChecklistType import LabChecklistType, LabChecklistTypeEnum
 
 
 @dataclass(eq=False)
@@ -68,22 +68,22 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     CUT_AND_RUN = LibraryTypeEnum(116, "Cut & Run", "Cut&Run", "CUTNRUN", "Binding Site Quantification")
 
     @classmethod
-    def get_protocol_library_types(cls, lab_protocol: LabProtocolEnum) -> list[LibraryTypeEnum]:
-        if lab_protocol == LabProtocol.CUSTOM:
+    def get_check_list_library_types(cls, checklist_type: LabChecklistTypeEnum) -> list[LibraryTypeEnum]:
+        if checklist_type == LabChecklistType.CUSTOM:
             return LibraryType.as_list()
         return {
-            LabProtocol.RNA_SEQ: [LibraryType.BULK_RNA_SEQ, LibraryType.IMMUNE_SEQ],
-            LabProtocol.QUANT_SEQ: [LibraryType.BULK_RNA_SEQ],
-            LabProtocol.SMART_SEQ: [LibraryType.BULK_RNA_SEQ, LibraryType.SMART_SC_SEQ],
-            LabProtocol.WGS: [LibraryType.WGS, LibraryType.ARTIC_SARS_COV_2, LibraryType.RR_BS_SEQ, LibraryType.WG_BS_SEQ, LibraryType.RR_EM_SEQ, LibraryType.WG_EM_SEQ],
-            LabProtocol.WES: [LibraryType.WES],
-            LabProtocol.TENX: [
+            LabChecklistType.RNA_SEQ: [LibraryType.BULK_RNA_SEQ, LibraryType.IMMUNE_SEQ],
+            LabChecklistType.QUANT_SEQ: [LibraryType.BULK_RNA_SEQ],
+            LabChecklistType.SMART_SEQ: [LibraryType.BULK_RNA_SEQ, LibraryType.SMART_SC_SEQ],
+            LabChecklistType.WGS: [LibraryType.WGS, LibraryType.ARTIC_SARS_COV_2, LibraryType.RR_BS_SEQ, LibraryType.WG_BS_SEQ, LibraryType.RR_EM_SEQ, LibraryType.WG_EM_SEQ],
+            LabChecklistType.WES: [LibraryType.WES],
+            LabChecklistType.TENX: [
                 LibraryType.TENX_SC_GEX_FLEX, LibraryType.TENX_SC_ATAC, LibraryType.TENX_SC_GEX_3PRIME, LibraryType.TENX_SC_GEX_5PRIME,
                 LibraryType.TENX_VISIUM_HD, LibraryType.TENX_VISIUM_FFPE, LibraryType.TENX_VISIUM, LibraryType.TENX_ANTIBODY_CAPTURE,
                 LibraryType.TENX_MUX_OLIGO, LibraryType.TENX_CRISPR_SCREENING, LibraryType.TENX_VDJ_B, LibraryType.TENX_VDJ_T,
                 LibraryType.TENX_VDJ_T_GD, LibraryType.TENX_SC_ABC_FLEX
             ],
-        }[lab_protocol]
+        }[checklist_type]
     
     @classmethod
     def get_visium_library_types(cls) -> list[LibraryTypeEnum]:

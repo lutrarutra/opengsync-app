@@ -3,7 +3,7 @@ from typing import Optional
 
 import sqlalchemy as sa
 
-from ...categories import IndexTypeEnum, LabProtocolEnum, KitType
+from ...categories import IndexTypeEnum, LabChecklistTypeEnum, KitType
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -13,7 +13,7 @@ class IndexKitBP(DBBlueprint):
     @DBBlueprint.transaction
     def create(
         self, identifier: str, name: str,
-        supported_protocols: list[LabProtocolEnum],
+        supported_protocols: list[LabChecklistTypeEnum],
         type: IndexTypeEnum,
         flush: bool = True
     ) -> models.IndexKit:

@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
-from ...categories import LabProtocolEnum, LibraryStatus, PrepStatusEnum, ServiceTypeEnum
+from ...categories import LabChecklistTypeEnum, LibraryStatus, PrepStatusEnum, ServiceTypeEnum
 from ..DBBlueprint import DBBlueprint
 from .. import exceptions
 
@@ -16,23 +16,23 @@ class LabPrepBP(DBBlueprint):
         self,
         name: str | None,
         creator_id: int,
-        protocol: LabProtocolEnum,
+        checklist_type: LabChecklistTypeEnum,
         service_type: ServiceTypeEnum,
         flush: bool = True
     ) -> models.LabPrep:
         if (creator := self.db.session.get(models.User, creator_id)) is None:
             raise exceptions.ElementDoesNotExist(f"User with id '{creator_id}', not found.")
         
-        number = self.get_next_protocol_number(protocol)
+        number = self.get_next_protocol_number(checklist_type)
 
         if not name:
-            name = f"{protocol.identifier}{number:04d}"
+            name = f"{checklist_type.identifier}{number:04d}"
 
         lab_prep = models.LabPrep(
             name=name.strip(),
             prep_number=number,
             creator_id=creator.id,
-            protocol_id=protocol.id,
+            checklist_type_id=checklist_type.id,
             service_type_id=service_type.id,
         )
 
@@ -52,8 +52,8 @@ class LabPrepBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def find(
-        self, procotol: Optional[LabProtocolEnum] = None,
-        protocol_in: Optional[list[LabProtocolEnum]] = None,
+        self, checklist_type: Optional[LabChecklistTypeEnum] = None,
+        checklist_type_in: Optional[list[LabChecklistTypeEnum]] = None,
         status: Optional[PrepStatusEnum] = None,
         status_in: Optional[list[PrepStatusEnum]] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
@@ -63,10 +63,10 @@ class LabPrepBP(DBBlueprint):
     ) -> tuple[list[models.LabPrep], int | None]:
         query = self.db.session.query(models.LabPrep)
 
-        if procotol is not None:
-            query = query.where(models.LabPrep.protocol_id == procotol.id)
-        elif protocol_in is not None:
-            query = query.where(models.LabPrep.protocol_id.in_([p.id for p in protocol_in]))
+        if checklist_type is not None:
+            query = query.where(models.LabPrep.checklist_type_id == checklist_type.id)
+        elif checklist_type_in is not None:
+            query = query.where(models.LabPrep.checklist_type_id.in_([p.id for p in checklist_type_in]))
 
         if status is not None:
             query = query.where(models.LabPrep.status_id == status.id)
@@ -114,18 +114,18 @@ class LabPrepBP(DBBlueprint):
     @DBBlueprint.transaction
     def query(
         self, name: Optional[str] = None, creator: Optional[str] = None,
-        procotol: Optional[LabProtocolEnum] = None,
-        protocol_in: Optional[list[LabProtocolEnum]] = None,
+        checklist_type: Optional[LabChecklistTypeEnum] = None,
+        checklist_type_in: Optional[list[LabChecklistTypeEnum]] = None,
         status: Optional[PrepStatusEnum] = None,
         status_in: Optional[list[PrepStatusEnum]] = None,
         limit: int | None = PAGE_LIMIT
     ) -> list[models.LabPrep]:
         query = self.db.session.query(models.LabPrep)
 
-        if procotol is not None:
-            query = query.where(models.LabPrep.protocol_id == procotol.id)
-        elif protocol_in is not None:
-            query = query.where(models.LabPrep.protocol_id.in_([p.id for p in protocol_in]))
+        if checklist_type is not None:
+            query = query.where(models.LabPrep.checklist_type_id == checklist_type.id)
+        elif checklist_type_in is not None:
+            query = query.where(models.LabPrep.checklist_type_id.in_([p.id for p in checklist_type_in]))
 
         if status is not None:
             query = query.where(models.LabPrep.status_id == status.id)
@@ -154,12 +154,12 @@ class LabPrepBP(DBBlueprint):
         return lab_preps
 
     @DBBlueprint.transaction
-    def get_next_protocol_number(self, protocol: LabProtocolEnum) -> int:
-        if not protocol.identifier:
-            raise TypeError(f"Pool type {protocol} does not have an identifier")
+    def get_next_protocol_number(self, checklist_type: LabChecklistTypeEnum) -> int:
+        if not checklist_type.identifier:
+            raise TypeError(f"Pool type {checklist_type} does not have an identifier")
 
         if (latest_prep := self.db.session.query(models.LabPrep).where(
-            models.LabPrep.protocol_id == protocol.id
+            models.LabPrep.checklist_type_id == checklist_type.id
         ).order_by(
             models.LabPrep.prep_number.desc()
         ).first()) is not None:
