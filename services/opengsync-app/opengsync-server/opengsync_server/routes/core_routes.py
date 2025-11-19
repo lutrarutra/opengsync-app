@@ -17,17 +17,9 @@ from .. import db, logger, flash_cache, limiter
 
 
 if runtime.app.debug:
-    @wrappers.page_route(
-        runtime.app, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60,
-        cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="3/minute;5/hour"
-    )
-    def test(string: str = ""):
-        if string != "ok":
-            raise exceptions.NoPermissionsException("Number too high")
-
-        runtime.session["clear_rate_limit"] = True
-
-        return {"status": "ok", "key": limiter.current_limit.key}, 200  # type: ignore
+    @wrappers.page_route(runtime.app, db=db, login_required=True)
+    def test():
+        return render_template("test.html")
 
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def mail_template(current_user: models.User):
