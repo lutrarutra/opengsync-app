@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import LibraryType, LibraryStatus, AssayType, MUXType, AccessType, DataPathType, SampleStatus
+from opengsync_db.categories import LibraryType, LibraryStatus, ServiceType, MUXType, AccessType, DataPathType, SampleStatus
 
 from ... import db, forms, logger  # noqa
 from ...core import wrappers, exceptions
@@ -693,13 +693,13 @@ def get_todo_libraries(current_user: models.User):
     )
 
     data = {
-        "assay_type": [],
+        "service_type": [],
         "library_name": [],
         "status": [],
     }
 
     for library in libraries:
-        data["assay_type"].append(library.assay_type)
+        data["service_type"].append(library.service_type)
         data["library_name"].append(library.name)
         data["status"].append(library.status)
 
@@ -713,18 +713,18 @@ def get_todo_libraries(current_user: models.User):
 
 
 @wrappers.htmx_route(libraries_htmx, db=db)
-def get_assay_type_todo_libraries(current_user: models.User, assay_type_id: int):
+def get_service_type_todo_libraries(current_user: models.User, service_type_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
     try:
-        assay_type = AssayType.get(assay_type_id)
+        service_type = ServiceType.get(service_type_id)
     except ValueError:
         raise exceptions.BadRequestException()
 
     libraries, _ = db.libraries.find(
         status_in=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED],
-        assay_type=assay_type, limit=512
+        service_type=service_type, limit=512
     )
 
     data = {
@@ -746,7 +746,7 @@ def get_assay_type_todo_libraries(current_user: models.User, assay_type_id: int)
 
     return make_response(
         render_template(
-            "components/assay_type-todo-list.html",
-            assay_type=assay_type, df=df
+            "components/service_type-todo-list.html",
+            service_type=service_type, df=df
         )
     )

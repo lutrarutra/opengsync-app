@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import IndexType, AssayType
+from opengsync_db.categories import IndexType, ServiceType
 
 from ... import db, forms, logger
 from ...core import wrappers, exceptions
@@ -22,24 +22,24 @@ def get(page: int = 0):
     if sort_by not in models.Protocol.sortable_fields:
         raise exceptions.BadRequestException()
     
-    if (assay_type_in := request.args.get("assay_type_id_in")) is not None:
-        assay_type_in = json.loads(assay_type_in)
+    if (service_type_in := request.args.get("service_type_id_in")) is not None:
+        service_type_in = json.loads(service_type_in)
         try:
-            assay_type_in = [AssayType.get(int(id)) for id in assay_type_in]
+            service_type_in = [ServiceType.get(int(id)) for id in service_type_in]
         except ValueError:
             raise exceptions.BadRequestException()
     
-        if len(assay_type_in) == 0:
-            assay_type_in = None
+        if len(service_type_in) == 0:
+            service_type_in = None
 
-    protocols, n_pages = db.protocols.find(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, count_pages=True, assay_type_in=assay_type_in)
+    protocols, n_pages = db.protocols.find(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, count_pages=True, service_type_in=service_type_in)
 
     return make_response(
         render_template(
             "components/tables/protocol.html", protocols=protocols,
             n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
-            assay_type_in=assay_type_in
+            service_type_in=service_type_in
         )
     )
 
@@ -52,22 +52,22 @@ def table_query():
     else:
         raise exceptions.BadRequestException()
     
-    if (assay_type_in := request.args.get("assay_type_id_in")) is not None:
-        assay_type_in = json.loads(assay_type_in)
+    if (service_type_in := request.args.get("service_type_id_in")) is not None:
+        service_type_in = json.loads(service_type_in)
         try:
-            assay_type_in = [AssayType.get(int(status)) for status in assay_type_in]
+            service_type_in = [ServiceType.get(int(status)) for status in service_type_in]
         except ValueError:
             raise exceptions.BadRequestException()
     
-        if len(assay_type_in) == 0:
-            assay_type_in = None
+        if len(service_type_in) == 0:
+            service_type_in = None
     
     protocols: list[models.Protocol] = []
     if field_name == "id":
         try:
             _id = int(word)
             if (protocol := db.protocols.get(_id)) is not None:
-                if assay_type_in is None or protocol.assay_type in assay_type_in:
+                if service_type_in is None or protocol.service_type in service_type_in:
                     protocols.append(protocol)
 
         except ValueError:
@@ -78,7 +78,7 @@ def table_query():
     return make_response(
         render_template(
             "components/tables/protocol.html", protocols=protocols,
-            active_query_field=field_name, current_query=word, assay_type_in=assay_type_in
+            active_query_field=field_name, current_query=word, service_type_in=service_type_in
         )
     )
 

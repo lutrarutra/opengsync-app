@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 
 from flask import Blueprint, request
@@ -7,6 +8,7 @@ from opengsync_db.categories import PoolStatus, LibraryStatus
 from opengsync_server.routes.htmx import lab_preps_htmx
 
 from ... import db, logger  # noqa
+from ...core import runtime
 from ...forms.workflows import select_library_protocols as wff
 from ...core import wrappers, exceptions
 
@@ -25,6 +27,19 @@ def begin(current_user: models.User, lab_prep_id: int):
         raise exceptions.NotFoundException()
     
     if lab_prep.prep_file is None:
+        data = {
+            "library_id": [],
+            "protocol_id": [],
+        }
+        for library in lab_prep.libraries:
+            data["library_id"].append(library.id)
+            data["protocol_id"].append(library.protocol_id)
+            
+        library_table = pd.DataFrame(data)
+        return wff.LibraryProtocolSelectForm(lab_prep=lab_prep, uuid=None, library_table=library_table).make_response()
+        
+    df = pd.read_excel(os.path.join(runtime.app.media_folder, lab_prep.prep_file.path), sheet_name="prep_table")
+    if "library_kits" not in df.columns or df["library_kits"].isna().all():
         data = {
             "library_id": [],
             "protocol_id": [],

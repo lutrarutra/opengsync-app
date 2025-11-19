@@ -13,7 +13,7 @@ from .... import logger, db  # noqa F401
 from ....core import runtime
 from ....tools.spread_sheet_components import TextColumn, MissingCellValue, SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm
-from .SelectAssayForm import SelectAssayForm
+from .SelectServiceForm import SelectServiceForm
 from ...SpreadsheetInput import SpreadsheetInput
 
 
@@ -139,5 +139,5 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         self.update_table("sample_table", self.sample_table)
         
-        next_form = SelectAssayForm(seq_request=self.seq_request, uuid=self.uuid)
+        next_form = SelectServiceForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

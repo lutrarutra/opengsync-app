@@ -1,18 +1,13 @@
 import pandas as pd
-import os
-import openpyxl
-from openpyxl.utils import get_column_letter
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import FeatureType
 
 from .... import db, logger  # noqa
-from ....tools import utils
 from ....core import runtime
-from ....tools.spread_sheet_components import CategoricalDropDown, TextColumn, DuplicateCellValue, SpreadSheetColumn
+from ....tools.spread_sheet_components import CategoricalDropDown
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 
@@ -45,7 +40,6 @@ class LibraryProtocolSelectForm(MultiStepForm):
 
         self.library_table["library_id"] = self.library_table["library_id"].astype(pd.Int64Dtype())
         self.library_table["protocol_id"] = self.library_table["protocol_id"].astype(pd.Int64Dtype())
-        logger.debug(self.library_table)
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=columns, csrf_token=self._csrf_token,

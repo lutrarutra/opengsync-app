@@ -13,14 +13,16 @@ DEFAULT_FMT = """{time}:
 class LogBuffer:
     log_dir: Path | None
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         self.log_dir = None
         self.buffer: list[str] | None = None
         self.session_name: str | None = None
         self.src_prefix = os.path.dirname(os.path.abspath(__file__)).removesuffix("/opengsync_server/core")
+        self.debug = debug
 
-    def set_log_dir(self, log_dir: Path):
+    def set_log_dir(self, log_dir: Path, debug: bool = False):
         self.log_dir = log_dir
+        self.debug = debug
         print(f"LogBuffer initialized with src_prefix: {self.src_prefix}", flush=True)
         if not self.log_dir.exists():
             os.makedirs(self.log_dir)
@@ -79,13 +81,23 @@ class LogBuffer:
                 info_buffer.append(unknown_msg)
         
         all_logs = "".join(formatted_messages)
+
         log = DEFAULT_FMT.format(
             time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             message=all_logs,
             session_name=self.session_name or "request"
         )
         
-        print(log, flush=True)
+        if self.debug:
+            print(log, flush=True)
+        else:
+            if (error_message := "".join(error_buffer)).strip():
+                error_log = DEFAULT_FMT.format(
+                    time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    message=error_message,
+                    session_name=self.session_name or "request"
+                )
+                print(error_log, flush=True)
         
         if self.log_dir:
             date_str = datetime.now().strftime("%Y-%m-%d")

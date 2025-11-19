@@ -6,7 +6,7 @@ from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import AssayType
+from opengsync_db.categories import ServiceType
 from ... import logger, db  # noqa
 from ..HTMXFlaskForm import HTMXFlaskForm
 
@@ -16,7 +16,7 @@ class ProtocolForm(HTMXFlaskForm):
     _form_label = "protocol_form"
 
     name = StringField("Name", validators=[DataRequired(), Length(min=6, max=models.Protocol.name.type.length)])
-    assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), coerce=int, validators=[DataRequired()])
+    service_type = SelectField("Assay Type", choices=ServiceType.as_selectable(), coerce=int, validators=[DataRequired()])
     read_structure = StringField("Read Structure", validators=[OptionalValidator(), Length(max=models.Protocol.read_structure.type.length)], description="Read structure defining the layout of reads, UMIs and indexes.")
 
     def __init__(
@@ -36,7 +36,7 @@ class ProtocolForm(HTMXFlaskForm):
 
     def __fill_form(self, protocol: models.Protocol):
         self.name.data = protocol.name
-        self.assay_type.data = protocol.assay_type.id
+        self.service_type.data = protocol.service_type.id
         self.read_structure.data = protocol.read_structure
 
     def validate(self) -> bool:
@@ -72,7 +72,7 @@ class ProtocolForm(HTMXFlaskForm):
             raise ValueError("protocol is not set.")
         
         self.protocol.name = self.name.data.strip()  # type: ignore
-        self.protocol.assay_type = AssayType.get(self.assay_type.data)
+        self.protocol.service_type = ServiceType.get(self.service_type.data)
         self.protocol.read_structure = self.read_structure.data.strip() if self.read_structure.data else None
         db.protocols.update(self.protocol)
         flash("protocol updated successfully.", "success")
@@ -81,7 +81,7 @@ class ProtocolForm(HTMXFlaskForm):
     def __create_protocol(self) -> Response:
         protocol = db.protocols.create(
             name=self.name.data.strip(),  # type: ignore
-            assay_type=AssayType.get(self.assay_type.data),
+            service_type=ServiceType.get(self.service_type.data),
             read_structure=self.read_structure.data.strip() if self.read_structure.data else None,
         )
         flash("protocol created successfully.", "success")

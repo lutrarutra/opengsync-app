@@ -14,7 +14,7 @@ from .Base import Base
 from .SeqRequest import SeqRequest
 from ..categories import (
     LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef,
-    GenomeRefEnum, AssayType, AssayTypeEnum, MUXType, MUXTypeEnum, IndexType, IndexTypeEnum
+    GenomeRefEnum, ServiceType, ServiceTypeEnum, MUXType, MUXTypeEnum, IndexType, IndexTypeEnum
 )
 
 if TYPE_CHECKING:
@@ -54,7 +54,7 @@ class Library(Base):
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     genome_ref_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    assay_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
+    service_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     mux_type_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
     index_type_id: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, default=None)
 
@@ -101,7 +101,7 @@ class Library(Base):
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="library", lazy="select")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "owner_id", "pool_id", "adapter", "num_samples", "num_features"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "service_type_id", "owner_id", "pool_id", "adapter", "num_samples", "num_features"]
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]
@@ -210,12 +210,12 @@ class Library(Base):
         self.genome_ref_id = value.id
 
     @property
-    def assay_type(self) -> AssayTypeEnum:
-        return AssayType.get(self.assay_type_id)
+    def service_type(self) -> ServiceTypeEnum:
+        return ServiceType.get(self.service_type_id)
     
-    @assay_type.setter
-    def assay_type(self, value: AssayTypeEnum):
-        self.assay_type_id = value.id
+    @service_type.setter
+    def service_type(self, value: ServiceTypeEnum):
+        self.service_type_id = value.id
 
     @property
     def mux_type(self) -> MUXTypeEnum | None:

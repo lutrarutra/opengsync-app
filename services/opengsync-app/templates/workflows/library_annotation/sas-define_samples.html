@@ -53,14 +53,14 @@
     </div>
     <script>
         var assays = {
-            {% for assay_type in AssayType.as_list() %}
-            {{ assay_type.id }}: {
+            {% for service_type in ServiceType.as_list() %}
+            {{ service_type.id }}: {
                 optional_library_types: [
-                    {% for library_type in assay_type.optional_library_types %}
+                    {% for library_type in service_type.optional_library_types %}
                     {{ library_type.id }},
                     {% endfor %}
                 ],
-                multiplexing: {% if assay_type.oligo_multiplexing %}true{% else %}false{% endif %},
+                multiplexing: {% if service_type.oligo_multiplexing %}true{% else %}false{% endif %},
             },
             {% endfor %}
         };
@@ -112,9 +112,9 @@
         }
 
         $(document).ready(function() {
-            update_optional_assays($("#assay_type").val());
+            update_optional_assays($("#service_type").val());
 
-            $("#assay_type").on("change", function() {
+            $("#service_type").on("change", function() {
                 update_optional_assays($(this).val());
             });
         });

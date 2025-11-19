@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from .ProjectSelectForm import ProjectSelectForm  # noqa: F401
-from .SelectAssayForm import SelectAssayForm  # noqa: F401
+from .SelectServiceForm import SelectServiceForm  # noqa: F401
 from .SampleAnnotationForm import SampleAnnotationForm  # noqa: F401
 from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm  # noqa: F401
 from .CustomAssayAnnotationForm import CustomAssayAnnotationFrom  # noqa: F401
@@ -30,7 +30,7 @@ _steps: list[type["MultiStepForm"]] = [
     ProjectSelectForm,
     SampleAnnotationForm,
     SampleAttributeAnnotationForm,
-    SelectAssayForm,
+    SelectServiceForm,
 
     # if multiplexed ->
     DefineMultiplexedSamplesForm,

@@ -59,7 +59,7 @@ def select(current_user: models.User) -> Response:
         "sample_name": [],
         "library_name": [],
         "library_type_id": [],
-        "assay_type_id": [],
+        "service_type_id": [],
         "genome_id": [],
         "nuclei_isolation": []
     }
@@ -68,7 +68,7 @@ def select(current_user: models.User) -> Response:
         data["sample_name"].append(library.sample_name)
         data["library_name"].append(library.name)
         data["library_type_id"].append(library.type.id)
-        data["assay_type_id"].append(library.assay_type.id)
+        data["service_type_id"].append(library.service_type.id)
         data["genome_id"].append(library.genome_ref.id)
         data["nuclei_isolation"].append("Yes" if library.nuclei_isolation else "No")
 

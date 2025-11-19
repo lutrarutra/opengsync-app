@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from wtforms import StringField, SelectField
 
 from opengsync_db import models
-from opengsync_db.categories import LabProtocol, AssayType
+from opengsync_db.categories import LabProtocol, ServiceType
 
 from ... import db, logger  # noqa F401
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -16,7 +16,7 @@ class LabPrepForm(HTMXFlaskForm):
     _form_label = "lab_prep_form"
 
     protocol = SelectField("Checklist", choices=LabProtocol.as_selectable(), coerce=int)
-    assay_type = SelectField("Assay Type", choices=AssayType.as_selectable(), coerce=int)
+    service_type = SelectField("Assay Type", choices=ServiceType.as_selectable(), coerce=int)
     name = StringField("Name")
 
     def __init__(self, form_type: Literal["create", "edit"], lab_prep: Optional[models.LabPrep] = None, formdata: dict | None = None):
@@ -34,7 +34,7 @@ class LabPrepForm(HTMXFlaskForm):
         if self.lab_prep is not None:
             self.protocol.data = self.lab_prep.protocol_id
             self.name.data = self.lab_prep.name
-            self.assay_type.data = self.lab_prep.assay_type_id
+            self.service_type.data = self.lab_prep.service_type_id
 
     def validate(self) -> bool:
         if (validated := super().validate()) is False:
@@ -47,9 +47,9 @@ class LabPrepForm(HTMXFlaskForm):
             return False
         
         try:
-            AssayType.get(self.assay_type.data)
+            ServiceType.get(self.service_type.data)
         except ValueError:
-            self.assay_type.errors = ("Invalid assay type",)
+            self.service_type.errors = ("Invalid assay type",)
             return False
         
         if self.form_type == "edit":
@@ -72,17 +72,18 @@ class LabPrepForm(HTMXFlaskForm):
             raise ValueError("lab_prep must be provided if form_type is 'edit'.")
         
         self.lab_prep.name = self.name.data  # type: ignore
-        self.lab_prep.assay_type = AssayType.get(self.assay_type.data)
+        self.lab_prep.service_type = ServiceType.get(self.service_type.data)
 
         flash("Changes saved!", "success")
-        return db.lab_preps.update(self.lab_prep)
+        db.lab_preps.update(self.lab_prep)
+        return self.lab_prep
 
     def __create_lab_prep(self, user: models.User) -> models.LabPrep:
         lab_prep = db.lab_preps.create(
             name=self.name.data,
             protocol=LabProtocol.get(self.protocol.data),
             creator_id=user.id,
-            assay_type=AssayType.get(self.assay_type.data)
+            service_type=ServiceType.get(self.service_type.data)
         )
         flash("Prep created!", "success")
         return lab_prep

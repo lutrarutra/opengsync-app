@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import (
     GenomeRef, LibraryType, FeatureType, MediaFileType, SampleStatus, PoolType, AttributeType,
-    AssayType, SubmissionType, MUXType, IndexType, BarcodeOrientation, SubmissionType
+    ServiceType, SubmissionType, MUXType, IndexType, BarcodeOrientation, SubmissionType
 )
 
 from .... import db, logger, tools
@@ -308,7 +308,7 @@ class CompleteSASForm(MultiStepForm):
             else:
                 pool_id = None
 
-            assay_type = AssayType.get(self.metadata["assay_type_id"])
+            service_type = ServiceType.get(self.metadata["service_type_id"])
 
             library = db.libraries.create(
                 name=library_row["library_name"],
@@ -318,7 +318,7 @@ class CompleteSASForm(MultiStepForm):
                 owner_id=user.id,
                 genome_ref=GenomeRef.get(library_row["genome_id"]),
                 pool_id=pool_id,
-                assay_type=assay_type,
+                service_type=service_type,
                 properties=properties,
                 mux_type=MUXType.get(library_row["mux_type_id"]) if pd.notna(library_row["mux_type_id"]) else None,
                 nuclei_isolation=self.metadata.get("nuclei_isolation", False),

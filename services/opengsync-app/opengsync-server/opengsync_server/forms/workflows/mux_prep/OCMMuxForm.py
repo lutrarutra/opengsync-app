@@ -137,7 +137,7 @@ class OCMMuxForm(MultiStepForm):
                     seq_request_id=old_library.seq_request_id,
                     lab_prep_id=self.lab_prep.id,
                     genome_ref=old_library.genome_ref,
-                    assay_type=old_library.assay_type,
+                    service_type=old_library.service_type,
                     mux_type=old_library.mux_type,
                     nuclei_isolation=old_library.nuclei_isolation,
                 )
