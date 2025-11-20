@@ -9,6 +9,9 @@
 .dash {
     display: flex;
     height: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden;
     padding: 0;
     gap: 10px;
 
@@ -17,6 +20,7 @@
         width: 50%;
         height: 100%;
         display: flex;
+        overflow-x: hidden;
         flex-direction: column;
         gap: 10px;
 
@@ -58,9 +62,12 @@
             .dash-component-content {
                 flex: 1; // Take remaining space
                 overflow: hidden;
-                padding: 10px 5px 10px 0;
+                padding: 5px 0px 5px 0px;
                 margin: 0;
                 height: 100%;
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden;
 
                 .tab-pane {
                     height: 100%;

@@ -1,12 +1,15 @@
+import os
 from pathlib import Path
+import smtplib
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, render_template
 
-from opengsync_db.categories import DataPathType, DataPathTypeEnum
+from opengsync_db.categories import DataPathType, DataPathTypeEnum, LibraryType, ProjectStatus
+from opengsync_db import models
 
-
+from ...tools import utils
 from ...core import wrappers, exceptions, runtime
-from ... import db, logger
+from ... import db, logger, mail_handler
 
 
 shares_api_bp = Blueprint("shares_api", __name__, url_prefix="/api/shares/")
@@ -62,12 +65,12 @@ def resolve_share_path(path: str, path_type_id: int) -> tuple[str, DataPathTypeE
     
     if p.is_dir() and path_type != DataPathType.DIRECTORY:
         raise exceptions.BadRequestException(f"Path '{path}' is a directory, but path type is not DIRECTORY.")
-    
+
     if not p.is_dir() and path_type == DataPathType.DIRECTORY:
         raise exceptions.BadRequestException(f"Path '{path}' is not a directory, but path type is DIRECTORY.")
     
     return p.relative_to(runtime.app.share_root).as_posix(), path_type
-    
+
 
 @wrappers.api_route(shares_api_bp, db=db, methods=["POST"], json_params=["project_id", "seq_request_id", "experiment_id", "library_id", "path", "path_type_id"], limit="3/second", limit_override=True)
 def add_data_path(
@@ -188,3 +191,79 @@ def remove_data_paths(
             paths.append((data_path.path, get_real_path(data_path.path), exists))
     
     return jsonify({"result": "success", "paths": paths}), 200
+
+@wrappers.api_route(shares_api_bp, db=db, methods=["POST"], json_params=["project_id", "internal_access", "time_valid_min", "anonymous_send", "recipients", "mark_project_delivered"], limit="1/second", limit_override=True)
+def release_project_data(current_user: models.User, recipients: list[str], project_id: int, internal_access: bool, time_valid_min: int, anonymous_send: bool = False, mark_project_delivered: bool = True):
+    if (project := db.projects.get(project_id)) is None:
+        raise exceptions.NotFoundException(f"Project with ID '{project_id}' not found.")
+    
+    if project.identifier is None:
+        raise exceptions.BadRequestException("Project must have an identifier to release data.")
+    
+    paths = utils.filter_subpaths([data_path.path for data_path in project.data_paths])
+
+    if (share_token := project.share_token) is not None:
+        if not share_token._expired:
+            share_token._expired = True
+            db.shares.update(share_token)
+    
+    share_token = db.shares.create(
+        owner=current_user,
+        time_valid_min=time_valid_min,
+        paths=paths,
+    )
+
+    if mark_project_delivered:
+        if project.status < ProjectStatus.DELIVERED:
+            project.status = ProjectStatus.DELIVERED
+    project.share_token = share_token
+    db.projects.update(project)
+
+    outdir = project.identifier
+
+    http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
+    sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)
+    wget_command = render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
+    style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
+
+    browse_link = runtime.url_for("file_share.browse", token=share_token.uuid, _external=True)
+
+    library_types = {library.type for library in project.libraries}
+    tenx_contents = any(set(LibraryType.get_tenx_library_types()).intersection(library_types))
+
+    seq_requests = db.seq_requests.find(project_id=project.id, limit=None, sort_by="id")[0]
+    experiments = db.experiments.find(project_id=project.id, limit=None, sort_by="id")[0]
+
+    internal_share_content = ""
+    if (template := runtime.app.personalization.get("internal_share_template")):
+        if os.path.exists(os.path.join(runtime.app.template_folder, template)):
+            internal_paths = project.data_paths
+            internal_paths = utils.filter_subpaths([data_path.path for data_path in internal_paths])
+            internal_paths = [utils.replace_substrings(path, runtime.app.share_path_mapping) for path in internal_paths]
+            internal_share_content = render_template(template, paths=internal_paths, project=project)
+        else:
+            logger.info(f"Internal share template '{template}' not found.")
+
+    content = render_template(
+        "email/share-data.html", style=style, browse_link=browse_link,
+        project=project, tenx_contents=tenx_contents, library_types=library_types,
+        author=None if anonymous_send else current_user if current_user.is_insider() else None,
+        seq_requests=seq_requests, experiments=experiments, share_token=share_token,
+        internal_access_share=internal_access,
+        internal_share_content=internal_share_content,
+        sync_command=sync_command,
+        http_command=http_command,
+        wget_command=wget_command,
+        outdir=outdir
+    )
+    try:
+        mail_handler.send_email(
+            recipients=recipients,
+            subject=f"[{project.identifier or f'P{project.id}'}]: {runtime.app.personalization['organization']} Shared Project Data",
+            body=content, mime_type="html",
+        )
+    except smtplib.SMTPException as e:
+        logger.error(f"Failed to send email to {recipients}: {e}")
+        raise e
+    return jsonify({"result": "success"}), 200
+

@@ -68,6 +68,9 @@ class SelectServiceForm(MultiStepForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         self.sample_table = self.tables["sample_table"]
+        if seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
+            self.service_type.label.text = "Assay Type"
+            self.service_type.choices = [(-1, "Select Assay")] + ServiceType.as_selectable()  # type: ignore
 
     def fill_previous_form(self, previous_form: StepFile):
         self.service_type.data = previous_form.metadata.get("service_type_id")
