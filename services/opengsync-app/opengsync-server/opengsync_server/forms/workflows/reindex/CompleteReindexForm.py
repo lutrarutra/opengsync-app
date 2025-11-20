@@ -40,7 +40,6 @@ class CompleteReindexForm(MultiStepForm):
         self.library_table = self.tables["library_table"]
         self.barcode_table = self.tables["barcode_table"]
         self.barcode_table = self.barcode_table[self.barcode_table["index_well"] != "del"]
-        logger.debug(self.barcode_table)
         self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
         self.barcode_table = tools.check_indices(self.barcode_table)
 
