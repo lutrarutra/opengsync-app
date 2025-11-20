@@ -29,7 +29,7 @@ class OpeNGSyncAPI:
         experiment_id: int | None = None,
         library_id: int | None = None,
     ):
-        """adds a data path associated with the given ids
+        """Adds a data path associated with the given ids. Checks that path exists on server and is a child of a share-directory.
 
         Args:
             path (str): path to the data
@@ -154,7 +154,10 @@ class OpeNGSyncAPI:
         recipients: list[str],
         anonymous_send: bool = False,
     ):
-        """sends instructions via email to recipients
+        """
+        Creates temporary share-token and sends the token with instructions to recipients via email.
+        Previous token is invalidated.
+        Project status is updated to -> DELIVERED.
 
         Args:
             project_id (int): id of the project to share
