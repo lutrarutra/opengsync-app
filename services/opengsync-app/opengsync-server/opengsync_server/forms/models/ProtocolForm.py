@@ -16,7 +16,7 @@ class ProtocolForm(HTMXFlaskForm):
     _form_label = "protocol_form"
 
     name = StringField("Name", validators=[DataRequired(), Length(min=6, max=models.Protocol.name.type.length)])
-    service_type = SelectField("Assay Type", choices=ServiceType.as_selectable(), coerce=int, validators=[DataRequired()])
+    service_type = SelectField("Service Type", choices=ServiceType.as_selectable(), coerce=int, validators=[DataRequired()])
     read_structure = StringField("Read Structure", validators=[OptionalValidator(), Length(max=models.Protocol.read_structure.type.length)], description="Read structure defining the layout of reads, UMIs and indexes.")
 
     def __init__(

@@ -746,7 +746,7 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
 
     return make_response(
         render_template(
-            "components/service_type-todo-list.html",
+            "components/assay_type-todo-list.html",
             service_type=service_type, df=df
         )
     )
