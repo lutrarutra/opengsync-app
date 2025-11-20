@@ -65,7 +65,10 @@
                     href="{{ url_for('kits_page.kit', kit_id=kit.id) }}"
                     {% endif %}>{{ kit.identifier }}</a>
                 </td>
-                <td><a 
+                <td class="cm-callback"
+                {{
+                    context_menu([{"type": "copy", "value": kit.name, "label": "Copy Name"}])
+                }}><a 
                     {% if kit.kit_type == KitType.INDEX_KIT %}
                     href="{{ url_for('kits_page.index_kit', index_kit_id=kit.id) }}"
                     {% elif kit.kit_type == KitType.FEATURE_KIT %}

@@ -150,6 +150,26 @@ def validate_argument(value: Any, name: str, type_hint, origin, args):
             raise ValueError(f"Unsupported Union types: {args}")
     elif type_hint == Path:
         value = Path(value)
+    elif type_hint == bool:
+        if isinstance(value, str):
+            if value.lower() in ("true", "1", "yes"):
+                value = True
+            elif value.lower() in ("false", "0", "no"):
+                value = False
+            else:
+                raise ValueError(f"Invalid boolean string for parameter: {name}")
+        else:
+            value = bool(value)
+    elif origin is dict:
+        if isinstance(value, str):
+            value = json.loads(value)
+        if not isinstance(value, dict):
+            raise ValueError(f"Expected dict or JSON string for parameter: {name}")
+    elif origin is list:
+        if isinstance(value, str):
+            value = json.loads(value)
+        if not isinstance(value, list):
+            raise ValueError(f"Expected list or JSON string for parameter: {name}")
     else:
         raise ValueError(f"Unsupported type hint: {type_hint} ({name}), {origin}")
     

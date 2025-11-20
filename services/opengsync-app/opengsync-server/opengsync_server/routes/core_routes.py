@@ -1,6 +1,7 @@
 import os
 
 from flask import (
+    jsonify,
     render_template,
     request,
     session,
@@ -68,6 +69,15 @@ if runtime.app.debug:
         content = premailer.transform(content)
         return content
 
+@wrappers.api_route(runtime.app, db=db, methods=["GET"], json_params=["api_token"], limit="3/second", limit_override=True, api_token_required=False)
+def validate_api_token(api_token: str):
+    if (token := db.api_tokens.get(api_token)) is None:
+        raise exceptions.NotFoundException("API token not found.")
+    
+    if token.is_expired:
+        raise exceptions.NoPermissionsException("API token is expired.")
+    
+    return jsonify({"result": "success", "owner_id": token.owner_id, "token_id": token.id, "owner_email": token.owner.email}), 200
 
 @wrappers.page_route(runtime.app, db=db, login_required=False, cache_timeout_seconds=1000, cache_type="user")
 def help():
@@ -167,7 +177,7 @@ def before_request():
     session["from_url"] = request.referrer
 
 
-@wrappers.api_route(runtime.app, login_required=False, api_token_required=False)
+@wrappers.api_route(runtime.app, login_required=False, api_token_required=False, limit="5/second", limit_override=True)
 def status():
     return make_response("OK", 200)
 

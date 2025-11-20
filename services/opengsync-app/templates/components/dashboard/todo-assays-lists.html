@@ -1,6 +1,5 @@
 {% from "components/spinner.jinja2" import spinner %}
 
-<div class="banner-container">
 {% for service_type, _df in df.groupby("service_type") %}
     <div type="button" class="element-banner"
      hx-get="{{ url_for('libraries_htmx.get_service_type_todo_libraries', service_type_id=service_type.id) }}"
@@ -15,7 +14,6 @@
         </div>
     </div>
 {% endfor %}
-</div>
 <div class="modal fade" id="assay-type-todo-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="true">
     <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="assay-type-todo-modal-content">
         {{ spinner() }}

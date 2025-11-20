@@ -166,7 +166,7 @@ class PandasBP(DBBlueprint):
         df = pd.read_sql(query, self.db._engine)
         df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
         df["reference"] = df["reference_id"].map(categories.GenomeRef.get)  # type: ignore
-        df["orientation"] = df["orientation_id"].apply(lambda x: categories.BarcodeOrientation.get(x) if x else None)  # type: ignore
+        df["orientation"] = df["orientation_id"].apply(lambda x: categories.BarcodeOrientation.get(x) if pd.notna(x) else None)  # type: ignore
 
         df = df[["lane", "sample_name", "library_name", "library_type", "reference", "seq_request_id", "sequence_i7", "sequence_i5", "orientation", "read_structure", "protocol_name", "pool_name", "library_id"]]
 

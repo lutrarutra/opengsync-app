@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="protocol-table" class="table-container">
     <table class="table">
@@ -38,7 +39,9 @@
             {% for protocol in protocols %}
             <tr>
                 <th scope="row">{{ protocol.id }}</th>
-                <td>
+                <td class="cm-callback" {{
+                    context_menu([{"type": "copy", "value": protocol.name, "label": "Copy Name"}])
+                }}>
                     <a href="{{ url_for('protocols_page.protocol', protocol_id=protocol.id) }}">
                         {{ protocol.name }}
                     </a>

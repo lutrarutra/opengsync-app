@@ -13,6 +13,14 @@ class OpeNGSyncAPI:
         response = requests.get(f"{self.base_url}/status")
         return response
     
+    def authenticate(self):
+        payload = {
+            "api_token": self.api_token
+        }
+        response = requests.get(f"{self.base_url}/validate_api_token/", json=payload)
+        response.raise_for_status()
+        return response.json()
+    
     def add_data_path(
         self,
         path: str, path_type: categories.DataPathTypeEnum,
@@ -21,6 +29,22 @@ class OpeNGSyncAPI:
         experiment_id: int | None = None,
         library_id: int | None = None,
     ):
+        """adds a data path associated with the given ids
+
+        Args:
+            path (str): path to the data
+            path_type (categories.DataPathTypeEnum): type of the data path
+            seq_request_id (int | None, optional): id of the sequencing request. Defaults to None.
+            project_id (int | None, optional): id of the project. Defaults to None.
+            experiment_id (int | None, optional): id of the experiment. Defaults to None.
+            library_id (int | None, optional): id of the library. Defaults to None.
+        Raises:
+            ValueError: if none of seq_request_id, project_id, experiment_id, or library_id is provided
+            requests.HTTPError: if the request fails
+
+        Returns:
+            dict: json response from the server
+        """
         if seq_request_id is None and project_id is None and experiment_id is None and library_id is None:
             raise ValueError("At least one of seq_request_id, project_id, experiment_id, or library_id must be provided.")
         
@@ -47,6 +71,20 @@ class OpeNGSyncAPI:
         experiment_id: int | None = None,
         library_id: int | None = None,
     ):
+        """removes all data paths associated with the given identifiers
+
+        Args:
+            project_id (int | None, optional): id of the project. Defaults to None.
+            seq_request_id (int | None, optional): id of the sequencing request. Defaults to None.
+            experiment_id (int | None, optional): id of the experiment. Defaults to None.
+            library_id (int | None, optional): id of the library. Defaults to None.
+
+        Raises:
+            requests.HTTPError: if the request fails
+
+        Returns:
+            dict: json response from the server
+        """
         payload = {
             "api_token": self.api_token,
             "project_id": project_id,
@@ -82,7 +120,7 @@ class OpeNGSyncAPI:
         return df
     
     def set_library_lane_reads(self, library_id: int | None, experiment_name: str, lane: int, num_reads: int, qc: dict | None = None):
-        """_summary_
+        """set the number of reads (and qc metadata) for a given library lane
 
         Args:
             library_id (int | None): id of the library, or None for undetermined reads
@@ -102,6 +140,44 @@ class OpeNGSyncAPI:
             "qc": qc
         }
         response = requests.post(f"{self.base_url}/api/stats/set_library_lane_reads/", json=payload)
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
+        return response.json()
+    
+    def release_project_data(
+        self,
+        project_id: int,
+        internal_access: bool,
+        time_valid_min: int,
+        recipients: list[str],
+        anonymous_send: bool = False,
+    ):
+        """sends instructions via email to recipients
+
+        Args:
+            project_id (int): id of the project to share
+            internal_access (bool): if True, add instructions for internal access
+            time_valid_min (int): time in minutes for which the share is valid
+            recipients (list[str]): list of email addresses to send the instructions to
+            anonymous_send (bool, optional): if True, send the email anonymously. Defaults to False.
+
+        Raises:
+            requests.HTTPError: if the request fails
+
+        Returns:
+            dict: json response from the server
+        """
+        payload = {
+            "api_token": self.api_token,
+            "project_id": project_id,
+            "internal_access": internal_access,
+            "time_valid_min": time_valid_min,
+            "recipients": recipients,
+            "anonymous_send": anonymous_send,
+        }
+        response = requests.post(f"{self.base_url}/api/shares/release_project_data/", json=payload)
         try:
             response.raise_for_status()
         except requests.HTTPError as e:

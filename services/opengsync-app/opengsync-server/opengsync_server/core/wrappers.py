@@ -88,7 +88,7 @@ def _route_decorator(
         original_fnc = fnc
         match current_user_required:
             case "required":
-                if not login_required:
+                if not login_required and not api_token_required:
                     logger.error(f"Route {fnc.__name__} requires current_user but login_required is False.")
 
             case "optional":
@@ -168,7 +168,9 @@ def _route_decorator(
                 try:
                     kwargs, additional_kwargs = rt.validate_parameters(original_fnc, request, kwargs)
                 except ValueError as e:
-                    raise serv_exceptions.BadRequestException("Invalid query parameters") from e
+                    logger.error(f"Parameter validation error: {e}")
+                    logger.error(kwargs)
+                    raise serv_exceptions.BadRequestException(str(e)) from e
                 
                 if api_token_required:
                     if db is None:
@@ -181,6 +183,8 @@ def _route_decorator(
                         raise serv_exceptions.NoPermissionsException("API token is expired.")
                 
                     runtime.session["clear_rate_limit"] = True
+                    if current_user_required != "no":
+                        kwargs["current_user"] = token.owner
 
                 return fnc(*args, **kwargs)
             except serv_exceptions.InternalServerErrorException as e:

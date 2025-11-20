@@ -63,13 +63,13 @@
                             {{ spinner() }}
                         </div>
                     </div>
-                    <div class="tab-pane fade" id="tab-todo-libraries" role="tabpanel" tabindex="1">
-                        <div class="banner-container" hx-get="{{ url_for('libraries_htmx.get_todo_libraries') }}" hx-trigger="intersect once">
+                    <div class="tab-pane fade" id="tab-pools" role="tabpanel" tabindex="1">
+                        <div class="banner-container" hx-get="{{ url_for('pools_htmx.get_recent_pools') }}" hx-trigger="intersect once">
                             {{ spinner() }}
                         </div>
                     </div>
-                    <div class="tab-pane fade" id="tab-pools" role="tabpanel" tabindex="2">
-                        <div class="banner-container" hx-get="{{ url_for('pools_htmx.get_recent_pools') }}" hx-trigger="intersect once">
+                    <div class="tab-pane fade" id="tab-todo-libraries" role="tabpanel" tabindex="2">
+                        <div class="banner-container" hx-get="{{ url_for('libraries_htmx.get_todo_libraries') }}" hx-trigger="intersect once">
                             {{ spinner() }}
                         </div>
                     </div>
