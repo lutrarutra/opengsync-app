@@ -53,6 +53,9 @@ def create(current_user: models.User, user_id: int):
     
     if not current_user.is_admin() and current_user.id != user.id:
         raise exceptions.NoPermissionsException("You do not have permission to create API tokens for this user.")
+
+    if not user.is_insider():
+        raise exceptions.NoPermissionsException("API tokens can only be created for insider users.")
     
     form = forms.models.APITokenForm(user=user, formdata=request.form if request.method == "POST" else None)
     if request.method == "GET":
