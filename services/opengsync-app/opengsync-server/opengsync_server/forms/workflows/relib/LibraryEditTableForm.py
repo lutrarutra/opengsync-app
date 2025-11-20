@@ -23,7 +23,7 @@ class LibraryEditTableForm(MultiStepForm):
         TextColumn("library_name", "Library Name", 250, required=True, max_length=models.Library.name.type.length, min_length=4, validation_fnc=utils.check_string),
         CategoricalDropDown("library_type_id", "Library Type", 300, categories=dict(LibraryType.as_selectable()), required=True),
         CategoricalDropDown("genome_id", "Genome", 300, categories=dict(GenomeRef.as_selectable()), required=True),
-        CategoricalDropDown("service_type_id", "Assay Type", 300, categories=dict(ServiceType.as_selectable()), required=True),
+        CategoricalDropDown("service_type_id", "Assay/Service Type", 300, categories=dict(ServiceType.as_selectable()), required=True),
         DropdownColumn("nuclei_isolation", "Nuclei", 100, choices=["Yes", "No"], required=True),
     ]
 
