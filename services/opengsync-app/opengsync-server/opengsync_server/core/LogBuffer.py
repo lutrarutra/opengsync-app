@@ -68,7 +68,11 @@ class LogBuffer:
                 record = json.loads(record_str)
                 parsed_msg, level_name = self.parse_record(record)
                 formatted_messages.append(parsed_msg)
-                
+                if level_name == "DEBUG":
+                    if self.debug:
+                        info_buffer.append(parsed_msg)
+                    else:
+                        continue
                 if level_name in ("INFO", "WARNING"):
                     info_buffer.append(parsed_msg)
                 elif level_name in ("ERROR", "CRITICAL"):

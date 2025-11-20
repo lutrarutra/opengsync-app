@@ -37,3 +37,37 @@ class ExperimentWorkFlow(ExtendedEnum[ExperimentWorkFlowEnum], enum_type=Experim
     NOVASEQ_X_1B_XP = ExperimentWorkFlowEnum(103, "NovaSeq X 1.5B XP", -1, FlowCellType.NOVASEQ_X_1B_ILLUMINA)
     NOVASEQ_X_10B_XP = ExperimentWorkFlowEnum(104, "NovaSeq X 10B XP", -1, FlowCellType.NOVASEQ_X_10B_ILLUMINA)
     NOVASEQ_X_25B_XP = ExperimentWorkFlowEnum(105, "NovaSeq X 25B XP", -1, FlowCellType.NOVASEQ_X_25B_ILLUMINA)
+
+
+    @classmethod
+    def novaseq_6k_workflows(cls) -> list["ExperimentWorkFlowEnum"]:
+        return [
+            cls.NOVASEQ_6K_SP_STD,
+            cls.NOVASEQ_6K_SP_XP,
+            cls.NOVASEQ_6K_S1_STD,
+            cls.NOVASEQ_6K_S1_XP,
+            cls.NOVASEQ_6K_S2_STD,
+            cls.NOVASEQ_6K_S2_XP,
+            cls.NOVASEQ_6K_S4_STD,
+            cls.NOVASEQ_6K_S4_XP,
+        ]
+    
+    @classmethod
+    def miseq_workflows(cls) -> list["ExperimentWorkFlowEnum"]:
+        return [
+            cls.MISEQ_v3,
+            cls.MISEQ_v2,
+            cls.MISEQ_MICRO_v2,
+            cls.MISEQ_NANO_v2,
+        ]
+    
+    @classmethod
+    def novaseq_x_workflows(cls) -> list["ExperimentWorkFlowEnum"]:
+        return [
+            cls.NOVASEQ_X_1B,
+            cls.NOVASEQ_X_10B,
+            cls.NOVASEQ_X_25B,
+            cls.NOVASEQ_X_1B_XP,
+            cls.NOVASEQ_X_10B_XP,
+            cls.NOVASEQ_X_25B_XP,
+        ]

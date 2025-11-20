@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Union
+from typing import Optional, Union, TypeVar
 
 import loguru
 
@@ -8,6 +8,8 @@ from sqlalchemy import orm
 
 from ..models.Base import Base
 from .. import models
+
+T = TypeVar("T", bound=Base)
 
 
 class DBHandler():
@@ -132,6 +134,11 @@ class DBHandler():
             self._logger.opt(depth=1).debug(message)
         else:
             print(f"DEBUG: {message}")
+
+    def merge(self, instance: T, load: bool = False) -> T:
+        if self._session is None:
+            raise Exception("Session is not open, cannot merge instance.")
+        return self._session.merge(instance, load=load)
 
     @property
     def session(self) -> orm.Session:
