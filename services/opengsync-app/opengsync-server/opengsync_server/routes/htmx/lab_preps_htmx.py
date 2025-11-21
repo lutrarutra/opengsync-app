@@ -19,6 +19,7 @@ from ... import db, forms, logger
 from ...core import wrappers, exceptions
 from ...core.RunTime import runtime
 from ...tools.spread_sheet_components import TextColumn
+from ...tools import StaticSpreadSheet
 
 
 lab_preps_htmx = Blueprint("lab_preps_htmx", __name__, url_prefix="/htmx/lab_preps/")
@@ -666,10 +667,7 @@ def get_mux_table(current_user: models.User, lab_prep_id: int):
             )
         )
 
-    return make_response(
-        render_template(
-            "components/itable.html", columns=columns,
-            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
-        )
-    )
+    spreadsheet = StaticSpreadSheet(df, columns=columns, id=f"lab_prep_mux_table-{lab_prep_id}")
+
+    return make_response(render_template("components/itable.html", spreadsheet=spreadsheet))
 

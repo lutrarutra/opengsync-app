@@ -10,6 +10,7 @@ from ... import db
 from ...core import wrappers, exceptions
 from ... import forms
 from ...tools.spread_sheet_components import TextColumn
+from ...tools import StaticSpreadSheet
 
 feature_kits_htmx = Blueprint("feature_kits_htmx", __name__, url_prefix="/htmx/feature_kits/")
 
@@ -198,11 +199,11 @@ def render_table(feature_kit_id: int):
         else:
             width = 200
         columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID"), width, max_length=1000))
+
+    spreadsheet = StaticSpreadSheet(df, columns=columns, id=f"feature_kit_table-{feature_kit_id}")
     
     return make_response(
         render_template(
-            "components/itable.html", feature_kit=feature_kit, columns=columns,
-            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
-            table_id=f"feature_kit_table-{feature_kit_id}"
+            "components/itable.html", feature_kit=feature_kit, spreadsheet=spreadsheet
         )
     )

@@ -98,10 +98,18 @@ class Library(Base):
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=links.LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
     plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
     indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="joined", cascade="all, save-update, merge, delete, delete-orphan")
-    read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
+    read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan", order_by="SeqQuality.lane")
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="library", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "service_type_id", "owner_id", "pool_id", "adapter", "num_samples", "num_features"]
+
+    def get_num_sequenced_reads(self) -> int:
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open")
+        total_reads = 0
+        for rq in self.read_qualities:
+            total_reads += rq.num_reads
+        return total_reads
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]

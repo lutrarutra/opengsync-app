@@ -11,6 +11,7 @@ from opengsync_db.categories import IndexType, KitType
 from ... import db, logger, forms
 from ...core import wrappers, exceptions
 from ...tools.spread_sheet_components import TextColumn
+from ...tools import StaticSpreadSheet
 
 index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/htmx/index_kits/")
 
@@ -145,13 +146,9 @@ def render_table(index_kit_id: int):
             width = 150
         columns.append(TextColumn(col, col, width, max_length=1000))
 
-    return make_response(
-        render_template(
-            "components/itable.html", index_kit=index_kit, columns=columns,
-            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
-            table_id=f"index_kit_table-{index_kit_id}"
-        )
-    )
+    spreadsheet = StaticSpreadSheet(df, columns=columns, id=f"index_kit_table-{index_kit_id}")
+
+    return make_response(render_template("components/itable.html", spreadsheet=spreadsheet))
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db)
