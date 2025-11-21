@@ -1,7 +1,9 @@
-@media screen and (max-width: 992px) {
+
+
+@media screen and (max-width: 1000px) {
     #left-margin, #right-margin {
         display: none;
-        width: 0;
+        width: 0 !important;
     }
 
     #main {
@@ -10,6 +12,23 @@
         margin: 0;
         #middle-container {
             width: 100vw !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+    }
+}
+
+@media screen and (min-width: 1001px) and (max-width: 1440px) {
+    #left-margin, #right-margin {
+        width: 5% !important;
+    }
+
+    #main {
+        width: 100vw;
+        padding: 0;
+        margin: 0;
+        #middle-container {
+            width: calc(100vw - 10%) !important;
             padding: 0 !important;
             margin: 0 !important;
         }

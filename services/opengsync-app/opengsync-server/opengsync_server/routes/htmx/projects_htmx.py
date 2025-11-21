@@ -12,6 +12,7 @@ from opengsync_db.categories import SampleStatus, ProjectStatus, LibraryStatus, 
 from ... import db, forms, logger
 from ...core import wrappers, exceptions
 from ...tools.spread_sheet_components import TextColumn
+from ...tools import StaticSpreadSheet
 
 projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/htmx/projects/")
 
@@ -469,14 +470,9 @@ def get_sample_attributes(current_user: models.User, project_id: int):
             width = 150
         columns.append(TextColumn(col, col.replace("_", " ").title(), width, max_length=1000))
 
-    return make_response(
-        render_template(
-            "components/itable.html",
-            spreadsheet_data=df.replace({np.nan: ""}).values.tolist(),
-            columns=columns,
-            table_id="sample-attribute-table"
-        )
-    )
+    spreadsheet = StaticSpreadSheet(df, columns=columns, id="sample-attribute-table")
+
+    return make_response(render_template("components/itable.html", spreadsheet=spreadsheet))
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def render_sample_table(current_user: models.User, project_id: int):
@@ -491,18 +487,13 @@ def render_sample_table(current_user: models.User, project_id: int):
     
     df = db.pd.get_project_samples(project_id=project_id)
 
-    columns = [
+    columns: list = [
         TextColumn("sample_name", "Sample Name", 400, read_only=True),
     ]
+
+    spreadsheet = StaticSpreadSheet(df, columns=columns, id="sample-attribute-table")
     
-    return make_response(
-        render_template(
-            "components/itable.html",
-            spreadsheet_data=df[["sample_name"]].replace({np.nan: ""}).values.tolist(),
-            columns=columns,
-            table_id="sample-attribute-table"
-        )
-    )
+    return make_response(render_template("components/itable.html", spreadsheet=spreadsheet))
 
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])

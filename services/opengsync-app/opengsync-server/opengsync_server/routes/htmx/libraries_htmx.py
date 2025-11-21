@@ -11,6 +11,7 @@ from opengsync_db.categories import LibraryType, LibraryStatus, ServiceType, MUX
 from ... import db, forms, logger  # noqa
 from ...core import wrappers, exceptions
 from ...tools.spread_sheet_components import TextColumn
+from ...tools import StaticSpreadSheet
 
 libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/htmx/libraries/")
 
@@ -674,12 +675,9 @@ def get_mux_table(current_user: models.User, library_id: int):
             )
         )
 
-    return make_response(
-        render_template(
-            "components/itable.html", columns=columns,
-            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
-        )
-    )
+    spreadsheet = StaticSpreadSheet(df, columns=columns)
+
+    return make_response(render_template("components/itable.html", columns=columns, spreadsheet=spreadsheet))
 
 
 @wrappers.htmx_route(libraries_htmx, db=db)

@@ -1,34 +1,3 @@
-{% if not table_id is defined or not table_id %}
-{% set table_id = uuid4() %}
-{% endif %}
-<div class="spreadsheet-container" {% if height is defined and height %}style="height: {{ height }};"{% endif %}>
-    <div id="{{ table_id }}" class="spreadsheet-grid">
-    </div>
-</div>
-<script>
-    var data = {{ spreadsheet_data | tojson if spreadsheet_data is defined else "[[null]]" }};
+{% from "components/spreadsheet.jinja2" import static_spreadsheet %}
 
-    jspreadsheet(document.getElementById("{{ table_id }}"), {
-        data: data,
-        columns: [
-            {% for col in columns %}
-            {%- if col.type == "text" or col.type == "numeric" -%}
-            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}{% if col.read_only %},  readOnly: true{% endif %} },
-            {%- elif col["type"] == "dropdown" -%}
-            { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
-            {%- endif -%}
-            {% endfor %}
-        ],
-        allowInsertRow: false,
-        allowManualInsertRow: false,
-        allowDeleteRow: false,
-        allowDeleteColumn: false,
-        allowInsertColumn: false,
-        allowRenameColumn: false,
-        editable: false,
-        tableOverflow: true,
-        tableWidth: "100%",
-        tableHeight: "100%",
-        style: {{ spreadsheet_style | tojson if spreadsheet_style is defined else "{}" }},
-    });
-</script>
+{{ static_spreadsheet(spreadsheet) }}
