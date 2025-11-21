@@ -1,0 +1,15 @@
+{% from "components/spreadsheet.jinja2" import static_spreadsheet %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/metadata_group.jinja2" import metadata_quantity %}
+
+
+<div class="row">
+    {{ metadata_quantity("Library Reads", num_library_reads, class="col-3") }}
+    {{ metadata_quantity("Total Reads", num_total_reads, class="col-3") }}
+</div>
+
+{{ static_spreadsheet(spreadsheet) }}
+
+<div hx-get="{{ url_for('plots_api.experiment_library_reads', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+    {{ spinner() }}
+</div>

@@ -1058,3 +1058,81 @@ class PandasBP(DBBlueprint):
 
         df = pd.read_sql(query, self.db._engine)
         return df
+    
+    @DBBlueprint.transaction
+    def get_library_stats(self, library_id: int, per_lane: bool = False, expand_qc: bool = True, weighted_average: bool = True) -> pd.DataFrame:
+        query = sa.select(
+            models.SeqQuality.lane.label("lane"),
+            models.SeqQuality.num_reads.label("num_reads"),
+            models.SeqQuality.qc.label("qc"),
+        ).where(
+            models.SeqQuality.library_id == library_id
+        ).order_by(
+            models.SeqQuality.lane
+        )
+        df = pd.read_sql(query, self.db._engine)
+
+        if expand_qc and not df.empty:
+            expanded = df["qc"].apply(pd.Series)
+            for col in expanded.columns:
+                expanded[f"{col}"] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
+
+            df = pd.concat([df, expanded], axis=1)
+            df = df.drop(columns=["qc"])
+
+        if not per_lane:
+            df = df.drop(columns=["lane"])
+            df["weight"] = df["num_reads"] / df["num_reads"].sum()
+            agg_dict = { "num_reads": "sum" }
+            if weighted_average:
+                agg_dict |= {col: lambda x: (x * df.loc[x.index, "weight"]).sum() if pd.api.types.is_numeric_dtype(x) else x.iloc[0] for col in df.columns if col not in ["num_reads", "weight"]}
+            else:
+                agg_dict |= {col: "mean" if pd.api.types.is_numeric_dtype(df[col]) else "first" for col in df.columns if col not in ["num_reads", "weight"]}
+ 
+            df["dummy"] = 0  # to allow groupby
+            df = df.groupby(["dummy"], as_index=False).agg(agg_dict)
+            df = df.drop(columns=["dummy"])
+
+        return df
+    
+    @DBBlueprint.transaction
+    def get_experiment_stats(self, experiment_id: int, per_lane: bool = False, expand_qc: bool = True, weighted_average: bool = True) -> pd.DataFrame:
+        query = sa.select(
+            models.SeqQuality.lane.label("lane"),
+            models.SeqQuality.num_reads.label("num_reads"),
+            models.SeqQuality.qc.label("qc"),
+            models.Library.id.label("library_id"),
+            models.Library.name.label("library_name"),
+        ).where(
+            models.SeqQuality.experiment_id == experiment_id
+        ).join(
+            models.Library,
+            models.Library.id == models.SeqQuality.library_id,
+            isouter=True
+        ).order_by(
+            models.SeqQuality.lane
+        )
+        df = pd.read_sql(query, self.db._engine)
+        df["library_id"] = df["library_id"].astype(pd.Int64Dtype())
+
+        if expand_qc and not df.empty:
+            expanded = df["qc"].apply(pd.Series)
+            for col in expanded.columns:
+                expanded[f"{col}"] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
+
+            df = pd.concat([df, expanded], axis=1)
+            df = df.drop(columns=["qc"])
+
+        if not per_lane:
+            df = df.drop(columns=["lane"])
+            # weights by library
+            df["weight"] = df["num_reads"] / df.groupby(["library_id", "library_name"], dropna=False)["num_reads"].transform("sum")
+            agg_dict = { "num_reads": "sum" }
+            if weighted_average:
+                agg_dict |= {col: lambda x: (x * df.loc[x.index, "weight"]).sum() if pd.api.types.is_numeric_dtype(x) else x.iloc[0] for col in df.columns if col not in ["num_reads", "weight", "library_id", "library_name"]}
+            else:
+                agg_dict |= {col: "mean" if pd.api.types.is_numeric_dtype(df[col]) else "first" for col in df.columns if col not in ["num_reads", "weight", "library_id", "library_name"]}
+
+            df = df.groupby(["library_id", "library_name"], as_index=False, dropna=False).agg(agg_dict)
+
+        return df

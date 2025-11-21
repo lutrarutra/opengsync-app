@@ -124,9 +124,9 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
-            data-bs-target="#experiment-num_reads-tab" type="button" role="tab"
-            aria-controls="experiment-num_reads-tab" aria-selected="true">
-                📊 Reads
+            data-bs-target="#experiment-stats-tab" type="button" role="tab"
+            aria-controls="experiment-stats-tab" aria-selected="true">
+                📊 Stats
             </button>
         </li>
     </ul>
@@ -321,8 +321,8 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="experiment-num_reads-tab" role="tabpanel" tabindex="11">
-            <div hx-get="{{ url_for('plots_api.experiment_library_reads', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+        <div class="tab-pane fade" id="experiment-stats-tab" role="tabpanel" tabindex="11">
+            <div hx-get="{{ url_for('experiments_htmx.render_stats_tab', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

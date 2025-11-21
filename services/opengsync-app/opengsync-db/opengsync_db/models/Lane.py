@@ -45,6 +45,15 @@ class Lane(Base):
     error_min_molarity: ClassVar[float] = 0.5
     error_max_molarity: ClassVar[float] = 10.0
 
+    def get_num_sequenced_reads(self) -> int:
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open")
+        total_reads = 0
+        for seq_quality in self.experiment.read_qualities:
+            if seq_quality.lane == self.number:
+                total_reads += seq_quality.num_reads
+        return total_reads
+
     def is_qced(self) -> bool:
         return (
             self.avg_fragment_size is not None and

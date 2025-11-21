@@ -8,10 +8,13 @@ from flask import Blueprint, url_for, render_template, flash, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow, ProjectStatus, DataPathType, MediaFileType
+from opengsync_db.core import units
+from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow, ProjectStatus, DataPathType
 
 from ... import db, forms, logger
 from ...core.RunTime import runtime
+from ...tools import StaticSpreadSheet
+from ...tools.spread_sheet_components import TextColumn
 from ...core import wrappers, exceptions
 
 experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/htmx/experiments/")
@@ -758,6 +761,28 @@ def get_recent_experiments(current_user: models.User, page: int = 0):
         current_page=page, limit=PAGE_LIMIT
     ))
 
+@wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
+def render_stats_tab(current_user: models.User, experiment_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (experiment := db.experiments.get(experiment_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    df = db.pd.get_experiment_stats(experiment.id, per_lane=False).drop(columns=["library_id"])
+
+    columns = []
+    for col in df.columns:
+        columns.append(TextColumn(col, col.replace("_", " ").title(), {"library_name": 250}.get(col, 150), max_length=1000))
+
+    spreadsheet = StaticSpreadSheet(df=df, columns=columns, id=f"experiment-{experiment_id}-stats")
+    
+    return make_response(render_template(
+        "components/experiment-stats.html",
+        experiment=experiment, spreadsheet=spreadsheet,
+        num_total_reads=units.Quantity(experiment.get_demultiplexed_reads(), units.read),
+        num_library_reads=units.Quantity(experiment.get_demultiplexed_reads(include_undetermined=False), units.read)
+    ))
 
 @wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def checklist(current_user: models.User, experiment_id: int):

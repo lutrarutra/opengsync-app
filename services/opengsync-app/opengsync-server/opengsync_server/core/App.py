@@ -16,6 +16,7 @@ from flask_session import Session
 from flask_session.base import ServerSideSession
 
 from opengsync_db import categories, models, TIMEZONE
+from opengsync_db.core import units
 
 from .. import (
     logger,
@@ -260,6 +261,7 @@ class App(Flask):
                 ],
                 isna=pd.isna,
                 notna=pd.notna,
+                units=units
             )
 
         db.open_session()

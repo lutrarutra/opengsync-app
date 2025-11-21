@@ -334,7 +334,24 @@ def reads_tab(current_user: models.User, library_id: int):
     if access_type < AccessType.VIEW:
         raise exceptions.NoPermissionsException()
     
-    return make_response(render_template("components/library-reads.html", library=library))
+    library_stats_per_lane = db.pd.get_library_stats(library_id, per_lane=True)
+    library_stats_average = db.pd.get_library_stats(library_id, per_lane=False)
+
+    per_lane_columns = []
+    for col in library_stats_per_lane.columns:
+        per_lane_columns.append(TextColumn(col, col.replace("_", " ").title(), {"lane": 50}.get(col, 150), max_length=1000))
+
+    average_columns = []
+    for col in library_stats_average.columns:
+        average_columns.append(TextColumn(col, col.replace("_", " ").title(), {"lane": 50}.get(col, 150), max_length=1000))
+
+    per_lane_stats_ss = StaticSpreadSheet(df=library_stats_per_lane, columns=per_lane_columns, id=f"library-{library_id}-reads-per-lane")
+    average_stats_ss = StaticSpreadSheet(df=library_stats_average, columns=average_columns, id=f"library-{library_id}-reads-average")
+    
+    return make_response(render_template(
+        "components/library-reads.html", library=library,
+        per_lane_stats_ss=per_lane_stats_ss, average_stats_ss=average_stats_ss
+    ))
 
 
 @wrappers.htmx_route(libraries_htmx, db=db)

@@ -143,12 +143,22 @@ class Experiment(Base):
     
     def get_loaded_reads(self) -> float:
         if orm.object_session(self) is None:
-            raise orm.exc.DetachedInstanceError("Session must be open for checklist")
+            raise orm.exc.DetachedInstanceError("Session must be open")
         reads = 0.0
         for lane in self.lanes:
             for link in lane.pool_links:
                 if link.num_m_reads is not None:
                     reads += link.num_m_reads
+        return reads
+    
+    def get_demultiplexed_reads(self, include_undetermined: bool = True) -> int:
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open")
+        reads = 0
+        for lane in self.read_qualities:
+            if not include_undetermined and lane.library_id is None:
+                continue
+            reads += lane.num_reads
         return reads
 
     @hybrid_property
