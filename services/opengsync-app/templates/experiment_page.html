@@ -328,17 +328,4 @@
         </div>
     </div>
 </div>
-
-<script>
-    function open_file_tab(file_id) {
-        $('.nav-tabs button[data-bs-target="#experiment-files-tab"]').tab('show');
-        $('.nav-tabs button[data-bs-target="#file-' + file_id + '-tab"]').tab('show');
-    }
-
-    $(document).ready(function() {
-        $("#add-pools-popup").on("hide.bs.modal", function() {
-            location.reload();
-        });
-    });
-</script>
 {% endblock content %}
