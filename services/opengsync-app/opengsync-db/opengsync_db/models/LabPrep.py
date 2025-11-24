@@ -114,7 +114,7 @@ class LabPrep(Base):
         ) if libraries_added else None
 
         libraries_pooled = all(
-            library.pool_id is not None or library.status == LibraryStatus.FAILED
+            library.pool_id is not None or library.status >= LibraryStatus.SEQUENCED
             for library in self.libraries
         ) if (libraries_added and libraries_indexed) else None
 

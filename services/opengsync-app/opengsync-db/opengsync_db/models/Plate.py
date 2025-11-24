@@ -28,7 +28,7 @@ class Plate(Base):
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="plates")
 
-    sample_links: Mapped[list[links.SamplePlateLink]] = relationship(links.SamplePlateLink, back_populates="plate", lazy="select", order_by="SamplePlateLink.well_idx")
+    sample_links: Mapped[list[links.SamplePlateLink]] = relationship(links.SamplePlateLink, back_populates="plate", lazy="select", order_by="SamplePlateLink.well_idx", cascade="all, delete, delete-orphan")
 
     def __str__(self) -> str:
         return f"Plate(id: {self.id}, name: {self.name}, num_cols: {self.num_cols}, num_rows: {self.num_rows})"

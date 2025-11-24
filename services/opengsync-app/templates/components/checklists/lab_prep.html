@@ -1,5 +1,6 @@
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/confirm.jinja2" import confirm_action_button %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
 <div class="accordion p-1" id="sops-accordion">
     <div class="accordion-item">
@@ -208,6 +209,31 @@
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Bio Analyzer' - Workflow
                     </li>
                 </ol>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-2">Library</th>
+                            <th class="col-2">Average Fragment Size</th>
+                            <th class="col-8">Report</th>
+                        </thead>
+                        <tbody>
+                            {% for library in lab_prep.libraries %}
+                            <tr>
+                                <th scope="row">{{ library.name }}</th>
+                                <td>
+                                    <div class="quantity-container">
+                                        <div class="value">{{ library.avg_fragment_size }}</div>
+                                        <div class="unit">bp</div>
+                                    </div>
+                                </td>
+                                <td class="x-scroll-cell">
+                                    <span class="scroll-container">{% if library.ba_report_id %}<span class="desc">{{ library.ba_report.timestamp | format_datetime }}</span> <a href="{{ url_for('pdf_file', file_id=library.ba_report_id) }}" target="_blank">{{ library.ba_report.name }}</a></span>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -228,6 +254,30 @@
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Index Libraries' - Workflow
                     </li>
                 </ol>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-3">Library</th>
+                            <th scope="col" class="col-9">
+                                Index
+                                <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
+                                    <i class="bi bi-upc-scan"></i>
+                                </a>
+                                <span class="badge bg-cemm-green">Kit</span> <span class="badge bg-cemm-blue">Checked</span> <span class="badge bg-cemm-yellow">Forward (maybe)</span> <span class="badge bg-cemm-red">Unknown</span>
+                            </th>
+                        </thead>
+                        <tbody>
+                            {% for library in lab_prep.libraries %}
+                            <tr>
+                                <th scope="row">{{ library.name }}</th>
+                                <td class="x-scroll-cell">
+                                    {{ library_index_cell(library) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -248,6 +298,27 @@
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Pool Libraries' - Workflow
                     </li>
                 </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>If you don't want to pool certain libraries (yet),  <span class="code-highlight">skip</span></li>
+                    <li>Mark pool with <span class="code-highlight">x</span> if a library should not be pooled, e.g. didn't pass QC.</li>
+                </ul>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-6">Library</th>
+                            <th scope="col" class="col-6">pool</th>
+                        </thead>
+                        <tbody>
+                            {% for library in lab_prep.libraries %}
+                            <tr>
+                                <th scope="row">{{ library.name }}</th>
+                                <td>{% if library.pool_id %}<a href="{{ url_for('pools_page.pool', pool_id=library.pool_id, from='lab_prep@' + lab_prep.id | string)}}">{{ library.pool.name }}</a>{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

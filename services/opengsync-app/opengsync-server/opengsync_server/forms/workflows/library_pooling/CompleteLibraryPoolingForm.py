@@ -62,7 +62,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                     
         if len(self.pooling_table["pool"].unique()) > 1:
             for pool_suffix, df in self.pooling_table.groupby("pool"):
-                if pool_suffix == "t":
+                if pool_suffix == "t" or pool_suffix == "skip":
                     continue
                 if pool_suffix == "x":
                     for _, row in df.iterrows():

@@ -66,10 +66,10 @@ class LibraryPoolingForm(MultiStepForm):
         
         self.df = self.spreadsheet.df
 
-        if self.df.loc[~self.df["pool"].astype(str).str.strip().str.lower().isin(["x", "t"]), "pool"].isna().all():
+        if self.df.loc[~self.df["pool"].astype(str).str.strip().str.lower().isin(["x", "t", "skip"]), "pool"].isna().all():
             self.df.loc[self.df["pool"].isna(), "pool"] = "1"
 
-        for i, (idx, row) in enumerate(self.df.iterrows()):
+        for idx, row in self.df.iterrows():
             if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
                 continue
             if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "t":

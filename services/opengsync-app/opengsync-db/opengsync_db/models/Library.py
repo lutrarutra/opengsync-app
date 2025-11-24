@@ -96,10 +96,10 @@ class Library(Base):
         cascade="all, delete-orphan", order_by=links.SampleLibraryLink.sample_id
     )
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=links.LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
-    plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select")
+    plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select", cascade="all, delete, delete-orphan")
     indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="joined", cascade="all, save-update, merge, delete, delete-orphan")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan", order_by="SeqQuality.lane")
-    data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="library", lazy="select")
+    data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="library", lazy="select", cascade="all, delete, delete-orphan")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "service_type_id", "owner_id", "pool_id", "adapter", "num_samples", "num_features"]
 
