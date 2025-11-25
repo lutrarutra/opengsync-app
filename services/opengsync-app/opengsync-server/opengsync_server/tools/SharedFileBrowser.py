@@ -83,7 +83,7 @@ class SharedFileBrowser:
         full_path = self.root_dir / subpath
 
         if not full_path.exists():
-            raise exceptions.NotFoundException("File or directory not found")
+            raise exceptions.NotFoundException(f"File or directory not found: {subpath}")
 
         # Prepare list of resources to include based on Depth
         resources: list[DAVResponse] = []

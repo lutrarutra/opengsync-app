@@ -38,7 +38,7 @@ def share(token: str, subpath: Path = Path()):
         return response
     elif request.method == "HEAD":
         if (path := browser.get_file(subpath)) is None:
-            raise exceptions.NotFoundException("File not found")
+            raise exceptions.NotFoundException(f"File not found: {subpath}")
         if not path.is_file():
             raise exceptions.MethodNotAllowedException("Cannot HEAD a collection")
 
@@ -62,7 +62,7 @@ def share(token: str, subpath: Path = Path()):
         return response
     elif request.method == "GET":
         if (path := browser.get_file(subpath)) is None:
-            raise exceptions.NotFoundException("File not found")
+            raise exceptions.NotFoundException(f"File not found: {subpath}")
 
         if not path.is_file():
             raise exceptions.BadRequestException("Subpath must be a file")
