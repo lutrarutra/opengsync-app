@@ -1,6 +1,7 @@
 {% from 'components/form_group.jinja2' import form_group, select_input %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 {% from 'components/barcode_clashes_table.jinja2' import barcode_clashes_table with context %}
+{% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 
 <div id="merge_pools-form-container" class="modal-content">
     <div class="modal-header">
@@ -23,6 +24,14 @@
                 aria-controls="form-tab-libraries" aria-selected="false">
                 Libraries ({{ library_table | length }})</button>
             </li>
+            {% for pool in pools %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#pool-{{ pool.id }}-libraries" type="button" role="tab"
+                aria-controls="pool-{{ pool.id }}-libraries" aria-selected="false">
+                {{ pool.name }}</button>
+            </li>
+            {% endfor %}
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="form-tab" role="tabpanel" tabindex="0">
@@ -58,6 +67,51 @@
             <div class="tab-pane fade" id="form-tab-libraries" role="tabpanel" tabindex="1">
                 {{ barcode_clashes_table(barcode_table) }}
             </div>
+            {% for pool in pools %}
+            <div class="tab-pane fade" id="pool-{{ pool.id }}-libraries" role="tabpanel" tabindex="{{ loop.index + 1 }}">
+                <div class="row">
+                    {{ metadata_group("Name", pool.name, class="col-3") }}
+                    {{ metadata_group("Type", pool.type, class="col-3") }}
+                    {% if pool.seq_request_id %}
+                    {{                     
+                        metadata_group_link(
+                            "Request", pool.seq_request.name,
+                            url_for("seq_requests_page.seq_request", seq_request_id=pool.seq_request_id, from='pool@' + pool.id | string),
+                            class="col-3"
+                        )
+                    }}
+                    {% else %}
+                    {{ metadata_group("Request", "", class="col-3") }}
+                    {% endif %}
+                    {% if pool.lab_prep_id %}
+                    {{ 
+                        metadata_group_link(
+                            "Lab Prep", pool.lab_prep.display_name,
+                            url_for("lab_preps_page.lab_prep", lab_prep_id=pool.lab_prep_id, from='pool@' + pool.id | string),
+                            class="col-3"
+                        )
+                    }}
+                    {% else %}
+                    {{ metadata_group("Lab Prep", "", class="col-3") }}
+                    {% endif %}
+                </div>
+                <div class="row">
+                    {{
+                        metadata_group_link(
+                            "Owner", pool.owner.name,
+                            url_for("users_page.user", user_id=pool.owner.id, from='pool@' + pool.id | string),
+                            class="col-2"
+                        )
+                    }}
+                    {{ 
+                        metadata_group_email_link("Owner Email", pool.owner.email, class="col-3")
+                    }}
+                    {{ metadata_group("Contact Name", pool.contact.name, class="col-2") }}
+                    {{ metadata_group_email_link("Contact Email", pool.contact.email, class="col-3") }}
+                    {{ metadata_group("Contact Phone", pool.contact.phone, class="col-2") }}
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
 

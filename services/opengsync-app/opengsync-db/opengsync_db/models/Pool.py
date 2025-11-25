@@ -58,6 +58,11 @@ class Pool(Base):
 
     experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
     experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select", back_populates="pools")
+    
+    merged_to_pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id"), nullable=True, default=None)
+    merged_to_pool: Mapped[Optional["Pool"]] = relationship("Pool", lazy="select", remote_side=[id], foreign_keys=[merged_to_pool_id])
+
+    merged_from: Mapped[list["Pool"]] = relationship("Pool", lazy="select", back_populates="merged_to_pool", foreign_keys=[merged_to_pool_id])
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select", order_by="Library.id")
     lane_links: Mapped[list[links.LanePoolLink]] = relationship(

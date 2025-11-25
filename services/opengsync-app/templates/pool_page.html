@@ -59,12 +59,21 @@
     </div>
 
     <ul class="nav nav-tabs page-tabs" role="tablist">
+        {% if pool.status == PoolStatus.REPOOLED %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#merged-pool-tab" type="button" role="tab"
+            aria-controls="merged-pool-tab" aria-selected="true">
+            Merged Pool</button>
+        </li>
+        {% else %}
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
             data-bs-target="#library-tab" type="button" role="tab"
             aria-controls="library-tab" aria-selected="true">
             Libraries ({{ pool.num_libraries }})</button>
         </li>
+        {% endif %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#workflow-tab" type="button" role="tab"
@@ -98,11 +107,32 @@
             {% if not pool.ba_report_id %}disabled{% endif %}>
             BA Report</button>
         </li>
+        <li>
+            {% if pool.merged_from %}
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#merged-tab" type="button" role="tab"
+            aria-controls="merged-tab" aria-selected="false">
+            Merged</button>
+            {% endif %}
+        </li>
     </ul>
 </div>
 
 <div class="page-content">
     <div class="tab-content pt-3">
+        {% if pool.status == PoolStatus.REPOOLED %}
+        <div class="tab-pane fade show active" id="merged-pool-tab" role="tabpanel" tabindex="0">
+            <div>
+                {{                     
+                    metadata_group_link(
+                        "Pool Merged to", pool.merged_to_pool.name,
+                        url_for("pools_page.pool", pool_id=pool.merged_to_pool_id, from='pool@' + pool.id | string),
+                        class="col-3"
+                    )
+                }}
+            </div>
+        </div>
+        {% else %}
         <div class="tab-pane fade show active" id="library-tab" role="tabpanel" tabindex="0">
             <div class="d-flex justify-content-between">
                 <div>
@@ -115,6 +145,7 @@
                 {{ spinner() }}
             </div>
         </div>
+        {% endif %}
         <div class="tab-pane fade" id="workflow-tab" role="tabpanel" tabindex="1">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
@@ -259,6 +290,35 @@
             <embed src="{{ url_for('pdf_file', file_id=pool.ba_report_id) }}" width="100%" height="1000px" onload="remove_spinner()">
             {% endif %}
         </div>
+        <div class="tab-pane fade" id="merged-tab" role="tabpanel" tabindex="6">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <th scope="col" class="col-1">ID</th>
+                        <th scope="col" class="col-3">Name</th>
+                        <th scope="col" class="col-3">Status</th>
+                        <th scope="col" class="col-3">Type</th>
+                        <th scope="col" class="col-2">Owner</th>
+                    </thead>
+                    <tbody>
+                        {% for merged_pool in pool.merged_from %}
+                        <tr>
+                            <th scope="row">{{ merged_pool.id }}</th>
+                            <td>
+                                <a href="{{ url_for('pools_page.pool', pool_id=merged_pool.id) }}">
+                                    {{ merged_pool.name }}{% if merged_pool.clone_number > 0 %}<sup class="clone-number">(re:{{ merged_pool.clone_number }})</sup>{% endif %}
+                                </a>
+                            </td>
+                            <td>{{ merged_pool.status.icon }} {{ merged_pool.status.name }}</td>
+                            <td>{{ merged_pool.type.display_name }}</td>
+                            <td>{{ merged_pool.owner.name }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </div>
 
