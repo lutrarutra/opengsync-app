@@ -1,5 +1,3 @@
-from typing import Annotated
-
 from flask import Blueprint, Response, jsonify
 
 from opengsync_db import models
@@ -13,7 +11,7 @@ barcodes_api_bp = Blueprint("barcodes_api", __name__, url_prefix="/api/barcodes/
 
 
 @wrappers.api_route(barcodes_api_bp, db=db, methods=["POST"], json_params=["sequence", "limit"])
-def query_sequence_i7(sequence: str, limit: int = 10) -> Response:
+def query_barcode_sequence(sequence: str, limit: int = 5) -> Response:
     sequence = sequence.upper()
     fc_df = db.pd.query_barcode_sequences(sequence, limit=limit)
     rc_df = db.pd.query_barcode_sequences(models.Barcode.reverse_complement(sequence), limit=limit)

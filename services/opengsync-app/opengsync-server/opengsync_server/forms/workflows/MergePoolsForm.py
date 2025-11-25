@@ -38,12 +38,46 @@ class MergePoolsForm(MultiStepForm):
         self.pool_table["num_m_reads_requested"] = 0
         self.library_table = self.tables["library_table"]
         self.post_url = url_for("merge_pools_workflow.merge", uuid=uuid)
-        logger.debug(self.barcode_table)
         self._context["barcode_table"] = tools.check_indices(self.barcode_table)
         self._context["library_table"] = self.library_table
+        self.pools = [db.pools[int(pool_id)] for pool_id in self.pool_table["id"].unique().tolist()]
+        self._context["pools"] = self.pools
 
     def prepare(self):
-        self.num_m_reads_requested.data = self.pool_table["num_m_reads_requested"].sum()
+        status = self.pools[0].status
+        contact_id = self.pools[0].contact_id
+        contact_name = self.pools[0].contact.name
+        contact_email = self.pools[0].contact.email
+        contact_phone = self.pools[0].contact.phone
+        num_requested_reads = 0.0
+
+        for pool in self.pools:
+            if status is not None:
+                if pool.status != status:
+                    status = PoolStatus.DRAFT
+            if contact_id is not None:
+                if pool.contact_id != contact_id:
+                    contact_id = None
+            if contact_name is not None:
+                if pool.contact.name != contact_name:
+                    contact_name = None
+            if contact_email is not None:
+                if pool.contact.email != contact_email:
+                    contact_email = None
+            if contact_phone is not None:
+                if pool.contact.phone != contact_phone:
+                    contact_phone = None
+            if pool.num_m_reads_requested is not None and num_requested_reads is not None:
+                num_requested_reads += pool.num_m_reads_requested
+            else:
+                num_requested_reads = None
+
+        self.num_m_reads_requested.data = num_requested_reads
+        self.status.data = status.id if status is not None else PoolStatus.DRAFT.id
+        self.contact.selected.data = contact_id
+        self.contact_name.data = contact_name if contact_name is not None else ""
+        self.contact_email.data = contact_email if contact_email is not None else ""
+        self.contact_phone.data = contact_phone if contact_phone is not None else ""
 
     def validate(self, user: models.User) -> bool:
         if not super().validate():

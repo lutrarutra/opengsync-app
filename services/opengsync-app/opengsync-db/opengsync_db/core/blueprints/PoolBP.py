@@ -413,13 +413,12 @@ class PoolBP(DBBlueprint):
         for pool in pools:
             for library in pool.libraries:
                 library.pool_id = merged_pool.id
+
+            pool.status = PoolStatus.REPOOLED
+            pool.merged_to_pool_id = merged_pool.id
             self.db.session.add(pool)
 
         self.db.session.add(merged_pool)
-        
-        self.db.session.query(models.Pool).filter(
-            models.Pool.id.in_(pool_ids)
-        ).delete()
 
         if flush:
             self.db.flush()

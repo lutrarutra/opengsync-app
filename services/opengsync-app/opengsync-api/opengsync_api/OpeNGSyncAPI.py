@@ -99,13 +99,13 @@ class OpeNGSyncAPI:
             raise requests.HTTPError(f"{response.status_code}: {response.text}") from e
         return response.json()
 
-    def query_sequence_i7(self, sequence: str, limit: int = 10) -> pd.DataFrame:
+    def query_barcode_sequence(self, sequence: str, limit: int = 5) -> pd.DataFrame:
         payload = {
             "api_token": self.api_token,
             "sequence": sequence,
             "limit": limit
         }
-        response = requests.post(f"{self.base_url}/api/barcodes/query_sequence_i7/", json=payload)
+        response = requests.post(f"{self.base_url}/api/barcodes/query_barcode_sequence/", json=payload)
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
@@ -115,7 +115,7 @@ class OpeNGSyncAPI:
         fc_results["orientation"] = "forward"
         rc_results = pd.DataFrame(data["rc_results"])
         rc_results["orientation"] = "rc"
-        df = pd.concat([fc_results, rc_results], ignore_index=True).sort_values("hamming")
+        df = pd.concat([fc_results, rc_results], ignore_index=True).sort_values("hamming").reset_index(drop=True)
         df["type"] = df["type"].apply(lambda x: categories.BarcodeType.get(x["id"]))  # type: ignore
         return df
     
