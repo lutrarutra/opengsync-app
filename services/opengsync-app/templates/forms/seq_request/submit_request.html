@@ -1,4 +1,4 @@
-{% from 'components/form_group.jinja2' import checkbox_input, datepicker %}
+{% from 'components/form_group.jinja2' import checkbox_input, datepicker, form_group %}
 
 <div id="submit-seq_request-form-container" class="modal-content">
     <div class="modal-header">
@@ -21,9 +21,13 @@
             {% endif %}
         </div>
         <div id="submit-seq_request-form">
+            {{ submit_seq_request_form.csrf_token() }}
             {{ checkbox_input(submit_seq_request_form.samples_delivered_by_mail) }}
             {{ datepicker(submit_seq_request_form.sample_submission_time) }}
-            {{ submit_seq_request_form.csrf_token() }}
+            {% if submit_seq_request_form.sample_submission_time.errors and not submit_seq_request_form.samples_delivered_by_mail.errors %}
+            {{ checkbox_input(submit_seq_request_form.custom_sample_submission_time) }}
+            {% endif %}
+            {{ form_group(submit_seq_request_form.comment) }}
         </div>
     </div>
     <div class="modal-footer">
