@@ -2,8 +2,8 @@ from datetime import datetime
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
-from wtforms import DateTimeLocalField, BooleanField
-from wtforms.validators import Optional as OptionalValidator
+from wtforms import DateTimeLocalField, BooleanField, TextAreaField
+from wtforms.validators import Optional as OptionalValidator, Length
 
 from opengsync_db import models, to_utc
 from opengsync_db.categories import EventType
@@ -19,6 +19,15 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
 
     sample_submission_time = DateTimeLocalField("Sample Submission Time", format="%Y-%m-%dT%H:%M", validators=[OptionalValidator()])
     samples_delivered_by_mail = BooleanField("Samples are Delivered by Mail", validators=[OptionalValidator()])
+    custom_sample_submission_time = BooleanField(
+        "We have agreed to a time that is outside the available submission windows. You must have received confirmation from us before checking this box.",
+        description="Check this box only if it's not possible to submit the samples within the available time windows and you have arranged an alternative time and confirmed with us.",
+        validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)], default=False
+    )
+    comment = TextAreaField(
+        "Additional Comment for Submission", validators=[OptionalValidator()],
+        description="You can provide any additional information regarding the submission here.",
+    )
 
     def __init__(self, seq_request: models.SeqRequest, formdata=None):
         super().__init__(formdata=formdata)
@@ -41,20 +50,21 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
             return False
 
         if self.sample_submission_time.data is not None:
-            if self.sample_submission_time.data < datetime.now():
-                self.sample_submission_time.errors = ("Sample submission time cannot be in the past.",)
-                return False
-
-            if runtime.app.sample_submission_windows is not None:
-                is_valid = False
-                for window in runtime.app.sample_submission_windows:
-                    if window.contains(self.sample_submission_time.data):
-                        is_valid = True
-                        break
-                    
-                if not is_valid:
-                    self.sample_submission_time.errors = ("Sample submission time must be within allowed time.",)
+            if not self.custom_sample_submission_time.data:
+                if self.sample_submission_time.data < datetime.now():
+                    self.sample_submission_time.errors = ("Sample submission time cannot be in the past.",)
                     return False
+
+                if runtime.app.sample_submission_windows is not None:
+                    is_valid = False
+                    for window in runtime.app.sample_submission_windows:
+                        if window.contains(self.sample_submission_time.data):
+                            is_valid = True
+                            break
+                        
+                    if not is_valid:
+                        self.sample_submission_time.errors = ("Sample submission time must be within allowed time.",)
+                        return False
 
         return True
 
@@ -72,6 +82,13 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
             else:
                 self.seq_request.sample_submission_event.timestamp_utc = to_utc(self.sample_submission_time.data)
             db.seq_requests.update(self.seq_request)
+
+        if self.comment.data and (comment := self.comment.data.strip()):
+            db.comments.create(
+                seq_request_id=self.seq_request.id,
+                author_id=user.id,
+                text=f"Sample submission comment: {comment}",
+            )
 
         self.seq_request = db.seq_requests.submit(seq_request_id=self.seq_request.id)
 
