@@ -348,6 +348,14 @@
                 }
             });
 
+            $("#user_select_form-user").on("change", function() {
+                if ($("#contact_form-current_user_is_contact").is(":checked")) {
+                    var container = $(this).parent().parent();
+                    $("#contact_form-contact_person_email").val(container.find("li.selected").first().data("email"));
+                    $("#contact_form-contact_person_name").val(container.find("li.selected").first().data("name"));
+                }
+            });
+
         });
     </script>
     {% endif %}

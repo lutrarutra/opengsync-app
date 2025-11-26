@@ -76,6 +76,21 @@
                 li {
                     height: 40px;
                     text-decoration: none;
+                    .search-select-option {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+
+                        span {
+                            width: 100%;
+                        }
+                        span:last-child {
+                            text-align: right;
+                        }
+                    }
+                }
+                li.selected a {
+                    background-color: #d8ffcf !important;
                 }
                 li:hover {
                     background-color: $gray-400 !important;

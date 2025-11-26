@@ -33,7 +33,6 @@ class FlexAnnotationForm(CommonFlexMuxForm):
     @staticmethod
     def is_applicable(current_step: MultiStepForm, seq_request: models.SeqRequest) -> bool:
         return (
-            seq_request.submission_type in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] and
             LibraryType.TENX_SC_GEX_FLEX.id in current_step.tables["library_table"]["library_type_id"].values
         )
 

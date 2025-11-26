@@ -1,5 +1,4 @@
-
-function select_option(elements, value, field) {
+function select_option(parent, value, field) {
     let data_field = $(`#${field}`);
     let selected_bar = $(`#${field}-selected_bar`);
     let search_bar = $(`#${field}-search`);
@@ -7,8 +6,15 @@ function select_option(elements, value, field) {
     $(selected_bar).css("display", "flex");
     $(search_bar).css("display", "none");
 
+    $(parent).parent().find("li").removeClass("selected");
+    $(parent).addClass("selected");
+
     // Set search field value
-    $(selected_bar).empty().append(elements.clone());
+    var empty = $(selected_bar).empty();
+    $(parent).find("a.search-select-option span").each(function() {
+        empty.append($(this).clone());
+    });
+
     $(data_field).val(value);
 
     // Hide invalid feedback
@@ -49,7 +55,7 @@ $(document).on("mousedown", ".search-select-option", function() {
     let field = $(this).data("field");
     let value = $(this).data("value");
 
-    select_option($(this).children("span"), value, field.replace("-search", ""));
+    select_option($(this).parent(), value, field.replace("-search", ""));
 });
 
 $(document).on("click", ".clear-search-btn", function() {
