@@ -1,4 +1,5 @@
 from typing import Optional, Literal
+from uuid import uuid4
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -8,11 +9,28 @@ from wtforms.validators import DataRequired, Length, Email, NumberRange
 from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import ReadType, DataDeliveryMode, SubmissionType
+from opengsync_db.categories import ReadType, DataDeliveryMode, SubmissionType, UserRole
 
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ..SearchBar import OptionalSearchBar
+
+class UserSelectForm(FlaskForm):
+    user = FormField(OptionalSearchBar, label="Requestor", description="Select a requestor.")
+
+    email = EmailField("Email", description="Creates new user.", validators=[OptionalValidator(), Email(), Length(max=models.User.email.type.length)])  # type: ignore
+    first_name = StringField("First Name", description="Creates new user.", validators=[OptionalValidator(), Length(max=models.User.first_name.type.length)])  # type: ignore
+    last_name = StringField("Last Name", description="Creates new user.", validators=[OptionalValidator(), Length(max=models.User.last_name.type.length)])  # type: ignore
+    def __init__(self, formdata={}, **kwargs):
+        super().__init__(formdata=formdata, **kwargs)
+        self._validated = False
+
+    def is_validated(self) -> bool:
+        return self._validated and self.errors == {}
+    
+    def validate(self) -> bool:
+        self._validated = super().validate()
+        return self._validated
 
 
 class SeqRequestDisclaimerForm(FlaskForm):
@@ -243,6 +261,7 @@ class SeqRequestForm(HTMXFlaskForm):
     _template_path = "forms/seq_request/seq_request.html"
     _form_label = "seq_request_form"
 
+    user_select_form: UserSelectForm = FormField(UserSelectForm)  # type: ignore
     disclaimer_form: SeqRequestDisclaimerForm = FormField(SeqRequestDisclaimerForm)  # type: ignore
     basic_info_form: BasicInfoSubForm = FormField(BasicInfoSubForm)  # type: ignore
     technical_info_form: TechinicalInfoSubForm = FormField(TechinicalInfoSubForm)  # type: ignore
@@ -263,6 +282,7 @@ class SeqRequestForm(HTMXFlaskForm):
         self.form_type = form_type
 
         if form_type == "create" and current_user is not None and not formdata:
+            self.disclaimer_form.disclaimer.data = True if current_user is not None and current_user.is_insider() else False
             self.contact_form.contact_person_name.data = current_user.name
             self.contact_form.contact_person_email.data = current_user.email
             self.contact_form.current_user_is_contact.data = True
@@ -273,22 +293,51 @@ class SeqRequestForm(HTMXFlaskForm):
             self._context["seq_request"] = seq_request
 
     def validate(self, user: models.User, seq_request: Optional[models.SeqRequest] = None) -> bool:
-        if not super().validate():
-            return False
+        super().validate()
         
+        if user.is_insider():
+            assigned_user_id = self.user_select_form.user.selected.data
+            assigned_user_email = self.user_select_form.email.data
+            assigned_user_first_name = self.user_select_form.first_name.data
+            assigned_user_last_name = self.user_select_form.last_name.data
+
+            if assigned_user_id:
+                if assigned_user_email:
+                    self.user_select_form.email.errors = ("Please either select a user or fill in the email and name fields, not both.",)
+                if assigned_user_first_name:
+                    self.user_select_form.first_name.errors = ("Please select a user or fill in the email and name fields.",)
+                if assigned_user_last_name:
+                    self.user_select_form.last_name.errors = ("Please select a user or fill in the email and name fields.",)
+
+            else:
+                if assigned_user_email:
+                    if not assigned_user_first_name or assigned_user_first_name.strip() == "":
+                        self.user_select_form.first_name.errors = ("First name is required when specifying email",)
+                    if not assigned_user_last_name or assigned_user_last_name.strip() == "":
+                        self.user_select_form.last_name.errors = ("Last name is required when specifying email",)
+                    if db.users.get_with_email(assigned_user_email):
+                        self.user_select_form.email.errors = ("Email already registered.",)
+                else:
+                    if assigned_user_first_name:
+                        self.user_select_form.email.errors = ("Email is required when specifying first name",)
+                    if assigned_user_last_name:
+                        self.user_select_form.email.errors = ("Email is required when specifying last name",)
+
         if self.bioinformatician_form.bioinformatician_name.data:
             if not self.bioinformatician_form.bioinformatician_email.data:
                 self.bioinformatician_form.bioinformatician_email.errors = ("Bioinformatician email is required",)
                 self.bioinformatician_form.bioinformatician_email.flags.required = True
-                return False
             
-        try:
-            if SubmissionType.get(self.technical_info_form.submission_type.data) == SubmissionType.UNPOOLED_LIBRARIES and not user.is_insider():
-                self.technical_info_form.submission_type.errors = ("You can only submit raw samples or pooled libraries by default.",)
-                self.technical_info_form._validated = False
-        except ValueError:
-            logger.error(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
-            raise ValueError(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
+        if self.technical_info_form.submission_type.data == -1:
+            self.technical_info_form.submission_type.errors = ("Submission type is required",)
+        else:
+            try:
+                if SubmissionType.get(self.technical_info_form.submission_type.data) == SubmissionType.UNPOOLED_LIBRARIES and not user.is_insider():
+                    self.technical_info_form.submission_type.errors = ("You can only submit raw samples or pooled libraries by default.",)
+                    self.technical_info_form._validated = False
+            except ValueError:
+                logger.error(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
+                raise ValueError(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
 
         user_requests, _ = db.seq_requests.find(user_id=user.id, limit=None)
         for request in user_requests:
@@ -296,8 +345,8 @@ class SeqRequestForm(HTMXFlaskForm):
                 continue
             if request.name == self.basic_info_form.request_name.data:
                 self.basic_info_form.request_name.errors = ("You already have a request with this name",)
-                return False
-        return True
+
+        return not bool(self.errors)
     
     def __fill_form(self, seq_request: models.SeqRequest):
         self.disclaimer_form.disclaimer.data = True
@@ -412,6 +461,18 @@ class SeqRequestForm(HTMXFlaskForm):
             bioinformatician_contact_id = bioinformatician.id
         else:
             bioinformatician_contact_id = None
+
+        if user.is_insider():
+            if (assigned_user_id := self.user_select_form.user.selected.data) is not None:
+                user = db.users[assigned_user_id]
+            elif (assigned_user_email := self.user_select_form.email.data) is not None:
+                user = db.users.create(
+                    email=assigned_user_email,
+                    first_name=self.user_select_form.first_name.data,  # type: ignore
+                    last_name=self.user_select_form.last_name.data,  # type: ignore
+                    hashed_password=uuid4().hex,
+                    role=UserRole.DEACTIVATED,
+                )
 
         seq_request = db.seq_requests.create(
             name=self.basic_info_form.request_name.data,  # type: ignore

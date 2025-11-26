@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import Query
     
-from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum, AccessType, AccessTypeEnum
+from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum, AccessType, AccessTypeEnum, UserRole
 from ... import PAGE_LIMIT, models
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -354,6 +354,8 @@ class PoolBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def get_access_type(self, pool: models.Pool, user: models.User) -> AccessTypeEnum:
+        if user.role == UserRole.DEACTIVATED:
+            return AccessType.NONE
         if user.is_admin():
             return AccessType.ADMIN
         if user.is_insider():

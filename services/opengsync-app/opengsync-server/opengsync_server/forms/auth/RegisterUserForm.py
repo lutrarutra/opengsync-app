@@ -11,18 +11,28 @@ from opengsync_db import models
 from ... import db, serializer, logger, mail_handler
 from ...core import runtime
 from ..HTMXFlaskForm import HTMXFlaskForm
+from .CompleteRegistrationForm import CompleteRegistrationForm
     
 
 class RegisterUserForm(HTMXFlaskForm):
     _template_path = "forms/auth/register.html"
 
     email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=models.User.email.type.length)])  # type: ignore
-    role = SelectField("Role", choices=UserRole.as_selectable(), default=UserRole.CLIENT.id, validators=[OptionalValidator()], coerce=int)
+    role = SelectField("Role", choices=[(-1, "Select Role")] + UserRole.as_selectable(), default=-1, validators=[OptionalValidator()], coerce=int)
 
-    def __init__(self, formdata: dict[str, str] | None = None):
+    def __init__(self, current_user: models.User | None = None, formdata: dict[str, str] | None = None):
         super().__init__(formdata)
+        self.current_user = current_user
+    
+        if self.current_user is None or not self.current_user.is_insider():
+            self.role.choices = [(UserRole.CLIENT.id, UserRole.CLIENT.display_name)]
+            self.role.data = UserRole.CLIENT.id
 
-    def validate(self, user: models.User | None) -> bool:
+        elif not self.current_user.is_admin():
+            allowed_roles = [UserRole.CLIENT, UserRole.DEACTIVATED]
+            self.role.choices = [(-1, "Select Role")] + [(role.id, role.display_name) for role in allowed_roles]  # type: ignore
+
+    def validate(self) -> bool:
         if not super().validate():
             return False
         
@@ -30,7 +40,11 @@ class RegisterUserForm(HTMXFlaskForm):
             self.email.errors = ("Email is required.",)
             return False
         
-        if user is None or not user.is_insider():
+        if self.role.data == -1:
+            self.role.errors = ("Role is required.",)
+            return False
+        
+        if self.current_user is None or not self.current_user.is_insider():
             if runtime.app.email_domain_white_list is not None:
                 if self.email.data.split("@")[-1] not in runtime.app.email_domain_white_list:
                     self.email.errors = ("Specified email domain is not allowed. Please contact us.",)
@@ -44,9 +58,14 @@ class RegisterUserForm(HTMXFlaskForm):
             if (user_role := UserRole.get(self.role.data)) is None:
                 self.role.errors = ("Invalid role.",)
                 return False
-
-            elif user is None or user.role != UserRole.ADMIN:
+            
+            if self.current_user is None or not self.current_user.is_insider():
                 if user_role != UserRole.CLIENT:
+                    self.role.errors = ("You don't have permissions to create user with this role",)
+                    return False
+
+            elif self.current_user.role != UserRole.ADMIN:
+                if user_role not in (UserRole.CLIENT, UserRole.DEACTIVATED):
                     self.role.errors = ("You don't have permissions to create user with this role",)
                     return False
             
@@ -56,16 +75,19 @@ class RegisterUserForm(HTMXFlaskForm):
             
         return True
     
-    def process_request(self, user: models.User | None) -> Response:
-        if not self.validate(user):
+    def process_request(self) -> Response:
+        if not self.validate():
             return self.make_response()
         
         email = self.email.data.strip()  # type: ignore
         user_role = UserRole.get(self.role.data)
 
         token = models.User.generate_registration_token(email=email, role=user_role, serializer=serializer)
-        link = runtime.url_for("auth_page.register", token=token, _external=True)
+        if user_role == UserRole.DEACTIVATED:
+            next_form = CompleteRegistrationForm(token=token)
+            return next_form.make_response()
 
+        link = runtime.url_for("auth_page.register", token=token, _external=True)
         style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
 
         try:

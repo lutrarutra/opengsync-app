@@ -4,6 +4,8 @@ from flask_htmx import make_response
 from wtforms import EmailField, PasswordField
 from wtforms.validators import DataRequired, Email
 
+from opengsync_db.categories import UserRole
+
 from ... import bcrypt, db, logger  # noqa
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ...core import runtime
@@ -36,6 +38,10 @@ class LoginForm(HTMXFlaskForm):
         if not bcrypt.check_password_hash(user.password, self.password.data):
             self.email.errors = ("Invalid email or password.",)
             self.password.errors = ("Invalid email or password.",)
+            return self.make_response()
+        
+        if user.role == UserRole.DEACTIVATED:
+            self.email.errors = ("Account is deactivated. Please contact us.",)
             return self.make_response()
         
         runtime.session.clear()

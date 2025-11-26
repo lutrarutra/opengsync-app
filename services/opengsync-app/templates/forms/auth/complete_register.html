@@ -1,20 +1,31 @@
 {% from 'components/form_group.jinja2' import form_group %}
 {% from 'components/metadata_group.jinja2' import metadata_group %}
-<form id="complete-register-form">
-    {{ form.csrf_token() }}
-    <div class="row">
-        {{ form_group(form.email, class="col", autocomplete="username", readonly=true) }}
-        {{ metadata_group("Role", form._role, class="col") }}
+
+<div class="modal-content" id="complete-register-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Register</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
-    <div class="row">
-        {{ form_group(form.first_name, class="col") }}
-        {{ form_group(form.last_name, class="col") }}
+    <div class="modal-body" id="complete-register-form">
+        {{ form.csrf_token() }}
+        <div class="row">
+            {{ form_group(form.email, class="col", autocomplete="username", readonly=true) }}
+            {{ metadata_group("Role", form._role, class="col") }}
+        </div>
+        <div class="row">
+            {{ form_group(form.first_name, class="col") }}
+            {{ form_group(form.last_name, class="col") }}
+        </div>
+        <div class="row">
+            {{ form_group(form.password, class="col", autocomplete="new-password") }}
+            {{ form_group(form.confirm, class="col", autocomplete="new-password") }}
+        </div>
     </div>
-    <div class="row">
-        {{ form_group(form.password, class="col", autocomplete="new-password") }}
-        {{ form_group(form.confirm, class="col", autocomplete="new-password") }}
+    <div class="modal-footer">
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+                hx-target="#complete-register-form-container" hx-swap="outerHTML" hx-include="#complete-register-form"
+                hx-post="{{ url_for('auth_htmx.complete_registration', token=form.token) }}">Register</button>
+        </div>
     </div>
-    <button type="button" class="btn btn-success"
-    hx-target="#complete-register-form" hx-swap="outerHTML"
-    hx-post="{{ url_for('auth_htmx.complete_registration', token=form.token) }}">Register</button>
-</form>
+</div>

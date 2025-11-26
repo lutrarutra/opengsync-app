@@ -227,6 +227,10 @@ class User(Base, UserMixin):
     def role(self) -> UserRoleEnum:
         return UserRole.get(self.role_id)
     
+    @role.setter
+    def role(self, value: UserRoleEnum):
+        self.role_id = value.id
+    
     @property
     def name(self) -> str:
         return self.first_name + " " + self.last_name

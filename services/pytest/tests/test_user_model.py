@@ -33,7 +33,7 @@ def test_update_user(db: DBHandler):
     assert user.role == UserRole.ADMIN
     assert user.password == "password"
 
-    user.role_id = UserRole.CLIENT.id
+    user.role = UserRole.CLIENT
     user.email = "new_email@email.com"
     user.password = "updated_password"
     db.users.update(user)

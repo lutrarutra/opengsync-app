@@ -1,4 +1,6 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_email_link %}
+{% from "components/confirm.jinja2" import confirm_action_button %}
+
 {% extends "base.html" %}
 {% set active_page = "users-page" %}
 {% block content %}
@@ -8,42 +10,68 @@
             <h2>{{ user.role.icon }} {{ user.email }} <span class="desc">{{ user.role.name }}</span></h2>
         </div>
         <div class="page-controls">
-            {% if current_user.id == user.id %}
-            <button class="btn btn-warning"
-            hx-get="{{ url_for('auth_htmx.change_password', user_id=user.id) }}"
-            data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content">
-                Change Password
-            </button>
-            {% elif current_user.role == UserRole.ADMIN %}
-            <button class="btn btn-warning"
-            hx-get="{{ url_for('auth_htmx.reset_password_email', user_id=user.id) }}"
-            _="on htmx:confirm(issueRequest)
-                halt the event
-                call Swal.fire({
-                    title: 'Send Reset Password Email to \'{{ user.email }}\'?',
-                    showDenyButton: true,
-                    text: 'Proceed?',
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'No'
-                })
-                if result.isConfirmed issueRequest()">
-                Reset Password
-            </button>
-            <button class="btn btn-warning"
-            hx-post="{{ url_for('auth_htmx.delete_user_sessions', user_id=user.id) }}"
-            _="on htmx:confirm(issueRequest)
-                halt the event
-                call Swal.fire({
-                    title: 'Delete all active user sessions \'{{ user.email }}\'?',
-                    showDenyButton: true,
-                    text: 'Proceed?',
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'No'
-                })
-                if result.isConfirmed issueRequest()">
-                Delete Sessions
-            </button>
-            {% endif %}
+            <div class="dropdown">
+                <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Manage
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <button class="dropdown-item"
+                        hx-get="{{ url_for('users_htmx.edit', user_id=user.id) }}"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
+                        {% if current_user.id != user.id and not current_user.is_admin() %}disabled{% endif %}>
+                            Edit User
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item"
+                        hx-get="{{ url_for('auth_htmx.change_password', user_id=user.id) }}"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
+                        {% if current_user.id != user.id %}disabled{% endif %}>
+                            Change Password
+                        </button>
+                    </li>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                text="Reset Password",
+                                title="Send Reset Password Email to '{{ user.email }}'?",
+                                body="This will send an email to the user with instructions to reset their password. Do you want to continue?",
+                                method="hx-post",
+                                url=url_for('auth_htmx.reset_password_email', user_id=user.id),
+                                class="dropdown-item",
+                                disabled=not (current_user.is_admin() or current_user.id == user.id)
+                            )
+                        }}
+                    </li>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                text="Delete Sessions",
+                                title="Delete All User Sessions?",
+                                body="This action will log-out user from all active sessions. Do you want to continue?",
+                                method="hx-post",
+                                url=url_for('auth_htmx.delete_user_sessions', user_id=user.id),
+                                class="dropdown-item",
+                                disabled=not (current_user.is_admin() or current_user.id == user.id)
+                            )
+                        }}
+                    </li>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                text="Activate Account",
+                                title="Activate Account?",
+                                body="User will receive email to activate their account. Do you want to continue?",
+                                method="hx-post",
+                                url=url_for('auth_htmx.activate_account', user_id=user.id),
+                                class="dropdown-item",
+                                disabled=(user.role != UserRole.DEACTIVATED) or not current_user.is_insider(),
+                            )
+                        }}
+                    </li>
+                </ul>
+            </div>
             {% if current_user.id == user.id %}
             <button id="logout-btn" class="btn btn-danger"
             hx-get="{{ url_for('auth_htmx.logout') }}"
