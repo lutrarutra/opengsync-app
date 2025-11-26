@@ -25,6 +25,13 @@ $("#cookie-toast .btn-close").on("click", function() {
 $(document).ready(function() {
     if (!getCookie("cookies_accepted")) {
         $("#cookie-toast").show();
+
+        setTimeout(function() {
+            if (!$("#cookie-toast").is(":visible")) {
+                // Inexplicitly accepted by user closing the toast, e.g. by automatic extension
+                setCookie("cookies_accepted", "true", 90);
+            }
+        }, 3000);
     }
 });
 
