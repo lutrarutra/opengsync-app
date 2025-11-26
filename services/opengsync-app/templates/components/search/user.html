@@ -1,13 +1,13 @@
 <ul class="list-group search-component">
     {% if results is defined and results %}
     {% for res in results %}
-    <li {% if loop.last %} class="last" {% endif %}>
+    <li {% if loop.last %} class="last" {% endif %} data-email="{{ res.email }}" data-name="{{ res.name }}" data-role="{{ res.role.id }}">
         <a id="option-{{ field_name }}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
         data-field="{{ field_name }}"
         data-value="{{ res.id }}"
         aria-controls="{{ field_name }}">
-            <span class="search-select-name">{{ res.role.name }}</span>
+            <span class="search-select-name">{{ res.role.icon }} {{ res.role.name }}</span>
             <span class="search-select-name">{{ res.name }}</span>
             <span class="search-select-desc">{{ res.email }}</span>
         </a>
