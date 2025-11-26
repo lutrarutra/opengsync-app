@@ -21,6 +21,7 @@ class UserRoleEnum(DBEnum):
 
 
 class UserRole(ExtendedEnum[UserRoleEnum], enum_type=UserRoleEnum):
+    DEACTIVATED = UserRoleEnum(0, "Deactivated", "🔒", False)
     ADMIN = UserRoleEnum(1, "Admin", "🤓", True)
     BIOINFORMATICIAN = UserRoleEnum(2, "Bioinformatician", "👨🏾‍💻", True)
     TECHNICIAN = UserRoleEnum(3, "Technician", "🧑🏽‍🔬", True)

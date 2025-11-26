@@ -1,6 +1,24 @@
-{% from 'components/form_group.jinja2' import form_group %}
-<form id="user-form">
-    {{ user_form.csrf_token() }}
-    {{ form_group(user_form.email) }}
-    {{ form_group(user_form.role) }}
-</form>
+{% from 'components/form_group.jinja2' import form_group, select_input %}
+
+
+<div class="modal-content" id="user-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Edit User</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body" id="user-form">
+        {{ form.csrf_token() }}
+        {{ select_input(form.role) }}
+        <div class="row">
+            {{ form_group(form.first_name, class="col-6") }}
+            {{ form_group(form.last_name, class="col-6") }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-controls">
+            <button id="submit-user-btn" class="btn btn-success"
+            hx-include="#user-form" hx-target="#user-form-container" hx-swap="outerHTML"
+            hx-post="{{ url_for('users_htmx.edit', user_id=form.user.id) }}">Submit</button>
+        </div>
+    </div>
+</div>

@@ -4,7 +4,6 @@ from typing import Optional, Literal, Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
-from sqlalchemy import orm
 from sqlalchemy.sql.base import ExecutableOption
 
 from ... import to_utc
@@ -13,7 +12,7 @@ from ...categories import (
     SeqRequestStatus, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum,
     PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType,
     SubmissionTypeEnum, AccessType, AccessTypeEnum, SubmissionType,
-    ProjectStatus,
+    ProjectStatus, UserRole
 )
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -406,6 +405,8 @@ class SeqRequestBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def get_access_type(self, seq_request: models.SeqRequest, user: models.User) -> AccessTypeEnum:
+        if user.role == UserRole.DEACTIVATED:
+            return AccessType.NONE
         if user.is_admin():
             return AccessType.ADMIN
         if user.is_insider():

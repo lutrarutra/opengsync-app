@@ -9,7 +9,8 @@ from sqlalchemy.orm import aliased
 from ... import models, PAGE_LIMIT
 from ...categories import (
     LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus,
-    AccessType, AccessTypeEnum, ServiceTypeEnum, IndexTypeEnum, MUXTypeEnum, BarcodeOrientationEnum
+    AccessType, AccessTypeEnum, ServiceTypeEnum, IndexTypeEnum, MUXTypeEnum, BarcodeOrientationEnum,
+    UserRole
 )
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -450,6 +451,8 @@ class LibraryBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def get_access_type(self, library: models.Library, user: models.User) -> AccessTypeEnum:
+        if user.role == UserRole.DEACTIVATED:
+            return AccessType.NONE
         if user.is_admin():
             return AccessType.ADMIN
         if user.is_insider():

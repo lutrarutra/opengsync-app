@@ -1,3 +1,4 @@
+from pathlib import Path
 from flask import Blueprint, url_for, flash, request, render_template
 from flask_htmx import make_response
 from flask_login import logout_user
@@ -37,8 +38,9 @@ def logout(current_user: models.User):
 @wrappers.htmx_route(auth_htmx, db=db, methods=["GET", "POST"], login_required=False, limit_exempt=None, limit="20 per minute")
 def register(current_user: models.User | None):
     if request.method == "GET":
-        return forms.auth.RegisterUserForm().make_response()
-    return forms.auth.RegisterUserForm(formdata=request.form).process_request(user=current_user)
+        form = forms.auth.RegisterUserForm(current_user=current_user)
+        return form.make_response()
+    return forms.auth.RegisterUserForm(current_user=current_user, formdata=request.form).process_request()
     
 
 @wrappers.htmx_route(auth_htmx, db=db, login_required=False, methods=["GET", "POST"], limit_exempt=None, limit="20 per minute")
@@ -63,7 +65,7 @@ def change_password(current_user: models.User, user_id: int):
         return forms.auth.ChangePasswordForm(user=user, formdata=request.form).process_request()
     
 
-@wrappers.htmx_route(auth_htmx, db=db)
+@wrappers.htmx_route(auth_htmx, db=db, methods=["POST"])
 def reset_password_email(current_user: models.User, user_id: int):
     if (user := db.users.get(user_id)) is None:
         raise exceptions.NotFoundException()
@@ -73,12 +75,13 @@ def reset_password_email(current_user: models.User, user_id: int):
         
     token = user.generate_reset_token(serializer=serializer)
     link = runtime.url_for("auth_page.reset_password_page", token=token, _external=True)
+    style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
 
     try:
         mail_handler.send_email(
             recipients=user.email,
             subject="OpeNGSync Password Reset",
-            body=render_template("email/password-reset.html", recipient=user, link=link),
+            body=render_template("email/password-reset.html", recipient=user, link=link, style=style),
             mime_type="html"
         )
     except Exception as e:
@@ -90,6 +93,44 @@ def reset_password_email(current_user: models.User, user_id: int):
     flash(f"Password reset email sent to '{user.email}'", "info")
     logger.info(f"Password reset email sent to '{user.email}'")
     return make_response(redirect=url_for("users_page.user", user_id=user_id))
+
+
+@wrappers.htmx_route(auth_htmx, db=db, methods=["POST"])
+def activate_account(current_user: models.User, user_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (user := db.users.get(user_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if user.role != UserRole.DEACTIVATED:
+        logger.warning(f"Attempted to activate account for user ID {user_id} but account is not deactivated")
+        raise exceptions.BadRequestException("User account is not deactivated")
+    
+    user.role = UserRole.CLIENT
+    db.users.update(user)
+
+    token = user.generate_reset_token(serializer=serializer)
+    link = runtime.url_for("auth_page.reset_password_page", token=token, _external=True)
+    style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
+
+    try:
+        mail_handler.send_email(
+            recipients=user.email,
+            subject="OpeNGSync Account Activation",
+            body=render_template("email/user-activation.html", recipient=user, link=link, style=style),
+            mime_type="html"
+        )
+    except Exception as e:
+        flash("Failed to send password reset email. Please contact administrator.", "error")
+        logger.error(f"Failed to send password reset email to '{user.email}':")
+        logger.error(e)
+        return make_response(redirect=url_for("users_page.user", user_id=user_id))
+
+    flash(f"Account activation email sent to '{user.email}'", "info")
+    logger.info(f"Account activation email sent to '{user.email}'")
+    return make_response(redirect=url_for("users_page.user", user_id=user_id))
+
 
 
 @wrappers.htmx_route(auth_htmx, methods=["GET", "POST"], db=db, login_required=False, limit_exempt=None, limit="20 per minute")
@@ -104,11 +145,14 @@ def reset_password(token: str):
 
 @wrappers.htmx_route(auth_htmx, methods=["POST"], db=db, login_required=True)
 def delete_user_sessions(current_user: models.User, user_id: int):
-    if not current_user.is_admin():
+    if current_user.id != user_id and not current_user.is_admin():
         raise exceptions.NoPermissionsException()
     
     if (user := db.users.get(user_id)) is None:
         raise exceptions.NotFoundException()
+    
+    if current_user.id == user_id:
+        logout_user()
     
     runtime.app.delete_user_sessions(user_id)
     flash(f"Deleted all sessions for user '{user.email}'", "info")

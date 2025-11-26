@@ -10,17 +10,45 @@
     <div class="modal-body">
         <div id="seq_request-form" class="accordion">
             {{ seq_request_form.csrf_token() }}
+            {% if current_user.is_insider() and seq_request_form.form_type == 'create' %}
+            {% set sub_form = seq_request_form.user_select_form %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button{% if sub_form.is_validated() == True %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#request-user-section" aria-expanded="true"
+                    aria-controls="request-user-section">
+                        Requestor
+                    </button>
+                </h2>
+                <div id="request-user-section" class="accordion-collapse collapse {% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
+                    <div class="accordion-body">
+                        <h5>Existing User</h5>
+                        {{
+                            search_select_field(sub_form.user, query_url=url_for('users_htmx.query'))
+                        }}
+                        <h5 class="pt-3">New User</h5>
+                        <ul><li>New user will be created with {{ UserRole.DEACTIVATED.display_name }}-role. Deactivated users cannot log in. No registration email is sent out. User can be then activated later.</li></ul>
+                        {{ form_group(sub_form.email) }}
+                        <div class="row">
+                            {{ form_group(sub_form.first_name, class="col-6") }}
+                            {{ form_group(sub_form.last_name, class="col-6") }}
+                        </div>
+                        {{ sub_form.csrf_token() }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             {% set sub_form = seq_request_form.disclaimer_form %}
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button{% if sub_form.is_validated() == True %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#request-disclaimer-section" aria-expanded="true"
+                    <button class="accordion-button{% if current_user.is_insider() or sub_form.is_validated() == True %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#request-disclaimer-section" aria-expanded="{% if current_user.is_insider() or sub_form.is_validated() == True %}false{% else %}true{% endif %}"
                     aria-controls="request-disclaimer-section">
                         Disclaimer
                     </button>
                 </h2>
-                <div id="request-disclaimer-section" class="accordion-collapse collapse {% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
+                <div id="request-disclaimer-section" class="accordion-collapse collapse {% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and (not sub_form.is_validated() and not current_user.is_insider()) %} show{% endif %}">
                     <div class="accordion-body">
                         <div>
                             <p>
@@ -126,7 +154,7 @@
                         {% if seq_request_form.form_type == "create" %}
                         <div class="form-check form-switch">
                             {{ seq_request_form.contact_form.current_user_is_contact(class="form-check-input", checked=seq_request_form.contact_form.current_user_is_contact.data) }}
-                            <label class="form-check-label">I am the contact person.</label>
+                            <label class="form-check-label">Requestor is the contact person.</label>
                         </div>
                         {% endif %}
                         <div class="row">
@@ -259,6 +287,13 @@
                 $("#contact_form-contact_person_email").prop("readonly", true);
                 $("#contact_form-contact_person_email").val("{{ current_user.email }}");
 
+                if ($("#user_select_form-email").length > 0){
+                    $("#contact_form-contact_person_email").val($("#user_select_form-email").val());
+                    $("#contact_form-contact_person_name").val($("#user_select_form-first_name").val() + " " + $("#user_select_form-last_name").val());
+                } else {
+                    $("#contact_form-contact_person_email").val("{{ current_user.email }}");
+                    $("#contact_form-contact_person_name").val("{{ current_user.first_name }} {{ current_user.last_name }}");
+                }
             } else {
                 $("#contact_form-contact_person_name").removeClass("disabled");
                 $("#contact_form-contact_person_name").prop("readonly", false);
@@ -298,6 +333,21 @@
             $("#contact_form-current_user_is_contact").on("click", function() {
                 update_current_user_is_contact();
             });
+
+            $("#user_select_form-email").on("change", function() {
+                if ($("#contact_form-current_user_is_contact").is(":checked")) {
+                    $("#contact_form-contact_person_email").val($(this).val());
+                }
+            });
+
+            $("#user_select_form-first_name, #user_select_form-last_name").on("change", function() {
+                if ($("#contact_form-current_user_is_contact").is(":checked")) {
+                    const first_name = $("#user_select_form-first_name").val();
+                    const last_name = $("#user_select_form-last_name").val();
+                    $("#contact_form-contact_person_name").val(first_name + " " + last_name);
+                }
+            });
+
         });
     </script>
     {% endif %}

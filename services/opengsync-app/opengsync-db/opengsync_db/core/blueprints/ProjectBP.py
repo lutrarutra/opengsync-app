@@ -6,7 +6,7 @@ from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import Query
 
 from ... import models, PAGE_LIMIT
-from ...categories import ProjectStatus, ProjectStatusEnum, AccessType, AccessTypeEnum
+from ...categories import ProjectStatus, ProjectStatusEnum, AccessType, AccessTypeEnum, UserRole
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 
@@ -217,6 +217,8 @@ class ProjectBP(DBBlueprint):
     
     @DBBlueprint.transaction
     def get_access_type(self, project: models.Project, user: models.User) -> AccessTypeEnum:
+        if user.role == UserRole.DEACTIVATED:
+            return AccessType.NONE
         if user.is_admin():
             return AccessType.ADMIN
         if user.is_insider():
