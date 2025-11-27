@@ -90,12 +90,10 @@ def __find_sequenced_seq_requests(q):
 def __find_sequenced_projects(q):
     return q.where(
         sa.exists().where(
-            sa.exists().where(
-                (models.Sample.project_id == models.Project.id) &
-                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
-                (models.Library.id == models.links.SampleLibraryLink.library_id) &
-                (models.Library.status_id >= categories.LibraryStatus.SEQUENCED.id)
-            )
+            (models.Sample.project_id == models.Project.id) &
+            (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+            (models.Library.id == models.links.SampleLibraryLink.library_id) &
+            (models.Library.status_id >= categories.LibraryStatus.SEQUENCED.id)
         )
     ).where(
         ~sa.exists().where(
