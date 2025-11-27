@@ -96,13 +96,13 @@ def __find_sequenced_projects(q):
                 (models.Library.id == models.links.SampleLibraryLink.library_id) &
                 (models.Library.status_id >= categories.LibraryStatus.SEQUENCED.id)
             )
-        ).where(
-            ~sa.exists().where(
-                (models.Sample.project_id == models.Project.id) &
-                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
-                (models.Library.id == models.links.SampleLibraryLink.library_id) &
-                (models.Library.status_id < categories.LibraryStatus.SEQUENCED.id)
-            )
+        )
+    ).where(
+        ~sa.exists().where(
+            (models.Sample.project_id == models.Project.id) &
+            (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+            (models.Library.id == models.links.SampleLibraryLink.library_id) &
+            (models.Library.status_id < categories.LibraryStatus.SEQUENCED.id)
         )
     )
 
@@ -117,6 +117,14 @@ def __find_finished_seq_requests(q):
             (models.Project.status_id.in_([
                 categories.ProjectStatus.DELIVERED.id, categories.ProjectStatus.ARCHIVED.id
             ]))
+        )
+    ).where(
+        ~sa.exists().where(
+            (models.Library.seq_request_id == models.SeqRequest.id) &
+            (models.links.SampleLibraryLink.library_id == models.Library.id) &
+            (models.Sample.id == models.links.SampleLibraryLink.sample_id) &
+            (models.Project.id == models.Sample.project_id) &
+            (models.Project.status_id < categories.ProjectStatus.DELIVERED.id)
         )
     )
 
