@@ -1,0 +1,27 @@
+{% from "components/search_select.jinja2" import search_select_field %}
+
+<div class="modal-content" id="add-project-assignee-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Add Assignee</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body" id="add-project-assignee-form">
+            {{ 
+                search_select_field(
+                    form.user,
+                    url_for('users_htmx.query', only_insiders=True),
+                )
+            }}
+        {{ form.csrf_token() }}
+    </div>
+    <div class="modal-footer">
+        <div class="text-nowrap text-muted footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button class="btn btn-success" hx-include="#add-project-assignee-form" hx-target="#add-project-assignee-form-container" hx-swap="outerHTML"
+                hx-post="{{ url_for('projects_htmx.add_assignee_form', project_id=project.id) }}">Process</button>
+        </div>
+    </div>
+</div>

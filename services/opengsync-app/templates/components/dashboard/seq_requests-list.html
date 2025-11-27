@@ -1,23 +1,30 @@
 {% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
+{% from "components/assignee_list.jinja2" import assignee_list %}
+{% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
 
 {% for seq_request in seq_requests %}
 {% if loop.last and limit == loop.index %}
-<a class="element-banner" href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}"
+<div class="element-banner"
 hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#seq_requests-htmx-indicator" hx-swap="outerHTML" hx-indicator="#seq_requests-htmx-indicator">
 {% else %}
-<a class="element-banner" href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}">
+<div class="element-banner">
 {% endif %}
     <div class="row">
-        <div class="title col-8">{{ loop.index }}.{{ limit }} {{ seq_request.name }}</div>
-        <div class="title col-4"><span class="badge">{{ seq_request.submission_type.name }}</span></div>
+        <div class="col-6"><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a> {% if seq_request.assignees %} - {{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}</div>
+        <div class="col-6">
+            {% if current_user not in seq_request.assignees %}
+            <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('seq_requests_htmx.add_assignee', seq_request_id=seq_request.id, assignee_id=current_user.id) }}"><i class="bi bi-person-fill-add"></i></button>
+            {% endif %}
+            <span class="badge">{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
+            <span class="badge">{{ seq_request.submission_type.display_name }}</span>
+        </div>
     </div>
     <div class="row">
-        <div class="description col-5">{{ seq_request.requestor.name }}</div>
-        <div class="col-2">{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</div>
-        <div class="title col-5"><span class="badge">Libraries: {{ seq_request.num_libraries }}</span></div>
+        <div class="col-8">{{ seq_request.requestor.name }}: <i>{{ seq_request.name }}</i></div>
+        <div class="col-4"><span class="badge">Libraries: {{ seq_request.num_libraries }}</span></div>
     </div>
     {{ seq_request_status_bar(seq_request) }}
-</a>
+</div>
 {% endfor %}
 {{ spinner(id="seq_requests-htmx-indicator") }}

@@ -45,7 +45,8 @@
                         <tr>
                             <th scope="col" class="col-1">ID</th>
                             <th scope="col" class="col-3">Name</th>
-                            <th scope="col" class="col-2">Status</th>
+                            <th scope="col" class="col-3">Status</th>
+                            <th scope="col" class="col-3">Workflow</th>
                         </tr>
                     </thead>
                     <tbody id="selected-experiments-table-container">
@@ -55,6 +56,7 @@
                             <th scope="row">{{ experiment.id }}</th>
                             <td>{{ experiment.name }}</td>
                             <td>{{ experiment.status.name }} {{ experiment.status.icon }}</td>
+                            <td>{{ experiment.workflow.display_name }}</td>
                         </tr>
                     {% endfor %}
                     </tbody>

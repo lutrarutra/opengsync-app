@@ -88,6 +88,18 @@ class User(Base, UserMixin):
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", back_populates="uploader", lazy="select")
     preps: Mapped[list["LabPrep"]] = relationship("LabPrep", back_populates="creator", lazy="select")
     api_tokens: Mapped[list["APIToken"]] = relationship("APIToken", back_populates="owner", lazy="select", cascade="all, delete-orphan")
+    assigned_projects: Mapped[list["Project"]] = relationship(
+        "Project",
+        secondary="project_assignee_link",
+        back_populates="assignees",
+        lazy="select",
+    )
+    assigned_seq_requests: Mapped[list["SeqRequest"]] = relationship(
+        "SeqRequest",
+        secondary="seq_request_assignee_link",
+        back_populates="assignees",
+        lazy="select",
+    )
 
     sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_samples", "num_projects", "num_seq_requests"]
 
@@ -249,6 +261,10 @@ class User(Base, UserMixin):
     
     def __repr__(self) -> str:
         return str(self)
+    
+    @property
+    def initials(self) -> str:
+        return self.first_name[0] + self.last_name[0]
 
     __table_args__ = (
         sa.Index(

@@ -1,3 +1,5 @@
+{% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
+
 <div class="modal-content assay-type-todo-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5">{{ service_type.abbreviation }}</h1>
@@ -5,25 +7,47 @@
     </div>
     <div class="modal-body">
         <div class="banner-container">
-            {% for seq_request, _df in df.groupby("seq_request", sort=False) %}
+            {% for _, row in df.iterrows() %}
+            {% set seq_request = row["seq_request"] %}
             <a class="element-banner" href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}">
-                <div class="row title-row">
-                    <div class="title col-4">{{ seq_request.name }}</div>
-                    <div class="col-4">{{ seq_request.requestor.name }}</div>
-                    <div class="col-4">{{ seq_request.status.name }} {{ seq_request.status.icon }}</div>
+                <div class="row">
+                    <div class="col-4"><b>BSR_{{ "%04d" | format(seq_request.id) }}</b>: {{ seq_request.requestor.name }}</div>
+                    <div class="col-4">{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</div>
+                    <div class="title col-4"><span class="badge">{{ seq_request.submission_type.name }}</span></div>
                 </div>
-                <div class="row title-row">
+                <div class="row">
+                    <div class="col-8"><i>{{ seq_request.name }}</i></div>
+                    <div class="col-4"><span class="badge">Libraries: {{ seq_request.num_libraries }}</span></div>
+                </div>
+                <div class="row">
                     <div class="col-6">
-                        {% for library_type, __df in _df.groupby("library_type", sort=False) %}
-                        <span class="badge">{{ library_type.abbreviation }}: {{ __df.shape[0] }}</span>
+                        {% for library_type, count in row["library_type_counts"].items() %}
+                        <span class="badge">{{ library_type.abbreviation }}: {{ count }}</span>
                         {% endfor %}
                     </div>
                     <div class="col-6">
-                        <span class="badge">Waiting: {{ (_df["status"] == LibraryStatus.ACCEPTED).sum() }} {{ LibraryStatus.ACCEPTED.icon }}</span>
-                        <span class="badge">Preparing: {{ (_df["status"] == LibraryStatus.PREPARING).sum() }} {{ LibraryStatus.PREPARING.icon }}</span>
-                        <span class="badge">Stored: {{ (_df["status"] == LibraryStatus.STORED).sum() }} {{ LibraryStatus.STORED.icon }}</span>
+                        {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
+                        <span class="badge {% if row['num_waiting_samples'] == 0 %}badge-success{% else %}badge-warning{% endif %}">
+                            Waiting Samples: {{ row["num_waiting_samples"] }}  📭
+                        </span>
+                        {% elif seq_request.submission_type == SubmissionType.UNPOOLED_LIBRARIES %}
+                        <span class="badge {% if row['num_waiting_libraries'] == 0 %}badge-success{% else %}badge-warning{% endif %}">
+                            Waiting Libraries: {{ row["num_waiting_libraries"] }}  📭
+                        </span>
+                        {% else %}
+                        <span class="badge {% if row['num_waiting_pools'] == seq_request.num_pools %}badge-success{% else %}badge-warning{% endif %}">
+                            Waiting Pools: {{ row["num_waiting_pools"] }}  📭
+                        </span>
+                        {% endif %}
+                        <span class="badge {% if row['num_preparing_libraries'] == 0 %}badge-success{% else %}badge-warning{% endif %}">
+                            Preparing Libraries: {{ row["num_preparing_libraries"] }} {{ LibraryStatus.PREPARING.icon }}
+                        </span>
+                        <span class="badge {% if row['num_pooled_libraries'] == seq_request.num_libraries %}badge-success{% else %}badge-warning{% endif %}">
+                            Pooled Libraries: {{ row["num_pooled_libraries"] }} {{ LibraryStatus.POOLED.icon }}
+                        </span>
                     </div>
                 </div>
+                {{ seq_request_status_bar(seq_request) }}
             </a>
             {% endfor %}
         </div>

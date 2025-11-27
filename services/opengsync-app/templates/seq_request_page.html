@@ -45,7 +45,11 @@
             </span>
             {% endif %}
             {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.SUBMITTED %}
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#process_request-form-popup">Process</button>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
+            hx-get="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}"
+            hx-target="#xl-modal-content" hx-swap="innerHTML">
+                Process Request
+            </button>
             {% endif %}
             <span>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
@@ -232,7 +236,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-seq_auth-tab" type="button" role="tab"
-            aria-controls="request-seq_auth-tab" aria-selected="true">Sequencing Authorization</button>
+            aria-controls="request-seq_auth-tab" aria-selected="true">Authorization</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -267,8 +271,14 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
-            data-bs-target="#seq_request-data_paths-tab" type="button" role="tab"
-            aria-controls="seq_request-data_paths-tab" aria-selected="true">
+            data-bs-target="#request-assignees-tab" type="button" role="tab"
+            aria-controls="request-assignees-tab" aria-selected="true"
+            id="request-assignees-tab-btn">Assignees ({{ seq_request.num_assignees }})</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#request-data_paths-tab" type="button" role="tab"
+            aria-controls="request-data_paths-tab" aria-selected="true">
             Data ({{ seq_request.num_data_paths }})</button>
         </li>
     </ul>
@@ -676,7 +686,25 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="seq_request-data_paths-tab" role="tabpanel" tabindex="11">
+        <div class="tab-pane fade" id="request-assignees-tab" role="tabpanel" tabindex="11">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+                <div>
+                    <button hx-get="{{ url_for('seq_requests_htmx.add_assignee_form', seq_request_id=seq_request.id) }}" class="btn btn-success"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                        hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click"
+                        {% if not current_user.is_insider() %}disabled{% endif %}>
+                        Add Assignee
+                    </button>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('seq_requests_htmx.get_assignees', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="request-data_paths-tab" role="tabpanel" tabindex="12">
             <div hx-get="{{ url_for('seq_requests_htmx.get_data_paths', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
@@ -686,30 +714,6 @@
     <div class="modal fade" id="seq_request_share_email-form-popup" aria-hidden="true" aria-labelledby="">
         <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
             {% include seq_request_share_email_form._template_path %}
-        </div>
-    </div>
-
-    <div class="modal fade" id="process_request-form-popup" aria-hidden="true" aria-labelledby="">
-        <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5" >Process Sequencing Request</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    {% include process_request_form._template_path %}
-                </div>
-                <div class="modal-footer">
-                    <div class="text-nowrap text-muted footer-id">
-                    </div>
-                    <div class="footer-info">
-                    </div>
-                    <div class="footer-controls">
-                        <button class="btn btn-success" hx-include="#process_request-form" hx-target="#process_request-form" hx-swap="outerHTML"
-                            hx-post="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}">Process</button>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>

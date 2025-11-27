@@ -7,6 +7,10 @@
 }
 
 .dash {
+    .assignee-badge {
+        font-size: 12px !important;
+        padding: 3px 6px 3px 6px !important;
+    }
     display: flex;
     height: 100%;
     width: 100% !important;

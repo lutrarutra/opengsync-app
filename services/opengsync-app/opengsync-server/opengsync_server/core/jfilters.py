@@ -1,11 +1,12 @@
 from pathlib import Path
 from datetime import datetime
-from uuid import uuid4
 
 import pandas as pd
 
+from opengsync_db import models
+
 from .. import logger
-from ..tools import utils, univer
+from ..tools import utils
 from .App import App
 
 
@@ -99,4 +100,10 @@ def inject_jinja_format_filters(app: App):
     @app.template_filter()
     def df_to_json(df: pd.DataFrame) -> str:
         return utils.to_json(df)
-    
+
+    @app.template_filter()
+    def prioritize_current_user(users: list[models.User], current_user: models.User) -> list[models.User]:
+        return sorted(
+            users,
+            key=lambda user: 0 if user == current_user else 1
+        )

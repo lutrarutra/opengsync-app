@@ -9,5 +9,8 @@ from .AddUserToGroupForm import AddUserToGroupForm  # noqa
 from .SampleAttributeTableForm import SampleAttributeTableForm  # noqa
 from .EditKitFeaturesForm import EditKitFeaturesForm  # noqa
 from .QueryBarcodeSequencesForm import QueryBarcodeSequencesForm  # noqa
+from .AddProjectAssigneeForm import AddProjectAssigneeForm  # noqa
+from .AddSeqRequestAssigneeForm import AddSeqRequestAssigneeForm  # noqa
+
 
 from . import models, comment, file, workflows, auth  # noqa

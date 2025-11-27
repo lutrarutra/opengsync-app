@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import LibraryType, LibraryStatus, ServiceType, MUXType, AccessType, DataPathType, SampleStatus
+from opengsync_db.categories import LibraryType, LibraryStatus, ServiceType, MUXType, AccessType, DataPathType, SampleStatus, PoolStatus
 
 from ... import db, forms, logger  # noqa
 from ...core import wrappers, exceptions
@@ -742,20 +742,43 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
         service_type=service_type, limit=512
     )
 
+    seq_requests: set[models.SeqRequest] = set()
+    for library in libraries:
+        seq_requests.add(library.seq_request)
+
     data = {
-        "library_name": [],
-        "library_type": [],
-        "status": [],
         "seq_request": [],
-        "sample_name": []
+        "num_waiting_samples": [],
+        "num_preparing_libraries": [],
+        "num_pooled_libraries": [],
+        "library_type_counts": [],
+        "num_waiting_libraries": [],
+        "num_waiting_pools": [],
     }
 
-    for library in libraries:
-        data["library_name"].append(library.name)
-        data["library_type"].append(library.type)
-        data["seq_request"].append(library.seq_request)
-        data["status"].append(library.status)
-        data["sample_name"].append(library.sample_name)
+    for seq_request in seq_requests:
+        data["seq_request"].append(seq_request)
+        data["num_waiting_samples"].append(sum([s.status == SampleStatus.WAITING_DELIVERY for s in seq_request.samples]))
+        data["num_preparing_libraries"].append(sum([l.status == LibraryStatus.PREPARING for l in seq_request.libraries]))
+        data["num_pooled_libraries"].append(sum([l.status in [LibraryStatus.POOLED, LibraryStatus.SEQUENCED, LibraryStatus.SHARED, LibraryStatus.ARCHIVED] for l in seq_request.libraries]))
+        data["library_type_counts"].append(seq_request.library_type_counts)
+        data["num_waiting_libraries"].append(sum([l.status == LibraryStatus.ACCEPTED for l in seq_request.libraries]))
+        data["num_waiting_pools"].append(sum([p.status == PoolStatus.ACCEPTED for p in seq_request.pools]))
+
+    # data = {
+    #     "library_name": [],
+    #     "library_type": [],
+    #     "status": [],
+    #     "seq_request": [],
+    #     "sample_name": []
+    # }
+
+    # for library in libraries:
+    #     data["library_name"].append(library.name)
+    #     data["library_type"].append(library.type)
+    #     data["seq_request"].append(library.seq_request)
+    #     data["status"].append(library.status)
+    #     data["sample_name"].append(library.sample_name)
 
     df = pd.DataFrame(data)
 

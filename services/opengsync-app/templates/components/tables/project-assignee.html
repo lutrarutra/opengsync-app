@@ -1,0 +1,46 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+
+<div id="project-assignee-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col" class="col-1">ID</th>
+                <th scope="col" class="col-4">Name</th>
+                <th scope="col" class="col-4">Email</th>
+                <th scope="col" class="col-3">Role</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in assignees %}
+            <tr>
+                <th scope="row">{{ user.id }}</th>
+                <td class="user-cell cm-callback" id="user-cell-{{ user.id }}" data-id="{{ user.id }}"
+                {{
+                    context_menu([
+                        {"type": "hxdelete", "label": "Remove Assignee", "disabled": false if current_user.is_insider() else true, "config": {
+                            "url": url_for('projects_htmx.remove_assignee', project_id=project.id, assignee_id=user.id),
+                            "target": "#project-assignee-table",
+                            "title": "Remove assignee {user.name}?".format(user=user)
+                        },},
+                    ])
+                }}>
+                    <a href="{{ url_for('users_page.user', user_id=user.id, from='project@' + project.id | string) }}">{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span></a>{% endif %}
+                </td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": user.email, "label": "Copy Email Address"},
+                        {"type": "mailto", "label": "Send Email", "config": {
+                            "subject": project.identifier or "PID_%04d: Inquiry" % project.id, 
+                            "recipient": user.email,
+                        },},
+                    ])
+                }}>{{ user.email }}</td>
+                <td>{{ user.role.icon }} {{ user.role.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

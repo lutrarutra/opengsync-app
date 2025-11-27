@@ -676,7 +676,7 @@ def table_query(current_user: models.User):
     )
 
 
-@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def process_request(current_user: models.User, seq_request_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
@@ -684,9 +684,11 @@ def process_request(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
     
-    return forms.ProcessRequestForm(formdata=request.form).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    if request.method == "GET":
+        form = forms.ProcessRequestForm(seq_request=seq_request)
+        return form.make_response()
+    else:
+        return forms.ProcessRequestForm(formdata=request.form, seq_request=seq_request).process_request(user=current_user)
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
@@ -1224,3 +1226,82 @@ def get_recent_seq_requests(current_user: models.User, page: int = 0):
         "components/dashboard/seq_requests-list.html", seq_requests=seq_requests,
         current_page=page, limit=PAGE_LIMIT
     ))
+
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def get_assignees(current_user: models.User, seq_request_id: int):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.VIEW:
+        raise exceptions.NoPermissionsException()
+    
+    return make_response(
+        render_template(
+            "components/tables/seq_request-assignee.html",
+            assignees=seq_request.assignees,
+            seq_request=seq_request
+        )
+    )
+
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def add_assignee(current_user: models.User, seq_request_id: int, assignee_id: int):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (assignee := db.users.get(assignee_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if not assignee.is_insider():
+        raise exceptions.NoPermissionsException("Assignee must be an insider.")
+    
+    if assignee in seq_request.assignees:
+        raise exceptions.BadRequestException("User is already an assignee.")
+    
+    seq_request.assignees.append(assignee)
+    db.seq_requests.update(seq_request)
+    flash("Assignee Added.", "success")
+    return make_response(redirect=url_for("dashboard"))
+
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
+def add_assignee_form(current_user: models.User, seq_request_id: int):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if request.method == "GET":
+        form = forms.AddSeqRequestAssigneeForm(current_user=current_user, seq_request=seq_request)
+        return form.make_response()
+    else:
+        return forms.AddSeqRequestAssigneeForm(formdata=request.form, current_user=current_user, seq_request=seq_request).process_request()
+
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
+def remove_assignee(current_user: models.User, seq_request_id: int, assignee_id: int):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (assignee := db.users.get(assignee_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if assignee not in seq_request.assignees:
+        raise exceptions.BadRequestException()
+
+    seq_request.assignees.remove(assignee)
+    db.seq_requests.update(seq_request)
+
+    flash("Assignee Removed.", "success")
+    return make_response(
+        render_template(
+            "components/tables/seq_request-assignee.html",
+            assignees=seq_request.assignees,
+            seq_request=seq_request
+        )
+    )

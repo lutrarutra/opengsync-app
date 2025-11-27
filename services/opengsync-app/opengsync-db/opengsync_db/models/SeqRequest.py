@@ -80,6 +80,12 @@ class SeqRequest(Base):
         secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id).join(Library, Library.id == SampleLibraryLink.library_id)",
         primaryjoin="SeqRequest.id == Library.seq_request_id",
     )
+    assignees: Mapped[list["User"]] = relationship(
+        "User",
+        secondary="seq_request_assignee_link",
+        back_populates="assigned_seq_requests",
+        lazy="select",
+    )
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="seq_request", lazy="select")
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
@@ -159,6 +165,16 @@ class SeqRequest(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
+    def num_assignees(self) -> int:  # type: ignore[override]
+        if "assignees" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.assignees)
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_assignees.")
+        from .User import User
+        return session.query(sa.func.count(User.id)).join(links.SeqRequestAssigneeLink
+        ).filter(links.SeqRequestAssigneeLink.seq_request_id == self.id).scalar()
+    
+    @hybrid_property
     def num_comments(self) -> int:  # type: ignore[override]
         if "comments" not in orm.attributes.instance_state(self).unloaded:
             return len(self.comments)
@@ -229,6 +245,24 @@ class SeqRequest(Base):
         from .Library import Library
         type_ids = session.query(Library.type_id).filter(Library.seq_request_id == self.id).distinct().order_by(Library.type_id).all()
         return [LibraryType.get(type_id) for (type_id,) in type_ids]
+    
+    @hybrid_property
+    def library_type_counts(self) -> dict[LibraryTypeEnum, int]:
+        counts: dict[LibraryTypeEnum, int] = {}
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            for lib in self.libraries:
+                lib_type = LibraryType.get(lib.type_id)
+                counts[lib_type] = counts.get(lib_type, 0) + 1
+            return counts
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_type_counts' attribute.")
+        from .Library import Library
+        results = session.query(Library.type_id, sa.func.count(Library.id)).filter(Library.seq_request_id == self.id).group_by(Library.type_id).all()
+        for type_id, count in results:
+            lib_type = LibraryType.get(type_id)
+            counts[lib_type] = count
+        return counts
 
     @property
     def status(self) -> SeqRequestStatusEnum:

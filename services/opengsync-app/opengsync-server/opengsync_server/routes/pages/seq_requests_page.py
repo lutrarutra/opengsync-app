@@ -64,7 +64,6 @@ def seq_request(current_user: models.User, seq_request_id: int):
                 (f"Request {seq_request_id}", ""),
             ]
 
-    process_request_form = forms.ProcessRequestForm(seq_request=seq_request)
     seq_auth_form = forms.SeqAuthForm(seq_request=seq_request)
     seq_request_share_email_form = forms.SeqRequestShareEmailForm()
 
@@ -73,6 +72,5 @@ def seq_request(current_user: models.User, seq_request_id: int):
         seq_request=seq_request,
         path_list=path_list,
         seq_request_share_email_form=seq_request_share_email_form,
-        process_request_form=process_request_form,
         seq_auth_form=seq_auth_form,
     )

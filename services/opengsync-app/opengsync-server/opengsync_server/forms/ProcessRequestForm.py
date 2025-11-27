@@ -1,8 +1,6 @@
-from typing import Optional, Any
-
 from flask import Response, flash, url_for
 from flask_htmx import make_response
-from wtforms import TextAreaField, EmailField, SelectField
+from wtforms import TextAreaField, EmailField, SelectField, BooleanField
 from wtforms.validators import Optional as OptionalValidator, DataRequired, Length
 
 from opengsync_db import models
@@ -20,14 +18,15 @@ class ProcessRequestForm(HTMXFlaskForm):
     response_type = SelectField("Response", choices=[(-1, "")] + RequestResponse.as_selectable(), validators=[DataRequired()], default=None, coerce=int)
     notification_receiver = EmailField("Notification Email", validators=[OptionalValidator(), Length(max=models.User.email.type.length)])
     notification_comment = TextAreaField("Notification Comment", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)])
+    assign_seq_request_to_me = BooleanField("Assign request to me", default=True)
 
-    def __init__(self, seq_request: Optional[models.SeqRequest] = None, formdata: Optional[dict[str, Any]] = None):
+    def __init__(self, seq_request: models.SeqRequest, formdata: dict | None = None):
         super().__init__(formdata=formdata)
-        self.__fill_form(seq_request)
+        self.seq_request = seq_request
+        self._context["seq_request"] = seq_request
 
-    def __fill_form(self, seq_request: Optional[models.SeqRequest]):
-        if seq_request is not None:
-            self.notification_receiver.data = seq_request.requestor.email
+    def prepare(self):
+        self.notification_receiver.data = self.seq_request.contact_person.email or self.seq_request.requestor.email
 
     def validate(self) -> bool:
         if not super().validate():
@@ -49,23 +48,21 @@ class ProcessRequestForm(HTMXFlaskForm):
         
         return True
 
-    def process_request(self, **context) -> Response:
-        seq_request = context["seq_request"]
-        user = context["user"]
+    def process_request(self, user: models.User) -> Response:
 
         if not self.validate():
-            return self.make_response(**context)
+            return self.make_response()
         
         response_type = RequestResponse.get(self.response_type.data)
 
         if response_type == RequestResponse.ACCEPTED:
-            seq_request = db.seq_requests.process(seq_request.id, SeqRequestStatus.ACCEPTED)
+            seq_request = db.seq_requests.process(self.seq_request.id, SeqRequestStatus.ACCEPTED)
             flash("Request accepted!", "success")
         elif response_type == RequestResponse.REJECTED:
-            seq_request = db.seq_requests.process(seq_request.id, SeqRequestStatus.REJECTED)
+            seq_request = db.seq_requests.process(self.seq_request.id, SeqRequestStatus.REJECTED)
             flash("Request rejected!", "info")
         elif response_type == RequestResponse.PENDING_REVISION:
-            seq_request = db.seq_requests.process(seq_request.id, SeqRequestStatus.DRAFT)
+            seq_request = db.seq_requests.process(self.seq_request.id, SeqRequestStatus.DRAFT)
             flash("Request pending revision!", "info")
         else:
             raise exceptions.InternalServerErrorException()
@@ -80,5 +77,10 @@ class ProcessRequestForm(HTMXFlaskForm):
                 text=f"Request {response_type.display_name}",
                 author_id=user.id, seq_request_id=seq_request.id
             )
+
+        if self.assign_seq_request_to_me.data:
+            if seq_request not in user.assigned_seq_requests:
+                user.assigned_seq_requests.append(seq_request)
+                db.users.update(user)
 
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))

@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 
 <div id="project-table" class="table-container">
@@ -67,7 +68,14 @@
         <tbody>
             {% for project in projects %}
             <tr>
-                <th scope="row">{{ project.id }}</th>
+                <th scope="row">
+                    <span class="x-scroll">
+                        {{ project.id }}
+                        <span class="scroll-container">
+                            {{ assignee_list(project.assignees, current_user=current_user) }}
+                        </span>
+                    </span>
+                </th>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id) }}">{{ project.identifier or "" }}</a></td>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id) }}">{{ project.title }}</a></td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(project.library_types) }}</td>
