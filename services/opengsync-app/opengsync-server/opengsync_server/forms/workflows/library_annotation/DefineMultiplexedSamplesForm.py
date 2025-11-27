@@ -14,8 +14,13 @@ from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
 from .OCMAnnotationForm import OCMAnnotationForm
 from .CustomAssayAnnotationForm import CustomAssayAnnotationFrom
-from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
 from .ParseMuxAnnotationForm import ParseMuxAnnotationForm
+from .FeatureAnnotationForm import FeatureAnnotationForm
+from .VisiumAnnotationForm import VisiumAnnotationForm
+from .OpenSTAnnotationForm import OpenSTAnnotationForm
+from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
+from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
+from .CompleteSASForm import CompleteSASForm
 
 
 class DefineMultiplexedSamplesForm(MultiStepForm):
@@ -247,6 +252,14 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif ParseMuxAnnotationForm.is_applicable(self):
             next_form = ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif FeatureAnnotationForm.is_applicable(self):
+            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif OpenSTAnnotationForm.is_applicable(self):
+            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif VisiumAnnotationForm.is_applicable(self):
+            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
+        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
+            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         else:
-            raise Exception("No applicable next form found after DefineMultiplexedSamplesForm")
+            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

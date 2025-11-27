@@ -11,7 +11,23 @@ def __find_stored_samples(q):
         ~sa.exists().where(
             (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
             (models.Library.id == models.links.SampleLibraryLink.library_id) &
-            (models.Library.status_id < categories.LibraryStatus.PREPARING.id)
+            (models.Library.status_id < categories.LibraryStatus.STORED.id)
+        )
+    )
+
+def __find_seq_requests_with_stored_samples(q):
+    return q.where(
+        sa.exists().where(
+            (models.Library.seq_request_id == models.SeqRequest.id) &
+            (models.links.SampleLibraryLink.library_id == models.Library.id) &
+            (models.Sample.id == models.links.SampleLibraryLink.sample_id)
+        )
+    ).where(
+        ~sa.exists().where(
+            (models.Library.seq_request_id == models.SeqRequest.id) &
+            (models.links.SampleLibraryLink.library_id == models.Library.id) &
+            (models.Sample.id == models.links.SampleLibraryLink.sample_id) &
+            (models.Sample.status_id < categories.SampleStatus.STORED.id)
         )
     )
 
@@ -54,11 +70,15 @@ def __find_sequenced_pools(q):
 
 
 def __find_sequenced_seq_requests(q):
-    return q.join(
-        models.Library,
-        models.Library.seq_request_id == models.SeqRequest.id,
+    return q.where(
+        sa.exists().where(
+            (models.Library.seq_request_id == models.SeqRequest.id)
+        )
     ).where(
-        models.Library.status_id >= categories.LibraryStatus.SEQUENCED.id
+        ~sa.exists().where(
+            (models.Library.seq_request_id == models.SeqRequest.id) &
+            (models.Library.status_id < categories.LibraryStatus.SEQUENCED.id)
+        )
     )
 
 
@@ -152,6 +172,16 @@ def update_statuses(db: DBHandler):
         pool.status = categories.PoolStatus.SEQUENCED
         logs.append(f"Updating pool {pool.id} status to {pool.status}")
         db.pools.update(pool)
+
+    db.flush()
+
+    for seq_request in db.seq_requests.find(
+        status=categories.SeqRequestStatus.ACCEPTED,
+        custom_query=__find_seq_requests_with_stored_samples, limit=None
+    )[0]:
+        seq_request.status = categories.SeqRequestStatus.SAMPLES_RECEIVED
+        logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
+        db.seq_requests.update(seq_request)
 
     db.flush()
 

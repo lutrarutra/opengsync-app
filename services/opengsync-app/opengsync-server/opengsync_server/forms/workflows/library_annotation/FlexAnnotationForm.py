@@ -33,6 +33,7 @@ class FlexAnnotationForm(CommonFlexMuxForm):
     @staticmethod
     def is_applicable(current_step: MultiStepForm, seq_request: models.SeqRequest) -> bool:
         return (
+            seq_request.submission_type in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] and
             LibraryType.TENX_SC_GEX_FLEX.id in current_step.tables["library_table"]["library_type_id"].values
         )
 
@@ -43,8 +44,8 @@ class FlexAnnotationForm(CommonFlexMuxForm):
         )
 
     def fill_previous_form(self, previous_form: StepFile):
-        mux_table = previous_form.tables["sample_pooling_table"]
-        mux_table["barcode_id"] = mux_table["mux_barcode"]
+        mux_table = previous_form.tables["sample_pooling_table"][["sample_name", "sample_pool", "mux_barcode"]].drop_duplicates(["sample_name", "sample_pool"])
+        mux_table["barcode_id"] = mux_table["mux_barcode"].str.replace("AB", "BC").values
         self.spreadsheet.set_data(mux_table)
     
     def process_request(self) -> Response:
@@ -59,6 +60,9 @@ class FlexAnnotationForm(CommonFlexMuxForm):
         
         sample_pooling_table["mux_barcode"] = utils.map_columns(sample_pooling_table, self.df, idx_columns=["sample_name", "sample_pool"], col="barcode_id")
 
+        library_table = self.tables["library_table"]
+        abc_libraries = library_table.loc[library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id, "library_name"].values.tolist()
+        sample_pooling_table.loc[sample_pooling_table["library_name"].isin(abc_libraries), "mux_barcode"] = sample_pooling_table.loc[sample_pooling_table["library_name"].isin(abc_libraries), "mux_barcode"].str.replace("BC", "AB")
         self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)
 
         library_table_data = {
