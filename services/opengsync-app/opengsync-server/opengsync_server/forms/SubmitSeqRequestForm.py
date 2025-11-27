@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import Response, flash, url_for
+from flask import Response, url_for, render_template
 from flask_htmx import make_response
 from wtforms import DateTimeLocalField, BooleanField, TextAreaField
 from wtforms.validators import Optional as OptionalValidator, Length
@@ -34,7 +34,6 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         self._context["sample_submission_windows"] = runtime.app.sample_submission_windows
-        logger.debug(formdata)
 
     def validate(self) -> bool:
         if not super().validate():
@@ -92,6 +91,9 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
             )
 
         self.seq_request = db.seq_requests.submit(seq_request_id=self.seq_request.id)
-
-        flash(f"Submitted sequencing request '{self.seq_request.name}'", "success")
+        # flash("Sequencing request submitted successfully.", "success")
+        runtime.app.add_praise(
+            "Sequencing Request Submitted for Review!",
+            render_template("components/after-seq_request-submit-info.html", email=self.seq_request.contact_person.email or self.seq_request.requestor.email)
+        )
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),)

@@ -1,7 +1,9 @@
 import os
+from pydoc import text
 import yaml
 from uuid import uuid4
 from pathlib import Path
+import json
 
 import pandas as pd
 
@@ -39,6 +41,7 @@ from ..tools import spread_sheet_components as ssc
 from ..tools.utils import WeekTimeWindow
 from .. import routes
 from .. import tools
+from ..core import runtime
 
 
 class App(Flask):
@@ -354,6 +357,12 @@ class App(Flask):
     def consume_flashes(self, session: ServerSideSession) -> list[tuple[str, str]]:
         flashes = session.pop("_flashes") if "_flashes" in session else []
         return flashes
+    
+    def add_praise(self, title: str, html: str):
+        runtime.session["praise"] = {
+            "title": title,
+            "html": html,
+        }
 
     def delete_user_sessions(self, user_id: int) -> str:
         lua_script = """

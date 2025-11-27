@@ -6,6 +6,7 @@ from flask import (
     request,
     session,
     make_response,
+    flash
 )
 from flask_htmx import make_response as make_htmx_response
 
@@ -20,6 +21,10 @@ from .. import db, logger, flash_cache, limiter
 if runtime.app.debug:
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def test():
+        runtime.app.add_praise(
+            "Sequencing Request Submitted for Review!",
+            render_template("components/after-seq_request-submit-info.html", email="hello@test.com")
+        )
         return render_template("test.html")
 
     @wrappers.page_route(runtime.app, db=db, login_required=True)
@@ -87,7 +92,8 @@ def help():
 @wrappers.htmx_route(runtime.app, login_required=False)
 def retrieve_flash_messages():
     flashes = flash_cache.consume_all(runtime.session.sid)
-    return make_htmx_response(runtime.app.no_context_render_template("components/flash.html", flashes=flashes))
+    praise = runtime.session.pop("praise", None)
+    return make_htmx_response(runtime.app.no_context_render_template("components/flash.html", flashes=flashes, praise=praise))
 
 
 @wrappers.page_route(runtime.app, db=db, route="/", cache_timeout_seconds=360, cache_type="user")
