@@ -34,7 +34,10 @@ class OCMAnnotationForm(MultiStepForm):
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
-        return current_step.metadata["mux_type_id"] == MUXType.TENX_ON_CHIP.id
+        return (
+            current_step.metadata["submission_type_id"] in [SubmissionType.POOLED_LIBRARIES.id, SubmissionType.UNPOOLED_LIBRARIES.id] and
+            (current_step.metadata["mux_type_id"] == MUXType.TENX_ON_CHIP.id)
+        )
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(

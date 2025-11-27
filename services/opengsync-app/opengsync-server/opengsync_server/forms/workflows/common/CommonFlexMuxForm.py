@@ -71,7 +71,7 @@ class CommonFlexMuxForm(MultiStepForm):
             self.sample_table = sample_table.copy()
         elif workflow == "library_annotation":
             self.index_col = "sample_name"
-            self.flex_table = self.tables["sample_pooling_table"]
+            self.flex_table = self.tables["sample_pooling_table"][["sample_name", "sample_pool"]].drop_duplicates()
             self.sample_table = self.flex_table.copy()
         elif workflow == "library_remux":
             if self.library is None:

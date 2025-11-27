@@ -18,14 +18,14 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
     _form_label = "submit_seq_request_form"
 
     sample_submission_time = DateTimeLocalField("Sample Submission Time", format="%Y-%m-%dT%H:%M", validators=[OptionalValidator()])
-    samples_delivered_by_mail = BooleanField("Samples are Delivered by Mail", validators=[OptionalValidator()])
+    samples_delivered_by_mail = BooleanField("Samples are Delivered by Mail", validators=[OptionalValidator()], default=False)
     custom_sample_submission_time = BooleanField(
         "We have agreed to a time that is outside the available submission windows. You must have received confirmation from us before checking this box.",
         description="Check this box only if it's not possible to submit the samples within the available time windows and you have arranged an alternative time and confirmed with us.",
-        validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)], default=False
+        validators=[OptionalValidator()], default=False
     )
     comment = TextAreaField(
-        "Additional Comment for Submission", validators=[OptionalValidator()],
+        "Additional Comment for Submission", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)],
         description="You can provide any additional information regarding the submission here.",
     )
 
@@ -34,6 +34,7 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         self._context["sample_submission_windows"] = runtime.app.sample_submission_windows
+        logger.debug(formdata)
 
     def validate(self) -> bool:
         if not super().validate():
