@@ -845,6 +845,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
             "components/tables/select-experiments.html",
             experiments=experiments, n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order,
-            workflow=workflow, context=context, status_in=status_in
+            workflow=workflow, context=context, status_in=status_in,
+            workflow_in=workflow_in
         )
     )

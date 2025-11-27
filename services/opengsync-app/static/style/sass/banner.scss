@@ -14,9 +14,33 @@
     scrollbar-width: thin;
     scrollbar-color: #ccc transparent;
 
+    .element-banner:hover {
+        cursor: default;
+    }
+
     a.element-banner {
         color: black;
         text-decoration: none;
+    }
+
+    .element-banner a {
+        font-weight: 600;
+        color: $cemm-blue;
+        text-decoration: none;
+        border-radius: 5px;
+        padding: 0 5px;
+    }
+    .element-banner a:hover {
+        background-color: $gray-200;
+    }
+
+    .element-banner button {
+        color: $cemm-green-darker;
+        padding: 0 2px;
+    }
+    .element-banner button:hover {
+        cursor: pointer;
+        background-color: $gray-200;
     }
 
     a .progress-bar:hover {
@@ -76,9 +100,5 @@
         .row div:last-child {
             text-align: end;
         }
-    }
-
-    .element-banner:hover {
-        background-color: #dee2e6;
     }
 }

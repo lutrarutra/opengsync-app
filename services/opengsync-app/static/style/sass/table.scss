@@ -124,7 +124,47 @@ table input.table-query-input{
                 margin: 0 !important;
             }
 
-            td.x-scroll-cell {
+            th span.x-scroll {
+                padding: 0 !important;
+                overflow-y: hidden;
+                display: flex;
+                flex-direction: row;
+                gap: 5px;
+                align-items: bottom;
+                justify-content: space-between;
+
+                .scroll-container {
+                    overflow-y: hidden;
+                    padding: 0 5px;
+                    margin: 0;
+                    display: flex;
+                    flex-direction: row;
+                    gap: 5px;
+                    align-items: center;
+                    height: 100%;
+                    overflow-x: auto !important;
+                    white-space: nowrap;
+
+                    scrollbar-width: thin;
+                    scrollbar-color: $gray-400 transparent;
+
+                    &::-webkit-scrollbar {
+                        height: 4px;
+                    }
+
+                    &::-webkit-scrollbar-thumb {
+                        border-radius: 0px;
+                    }
+
+                    &::-webkit-scrollbar-track {
+                        border-radius: 0px;
+                        background-color: transparent;
+                        border: none;
+                    }
+                }
+            }
+
+            td.x-scroll-cell, th.x-scroll-cell {
                 padding: 0 !important;
                 overflow-y: hidden;
                 

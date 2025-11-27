@@ -103,6 +103,12 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
+            data-bs-target="#project-assignees-tab" type="button" role="tab"
+            aria-controls="project-assignees-tab" aria-selected="true"
+            id="project-assignees-tab-btn">Assignees ({{ project.num_assignees }})</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#project-software-tab" type="button" role="tab"
             aria-controls="project-software-tab" aria-selected="false">
             Software ({{ project.software | length }})</button>
@@ -187,12 +193,30 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="project-software-tab" role="tabpanel" tabindex="5">
+        <div class="tab-pane fade" id="project-assignees-tab" role="tabpanel" tabindex="5">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
+                </div>
+                <div>
+                    <button hx-get="{{ url_for('projects_htmx.add_assignee_form', project_id=project.id) }}" class="btn btn-success"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                        hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click"
+                        {% if not current_user.is_insider() %}disabled{% endif %}>
+                        Add Assignee
+                    </button>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('projects_htmx.get_assignees', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="project-software-tab" role="tabpanel" tabindex="6">
             <div hx-get="{{ url_for('projects_htmx.get_software', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="project-data_paths-tab" role="tabpanel" tabindex="6">
+        <div class="tab-pane fade" id="project-data_paths-tab" role="tabpanel" tabindex="7">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h2>Paths {% if current_user.is_insider() %}<img {{ tooltip('Right click on a path to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;">{% endif %}</h2>

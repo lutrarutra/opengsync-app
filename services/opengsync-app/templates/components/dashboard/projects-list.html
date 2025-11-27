@@ -1,25 +1,37 @@
 {% from "components/status_bar.jinja2" import project_status_bar with context %}
+{% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 {% for project in projects %}
 {% if loop.last and limit == loop.index %}
-<a class="element-banner" href="{{ url_for('projects_page.project', project_id=project.id) }}"
+<div class="element-banner"
 hx-get="{{ url_for('projects_htmx.get_recent_projects', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#projects-htmx-indicator" hx-swap="outerHTML" hx-indicator="#projects-htmx-indicator">
 {% else %}
-<a class="element-banner" href="{{ url_for('projects_page.project', project_id=project.id) }}">
+<div class="element-banner">
 {% endif %}
     <div class="row">
-        <div class="title col-8">{{ project.identifier or project.title }}</div>
-        <div class="col-4">
+        <div class="col-6">
+            <a type="button" href="{{ url_for('projects_page.project', project_id=project.id) }}">{% if project.identifier %}{{ project.identifier }}{% else %}#{{ project.id }}{% endif %}</a> {% if project.assignees %} - {{ assignee_list(project.assignees, current_user=current_user) }}{% endif %}
+        </div>
+        <div class="col-6">
+            {% if current_user not in project.assignees %}
+            <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('projects_htmx.add_assignee', project_id=project.id, assignee_id=current_user.id) }}"><i class="bi bi-person-fill-add"></i></button>
+            {% endif %}
+            <span class="badge">{{ project.timestamp_created_str("%-d. %b. %Y") }}</span>
             <span class="badge">Samples: {{ project.num_samples }}</span>
         </div>
     </div>
     <div class="row">
+        <div class="col-8"><i>{{ project.title }}</i></div>
+        {% if project.group %}
+        <div class="col-4">{{ project.group.name }} {{ project.group.type.icon }}</div>
+        {% else %}
         <div class="col-4">{{ project.owner.name }}</div>
-        <div class="col-4">{{ project.timestamp_created_str("%-d. %b. %Y") }}</div>
-        <div class="col-4">{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }} {% endif %}</div>
+        {% endif %}
     </div>
     {{ project_status_bar(project) }}
-</a>
+</div>
 {% endfor %}
 {{ spinner(id="projects-htmx-indicator") }}

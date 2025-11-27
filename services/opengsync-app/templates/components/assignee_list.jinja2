@@ -1,0 +1,7 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+
+{% macro assignee_list(assignees, current_user) %}
+{% for assignee in assignees | prioritize_current_user(current_user) %}
+<span class="badge assignee-badge {% if assignee == current_user %}badge-success{% endif %}" {{ tooltip(assignee.name, category="success" if assignee == current_user else "primary") }}>{{ assignee.initials }}</span>
+{% endfor %}
+{% endmacro %}

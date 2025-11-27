@@ -38,6 +38,12 @@ class Project(Base):
 
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="project", lazy="select")
     samples: Mapped[list["Sample"]] = relationship("Sample", back_populates="project", lazy="select")
+    assignees: Mapped[list["User"]] = relationship(
+        "User",
+        secondary="project_assignee_link",
+        back_populates="assigned_projects",
+        lazy="select",
+    )
     libraries: Mapped[list["Library"]] = relationship(
         "Library",
         secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id)",
@@ -119,6 +125,16 @@ class Project(Base):
         ).where(
             DataPath.project_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @hybrid_property
+    def num_assignees(self) -> int:  # type: ignore[override]
+        if "assignees" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.assignees)
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_assignees.")
+        from .User import User
+        return session.query(sa.func.count(User.id)).join(links.ProjectAssigneeLink
+        ).filter(links.ProjectAssigneeLink.project_id == self.id).scalar()
 
     @property
     def software(self) -> dict[str, dict]:

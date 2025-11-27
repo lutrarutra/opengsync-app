@@ -20,6 +20,17 @@ if TYPE_CHECKING:
     from .Lane import Lane
     from . import PoolDilution
 
+class ProjectAssigneeLink(Base):
+    __tablename__ = "project_assignee_link"
+
+    project_id: Mapped[int] = mapped_column(sa.ForeignKey("project.id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), primary_key=True)
+
+class SeqRequestAssigneeLink(Base):
+    __tablename__ = "seq_request_assignee_link"
+    seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seq_request.id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), primary_key=True)
+    
 
 class ProtocolKitLink(Base):
     __tablename__ = "protocol_kit_link"

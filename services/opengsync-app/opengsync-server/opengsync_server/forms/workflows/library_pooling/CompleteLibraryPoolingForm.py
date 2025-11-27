@@ -70,6 +70,8 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                         library.status = LibraryStatus.FAILED
                         db.libraries.update(library)
                     continue
+
+                pool_suffix = str(pool_suffix).removeprefix(f"{self.lab_prep.name}_").strip()
                 pool = db.pools.create(
                     name=f"{self.lab_prep.name}_{pool_suffix}", pool_type=PoolType.INTERNAL,
                     contact_email=user.email, contact_name=user.name, owner_id=user.id,

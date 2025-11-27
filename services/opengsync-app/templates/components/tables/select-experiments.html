@@ -29,6 +29,14 @@
                         multiselect_choices=ExperimentStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
+                {{
+                    table_col(
+                        table_container_id='select-experiments-table', column_name='Workflow', column_var='workflow_id',
+                        sort_url="experiments_htmx.browse", context=context,
+                        sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        multiselect_choices=ExperimentWorkFlow.as_list(), multiselect_selected=workflow_in
+                    )
+                }}
             </tr>
         </thead>
         <tbody>
@@ -37,6 +45,7 @@
                 <th scope="row">{{ experiment.id }}</th>
                 <td>{{ experiment.name }}</td>
                 <td>{{ experiment.status.name }} {{ experiment.status.icon | safe }}</td>
+                <td>{{ experiment.workflow.display_name }}</td>
             </tr>
             {% endfor %}
         </tbody>

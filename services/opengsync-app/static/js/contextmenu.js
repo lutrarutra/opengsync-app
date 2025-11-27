@@ -165,6 +165,11 @@ function handleContextMenuAction(action, $contextElement) {
         copy: (action) => {
             copy_to_clipboard(action.value);
         },
+        mailto: (action) => {
+            const config = action.config;
+            // Open mailto link
+            window.location.href = `mailto:${encodeURIComponent(config.recipient || '')}?subject=${encodeURIComponent(config.subject || '')}`;
+        },
         hxdelete: (action) => {
             const config = action.config;
             hx_request(

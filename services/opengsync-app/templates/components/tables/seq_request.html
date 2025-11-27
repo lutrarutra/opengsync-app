@@ -2,6 +2,7 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 
 <div id="seq_request-table" class="table-container">
@@ -60,7 +61,14 @@
         <tbody>
             {% for seq_request in seq_requests %}
             <tr>
-                <th scope="row">{{ seq_request.id }}</th>
+                <th scope="row">
+                    <span class="x-scroll">
+                        {{ seq_request.id }}
+                        <span class="scroll-container">
+                            {{ assignee_list(seq_request.assignees, current_user=current_user) }}
+                        </span>
+                    </span>
+                </th>
                 <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}">{{ seq_request.name }}</a></td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(seq_request.library_types) }}</td>
                 <td>{{ seq_request.status.icon }} {{ seq_request.status.name }}</td>

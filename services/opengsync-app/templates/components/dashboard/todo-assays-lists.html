@@ -1,18 +1,17 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 {% for service_type, _df in df.groupby("service_type") %}
-    <div type="button" class="element-banner"
-     hx-get="{{ url_for('libraries_htmx.get_service_type_todo_libraries', service_type_id=service_type.id) }}"
-        hx-target="#assay-type-todo-modal-content" hx-swap="innerHTML" data-bs-target="#assay-type-todo-modal" data-bs-toggle="modal">
-        <div class="title-row row">
-            <div class="title col-6">{{ service_type.abbreviation }}</div>
-            <div class="col-6">
-                <span class="badge">Waiting: {{ (_df["status"] == LibraryStatus.ACCEPTED).sum() }} {{ "📭" }}</span>
-                <span class="badge">Preparing: {{ (_df["status"] == LibraryStatus.PREPARING).sum() }} {{ LibraryStatus.PREPARING.icon }}</span>
-                <span class="badge">Stored: {{ (_df["status"] == LibraryStatus.STORED).sum() }} {{ LibraryStatus.STORED.icon }}</span>
-            </div>
+<div class="element-banner">
+    <div class="title-row row">
+        <div class="title col-6"><a type="button" hx-get="{{ url_for('libraries_htmx.get_service_type_todo_libraries', service_type_id=service_type.id) }}"
+        hx-target="#assay-type-todo-modal-content" hx-swap="innerHTML" data-bs-target="#assay-type-todo-modal" data-bs-toggle="modal">{{ service_type.name }}</a></div>
+        <div class="col-6">
+            <span class="badge">Waiting: {{ (_df["status"] == LibraryStatus.ACCEPTED).sum() }} 📭</span>
+            <span class="badge">Preparing: {{ (_df["status"] == LibraryStatus.PREPARING).sum() }} {{ LibraryStatus.PREPARING.icon }}</span>
+            <span class="badge">Stored: {{ (_df["status"] == LibraryStatus.STORED).sum() }} {{ LibraryStatus.STORED.icon }}</span>
         </div>
     </div>
+</div>
 {% endfor %}
 <div class="modal fade" id="assay-type-todo-modal" aria-hidden="true" tabindex="-1" data-bs-keyboard="true">
     <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered" id="assay-type-todo-modal-content">

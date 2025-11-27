@@ -690,3 +690,82 @@ def remove_data_path(current_user: models.User, project_id: int):
     return make_response(redirect=url_for("projects_page.project", project_id=project.id, tab="project-data_paths-tab"))
 
         
+@wrappers.htmx_route(projects_htmx, db=db)
+def get_assignees(current_user: models.User, project_id: int):
+    if (project := db.projects.get(project_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        raise exceptions.NoPermissionsException()
+    
+    return make_response(
+        render_template(
+            "components/tables/project-assignee.html",
+            assignees=project.assignees,
+            project=project
+        )
+    )
+
+@wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
+def add_assignee(current_user: models.User, project_id: int, assignee_id: int):
+    if (project := db.projects.get(project_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (assignee := db.users.get(assignee_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if not assignee.is_insider():
+        raise exceptions.NoPermissionsException("Assignee must be an insider.")
+    
+    if assignee in project.assignees:
+        raise exceptions.BadRequestException("User is already an assignee.")
+    
+    project.assignees.append(assignee)
+    db.projects.update(project)
+    flash("Assignee Added.", "success")
+    return make_response(redirect=url_for("dashboard"))
+
+@wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
+def add_assignee_form(current_user: models.User, project_id: int):
+    if (project := db.projects.get(project_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if request.method == "GET":
+        form = forms.AddProjectAssigneeForm(current_user=current_user, project=project)
+        return form.make_response()
+    else:
+        return forms.AddProjectAssigneeForm(formdata=request.form, current_user=current_user, project=project).process_request()
+
+@wrappers.htmx_route(projects_htmx, db=db, methods=["DELETE"])
+def remove_assignee(current_user: models.User, project_id: int, assignee_id: int):
+    if (project := db.projects.get(project_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (assignee := db.users.get(assignee_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if assignee not in project.assignees:
+        raise exceptions.BadRequestException()
+
+    project.assignees.remove(assignee)
+    db.projects.update(project)
+
+    flash("Assignee Removed.", "success")
+
+    return make_response(
+        render_template(
+            "components/tables/project-assignee.html",
+            assignees=project.assignees,
+            project=project
+        )
+    )
