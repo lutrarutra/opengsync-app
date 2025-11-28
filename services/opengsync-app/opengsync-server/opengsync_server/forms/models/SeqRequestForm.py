@@ -465,11 +465,11 @@ class SeqRequestForm(HTMXFlaskForm):
         if user.is_insider():
             if (assigned_user_id := self.user_select_form.user.selected.data) is not None:
                 user = db.users[assigned_user_id]
-            elif (assigned_user_email := self.user_select_form.email.data) is not None:
+            elif (assigned_user_email := self.user_select_form.email.data):
                 user = db.users.create(
                     email=assigned_user_email,
-                    first_name=self.user_select_form.first_name.data,  # type: ignore
-                    last_name=self.user_select_form.last_name.data,  # type: ignore
+                    first_name=self.user_select_form.first_name.data.strip(),  # type: ignore
+                    last_name=self.user_select_form.last_name.data.strip(),  # type: ignore
                     hashed_password=uuid4().hex,
                     role=UserRole.DEACTIVATED,
                 )

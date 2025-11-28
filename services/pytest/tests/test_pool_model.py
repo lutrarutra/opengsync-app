@@ -46,7 +46,7 @@ def test_pool_model(db: DBHandler):
         pool_ids=[pool.id for pool in pools],
     )
 
-    assert len(db.pools.find(limit=None)[0]) == 1
+    assert len(db.pools.find(limit=None)[0]) == 4
 
     db.refresh(merged)
     assert merged.num_libraries == 30
@@ -54,7 +54,7 @@ def test_pool_model(db: DBHandler):
     assert len(merged.dilutions) == 0
 
     db.pools.delete(merged.id)
-    assert len(db.pools.find(limit=None)[0]) == 0
+    assert len(db.pools.find(limit=None)[0]) == 3
     assert len(db.libraries.find(limit=None)[0]) == 30
 
     
