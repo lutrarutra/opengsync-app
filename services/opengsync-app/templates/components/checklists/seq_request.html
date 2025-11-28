@@ -1,0 +1,140 @@
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/button.jinja2" import confirm_action_button, fs_modal_button, xl_modal_button %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+
+<div class="accordion p-1" id="sops-accordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-1" aria-expanded="false" aria-controls="sops-accordiod-collapse-1">
+                <b>{% if samples_added %}✅{% else %}⚠️{% endif %} Add Samples to the Request</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-1" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        {{
+                            fs_modal_button(
+                                text="Begin",
+                                hx_get=url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id),
+                            )
+                        }} - Sample Annotation Workflow
+                    </li>
+                </ol>
+                <b>Notes</b>:
+                <ul>
+                    <li>You can complete the sample annotation workflow as many times as you wish as long as the request is not submitted.</li>
+                    <li>All samples from one workflow will be added to a single project. If you have samples from two (or more) projects, complete the workflow for each project separately.</li>
+                    <li>Raw and processed data will be linked to their respective projects and delivered on a project-by-project basis.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-2" aria-expanded="false" aria-controls="sops-accordiod-collapse-2">
+                <b>{% if authorization_form_added %}✅{% else %}⚠️{% endif %} Upload Signed Sequncing Authorization Form</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-2" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <a type="button" class="btn btn-primary" href="{{ url_for('library_annotation_workflow.download_seq_auth_form') }}">
+                            Download
+                        </a> - Template
+                    </li>
+                    <li>
+                        {{
+                            xl_modal_button(
+                                text="Upload",
+                                hx_get=url_for('seq_requests_htmx.file_form', seq_request_id=seq_request.id),
+                            )
+                        }} - Signed Sequencing Authorization Form
+                    </li>
+                </ol>
+                {% if seq_request.seq_auth_form_file %}
+                <button type="button" class="btn btn-success" onclick="open_file_tab({{seq_request.seq_auth_form_file.id}}, 'seq_request-files-tab')">Show</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3" aria-expanded="false" aria-controls="sops-accordiod-collapse-3">
+                <b>{% if request_submitted is none %}❗{% else %}{% if request_submitted %}✅{% else %}⚠️{% endif %}{% endif %} Submit Sequencing Request for Review</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>Double-check the request details:
+                        <ul>
+                            <li><button type="button" class="btn btn-success" onclick="open_tab('request-overview-tab')">Review</button> - Overview of the Sequencing Request</li>
+                            <li>Number of samples: {{ seq_request.num_samples }}</li>
+                            <li>Number of libraries: {{ seq_request.num_libraries }}</li>
+                            <li>Library Types: {% for library_type, count in seq_request.library_type_counts.items() %}<span class="badge">{{ library_type.abbreviation }} ({{ count }})</span> {% endfor %}</li>
+                        </ul>
+                    </li>
+                    <li>If times indicated below are not suitable, please contact us <a href="mailto:{{ contact_email }}">{{ contact_email }}</a> to arrange an alternative submission time.</li>
+                    <li>
+                        {{
+                            xl_modal_button(
+                                text="Submit",
+                                hx_get=url_for('seq_requests_htmx.submit_request', seq_request_id=seq_request.id),
+                                disabled=not is_submittable or current_user.is_insider(),
+                            )
+                        }} - Sequencing Request for Review
+                    </li>
+                </ol>
+                <b>Sample Submission Windows: </b>
+                <ul>
+                    {% for window in current_app.sample_submission_windows %}
+                    <li>
+                        <span class="badge">{{ window.weekday }}</span> @ <span class="badge">
+                        {{ window.start_time.strftime("%H:%M") }}</span> - <span class="badge">{{ window.end_time.strftime("%H:%M") }}
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <b>Notes</b>:
+                <ul>
+                    <li>After submitting the request, you will no longer be able to edit the request.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% if request_submitted %}
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-4" aria-expanded="false" aria-controls="sops-accordiod-collapse-4">
+                <b>🔘 What's next?</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-4" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <ol>
+                    <li>
+                        Your sequencing request has been submitted successfully and is now pending review. If any further information is required, we will reach out to you.
+                    </li>
+                    <li>
+                        Our team will review your submission to ensure everything is in order.
+                    </li>
+                    <li>
+                        Once approved, you can bring us the samples at the scheduled submission time or send them by mail if you selected that option, unless otherwise agreed with us.
+                    </li>
+                    <li>
+                        After sequencing is complete and the data is processed and ready, we will notify the contact person ({{ seq_request.contact_person.email or seq_request.request.email }}) with instructions on how to access and download the data.
+                    </li>
+                    <li>
+                        You can add additional email recipients in "Share"-tab of the sequencing request.
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>

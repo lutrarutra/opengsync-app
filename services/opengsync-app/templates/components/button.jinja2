@@ -1,0 +1,51 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+
+{% macro confirm_action_button(text, title, url, class="btn btn-primary", container="button", method="hx-get", body="Do you want to proceed?", icon="warning", disabled=false) %}
+<{{ container }} type="button" class="{{ class }}"
+    {% if not disabled %}
+    {{ method }}="{{ url }}"
+    _='on htmx:confirm(issueRequest)
+        halt the event
+        call Swal.fire({
+            title: {{ title | tojson }},
+            icon: "{{ icon }}",
+            showDenyButton: true,
+            text: {{ body|tojson }},
+            confirmButtonText: "Yes",
+            denyButtonText: "No"
+        })
+        if result.isConfirmed issueRequest()'
+    {% else %}disabled{%endif%}>{{ text }}</{{ container }}>
+{% endmacro %}
+
+{% macro xl_modal_button(text, container="button", class="btn btn-primary", disabled=false, hx_get=none, hx_post=none, hx_delete=none, tooltip=none, tooltip_category="primary", tooltip_position="top") %}
+<{{ container }} type="button" class="{{ class }}"
+data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+{% if hx_get %}
+hx-get="{{ hx_get }}"
+{% elif hx_post %}
+hx-post="{{ hx_post }}"
+{% elif hx_delete %}
+hx-delete="{{ hx_delete }}"
+{% endif %}
+{% if disabled %}disabled{% endif %}
+{% if tooltip %}{{ tooltip(tooltip, tooltip_position, tooltip_category) }}{% endif %}>
+    {{ text }}
+</{{ container }}>
+{% endmacro %}
+
+{% macro fs_modal_button(text, container="button", class="btn btn-primary", disabled=false, hx_get=none, hx_post=none, hx_delete=none, tooltip=none, tooltip_category="primary", tooltip_position="top") %}
+<{{ container }} type="button" class="{{ class }}"
+data-bs-toggle="modal" data-bs-target="#fullscreen-modal" hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
+{% if hx_get %}
+hx-get="{{ hx_get }}"
+{% elif hx_post %}
+hx-post="{{ hx_post }}"
+{% elif hx_delete %}
+hx-delete="{{ hx_delete }}"
+{% endif %}
+{% if disabled %}disabled{% endif %}
+{% if tooltip %}{{ tooltip(tooltip, tooltip_position, tooltip_category) }}{% endif %}>
+    {{ text }}
+</{{ container }}>
+{% endmacro %}

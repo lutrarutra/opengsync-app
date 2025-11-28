@@ -289,9 +289,9 @@
             $("#burger").toggleClass("toggle");
         });
 
-        function open_file_tab(file_id) {
-            $('.nav-tabs button[data-bs-target="#files-tab"]').tab('show');
-            $('.nav-tabs button[data-bs-target="#file-' + file_id + '-tab"]').tab('show');
+        function open_file_tab(file_id, container_id="files-tab") {
+            $(`.nav-tabs button[data-bs-target="#${container_id}"]`).tab('show');
+            $(`.nav-tabs button[data-bs-target="#file-${file_id}-tab"]`).tab('show');
         }
     </script>
 </body>

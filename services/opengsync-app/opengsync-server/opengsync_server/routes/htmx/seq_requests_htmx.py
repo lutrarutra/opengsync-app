@@ -743,7 +743,7 @@ def overview(current_user: models.User, seq_request_id: int):
     
     nodes = []
     links = []
-    contains_pooled = False
+    contains_pooled = seq_request.submission_type == SubmissionType.POOLED_LIBRARIES
 
     seq_request_node = {
         "node": 0,
@@ -797,14 +797,13 @@ def overview(current_user: models.User, seq_request_id: int):
                     library_idx = idx
                     idx += 1
 
-                    if not link.library.is_pooled():
+                    if not contains_pooled:
                         links.append({
                             "source": library_idx,
                             "target": seq_request_node["node"],
                             "value": LINK_WIDTH_UNIT * link.library.num_samples
                         })
                     else:
-                        contains_pooled = True
                         if link.library.pool_id not in pool_nodes.keys():
                             pool_node = {
                                 "node": idx,
@@ -1303,5 +1302,22 @@ def remove_assignee(current_user: models.User, seq_request_id: int, assignee_id:
             "components/tables/seq_request-assignee.html",
             assignees=seq_request.assignees,
             seq_request=seq_request
+        )
+    )
+
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def checklist(current_user: models.User, seq_request_id: int):    
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.VIEW:
+        raise exceptions.NoPermissionsException()
+    
+    checklist = seq_request.get_checklist()
+    return make_response(
+        render_template(
+            "components/checklists/seq_request.html",
+            seq_request=seq_request, **checklist
         )
     )

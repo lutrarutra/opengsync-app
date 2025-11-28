@@ -19,31 +19,6 @@
                 Store Samples
             </button>
             {% endif %}
-            {% if seq_request.status == SeqRequestStatus.DRAFT %}
-            <span
-            {% if not seq_request.is_submittable() and not current_user.is_insider() %}
-                {% if not seq_request.is_authorized() %}
-                    {{ tooltip('You must add a sequencing authorization form to submit the request.', category='success') }}
-                {% else %}
-                    {{ tooltip('You must add at least one library to submit the request.', category='success') }}
-                {% endif %}
-            {% endif %}>
-                <button hx-get="{{ url_for('seq_requests_htmx.submit_request', seq_request_id=seq_request.id) }}" class="btn btn-success"
-                    data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                    hx-target="#xl-modal-content"
-                    hx-swap="innerHTML" hx-trigger="click"
-                    {% if not seq_request.is_submittable() %}disabled{% endif %}>
-                    Submit Request
-                </button>
-            </span>
-            <span>
-                <button data-bs-toggle="modal" data-bs-target="#fullscreen-modal" class="btn btn-primary"
-                    hx-get="{{ url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id) }}"
-                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
-                    Add Samples
-                </button>
-            </span>
-            {% endif %}
             {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.SUBMITTED %}
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
             hx-get="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}"
@@ -209,6 +184,11 @@
     <ul class="nav nav-tabs page-tabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#request-checklist-tab" type="button" role="tab"
+            aria-controls="request-checklist-tab" aria-selected="true">Checklist ({{ checklist_steps_completed }}/{{ checklist_total_steps }})</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-samples-tab" type="button" role="tab"
             aria-controls="request-samples-tab" aria-selected="true">Samples ({{ seq_request.num_samples }})</button>
         </li>
@@ -231,17 +211,12 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#request-metadata-tab" type="button" role="tab"
-            aria-controls="request-metadata-tab" aria-selected="true">Metadata</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab"
-            data-bs-target="#request-seq_auth-tab" type="button" role="tab"
-            aria-controls="request-seq_auth-tab" aria-selected="true">Authorization</button>
+            aria-controls="request-metadata-tab" aria-selected="false">Metadata</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
                 data-bs-target="#request-overview-tab" type="button" role="tab"
-                aria-controls="request-overview-tab" aria-selected="true">
+                aria-controls="request-overview-tab" aria-selected="false">
                 Overview
             </button>
         </li>
@@ -286,7 +261,20 @@
 
 <div class="page-content">
     <div class="tab-content pt-1">
-        <div class="tab-pane fade show active" id="request-samples-tab" role="tabpanel" tabindex="0">
+        <div class="tab-pane fade show active" id="request-checklist-tab" role="tabpanel" tabindex="0">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Checklist</h3>
+                </div>
+                <div style="height: 100%; display: flex; align-items: center;">
+                    <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('seq_requests_htmx.checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="request-samples-tab" role="tabpanel" tabindex="1">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Samples <img {{ tooltip('Right click on a sample name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
@@ -296,7 +284,7 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="workflows-tab" role="tabpanel" tabindex="1">
+        <div class="tab-pane fade" id="workflows-tab" role="tabpanel" tabindex="2">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h3>Workflows <img {{ tooltip('If you want to change the submission type (raw samples/pooled libraries), you can change it in Manage -> Edit', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h3>
@@ -566,57 +554,6 @@
                     {{ metadata_group("Billing Code", seq_request.billing_code, class="col-6") }}
                 </div>
             </div>
-        </div>
-        <div class="tab-pane fade" id="request-seq_auth-tab" role="tabpanel" tabindex="4">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>Sequencing Authorization</h2>
-                </div>
-                <div>
-                    {% if seq_request.is_authorized() %}
-                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
-                    <a type="button" class="btn btn-danger" hx-delete="{{ url_for('seq_requests_htmx.remove_auth_form', seq_request_id=seq_request.id) }}"
-                    _="on htmx:confirm(issueRequest)
-                    halt the event
-                    call Swal.fire({
-                        title: 'Remove authorization form from \'{{ seq_request.name }}\'',
-                        showDenyButton: true,
-                        text: 'Do you want to proceed?',
-                        confirmButtonText: 'Yes',
-                        denyButtonText: 'No'
-                    })
-                    if result.isConfirmed issueRequest()">
-                        Remove Authorization Form
-                    </a>
-                    {% endif %}
-                    {% endif %}
-                    <a type="button" class="btn btn-primary" href="{{ url_for('library_annotation_workflow.download_seq_auth_form') }}">
-                        Download Template
-                    </a>
-                </div>
-            </div>
-            {% if not seq_request.is_authorized() and seq_request.status == SeqRequestStatus.DRAFT %}
-            {% include "forms/seq_request/seq_auth.html" %}
-            {% else %}
-            <div class="d-flex justify-content-between align-items-center pt-3 pb-1">
-                <div class="row">
-                    {% if seq_request.seq_auth_form_file %}
-                    {{ metadata_group("Filename", seq_request.seq_auth_form_file.name + seq_request.seq_auth_form_file.extension, class="col-3") }}
-                    {{ metadata_group_link("Uploader", seq_request.seq_auth_form_file.uploader.name, url_for('users_page.user', user_id=seq_request.seq_auth_form_file.uploader_id), class="col-3") }}
-                    {{ metadata_group("Size", seq_request.seq_auth_form_file.size_str(), class="col-3") }}
-                    {{ metadata_group("Time", seq_request.seq_auth_form_file.timestamp_str(), class="col-3") }}
-                    {% else %}
-                    {{ metadata_group("Filename", "", class="col-3") }}
-                    {{ metadata_group("Uploader", "", class="col-3") }}
-                    {{ metadata_group("Size", "", class="col-3") }}
-                    {{ metadata_group("Time", "", class="col-3") }}
-                    {% endif %}
-                </div>
-            </div>
-            {% if seq_request.seq_auth_form_file %}
-            <embed src="{{ url_for('pdf_file', file_id=seq_request.seq_auth_form_file.id) }}" width="100%" height="1000px">
-            {% endif %}
-            {% endif %}
         </div>
         <div class="tab-pane fade" id="request-overview-tab" role="tabpanel" tabindex="5">
             <div hx-get="{{ url_for('seq_requests_htmx.overview', seq_request_id=seq_request.id) }}" hx-trigger="intersect once">

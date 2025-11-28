@@ -1,3 +1,8 @@
+function open_tab(id) {
+    const tab = new bootstrap.Tab(document.querySelector(`button[data-bs-target="#${id}"]`));
+    tab.show();
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     var hash = window.location.hash;
     if (!hash) {

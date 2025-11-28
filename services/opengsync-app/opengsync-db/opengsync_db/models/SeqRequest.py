@@ -90,6 +90,23 @@ class SeqRequest(Base):
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
 
+    def get_checklist(self) -> dict:
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open for checklist")
+        
+        samples_added = self.num_samples > 0 and self.num_libraries > 0
+        authorization_form_added = self.seq_auth_form_file is not None
+        is_submittable = self.is_submittable()
+        request_submitted = self.status >= SeqRequestStatus.SUBMITTED if samples_added else None
+
+        return dict(
+            samples_added=samples_added,
+            authorization_form_added=authorization_form_added,
+            is_submittable=is_submittable,
+            request_submitted=request_submitted,
+        )
+
+
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
@@ -328,7 +345,7 @@ class SeqRequest(Base):
         return self.seq_auth_form_file is not None
     
     def is_submittable(self) -> bool:
-        return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0
+        return self.status == SeqRequestStatus.DRAFT and self.num_libraries > 0 and self.is_authorized()
     
     def timestamp_submitted_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:
         if (ts := self.timestamp_submitted) is None:
