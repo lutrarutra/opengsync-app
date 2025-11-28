@@ -29,7 +29,7 @@
                     <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-primary" download style="margin-top: 10px;">
                         Download
                     </a>
-                    {% if file.type.name != "Sequencing Authorization Form" %}
+                    
                     <button type="button" class="btn btn-danger" style="margin-top: 10px;"
                     hx-delete="{{ url_for(delete, file_id=file.id, **delete_context) }}"
                     _="on htmx:confirm(issueRequest)
@@ -42,14 +42,15 @@
                         confirmButtonText: 'Yes',
                         denyButtonText: 'No'
                     })
-                    if result.isConfirmed issueRequest()">
+                    if result.isConfirmed issueRequest()"
+                    {% if (file.type == MediaFileType.SEQ_AUTH_FORM and seq_request.status != SeqRequestStatus.DRAFT) or current_user.is_admin() %}disabled{% endif %}>
                         Delete
                     </button>
-                    {% endif %}
+                    
                 </div>
             </div>
             <div class="file-container">
-                {% if file.type == FileType.LANE_POOLING_TABLE %}
+                {% if file.type == MediaFileType.LANE_POOLING_TABLE %}
                 <div hx-get="{{ url_for('experiments_htmx.render_lane_sample_pooling_tables', file_id=file.id, experiment_id=experiment.id) }}" hx-trigger="intersect once">
                     {{ spinner() }}
                 </div>

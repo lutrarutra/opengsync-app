@@ -253,7 +253,7 @@ class App(Flask):
                 KitType=categories.KitType,
                 AffiliationType=categories.AffiliationType,
                 ProjectStatus=categories.ProjectStatus,
-                FileType=categories.MediaFileType,
+                MediaFileType=categories.MediaFileType,
                 MUXType=categories.MUXType,
                 DataPathType=categories.DataPathType,
                 ExperimentWorkFlow=categories.ExperimentWorkFlow,
@@ -264,7 +264,9 @@ class App(Flask):
                 ],
                 isna=pd.isna,
                 notna=pd.notna,
-                units=units
+                units=units,
+                current_app=runtime.app,
+                session=runtime.session,
             )
 
         db.open_session()
