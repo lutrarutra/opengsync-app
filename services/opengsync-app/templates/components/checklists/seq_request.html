@@ -85,7 +85,7 @@
                             xl_modal_button(
                                 text="Submit",
                                 hx_get=url_for('seq_requests_htmx.submit_request', seq_request_id=seq_request.id),
-                                disabled=not is_submittable or current_user.is_insider(),
+                                disabled=not is_submittable and not current_user.is_insider(),
                             )
                         }} - Sequencing Request for Review
                     </li>
