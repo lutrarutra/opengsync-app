@@ -716,14 +716,14 @@ def remove_share_email(current_user: models.User, seq_request_id: int, email: st
     
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
     
-    if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+    if access_type < AccessType.EDIT:
         raise exceptions.NoPermissionsException()
         
     db.seq_requests.remove_share_email(seq_request_id, email)
 
-    flash(f"Removed shared email '{email}' from sequencing request '{seq_request.name}'", "success")
+    flash(f"Removed email!", "success")
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
+        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id, tab="request-share-tab"),
     )
 
 
