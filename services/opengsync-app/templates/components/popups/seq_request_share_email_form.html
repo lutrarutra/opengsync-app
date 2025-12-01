@@ -7,13 +7,13 @@
     </div>
     <div class="modal-body">
         <div id="seq_request_share_email_form-form">
-            {{ seq_request_share_email_form.csrf_token() }}
-            {{ form_group(seq_request_share_email_form.email) }}
+            {{ form.csrf_token() }}
+            {{ form_group(form.email) }}
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">
         <button class="btn btn-success" hx-include="#seq_request_share_email_form-form" hx-target="#seq_request_share_email_form-form-container" hx-swap="outerHTML"
-        hx-post="{{ url_for('seq_requests_htmx.add_share_email', seq_request_id=seq_request.id) }}">
+        hx-post="{{ url_for('seq_requests_htmx.add_share_email', seq_request_id=form.seq_request.id) }}">
             Submit
         </button>
     </div>

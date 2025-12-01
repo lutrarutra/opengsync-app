@@ -547,6 +547,7 @@ class LibraryBP(DBBlueprint):
         pooled: Optional[bool] = None,
         status: Optional[LibraryStatusEnum] = None,
         custom_query: Callable[[Query], Query] | None = None,
+        order_by: str | None = "id",
         limit: int | None = None,
         chunk_size: int = 1000
     ) -> Iterator[models.Library]:
@@ -555,6 +556,9 @@ class LibraryBP(DBBlueprint):
         Uses chunking to handle large datasets efficiently.
         """
         query = self.db.session.query(models.Library)
+        if order_by is not None:
+            attr = getattr(models.Library, order_by)
+            query = query.order_by(sa.nulls_last(attr))
         query = LibraryBP.where(
             query,
             user_id=user_id, sample_id=sample_id, experiment_id=experiment_id,

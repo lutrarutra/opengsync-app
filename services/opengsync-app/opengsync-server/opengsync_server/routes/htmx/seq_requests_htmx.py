@@ -691,7 +691,7 @@ def process_request(current_user: models.User, seq_request_id: int):
         return forms.ProcessRequestForm(formdata=request.form, seq_request=seq_request).process_request(user=current_user)
 
 
-@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def add_share_email(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
@@ -701,9 +701,11 @@ def add_share_email(current_user: models.User, seq_request_id: int):
     if access_type < AccessType.EDIT:
         raise exceptions.NoPermissionsException()
     
-    return forms.SeqRequestShareEmailForm(formdata=request.form).process_request(
-        seq_request=seq_request
-    )
+    if request.method == "GET":
+        form = forms.SeqRequestShareEmailForm(seq_request=seq_request)
+        return form.make_response()
+    
+    return forms.SeqRequestShareEmailForm(seq_request=seq_request, formdata=request.form).process_request()
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])

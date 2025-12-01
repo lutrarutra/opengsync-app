@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from .Event import Event
     from .Group import Group
     from .DataPath import DataPath
+    from .Project import Project
 
 
 class SeqRequest(Base):
@@ -74,7 +75,7 @@ class SeqRequest(Base):
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
-    delivery_email_links: Mapped[list[links.SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="save-update,delete,merge", back_populates="seq_request")
+    delivery_email_links: Mapped[list[links.SeqRequestDeliveryEmailLink]] = relationship("SeqRequestDeliveryEmailLink", lazy="select", cascade="all, save-update, delete, merge", back_populates="seq_request")
     samples: Mapped[list["Sample"]] = relationship(
         "Sample", viewonly=True,
         secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id).join(Library, Library.id == SampleLibraryLink.library_id)",
@@ -105,6 +106,24 @@ class SeqRequest(Base):
             is_submittable=is_submittable,
             request_submitted=request_submitted,
         )
+    
+    @property
+    def projects(self) -> list["Project"]:
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'projects' attribute.")
+        
+        from .Project import Project
+        from .Sample import Sample
+        from .Library import Library
+
+        return session.query(Project).where(
+            sa.exists().where(
+                (Sample.project_id == Project.id) &
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.seq_request_id == self.id)
+            )
+        ).all()
 
 
     @hybrid_property

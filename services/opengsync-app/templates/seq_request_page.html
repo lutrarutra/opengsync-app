@@ -3,6 +3,7 @@
 {% from "components/form_group.jinja2" import form_group %}
 {% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/button.jinja2" import xl_modal_button, fs_modal_button %}
 
 {% extends "base.html" %}
 {% set active_page = "seq_requests-page" %}
@@ -534,10 +535,7 @@
                     <h2>The data will be shared with following emails:</h2>
                 </div>
                 <div>
-                    <button class="btn btn-success"  data-bs-toggle="modal"
-                    data-bs-target="#seq_request_share_email-form-popup" type="button" role="tab"
-                    aria-controls="seq_request_share_email-form-popup" aria-selected="true"
-                    id="seq_request_share_email-form-popup-btn">Add Email</button>
+                    {{ xl_modal_button("Add Email", hx_get=url_for('seq_requests_htmx.add_share_email', seq_request_id=seq_request.id), disabled=not current_user.is_insider() and seq_request.status >= SeqRequestStatus.FINISHED) }}
                 </div>
             </div>     
             {% set only_one = seq_request.delivery_email_links | length == 1 %}
@@ -592,12 +590,6 @@
             <div hx-get="{{ url_for('seq_requests_htmx.get_data_paths', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="seq_request_share_email-form-popup" aria-hidden="true" aria-labelledby="">
-        <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
-            {% include seq_request_share_email_form._template_path %}
         </div>
     </div>
 </div>
