@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from .DataPath import DataPath
     from .ShareToken import ShareToken
     from .SeqRequest import SeqRequest
+    from .Experiment import Experiment
 
 
 class Project(Base):
@@ -158,6 +159,94 @@ class Project(Base):
                 (Project.id == self.id)
             )
         ).all()
+    
+    @hybrid_property
+    def num_seq_requests(self) -> int:  # type: ignore[override]
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_seq_requests' attribute.")
+        
+        from .SeqRequest import SeqRequest
+        from .Sample import Sample
+        from .Library import Library
+        return session.query(sa.distinct(SeqRequest.id)).where(
+            sa.exists().where(
+                (Sample.project_id == Project.id) &
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.seq_request_id == SeqRequest.id) &
+                (Project.id == self.id)
+            )
+        ).count()
+    
+    @num_seq_requests.expression
+    def num_seq_requests(cls) -> sa.ScalarSelect[int]:
+        from .SeqRequest import SeqRequest
+        from .Sample import Sample
+        from .Library import Library
+        return sa.select(
+            sa.func.count(sa.distinct(SeqRequest.id))
+        ).where(
+            sa.exists().where(
+                (Sample.project_id == cls.id) &
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.seq_request_id == SeqRequest.id) &
+                (cls.id == cls.id)
+            )
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
+    @property
+    def experiments(self) -> list["Experiment"]:
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'experiments' attribute.")
+        
+        from .Experiment import Experiment
+        from .Sample import Sample
+        from .Library import Library
+        return session.query(Experiment).where(
+            sa.exists().where(
+                (Project.id == self.id) &
+                (Sample.project_id == Project.id) &
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.experiment_id == Experiment.id)
+            )
+        ).all()
+    
+    @hybrid_property
+    def num_experiments(self) -> int:  # type: ignore[override]
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_experiments' attribute.")
+        
+        from .Experiment import Experiment
+        from .Sample import Sample
+        from .Library import Library
+        return session.query(sa.distinct(Experiment.id)).where(
+            sa.exists().where(
+                (Project.id == self.id) &
+                (Sample.project_id == Project.id) &
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.experiment_id == Experiment.id)
+            )
+        ).count()
+    
+    @num_experiments.expression
+    def num_experiments(cls) -> sa.ScalarSelect[int]:
+        from .Experiment import Experiment
+        from .Sample import Sample
+        from .Library import Library
+        return sa.select(
+            sa.func.count(sa.distinct(Experiment.id))
+        ).where(
+            sa.exists().where(
+                (Project.id == cls.id) &
+                (Sample.project_id == cls.id) &
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.experiment_id == Experiment.id)
+            )
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
 
     def set_software(self, software: str, version: str, comment: str | None = None) -> None:
