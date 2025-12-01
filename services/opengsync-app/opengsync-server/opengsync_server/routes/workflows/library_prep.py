@@ -59,7 +59,7 @@ def select(current_user: models.User, lab_prep_id: int) -> Response:
     for _, row in form.library_table.iterrows():
         lab_prep = db.lab_preps.add_library(
             lab_prep_id=lab_prep_id,
-            library_id=row["id"],
+            library_id=int(row["id"]),
         )
 
     flash("Libraries added!", "success")

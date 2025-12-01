@@ -182,9 +182,10 @@ class LabPrepBP(DBBlueprint):
         if (library := self.db.session.get(models.Library, library_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Library with id '{library_id}', not found.")
         
-        library.status = LibraryStatus.PREPARING
+        if library.status < LibraryStatus.PREPARING:
+            library.status = LibraryStatus.PREPARING
+        
         lab_prep.libraries.append(library)
-
         self.db.session.add(lab_prep)
         return lab_prep
 

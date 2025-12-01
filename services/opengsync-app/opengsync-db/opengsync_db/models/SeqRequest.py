@@ -124,7 +124,41 @@ class SeqRequest(Base):
                 (Library.seq_request_id == self.id)
             )
         ).all()
+    
+    @hybrid_property
+    def num_projects(self) -> int:  # type: ignore[override]        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_projects.")
 
+        from .Project import Project
+        from .Sample import Sample
+        from .Library import Library
+
+        return session.query(sa.func.count(sa.distinct(Project.id))).where(
+            sa.exists().where(
+                (Sample.project_id == Project.id) &
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.seq_request_id == self.id)
+            )
+        ).scalar()
+    
+    @num_projects.expression
+    def num_projects(cls) -> sa.ScalarSelect[int]:
+        from .Project import Project
+        from .Sample import Sample
+        from .Library import Library
+
+        return sa.select(
+            sa.func.count(sa.distinct(Project.id))
+        ).where(
+            sa.exists().where(
+                (Sample.project_id == Project.id) &
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.seq_request_id == cls.id)
+            )
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
@@ -299,6 +333,24 @@ class SeqRequest(Base):
             lib_type = LibraryType.get(type_id)
             counts[lib_type] = count
         return counts
+    
+    @hybrid_property
+    def num_delivery_email_links(self) -> int:  # type: ignore[override]
+        if "delivery_email_links" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.delivery_email_links)
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_delivery_email_links.")
+        
+        return session.query(links.SeqRequestDeliveryEmailLink).where(links.SeqRequestDeliveryEmailLink.seq_request_id == self.id).count()
+    
+    @num_delivery_email_links.expression
+    def num_delivery_email_links(cls) -> sa.ScalarSelect[int]:
+        return sa.select(
+            sa.func.count(links.SeqRequestDeliveryEmailLink.email)
+        ).where(
+            links.SeqRequestDeliveryEmailLink.seq_request_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
     def status(self) -> SeqRequestStatusEnum:

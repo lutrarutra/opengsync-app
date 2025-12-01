@@ -370,7 +370,9 @@ class SeqRequestBP(DBBlueprint):
         
         is_prepared = status == SeqRequestStatus.ACCEPTED
         for library in seq_request.libraries:
-            library.status = library_status
+            if library.status == LibraryStatus.SUBMITTED:
+                library.status = library_status
+                
             if library_status != LibraryStatus.ACCEPTED:
                 continue
             
