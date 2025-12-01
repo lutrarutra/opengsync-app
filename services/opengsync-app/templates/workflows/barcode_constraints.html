@@ -3,6 +3,12 @@
 {% from "components/search_select.jinja2" import search_select_field %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
+{% macro highlight_bases(seq, bases) %}
+{% if seq %}
+{% for c in seq %}<span style="color: {% if c in bases %}#75952f{% else %}#e95e30{% endif %};">{{ c }}</span>{% endfor %}
+{% endif %}
+{% endmacro %}
+
 <div id="barcode-constraints-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Check Sequencing Index Constraints</h1>
@@ -11,20 +17,20 @@
     <div class="modal-body tab-body">
         <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="tab"
+                <button class="nav-link {% if form.active_tab == 'form-tab-form' %}active{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#form-tab-form" type="button" role="tab"
                 aria-controls="form-tab-form" aria-selected="true">
                 Form</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab"
+                <button class="nav-link {% if form.errors %}text-danger{% else %}text-success{% endif %} {% if form.active_tab == 'sequences-tab-form' %}active{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#sequences-tab-form" type="button" role="tab"
                 aria-controls="sequences-tab-form" aria-selected="true">
                 Valid Combinations</button>
             </li>
         </ul>
         <div class="tab-content">
-            <div class="tab-pane fade show active" id="form-tab-form" role="tabpanel" tabindex="0">
+            <div class="tab-pane fade {% if form.active_tab == 'form-tab-form' %}show active{% endif %}" id="form-tab-form" role="tabpanel" tabindex="0">
                 {{ 
                     search_select_field(
                         form.kit, url_for('index_kits_htmx.query'),
@@ -33,46 +39,106 @@
                 {{ form_group(form.min_samples) }}
                 {{ spreadsheet_input(element=form.spreadsheet) }}
             </div>
-            <div class="tab-pane fade" id="sequences-tab-form" role="tabpanel" tabindex="1">
-                <div class="row">
-                    {% if form.needed_additions %}
-                    {% for combination in form.needed_additions %}
-                    <h4>Combination {{ loop.index }}</h4>
+            <div class="tab-pane fade {% if form.active_tab == 'sequences-tab-form' %}show active{% endif %}" id="sequences-tab-form" role="tabpanel" tabindex="1">
+                {% if form.needed_additions %}
+                {% for combination in form.needed_additions %}
+                <h4>Combination {{ loop.index }}</h4>
+                <ul class="list-group pb-3">
+                    {% for sequence in combination %}
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col-1">{{ sequence.well }}</div>
+                            <div class="col-2">{{ sequence.name_i7 }}</div>
+                            <div class="col-3" style="font-family: monospace;">{{ highlight_bases(sequence.sequence_i7, form.needed_bases) }}</div>
+                            <div class="col-2">{{ sequence.name_i5 }}</div>
+                            <div class="col-3" style="font-family: monospace;">{{ highlight_bases(sequence.sequence_i5, form.needed_bases) }}</div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                    {% for seqi7, seqi5 in form.additional_sequences %}
+                    <li class="list-group-item bg-light">
+                        <div class="row">
+                            <div class="col-1"></div>
+                            <div class="col-2"></div>
+                            <div class="col-3" style="font-family: monospace;">{{ highlight_bases(seqi7, form.needed_bases) }}</div>
+                            <div class="col-2"></div>
+                            <div class="col-3" style="font-family: monospace;">{{ highlight_bases(seqi5, form.needed_bases) }}</div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endfor %}
+                {% elif form.needed_additions_i7 or form.needed_additions_i5 %}
+                <div class="col-6">
+                    {% for combination in form.needed_additions_i7 %}
                     <ul class="list-group pb-3">
                         {% for sequence in combination %}
                         <li class="list-group-item">
                             <div class="row">
                                 <div class="col-1">{{ sequence.well }}</div>
-                                <div class="col-2">{{ sequence.name_i7 }}</div>
-                                <div class="col-3" style="font-family: monospace;">{{ sequence.sequence_i7 }}</div>
-                                <div class="col-2">{{ sequence.name_i5 }}</div>
-                                <div class="col-3" style="font-family: monospace;">{{ sequence.sequence_i5 }}</div>
+                                <div class="col-2">{{ sequence.name }}</div>
+                                <div class="col-3" style="font-family: monospace;">{{ highlight_bases(sequence.sequence, form.needed_bases) }}</div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        {% for seqi7, seqi5 in form.additional_sequences %}
+                        <li class="list-group-item bg-light">
+                            <div class="row">
+                                <div class="col-1"></div>
+                                <div class="col-2"></div>
+                                <div class="col-3" style="font-family: monospace;">{{ highlight_bases(seqi7, form.needed_bases) }}</div>
                             </div>
                         </li>
                         {% endfor %}
                     </ul>
                     {% endfor %}
-                    {% else %}
-                    <div class="col-6">
-                        {% for combination in form.needed_additions_i7 %}
-                        <ul class="list-group pb-3">
-                            {% for sequence in combination %}
-                            <li class="list-group-item">{{ sequence }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% endfor %}
-                    </div>
-                    <div class="col-6">
-                        {% for combination in form.needed_additions_i5 %}
-                        <ul class="list-group pb-3">
-                            {% for sequence in combination %}
-                            <li class="list-group-item">{{ sequence }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
                 </div>
+                <div class="col-6">
+                    {% for combination in form.needed_additions_i5 %}
+                    <ul class="list-group pb-3">
+                        {% for sequence in combination %}
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-1">{{ sequence.well }}</div>
+                                <div class="col-2">{{ sequence.name }}</div>
+                                <div class="col-3" style="font-family: monospace;">{{ highlight_bases(sequence.sequence, form.needed_bases) }}</div>
+                            </div>
+                        </li>
+                        {% for seqi7, seqi5 in form.additional_sequences %}
+                        <li class="list-group-item bg-light">
+                            <div class="row">
+                                <div class="col-1"></div>
+                                <div class="col-2"></div>
+                                <div class="col-3" style="font-family: monospace;">{{ highlight_bases(seqi5, form.needed_bases) }}</div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        {% endfor %}
+                    </ul>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div>
+                    {% if form.errors %}
+                    <b class="text-danger">Provided sequences do not satisfy constraints</b>
+                    {% else %}
+                    <b class="text-success">Provided sequences satisfy constraints</b>
+                    {% endif %}
+                    <ul class="list-group pb-3">
+                        {% for seqi7, seqi5 in form.additional_sequences %}
+                        <li class="list-group-item bg-light">
+                            <div class="row">
+                                <div class="col-1"></div>
+                                <div class="col-2"></div>
+                                <div class="col-3" style="font-family: monospace;">{{ highlight_bases(seqi7, form.needed_bases) }}</div>
+                                <div class="col-2"></div>
+                                <div class="col-3" style="font-family: monospace;">{{ highlight_bases(seqi5, form.needed_bases) }}</div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

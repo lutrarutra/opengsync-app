@@ -18,6 +18,7 @@
                             fs_modal_button(
                                 text="Begin",
                                 hx_get=url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id),
+                                disabled=not current_user.is_insider() and seq_request.status != SeqRequestStatus.DRAFT
                             )
                         }} - Sample Annotation Workflow
                     </li>
@@ -79,7 +80,7 @@
                             <li>Library Types: {% for library_type, count in seq_request.library_type_counts.items() %}<span class="badge">{{ library_type.abbreviation }} ({{ count }})</span> {% endfor %}</li>
                         </ul>
                     </li>
-                    <li>If times indicated below are not suitable, please contact us <a href="mailto:{{ contact_email }}">{{ contact_email }}</a> to arrange an alternative submission time.</li>
+                    <li>If times for sample submission (listed below) are not suitable, please contact us <a href="mailto:{{ contact_email }}">{{ contact_email }}</a> to arrange an alternative submission time.</li>
                     <li>
                         {{
                             xl_modal_button(
