@@ -346,20 +346,6 @@ class PandasBP(DBBlueprint):
         return df
 
     @DBBlueprint.transaction
-    def get_seq_request_share_emails(self, seq_request: int) -> pd.DataFrame:
-        query = sa.select(
-            models.links.SeqRequestDeliveryEmailLink.email.label("email"),
-            models.links.SeqRequestDeliveryEmailLink.status_id.label("status_id"),
-        ).where(
-            models.links.SeqRequestDeliveryEmailLink.seq_request_id == seq_request
-        )
-
-        df = pd.read_sql(query, self.db._engine)
-        df["status"] = df["status_id"].map(categories.DeliveryStatus.get)  # type: ignore
-
-        return df
-
-    @DBBlueprint.transaction
     def get_library_features(self, library_id: int) -> pd.DataFrame:
         query = sa.select(
             models.Feature.id.label("feature_id"), models.Feature.name.label("feature_name"), models.Feature.type_id.label("feature_type_id"),
@@ -1135,4 +1121,42 @@ class PandasBP(DBBlueprint):
 
             df = df.groupby(["library_id", "library_name"], as_index=False, dropna=False).agg(agg_dict)
 
+        return df
+    
+    @DBBlueprint.transaction
+    def get_seq_request_share_emails(self, seq_request: int) -> pd.DataFrame:
+        query = sa.select(
+            models.links.SeqRequestDeliveryEmailLink.email.label("email"),
+            models.links.SeqRequestDeliveryEmailLink.status_id.label("status_id"),
+        ).where(
+            models.links.SeqRequestDeliveryEmailLink.seq_request_id == seq_request
+        )
+
+        df = pd.read_sql(query, self.db._engine)
+        df["status"] = df["status_id"].map(categories.DeliveryStatus.get)  # type: ignore
+
+        return df
+    
+    @DBBlueprint.transaction
+    def get_project_latest_request_share_emails(self, project_id: int) -> pd.DataFrame:
+        query = sa.select(
+            models.links.SeqRequestDeliveryEmailLink.seq_request_id.label("seq_request_id"),
+            models.links.SeqRequestDeliveryEmailLink.email.label("email"),
+            models.links.SeqRequestDeliveryEmailLink.status_id.label("status_id"),
+        ).where(
+            sa.and_(
+                models.links.SeqRequestDeliveryEmailLink.seq_request_id.in_(
+                    sa.select(sa.func.max(models.SeqRequest.id)).where(
+                        sa.exists().where(
+                            (models.Sample.project_id == project_id) &
+                            (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                            (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                            (models.Library.seq_request_id == models.SeqRequest.id)
+                        )
+                    ).group_by(models.SeqRequest.id)
+                )
+            )
+        )
+        df = pd.read_sql(query, self.db._engine)
+        df["status"] = df["status_id"].map(categories.DeliveryStatus.get)
         return df

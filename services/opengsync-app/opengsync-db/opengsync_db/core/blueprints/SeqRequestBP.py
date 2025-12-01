@@ -1,6 +1,6 @@
 import math
 from datetime import datetime
-from typing import Optional, Literal, Callable
+from typing import Optional, Literal, Callable, Iterator
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
@@ -121,7 +121,7 @@ class SeqRequestBP(DBBlueprint):
         if self.db.session.get(models.Contact, billing_contact_id) is None:
             raise exceptions.ElementDoesNotExist(f"Contact with id '{billing_contact_id}', not found.")
 
-        if self.db.session.get(models.Contact, contact_person_id) is None:
+        if (contact_person := self.db.session.get(models.Contact, contact_person_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Contact with id '{contact_person_id}', not found.")
         
         if self.db.session.get(models.Contact, organization_contact_id) is None:
@@ -151,17 +151,6 @@ class SeqRequestBP(DBBlueprint):
             data_delivery_mode_id=data_delivery_mode.id,
             billing_code=billing_code.strip() if billing_code else None,
         )
-
-        seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
-            email=requestor.email,
-            status_id=DeliveryStatus.PENDING.id,
-        ))
-
-        if bioinformatician_contact is not None:
-            seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
-                email=bioinformatician_contact.email,
-                status_id=DeliveryStatus.PENDING.id,
-            ))
 
         self.db.session.add(seq_request)
 
@@ -483,3 +472,52 @@ class SeqRequestBP(DBBlueprint):
             raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{id}', not found.")
         
         return seq_request
+    
+    @DBBlueprint.transaction
+    def iter(
+        self,
+        status: Optional[SeqRequestStatusEnum] = None,
+        status_in: Optional[list[SeqRequestStatusEnum]] = None,
+        submission_type: Optional[SubmissionTypeEnum] = None,
+        submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
+        show_drafts: bool = True, user_id: int | None = None,
+        project_id: int | None = None,
+        group_id: int | None = None,
+        custom_query: Callable[[Query], Query] | None = None,
+        order_by: str | None = "id",
+        limit: int | None = None,
+        chunk_size: int = 1000
+    ) -> Iterator[models.SeqRequest]:
+        offset = 0
+        query = self.db.session.query(models.SeqRequest)
+        if order_by is not None:
+            attr = getattr(models.SeqRequest, order_by)
+            query = query.order_by(sa.nulls_last(attr))
+        query = SeqRequestBP.where(
+            query, status_in=status_in, submission_type_in=submission_type_in, submission_type=submission_type,
+            show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status, project_id=project_id,
+            custom_query=custom_query
+        )
+        offset = 0
+        while True:
+            chunk = query.limit(chunk_size).offset(offset).all()
+
+            if not chunk:
+                break
+            
+            for seq_request in chunk:
+                yield seq_request
+
+            if limit and offset + chunk_size >= limit:
+                break
+            
+            offset += chunk_size
+            
+    @DBBlueprint.transaction
+    def __iter__(self) -> Iterator[models.SeqRequest]:
+        return self.iter()
+    
+    @DBBlueprint.transaction
+    def __len__(self) -> int:
+        return self.db.session.query(models.SeqRequest).count()
+    

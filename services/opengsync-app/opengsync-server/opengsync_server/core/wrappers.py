@@ -169,7 +169,6 @@ def _route_decorator(
                     kwargs, additional_kwargs = rt.validate_parameters(original_fnc, request, kwargs)
                 except ValueError as e:
                     logger.error(f"Parameter validation error: {e}")
-                    logger.error(kwargs)
                     raise serv_exceptions.BadRequestException(str(e)) from e
                 
                 if api_token_required:

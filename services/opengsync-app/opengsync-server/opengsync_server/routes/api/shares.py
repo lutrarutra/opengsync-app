@@ -4,7 +4,7 @@ import smtplib
 
 from flask import Blueprint, jsonify, render_template
 
-from opengsync_db.categories import DataPathType, DataPathTypeEnum, LibraryType, ProjectStatus
+from opengsync_db.categories import DataPathType, DataPathTypeEnum, LibraryType, ProjectStatus, DeliveryStatus
 from opengsync_db import models
 
 from ...tools import utils
@@ -193,7 +193,7 @@ def remove_data_paths(
     return jsonify({"result": "success", "paths": paths}), 200
 
 @wrappers.api_route(shares_api_bp, db=db, methods=["POST"], json_params=["project_id", "internal_access", "time_valid_min", "anonymous_send", "recipients", "mark_project_delivered"], limit="1/second", limit_override=True)
-def release_project_data(current_user: models.User, recipients: list[str], project_id: int, internal_access: bool, time_valid_min: int, anonymous_send: bool = False, mark_project_delivered: bool = True):
+def release_project_data(current_user: models.User, recipients: list[str] | None, project_id: int, internal_access: bool, time_valid_min: int, anonymous_send: bool = False, mark_project_delivered: bool = True):
     if (project := db.projects.get(project_id)) is None:
         raise exceptions.NotFoundException(f"Project with ID '{project_id}' not found.")
     
@@ -213,9 +213,13 @@ def release_project_data(current_user: models.User, recipients: list[str], proje
         paths=paths,
     )
 
-    if mark_project_delivered:
-        if project.status < ProjectStatus.DELIVERED:
-            project.status = ProjectStatus.DELIVERED
+    if recipients is None:
+        _recipients: list[str] = db.pd.get_project_latest_request_share_emails(project.id)["email"].unique().tolist()
+        recipients = _recipients
+
+    if len(recipients) == 0:  # type: ignore
+        raise exceptions.BadRequestException("No recipients specified and no emails found in latest sequencing request share-tab.")
+
     project.share_token = share_token
     db.projects.update(project)
 
@@ -265,5 +269,18 @@ def release_project_data(current_user: models.User, recipients: list[str], proje
     except smtplib.SMTPException as e:
         logger.error(f"Failed to send email to {recipients}: {e}")
         raise e
-    return jsonify({"result": "success"}), 200
+    
+    if mark_project_delivered:
+        if mark_project_delivered:
+            if project.status < ProjectStatus.DELIVERED:
+                project.status = ProjectStatus.DELIVERED
+                db.projects.update(project)
+
+        for seq_request in project.seq_requests:
+            for link in seq_request.delivery_email_links:
+                if link.email in recipients:
+                    link.status = DeliveryStatus.DISPATCHED
+            db.seq_requests.update(seq_request)
+        
+    return jsonify({"result": "success", "recipients": recipients}), 200
 

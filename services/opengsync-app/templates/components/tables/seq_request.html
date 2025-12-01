@@ -69,7 +69,7 @@
                         </span>
                     </span>
                 </th>
-                <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}">{{ seq_request.name }}</a></td>
+                <td class="x-scroll-cell"><a class="scroll-container" href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}">{{ seq_request.name }}</a></td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(seq_request.library_types) }}</td>
                 <td>{{ seq_request.status.icon }} {{ seq_request.status.name }}</td>
                 <td>{{ seq_request.submission_type.abbreviation }}</td>

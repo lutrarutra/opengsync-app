@@ -151,7 +151,7 @@ class OpeNGSyncAPI:
         project_id: int,
         internal_access: bool,
         time_valid_min: int,
-        recipients: list[str],
+        recipients: list[str] | None = None,
         anonymous_send: bool = False,
     ):
         """
@@ -163,7 +163,7 @@ class OpeNGSyncAPI:
             project_id (int): id of the project to share
             internal_access (bool): if True, add instructions for internal access
             time_valid_min (int): time in minutes for which the share is valid
-            recipients (list[str]): list of email addresses to send the instructions to
+            recipients (list[str] | None): list of email addresses to send the instructions to. If None, emails are sent to all emails added to Share-tab in the latest sequencing request.
             anonymous_send (bool, optional): if True, send the email anonymously. Defaults to False.
 
         Raises:
@@ -172,6 +172,7 @@ class OpeNGSyncAPI:
         Returns:
             dict: json response from the server
         """
+
         payload = {
             "api_token": self.api_token,
             "project_id": project_id,

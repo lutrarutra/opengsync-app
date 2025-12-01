@@ -64,8 +64,6 @@ def seq_request(current_user: models.User, seq_request_id: int):
                 (f"Request {seq_request_id}", ""),
             ]
 
-    seq_request_share_email_form = forms.SeqRequestShareEmailForm()
-
     checklist = seq_request.get_checklist()
     steps = [
         checklist["samples_added"],
@@ -78,7 +76,6 @@ def seq_request(current_user: models.User, seq_request_id: int):
         "seq_request_page.html",
         seq_request=seq_request,
         path_list=path_list,
-        seq_request_share_email_form=seq_request_share_email_form,
         checklist_steps_completed=steps_completed,
         checklist_total_steps=len(steps),
     )
