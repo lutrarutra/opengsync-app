@@ -144,6 +144,12 @@ def validate_argument(value: Any, name: str, type_hint, origin, args):
                     value = json.loads(value)
                 elif not isinstance(value, dict):
                     raise ValueError(f"Expected dict or JSON string for parameter: {name}")
+            elif get_origin(base_type) is list:
+                if value is not None:
+                    if isinstance(value, str):
+                        value = json.loads(value)
+                    if not isinstance(value, list):
+                        raise ValueError(f"Expected list or JSON string for parameter: {name}")
             else:
                 raise ValueError(f"Unsupported Optional base type: {base_type}")
         else:

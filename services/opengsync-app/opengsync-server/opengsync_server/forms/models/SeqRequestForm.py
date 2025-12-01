@@ -9,7 +9,7 @@ from wtforms.validators import DataRequired, Length, Email, NumberRange
 from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import ReadType, DataDeliveryMode, SubmissionType, UserRole
+from opengsync_db.categories import ReadType, DataDeliveryMode, SubmissionType, UserRole, DeliveryStatus
 
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -494,7 +494,20 @@ class SeqRequestForm(HTMXFlaskForm):
             organization_contact_id=organization_contact.id,
         )
 
-        flash(f"Created new sequencing request '{seq_request.name}'", "success")
+        seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
+            email=contact_person.email or seq_request.requestor.email,
+            status_id=DeliveryStatus.PENDING.id,
+        ))
+
+        if seq_request.bioinformatician_contact is not None:
+            seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
+                email=seq_request.bioinformatician_contact.email,
+                status_id=DeliveryStatus.PENDING.id,
+            ))
+
+        db.seq_requests.update(seq_request)
+
+        flash(f"Request Created!", "success")
         logger.info(f"Created new sequencing request '{seq_request.name}'")
 
         return make_response(

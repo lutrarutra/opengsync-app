@@ -134,6 +134,10 @@ class SeqRequestDeliveryEmailLink(Base):
     @property
     def status(self) -> DeliveryStatusEnum:
         return DeliveryStatus.get(self.status_id)
+    
+    @status.setter
+    def status(self, value: DeliveryStatusEnum) -> None:
+        self.status_id = value.id
 
     def __str__(self) -> str:
         return f"SeqRequestDeliveryEmail(email: {self.email})"

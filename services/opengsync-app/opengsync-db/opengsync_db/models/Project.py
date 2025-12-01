@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from .Library import Library
     from .DataPath import DataPath
     from .ShareToken import ShareToken
+    from .SeqRequest import SeqRequest
 
 
 class Project(Base):
@@ -139,6 +140,25 @@ class Project(Base):
     @property
     def software(self) -> dict[str, dict]:
         return self.__software or {}
+    
+    @property
+    def seq_requests(self) -> list["SeqRequest"]:
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_samples' attribute.")
+        
+        from .SeqRequest import SeqRequest
+        from .Sample import Sample
+        from .Library import Library
+        return session.query(SeqRequest).where(
+            sa.exists().where(
+                (Sample.project_id == Project.id) &
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.seq_request_id == SeqRequest.id) &
+                (Project.id == self.id)
+            )
+        ).all()
+
 
     def set_software(self, software: str, version: str, comment: str | None = None) -> None:
         if self.__software is None:
