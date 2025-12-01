@@ -1,9 +1,9 @@
 import json
+from io import BytesIO
 
-import numpy as np
 import pandas as pd
 
-from flask import Blueprint, url_for, render_template, flash, request
+from flask import Blueprint, url_for, render_template, flash, request, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
@@ -768,4 +768,45 @@ def remove_assignee(current_user: models.User, project_id: int, assignee_id: int
             assignees=project.assignees,
             project=project
         )
+    )
+
+@wrappers.htmx_route(projects_htmx, db=db, methods=["GET"])
+def export(current_user: models.User, project_id: int):
+    if (project := db.projects.get(project_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        raise exceptions.NoPermissionsException()
+    
+    metadata = pd.DataFrame.from_records({
+        "Project ID": [project.id],
+        "Project Identifier": [project.identifier],
+        "Project Title": [project.title],
+        "Owner": [project.owner.name],
+        "Created At": [project.timestamp_created.isoformat()],
+        "Status": [project.status.name],
+        "Group": [project.group.name if project.group else "N/A"],
+        "Number of Samples": [project.num_samples],
+    }).T
+
+    samples_df = db.pd.get_project_samples(project_id=project.id)
+    libraries_df = db.pd.get_project_libraries(project_id=project.id)
+    seq_requests_df = db.pd.get_project_seq_requests(project_id=project.id)
+
+    bytes_io = BytesIO()
+
+    with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:
+        metadata.to_excel(writer, sheet_name="Metadata")
+        samples_df.to_excel(writer, sheet_name="Samples", index=False)
+        libraries_df.to_excel(writer, sheet_name="Libraries", index=False)
+        seq_requests_df.to_excel(writer, sheet_name="Seq Requests", index=False)
+
+    bytes_io.seek(0)
+
+    return Response(
+        bytes_io, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename=project_{project.identifier or f'P_{project.id}'}_export.xlsx"
+        }
     )
