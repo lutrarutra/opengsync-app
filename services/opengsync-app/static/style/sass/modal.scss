@@ -51,6 +51,9 @@
             padding-left: 35px;
             background-color: transparent;
             width: 150px;
+            color: $gray-600;
+            white-space: nowrap;
+            overflow: hidden;
         }
         .footer-info {
             display: flex;
@@ -91,6 +94,9 @@
         }
         .modal-footer {
             height: 60px;
+            .footer-id {
+                padding-left: 10px;
+            }
         }
         .modal-body {
             min-height: 70vh;

@@ -433,12 +433,7 @@ def overview(current_user: models.User, experiment_id: int):
     nodes = []
     links = []
 
-    experiment_node = {
-        "node": 0,
-        "name": experiment.name
-    }
-    nodes.append(experiment_node)
-    node_idx = 1
+    node_idx = 0
 
     libraries = {}
     pools = {}
@@ -502,13 +497,6 @@ def overview(current_user: models.User, experiment_id: int):
                     })
                 else:
                     library_node = libraries[row["library_id"]]
-
-    for lane, _ in df.groupby("lane"):
-        links.append({
-            "source": lanes[lane]["node"],
-            "target": experiment_node["node"],
-            "value": LINK_WIDTH_UNIT * lane_widths[lane]
-        })
 
     return make_response(
         render_template(
