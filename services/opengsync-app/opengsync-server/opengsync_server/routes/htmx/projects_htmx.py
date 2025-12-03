@@ -185,6 +185,8 @@ def complete(current_user: models.User, project_id: int):
 def table_query(current_user: models.User):
     id = None
     title = None
+    owner_name = None
+
     if (identifier := request.args.get("identifier", None)) is not None:
         field_name = "identifier"
     elif (title := request.args.get("title", None)) is not None:
@@ -195,6 +197,8 @@ def table_query(current_user: models.User):
             id = int(id)
         except ValueError:
             raise exceptions.BadRequestException()
+    elif (owner_name := request.args.get("owner_id", None)) is not None:
+        field_name = "owner_id"
     else:
         raise exceptions.BadRequestException()
 
@@ -202,7 +206,8 @@ def table_query(current_user: models.User):
         title: str | None = None,
         identifier: str | None = None,
         id: int | None = None,
-        user_id: int | None = None
+        user_id: int | None = None,
+        owner_name: str | None = None,
     ) -> list[models.Project]:
         projects: list[models.Project] = []
         if id is not None:
@@ -216,7 +221,7 @@ def table_query(current_user: models.User):
             except ValueError:
                 pass
         else:
-            projects = db.projects.query(title=title, identifier=identifier, user_id=user_id)
+            projects = db.projects.query(title=title, identifier=identifier, user_id=user_id, owner_name=owner_name)
 
         return projects
     
@@ -241,12 +246,12 @@ def table_query(current_user: models.User):
         else:
             user_id = None
 
-    projects = __get_projects(title=title, identifier=identifier, id=id, user_id=user_id)
+    projects = __get_projects(title=title, identifier=identifier, owner_name=owner_name, id=id, user_id=user_id)
 
     return make_response(
         render_template(
             template,
-            current_query=identifier or title or id,
+            current_query=identifier or title or id or owner_name,
             field_name=field_name,
             projects=projects, **context
         )
