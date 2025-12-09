@@ -34,6 +34,9 @@
                 hx-swap="innerHTML" hx-trigger="click">
                 Edit Project
             </button>
+            <a type="button" class="btn btn-primary" href="{{ url_for('projects_htmx.export', project_id=project.id) }}">
+                Export Project
+            </a>
             <span
             {% if project.num_samples > 0 %}
             {{ tooltip('Project containing samples cannot be deleted.', category='danger') }}

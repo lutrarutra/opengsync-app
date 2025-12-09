@@ -28,7 +28,7 @@
         color: $cemm-blue;
         text-decoration: none;
         border-radius: 5px;
-        padding: 0 5px;
+        padding: 0;
     }
     .element-banner a:hover {
         background-color: $gray-200;
@@ -50,7 +50,6 @@
     .element-banner {
         display: flex;
         flex-direction: column;
-        gap: 3px;
         border: 1px solid #ccc;
         border-radius: 5px;
         margin: 0;

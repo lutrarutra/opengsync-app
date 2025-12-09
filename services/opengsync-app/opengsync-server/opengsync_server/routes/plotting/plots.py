@@ -62,7 +62,7 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
     fig = go.Figure()
 
     barplot = px.bar(
-        df, x="num_reads", y="y_ticks", color="lane", barmode="group",
+        df, x="num_reads", y="y_ticks", color="lane",
         text=df["perc_reads"].apply(lambda x: f"{x * 100:.1f} %"),
         labels={
             "num_reads": "# Reads",
@@ -75,7 +75,7 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
     fig = _add_traces(barplot, fig)
     fig.update_layout(
         width=width,
-        height=40 * len(df) + 200,
+        height=20 * len(df) + 200,
         margin=dict(t=25, r=5, b=5, l=5),
         paper_bgcolor="rgba(0,0,0,0)",
         yaxis=dict(tickfont=dict(size=15)),

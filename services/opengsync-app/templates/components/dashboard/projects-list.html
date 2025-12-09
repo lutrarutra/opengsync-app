@@ -23,13 +23,9 @@ hx-get="{{ url_for('projects_htmx.get_recent_projects', page=current_page + 1) }
             <span class="badge">Samples: {{ project.num_samples }}</span>
         </div>
     </div>
-    <div class="row">
-        <div class="col-8"><i>{{ project.title }}</i></div>
-        {% if project.group %}
-        <div class="col-4">{{ project.group.name }} {{ project.group.type.icon }}</div>
-        {% else %}
-        <div class="col-4">{{ project.owner.name }}</div>
-        {% endif %}
+    <div class="row pb-1">
+        <div class="col-9"><b>{{ project.owner.name }}</b>: <i>{{ project.title }}</i></div>
+        <div class="col-3">{% if project.group %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</div>
     </div>
     {{ project_status_bar(project) }}
 </div>

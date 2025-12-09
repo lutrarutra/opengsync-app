@@ -184,6 +184,7 @@ class ProjectBP(DBBlueprint):
         identifier_title: str | None = None,
         seq_request_id: int | None = None,
         group_id: int | None = None,
+        owner_name: str | None = None,
         status: Optional[ProjectStatusEnum] = None,
         status_in: Optional[list[ProjectStatusEnum]] = None,
         user_id: int | None = None,
@@ -196,8 +197,8 @@ class ProjectBP(DBBlueprint):
             status_in=status_in, user_id=user_id
         )
         
-        if identifier is None and title is None and identifier_title is None:
-            raise ValueError("Either identifier or title must be provided")
+        if identifier is None and title is None and identifier_title is None and owner_name is None:
+            raise ValueError("Either identifier, owner_name, or title must be provided")
         if identifier is not None:
             query = query.order_by(sa.nulls_last(sa.func.similarity(models.Project.identifier, identifier).desc()))
         elif title is not None:
@@ -208,6 +209,11 @@ class ProjectBP(DBBlueprint):
                     sa.func.similarity(models.Project.title, identifier_title),
                     sa.func.similarity(models.Project.identifier, identifier_title)
                 ).desc())
+            )
+        elif owner_name is not None:
+            query = query.join(models.User, models.Project.owner_id == models.User.id)
+            query = query.order_by(
+                sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, owner_name).desc()
             )
         if limit is not None:
             query = query.limit(limit)

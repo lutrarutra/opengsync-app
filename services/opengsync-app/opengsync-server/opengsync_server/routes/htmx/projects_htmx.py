@@ -1,9 +1,9 @@
 import json
+from io import BytesIO
 
-import numpy as np
 import pandas as pd
 
-from flask import Blueprint, url_for, render_template, flash, request
+from flask import Blueprint, url_for, render_template, flash, request, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
@@ -185,6 +185,8 @@ def complete(current_user: models.User, project_id: int):
 def table_query(current_user: models.User):
     id = None
     title = None
+    owner_name = None
+
     if (identifier := request.args.get("identifier", None)) is not None:
         field_name = "identifier"
     elif (title := request.args.get("title", None)) is not None:
@@ -195,6 +197,8 @@ def table_query(current_user: models.User):
             id = int(id)
         except ValueError:
             raise exceptions.BadRequestException()
+    elif (owner_name := request.args.get("owner_id", None)) is not None:
+        field_name = "owner_id"
     else:
         raise exceptions.BadRequestException()
 
@@ -202,7 +206,8 @@ def table_query(current_user: models.User):
         title: str | None = None,
         identifier: str | None = None,
         id: int | None = None,
-        user_id: int | None = None
+        user_id: int | None = None,
+        owner_name: str | None = None,
     ) -> list[models.Project]:
         projects: list[models.Project] = []
         if id is not None:
@@ -216,7 +221,7 @@ def table_query(current_user: models.User):
             except ValueError:
                 pass
         else:
-            projects = db.projects.query(title=title, identifier=identifier, user_id=user_id)
+            projects = db.projects.query(title=title, identifier=identifier, user_id=user_id, owner_name=owner_name)
 
         return projects
     
@@ -241,12 +246,12 @@ def table_query(current_user: models.User):
         else:
             user_id = None
 
-    projects = __get_projects(title=title, identifier=identifier, id=id, user_id=user_id)
+    projects = __get_projects(title=title, identifier=identifier, owner_name=owner_name, id=id, user_id=user_id)
 
     return make_response(
         render_template(
             template,
-            current_query=identifier or title or id,
+            current_query=identifier or title or id or owner_name,
             field_name=field_name,
             projects=projects, **context
         )
@@ -768,4 +773,45 @@ def remove_assignee(current_user: models.User, project_id: int, assignee_id: int
             assignees=project.assignees,
             project=project
         )
+    )
+
+@wrappers.htmx_route(projects_htmx, db=db, methods=["GET"])
+def export(current_user: models.User, project_id: int):
+    if (project := db.projects.get(project_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        raise exceptions.NoPermissionsException()
+    
+    metadata = pd.DataFrame.from_records({
+        "Project ID": [project.id],
+        "Project Identifier": [project.identifier],
+        "Project Title": [project.title],
+        "Owner": [project.owner.name],
+        "Created At": [project.timestamp_created.isoformat()],
+        "Status": [project.status.name],
+        "Group": [project.group.name if project.group else "N/A"],
+        "Number of Samples": [project.num_samples],
+    }).T
+
+    samples_df = db.pd.get_project_samples(project_id=project.id)
+    libraries_df = db.pd.get_project_libraries(project_id=project.id)
+    seq_requests_df = db.pd.get_project_seq_requests(project_id=project.id)
+
+    bytes_io = BytesIO()
+
+    with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:
+        metadata.to_excel(writer, sheet_name="Metadata")
+        samples_df.to_excel(writer, sheet_name="Samples", index=False)
+        libraries_df.to_excel(writer, sheet_name="Libraries", index=False)
+        seq_requests_df.to_excel(writer, sheet_name="Seq Requests", index=False)
+
+    bytes_io.seek(0)
+
+    return Response(
+        bytes_io, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename=project_{project.identifier or f'P_{project.id}'}_export.xlsx"
+        }
     )

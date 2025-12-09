@@ -251,10 +251,10 @@ def submit_request(current_user: models.User, seq_request_id: int):
         raise exceptions.NotFoundException()
     
     if seq_request.status != SeqRequestStatus.DRAFT:
-        raise exceptions.NoPermissionsException()
+        raise exceptions.BadRequestException("Only draft requests can be submitted.")
     
-    if not seq_request.is_submittable():
-        raise exceptions.NoPermissionsException()
+    if not seq_request.is_submittable() and not current_user.is_insider():
+        raise exceptions.BadRequestException("Request is missing prerequisites for submission.")
 
     access_type = db.seq_requests.get_access_type(seq_request, current_user)
 
