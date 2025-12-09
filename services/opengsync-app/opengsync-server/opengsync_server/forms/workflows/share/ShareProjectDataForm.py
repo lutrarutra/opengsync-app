@@ -8,7 +8,7 @@ from wtforms import StringField, BooleanField, SelectField, EmailField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import AccessType, LibraryType, ProjectStatus
+from opengsync_db.categories import LibraryType, ProjectStatus, DeliveryStatus
 
 from .... import db, logger, mail_handler
 from ....tools import utils
@@ -31,7 +31,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
 
     send_to_owner = BooleanField("Send to Project Owner: ", default=False)
     custom_email = EmailField("Recipient: ", validators=[OptionalValidator()])
-    selected_user_ids = StringField(validators=[DataRequired()])
+    recipients = StringField(validators=[DataRequired()])
     mark_project_delivered = BooleanField("Mark Project as Delivered", default=True)
     error_dummy = StringField()
 
@@ -46,8 +46,6 @@ class ShareProjectDataForm(HTMXFlaskForm):
     def validate(self, current_user: models.User) -> bool:
         if not super().validate():
             return False
-        
-        selected_user_ids = self.selected_user_ids.data
 
         if not current_user.is_insider() and self.time_valid_min.data > self.time_valid_min.default:
             self.error_dummy.errors = (f"You don't have permissions to create that lasts more than {self.time_valid_min.default}",)
@@ -60,37 +58,20 @@ class ShareProjectDataForm(HTMXFlaskForm):
         if len(self.paths) == 0:
             self.error_dummy.errors = ("No data paths available to share.",)
             return False
-
-        if not selected_user_ids:
-            self.error_dummy.errors = ("No users selected.",)
-            return False
         
-        selected_user_ids = json.loads(selected_user_ids)
-        if not isinstance(selected_user_ids, list) or not all(isinstance(i, int) for i in selected_user_ids):
-            logger.error(f"Invalid selected_user_ids data: {selected_user_ids}")
-            raise exceptions.InternalServerErrorException("Invalid data received.")
+        recipients: list[str] = json.loads(self.recipients.data)  # type: ignore
         
         if self.send_to_owner.data:
-            if self.project.owner_id not in selected_user_ids:
-                selected_user_ids.append(self.project.owner_id)
-        
-        self.recipients = []
-        for user_id in set(selected_user_ids):
-            if (user := db.users.get(user_id)) is None:
-                logger.error(f"User with id {user_id} not found.")
-                raise exceptions.InternalServerErrorException(f"User with id {user_id} not found.")
-            
-            access_type = db.projects.get_access_type(self.project, user)
-            if access_type < AccessType.VIEW:
-                self.error_dummy.errors = (f"User '{user.id}' does not have access to the project.",)
-                return False
-            self.recipients.append(user.email)
+            if self.project.owner.email not in recipients:
+                recipients.append(self.project.owner.email)
+
+        self.recipient_emails = list(set(recipients))
 
         if self.custom_email.data:
-            self.recipients.append(self.custom_email.data)
+            self.recipient_emails.append(self.custom_email.data)
 
-        if not self.recipients:
-            self.error_dummy.errors = ("No valid users selected.",)
+        if not self.recipient_emails:
+            self.error_dummy.errors = ("No recipients selected.",)
             return False
         
         return True
@@ -154,16 +135,24 @@ class ShareProjectDataForm(HTMXFlaskForm):
             wget_command=wget_command,
             outdir=outdir
         )
-        
-        try:
-            mail_handler.send_email(
-                recipients=self.recipients,
-                subject=f"[{self.project.identifier or f'P{self.project.id}'}]: {runtime.app.personalization['organization']} Shared Project Data",
-                body=content, mime_type="html",
-            )
-        except smtplib.SMTPException as e:
-            logger.error(f"Failed to send email to {self.recipients}: {e}")
-            raise e
+        if not runtime.app.debug:
+            try:
+                mail_handler.send_email(
+                    recipients=self.recipient_emails,
+                    subject=f"[{self.project.identifier or f'P{self.project.id}'}]: {runtime.app.personalization['organization']} Shared Project Data",
+                    body=content, mime_type="html",
+                )
+            except smtplib.SMTPException as e:
+                logger.error(f"Failed to send email to {self.recipient_emails}: {e}")
+                raise e
+        else:
+            logger.info(f"Email would be sent to: {self.recipient_emails}")
+
+        for seq_request in self.project.seq_requests:
+            for link in seq_request.delivery_email_links:
+                if link.email in self.recipient_emails:
+                    link.status = DeliveryStatus.DISPATCHED
+                    db.seq_requests.update(seq_request)
 
         flash("Data Share Email Sent!", "success")
         return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-data_paths-tab"))

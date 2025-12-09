@@ -44,7 +44,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         self.sample_table = self.tables["sample_table"]
         self.columns: list = [
             DropdownColumn("sample_name", "Sample Name", 300, required=True, choices=self.sample_table["sample_name"].tolist(), read_only=False),
-            TextColumn("pool", "Sample Pool", 300, max_length=models.Library.name.type.length, min_length=4, validation_fnc=utils.check_string),
+            TextColumn("pool", "Multiplexing Pool", 300, max_length=models.Library.name.type.length, min_length=4, validation_fnc=utils.check_string),
         ]
         
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(

@@ -1,0 +1,122 @@
+<div class="input-help">
+    <h5>Modify Columns</h5>
+    <ul>
+        <li><b>Sample Name</b>: name of the sample after demultiplexing <span class="desc">e.g. brain-control-123</span></li>
+        <li><b>Multiplexing Pool</b>: indicates how the samples are multiplexed <span class="desc">e.g. sample-pool-1</span></li>
+        <li><b>Kit</b>: name of a predefined feature kit, one found in <a href="{{ url_for('kits_page.feature_kits') }}">Feature Kits</a> page</li>
+        <li><b>Feature</b>: Name of the CMO feature. If using predefined kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('kits_page.feature_kits') }}" target="_blank">Feature Kits</a> page</li>
+        <li><b>Sequence</b>: e.g. 'TGAGTACAGGCTCCCAAG'</li>
+        <li><b>Pattern</b>: e.g. '5P(BC)'</li>
+        <li><b>Read</b>: e.g. 'R2'</li>
+    </ul>
+
+    <h5>Important</h5>
+    <ul>
+        <li>Two ways to specify CMOs:</li>
+        <ol>
+            <li>If using predefined kit from <a href="{{ url_for('kits_page.feature_kits') }}" target="_blank">Feature Kits</a>: specify columns <b>Demux Name, Sample Name, Feature, Kit</b></li>
+            <li>If using custom kit: specify columns <b>Demux Name, Sample Name, Sequence, Pattern, Read</b></li>
+        </ol>
+    </ul>
+</div>
+
+<div class="accordion p-1" id="example-accordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example-accordion-collapse-1" aria-expanded="false" aria-controls="example-accordion-collapse-1">
+                <b>1. Oligo/Antibody Multiplexing</b>: Using Predefined Kit
+            </button>
+        </h2>
+        <div id="example-accordion-collapse-1" class="accordion-collapse collapse collapsed" data-bs-parent="#example-accordion">
+            <div class="accordion-body">
+                <div class="example-table spreadsheet-grid" id="mux-example-1">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example-accordion-collapse-2" aria-expanded="false" aria-controls="example-accordion-collapse-2">
+                <b>2. Oligo/Antibody Multiplexing</b>: Using Custom Sequences
+            </button>
+        </h2>
+        <div id="example-accordion-collapse-2" class="accordion-collapse collapse collapsed" data-bs-parent="#example-accordion">
+            <div class="accordion-body">
+                <div class="example-table spreadsheet-grid" id="mux-example-2">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    jspreadsheet(document.getElementById("mux-example-1"), {
+        worksheets: [{
+            data: [
+                ["lung_sample_A", "cmo_sample_A", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0251", "", "", ""],
+                ["heart_sample_A", "cmo_sample_A", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0252", "", "", ""],
+                ["kidney_sample_A", "cmo_sample_A", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0253", "", "", ""],
+                ["lung_sample_B", "cmo_sample_B", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0251", "", "", ""],
+                ["heart_sample_B", "cmo_sample_B", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0252", "", "", ""],
+                ["kidney_sample_B", "cmo_sample_B", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0253", "", "", ""],
+                ["lung_sample_C", "cmo_sample_C", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0251", "", "", ""],
+                ["heart_sample_C", "cmo_sample_C", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0252", "", "", ""],
+                ["kidney_sample_C", "cmo_sample_C", "[TOTALSEQC-MUX-Hu] TotalSeq-C Human Multiplexing Kit", "TotalSeq-C0253", "", "", ""],
+            ],
+            columns: [
+                {% for col in form.spreadsheet.columns.values() %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                {%- endif -%}
+                {% endfor %}
+            ],
+            allowInsertRow: false,
+            allowManualInsertRow: false,
+            allowDeleteRow: false,
+            allowDeleteColumn: false,
+            allowInsertColumn: false,
+            allowRenameColumn: false,
+            editable: false,
+            tableOverflow: true,
+            tableWidth: "100%",
+            tableHeight: "100%",
+        }],
+    });
+
+    jspreadsheet(document.getElementById("mux-example-2"), {
+        worksheets: [{
+            data: [
+                ["lung_sample_A", "cmo_sample_A", "", "", "ATGAGGAATTCCTGC", "5P(BC)", "R2"],
+                ["heart_sample_A", "cmo_sample_A", "", "", "CATGCCAATAGAGCG", "5P(BC)", "R2"],
+                ["kidney_sample_A", "cmo_sample_A", "", "", "CCGTCGTCCAAGCAT", "5P(BC)", "R2"],
+                ["lung_sample_B", "cmo_sample_B", "", "", "AACGTTAATCACTCA", "5P(BC)", "R2"],
+                ["heart_sample_B", "cmo_sample_B", "", "", "CGCGATATGGTCGGA", "5P(BC)", "R2"],
+                ["kidney_sample_B", "cmo_sample_B", "", "", "AAGATGAGGTCTGTG", "5P(BC)", "R2"],
+                ["lung_sample_C", "cmo_sample_C", "", "", "AAGCTCGTTGGAAGA", "5P(BC)", "R2"],
+                ["heart_sample_C", "cmo_sample_C", "", "", "CGGATTCCACATCAT", "5P(BC)", "R2"],
+                ["kidney_sample_C", "cmo_sample_C", "", "", "GTTGATCTATAACAG", "5P(BC)", "R2"],
+            ],
+            columns: [
+                {% for col in form.spreadsheet.columns.values() %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                {%- endif -%}
+                {% endfor %}
+            ],
+            allowInsertRow: false,
+            allowManualInsertRow: false,
+            allowDeleteRow: false,
+            allowDeleteColumn: false,
+            allowInsertColumn: false,
+            allowRenameColumn: false,
+            editable: false,
+            tableOverflow: true,
+            tableWidth: "100%",
+            tableHeight: "100%",
+        }],
+    });
+</script>

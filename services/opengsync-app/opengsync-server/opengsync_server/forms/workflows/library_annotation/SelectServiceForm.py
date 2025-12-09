@@ -43,7 +43,7 @@ class OptionalAssaysForm(FlaskForm):
 
 
 class AdditionalSerevicesForm(FlaskForm):
-    oligo_multiplexing = BooleanField("Sample Multiplexing using Oligo-based Cell Tagging for 10X Libraries", description="Multiple samples per library with oligo-based cell tagging, e.g. CMO/HTO/LMO..", default=False)
+    oligo_multiplexing = BooleanField("Sample Multiplexing using Antibody/Oligo-based Cell Tagging for 10X Libraries", description="Multiple samples per library with oligo-based cell tagging, e.g. CMO/HTO/LMO/Antibodies..", default=False)
     oligo_multiplexing_kit = StringField(description="Multiplexing Kit", validators=[OptionalValidator(), Length(max=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH)])
     ocm_multiplexing = BooleanField("On-Chip Multiplexing for 10X GEM-X Libraries", description="Multiple samples per library using 10X On-Chip Multiplexing", default=False)
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False)

@@ -257,6 +257,7 @@ class App(Flask):
                 MUXType=categories.MUXType,
                 DataPathType=categories.DataPathType,
                 ExperimentWorkFlow=categories.ExperimentWorkFlow,
+                DeliveryStatus=categories.DeliveryStatus,
                 SpreadSheetErrors=[
                     ssc.InvalidCellValue(""),
                     ssc.MissingCellValue(""),

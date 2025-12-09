@@ -4,20 +4,24 @@
     <h5>Columns</h5>
     <ul>
         <li>
-            <b>Library Name <span class="desc">Optional</span></b>:
+            <b>Sample Name <span class="desc">Optional</span></b>:
             <ul>
-                <li>Name of the library.</li>
+                <li>Name of the sample.</li>
                 <li>Must be defined previously.</li>
                 <li>If not defined, all antibody-capture libraries will be assigned the feature.</li>
             </ul>
             <b>Kit <span class="desc">Optional</span></b>:
             <ul>
-                <li>Name of the kit from <a href="{{ url_for('kits_page.feature_kits') }}" target="_blank">'Feature Kits'</a>-page</li>
-                <li>E.g. 'Totalseq-C'</li>
+                <li>Name of the kit from <a href="{{ url_for('kits_page.feature_kits') }}" target="_blank">'Feature Kits'</a>-page.</li>
+                <li></li>
+            </ul>
+            <b>Identifier <span class="desc">Optional</span></b>:
+            <ul>
+                <li>Identifier of a feature, e.g. 'ADT_B0014'</li>
             </ul>
             <b>Feature <span class="desc">Optional</span></b>:
             <ul>
-                <li>Name of the feature, e.g. 'CD4'.</li>
+                <li>Name of the feature, e.g. 'HuMs.CD11b'.</li>
                 <li>If kit is defined, feature must exist in the kit.</li>
             </ul>
             <b>Sequence <span class="desc">Optional</span></b>:
@@ -43,9 +47,140 @@
             <b>Three ways to specify fetures</b>:
             <ol>
                 <li>Kit: all features from the kit are used.</li>
-                <li>Kit + Feature: specific feature from a kit is used.</li>
+                <li>Kit + Identifier/Feature: specific feature from a kit is used.</li>
                 <li>Feature + Sequence + Pattern + Read: Manually specified feature. Avoid if possible.</li>
             </ol>
         </li>
     </ul>
 </div>
+<h5>Examples</h5>
+<div class="accordion p-1" id="example-accordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example-accordion-collapse-1" aria-expanded="false" aria-controls="example-accordion-collapse-1">
+                <b>1. Kit</b>: All samples use all features from a predefined kit
+            </button>
+        </h2>
+        <div id="example-accordion-collapse-1" class="accordion-collapse collapse collapsed" data-bs-parent="#example-accordion">
+            <div class="accordion-body">
+                <div class="example-table spreadsheet-grid" id="abc-example-1">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example-accordion-collapse-2" aria-expanded="false" aria-controls="example-accordion-collapse-2">
+                <b>2. Specific features using Predefined Kit</b>
+            </button>
+        </h2>
+        <div id="example-accordion-collapse-2" class="accordion-collapse collapse collapsed" data-bs-parent="#example-accordion">
+            <div class="accordion-body">
+                <div class="example-table spreadsheet-grid" id="abc-example-2">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example-accordion-collapse-3" aria-expanded="false" aria-controls="example-accordion-collapse-3">
+                <b>3. Manually specified features</b>
+            </button>
+        </h2>
+        <div id="example-accordion-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#example-accordion">
+            <div class="accordion-body">
+                <div class="example-table spreadsheet-grid" id="abc-example-3">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    jspreadsheet(document.getElementById("abc-example-1"), {
+        worksheets: [{
+            data: [
+                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "", "", "", ""],
+            ],
+            columns: [
+                {% for col in form.spreadsheet.columns.values() %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                {%- endif -%}
+                {% endfor %}
+            ],
+            allowInsertRow: false,
+            allowManualInsertRow: false,
+            allowDeleteRow: false,
+            allowDeleteColumn: false,
+            allowInsertColumn: false,
+            allowRenameColumn: false,
+            editable: false,
+            tableOverflow: true,
+            tableWidth: "100%",
+            tableHeight: "100%",
+        }],
+    });
+    jspreadsheet(document.getElementById("abc-example-2"), {
+        worksheets: [{
+            data: [
+                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0014", "", "", ""],
+                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0073", "", "", ""],
+                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0103", "", "", ""],
+                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0070", "", "", ""],
+                ["", "[199902] TotalSeq-B Mouse Universal Cocktail V1.0 - BioLegend", "ADT_B0250", "", "", ""],
+            ],
+            columns: [
+                {% for col in form.spreadsheet.columns.values() %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                {%- endif -%}
+                {% endfor %}
+            ],
+            allowInsertRow: false,
+            allowManualInsertRow: false,
+            allowDeleteRow: false,
+            allowDeleteColumn: false,
+            allowInsertColumn: false,
+            allowRenameColumn: false,
+            editable: false,
+            tableOverflow: true,
+            tableWidth: "100%",
+            tableHeight: "100%",
+        }],
+    });
+    jspreadsheet(document.getElementById("abc-example-3"), {
+        worksheets: [{
+            data: [
+                ["", "", "230", "custom-230", "TGGCTTCAGGTCCTA", "5P(BC)", "R2"],
+                ["", "", "226", "custom-226", "CCTACACCTCATAAT", "5P(BC)", "R2"],
+                ["", "", "225", "custom-225", "TTCCGAGGATGATCT", "5P(BC)", "R2"],
+                ["", "", "224", "custom-224", "GTAGTAGGCTAGACC", "5P(BC)", "R2"],
+                ["", "", "210", "custom-210", "TCCTTGGATGTACCG", "5P(BC)", "R2"],
+            ],
+            columns: [
+                {% for col in form.spreadsheet.columns.values() %}
+                {%- if col.type == "text" or col.type == "numeric" -%}
+                { type: "text", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true {% endif %} },
+                {%- elif col["type"] == "dropdown" -%}
+                { type: "text", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } {% if col.read_only %},  readOnly: true {% endif %} },
+                {%- endif -%}
+                {% endfor %}
+            ],
+            allowInsertRow: false,
+            allowManualInsertRow: false,
+            allowDeleteRow: false,
+            allowDeleteColumn: false,
+            allowInsertColumn: false,
+            allowRenameColumn: false,
+            editable: false,
+            tableOverflow: true,
+            tableWidth: "100%",
+            tableHeight: "100%",
+        }],
+    });
+</script>
