@@ -20,7 +20,7 @@ hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests', page=current_pag
             <span class="badge">{{ seq_request.submission_type.display_name }}</span>
         </div>
     </div>
-    <div class="row">
+    <div class="row pb-1">
         <div class="col-8"><b>{{ seq_request.requestor.name }}</b>: <i>{{ seq_request.name }}</i></div>
         <div class="col-4"><span class="badge">Libraries: {{ seq_request.num_libraries }}</span></div>
     </div>

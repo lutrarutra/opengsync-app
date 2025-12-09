@@ -1,5 +1,5 @@
 {% from "components/search_select.jinja2" import search_select_field %}
-{% from 'components/form_group.jinja2' import form_group %}
+{% from 'components/form_group.jinja2' import form_group, switch_input %}
 
 <div id="project-select-form-container" class="modal-content">
     <div class="modal-header">
@@ -33,6 +33,11 @@
                 {{ form_group(form.new_project, class="col-5", autocomplete="off") }}
             </div>
             {{ form_group(form.project_description, placeholder="Describe the project with a few sentences. What samples are in the project? What is the hypothesis? What are the goals of the project?") }}
+            {% if current_user.is_insider() %}
+            <div class="row">
+                <div class="px-2">{{ form.set_requestor_as_owner() }} <label for="{{ form.set_requestor_as_owner.id }}">Set the Requestor ({{ seq_request.requestor.name }}) as Project Owner when creating a new project.</label></div>
+            </div>
+            {% endif %}
             {{ form.csrf_token() }}
         </div>
     </div>

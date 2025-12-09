@@ -210,7 +210,7 @@ class CompleteSASForm(MultiStepForm):
             project = db.projects.create(
                 title=self.metadata["project_title"],
                 description=self.metadata["project_description"],
-                owner_id=user.id,
+                owner_id=int(self.metadata["project_owner_id"]),
                 group_id=self.seq_request.group_id
             )
 

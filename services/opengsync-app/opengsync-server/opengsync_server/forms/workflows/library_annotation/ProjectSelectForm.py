@@ -1,5 +1,5 @@
 from flask import Response
-from wtforms import StringField, FormField, TextAreaField
+from wtforms import StringField, FormField, TextAreaField, BooleanField
 from wtforms.validators import Optional as OptionalValidator, Length
 
 from opengsync_db import models
@@ -19,6 +19,7 @@ class ProjectSelectForm(MultiStepForm):
     existing_project = FormField(OptionalSearchBar, label="Select Existing Project")
     new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.title.type.length)])
     project_description = TextAreaField("Project Description", validators=[OptionalValidator(), Length(max=models.Project.description.type.length)], description="New projects only: brief context/background of the project.")
+    set_requestor_as_owner = BooleanField(default=True)
 
     def __init__(self, seq_request: models.SeqRequest, formdata: dict | None = None, uuid: str | None = None):
         MultiStepForm.__init__(
@@ -100,6 +101,7 @@ class ProjectSelectForm(MultiStepForm):
         self.metadata["seq_request_id"] = self.seq_request.id
         self.metadata["user_id"] = user.id
         self.metadata["project_description"] = self.project_description.data
+        self.metadata["project_owner_id"] = self.seq_request.requestor.id if self.set_requestor_as_owner.data and user.is_insider() else user.id
         self.update_data()
 
         next_form = SampleAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)        
