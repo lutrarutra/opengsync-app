@@ -747,14 +747,7 @@ def overview(current_user: models.User, seq_request_id: int):
     links = []
     contains_pooled = seq_request.submission_type == SubmissionType.POOLED_LIBRARIES
 
-    seq_request_node = {
-        "node": 0,
-        "name": seq_request.name,
-        "id": f"seq_request-{seq_request.id}"
-    }
-    nodes.append(seq_request_node)
-
-    idx = 1
+    idx = 0
 
     project_nodes: dict[int, int] = {}
     sample_nodes: dict[int, int] = {}
@@ -799,13 +792,7 @@ def overview(current_user: models.User, seq_request_id: int):
                     library_idx = idx
                     idx += 1
 
-                    if not contains_pooled:
-                        links.append({
-                            "source": library_idx,
-                            "target": seq_request_node["node"],
-                            "value": LINK_WIDTH_UNIT * link.library.num_samples
-                        })
-                    else:
+                    if contains_pooled:
                         if link.library.pool_id not in pool_nodes.keys():
                             pool_node = {
                                 "node": idx,
@@ -840,13 +827,6 @@ def overview(current_user: models.User, seq_request_id: int):
             "source": project_idx,
             "target": sample_nodes[sample.id],
             "value": LINK_WIDTH_UNIT * n_sample_links
-        })
-
-    for pool_id, pool_node in pool_nodes.items():
-        links.append({
-            "source": pool_node,
-            "target": seq_request_node["node"],
-            "value": pool_link_widths[pool_id]
         })
 
     return make_response(
