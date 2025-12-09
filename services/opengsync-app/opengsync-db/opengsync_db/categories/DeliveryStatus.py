@@ -7,6 +7,9 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class DeliveryStatusEnum(DBEnum):
     icon: str
 
+    @property
+    def display_name(self) -> str:
+        return f"{self.name} {self.icon}"
 
 class DeliveryStatus(ExtendedEnum[DeliveryStatusEnum], enum_type=DeliveryStatusEnum):
     PENDING = DeliveryStatusEnum(0, "Pending", "🕒")

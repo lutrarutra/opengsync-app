@@ -118,8 +118,8 @@ class CommonOligoMuxForm(MultiStepForm):
             raise ValueError(f"Unsupported workflow: {workflow}")
 
         columns = [
-            TextColumn("sample_name", "Demultiplexed Name", 170, required=True, read_only=True),
-            TextColumn("sample_pool", "Sample Pool Name", 170, required=True, read_only=True),
+            TextColumn("sample_name", "Sample Name", 170, required=True, read_only=True),
+            TextColumn("sample_pool", "Multiplexing Pool", 170, required=True, read_only=True),
             CategoricalDropDown("kit", "Kit", 250, categories=self.kits_mapping, required=False),
             TextColumn("feature", "Feature", 150, max_length=models.Feature.name.type.length, min_length=4, clean_up_fnc=lambda x: tools.make_alpha_numeric(x)),
             TextColumn("barcode", "Sequence", 200, max_length=models.Feature.sequence.type.length, clean_up_fnc=lambda x: tools.make_alpha_numeric(x, keep=[], replace_white_spaces_with="")),

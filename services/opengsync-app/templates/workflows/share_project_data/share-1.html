@@ -43,36 +43,45 @@
                     {{ form_group(form.custom_email, class="col-6", disabled=not current_user.is_insider()) }}
                 </div>
 
-                <div class="pt-2">
-                    <h4>Project Group Members</h4>
+                <div class="pt-1">
                     <div class="invalid-feedback-container">
                         {% for error in form.error_dummy.errors %}
                             <p>{{ error }}</p>
                         {% endfor %}
                     </div>
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="col-1">ID</th>
-                                <th scope="col" class="col-4">Name</th>
-                                <th scope="col" class="col-4">Email</th>
-                                <th scope="col" class="col-3">Affiliation Type</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if project.group_id %}
-                            {% for link in project.group.user_links %}
-                            {% set user = link.user %}
-                            <tr class="user-row" data-id="{{ user.id }}" id="user-row-{{ user.id }}" onclick="toggle_user({{ user.id }})">
-                                <th scope="row">{{ user.id }}</th>
-                                <td>{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span>{% endif %}</td>
-                                <td>{{ user.email }}</td>
-                                <td>{{ link.affiliation_type.icon }} {{ link.affiliation_type.name }}</td>
-                            </tr>
-                            {% endfor %}
-                            {% endif %}
-                        </tbody>
-                    </table>
+                    <ul class="nav nav-tabs page-tabs" role="tablist">
+                        {% for seq_request in project.seq_requests %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab"
+                            data-bs-target="#request-{{ seq_request.id }}-tab" type="button" role="tab"
+                            aria-controls="request-{{ seq_request.id }}-tab" aria-selected="true">
+                            BSR_{{ "%04d" % seq_request.id }}</button>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="tab-content pt-3">
+                        {% for seq_request in project.seq_requests %}
+                        {% set is_latest_seq_request = loop.first %}
+                        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="request-{{ seq_request.id }}-tab" role="tabpanel" tabindex="{{ loop.index }}">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Email</th>
+                                        <th scope="col">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for link in seq_request.delivery_email_links %}
+                                    <tr class="recipient-row{% if is_latest_seq_request and link.status == DeliveryStatus.PENDING and not form.errors %} selected{% endif %}" data-email="{{ link.email }}">
+                                        <th scope="row">{{ link.email }}</th>
+                                        <th>{{ link.status.display_name }}</th>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
             <div class="tab-pane fade" id="share_project_data-paths-tab" role="tabpanel" tabindex="1">
@@ -106,15 +115,19 @@
         </div>
     </div>
     <script>
-        var selected_users = [];
 
         $("#submit-select_users-form-btn").off("click").on("click", function() {
+            const selected_recipient_emails = [];
+            $(".recipient-row.selected").each(function() {
+                selected_recipient_emails.push($(this).data("email"));
+            });
+
             htmx.ajax("POST", "{{ form.post_url | safe }}", {
                 target: "#share_project_data-form-container",
                 swap: "outerHTML",
                 values: {
                     csrf_token: "{{ form._csrf_token }}",
-                    selected_user_ids: JSON.stringify(selected_users),
+                    recipients: JSON.stringify(selected_recipient_emails),
                     project_id: "{{ project.id }}",
                     anonymous_send: $("#anonymous_send").is(":checked"),
                     send_to_owner: $("#send_to_owner").is(":checked"),
@@ -127,21 +140,9 @@
             disable_button($("#submit-select_users-form-btn"));
         });
 
-        function add_user(user_id) {
-            selected_users.push(user_id);
-            $(`#user-row-${user_id}`).addClass("selected");
-        }
-        function remove_user(user_id) {
-            selected_users = selected_users.filter(id => id !== user_id);
-            $(`#user-row-${user_id}`).removeClass("selected");
-        }
-        function toggle_user(user_id) {
-            const _user_id = parseInt(user_id);
-            if (selected_users.includes(_user_id)) {
-                remove_user(_user_id);
-            } else {
-                add_user(_user_id);
-            }
-        }
+        $(".recipient-row").off("click").on("click", function() {
+            var email = $(this).data("email");
+            $(this).toggleClass("selected");
+        });
     </script>
 </div>

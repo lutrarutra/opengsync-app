@@ -21,24 +21,6 @@
                 aria-controls="help-tab" aria-selected="false">
                 Help</button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                data-bs-target="#feature-2-example-tab" type="button" role="tab"
-                aria-controls="feature-2-example-tab" aria-selected="true">
-                Example 1</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                data-bs-target="#feature-3-example-tab" type="button" role="tab"
-                aria-controls="feature-3-example-tab" aria-selected="true">
-                Example 2</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                data-bs-target="#feature-4-example-tab" type="button" role="tab"
-                aria-controls="feature-4-example-tab" aria-selected="true">
-                Example 3</button>
-            </li>
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
@@ -60,15 +42,6 @@
             </div>
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
                 {% include "instructions/feature_annotation.html" %}
-            </div>
-            <div class="tab-pane fade" id="feature-2-example-tab" role="tabpanel" tabindex="3">
-                {% include "examples/feature-2.html" %}
-            </div>
-            <div class="tab-pane fade" id="feature-3-example-tab" role="tabpanel" tabindex="4">
-                {% include "examples/feature-3.html" %}
-            </div>
-            <div class="tab-pane fade" id="feature-4-example-tab" role="tabpanel" tabindex="5">
-                {% include "examples/feature-4.html" %}
             </div>
         </div>
     </div>

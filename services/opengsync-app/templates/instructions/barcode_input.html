@@ -67,11 +67,152 @@
         <li>
             <b>Three ways to specify indices:</b>
             <ol>
-                <li>Index Well + Kit <span class="desc">Recommended</span></li>
-                <li>Name + Kit <span class="desc">Recommended</span></li>
-                <li>Sequence <span class="desc">Avoid if possible to decrease a chance of a typo</span></li>
+                <li>Kit + Index Well <span class="desc">Recommended</span></li>
+                <li>Kit + i7/i5 Name <span class="desc">Recommended</span></li>
+                <li>i7/i5 Sequence <span class="desc">Avoid if possible to decrease a chance of a typo</span></li>
             </ol>
         </li>
         <li>In edge cases, please contact us at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></li>
     </ul>
 </div>
+
+<div class="accordion p-1" id="example-accordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example-accordion-collapse-1" aria-expanded="false" aria-controls="example-accordion-collapse-1">
+                <b>Kit + Index Well</b>
+            </button>
+        </h2>
+        <div id="example-accordion-collapse-1" class="accordion-collapse collapse collapsed" data-bs-parent="#example-accordion">
+            <div class="accordion-body">
+                <div class="example-table spreadsheet-grid" id="barcode-example-1">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example-accordion-collapse-2" aria-expanded="false" aria-controls="example-accordion-collapse-2">
+                <b>Kit + i7/i5 Name</b>
+            </button>
+        </h2>
+        <div id="example-accordion-collapse-2" class="accordion-collapse collapse collapsed" data-bs-parent="#example-accordion">
+            <div class="accordion-body">
+                <div class="example-table spreadsheet-grid" id="barcode-example-2">
+                </div>
+            </div>
+        </div>
+    </div>
+        <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example-accordion-collapse-3" aria-expanded="false" aria-controls="example-accordion-collapse-3">
+                <b>i7/i5 Sequence</b>: Using Custom Sequences
+            </button>
+        </h2>
+        <div id="example-accordion-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#example-accordion">
+            <div class="accordion-body">
+                <div class="example-table spreadsheet-grid" id="barcode-example-3">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    jspreadsheet(document.getElementById("barcode-example-1"), {
+        worksheets: [{
+            data: [
+                ["lung_sample_A_BULKRNA", "A1", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "", "", "", "", ""],
+                ["heart_sample_A_BULKRNA", "A2", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "", "", "", "", ""],
+                ["kidney_sample_A_BULKRNA", "A3", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "", "", "", "", ""],
+                ["lung_sample_B_BULKRNA", "A4", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "", "", "", "", ""],
+                ["heart_sample_B_BULKRNA", "A5", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "", "", "", "", ""],
+                ["kidney_sample_B_BULKRNA", "A6", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "", "", "", "", ""],
+            ],
+            columns: [
+                { type: "text", title: "Library Name", width: 300 },
+                { type: "text", title: "Index Well", width: 100 },
+                { type: "text", title: "i7 Kit", width: 300 },
+                { type: "text", title: "i7 Name", width: 150 },
+                { type: "text", title: "i7 Sequence", width: 200 },
+                { type: "text", title: "i5 Kit", width: 300 },
+                { type: "text", title: "i5 Name", width: 150 },
+                { type: "text", title: "i5 Sequence", width: 200 },
+            ],
+            allowInsertRow: false,
+            allowManualInsertRow: false,
+            allowDeleteRow: false,
+            allowDeleteColumn: false,
+            allowInsertColumn: false,
+            allowRenameColumn: false,
+            editable: false,
+            tableOverflow: true,
+            tableWidth: "100%",
+            tableHeight: "100%",
+        }],
+    });
+    jspreadsheet(document.getElementById("barcode-example-2"), {
+        worksheets: [{
+            data: [
+                ["lung_sample_A_BULKRNA", "", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "P1-A1", "", "", "", ""],
+                ["heart_sample_A_BULKRNA", "", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "P2-A2", "", "", "", ""],
+                ["kidney_sample_A_BULKRNA", "", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "P3-A3", "", "", "", ""],
+                ["lung_sample_B_BULKRNA", "", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "P4-A4", "", "", "", ""],
+                ["heart_sample_B_BULKRNA", "", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "P5-A5", "", "", "", ""],
+                ["kidney_sample_B_BULKRNA", "", "[E6609] NEBNext® Multiplex Oligos for Illumina® (96 Index Primers)", "P6-A6", "", "", "", ""],
+            ],
+            columns: [
+                { type: "text", title: "Library Name", width: 300 },
+                { type: "text", title: "Index Well", width: 100 },
+                { type: "text", title: "i7 Kit", width: 300 },
+                { type: "text", title: "i7 Name", width: 150 },
+                { type: "text", title: "i7 Sequence", width: 200 },
+                { type: "text", title: "i5 Kit", width: 300 },
+                { type: "text", title: "i5 Name", width: 150 },
+                { type: "text", title: "i5 Sequence", width: 200 },
+            ],
+            allowInsertRow: false,
+            allowManualInsertRow: false,
+            allowDeleteRow: false,
+            allowDeleteColumn: false,
+            allowInsertColumn: false,
+            allowRenameColumn: false,
+            editable: false,
+            tableOverflow: true,
+            tableWidth: "100%",
+            tableHeight: "100%",
+        }],
+    });
+    jspreadsheet(document.getElementById("barcode-example-3"), {
+        worksheets: [{
+            data: [
+                ["lung_sample_A_BULKRNA", "", "", "", "GCACCTAGCGGC", "", "", "GACAATCGAGGA"],
+                ["heart_sample_A_BULKRNA", "", "", "", "CTCCGTCTAGAG", "", "", "ATAAGTATCGCG"],
+                ["kidney_sample_A_BULKRNA", "", "", "", "GTCGCTAGCCAG", "", "", "GTAGATCGAACG"],
+                ["lung_sample_B_BULKRNA", "", "", "", "TTCGGTTGTATA", "", "", "TTAGGTTGTCTC"],
+                ["heart_sample_B_BULKRNA", "", "", "", "GCGGTATCATCA", "", "", "GAGGTCTACTAC"],
+                ["kidney_sample_B_BULKRNA", "", "", "", "TAAAGCGTACGC", "", "", "TCCCGAGTCAGA"],
+            ],
+            columns: [
+                { type: "text", title: "Library Name", width: 300 },
+                { type: "text", title: "Index Well", width: 100 },
+                { type: "text", title: "i7 Kit", width: 300 },
+                { type: "text", title: "i7 Name", width: 150 },
+                { type: "text", title: "i7 Sequence", width: 200 },
+                { type: "text", title: "i5 Kit", width: 300 },
+                { type: "text", title: "i5 Name", width: 150 },
+                { type: "text", title: "i5 Sequence", width: 200 },
+            ],
+            allowInsertRow: false,
+            allowManualInsertRow: false,
+            allowDeleteRow: false,
+            allowDeleteColumn: false,
+            allowInsertColumn: false,
+            allowRenameColumn: false,
+            editable: false,
+            tableOverflow: true,
+            tableWidth: "100%",
+            tableHeight: "100%",
+        }],
+    });
+</script>

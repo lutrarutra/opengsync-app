@@ -25,7 +25,7 @@ class ParseMuxAnnotationForm(MultiStepForm):
 
     columns: list = [
         TextColumn("sample_name", "Sample Name", 300, required=True, read_only=True),
-        TextColumn("sample_pool", "Pool Name", 300, required=True, read_only=True),
+        TextColumn("sample_pool", "Multiplexing Pool", 300, required=True, read_only=True),
         TextColumn("well", "Well", 200, required=True, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, clean_up_fnc=lambda x: str(x).strip().upper()),
     ]
 

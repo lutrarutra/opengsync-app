@@ -20,7 +20,7 @@
                 id="form-tab-form-help-btn"
                 data-bs-target="#form-tab-form-help" type="button" role="tab"
                 aria-controls="form-tab-form-help" aria-selected="false">
-                Help</button>
+                Examples</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab"
@@ -103,6 +103,57 @@
                     <li>Specify additional requirements or relevant information.</li>
                     <li>10X Products: <a href="https://www.10xgenomics.com/products" target="_blank">10xgenomics.com/products</a></li>
                 </ol>
+                <div class="accordion p-1" id="help-accordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-accordion-collapse-1" aria-expanded="false" aria-controls="help-accordion-collapse-1">
+                                <b>10X 5-prime Gene Expression + TCR + BCR + Sample Multiplexing</b>
+                            </button>
+                        </h2>
+                        <div id="help-accordion-collapse-1" class="accordion-collapse collapse collapsed" data-bs-parent="#help-accordion">
+                            <div class="accordion-body">
+                                <img src="{{ url_for('static', filename='images/examples/products/gex+tcr+bcr+mux.png') }}" style="width: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-accordion-collapse-2" aria-expanded="false" aria-controls="help-accordion-collapse-2">
+                                <b>10X 3-prime Gene Expression + ATAC + Sample Multiplexing</b>
+                            </button>
+                        </h2>
+                        <div id="help-accordion-collapse-2" class="accordion-collapse collapse collapsed" data-bs-parent="#help-accordion">
+                            <div class="accordion-body">
+                                <img src="{{ url_for('static', filename='images/examples/products/gex+atac+mux.png') }}" style="width: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-accordion-collapse-3" aria-expanded="false" aria-controls="help-accordion-collapse-3">
+                                <b>10X 3-prime Gene Expression + Cell Surface Protein Capture + Sample Multiplexing</b>
+                            </button>
+                        </h2>
+                        <div id="help-accordion-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#help-accordion">
+                            <div class="accordion-body">
+                                <img src="{{ url_for('static', filename='images/examples/products/gex+abc+mux.png') }}" style="width: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-accordion-collapse-4" aria-expanded="false" aria-controls="help-accordion-collapse-4">
+                                <b>10X 3-prime Gene Expression + Cell Surface Protein Capture <b>with</b> Sample Multiplexing <b>in same library</b></b>
+                            </button>
+                        </h2>
+                        <div id="help-accordion-collapse-4" class="accordion-collapse collapse collapsed" data-bs-parent="#help-accordion">
+                            <div class="accordion-body">
+                                <img src="{{ url_for('static', filename='images/examples/products/gex+abc-mux.png') }}" style="width: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
             <div class="tab-pane fade" id="form-tab-form-assay" role="tabpanel" tabindex="2">
                 <ul>
@@ -125,7 +176,6 @@
                     {% endfor %}
                 </ul>
             </div>
-
         </div>
     </div>
     <div class="modal-footer">

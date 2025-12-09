@@ -26,7 +26,7 @@ class OCMAnnotationForm(MultiStepForm):
     _step_name = "ocm_annotation"
     columns: list = [
         TextColumn("sample_name", "Sample Name", 300, required=True, read_only=True),
-        TextColumn("sample_pool", "Pool Name", 300, required=True, read_only=True),
+        TextColumn("sample_pool", "Multiplexing Pool", 300, required=True, read_only=True),
         TextColumn("barcode_id", "Bardcode ID", 200, required=True, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, clean_up_fnc=lambda x: str(x).strip().upper()),
     ]
 
