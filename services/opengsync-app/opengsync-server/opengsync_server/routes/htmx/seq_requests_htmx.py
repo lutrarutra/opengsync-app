@@ -73,34 +73,6 @@ def get(current_user: models.User, page: int = 0):
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
-def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
-    if form_type not in ["create", "edit"]:
-        raise exceptions.BadRequestException()
-    
-    if (seq_request_id := request.args.get("seq_request_id")) is not None:
-        try:
-            seq_request_id = int(seq_request_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if form_type != "edit":
-            raise exceptions.BadRequestException()
-        
-        if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
-            raise exceptions.NoPermissionsException()
-        return forms.models.SeqRequestForm(form_type=form_type, seq_request=seq_request).make_response()
-    
-    # seq_request_id must be provided if form_type is "edit"
-    if form_type == "edit":
-        raise exceptions.BadRequestException()
-
-    return forms.models.SeqRequestForm(form_type=form_type, current_user=current_user).make_response()
-
-
-@wrappers.htmx_route(seq_requests_htmx, db=db)
 def export(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
@@ -167,7 +139,7 @@ def export_libraries(current_user: models.User, seq_request_id: int):
     )
 
 
-@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, seq_request_id: int):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
@@ -180,9 +152,11 @@ def edit(current_user: models.User, seq_request_id: int):
     if seq_request.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
         raise exceptions.NoPermissionsException()
 
-    return forms.models.SeqRequestForm(form_type="edit", formdata=request.form).process_request(
-        seq_request=seq_request, user=current_user
-    )
+    if request.method == "GET":
+        form = forms.models.SeqRequestForm(form_type="edit", seq_request=seq_request)
+        return form.make_response()
+
+    return forms.models.SeqRequestForm(form_type="edit", seq_request=seq_request, formdata=request.form).process_request(user=current_user)
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
@@ -269,9 +243,13 @@ def submit_request(current_user: models.User, seq_request_id: int):
         return form.process_request(user=current_user)
 
 
-@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
-    return forms.models.SeqRequestForm(form_type="create", formdata=request.form).process_request(user=current_user, seq_request=None)
+    if request.method == "GET":
+        form = forms.models.SeqRequestForm(form_type="create")
+        return form.make_response()
+    
+    return forms.models.SeqRequestForm(form_type="create", formdata=request.form).process_request(user=current_user)
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])

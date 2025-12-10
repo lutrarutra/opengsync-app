@@ -198,7 +198,8 @@ def _route_decorator(
                     raise e
                 _default_logger(e, "Exception", "error")
                 return response_handler(e)
-            finally:
+            finally:    
+                runtime.session["needs_commit"] =  db.needs_commit if db is not None else False
                 runtime.session["rollback"] = rollback
                 if (msgs := runtime.app.consume_flashes(runtime.session)):
                     if runtime.session.sid:

@@ -37,6 +37,9 @@
                     </div>
                 </div>
             </div>
+            {% else %}
+            {{ seq_request_form.user_select_form.csrf_token() }}
+            {{ seq_request_form.user_select_form.user.csrf_token() }}
             {% endif %}
 
             {% set sub_form = seq_request_form.disclaimer_form %}
