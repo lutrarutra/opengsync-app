@@ -136,10 +136,13 @@ class App(Flask):
         self.secret_key = SECRET_KEY
 
         self.config["SESSION_TYPE"] = "redis"
-        self.config["SESSION_PERMANENT"] = False
+        self.config["SESSION_PERMANENT"] = True
+        self.permanent_session_lifetime = 60 * 60 * 24 * 7  # 7 days
         self.config["SESSION_USE_SIGNER"] = True
         self.config["SESSION_COOKIE_SECURE"] = not self.debug
         self.config["SESSION_REDIS"] = session_cache
+        self.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevents JavaScript access
+        self.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
 
         Session(self)
 
