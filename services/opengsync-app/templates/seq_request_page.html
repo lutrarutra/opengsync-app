@@ -55,7 +55,7 @@
                             <button class="dropdown-item"
                             {% if seq_request.is_editable() or current_user.is_insider() %}
                             data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                            hx-get="{{ url_for('seq_requests_htmx.get_form', form_type='edit', seq_request_id=seq_request.id) }}"
+                            hx-get="{{ url_for('seq_requests_htmx.edit', seq_request_id=seq_request.id) }}"
                             hx-target="#xl-modal-content" data-bs-toggle="modal"
                             hx-swap="innerHTML" hx-trigger="click"
                             {% else %}disabled{% endif %}>Edit</button>

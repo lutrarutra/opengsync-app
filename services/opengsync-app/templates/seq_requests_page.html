@@ -11,7 +11,7 @@
         <div class="page-controls">
             <button type="button" class="btn btn-primary" 
                 data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                hx-get="{{ url_for('seq_requests_htmx.get_form', form_type='create') }}"
+                hx-get="{{ url_for('seq_requests_htmx.create') }}"
                 hx-target="#xl-modal-content" data-bs-toggle="modal"
                 hx-swap="innerHTML" hx-trigger="click">
                 New Request

@@ -280,6 +280,8 @@ class SeqRequestForm(HTMXFlaskForm):
     ):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.form_type = form_type
+        self.seq_request = seq_request
+        self._context["seq_request"] = seq_request
 
         if form_type == "create" and current_user is not None and not formdata:
             self.disclaimer_form.disclaimer.data = True if current_user is not None and current_user.is_insider() else False
@@ -287,10 +289,8 @@ class SeqRequestForm(HTMXFlaskForm):
             self.contact_form.contact_person_email.data = current_user.email
             self.contact_form.current_user_is_contact.data = True
 
-        elif form_type == "edit" and seq_request is not None:
-            self.__fill_form(seq_request)
-
-            self._context["seq_request"] = seq_request
+        elif form_type == "edit" and formdata is None:
+            self.__fill_form()
 
     def validate(self, user: models.User, seq_request: Optional[models.SeqRequest] = None) -> bool:
         super().validate()
@@ -348,90 +348,92 @@ class SeqRequestForm(HTMXFlaskForm):
 
         return not bool(self.errors)
     
-    def __fill_form(self, seq_request: models.SeqRequest):
+    def __fill_form(self):
+        if self.seq_request is None:
+            raise ValueError("seq_request must be provided for editing an existing request")
         self.disclaimer_form.disclaimer.data = True
         
-        self.basic_info_form.request_name.data = seq_request.name
-        self.basic_info_form.group.selected.data = seq_request.group_id
-        self.basic_info_form.group.search_bar.data = seq_request.group.name if seq_request.group is not None else None
-        self.basic_info_form.request_description.data = seq_request.description
+        self.basic_info_form.request_name.data = self.seq_request.name
+        self.basic_info_form.group.selected.data = self.seq_request.group_id
+        self.basic_info_form.group.search_bar.data = self.seq_request.group.name if self.seq_request.group is not None else None
+        self.basic_info_form.request_description.data = self.seq_request.description
         
-        self.technical_info_form.read_length.data = seq_request.read_length
-        self.technical_info_form.submission_type.data = seq_request.submission_type.id
-        self.technical_info_form.num_lanes.data = seq_request.num_lanes
-        self.technical_info_form.special_requirements.data = seq_request.special_requirements
-        self.technical_info_form.read_type.data = seq_request.read_type.id
+        self.technical_info_form.read_length.data = self.seq_request.read_length
+        self.technical_info_form.submission_type.data = self.seq_request.submission_type.id
+        self.technical_info_form.num_lanes.data = self.seq_request.num_lanes
+        self.technical_info_form.special_requirements.data = self.seq_request.special_requirements
+        self.technical_info_form.read_type.data = self.seq_request.read_type.id
 
-        self.data_processing_form.data_delivery_mode_id.data = seq_request.data_delivery_mode.id
-
-        self.contact_form.contact_person_name.data = seq_request.contact_person.name
-        self.contact_form.contact_person_email.data = seq_request.contact_person.email
-        self.contact_form.contact_person_phone.data = seq_request.contact_person.phone
+        self.data_processing_form.data_delivery_mode_id.data = self.seq_request.data_delivery_mode.id
+        self.contact_form.contact_person_name.data = self.seq_request.contact_person.name
+        self.contact_form.contact_person_email.data = self.seq_request.contact_person.email
+        self.contact_form.contact_person_phone.data = self.seq_request.contact_person.phone
         
-        self.contact_form.contact_person_name.data = seq_request.contact_person.name
-        self.contact_form.contact_person_email.data = seq_request.contact_person.email
-        self.contact_form.contact_person_phone.data = seq_request.contact_person.phone
+        self.contact_form.contact_person_name.data = self.seq_request.contact_person.name
+        self.contact_form.contact_person_email.data = self.seq_request.contact_person.email
+        self.contact_form.contact_person_phone.data = self.seq_request.contact_person.phone
         
-        self.bioinformatician_form.bioinformatician_name.data = seq_request.bioinformatician_contact.name if seq_request.bioinformatician_contact is not None else None
-        self.bioinformatician_form.bioinformatician_email.data = seq_request.bioinformatician_contact.email if seq_request.bioinformatician_contact is not None else None
-        self.bioinformatician_form.bioinformatician_phone.data = seq_request.bioinformatician_contact.phone if seq_request.bioinformatician_contact is not None else None
+        self.bioinformatician_form.bioinformatician_name.data = self.seq_request.bioinformatician_contact.name if self.seq_request.bioinformatician_contact is not None else None
+        self.bioinformatician_form.bioinformatician_email.data = self.seq_request.bioinformatician_contact.email if self.seq_request.bioinformatician_contact is not None else None
+        self.bioinformatician_form.bioinformatician_phone.data = self.seq_request.bioinformatician_contact.phone if self.seq_request.bioinformatician_contact is not None else None
 
-        self.organization_form.organization_name.data = seq_request.organization_contact.name
-        self.organization_form.organization_address.data = seq_request.organization_contact.address
+        self.organization_form.organization_name.data = self.seq_request.organization_contact.name
+        self.organization_form.organization_address.data = self.seq_request.organization_contact.address
 
-        self.billing_form.billing_contact.data = seq_request.billing_contact.name
-        self.billing_form.billing_email.data = seq_request.billing_contact.email
-        self.billing_form.billing_phone.data = seq_request.billing_contact.phone
-        self.billing_form.billing_address.data = seq_request.billing_contact.address
-        self.billing_form.billing_code.data = seq_request.billing_code
+        self.billing_form.billing_contact.data = self.seq_request.billing_contact.name
+        self.billing_form.billing_email.data = self.seq_request.billing_contact.email
+        self.billing_form.billing_phone.data = self.seq_request.billing_contact.phone
+        self.billing_form.billing_address.data = self.seq_request.billing_contact.address
+        self.billing_form.billing_code.data = self.seq_request.billing_code
 
-    def __edit_existing_request(self, seq_request: models.SeqRequest) -> Response:
-        seq_request.name = self.basic_info_form.request_name.data   # type: ignore
-        seq_request.group_id = self.basic_info_form.group.selected.data
-        seq_request.description = self.basic_info_form.request_description.data
+    def __edit_existing_request(self) -> Response:
+        if self.seq_request is None:
+            raise ValueError("seq_request must be provided for editing an existing request")
+        
+        self.seq_request.name = self.basic_info_form.request_name.data   # type: ignore
+        self.seq_request.group_id = self.basic_info_form.group.selected.data
+        self.seq_request.description = self.basic_info_form.request_description.data
 
-        seq_request.read_type = ReadType.get(self.technical_info_form.read_type.data)
-        seq_request.read_length = self.technical_info_form.read_length.data
-        seq_request.submission_type = SubmissionType.get(self.technical_info_form.submission_type.data)
-        seq_request.special_requirements = self.technical_info_form.special_requirements.data
-        seq_request.num_lanes = self.technical_info_form.num_lanes.data
+        self.seq_request.read_type = ReadType.get(self.technical_info_form.read_type.data)
+        self.seq_request.read_length = self.technical_info_form.read_length.data
+        self.seq_request.submission_type = SubmissionType.get(self.technical_info_form.submission_type.data)
+        self.seq_request.special_requirements = self.technical_info_form.special_requirements.data
+        self.seq_request.num_lanes = self.technical_info_form.num_lanes.data
 
-        seq_request.data_delivery_mode = DataDeliveryMode.get(self.data_processing_form.data_delivery_mode_id.data)
+        self.seq_request.data_delivery_mode = DataDeliveryMode.get(self.data_processing_form.data_delivery_mode_id.data)
 
-        seq_request.contact_person.name = self.contact_form.contact_person_name.data  # type: ignore
-        seq_request.contact_person.email = self.contact_form.contact_person_email.data
-        seq_request.contact_person.phone = self.contact_form.contact_person_phone.data.replace(" ", "") if self.contact_form.contact_person_phone.data else None
-
+        self.seq_request.contact_person.name = self.contact_form.contact_person_name.data  # type: ignore
+        self.seq_request.contact_person.email = self.contact_form.contact_person_email.data
+        self.seq_request.contact_person.phone = self.contact_form.contact_person_phone.data.replace(" ", "") if self.contact_form.contact_person_phone.data else None
         if self.bioinformatician_form.bioinformatician_name.data:
-            if seq_request.bioinformatician_contact is None:
+            if self.seq_request.bioinformatician_contact is None:
                 bioinformatician_contact = db.contacts.create_contact(
                     name=self.bioinformatician_form.bioinformatician_name.data,
                     email=self.bioinformatician_form.bioinformatician_email.data,
                     phone=self.bioinformatician_form.bioinformatician_phone.data,
                 )
-                seq_request.bioinformatician_contact_id = bioinformatician_contact.id
+                self.seq_request.bioinformatician_contact_id = bioinformatician_contact.id
             else:
-                seq_request.bioinformatician_contact.name = self.bioinformatician_form.bioinformatician_name.data
-                seq_request.bioinformatician_contact.email = self.bioinformatician_form.bioinformatician_email.data
-                seq_request.bioinformatician_contact.phone = self.bioinformatician_form.bioinformatician_phone.data
+                self.seq_request.bioinformatician_contact.name = self.bioinformatician_form.bioinformatician_name.data
+                self.seq_request.bioinformatician_contact.email = self.bioinformatician_form.bioinformatician_email.data
+                self.seq_request.bioinformatician_contact.phone = self.bioinformatician_form.bioinformatician_phone.data
+        self.seq_request.organization_contact.name = self.organization_form.organization_name.data  # type: ignore
+        self.seq_request.organization_contact.address = self.organization_form.organization_address.data
 
-        seq_request.organization_contact.name = self.organization_form.organization_name.data  # type: ignore
-        seq_request.organization_contact.address = self.organization_form.organization_address.data
+        self.seq_request.billing_contact.name = self.billing_form.billing_contact.data  # type: ignore
+        self.seq_request.billing_contact.email = self.billing_form.billing_email.data
+        self.seq_request.billing_contact.phone = self.billing_form.billing_phone.data
+        self.seq_request.billing_contact.address = self.billing_form.billing_address.data
+        self.seq_request.billing_code = self.billing_form.billing_code.data
 
-        seq_request.billing_contact.name = self.billing_form.billing_contact.data  # type: ignore
-        seq_request.billing_contact.email = self.billing_form.billing_email.data
-        seq_request.billing_contact.phone = self.billing_form.billing_phone.data
-        seq_request.billing_contact.address = self.billing_form.billing_address.data
-        seq_request.billing_code = self.billing_form.billing_code.data
+        db.seq_requests.update(self.seq_request)
 
-        db.seq_requests.update(seq_request)
+        logger.debug(self.basic_info_form.request_name.data)
 
-        flash(f"Updated sequencing request '{seq_request.name}'", "success")
-        logger.info(f"Updated sequencing request '{seq_request.name}'")
+        flash(f"Sequencing Request Updated!", "success")
+        logger.info(f"Updated sequencing request '{self.seq_request.name}'")
 
-        return make_response(
-            redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
-        )
+        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),)
     
     def __create_new_request(self, user: models.User) -> Response:
         contact_person = db.contacts.create_contact(
@@ -510,15 +512,14 @@ class SeqRequestForm(HTMXFlaskForm):
         flash(f"Request Created!", "success")
         logger.info(f"Created new sequencing request '{seq_request.name}'")
 
-        return make_response(
-            redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
-        )
+        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
     
-    def process_request(self, user: models.User, seq_request: Optional[models.SeqRequest]) -> Response:
-        if not self.validate(user=user, seq_request=seq_request):
+    def process_request(self, user: models.User) -> Response:
+        if not self.validate(user=user):
+            logger.debug(self.errors)
             return self.make_response()
         
-        if seq_request is not None:
-            return self.__edit_existing_request(seq_request)
+        if self.form_type == "edit":
+            return self.__edit_existing_request()
         
         return self.__create_new_request(user=user)
