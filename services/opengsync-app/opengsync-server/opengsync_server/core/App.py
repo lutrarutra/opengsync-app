@@ -136,12 +136,13 @@ class App(Flask):
         self.secret_key = SECRET_KEY
 
         self.config["SESSION_TYPE"] = "redis"
-        self.config["SESSION_PERMANENT"] = False
+        self.config["SESSION_PERMANENT"] = True
+        self.permanent_session_lifetime = 60 * 60 * 24 * 7  # 7 days
         self.config["SESSION_USE_SIGNER"] = True
-        self.config["SESSION_COOKIE_SECURE"] = (
-            False  # True does not work, at least not without https
-        )
+        self.config["SESSION_COOKIE_SECURE"] = not self.debug
         self.config["SESSION_REDIS"] = session_cache
+        self.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevents JavaScript access
+        self.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
 
         Session(self)
 
@@ -181,6 +182,18 @@ class App(Flask):
         db.lab_protocol_start_number = int(
             opengsync_config["db"]["lab_protocol_start_number"]
         )
+
+        @self.before_request
+        def before_request():
+            log_buffer.start(f"{request.method} -> {request.path}")
+            db.open_session()
+
+        @self.teardown_request
+        def teardown_request(exception):
+            if db._session is not None:
+                if db.close_session(commit=True, rollback=runtime.session.get("rollback", False)):
+                    route_cache.clear()
+            log_buffer.flush()
 
         @login_manager.user_loader
         def load_user(user_id: int) -> models.User | None:

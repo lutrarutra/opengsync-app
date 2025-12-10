@@ -8,7 +8,6 @@ from flask import Blueprint, Flask, render_template, flash, request, Response, R
 from flask_htmx import make_response
 from flask_login import login_required as login_required_f, current_user
 from flask_limiter.errors import RateLimitExceeded
-from flask_limiter import Limiter
 
 from opengsync_db import DBHandler
 from opengsync_db.categories import HTTPResponse
@@ -94,9 +93,6 @@ def _route_decorator(
             case "optional":
                 if login_required:
                     logger.error(f"Route {fnc.__name__} current_user is optional but login_required is True.")
-
-        if login_required and db is None:
-            raise ValueError("db must be provided if login_required is True")
         
         if limit_exempt == "all":
             fnc = limiter.exempt(fnc)
@@ -155,11 +151,6 @@ def _route_decorator(
 
         @wraps(fnc)
         def wrapper(*args, **kwargs):
-            log_buffer.start(f"{request.method} -> {request.path}")
-
-            if db is not None:
-                db.open_session()
-            
             if current_user_required != "no":
                 kwargs["current_user"] = current_user if current_user.is_authenticated else None
 
@@ -208,15 +199,10 @@ def _route_decorator(
                 _default_logger(e, "Exception", "error")
                 return response_handler(e)
             finally:
-                if db is not None:
-                    if db.close_session(commit=True, rollback=rollback):
-                        route_cache.clear()
-
+                runtime.session["rollback"] = rollback
                 if (msgs := runtime.app.consume_flashes(runtime.session)):
                     if runtime.session.sid:
                         flash_cache.add(runtime.session.sid, msgs)
-                
-                log_buffer.flush()
 
         if debug:
             logger.debug(routes)

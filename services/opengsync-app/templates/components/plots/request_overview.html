@@ -10,7 +10,7 @@
                 const _w = $("#graph").width();
                 
                 const contains_pooled_samples = {% if contains_pooled %}true{% else %}false{% endif %};
-                const n_levels = contains_pooled_samples ? 5 : 4;
+                const n_levels = contains_pooled_samples ? 4 : 3;
 
                 var margin = {top: 50, right: 10, bottom: 10, left: 10},
                     width =  _w - margin.left - margin.right,
@@ -38,28 +38,30 @@
                     .style("font-size", "22px")
                     .text("Biosample");
 
-                svg.append("text")
-                    .attr("x", dx * 2)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Library");
+                if (contains_pooled_samples) {
+                    svg.append("text")
+                        .attr("x", dx * 2)
+                        .attr("y", -margin.top * 0.5)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "22px")
+                        .text("Library");
+                } else {
+                    svg.append("text")
+                        .attr("x", dx * 2 - 50)
+                        .attr("y", -margin.top * 0.5)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "22px")
+                        .text("Library");
+                }
 
                 if (contains_pooled_samples) {
                     svg.append("text")
-                        .attr("x", dx * 3)
+                        .attr("x", dx * 3 - 50)
                         .attr("y", -margin.top * 0.5)
                         .attr("text-anchor", "middle")
                         .style("font-size", "22px")
                         .text("Pool");
                 }
-
-                svg.append("text")
-                    .attr("x", dx * (n_levels - 1) - 50)
-                    .attr("y", -margin.top * 0.5)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "22px")
-                    .text("Request");
 
                 // Color scale used
                 var color = d3.scaleOrdinal(d3.schemeCategory20);
