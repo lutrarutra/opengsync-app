@@ -1204,15 +1204,18 @@ def get_assignees(current_user: models.User, seq_request_id: int):
     )
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
-def add_assignee(current_user: models.User, seq_request_id: int, assignee_id: int):
+def add_assignee(current_user: models.User, seq_request_id: int, assignee_id: int | None = None):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
     
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (assignee := db.users.get(assignee_id)) is None:
-        raise exceptions.NotFoundException()
+    if assignee_id is not None:
+        if (assignee := db.users.get(assignee_id)) is None:
+            raise exceptions.NotFoundException()
+    else:
+        assignee = current_user
     
     if not assignee.is_insider():
         raise exceptions.NoPermissionsException("Assignee must be an insider.")

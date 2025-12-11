@@ -205,10 +205,14 @@ class App(Flask):
 
         @self.after_request
         def after_request(response):
-            path = request.path.removesuffix("/")
+            if runtime.session.get("clear_rate_limit"):
+                if limiter.current_limit is not None:
+                    limiter.storage.clear(limiter.current_limit.key)
+
             if request.endpoint == "static":
                 return response
 
+            path = request.path.removesuffix("/")
             try:
                 if (start_time := getattr(g, "start_time", None)) is not None:
                     duration_ms = int((time.time() - start_time) * 1000)
@@ -226,6 +230,7 @@ class App(Flask):
                     self.performance_monitor.close_session(commit=True)
             except KeyError:
                 pass
+            
             return response
 
         @login_manager.user_loader
@@ -248,19 +253,12 @@ class App(Flask):
         def inject_uuid():
             return dict(uuid4=uuid4)
 
-        @self.after_request
-        def clear_limit(response):
-            if runtime.session.get("clear_rate_limit"):
-                if limiter.current_limit is not None:
-                    limiter.storage.clear(limiter.current_limit.key)
-            return response
-
         from .jfilters import inject_jinja_format_filters
 
         inject_jinja_format_filters(self)
 
         @self.context_processor
-        def inject_defaults():
+        def add_context():
             return dict(
                 current_query=None,
                 path_list=[],
@@ -273,11 +271,6 @@ class App(Flask):
                 next=None,
                 contact_email=self.personalization["email"],
                 organization_name=self.personalization["organization"],
-            )
-
-        @self.context_processor
-        def inject_categories():
-            return dict(
                 ExperimentStatus=categories.ExperimentStatus,
                 SeqRequestStatus=categories.SeqRequestStatus,
                 LibraryStatus=categories.LibraryStatus,
