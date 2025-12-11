@@ -4,7 +4,7 @@ from typing import Callable, Literal, Any, Sequence
 from functools import wraps
 import traceback
 
-from flask import Blueprint, Flask, render_template, flash, request, Response, Request
+from flask import Blueprint, Flask, render_template, flash, request, Response, Request, g
 from flask_htmx import make_response
 from flask_login import login_required as login_required_f, current_user
 from flask_limiter.errors import RateLimitExceeded
@@ -153,6 +153,7 @@ def _route_decorator(
         def wrapper(*args, **kwargs):
             if current_user_required != "no":
                 kwargs["current_user"] = current_user if current_user.is_authenticated else None
+                g.user_id = current_user.id if current_user.is_authenticated else None
 
             rollback = False
             try:
