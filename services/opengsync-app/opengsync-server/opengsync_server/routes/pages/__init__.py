@@ -14,3 +14,4 @@ from .kits_page import kits_page_bp  # noqa: F401
 from .share_tokens_page import share_tokens_page_bp  # noqa: F401
 from .browser_page import browser_page_bp  # noqa: F401
 from .protocols_page import protocols_page_bp  # noqa: F401
+from .admin_page import admin_pages_bp  # noqa: F401

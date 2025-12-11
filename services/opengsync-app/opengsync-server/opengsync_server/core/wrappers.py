@@ -75,6 +75,7 @@ def _route_decorator(
     cache_query_string: bool,
     cache_type: Literal["user", "insider", "global"],
     cache_kwargs: dict[str, Any] | None,
+    track_usage: bool = True,
     limit: str | None = None,
     limit_exempt: Literal["all", "insider", "user", None] = "insider",
     limit_override: bool = False,
@@ -154,6 +155,9 @@ def _route_decorator(
             if current_user_required != "no":
                 kwargs["current_user"] = current_user if current_user.is_authenticated else None
                 g.user_id = current_user.id if current_user.is_authenticated else None
+
+            if not track_usage:
+                g.start_time = None
 
             rollback = False
             try:
@@ -338,6 +342,7 @@ def page_route(
     cache_kwargs: dict[str, Any] | None = None,
     cache_type: Literal["user", "global"] = "user",
     strict_slashes: bool = True,
+    track_usage: bool = True,
     limit: str | None = None,
     limit_exempt: Literal["all", "insider", "user", None] = "insider",
     limit_override: bool = False,
@@ -355,6 +360,7 @@ def page_route(
         api_token_required=False,
         strict_slashes=strict_slashes,
         response_handler=_page_handler,
+        track_usage=track_usage,
         cache_timeout_seconds=cache_timeout_seconds,
         cache_query_string=cache_query_string,
         cache_type=cache_type,
@@ -379,6 +385,7 @@ def htmx_route(
     cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
     cache_type: Literal["user", "insider", "global"] = "user",
+    track_usage: bool = True,
     strict_slashes: bool = True,
     limit: str | None = None,
     limit_exempt: Literal["all", "insider", "user", None] = "insider",
@@ -397,6 +404,7 @@ def htmx_route(
         api_token_required=False,
         strict_slashes=strict_slashes,
         response_handler=_htmx_handler,
+        track_usage=track_usage,
         cache_timeout_seconds=cache_timeout_seconds,
         cache_query_string=cache_query_string,
         cache_type=cache_type,
@@ -423,6 +431,7 @@ def api_route(
     cache_kwargs: dict[str, Any] | None = None,
     cache_type: Literal["user", "insider", "global"] = "user",
     strict_slashes: bool = True,
+    track_usage: bool = True,
     limit: str | None = None,
     limit_exempt: Literal["all", "insider", "user", None] = "insider",
     limit_override: bool = False,
@@ -439,6 +448,7 @@ def api_route(
         json_params=json_params,
         login_required=login_required,
         debug=debug,
+        track_usage=track_usage,
         api_token_required=api_token_required,
         strict_slashes=strict_slashes,
         response_handler=_api_handler,
@@ -464,6 +474,7 @@ def resource_route(
     json_params: list[str] = [],
     cache_timeout_seconds: int | None = None,
     cache_query_string: bool = True,
+    track_usage: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
     cache_type: Literal["user", "insider", "global"] = "user",
     strict_slashes: bool = True,
@@ -481,6 +492,7 @@ def resource_route(
         json_params=json_params,
         login_required=login_required,
         debug=debug,
+        track_usage=track_usage,
         api_token_required=False,
         strict_slashes=strict_slashes,
         response_handler=_resource_handler,

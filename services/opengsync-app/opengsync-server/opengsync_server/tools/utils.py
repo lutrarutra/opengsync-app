@@ -170,7 +170,7 @@ def parse_time_windows(data: list[dict]) -> list[WeekTimeWindow]:
     return windows
 
 
-def check_string(val: str | None, allowed_special_characters: list[str] = ["-", "_"], required: bool = True) -> str | None:
+def check_string(val: str | None, allowed_special_characters: list[str] = ["-", "_", "."], required: bool = True) -> str | None:
     """Check if the given string is a valid name.
 
     Args:
@@ -384,7 +384,7 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
 
 
 def get_nameid_column(df: pd.DataFrame, name_col: str, id_col: str, sep: str = "@") -> list[str]:
-    return (df[name_col] + sep + df[id_col].astype(str)).tolist()
+    return (df[name_col] + sep + df[id_col].astype(str)).tolist()  # type: ignore
 
 
 def parse_nameid_column(df: pd.DataFrame, col: str, sep: str = "@") -> list[int | None]:

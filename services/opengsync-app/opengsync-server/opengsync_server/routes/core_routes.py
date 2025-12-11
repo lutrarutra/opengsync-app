@@ -4,9 +4,7 @@ from flask import (
     jsonify,
     render_template,
     request,
-    session,
     make_response,
-    flash
 )
 from flask_htmx import make_response as make_htmx_response
 
@@ -15,7 +13,7 @@ from opengsync_db import models
 from ..core import exceptions, wrappers
 from ..tools import utils
 from ..core.RunTime import runtime
-from .. import db, logger, flash_cache, limiter
+from .. import db, logger, flash_cache
 
 
 if runtime.app.debug:
@@ -89,7 +87,7 @@ def help():
     return render_template("help.html")
 
 
-@wrappers.htmx_route(runtime.app, login_required=False)
+@wrappers.htmx_route(runtime.app, login_required=False, track_usage=False)
 def retrieve_flash_messages():
     flashes = flash_cache.consume_all(runtime.session.sid)
     praise = runtime.session.pop("praise", None)
@@ -178,17 +176,12 @@ def download_file(file_id: int, current_user: models.User):
     return response
 
 
-@runtime.app.before_request
-def before_request():
-    session["from_url"] = request.referrer
-
-
-@wrappers.api_route(runtime.app, login_required=False, api_token_required=False, limit="5/second", limit_override=True)
+@wrappers.api_route(runtime.app, login_required=False, api_token_required=False, limit="5/second", limit_override=True, track_usage=False)
 def status():
     return make_response("OK", 200)
 
 
-@wrappers.api_route(runtime.app, login_required=False, api_token_required=False)
+@wrappers.api_route(runtime.app, login_required=False, api_token_required=False, track_usage=False)
 def headers():
     logger.info(request.headers)
     logger.info(request.headers.get("X-Real-IP", request.remote_addr, type=str))

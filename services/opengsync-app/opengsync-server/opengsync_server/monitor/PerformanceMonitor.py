@@ -22,6 +22,7 @@ class PerformanceMonitor:
         self.session_factory = orm.sessionmaker(bind=self._engine, expire_on_commit=True)
         PerformanceMonitor.Session = orm.scoped_session(self.session_factory)
         self.create_tables()
+        self._session = None
 
     def create_tables(self) -> None:
         """Create database tables with pg_trgm extension if needed."""
@@ -42,3 +43,31 @@ class PerformanceMonitor:
         except Exception as e:
             logger.error(f"Failed to create tables: {str(e)}")
             raise RuntimeError("Database initialization failed") from e
+        
+    @property
+    def session(self) -> orm.Session:
+        if self._session is None:
+            raise Exception("Session is not open.")
+        return self._session
+        
+    def open_session(self, autoflush: bool = False) -> None:
+        if self._session is not None:
+            logger.warning("Session is already open")
+            return
+        self._session = PerformanceMonitor.Session(autoflush=autoflush)
+
+    def close_session(self, commit: bool | None = None, rollback: bool = False) -> bool:
+        """ returns True if db was modified """
+        modified = False
+        if self._session is None:
+            logger.warning("Session is already closed or was never opened.")
+            return False
+
+        if commit and not rollback:
+            self._session.commit()
+        elif rollback:
+            logger.info("Rolling back transaction...")
+            self._session.rollback()
+
+        self._session = PerformanceMonitor.Session.remove()
+        return modified
