@@ -3,7 +3,7 @@ from pydoc import text
 import yaml
 from uuid import uuid4
 from pathlib import Path
-import json
+import time
 
 import pandas as pd
 
@@ -12,6 +12,7 @@ from flask import (
     redirect,
     request,
     url_for,
+    g
 )
 from jinja2 import StrictUndefined
 from flask_session import Session
@@ -42,6 +43,7 @@ from ..tools.utils import WeekTimeWindow
 from .. import routes
 from .. import tools
 from ..core import runtime
+from ..monitor import PerformanceMonitor, RequestStat
 
 
 class App(Flask):
@@ -59,6 +61,7 @@ class App(Flask):
     external_base_url: str | None
     debug: bool
     personalization: dict
+    performance_monitor: PerformanceMonitor
 
     def __init__(self, config_path: str):
         opengsync_config = yaml.safe_load(open(config_path))
@@ -107,10 +110,12 @@ class App(Flask):
 
         self.debug = DEBUG
         self.timezone = TIMEZONE
-
-        logger.info(f"MEDIA_FOLDER: {self.media_folder}")
-        logger.info(f"UPLOADS_FOLDER: {self.uploads_folder}")
-        logger.info(f"APP_DATA_FOLDER: {self.app_data_folder}")
+        self.performance_monitor = PerformanceMonitor(
+            user=os.environ["POSTGRES_USER"],
+            password=os.environ["POSTGRES_PASSWORD"],
+            host=os.environ["POSTGRES_HOST"],
+            port=os.environ["POSTGRES_PORT"],
+        )
 
         REDIS_PORT = int(os.environ["REDIS_PORT"])
 
@@ -185,6 +190,7 @@ class App(Flask):
 
         @self.before_request
         def before_request():
+            g.start_time = time.time()
             log_buffer.start(f"{request.method} -> {request.path}")
             db.open_session()
 
@@ -195,6 +201,30 @@ class App(Flask):
                     logger.debug("Database session committed.")
                     route_cache.clear()
             log_buffer.flush()
+
+        @self.after_request
+        def after_request(response):
+            if request.endpoint == "static":
+                return response
+            try:
+                if (start_time := getattr(g, "start_time", None)) is not None:
+                    duration_ms = int((time.time() - start_time) * 1000)
+                    monitor_session = PerformanceMonitor.Session()
+                    monitor_session.add(
+                        RequestStat(
+                            endpoint=request.path,
+                            method=request.method,
+                            response_status=response.status_code,
+                            requestor_ip=request.remote_addr,
+                            response_time_ms=duration_ms,
+                            user_id=getattr(g, "user_id", None)
+                        )
+                    )
+                    monitor_session.commit()
+                    monitor_session.close()
+            except KeyError:
+                pass
+            return response
 
         @login_manager.user_loader
         def load_user(user_id: int) -> models.User | None:
