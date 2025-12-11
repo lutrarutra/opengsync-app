@@ -14,7 +14,7 @@ hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests', page=current_pag
         <div class="col-6"><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a> {% if seq_request.assignees %} - {{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}</div>
         <div class="col-6">
             {% if current_user not in seq_request.assignees %}
-            <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('seq_requests_htmx.add_assignee', seq_request_id=seq_request.id, assignee_id=current_user.id) }}"><i class="bi bi-person-fill-add"></i></button>
+            <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('seq_requests_htmx.add_assignee', seq_request_id=seq_request.id) }}"><i class="bi bi-person-fill-add"></i></button>
             {% endif %}
             <span class="badge">{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
             <span class="badge">{{ seq_request.submission_type.display_name }}</span>
