@@ -190,6 +190,7 @@ class App(Flask):
 
         @self.before_request
         def before_request():
+            runtime.session["from_url"] = request.referrer
             g.start_time = time.time()
             log_buffer.start(f"{request.method} -> {request.path}")
             db.open_session()
@@ -204,15 +205,17 @@ class App(Flask):
 
         @self.after_request
         def after_request(response):
+            path = request.path.removesuffix("/")
             if request.endpoint == "static":
                 return response
+
             try:
                 if (start_time := getattr(g, "start_time", None)) is not None:
                     duration_ms = int((time.time() - start_time) * 1000)
-                    monitor_session = PerformanceMonitor.Session()
-                    monitor_session.add(
+                    self.performance_monitor.open_session()
+                    self.performance_monitor.session.add(
                         RequestStat(
-                            endpoint=request.path,
+                            endpoint=path,
                             method=request.method,
                             response_status=response.status_code,
                             requestor_ip=request.remote_addr,
@@ -220,8 +223,7 @@ class App(Flask):
                             user_id=getattr(g, "user_id", None)
                         )
                     )
-                    monitor_session.commit()
-                    monitor_session.close()
+                    self.performance_monitor.close_session(commit=True)
             except KeyError:
                 pass
             return response
@@ -395,6 +397,7 @@ class App(Flask):
         self.register_blueprint(routes.pages.share_tokens_page_bp)
         self.register_blueprint(routes.pages.browser_page_bp)
         self.register_blueprint(routes.pages.protocols_page_bp)
+        self.register_blueprint(routes.pages.admin_pages_bp)
 
         log_buffer.flush()
 

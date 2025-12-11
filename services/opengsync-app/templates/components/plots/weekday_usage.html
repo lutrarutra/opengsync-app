@@ -1,0 +1,30 @@
+<div class="plot-container" style="width: 100%;">
+    <div class="d-flex justify-content-between">
+        <div>
+            <h5>Number of Requests</h5>
+        </div>
+    </div>
+    <div class="fig-body" id="weekday-usage-plot"></div>
+</div>
+<script>
+$(document).ready(async function(){
+    await load_plotly();
+
+    const plot_projection = () => {
+        $.ajax({
+            url: "{{ url_for('plots_api.weekday_usage') }}",
+            type: "POST",
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify({
+                "width": $("#weekday-usage-plot").width(),
+            }),
+            dataType: "json",
+            success: function(figure){
+                Plotly.newPlot("weekday-usage-plot", figure.data, figure.layout, {responsive: true});
+            }
+        });
+    };
+
+    plot_projection();
+});
+</script>

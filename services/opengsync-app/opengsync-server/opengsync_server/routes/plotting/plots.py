@@ -1,6 +1,8 @@
 import json
 import pandas as pd
+import numpy as np
 
+import sqlalchemy as sa
 from flask import Blueprint, request, url_for, render_template
 from flask_htmx import make_response
 
@@ -11,7 +13,7 @@ import plotly.graph_objects as go
 from opengsync_db import models
 
 from ... import db, logger
-from ...core import wrappers, exceptions
+from ...core import wrappers, exceptions, runtime
 
 plots_api = Blueprint("plots_api", __name__, url_prefix="/plots/")
 
@@ -85,3 +87,65 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
     
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     
+
+@wrappers.htmx_route(plots_api, db=db, methods=["GET", "POST"])
+def weekday_usage(current_user: models.User):
+    if not current_user.is_admin:
+        raise exceptions.NoPermissionsException()
+    
+    if request.method == "GET":
+        return make_response(render_template(
+            "components/plots/weekday_usage.html"
+        ))
+    
+    request_args = request.get_json()
+    width = request_args.get("width", 700)
+
+    from ... import monitor
+    
+    runtime.app.performance_monitor.open_session()
+    now = pd.Timestamp.now(tz="UTC")
+    this_monday = now - pd.Timedelta(days=now.weekday())
+    this_monday = this_monday.normalize()  # Strips time to 00:00:00
+    query = sa.select(monitor.RequestStat).where(
+        monitor.RequestStat.timestamp_utc >= this_monday
+    )
+    df = pd.read_sql(query, runtime.app.performance_monitor._engine)
+    runtime.app.performance_monitor.close_session(commit=False)
+    df["timestamp"] = pd.to_datetime(df["timestamp_utc"]).dt.tz_convert("Europe/Vienna")
+    df.tail()
+    if len(df) == 0:
+        return make_response()
+    
+    df["timestamp"] = pd.to_datetime(df["timestamp_utc"]).dt.tz_convert("Europe/Vienna")
+    df["weekday"] = df["timestamp"].dt.weekday  # type: ignore
+    df["hour"] = df["timestamp"].dt.hour  # type: ignore
+
+    weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    full_index = pd.MultiIndex.from_product([range(0, 7), np.arange(24)], names=["weekday", "hour"])  # type: ignore
+
+    usage_matrix = df.groupby(['weekday', 'hour']).size()
+    usage_matrix = usage_matrix.reindex(full_index, fill_value=0).unstack(level='hour')
+
+    import plotly.express as px
+
+    fig = px.imshow(
+        usage_matrix.values.T,
+        labels=dict(x="Weekday", y="Hour", color="Requests"),
+        x=weekdays,
+        y=usage_matrix.columns.astype(str),  # weekdays as strings for better axis display
+        aspect="auto",
+        color_continuous_scale="tempo",
+    )
+
+    fig.update_layout(
+        width=width,
+        height=400,
+        margin=dict(t=25, r=5, b=5, l=5),
+        paper_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(tickfont=dict(size=15)),
+        yaxis=dict(tickfont=dict(size=15)),
+        font=dict(size=15),
+    )
+    
+    return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)

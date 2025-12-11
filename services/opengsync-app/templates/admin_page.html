@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% set active_page = "admin-page" %}
+{% block content %}
+<div class="page-header-container">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Admin</h1>
+        </div>
+        <div class="page-controls">
+        </div>
+    </div>
+</div>
+
+<div class="page-content">
+    <div hx-get="{{ url_for('plots_api.weekday_usage') }}" hx-trigger="load" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
+</div>
+{% endblock content %}
