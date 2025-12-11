@@ -87,7 +87,7 @@ def remove_libraries(current_user: models.User, pool_id: int):
     if (pool := db.pools.get(pool_id)) is None:
         raise exceptions.NotFoundException()
     
-    if pool.status != PoolStatus.DRAFT:
+    if pool.status != PoolStatus.DRAFT and not current_user.is_admin():
         raise exceptions.NoPermissionsException()
 
     for library in pool.libraries:
