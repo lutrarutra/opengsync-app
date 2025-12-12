@@ -25,7 +25,7 @@ DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
 def __get_flash_msg(msg: str) -> str:
     if textgen is None:
         return msg
-    return textgen.generate(
+    return "Unexpected Error 😔🥀... <br>" + textgen.generate(
         "You need to write in 1-2 sentences make a joke about error/bug..."
     ) or msg
 
@@ -272,7 +272,7 @@ def _htmx_handler(e: Exception):
             msg = __get_flash_msg(msg)
             flash(msg, category="error")
 
-    return make_response(render_template("errors/htmx/alert.html"), 200, retarget="#alert-container")
+    return make_response("", 200, retarget="#alert-container", reswap="innerHTML")
 
 
 def _api_handler(e: Exception):

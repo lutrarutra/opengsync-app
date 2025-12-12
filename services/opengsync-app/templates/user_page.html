@@ -135,12 +135,12 @@
             {{ metadata_group_email_link("Email", user.email) }}
         </div>
         <div class="tab-pane fade" id="user-projects-tab" role="tabpanel" tabindex="1">
-            <div hx-get="{{ url_for('users_htmx.get_projects', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('projects_htmx.get', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="user-requests-tab" role="tabpanel" tabindex="2">
-            <div hx-get="{{ url_for('users_htmx.get_seq_requests', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('seq_requests_htmx.get', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

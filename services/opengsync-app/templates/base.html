@@ -11,7 +11,7 @@
 
     <title>OpeNGSync</title>
     <!-- htmx -->
-    <script src="https://unpkg.com/htmx.org@1.9.4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
     
     <!-- Sweet Alert 2 -->
     <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4@4/bootstrap-4.css" rel="stylesheet">
@@ -168,7 +168,6 @@
             {% endif %}
         </div>
     </nav>
-    <div hx-get="{{ url_for('retrieve_flash_messages') }}" hx-trigger="load" hx-swap="innerHTML"></div>
     {% include "components/right_click_menu.html" %}
     <div id="alert-container"></div>
     <div id="debug-container"></div>
@@ -261,6 +260,38 @@
             }
         });
 
+        function render_flash_messages() {
+            $.ajax({
+                url: "{{ url_for('retrieve_flash_messages') }}",
+                type: "GET"
+            }).done(function(data) {
+                let messages = Array.isArray(data) ? data : (data && data.messages ? data.messages : []);
+                if (!messages.length) {
+                    return;
+                }
+                showOneFlashFromList(messages, 0);
+            });
+        }
+
+        function showOneFlashFromList(messages, index) {
+            if (index >= messages.length) {
+                return;  // No more messages
+            }
+            const msg = messages[index];
+            Swal.fire({
+                position: 'top',
+                icon: msg.category || 'success',
+                html: `<div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 0; font-weight: 600;">${msg.message}</div>`,
+                showConfirmButton: false,
+                timer: msg.category === 'error' ? null : 1000,
+                toast: true,
+                showCloseButton: true,
+                willClose: function() {
+                    showOneFlashFromList(messages, index + 1);
+                }
+            });
+        }
+
         function print_div(id) {
             var div = document.getElementById(id);
 
@@ -298,6 +329,9 @@
             $(`.nav-tabs button[data-bs-target="#${container_id}"]`).tab('show');
             $(`.nav-tabs button[data-bs-target="#file-${file_id}-tab"]`).tab('show');
         }
+        $(document).ready(function() {
+            render_flash_messages();
+        });
     </script>
 </body>
 

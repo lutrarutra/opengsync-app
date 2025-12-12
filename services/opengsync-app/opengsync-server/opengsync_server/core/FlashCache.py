@@ -1,66 +1,71 @@
 import redis
 
-
 class FlashCache:
+    PRIORITY = ["error", "warning", "info", "success"]
+
     def __init__(self):
-        self.r: redis.StrictRedis
+        self.r: redis.StrictRedis = None  # type: ignore
 
     def connect(self, host: str, port: int, db: int):
-        self.r = redis.StrictRedis(host=host, port=port, db=db)
+        self.r = redis.StrictRedis(host=host, port=port, db=db, decode_responses=True)
         self.r.flushdb()
 
-    def get(self, sid: str, category: str | list[str] | None = None) -> list[tuple[str, str]]:
-        if isinstance(category, str):
-            category = [category]
+    def _redis_key(self, sid: str, category: str) -> str:
+        return f"{sid}:{category}"
 
-        flashes = []
-        if category is None:
-            all_flashes: dict[bytes, bytes] = self.r.hgetall(sid)  # type: ignore
-            for cat, messages in all_flashes.items():
-                cat = cat.decode()
-                if messages:
-                    flashes.extend((cat, msg) for msg in messages.decode().split(','))
-        else:
-            for cat in category:
-                messages: bytes | None = self.r.hget(sid, cat)  # type: ignore
-                if messages:
-                    flashes.extend((cat, msg) for msg in messages.decode().split(','))
-
-        return flashes
-    
     def add(self, sid: str, flashes: list[tuple[str, str]]):
-        flashes = self.get(sid) + flashes
-
-        self.r.delete(sid)
-        
-        self.r.hset(sid, mapping={
-            "info": ",".join(msg for cat, msg in flashes if cat in ["info", "message"]),
-            "success": ",".join(msg for cat, msg in flashes if cat == "success"),
-            "warning": ",".join(msg for cat, msg in flashes if cat == "warning"),
-            "error": ",".join(msg for cat, msg in flashes if cat in ["error", "danger"])
-        })
-
-    def consume(self, sid: str | None, category: str | list[str] | None = None) -> list[tuple[str, str]]:
-        if sid is None:
-            return []
-        flashes = self.get(sid, category)
-
-        if category is not None:
-            if isinstance(category, str):
-                category = [category]
-            for cat in category:
-                self.r.hdel(sid, cat)
-
-        return flashes
-    
-    def consume_all(self, sid: str | None) -> dict[str, list[str]]:
-        if sid is None:
-            return {}
-        flashes = self.get(sid)
-        self.r.delete(sid)
-        categorized_flashes = {}
         for cat, msg in flashes:
-            if cat not in categorized_flashes:
-                categorized_flashes[cat] = []
-            categorized_flashes[cat].append(msg)
-        return categorized_flashes
+            cat = self._normalize_category(cat)
+            self.r.rpush(self._redis_key(sid, cat), msg)
+
+    def get(self, sid: str, category: str | list[str] | None = None) -> list[tuple[str, str]]:
+        categories = self._categories(category)
+        result = []
+        for cat in categories:
+            msgs: list = self.r.lrange(self._redis_key(sid, cat), 0, -1)  # type: ignore
+            result.extend((cat, msg) for msg in msgs)
+        return result
+
+    def consume(self, sid: str, category: str | list[str] | None = None) -> list[tuple[str, str]]:
+        categories = self._categories(category)
+        consumed = []
+        for cat in categories:
+            msgs: list = self.r.lrange(self._redis_key(sid, cat), 0, -1)  # type: ignore
+            if msgs:
+                self.r.delete(self._redis_key(sid, cat))
+                consumed.extend((cat, msg) for msg in msgs)
+        return consumed
+
+    def consume_one(self, sid: str, category: str | None = None) -> tuple[str, str] | None:
+        cats = self._categories(category, priority=True)
+        for cat in cats:
+            key = self._redis_key(sid, cat)
+            msg: str | None = self.r.lpop(key)  # type: ignore
+            if msg is not None:
+                return (cat, msg)
+        return None
+
+    def consume_all(self, sid: str) -> list[dict] | None:
+        result = []
+        for cat in self.PRIORITY:
+            key = self._redis_key(sid, cat)
+            msgs: list[str] = self.r.lrange(key, 0, -1)  # type: ignore
+            if msgs:
+                self.r.delete(key)
+                result.extend({"category": cat, "message": msg} for msg in msgs)
+        return result
+
+    def _normalize_category(self, cat: str) -> str:
+        mapping = {
+            "danger": "error",
+            "message": "info",
+        }
+        return mapping.get(cat, cat)
+
+    def _categories(self, category, priority=False):
+        if category is None:
+            return self.PRIORITY if priority else self.PRIORITY[::-1]  # Use normal or reverse order
+        elif isinstance(category, str):
+            return [self._normalize_category(category)]
+        else:
+            return [self._normalize_category(cat) for cat in category]

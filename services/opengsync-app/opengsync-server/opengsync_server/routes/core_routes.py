@@ -24,6 +24,10 @@ if runtime.app.debug:
             render_template("components/after-seq_request-submit-info.html", email="hello@test.com")
         )
         return render_template("test.html")
+    
+    @wrappers.htmx_route(runtime.app, db=db, login_required=True)
+    def htmx_test():
+        raise NotImplementedError()
 
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def mail_template(current_user: models.User):
@@ -86,13 +90,12 @@ def validate_api_token(api_token: str):
 def help():
     return render_template("help.html")
 
-
-@wrappers.htmx_route(runtime.app, login_required=False, track_usage=False)
+@wrappers.api_route(runtime.app, login_required=False, track_usage=False, api_token_required=False, limit="10/second", limit_override=True)
 def retrieve_flash_messages():
-    flashes = flash_cache.consume_all(runtime.session.sid)
-    praise = runtime.session.pop("praise", None)
-    return make_htmx_response(runtime.app.no_context_render_template("components/flash.html", flashes=flashes, praise=praise))
-
+    if runtime.session.sid is not None:
+        if (flashes := flash_cache.consume_all(runtime.session.sid)) is not None:
+            return jsonify(flashes), 200
+    return jsonify({}), 204
 
 @wrappers.page_route(runtime.app, db=db, route="/", cache_timeout_seconds=360, cache_type="user")
 def dashboard(current_user: models.User):

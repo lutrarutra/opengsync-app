@@ -37,6 +37,21 @@ table input.table-query-input{
     }
 
     table {
+        .assignee-badge {
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+            width: 26px;
+        }
+        button.assignee-btn {
+            padding: 0 4px;
+            margin: 0;
+            background-color: $cemm-green;
+            color: white;
+        }
         thead {
             tr {
                 th {

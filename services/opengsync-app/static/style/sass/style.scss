@@ -25,6 +25,23 @@ body.waiting * {
     }
 }
 
+.swal2-container.swal2-top {
+    .swal2-popup {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center;
+        justify-content: space-around;
+        .swal2-icon { order: 1; }
+        .swal2-html-container { order: 2;  }
+        .swal2-close { order: 3; }
+    }
+
+    .swal2-html-container {
+        margin: 0 20px;
+        margin-bottom: 7px;
+    }
+}
+
 .noselect {
     -webkit-touch-callout: none; /* iOS Safari */
       -webkit-user-select: none; /* Safari */

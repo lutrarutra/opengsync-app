@@ -115,29 +115,10 @@ function createMenuItem(action, $contextElement) {
 }
 
 function hx_request(url, title, text, icon, swap, target, confirm, type) {
-
     function send_request() {
         htmx.ajax(type, url, {
             target: target,
             swap: swap,
-        }).then(() => {
-            Swal.fire({
-                position: 'top',
-                icon: 'success',
-                title: 'Request Successful!',
-                showConfirmButton: false,
-                timer: 1000,
-                toast: true
-            });
-        }).catch(() => {
-            Swal.fire({
-                position: 'top',
-                icon: 'error',
-                title: 'Request Failed!',
-                showConfirmButton: false,
-                timer: 1000,
-                toast: true
-            });
         });
     }
 

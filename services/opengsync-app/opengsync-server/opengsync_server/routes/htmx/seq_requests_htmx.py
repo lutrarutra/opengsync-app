@@ -10,11 +10,11 @@ import pandas as pd
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import (
     SeqRequestStatus, LibraryStatus, LibraryType,
-    SampleStatus, SubmissionType, PoolStatus, ProjectStatus, AccessType,
+    SampleStatus, SubmissionType, PoolStatus, AccessType,
     DataPathType
 )
 
-from ... import db, forms, logger
+from ... import db, forms, logger, logic
 from ...core import wrappers, exceptions
 from ...core.RunTime import runtime
 
@@ -23,53 +23,9 @@ seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/htmx/s
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
-def get(current_user: models.User, page: int = 0):
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
-
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [SeqRequestStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if len(status_in) == 0:
-            status_in = None
-
-    if (submission_type_in := request.args.get("submission_type_id_in")) is not None:
-        submission_type_in = json.loads(submission_type_in)
-        try:
-            submission_type_in = [SubmissionType.get(int(submission_type)) for submission_type in submission_type_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if len(submission_type_in) == 0:
-            submission_type_in = None
-    
-    seq_requests: list[models.SeqRequest] = []
-
-    user_id = current_user.id if not current_user.is_insider() else None
-
-    seq_requests, n_pages = db.seq_requests.find(
-        offset=offset, user_id=user_id, sort_by=sort_by, descending=descending,
-        submission_type_in=submission_type_in,
-        show_drafts=True, status_in=status_in, count_pages=True
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/seq_request.html",
-            seq_requests=seq_requests,
-            n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order,
-            SeqRequestStatus=SeqRequestStatus,
-            status_in=status_in,
-            submission_type_in=submission_type_in,
-        )
-    )
+def get(current_user: models.User):
+    context = logic.tables.render_seq_request_table(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
@@ -859,52 +815,6 @@ def get_libraries(current_user: models.User, seq_request_id: int, page: int = 0)
             libraries=libraries, n_pages=n_pages, active_page=page,
             sort_by=sort_by, sort_order=sort_order, seq_request=seq_request,
             status_in=status_in, type_in=type_in
-        )
-    )
-
-
-@wrappers.htmx_route(seq_requests_htmx, db=db)
-def get_projects(current_user: models.User, seq_request_id: int, page: int = 0):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
-
-    if sort_by not in models.Project.sortable_fields:
-        raise exceptions.BadRequestException()
-
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    access_type = db.seq_requests.get_access_type(seq_request, current_user)
-    
-    if access_type < AccessType.VIEW:
-        raise exceptions.NoPermissionsException()
-    
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [ProjectStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-    
-    projects, n_pages = db.projects.find(
-        offset=offset, seq_request_id=seq_request_id, sort_by=sort_by,
-        descending=descending, count_pages=True, status_in=status_in
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/seq_request-project.html",
-            projects=projects, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order,
-            seq_request=seq_request, status_in=status_in,
         )
     )
 

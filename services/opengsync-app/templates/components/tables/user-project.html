@@ -9,7 +9,7 @@
                 {{
                     table_col(
                         table_container_id='user-project-table', column_name='ID', column_var='id',
-                        sort_url='users_htmx.get_projects', context={'user_id': user.id},
+                        sort_url='projects_htmx.get', context={'user_id': user.id},
                         sort_by=sort_by, sort_order=sort_order,
                     )
                 }}
@@ -25,7 +25,7 @@
                 {{
                     table_col(
                         table_container_id='user-project-table', column_name='Title', column_var='title',
-                        sort_url='users_htmx.get_projects', context={'user_id': user.id},
+                        sort_url='projects_htmx.get', context={'user_id': user.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=7
                     )
                 }}
@@ -52,5 +52,5 @@
         </tbody>
     </table>
     {{ spinner("user-project-table-spinner") }}
-    {{ pagination("user-project-table", "users_htmx.get_projects", n_pages, active_page, context={"user_id": user.id}) }}
+    {{ pagination("user-project-table", "projects_htmx.get", n_pages, active_page, context={"user_id": user.id}) }}
 </div>

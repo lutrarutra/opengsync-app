@@ -11,7 +11,7 @@ from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.core import units
 from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow, ProjectStatus, DataPathType
 
-from ... import db, forms, logger
+from ... import db, forms, logger, logic
 from ...core.RunTime import runtime
 from ...tools import StaticSpreadSheet
 from ...tools.spread_sheet_components import TextColumn
@@ -539,47 +539,6 @@ def get_pools(current_user: models.User, experiment_id: int, page: int = 0):
             pools=pools, n_pages=1, active_page=0,
             sort_by=sort_by, sort_order=sort_order,
             experiment=experiment, experiment_lanes=experiment_lanes
-        )
-    )
-
-
-@wrappers.htmx_route(experiments_htmx, db=db)
-def get_projects(current_user: models.User, experiment_id: int, page: int = 0):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
-
-    if sort_by not in models.Project.sortable_fields:
-        raise exceptions.BadRequestException()
-
-    if (experiment := db.experiments.get(experiment_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [ProjectStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-    
-    projects, n_pages = db.projects.find(
-        offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, count_pages=True,
-        status_in=status_in
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/experiment-project.html",
-            projects=projects, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order,
-            experiment=experiment, status_in=status_in,
         )
     )
 
