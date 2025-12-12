@@ -427,28 +427,6 @@ def prep_table_upload_form(current_user: models.User, lab_prep_id: int) -> Respo
     
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
-def get_pools(current_user: models.User, lab_prep_id: int, page: int = 0):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-
-    pools, n_pages = db.pools.find(lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending, page=page)
-
-    return make_response(
-        render_template(
-            "components/tables/lab_prep-pool.html",
-            pools=pools, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, lab_prep=lab_prep
-        )
-    )
-
-@wrappers.htmx_route(lab_preps_htmx, db=db)
 def checklist(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()

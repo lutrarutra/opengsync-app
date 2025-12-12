@@ -199,7 +199,6 @@ class App(Flask):
         def teardown_request(exception):
             if db._session is not None:
                 if db.close_session(commit=True, rollback=runtime.session.pop("rollback", False)):
-                    logger.debug("Database session committed.")
                     route_cache.clear()
             log_buffer.flush()
 

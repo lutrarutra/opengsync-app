@@ -5,6 +5,8 @@
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 
+{% set experiment_lanes = experiment.lanes_map %}
+
 <div id="experiment-pool-table" class="table-container">
     <table class="table">
         <thead>
@@ -12,14 +14,14 @@
                 {{
                     table_col(
                         table_container_id='experiment-pool-table', column_name='ID', column_var='id',
-                        sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
+                        sort_url='pools_htmx.get', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order, query_type="number"
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='experiment-pool-table', column_name='Pool Name', column_var='name',
-                        sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
+                        sort_url='pools_htmx.get', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=3
                     )
                 }}
@@ -28,7 +30,7 @@
                 {{
                     table_col(
                         table_container_id='experiment-pool-table', column_name='Status', column_var='status_id',
-                        sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
+                        sort_url='pools_htmx.get', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,col_size=1,
                     )
                 }}
@@ -37,7 +39,7 @@
                 {{
                     table_col(
                         table_container_id='experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='experiments_htmx.get_pools', context={"experiment_id": experiment.id},
+                        sort_url='pools_htmx.get', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=1,
                     )
@@ -78,14 +80,16 @@
                             {% if pool.id in experiment_lanes[lane_num] %}
                             {% set lane, num_m_reads = pool.lane(lane_num) %}
                             <button type="button" class="btn btn-primary table-btn pool-lane-btn"
-                            hx-delete="{{ url_for('experiments_htmx.unlane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num) }}">
+                            hx-target="#experiment-pool-table" hx-swap="outerHTML"
+                            hx-delete="{{ url_for('experiments_htmx.unlane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num, sort_by=sort_by, sort_order=sort_order) }}">
                                 <span {{ tooltip("Reads: " + num_m_reads | string) }}>
                                     {{ lane_num }}
                                 </span>
                             </button>
                             {% else %}
                             <button type="button" class="btn btn-outline-primary table-btn pool-lane-btn"
-                            hx-post="{{ url_for('experiments_htmx.lane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num) }}">
+                            hx-target="#experiment-pool-table" hx-swap="outerHTML"
+                            hx-post="{{ url_for('experiments_htmx.lane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num, sort_by=sort_by, sort_order=sort_order) }}">
                                 {{ lane_num }}
                             </button>
                             {% endif %}

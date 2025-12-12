@@ -28,18 +28,18 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
             data-bs-target="#group-members-tab" type="button" role="tab"
-            aria-controls="group-members-tab" aria-selected="true">Members</button>
+            aria-controls="group-members-tab" aria-selected="true">Members ({{ group.num_users }})</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#group-requests-tab"
                 type="button" role="tab" aria-controls="group-requests-tab" aria-selected="false">
-                Requests
+                Requests ({{ group.num_seq_requests }})
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#group-projects-tab"
                 type="button" role="tab" aria-controls="group-projects-tab" aria-selected="false">
-                Projects
+                Projects ({{ group.num_projects }})
             </button>
         </li>
     </ul>
@@ -67,7 +67,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('groups_htmx.get_seq_requests', group_id=group.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('seq_requests_htmx.get', group_id=group.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -79,7 +79,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('groups_htmx.get_projects', group_id=group.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('projects_htmx.get', group_id=group.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

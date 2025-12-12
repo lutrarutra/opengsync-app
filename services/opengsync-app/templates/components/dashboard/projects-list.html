@@ -17,7 +17,7 @@ hx-get="{{ url_for('projects_htmx.get_recent_projects', page=current_page + 1) }
         </div>
         <div class="col-6">
             {% if current_user not in project.assignees %}
-            <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('projects_htmx.add_assignee', project_id=project.id) }}"><i class="bi bi-person-fill-add"></i></button>
+            <button type="button" {{ tooltip("Assign Me", category="success", position="left") }} class="btn" hx-post="{{ url_for('projects_htmx.add_assignee', project_id=project.id, context='dashboard') }}"><i class="bi bi-person-fill-add"></i></button>
             {% endif %}
             <span class="badge">{{ project.timestamp_created_str("%-d. %b. %Y") }}</span>
             <span class="badge">Samples: {{ project.num_samples }}</span>

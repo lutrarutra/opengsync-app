@@ -399,7 +399,7 @@
                     <h2>Pools</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.get_pools', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('pools_htmx.get', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -564,7 +564,7 @@
             </div>
         </div>
         <div class="tab-pane fadee" id="request-projects-tab" role="tabpanel" tabindex="10">
-            <div hx-get="{{ url_for('seq_requests_htmx.get_projects', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('projects_htmx.get', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

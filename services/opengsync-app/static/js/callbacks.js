@@ -16,20 +16,24 @@ function disable_button(btn) {
     };
 }
 
-document.addEventListener("htmx:afterRequest", () => {
+document.addEventListener("htmx:afterRequest", (event) => {
     init_htmx_callbacks();
-});
-
-$(document).ready(function () {
-    init_htmx_callbacks();
-});
-
-document.body.addEventListener('htmx:afterRequest', function () {
-    document.body.classList.remove("waiting");
     $("button[hx-post], button[hx-get], button[hx-delete], .submit-form-btn").each(function () {
         if ($(this).data('was-disabled')) {
             $(this).prop('disabled', false);
             $(this).removeData('was-disabled');
         }
     });
+    if ($(document.body).hasClass("waiting")) {
+        document.body.classList.remove("waiting");
+    };
+    var xhr = event.detail.xhr;
+    if (xhr && xhr.getResponseHeader("HX-Redirect")) {
+        return;
+    }
+    render_flash_messages();
+});
+
+$(document).ready(function () {
+    init_htmx_callbacks();
 });

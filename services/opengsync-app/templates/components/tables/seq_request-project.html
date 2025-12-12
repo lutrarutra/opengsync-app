@@ -9,48 +9,48 @@
                 {{
                     table_col(
                         table_container_id='seq_request-project-table', column_name='ID', column_var='id',
-                        sort_url='seq_requests_htmx.get_projects', context={'seq_request_id': seq_request.id},
+                        sort_url='projects_htmx.get', context={'seq_request_id': seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='seq_request-project-table', column_name='Identifier', column_var='identifier',
-                        sort_url='seq_requests_htmx.get_projects', context={'seq_request_id': seq_request.id},
+                        sort_url='projects_htmx.get', context={'seq_request_id': seq_request.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='seq_request-project-table', column_name='Title', column_var='title',
-                        sort_url='seq_requests_htmx.get_projects', context={'seq_request_id': seq_request.id},
+                        sort_url='projects_htmx.get', context={'seq_request_id': seq_request.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=4
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='seq_request-project-table', column_name='Status', column_var='status_id',
-                        sort_url='seq_requests_htmx.get_projects', context={'seq_request_id': seq_request.id}, sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_url='projects_htmx.get', context={'seq_request_id': seq_request.id}, sort_by=sort_by, sort_order=sort_order, col_size=2,
                         multiselect_choices=ProjectStatus.as_list(), multiselect_selected=status_in
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='seq_request-project-table', column_name='Group', column_var='group_id',
-                        sort_url='seq_requests_htmx.get_projects', context={'seq_request_id': seq_request.id}, sort_by=sort_by, sort_order=sort_order, col_size=2,
+                        sort_url='projects_htmx.get', context={'seq_request_id': seq_request.id}, sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='seq_request-project-table', column_name='Owner', column_var='owner_id',
-                        sort_url='seq_requests_htmx.get_projects', context={'seq_request_id': seq_request.id},
+                        sort_url='projects_htmx.get', context={'seq_request_id': seq_request.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='seq_request-project-table', column_name='# Samples', column_var='num_samples',
-                        sort_url='seq_requests_htmx.get_projects', context={'seq_request_id': seq_request.id},
+                        sort_url='projects_htmx.get', context={'seq_request_id': seq_request.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
@@ -71,5 +71,5 @@
         </tbody>
     </table>
     {{ spinner("seq_request-project-table-spinner") }}
-    {{ pagination("seq_request-project-table", "seq_requests_htmx.get_projects", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
+    {{ pagination("seq_request-project-table", "projects_htmx.get", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
 </div>

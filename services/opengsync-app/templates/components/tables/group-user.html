@@ -1,5 +1,6 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="group-user-table" class="table-container">
@@ -38,7 +39,21 @@
             {% for affiliation in affiliations %}
             <tr>
                 <th scope="row">{{ affiliation.user.id }}</th>
-                <td class="user-cell" id="user-cell-{{ affiliation.user.id }}" data-id="{{ affiliation.user.id }}">
+                <td class="cm-callback"
+                {{
+                    context_menu([
+                        {"type": "hxdelete", "label": "Remove User", "disabled": false if can_add_users else true, "config": {
+                            "url": url_for('groups_htmx.remove_user', group_id=group.id, user_id=affiliation.user.id),
+                            "target": "#group-user-table",
+                            "title": "Remove user '{user}' from group '{group}'?".format(user=affiliation.user.name, group=group.name)
+                        },},
+                        {"type": "hxpost", "label": "Make Owner", "disabled": false if can_add_users else true, "config": {
+                            "url": url_for('groups_htmx.make_owner', group_id=group.id, user_id=affiliation.user.id),
+                            "target": "#group-user-table",
+                            "title": "Make user '{user}' an owner of group '{group}'?".format(user=affiliation.user.name, group=group.name)
+                        },},
+                    ])
+                }}>
                     <a href="{{ url_for('users_page.user', user_id=affiliation.user.id, from='group@' + group.id | string) }}">{{ affiliation.user.name }}{% if affiliation.user_id == current_user.id %} <span class="desc">me</span></a>{% endif %}
                 </td>
                 <td>{{ affiliation.user.email }}</td>
@@ -49,70 +64,4 @@
     </table>
     {{ spinner("group-user-table-spinner") }}
     {{ pagination("group-user-table", "groups_htmx.get_users", n_pages, active_page, context={"group_id": group.id}) }}
-    <script>
-        {% if can_add_users %}
-        var selected_user_id = null;
-
-        function remove_user() {
-            Swal.fire({
-                title: `Remove user (id='${selected_user_id}') from '{{ group.name }}' ?`,
-                showDenyButton: true,
-                text: 'Are you sure?',
-                confirmButtonText: 'Yes',
-                icon: 'question',
-                denyButtonText: 'No'
-            }).then(function(e) {
-                if (e.isConfirmed) {
-                    htmx.ajax(
-                    "DELETE", "{{ url_for('groups_htmx.remove_user', group_id=group.id) }}?user_id=" + selected_user_id,
-                    null, {
-                        target: "#group-user-table",
-                        swapStyle: "outerHTML"
-                    });
-                }
-            });
-        }
-
-        function make_owner() {
-            Swal.fire({
-                title: `Make user (id='${selected_user_id}') an owner of '{{ group.name }}' ?`,
-                showDenyButton: true,
-                text: 'The affiliation of the current owner will be changed to "Manager". Are you sure?',
-                confirmButtonText: 'Yes',
-                icon: 'question',
-                denyButtonText: 'No'
-            }).then(function(e) {
-                if (e.isConfirmed) {
-                    htmx.ajax(
-                    "POST", "{{ url_for('groups_htmx.make_owner', group_id=group.id) }}?user_id=" + selected_user_id,
-                    null, {
-                        target: "#group-user-table",
-                        swapStyle: "outerHTML"
-                    });
-                }
-            });
-        }
-
-        $(document).off("contextmenu", ".user-cell").on("contextmenu", ".user-cell", function(e) {
-            e.preventDefault();
-            const x = e.pageX;
-            const y = e.pageY;
-            selected_user_id = $(this).data("id");
-            $("#context-menu-container").css({
-                display: "block",
-                left: x + 8, top: y + 8
-            }).empty().append([
-                {% if current_user.is_admin() or affiliation.affiliation_type == AffiliationType.OWNER %}
-                `<li><a class='dropdown-item' onclick='make_owner()'>Make Owner</a></li>`,
-                {% endif %}
-                `<li><a class='dropdown-item' onclick='remove_user()'>Remove User</a></li>`,
-            ]);
-
-            $("#right-click-bg").css({
-                display: "block"
-            });
-        });
-
-        {% endif %}
-    </script>
 </div>

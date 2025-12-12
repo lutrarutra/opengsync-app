@@ -160,6 +160,21 @@ class Experiment(Base):
                 continue
             reads += lane.num_reads
         return reads
+    
+    @property
+    def lanes_map(self) -> dict[int, list[int]]:
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
+        
+        lanes: dict[int, list[int]] = {}
+
+        for lane in self.lanes:
+            lanes[lane.number] = []
+            
+            for link in lane.pool_links:
+                lanes[link.lane_num].append(link.pool_id)
+
+        return lanes
 
     @hybrid_property
     def library_types(self) -> list[LibraryTypeEnum]:
