@@ -6,52 +6,16 @@ from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import PoolStatus, LibraryStatus, PoolType
+from opengsync_db.categories import PoolStatus, LibraryStatus
 
-from ... import db, forms
+from ... import db, forms, logic
 from ...core import wrappers, exceptions
 pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/htmx/pools/")
 
 
 @wrappers.htmx_route(pools_htmx, db=db)
-def get(current_user: models.User, page: int = 0):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [PoolStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-    if (type_in := request.args.get("type_id_in")) is not None:
-        type_in = json.loads(type_in)
-        try:
-            type_in = [PoolType.get(int(type)) for type in type_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-
-        if len(type_in) == 0:
-            type_in = None
-
-    pools, n_pages = db.pools.find(
-        sort_by=sort_by, descending=descending, page=page, status_in=status_in, type_in=type_in
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/pool.html", pools=pools, n_pages=n_pages,
-            sort_by=sort_by, sort_order=sort_order,
-            active_page=page, status_in=status_in, type_in=type_in
-        )
-    )
+def get(current_user: models.User):
+    return make_response(render_template(**logic.tables.render_pool_table(current_user, request)))
 
 
 @wrappers.htmx_route(pools_htmx, methods=["POST"], db=db)

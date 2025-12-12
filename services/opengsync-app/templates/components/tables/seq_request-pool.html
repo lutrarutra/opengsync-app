@@ -11,14 +11,14 @@
                 {{
                     table_col(
                         table_container_id='seq_request-pool-table', column_name='ID', column_var='id',
-                        sort_url='seq_requests_htmx.get_pools', context={"seq_request_id": seq_request.id},
+                        sort_url='pools_htmx.get', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='seq_request-pool-table', column_name='Pool Name', column_var='name',
-                        sort_url='seq_requests_htmx.get_pools', context={"seq_request_id": seq_request.id},
+                        sort_url='pools_htmx.get', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=3
                     )
                 }}
@@ -26,21 +26,21 @@
                 {{
                     table_col(
                         table_container_id='seq_request-pool-table', column_name='Status', column_var='status_id',
-                        sort_url='seq_requests_htmx.get_pools', context={"seq_request_id": seq_request.id},
+                        sort_url='pools_htmx.get', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,col_size=1,
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='seq_request-pool-table', column_name='Owner', column_var='owner_id',
-                        sort_url='seq_requests_htmx.get_pools', context={"seq_request_id": seq_request.id},
+                        sort_url='pools_htmx.get', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='seq_request-pool-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='seq_requests_htmx.get_pools', context={"seq_request_id": seq_request.id},
+                        sort_url='pools_htmx.get', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=1,
                     )
                 }}
@@ -71,5 +71,5 @@
         </tbody>
     </table>
     {{ spinner("seq_request-pool-table-spinner") }}
-    {{ pagination("seq_request-pool-table", "seq_requests_htmx.get_pools", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
+    {{ pagination("seq_request-pool-table", "pools_htmx.get", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
 </div>

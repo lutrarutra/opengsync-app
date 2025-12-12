@@ -27,5 +27,5 @@ class ExperimentCommentForm(CommentForm):
             experiment_id=self.experiment.id
         )
 
-        flash("Comment added successfully.", "success")
+        flash("Comment Added!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id, tab="experiment-comments-tab"))

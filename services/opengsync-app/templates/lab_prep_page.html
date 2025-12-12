@@ -168,7 +168,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('lab_preps_htmx.get_pools', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('pools_htmx.get', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

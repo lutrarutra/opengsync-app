@@ -257,13 +257,8 @@ def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_
         lane_num=lane_num
     )
 
-    logger.debug(f"Added pool '{pool.name}' to experiment (id='{experiment_id}') on lane '{lane_num}'")
-    flash(f"Added pool '{pool.name}' to lane '{lane_num}'.", "success")
-
-    return make_response(
-        redirect=url_for("experiments_page.experiment", experiment_id=experiment.id),
-        push_url=False
-    )
+    flash("Added pool to Lane!'.", "success")
+    return make_response(render_template(**logic.tables.render_pool_table(current_user=current_user, request=request, experiment=experiment)))
 
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
@@ -289,13 +284,8 @@ def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lan
         lane_num=lane_num,
     )
 
-    logger.debug(f"Removed pool '{pool.name}' from lane '{lane_num}' (experiment_id='{experiment_id}')")
-    flash(f"Removed pool '{pool.name}' from lane '{lane_num}'.", "success")
-
-    return make_response(
-        redirect=url_for("experiments_page.experiment", experiment_id=experiment.id),
-        push_url=False
-    )
+    flash("Removed pool from Lane!", "success")
+    return make_response(render_template(**logic.tables.render_pool_table(current_user=current_user, request=request, experiment=experiment)))
 
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
@@ -354,7 +344,7 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
     db.media_files.delete(file_id=file.id)
 
     logger.info(f"Deleted file '{file.name}' from experiment (id='{experiment_id}')")
-    flash(f"Deleted file '{file.name}' from experiment.", "success")
+    flash(f"File Deleted!", "success")
     return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment.id))
 
 
@@ -402,6 +392,7 @@ def remove_pool(current_user: models.User, experiment_id: int, pool_id: int):
         for link in lane.pool_links:
             experiment_lanes[lane.number].append(link.pool_id)
 
+    flash("Pool Removed!", "success")
     return make_response(
         render_template(
             "components/tables/experiment-pool.html",
@@ -502,43 +493,6 @@ def overview(current_user: models.User, experiment_id: int):
         render_template(
             "components/plots/experiment_overview.html",
             links=links, nodes=nodes
-        )
-    )
-
-
-@wrappers.htmx_route(experiments_htmx, db=db)
-def get_pools(current_user: models.User, experiment_id: int, page: int = 0):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-
-    if sort_by not in models.Pool.sortable_fields:
-        raise exceptions.BadRequestException()
-    
-    experiment_lanes: dict[int, list[int]] = {}
-
-    if (experiment := db.experiments.get(experiment_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    pools, _ = db.pools.find(
-        experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None
-    )
-
-    for lane in experiment.lanes:
-        experiment_lanes[lane.number] = []
-        
-        for link in lane.pool_links:
-            experiment_lanes[lane.number].append(link.pool_id)
-
-    return make_response(
-        render_template(
-            "components/tables/experiment-pool.html",
-            pools=pools, n_pages=1, active_page=0,
-            sort_by=sort_by, sort_order=sort_order,
-            experiment=experiment, experiment_lanes=experiment_lanes
         )
     )
 

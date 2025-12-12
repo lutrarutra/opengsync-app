@@ -954,31 +954,6 @@ def get_samples(current_user: models.User, seq_request_id: int, page: int = 0):
             status_in=status_in
         )
     )
-    
-
-@wrappers.htmx_route(seq_requests_htmx, db=db)
-def get_pools(current_user: models.User, seq_request_id: int, page: int = 0):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    access_type = db.seq_requests.get_access_type(seq_request, current_user)
-    if access_type < AccessType.VIEW:
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-
-    pools, n_pages = db.pools.find(seq_request_id=seq_request_id, page=page, sort_by=sort_by, descending=descending)
-
-    return make_response(
-        render_template(
-            "components/tables/seq_request-pool.html",
-            pools=pools, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, seq_request=seq_request
-        )
-    )
-
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_comments(current_user: models.User, seq_request_id: int):
