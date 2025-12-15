@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="project-seq_request-table" class="table-container">
@@ -54,7 +55,14 @@
         <tbody>
             {% for seq_request in seq_requests %}
             <tr>
-                <th scope="row">{{ seq_request.id }}</th>
+                <th scope="row">
+                    <span class="x-scroll">
+                        {{ seq_request.id }}
+                        <span class="scroll-container">
+                            {{ assignee_list(seq_request.assignees, current_user=current_user) }}
+                        </span>
+                    </span>
+                </th>
                 <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, from='project@' + project.id | string) }}">{{ seq_request.name }}</a></td>
                 <td>{{ seq_request.status.icon }} {{ seq_request.status.name }}</td>
                 <td>{{ seq_request.timestamp_submitted_str() }}</td>

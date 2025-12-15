@@ -772,54 +772,6 @@ def overview(current_user: models.User, seq_request_id: int):
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
-def get_libraries(current_user: models.User, seq_request_id: int, page: int = 0):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    access_type = db.seq_requests.get_access_type(seq_request, current_user)
-    if access_type < AccessType.VIEW:
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [LibraryStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-
-    if (type_in := request.args.get("type_id_in")) is not None:
-        type_in = json.loads(type_in)
-        try:
-            type_in = [LibraryType.get(int(type_)) for type_ in type_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(type_in) == 0:
-            type_in = None
-
-    libraries, n_pages = db.libraries.find(
-        page=page, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending,
-        status_in=status_in, type_in=type_in
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/seq_request-library.html",
-            libraries=libraries, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, seq_request=seq_request,
-            status_in=status_in, type_in=type_in
-        )
-    )
-
-
-@wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_data_paths(current_user: models.User, seq_request_id: int, page: int = 0):
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
@@ -914,44 +866,6 @@ def query_libraries(current_user: models.User, seq_request_id: int):
             current_query=word, active_query_field=field_name,
             seq_request=seq_request,
             libraries=libraries, type_in=type_in, status_in=status_in
-        )
-    )
-
-
-@wrappers.htmx_route(seq_requests_htmx, db=db)
-def get_samples(current_user: models.User, seq_request_id: int, page: int = 0):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    access_type = db.seq_requests.get_access_type(seq_request, current_user)
-    if access_type < AccessType.VIEW:
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [SampleStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-
-    samples, n_pages = db.samples.find(
-        page=page, seq_request_id=seq_request_id, sort_by=sort_by, descending=descending,
-        status_in=status_in
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/seq_request-sample.html",
-            samples=samples, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, seq_request=seq_request,
-            status_in=status_in
         )
     )
 

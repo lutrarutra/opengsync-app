@@ -1,3 +1,5 @@
+import pandas as pd
+
 from openpyxl.styles import Font, PatternFill, Alignment, Side, Border, Color
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.cell import Cell, MergedCell
@@ -209,7 +211,7 @@ def xlsx_to_univer_snapshot(path: str) -> tuple[dict, dict]:
             row_data = {}
             for cell_idx, cell in enumerate(row):
                 row_data[cell_idx] = {
-                    "v": cell.value or "",
+                    "v": str(cell.value) if cell.value is not None else "",
                     "s": extract_style(theme_colors, cell)
                 }
 

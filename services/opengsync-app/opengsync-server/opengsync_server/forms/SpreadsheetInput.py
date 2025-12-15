@@ -118,6 +118,8 @@ class SpreadsheetInput(FlaskForm):
         for idx, row in self.__df.iterrows():
             for label, column in self.columns.items():
                 try:
+                    if column.type == "text":
+                        self.__df[label] = self.__df[label].apply(column.clean_up)
                     column.validate(row[label], column_values=self.__df[label].tolist())
                 except SpreadSheetException as e:
                     if column.required and pd.isna(row[label]):

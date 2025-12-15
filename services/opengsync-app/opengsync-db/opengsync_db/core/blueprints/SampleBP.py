@@ -137,9 +137,6 @@ class SampleBP(DBBlueprint):
             if descending:
                 attr = attr.desc()
             query = query.order_by(attr)
-        
-        if offset is not None:
-            query = query.offset(offset)
 
         if page is not None:
             if limit is None:
@@ -150,6 +147,9 @@ class SampleBP(DBBlueprint):
             query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
         else:
             n_pages = None
+
+        if offset is not None:
+            query = query.offset(offset)
 
         if limit is not None:
             query = query.limit(limit)

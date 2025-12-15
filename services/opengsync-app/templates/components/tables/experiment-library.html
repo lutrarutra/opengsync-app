@@ -12,7 +12,7 @@
                 {{
                     table_col(
                         table_container_id='experiment-library-table', column_name='ID', column_var='id',
-                        sort_url='experiments_htmx.get_libraries', context={"experiment_id": experiment.id},
+                        sort_url='libraries_htmx.get', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='experiments_htmx.query_libraries', current_query=current_query,
                         active_query_field=active_query_field, query_type="number", col_size=1
@@ -21,7 +21,7 @@
                 {{
                     table_col(
                         table_container_id='experiment-library-table', column_name='Name', column_var='name',
-                        sort_url='experiments_htmx.get_libraries', context={"experiment_id": experiment.id},
+                        sort_url='libraries_htmx.get', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='experiments_htmx.query_libraries', current_query=current_query,
                         active_query_field=active_query_field, col_size=2
@@ -30,7 +30,7 @@
                 {{
                     table_col(
                         table_container_id='experiment-library-table', column_name='Library Type', column_var='type_id',
-                        sort_url='experiments_htmx.get_libraries', context={"experiment_id": experiment.id},
+                        sort_url='libraries_htmx.get', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=1
                     )
@@ -38,7 +38,7 @@
                 {{
                     table_col(
                         table_container_id='experiment-library-table', column_name='Pool', column_var='pool_id',
-                        sort_url='experiments_htmx.get_libraries', context={"experiment_id": experiment.id},
+                        sort_url='libraries_htmx.get', context={"experiment_id": experiment.id},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=1
                     )
@@ -84,7 +84,7 @@
     {{
         pagination(
             "experiment-library-table",
-            url="experiments_htmx.get_libraries",
+            url="libraries_htmx.get",
             n_pages=n_pages,
             active_page=active_page,
             context={"experiment_id": experiment.id}

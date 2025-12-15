@@ -533,35 +533,6 @@ def get_data_paths(current_user: models.User, experiment_id: int, page: int = 0)
 
 
 @wrappers.htmx_route(experiments_htmx, db=db)
-def get_libraries(current_user: models.User, experiment_id: int, page: int = 0):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-
-    if sort_by not in models.Library.sortable_fields:
-        raise exceptions.BadRequestException()
-
-    if (experiment := db.experiments.get(experiment_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    libraries, n_pages = db.libraries.find(
-        page=page, experiment_id=experiment_id, sort_by=sort_by, descending=descending
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/experiment-library.html",
-            libraries=libraries, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order,
-            experiment=experiment
-        )
-    )
-
-
-@wrappers.htmx_route(experiments_htmx, db=db)
 def query_libraries(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()

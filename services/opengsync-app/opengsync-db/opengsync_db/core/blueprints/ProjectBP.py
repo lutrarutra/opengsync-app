@@ -179,6 +179,7 @@ class ProjectBP(DBBlueprint):
     @DBBlueprint.transaction
     def query(
         self,
+        id: int | None = None,
         identifier: str | None = None,
         title: str | None = None,
         identifier_title: str | None = None,
@@ -197,12 +198,14 @@ class ProjectBP(DBBlueprint):
             status_in=status_in, user_id=user_id
         )
         
-        if identifier is None and title is None and identifier_title is None and owner_name is None:
+        if identifier is None and title is None and identifier_title is None and owner_name is None and id is None:
             raise ValueError("Either identifier, owner_name, or title must be provided")
         if identifier is not None:
             query = query.order_by(sa.nulls_last(sa.func.similarity(models.Project.identifier, identifier).desc()))
         elif title is not None:
             query = query.order_by(sa.func.similarity(models.Project.title, title).desc())
+        elif id is not None:
+            query = query.where(models.Project.id == id)
         elif identifier_title is not None:
             query = query.order_by(
                 sa.nulls_last(sa.func.greatest(

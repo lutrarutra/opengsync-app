@@ -250,7 +250,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="library-samples-tab" role="tabpanel" tabindex="3">
-            <div hx-get="{{ url_for('libraries_htmx.get_samples', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('samples_htmx.get', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

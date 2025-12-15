@@ -12,42 +12,42 @@
                 {{
                     table_col(
                         table_container_id="lab_prep-library-table", column_name="ID", column_var="id",
-                        sort_url="lab_preps_htmx.get_libraries", context={"lab_prep_id": lab_prep.id},
+                        sort_url="libraries_htmx.get", context={"lab_prep_id": lab_prep.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
                 {{
                     table_col(
                         table_container_id="lab_prep-library-table", column_name="Library Name", column_var="name",
-                        sort_url="lab_preps_htmx.get_libraries", context={"lab_prep_id": lab_prep.id},
+                        sort_url="libraries_htmx.get", context={"lab_prep_id": lab_prep.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=4
                     )
                 }}
                 {{
                     table_col(
                         table_container_id="lab_prep-library-table", column_name="Type", column_var="type_id",
-                        sort_url="lab_preps_htmx.get_libraries", context={"lab_prep_id": lab_prep.id},
+                        sort_url="libraries_htmx.get", context={"lab_prep_id": lab_prep.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
                 {{
                     table_col(
                         table_container_id="lab_prep-library-table", column_name="Status", column_var="status_id",
-                        sort_url="lab_preps_htmx.get_libraries", context={"lab_prep_id": lab_prep.id},
+                        sort_url="libraries_htmx.get", context={"lab_prep_id": lab_prep.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
                 {{
                     table_col(
                         table_container_id='lab_prep-library-table', column_name='Pool', column_var='pool_id',
-                        sort_url='lab_preps_htmx.get_libraries', context={"lab_prep_id": lab_prep.id},
+                        sort_url='libraries_htmx.get', context={"lab_prep_id": lab_prep.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=1
                     )
                 }}
                 {{
                     table_col(
                         table_container_id="lab_prep-library-table", column_name="Owner", column_var="owner_id",
-                        sort_url="lab_preps_htmx.get_libraries", context={"lab_prep_id": lab_prep.id},
+                        sort_url="libraries_htmx.get", context={"lab_prep_id": lab_prep.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=2
                     )
                 }}
@@ -95,5 +95,5 @@
         </tbody>
     </table>
     {{ spinner("lab_prep-library-table-spinner") }}
-    {{ pagination("lab_prep-library-table", "lab_preps_htmx.get_libraries", n_pages, active_page, context={"lab_prep_id": lab_prep.id}) }}
+    {{ pagination("lab_prep-library-table", "libraries_htmx.get", n_pages, active_page, context={"lab_prep_id": lab_prep.id}) }}
 </div>

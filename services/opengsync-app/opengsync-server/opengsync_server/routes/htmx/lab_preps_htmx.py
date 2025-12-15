@@ -258,29 +258,6 @@ def remove_library(current_user: models.User, lab_prep_id: int, library_id: int,
     )
 
 
-@wrappers.htmx_route(lab_preps_htmx, db=db)
-def get_libraries(current_user: models.User, lab_prep_id: int, page: int = 0):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-
-    libraries, n_pages = db.libraries.find(page=page, lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending)
-    
-    return make_response(
-        render_template(
-            "components/tables/lab_prep-library.html",
-            libraries=libraries, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, lab_prep=lab_prep
-        )
-    )
-
-
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET"])
 def download_template(current_user: models.User, lab_prep_id: int, direction: Literal["rows", "columns"]) -> Response:
     if direction not in ("rows", "columns"):
@@ -439,43 +416,6 @@ def checklist(current_user: models.User, lab_prep_id: int):
         render_template(
             "components/checklists/lab_prep.html",
             lab_prep=lab_prep, **checklist
-        )
-    )
-
-
-@wrappers.htmx_route(lab_preps_htmx, db=db)
-def get_samples(current_user: models.User, lab_prep_id: int, page: int = 0):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [SampleStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-
-    samples, n_pages = db.samples.find(
-        lab_prep_id=lab_prep_id, page=page, sort_by=sort_by, descending=descending,
-        status_in=status_in
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/lab_prep-sample.html",
-            samples=samples, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, lab_prep=lab_prep,
-            status_in=status_in
         )
     )
 

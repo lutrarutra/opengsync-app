@@ -4,129 +4,11 @@ from flask import Request
 
 from opengsync_db import models, categories, PAGE_LIMIT
 
-from ..import db
+from ..import db, logger
 from ..core import exceptions
+from .context import parse_context
 
-def parse_context(current_user: models.User, request: Request) -> dict:
-    context = {}
-    if (group_id := request.args.get("group_id", None)) is not None:
-        try:
-            group_id = int(group_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if (group := db.groups.get(group_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        if not current_user.is_insider():
-            if db.groups.get_user_affiliation(group_id=group.id, user_id=current_user.id) is None:
-                raise exceptions.NoPermissionsException()
-        
-        context["group"] = group
-    
-    if (project_id := request.args.get("project_id", None)) is not None:
-        try:
-            project_id = int(project_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if (project := db.projects.get(project_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        access_type = db.projects.get_access_type(project, current_user)
-        if access_type < categories.AccessType.VIEW:
-            raise exceptions.NoPermissionsException()
-        
-        context["project"] = project
-
-    if (seq_request_id := request.args.get("seq_request_id", None)) is not None:
-        try:
-            seq_request_id = int(seq_request_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if (seq_request := db.seq_requests.get(seq_request_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        access_type = db.seq_requests.get_access_type(seq_request, current_user)
-        if access_type < categories.AccessType.VIEW:
-            raise exceptions.NoPermissionsException()
-        
-        context["seq_request"] = seq_request
-
-    if (experiment_id := request.args.get("experiment_id", None)) is not None:
-        if not current_user.is_insider():
-            raise exceptions.NoPermissionsException()
-        try:
-            experiment_id = int(experiment_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if (experiment := db.experiments.get(experiment_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        context["experiment"] = experiment
-
-    if (lab_prep_id := request.args.get("lab_prep_id", None)) is not None:
-        if not current_user.is_insider():   
-            raise exceptions.NoPermissionsException()
-        try:
-            lab_prep_id = int(lab_prep_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        context["lab_prep"] = lab_prep
-
-    if (user_id := request.args.get("user_id", None)) is not None:
-        try:
-            user_id = int(user_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if not current_user.is_insider() and user_id != current_user.id:
-            raise exceptions.NoPermissionsException()
-        
-        if (user := db.users.get(user_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        context["user"] = user
-
-    if (pool_id := request.args.get("pool_id", None)) is not None:
-        try:
-            pool_id = int(pool_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if (pool := db.pools.get(pool_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        access_type = db.pools.get_access_type(pool=pool, user=current_user)
-        if access_type < categories.AccessType.VIEW:
-            raise exceptions.NoPermissionsException()
-        
-        context["pool"] = pool
-
-    if (library_id := request.args.get("library_id", None)) is not None:
-        try:
-            library_id = int(library_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if (library := db.libraries.get(library_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        access_type = db.libraries.get_access_type(library=library, user=current_user)
-        if access_type < categories.AccessType.VIEW:
-            raise exceptions.NoPermissionsException()
-        
-        context["library"] = library
-    
-    return context
-
-def render_project_table(current_user: models.User, request: Request, *kwargs) -> dict:
+def render_project_table(current_user: models.User, request: Request, **kwargs) -> dict:
     context = {}
     page = request.args.get("page", 0, type=int)
     sort_by = request.args.get("sort_by", "id")
@@ -149,7 +31,7 @@ def render_project_table(current_user: models.User, request: Request, *kwargs) -
         else:
             context["status_in"] = status_in
 
-    context |= parse_context(current_user, request)
+    context |= parse_context(current_user, request) | kwargs
 
     if (user := context.get("user")) is not None:
         template = "components/tables/user-project.html"
@@ -191,7 +73,7 @@ def render_project_table(current_user: models.User, request: Request, *kwargs) -
     return context
 
 
-def render_seq_request_table(current_user: models.User, request: Request, *kwargs) -> dict:
+def render_seq_request_table(current_user: models.User, request: Request, **kwargs) -> dict:
     context = {}
     page = request.args.get("page", 0, type=int)
     sort_by = request.args.get("sort_by", "id")
@@ -211,6 +93,8 @@ def render_seq_request_table(current_user: models.User, request: Request, *kwarg
         
         if len(status_in) == 0:
             status_in = None
+        else:
+            context["status_in"] = status_in
 
     if (submission_type_in := request.args.get("submission_type_id_in")) is not None:
         submission_type_in = json.loads(submission_type_in)
@@ -221,8 +105,10 @@ def render_seq_request_table(current_user: models.User, request: Request, *kwarg
         
         if len(submission_type_in) == 0:
             submission_type_in = None
+        else:
+            context["submission_type_in"] = submission_type_in
 
-    context |= parse_context(current_user, request)
+    context |= parse_context(current_user, request) | kwargs
 
     if (user := context.get("user")) is not None:
         template = "components/tables/user-seq_request.html"
@@ -276,6 +162,8 @@ def render_pool_table(current_user: models.User, request: Request, **kwargs) -> 
     
         if len(status_in) == 0:
             status_in = None
+        else:
+            context["status_in"] = status_in
     if (type_in := request.args.get("type_id_in")) is not None:
         type_in = json.loads(type_in)
         try:
@@ -285,22 +173,24 @@ def render_pool_table(current_user: models.User, request: Request, **kwargs) -> 
 
         if len(type_in) == 0:
             type_in = None
+        else:
+            context["type_in"] = type_in
 
     context |= parse_context(current_user, request) | kwargs
 
     if (seq_request := context.get("seq_request")) is not None:
         template = "components/tables/seq_request-pool.html"        
-        pools, n_pages = db.pools.find(offset=offset, seq_request_id=seq_request.id, sort_by=sort_by, descending=descending, page=None)
+        pools, n_pages = db.pools.find(offset=offset, seq_request_id=seq_request.id, sort_by=sort_by, descending=descending, page=None, limit=None)
         context["seq_request"] = seq_request
 
     elif (experiment := context.get("experiment")) is not None:      
         template = "components/tables/experiment-pool.html"  
-        pools, n_pages = db.pools.find(offset=offset, experiment_id=experiment.id, sort_by=sort_by, descending=descending, page=None)
+        pools, n_pages = db.pools.find(offset=offset, experiment_id=experiment.id, sort_by=sort_by, descending=descending, page=None, limit=None)
         context["experiment"] = experiment
 
     elif (lab_prep := context.get("lab_prep")) is not None:
         template = "components/tables/lab_prep-pool.html"
-        pools, n_pages = db.pools.find(offset=offset, lab_prep_id=lab_prep.id, sort_by=sort_by, descending=descending, page=None)
+        pools, n_pages = db.pools.find(offset=offset, lab_prep_id=lab_prep.id, sort_by=sort_by, descending=descending, page=None, limit=None)
         context["lab_prep"] = lab_prep
 
     else:
@@ -320,4 +210,144 @@ def render_pool_table(current_user: models.User, request: Request, **kwargs) -> 
         "template_name_or_list": template,
     })
 
+    return context
+
+def render_library_table(current_user: models.User, request: Request, **kwargs) -> dict:
+    context = {}
+    page = request.args.get("page", 0, type=int)
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+
+    logger.debug(page)
+    logger.debug(offset)
+
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [categories.LibraryStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            raise exceptions.BadRequestException()
+    
+        if len(status_in) == 0:
+            status_in = None
+        else:
+            context["status_in"] = status_in
+
+    if (type_in := request.args.get("type_id_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [categories.LibraryType.get(int(type_)) for type_ in type_in]
+        except ValueError:
+            raise exceptions.BadRequestException()
+    
+        if len(type_in) == 0:
+            type_in = None
+        else:
+            context["type_in"] = type_in
+
+    if sort_by not in models.Library.sortable_fields:
+        raise exceptions.BadRequestException()
+    
+    context |= parse_context(current_user, request) | kwargs
+
+    if (pool := context.get("pool")) is not None:
+        template = "components/tables/pool-library.html"        
+        libraries, n_pages = db.libraries.find(offset=offset, pool_id=pool.id, sort_by=sort_by, descending=descending, page=page)
+        context["pool"] = pool
+    elif (experiment := context.get("experiment")) is not None:      
+        template = "components/tables/experiment-library.html"  
+        libraries, n_pages = db.libraries.find(offset=offset, experiment_id=experiment.id, sort_by=sort_by, descending=descending, page=page)
+        context["experiment"] = experiment
+    elif (lab_prep := context.get("lab_prep")) is not None:
+        template = "components/tables/lab_prep-library.html"
+        libraries, n_pages = db.libraries.find(offset=offset, lab_prep_id=lab_prep.id, sort_by=sort_by, descending=descending, page=page)
+        context["lab_prep"] = lab_prep
+    elif (seq_request := context.get("seq_request")) is not None:
+        template = "components/tables/seq_request-library.html"        
+        libraries, n_pages = db.libraries.find(offset=offset, seq_request_id=seq_request.id, sort_by=sort_by, descending=descending, page=page)
+        context["seq_request"] = seq_request
+    elif (sample := context.get("sample")) is not None:
+        template = "components/tables/sample-library.html"        
+        libraries, n_pages = db.libraries.find(offset=offset, sample_id=sample.id, sort_by=sort_by, descending=descending, page=page)
+        context["sample"] = sample
+    else:
+        template = "components/tables/library.html"
+        if not current_user.is_insider():
+            user_id = current_user.id
+        else:
+            user_id = None
+        libraries, n_pages = db.libraries.find(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, page=page)
+        
+    context.update({
+        "libraries": libraries,
+        "n_pages": n_pages,
+        "active_page": page,
+        "sort_by": sort_by,
+        "sort_order": sort_order,
+        "template_name_or_list": template,
+    })
+    logger.debug(n_pages)
+    logger.debug(page)
+    return context
+
+
+def render_sample_table(current_user: models.User, request: Request, **kwargs) -> dict:
+    context = {}
+    page = request.args.get("page", 0, type=int)
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+    offset = page * PAGE_LIMIT
+
+    if sort_by not in models.Sample.sortable_fields:
+        raise exceptions.BadRequestException()
+    
+    if (status_in := request.args.get("status_id_in")) is not None:
+        status_in = json.loads(status_in)
+        try:
+            status_in = [categories.SampleStatus.get(int(status)) for status in status_in]
+        except ValueError:
+            raise exceptions.BadRequestException()
+    
+        if len(status_in) == 0:
+            status_in = None
+        else:
+            context["status_in"] = status_in
+    
+    context |= parse_context(current_user, request) | kwargs
+
+    if (library := context.get("library")) is not None:
+        template = "components/tables/library-sample.html"        
+        samples, n_pages = db.samples.find(offset=offset, library_id=library.id, sort_by=sort_by, descending=descending, page=page)
+        context["library"] = library
+    elif (project := context.get("project")) is not None:
+        template = "components/tables/project-sample.html"        
+        samples, n_pages = db.samples.find(offset=offset, project_id=project.id, sort_by=sort_by, descending=descending, page=page)
+        context["project"] = project
+    elif (seq_request := context.get("seq_request")) is not None:
+        template = "components/tables/seq_request-sample.html"        
+        samples, n_pages = db.samples.find(offset=offset, seq_request_id=seq_request.id, sort_by=sort_by, descending=descending, page=page)
+        context["seq_request"] = seq_request
+    elif (lab_prep := context.get("lab_prep")) is not None:
+        template = "components/tables/lab_prep-sample.html"
+        samples, n_pages = db.samples.find(offset=offset, lab_prep_id=lab_prep.id, sort_by=sort_by, descending=descending, page=page)
+        context["lab_prep"] = lab_prep
+    else:
+        template = "components/tables/sample.html"
+        if not current_user.is_insider():
+            user_id = current_user.id
+        else:
+            user_id = None
+        samples, n_pages = db.samples.find(offset=offset, user_id=user_id, sort_by=sort_by, descending=descending, page=page)
+        
+    context.update({
+        "samples": samples,
+        "n_pages": n_pages,
+        "active_page": page,
+        "sort_by": sort_by,
+        "sort_order": sort_order,
+        "template_name_or_list": template,
+    })
     return context
