@@ -117,6 +117,10 @@ class SpreadsheetInput(FlaskForm):
 
         for idx, row in self.__df.iterrows():
             for label, column in self.columns.items():
+                if label not in self.__df.columns:
+                    if column.required:
+                        self.add_general_error(f"Missing required column: '{label}'")
+                    continue
                 try:
                     if column.type == "text":
                         self.__df[label] = self.__df[label].apply(column.clean_up)
