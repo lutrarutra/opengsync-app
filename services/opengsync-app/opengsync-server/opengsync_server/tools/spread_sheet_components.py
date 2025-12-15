@@ -77,9 +77,8 @@ class SpreadSheetColumn:
             raise MissingCellValue(f"Missing value for '{self.label}'")
         
         if self.unique and value is not None:
-            if column_values.count(value) > 1:
+            if column_values.count(self.clean_up(value)) > 1:
                 raise DuplicateCellValue(f"Value '{value}' for '{self.label}' is not unique. It appears multiple times in the column.")
-
 
 class TextColumn(SpreadSheetColumn):
     def __init__(

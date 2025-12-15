@@ -9,7 +9,7 @@
                 {{
                     table_col(
                         table_container_id='library-sample-table', column_name='ID', column_var='id',
-                        sort_url='libraries_htmx.get_samples', context={'library_id': library.id},
+                        sort_url='samples_htmx.get', context={'library_id': library.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='libraries_htmx.table_query', current_query=current_query,
                         active_query_field=active_query_field, query_type="number",
@@ -18,7 +18,7 @@
                 {{
                     table_col(
                         table_container_id='library-sample-table', column_name='Name', column_var='name',
-                        sort_url='libraries_htmx.get_samples', context={'library_id': library.id},
+                        sort_url='samples_htmx.get', context={'library_id': library.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='libraries_htmx.table_query', current_query=current_query,
                         active_query_field=active_query_field, col_size=5
@@ -27,7 +27,7 @@
                 {{
                     table_col(
                         table_container_id='library-samples-table', column_name='Status', column_var='status_id',
-                        sort_url='libraries_htmx.get_samples', context={'library_id': library.id},
+                        sort_url='samples_htmx.get', context={'library_id': library.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=3,
                         multiselect_choices=SampleStatus.as_list(), multiselect_selected=status_in
                     )
@@ -35,7 +35,7 @@
                 {{
                     table_col(
                         table_container_id='library-sample-table', column_name='Owner', column_var='owner_id',
-                        sort_url='libraries_htmx.get_samples', context={'library_id': library.id},
+                        sort_url='samples_htmx.get', context={'library_id': library.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=3
                     )
                 }}
@@ -53,7 +53,7 @@
         </tbody>
     </table>
     {{ spinner("library-sample-table-spinner") }}
-    {{ pagination("library-sample-table", "libraries_htmx.get_samples", n_pages, active_page, context={ "library_id":library.id }) }}
+    {{ pagination("library-sample-table", "samples_htmx.get", n_pages, active_page, context={ "library_id":library.id }) }}
     <script>
         let selected_sample_id = null;
         let selected_sample_name = null;

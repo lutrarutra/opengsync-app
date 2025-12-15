@@ -11,7 +11,7 @@
                 {{
                     table_col(
                         table_container_id='seq_request-sample-table', column_name='ID', column_var='id',
-                        sort_url='seq_requests_htmx.get_samples', context={"seq_request_id": seq_request.id},
+                        sort_url='samples_htmx.get', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
                         active_query_field=active_query_field, query_type="number", col_size=1
                     )
@@ -19,7 +19,7 @@
                 {{
                     table_col(
                         table_container_id='seq_request-sample-table', column_name='Name', column_var='name',
-                        sort_url='seq_requests_htmx.get_samples', context={"seq_request_id": seq_request.id},
+                        sort_url='samples_htmx.get', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order,
                         active_query_field=active_query_field, query_type="string", col_size=3
                     )
@@ -28,7 +28,7 @@
                 {{
                     table_col(
                         table_container_id='seq_request-samples-table', column_name='Status', column_var='status_id',
-                        sort_url='seq_requests_htmx.get_samples', context={"seq_request_id": seq_request.id},
+                        sort_url='samples_htmx.get', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
                         multiselect_choices=SampleStatus.as_list(), multiselect_selected=status_in
                     )
@@ -37,7 +37,7 @@
                 {{
                     table_col(
                         table_container_id='seq_request-samples-table', column_name='Project', column_var='project_id',
-                        sort_url='seq_requests_htmx.get_samples', context={"seq_request_id": seq_request.id},
+                        sort_url='samples_htmx.get', context={"seq_request_id": seq_request.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=2,
                     )
                 }}
@@ -81,5 +81,5 @@
         </tbody>
     </table>
     {{ spinner("seq_request-sample-table-spinner") }}
-    {{ pagination("seq_request-sample-table", "seq_requests_htmx.get_samples", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
+    {{ pagination("seq_request-sample-table", "samples_htmx.get", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
 </div>

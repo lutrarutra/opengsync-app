@@ -19,8 +19,8 @@ class LibraryEditTableForm(MultiStepForm):
 
     columns = [
         IntegerColumn("library_id", "Library ID", 100, required=True, read_only=True),
-        TextColumn("sample_name", "Sample Name", 250, required=True, max_length=models.Library.sample_name.type.length, min_length=4, validation_fnc=utils.check_string),
-        TextColumn("library_name", "Library Name", 250, required=True, max_length=models.Library.name.type.length, min_length=4, validation_fnc=utils.check_string),
+        TextColumn("sample_name", "Sample Name", 250, required=True, max_length=models.Library.sample_name.type.length, min_length=4, validation_fnc=lambda x: utils.check_string(x, allowed_special_characters=["_", "."])),
+        TextColumn("library_name", "Library Name", 250, required=True, max_length=models.Library.name.type.length, min_length=4, validation_fnc=lambda x: utils.check_string(x, allowed_special_characters=["_", "."])),
         CategoricalDropDown("library_type_id", "Library Type", 300, categories=dict(LibraryType.as_selectable()), required=True),
         CategoricalDropDown("genome_id", "Genome", 300, categories=dict(GenomeRef.as_selectable()), required=True),
         CategoricalDropDown("service_type_id", "Assay/Service Type", 300, categories=dict(ServiceType.as_selectable()), required=True),

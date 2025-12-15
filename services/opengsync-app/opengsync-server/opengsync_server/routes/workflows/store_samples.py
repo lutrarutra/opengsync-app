@@ -41,40 +41,31 @@ def select(current_user: models.User):
     if (seq_request_id := request.form.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+            if (_seq_request := db.seq_requests.get(seq_request_id)) is None:
                 raise exceptions.NotFoundException()
-            context["seq_request"] = seq_request
+            context["seq_request"] = _seq_request
         except ValueError:
             raise exceptions.BadRequestException()
     else:
-        seq_request = None
+        _seq_request = None
 
     form: SelectSamplesForm = SelectSamplesForm(workflow="store_samples", context=context, formdata=request.form)
     
     if not form.validate():
         return form.make_response()
 
-    check_request_ids = []
-    for i, row in form.sample_table.iterrows():
-        if (sample := db.samples.get(row["id"])) is None:
-            logger.error(f"Sample {row['id']} not found")
-            raise ValueError(f"Sample {row['id']} not found")
-            
+    check_request_ids: set[int] = set()
+    for sample in form.get_samples():            
         sample.status = SampleStatus.STORED
         sample.timestamp_stored_utc = datetime.now()
         for library_link in sample.library_links:
             if library_link.library.seq_request.status == SeqRequestStatus.ACCEPTED:
-                if library_link.library.seq_request.id not in check_request_ids:
-                    check_request_ids.append(library_link.library.seq_request.id)
+                check_request_ids.add(library_link.library.seq_request.id)
         db.samples.update(sample)
 
-    for i, row in form.library_table.iterrows():
-        if (library := db.libraries.get(row["id"])) is None:
-            logger.error(f"Library {row['id']} not found")
-            raise ValueError(f"Library {row['id']} not found")
-        
+    for library in form.get_libraries():        
         if library.seq_request_id not in check_request_ids:
-            check_request_ids.append(library.seq_request_id)
+            check_request_ids.add(library.seq_request_id)
         
         if library.is_pooled():
             library.status = LibraryStatus.POOLED
@@ -84,13 +75,9 @@ def select(current_user: models.User):
         library.timestamp_stored_utc = datetime.now()
         db.libraries.update(library)
 
-    for i, row in form.pool_table.iterrows():
-        if (pool := db.pools.get(row["id"])) is None:
-            logger.error(f"Pool {row['id']} not found")
-            raise ValueError(f"Pool {row['id']} not found")
-        
-        if pool.seq_request_id is not None and pool.seq_request_id not in check_request_ids:
-            check_request_ids.append(pool.seq_request_id)
+    for pool in form.get_pools():
+        if pool.seq_request_id is not None:
+            check_request_ids.add(pool.seq_request_id)
 
         pool.status = PoolStatus.STORED
         pool.timestamp_stored_utc = datetime.now()
@@ -100,7 +87,7 @@ def select(current_user: models.User):
         if (seq_request := db.seq_requests.get(_srid)) is None:
             logger.error(f"SeqRequest {_srid} not found")
             raise Exception(f"SeqRequest {_srid} not found")
-        
+
         if seq_request.submission_type == SubmissionType.RAW_SAMPLES:
             all_samples_stored = True
             for sample in seq_request.samples:
@@ -116,8 +103,10 @@ def select(current_user: models.User):
             for pool in seq_request.pools:
                 all_pools_stored = pool.status >= PoolStatus.STORED and all_pools_stored
                 if not all_pools_stored:
+                    logger.info(f"Pool {pool.id} status: {pool.status} not stored")
                     break
             if all_pools_stored:
+                logger.info(f"All pools for SeqRequest {seq_request.id} are stored")
                 seq_request.status = SeqRequestStatus.PREPARED
                 db.seq_requests.update(seq_request)
 
@@ -132,7 +121,7 @@ def select(current_user: models.User):
                 db.seq_requests.update(seq_request)
 
     flash("Samples Stored!", "success")
-    if seq_request is not None:
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
+    if _seq_request is not None:
+        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=_seq_request.id))
     
     return make_response(redirect=url_for("dashboard"))

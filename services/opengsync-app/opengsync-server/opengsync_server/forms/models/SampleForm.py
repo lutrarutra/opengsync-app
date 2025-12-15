@@ -34,7 +34,7 @@ class SampleForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        if (error := utils.check_string(self.name.data)):
+        if (error := utils.check_string(self.name.data, allowed_special_characters=["_", "."])):
             self.name.errors = (error,)
             return False
         

@@ -9,7 +9,7 @@
                 {{
                     table_col(
                         table_container_id='lab_prep-sample-table', column_name='ID', column_var='id',
-                        sort_url='lab_preps_htmx.get_samples', context={'lab_prep_id': lab_prep.id},
+                        sort_url='samples_htmx.get', context={'lab_prep_id': lab_prep.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='lab_preps_htmx.table_query', current_query=current_query,
                         active_query_field=active_query_field, query_type="number",
@@ -18,7 +18,7 @@
                 {{
                     table_col(
                         table_container_id='lab_prep-sample-table', column_name='Name', column_var='name',
-                        sort_url='lab_preps_htmx.get_samples', context={'lab_prep_id': lab_prep.id},
+                        sort_url='samples_htmx.get', context={'lab_prep_id': lab_prep.id},
                         sort_by=sort_by, sort_order=sort_order,
                         query_url='lab_preps_htmx.table_query', current_query=current_query,
                         active_query_field=active_query_field, col_size=4
@@ -27,7 +27,7 @@
                 {{
                     table_col(
                         table_container_id='lab_prep-sample-table', column_name='Status', column_var='status_id',
-                        sort_url='lab_preps_htmx.get_samples', context={'lab_prep_id': lab_prep.id},
+                        sort_url='samples_htmx.get', context={'lab_prep_id': lab_prep.id},
                         sort_by=sort_by, sort_order=sort_order, col_size=3,
                         multiselect_choices=SampleStatus.as_list(), multiselect_selected=status_in
                     )
@@ -35,7 +35,7 @@
                 {{
                     table_col(
                         table_container_id='lab_prep-sample-table', column_name='Owner', column_var='owner_id',
-                        sort_url='lab_preps_htmx.get_samples', context={'lab_prep_id': lab_prep.id},
+                        sort_url='samples_htmx.get', context={'lab_prep_id': lab_prep.id},
                         sort_by=sort_by, sort_order=sort_order,
                         col_size=3
                     )
@@ -54,5 +54,5 @@
         </tbody>
     </table>
     {{ spinner("lab_prep-sample-table-spinner") }}
-    {{ pagination("lab_prep-sample-table", "lab_preps_htmx.get_samples", n_pages, active_page, context={ "lab_prep_id":lab_prep.id }) }}
+    {{ pagination("lab_prep-sample-table", "samples_htmx.get", n_pages, active_page, context={ "lab_prep_id":lab_prep.id }) }}
 </div>
