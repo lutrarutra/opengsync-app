@@ -7,7 +7,7 @@ from .Base import Base
 from . import links
 from ..categories import GroupType, GroupTypeEnum, AffiliationType
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 if TYPE_CHECKING:
     from .Project import Project
     from .SeqRequest import SeqRequest
@@ -34,6 +34,8 @@ class Group(Base):
         viewonly=True,
         lazy="select",
     )
+
+    sortable_fields: ClassVar[list[str]] = ["id", "type_id", "num_users", "num_seq_requests", "num_projects"]
 
     @hybrid_property
     def num_projects(self) -> int:  # type: ignore[override]

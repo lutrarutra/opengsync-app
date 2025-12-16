@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -8,39 +8,12 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='seq_request-sample-table', column_name='ID', column_var='id',
-                        sort_url='samples_htmx.get', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        active_query_field=active_query_field, query_type="number", col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-sample-table', column_name='Name', column_var='name',
-                        sort_url='samples_htmx.get', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        active_query_field=active_query_field, query_type="string", col_size=3
-                    )
-                }}
+                {{ table_col2("seq_request-sample-table", table, "id") }}
+                {{ table_col2("seq_request-sample-table", table, "name") }}
                 {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
-                {{
-                    table_col(
-                        table_container_id='seq_request-samples-table', column_name='Status', column_var='status_id',
-                        sort_url='samples_htmx.get', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=SampleStatus.as_list(), multiselect_selected=status_in
-                    )
-                }}
+                {{ table_col2("seq_request-sample-table", table, "status") }}
                 {% endif %}
-                {{
-                    table_col(
-                        table_container_id='seq_request-samples-table', column_name='Project', column_var='project_id',
-                        sort_url='samples_htmx.get', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                    )
-                }}
+                {{ table_col2("seq_request-sample-table", table, "project") }}
                 <th scope="col" class="col-4">Library Types</th>
             </tr>
         </thead>
@@ -53,7 +26,7 @@
                     context_menu([
                         {"type": "copy", "value": sample.name, "label": "Copy Name"},
                         {"type": "hxdelete", "label": "Remove Sample", "disabled": false if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_admin() else true, "config": {
-                            "url": url_for("seq_requests_htmx.remove_sample", seq_request_id=seq_request.id, sample_id=sample.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
+                            "url": url_for("seq_requests_htmx.remove_sample", sample_id=sample.id, **table.get_state()),
                             "target": "#seq_request-sample-table",
                             "text": "This will remove all libraries associated with the sample. If sample is multiplexed, all other multiplexed samples in the associated libraries will be removed. Are you sure?",
                             "title": "Remove {sample.name} from {seq_request.name}?".format(sample=sample, seq_request=seq_request)
@@ -81,5 +54,5 @@
         </tbody>
     </table>
     {{ spinner("seq_request-sample-table-spinner") }}
-    {{ pagination("seq_request-sample-table", "samples_htmx.get", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
+    {{ pagination2("seq_request-sample-table", table) }}
 </div>

@@ -22,7 +22,6 @@ def get(current_user: models.User):
     context = logic.tables.render_project_table(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
-
 @wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
 def query(current_user: models.User):
     field_name = next(iter(request.form.keys()))
@@ -208,52 +207,6 @@ def table_query(current_user: models.User):
 
 
 @wrappers.htmx_route(projects_htmx, db=db)
-def get_experiments(current_user: models.User, project_id: int, page: int = 0):
-    if (project := db.projects.get(project_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.VIEW:
-        raise exceptions.NoPermissionsException()
-
-    if not current_user.is_insider() and project.owner_id != current_user.id:
-        affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=project.group_id) if project.group_id else None
-        if affiliation is None:
-            raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = page * PAGE_LIMIT
-
-    if sort_by not in models.SeqRequest.sortable_fields:
-        raise exceptions.BadRequestException()
-
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [ExperimentStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-    
-    experiments, n_pages = db.experiments.find(
-        offset=offset, project_id=project_id, sort_by=sort_by, descending=descending, status_in=status_in, count_pages=True
-    )
-    return make_response(
-        render_template(
-            "components/tables/project-experiment.html",
-            experiments=experiments,
-            n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order,
-            project=project, status_in=status_in
-        )
-    )
-
-
-@wrappers.htmx_route(projects_htmx, db=db)
 def get_data_paths(current_user: models.User, project_id: int, page: int = 0):
     if (project := db.projects.get(project_id)) is None:
         raise exceptions.NotFoundException()
@@ -287,40 +240,6 @@ def get_data_paths(current_user: models.User, project_id: int, page: int = 0):
             project=project, type_in=type_in
         )
     )
-
-
-@wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
-def query_samples(current_user: models.User, project_id: int, field_name: str):
-    if (word := request.form.get(field_name)) is None:
-        raise exceptions.BadRequestException()
-    
-    if (project := db.projects.get(project_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.VIEW:
-        raise exceptions.NoPermissionsException()
-    
-    samples = []
-    if field_name == "name":
-        samples = db.samples.query(word, project_id=project_id)
-    elif field_name == "id":
-        try:
-            if (sample := db.samples.get(int(word))) is not None:
-                if sample.project_id == project_id:
-                    samples = [sample]
-        except ValueError:
-            samples = []
-    else:
-        raise exceptions.BadRequestException()
-
-    return make_response(
-        render_template(
-            "components/tables/project-sample.html",
-            samples=samples, field_name=field_name, project=project
-        )
-    )
-
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_sample_attributes(current_user: models.User, project_id: int):
@@ -390,7 +309,7 @@ def edit_sample_attributes(current_user: models.User, project_id: int):
 
 
 @wrappers.htmx_route(projects_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
-def get_recent_projects(current_user: models.User, page: int = 0):
+def get_recent(current_user: models.User, page: int = 0):
     PAGE_LIMIT = 10
     status_in = None
     if current_user.is_insider():

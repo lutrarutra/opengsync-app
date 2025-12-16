@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, ClassVar
 
 import sqlalchemy as sa
 from sqlalchemy import orm
@@ -44,6 +44,8 @@ class LabPrep(Base):
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="lab_prep", lazy="select")
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
+
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "checklist_type_id", "service_type_id", "status_id", "num_libraries", "num_samples", "num_pools"]
 
     def get_checklist(self) -> dict:
         if orm.object_session(self) is None:

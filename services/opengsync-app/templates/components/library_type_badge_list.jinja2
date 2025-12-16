@@ -1,7 +1,9 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+
 {% macro library_type_badge_list(library_types) %}
 <div class="scroll-container">
     {% for library_type in library_types %}
-    <span class="badge">{{ library_type.identifier }}</span>
+    <span class="badge" {{ tooltip(library_type.name) }}>{{ library_type.identifier }}</span>
     {% endfor %}
 </div>
 {% endmacro %}

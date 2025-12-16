@@ -12,7 +12,7 @@ from ...categories import (
     SeqRequestStatus, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum,
     PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType,
     SubmissionTypeEnum, AccessType, AccessTypeEnum, SubmissionType,
-    ProjectStatus, UserRole
+    ProjectStatus, UserRole, LibraryTypeEnum
 )
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -22,10 +22,12 @@ class SeqRequestBP(DBBlueprint):
     @classmethod
     def where(
         cls,
-        query: Query, status: Optional[SeqRequestStatusEnum] = None,
-        status_in: Optional[list[SeqRequestStatusEnum]] = None,
-        submission_type: Optional[SubmissionTypeEnum] = None,
-        submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
+        query: Query,
+        status: SeqRequestStatusEnum | None = None,
+        status_in: list[SeqRequestStatusEnum] | None = None,
+        submission_type: SubmissionTypeEnum | None = None,
+        submission_type_in: list[SubmissionTypeEnum] | None = None,
+        library_types_in: list[LibraryTypeEnum] | None = None,
         show_drafts: bool = True, user_id: int | None = None,
         project_id: int | None = None,
         group_id: int | None = None,
@@ -62,6 +64,14 @@ class SeqRequestBP(DBBlueprint):
             submission_type_ids = [submission_type.id for submission_type in submission_type_in]
             query = query.where(
                 models.SeqRequest.submission_type_id.in_(submission_type_ids)  # type: ignore
+            )
+
+        if library_types_in is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.Library.seq_request_id == models.SeqRequest.id) &
+                    (models.Library.type_id.in_([lt.id for lt in library_types_in]))  # type: ignore
+                )
             )
 
         if not show_drafts:
@@ -172,25 +182,30 @@ class SeqRequestBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        status: Optional[SeqRequestStatusEnum] = None,
-        status_in: Optional[list[SeqRequestStatusEnum]] = None,
-        submission_type: Optional[SubmissionTypeEnum] = None,
-        submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
+        status: SeqRequestStatusEnum | None = None,
+        status_in: list[SeqRequestStatusEnum] | None = None,
+        submission_type: SubmissionTypeEnum | None = None,
+        submission_type_in: list[SubmissionTypeEnum] | None = None,
+        library_types_in: list[LibraryTypeEnum] | None = None,
         show_drafts: bool = True,
         user_id: int | None = None,
         project_id: int | None = None,
         group_id: int | None = None,
+        id: int | None = None,
+        name: str | None = None,
+        requestor_name: str | None = None,
+        group: str | None = None,
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
-        count_pages: bool = False,
+        page: int | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.SeqRequest], int | None]:
         query = self.db.session.query(models.SeqRequest)
         query = SeqRequestBP.where(
             query, status_in=status_in, submission_type_in=submission_type_in, submission_type=submission_type,
             show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status, project_id=project_id,
-            custom_query=custom_query
+            custom_query=custom_query, library_types_in=library_types_in
         )
         if options is not None:
             query = query.options(options)
@@ -202,7 +217,34 @@ class SeqRequestBP(DBBlueprint):
 
             query = query.order_by(sa.nulls_last(attr))
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        if name is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.SeqRequest.name, name).desc()))
+        elif requestor_name is not None:
+            query = query.join(
+                models.User,
+                models.User.id == models.SeqRequest.requestor_id
+            ).order_by(
+                sa.nulls_last(sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, requestor_name).desc())
+            )
+        elif group is not None:
+            query = query.join(
+                models.Group,
+                models.Group.id == models.SeqRequest.group_id
+            ).order_by(
+                sa.nulls_last(sa.func.similarity(models.Group.name, group).desc())
+            )
+        elif id is not None:
+            query = query.where(models.SeqRequest.id == id)
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
+        else:
+            n_pages = None
 
         if offset is not None:
             query = query.offset(offset)

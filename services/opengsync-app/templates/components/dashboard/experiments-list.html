@@ -4,7 +4,7 @@
 {% for experiment in experiments %}
 <div class="element-banner"
 {% if loop.last and limit == loop.index %}
-hx-get="{{ url_for('experiments_htmx.get_recent_experiments', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#experiments-htmx-indicator" hx-swap="outerHTML" hx-indicator="#experiments-htmx-indicator"
+hx-get="{{ url_for('experiments_htmx.get_recent', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#experiments-htmx-indicator" hx-swap="outerHTML" hx-indicator="#experiments-htmx-indicator"
 {% endif %}>
     <div class="row pb-1">
         <div class="title col-4"><a href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}">{{ experiment.name }}</a></div>

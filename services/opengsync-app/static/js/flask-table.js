@@ -30,13 +30,14 @@ function get_table_filters(table_container_id) {
 
 function get_table_sort(table_container_id) {
     var sort = {};
-    $(`#${table_container_id} .sortable-col`).each(function() {
-        var field_name = $(this).attr("field");
-        if ($(this).attr("is-current-sort") === "true") {
-            sort["sort_by"] = field_name;
-            sort["sort_order"] = $(this).attr("sort-order");
-        }
-    });
+    
+    const sorting_col = $(`#${table_container_id} .sortable-col.current-sort-col`).first();
+
+    if (sorting_col.length === 0) {
+        return sort;
+    }
+    sort["sort_by"] = sorting_col.data("sort_by");
+    sort["sort_order"] = sorting_col.data("sort_order");
     return sort;
 }
 

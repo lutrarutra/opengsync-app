@@ -9,7 +9,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.core import units
-from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow, ProjectStatus, DataPathType
+from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow, DataPathType
 
 from ... import db, forms, logger, logic
 from ...core.RunTime import runtime
@@ -21,47 +21,9 @@ experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/htmx/exp
 
 
 @wrappers.htmx_route(experiments_htmx, db=db)
-def get(page: int = 0):
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
-
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [ExperimentStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-
-    if (workflow_in := request.args.get("workflow_id_in")) is not None:
-        workflow_in = json.loads(workflow_in)
-        try:
-            workflow_in = [ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(workflow_in) == 0:
-            workflow_in = None
-
-    experiments, n_pages = db.experiments.find(
-        offset=offset, sort_by=sort_by, descending=descending,
-        status_in=status_in, workflow_in=workflow_in, count_pages=True
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/experiment.html",
-            experiments=experiments,
-            n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order,
-            ExperimentStatus=ExperimentStatus, status_in=status_in,
-            ExperimentWorkFlow=ExperimentWorkFlow, workflow_in=workflow_in
-        )
-    )
+def get(current_user: models.User):
+    context = logic.tables.render_experiment_table(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(experiments_htmx, db=db)
@@ -533,27 +495,6 @@ def get_data_paths(current_user: models.User, experiment_id: int, page: int = 0)
 
 
 @wrappers.htmx_route(experiments_htmx, db=db)
-def query_libraries(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    if (word := request.args.get("word")) is None:
-        raise exceptions.BadRequestException()
-    
-    if (experiment := db.experiments.get(experiment_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    libraries = db.libraries.query(experiment_id=experiment_id, name=word)
-
-    return make_response(
-        render_template(
-            "components/tables/experiment-library.html",
-            libraries=libraries, experiment=experiment
-        )
-    )
-
-
-@wrappers.htmx_route(experiments_htmx, db=db)
 def get_comments(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
@@ -612,7 +553,7 @@ def get_pool_dilutions(current_user: models.User, experiment_id: int, page: int 
 
 
 @wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
-def get_recent_experiments(current_user: models.User, page: int = 0):
+def get_recent(current_user: models.User, page: int = 0):
     PAGE_LIMIT = 10
     
     if not current_user.is_insider():
@@ -707,8 +648,8 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
             workflow_in = None
 
     experiments, n_pages = db.experiments.find(
-        offset=offset, sort_by=sort_by, descending=descending,
-        status_in=status_in, workflow_in=workflow_in, count_pages=True
+        sort_by=sort_by, descending=descending,
+        status_in=status_in, workflow_in=workflow_in, page=page
     )
 
     context["workflow"] = workflow

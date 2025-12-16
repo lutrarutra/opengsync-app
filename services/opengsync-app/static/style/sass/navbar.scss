@@ -4,6 +4,36 @@
 $navbar-color: $cemm-blue;
 $navbar-active-color: $cemm-blue-darker;
 
+nav#navbar.admin {
+    background-color: $cemm-red !important;
+    .nav-item {
+        a.active {
+            background-color: $cemm-red-darker !important;
+        }
+        a:hover {
+            transition: all 0.2s ease-in-out;
+            background-color: $cemm-red-darker !important;
+        }
+    }
+    .nav-item-dropdown {
+        ul {
+            li {
+                background-color: $cemm-red !important;
+            }
+            li:hover {
+                transition: all 0.2s ease-in-out;
+                background-color: $cemm-red-darker !important;
+            }
+        }
+        &:has(.active) {
+            background-color: $cemm-red-darker !important;
+        }
+    }
+    .login-btn {
+        background-color: $cemm-red-dark !important;
+    }
+}
+
 nav#navbar {
     width: 100vw;
     height: 60px;

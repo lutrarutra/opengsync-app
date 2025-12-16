@@ -180,17 +180,20 @@ class LibraryBP(DBBlueprint):
         sample_id: int | None = None,
         experiment_id: int | None = None,
         seq_request_id: int | None = None,
-        service_type: Optional[ServiceTypeEnum] = None,
+        service_type: ServiceTypeEnum | None = None,
         pool_id: int | None = None,
         lab_prep_id: int | None = None,
         in_lab_prep: Optional[bool] = None,
         project_id: int | None = None,
-        type_in: Optional[list[LibraryTypeEnum]] = None,
-        status_in: Optional[list[LibraryStatusEnum]] = None,
-        pooled: Optional[bool] = None,
-        status: Optional[LibraryStatusEnum] = None,
+        type_in: list[LibraryTypeEnum] | None = None,
+        status_in: list[LibraryStatusEnum] | None = None,
+        pooled: bool | None = None,
+        status: LibraryStatusEnum | None = None,
+        name: str | None = None,
+        id: int | None = None,
+        pool_name: str | None = None,
         custom_query: Callable[[Query], Query] | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         page: int | None = None,
         options: ExecutableOption | None = None,
@@ -215,6 +218,20 @@ class LibraryBP(DBBlueprint):
                 attr = attr.desc()
             query = query.order_by(attr)
 
+        if id is not None:
+            query = query.filter(models.Library.id == id)
+        elif name is not None:
+            query = query.order_by(
+                sa.func.similarity(models.Library.name, name).desc()
+            )
+        elif pool_name is not None:
+            query = query.join(
+                models.Pool,
+                models.Pool.id == models.Library.pool_id
+            ).order_by(
+                sa.func.similarity(models.Pool.name, pool_name).desc()
+            )
+
         if page is not None:
             if limit is None:
                 raise ValueError("Limit must be provided when page is provided")
@@ -224,7 +241,7 @@ class LibraryBP(DBBlueprint):
             query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
         else:
             n_pages = None
-            
+
         if offset is not None:
             query = query.offset(offset)
 

@@ -6,7 +6,7 @@ from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import Query
 
 from ... import models, PAGE_LIMIT
-from ...categories import ProjectStatus, ProjectStatusEnum, AccessType, AccessTypeEnum, UserRole
+from ...categories import ProjectStatus, ProjectStatusEnum, AccessType, AccessTypeEnum, UserRole, LibraryTypeEnum
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 
@@ -21,6 +21,7 @@ class ProjectBP(DBBlueprint):
         group_id: int | None = None,
         status: Optional[ProjectStatusEnum] = None,
         status_in: Optional[list[ProjectStatusEnum]] = None,
+        library_types_in: list[LibraryTypeEnum] | None = None,
         user_id: int | None = None,
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
@@ -65,6 +66,16 @@ class ProjectBP(DBBlueprint):
 
         if status_in is not None:
             query = query.where(models.Project.status_id.in_([s.id for s in status_in]))
+
+        if library_types_in is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.Sample.project_id == models.Project.id) &
+                    (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                    (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                    (models.Library.type_id.in_([lt.id for lt in library_types_in]))
+                )
+            )
 
         if custom_query is not None:
             query = custom_query(query)
@@ -125,10 +136,16 @@ class ProjectBP(DBBlueprint):
         group_id: int | None = None,
         status: Optional[ProjectStatusEnum] = None,
         status_in: Optional[list[ProjectStatusEnum]] = None,
+        library_types_in: list[LibraryTypeEnum] | None = None,
         user_id: int | None = None,
+        title: str | None = None,
+        id: int | None = None,
+        identifier: str | None = None,
+        identifier_title: str | None = None,
+        owner_name: str | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False,
+        page: int | None = None,
         custom_query: Callable[[Query], Query] | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.Project], int | None]:
@@ -137,7 +154,7 @@ class ProjectBP(DBBlueprint):
             query, seq_request_id=seq_request_id,
             group_id=group_id, status=status,
             status_in=status_in, user_id=user_id, experiment_id=experiment_id,
-            custom_query=custom_query
+            custom_query=custom_query, library_types_in=library_types_in
         )
 
         if options is not None:
@@ -145,12 +162,37 @@ class ProjectBP(DBBlueprint):
 
         if sort_by is not None:
             attr = getattr(models.Project, sort_by)
-
             if descending:
                 attr = attr.desc()
             query = query.order_by(sa.nulls_last(attr))
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        if identifier is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.Project.identifier, identifier).desc()))
+        elif title is not None:
+            query = query.order_by(sa.func.similarity(models.Project.title, title).desc())
+        elif id is not None:
+            query = query.where(models.Project.id == id)
+        elif identifier_title is not None:
+            query = query.order_by(
+                sa.nulls_last(sa.func.greatest(
+                    sa.func.similarity(models.Project.title, identifier_title),
+                    sa.func.similarity(models.Project.identifier, identifier_title)
+                ).desc())
+            )
+        elif owner_name is not None:
+            query = query.join(models.User, models.Project.owner_id == models.User.id).order_by(
+                sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, owner_name).desc()
+            )
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
+        else:
+            n_pages = None
 
         if offset is not None:
             query = query.offset(offset)

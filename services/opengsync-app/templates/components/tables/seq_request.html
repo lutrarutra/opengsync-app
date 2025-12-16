@@ -1,6 +1,6 @@
 {% from "components/pagination.jinja2" import pagination %}
 {% from "components/tooltip.jinja2" import tooltip %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
@@ -9,53 +9,13 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='seq_request-table', column_name='ID', column_var='id',
-                        sort_url='seq_requests_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='seq_requests_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number", col_size=1,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-table', column_name='Name', column_var='name',
-                        sort_url='seq_requests_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='seq_requests_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, col_size=4,
-                    )
-                }}
-                <th scope="col" class="col-2">Library Types</th>
-                {{
-                    table_col(
-                        table_container_id='seq_request-table', column_name='Status', column_var='status_id',
-                        sort_url='seq_requests_htmx.get', context={}, multiselect_choices=SeqRequestStatus.as_list(),
-                        sort_by=sort_by, sort_order=sort_order, col_size=1, multiselect_selected=status_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-table', column_name='Type', column_var='submission_type_id',
-                        sort_url='seq_requests_htmx.get', context={}, multiselect_choices=SubmissionType.as_list(),
-                        sort_by=sort_by, sort_order=sort_order, col_size=1, multiselect_selected=submission_type_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-table', column_name='Group', column_var='group_id',
-                        sort_url='seq_requests_htmx.get', context={}, sort_by=sort_by, sort_order=sort_order, col_size=1,
-                        query_url='seq_requests_htmx.table_query', current_query=current_query, active_query_field=active_query_field
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-table', column_name='Requestor', column_var='requestor_id',
-                        sort_url='seq_requests_htmx.get', context={}, sort_by=sort_by, sort_order=sort_order, col_size=1,
-                        query_url='seq_requests_htmx.table_query', current_query=current_query, active_query_field=active_query_field
-                    )
-                }}
+                {{ table_col2("seq_request-table", table, "id") }}
+                {{ table_col2("seq_request-table", table, "name") }}
+                {{ table_col2("seq_request-table", table, "library_types") }}
+                {{ table_col2("seq_request-table", table, "status") }}
+                {{ table_col2("seq_request-table", table, "submission_type") }}
+                {{ table_col2("seq_request-table", table, "group") }}
+                {{ table_col2("seq_request-table", table, "requestor") }}
             </tr>
         </thead>
         <tbody>

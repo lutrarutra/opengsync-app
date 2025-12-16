@@ -1,63 +1,18 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/spinner.jinja2" import spinner %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/table_col.jinja2" import table_col2 %}
 
 <div id="lab_prep-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='lab_prep-table', column_name='ID', column_var='id',
-                        sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=1, query_url='lab_preps_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number"
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='lab_prep-table', column_name='Name', column_var='name',
-                        sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=3, query_url='lab_preps_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text"
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='lab_prep-table', column_name='Checklist', column_var='checklist_type_id',
-                        sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=2, multiselect_choices=LabChecklistType.as_list(), multiselect_selected=checklist_type_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='lab_prep-table', column_name='Status', column_var='status_id',
-                        sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=2, multiselect_choices=PrepStatus.as_list(), multiselect_selected=status_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='lab_prep-table', column_name='Creator', column_var='creator_id',
-                        sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=2, query_url='lab_preps_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text"
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='lab_prep-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=1,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='lab_prep-table', column_name='# Samples', column_var='num_samples',
-                        sort_url='lab_preps_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=1,
-                    )
-                }}
+                {{ table_col2("lab_prep-table", table, "id") }}
+                {{ table_col2("lab_prep-table", table, "name") }}
+                {{ table_col2("lab_prep-table", table, "checklist") }}
+                {{ table_col2("lab_prep-table", table, "status") }}
+                {{ table_col2("lab_prep-table", table, "creator") }}
+                {{ table_col2("lab_prep-table", table, "num_libraries") }}
+                {{ table_col2("lab_prep-table", table, "num_samples") }}
             </tr>
         </thead>
         <tbody>
@@ -75,5 +30,5 @@
         </tbody>
     </table>
     {{ spinner("lab_prep-table-spinner") }}
-    {{ pagination("lab_prep-table", "lab_preps_htmx.get", n_pages, active_page) }}
+    {{ pagination2("lab_prep-table", table) }}
 </div>

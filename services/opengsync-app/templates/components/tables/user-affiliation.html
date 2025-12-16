@@ -1,29 +1,14 @@
 {% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="user-affiliation-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='user-affiliation-table', column_name='ID', column_var='group_id',
-                        sort_url='users_htmx.get_affiliations', context={"user_id": user.id}, sort_by=sort_by, sort_order=sort_order
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='user-affiliation-table', column_name='Group', column_var='group_id',
-                        sort_url='users_htmx.get_affiliations', context={"user_id": user.id}, sort_by=sort_by, sort_order=sort_order, col_size=4,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='user-affiliation-table', column_name='Affiliation Type', column_var='affiliation_type_id',
-                        sort_url='users_htmx.get_affiliations', context={"user_id": user.id}, sort_by=sort_by, sort_order=sort_order, col_size=3,
-                    )
-                }}
+                {{ table_col2("user-affiliation-table", table, "id") }}
+                {{ table_col2("user-affiliation-table", table, "group_name") }}
+                {{ table_col2("user-affiliation-table", table, "email") }}
             </tr>
         </thead>
         <tbody>

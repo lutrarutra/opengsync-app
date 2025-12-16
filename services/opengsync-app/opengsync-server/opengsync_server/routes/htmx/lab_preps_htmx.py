@@ -15,7 +15,7 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import LabChecklistType, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType, SampleStatus
 
-from ... import db, forms, logger
+from ... import db, forms, logger, logic
 from ...core import wrappers, exceptions
 from ...core.RunTime import runtime
 from ...tools.spread_sheet_components import TextColumn
@@ -26,44 +26,9 @@ lab_preps_htmx = Blueprint("lab_preps_htmx", __name__, url_prefix="/htmx/lab_pre
 
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
-def get(current_user: models.User, page: int = 0):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
-
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [PrepStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-
-    if (protocol_in := request.args.get("protocol_id_in")) is not None:
-        protocol_in = json.loads(protocol_in)
-        try:
-            protocol_in = [LabChecklistType.get(int(protocol_)) for protocol_ in protocol_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(protocol_in) == 0:
-            protocol_in = None
-
-    lab_preps, n_pages = db.lab_preps.find(
-        status_in=status_in, checklist_type_in=protocol_in,
-        offset=offset, limit=PAGE_LIMIT, sort_by=sort_by, descending=descending, count_pages=True
-    )
-    
-    return render_template(
-        "components/tables/lab_prep.html", lab_preps=lab_preps, n_pages=n_pages, active_page=page,
-        sort_by=sort_by, sort_order=sort_order, status_in=status_in, protocol_in=protocol_in,
-    )
+def get(current_user: models.User):
+    context = logic.tables.render_lab_prep_table(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
@@ -119,45 +84,19 @@ def table_query():
     )
 
 
-@wrappers.htmx_route(lab_preps_htmx, db=db)
-def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    if form_type not in ["create", "edit"]:
-        raise exceptions.BadRequestException()
-    
-    if (lab_prep_id := request.args.get("lab_prep_id")) is not None:
-        try:
-            lab_prep_id = int(lab_prep_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if form_type != "edit":
-            raise exceptions.BadRequestException()
-        
-        if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        return forms.models.LabPrepForm(form_type=form_type, lab_prep=lab_prep).make_response()
-    
-    # seq_request_id must be provided if form_type is "edit"
-    if form_type == "edit":
-        raise exceptions.BadRequestException()
-
-    return forms.models.LabPrepForm(form_type=form_type).make_response()
-
-
-@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
+    
+    if request.method == "GET":
+        return forms.models.LabPrepForm(form_type="create").make_response()
     
     form = forms.models.LabPrepForm(formdata=request.form, form_type="create")
     return form.process_request(current_user)
 
 
-@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
@@ -165,8 +104,10 @@ def edit(current_user: models.User, lab_prep_id: int):
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         raise exceptions.NotFoundException()
     
-    form = forms.models.LabPrepForm(formdata=request.form, form_type="edit", lab_prep=lab_prep)
-    return form.process_request(current_user)
+    if request.method == "GET":
+        return forms.models.LabPrepForm( form_type="edit", lab_prep=lab_prep).make_response()
+        
+    return forms.models.LabPrepForm(formdata=request.form, form_type="edit", lab_prep=lab_prep).process_request(current_user)
 
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
@@ -232,7 +173,7 @@ def uncomplete(current_user: models.User, lab_prep_id: int):
 
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"], arg_params=["library_id"])
-def remove_library(current_user: models.User, lab_prep_id: int, library_id: int, page: int = 0):
+def remove_library(current_user: models.User, lab_prep_id: int, library_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
@@ -244,18 +185,9 @@ def remove_library(current_user: models.User, lab_prep_id: int, library_id: int,
     
     db.lab_preps.remove_library(lab_prep_id=lab_prep.id, library_id=library_id)
 
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-
-    libraries, n_pages = db.libraries.find(page=page, limit=PAGE_LIMIT, lab_prep_id=lab_prep_id, sort_by=sort_by, descending=descending)
-    return make_response(
-        render_template(
-            "components/tables/lab_prep-library.html",
-            libraries=libraries, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, lab_prep=lab_prep
-        )
-    )
+    flash("Library Removed!.", "success")
+    context = logic.tables.render_library_table(current_user=current_user, request=request, lab_prep=lab_prep)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET"])

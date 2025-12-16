@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -9,47 +9,11 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='seq_request-library-table', column_name='ID', column_var='id',
-                        sort_url='libraries_htmx.get', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='seq_requests_htmx.query_libraries', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number", col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-library-table', column_name='Name', column_var='name',
-                        sort_url='libraries_htmx.get', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='seq_requests_htmx.query_libraries', current_query=current_query,
-                        active_query_field=active_query_field, col_size=3
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-library-table', column_name='Pool', column_var='pool_id',
-                        sort_url='libraries_htmx.get', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-library-table', column_name='Library Type', column_var='type_id',
-                        sort_url='libraries_htmx.get', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=LibraryType.as_list(), multiselect_selected=type_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_request-library-table', column_name='Status', column_var='status_id',
-                        sort_url='libraries_htmx.get', context={"seq_request_id": seq_request.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1,
-                        multiselect_choices=LibraryStatus.as_list(), multiselect_selected=status_in
-                    )
-                }}
+                {{ table_col2("seq_request-library-table", table, "id") }}
+                {{ table_col2("seq_request-library-table", table, "name") }}
+                {{ table_col2("seq_request-library-table", table, "pool_name") }}
+                {{ table_col2("seq_request-library-table", table, "type") }}
+                {{ table_col2("seq_request-library-table", table, "status") }}
                 <th scope="col" class="col-3">
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
@@ -68,12 +32,12 @@
                     context_menu([
                         {"type": "copy", "value": library.name, "label": "Copy Name"},
                         {"type": "hxdelete", "label": "Remove Library", "disabled": false if current_user.is_admin() or seq_request.status == SeqRequestStatus.DRAFT or (library.status < LibraryStatus.SEQUENCED and current_user.is_insider())  else true, "config": {
-                            "url": url_for('seq_requests_htmx.remove_library', seq_request_id=seq_request.id, library_id=library.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
+                            "url": url_for('seq_requests_htmx.remove_library', library_id=library.id, **table.get_state()),
                             "target": "#seq_request-library-table",
                             "title": "Remove {library.name} from {seq_request.name}?".format(library=library, seq_request=seq_request)
                         },},
                         {"type": "hxpost", "label": "Re-Sequence Library", "disabled": false if current_user.is_insider() else true, "config": {
-                            "url": url_for('seq_requests_htmx.reseq_library', seq_request_id=seq_request.id, library_id=library.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
+                            "url": url_for('seq_requests_htmx.reseq_library', library_id=library.id, **table.get_state()),
                             "target": "#seq_request-library-table",
                             "title": "Re-Sequence {library.name} in {seq_request.name}?".format(library=library, seq_request=seq_request)
                         },},
@@ -104,5 +68,5 @@
         </tbody>
     </table>
     {{ spinner("seq_request-library-table-spinner") }}
-    {{ pagination("seq_request-library-table", "libraries_htmx.get", n_pages, active_page, context={"seq_request_id": seq_request.id}) }}
+    {{ pagination2("seq_request-library-table", table) }}
 </div>

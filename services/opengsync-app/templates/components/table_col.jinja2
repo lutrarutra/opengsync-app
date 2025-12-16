@@ -70,6 +70,76 @@ sort-order="{{ sort_order }}">
 {% endif %}
 {%- endmacro %}
 
+{% macro table_col2(table_container_id, table, var) -%}
+{% set table_col = table[var] %}
+{% set filter_values = table.filter_values.get(var, []) %}
+<th scope="col" class="col-{{ table_col.col_size }} sortable-col {{ 'query-col' if table_col.search_type else '' }} {% if table_col.sort_by and table_col.sort_by == table.active_sort_var %}current-sort-col{% endif %}"
+id="{{ table_container_id }}:{{ table_col.label }}"
+{% if table_col.label == table.active_search_var %}style="display: none;"{% endif %}
+{% if filter_values %}style="display: none;"{% endif %}
+field="{{ table_col.label }}"
+{% if table_col.sortable %}
+data-sort_by="{{ table_col.sort_by }}"
+data-sort_order="{% if table.active_sort_descending %}desc{% else %}asc{% endif %}"
+{% endif %}>
+{{ table_col.title }}
+    {% if table.url and table_col.sortable %}
+    <a class="sort-btn" type="button" role="button" id="{{ table_container_id }}:{{ table_col.sort_by }}-sort-btn"
+    onclick="table_sort('{{ table.url }}', '{{ table_container_id }}', '{{ table_col.sort_by }}')">
+        {% if table_col.sort_by == table.active_sort_var %}
+            {% if not table.active_sort_descending %}
+            <i class="bi bi-sort-down"></i>
+            {% else %}
+            <i class="bi bi-sort-down-alt"></i>
+            {% endif %}
+        {% else %}
+        <i class="bi bi-filter"></i>
+        {% endif %}
+    </a>
+    {% endif %}
+
+    {% if table_col.search_type %}
+    <a type="button" role="button" class="search-btn" onclick="show_query_col('{{ table_container_id }}:{{ table_col.label }}')">
+        <i class="bi bi-search"></i>
+    </a>
+    {% endif %}
+    {% if table_col.choices %}
+    <a type="button" role="button" class="search-btn" onclick="show_filter_col('{{ table_container_id }}:{{ table_col.label }}')">
+        <i class="bi bi-funnel"></i>
+    </a>
+    {% endif %}
+</th>
+
+{% if table_col.search_type %}
+<th scopy='col' class='col-{{ table_col.col_size }} temp-query-input' id='{{ table_container_id }}:{{ table_col.label }}-query' {% if table_col.label != table.active_search_var %}style="display: none;"{% endif %}>
+    <input type='{{ table_col.search_type }}' class='form-control table-query-input' placeholder='{{ table_col.title }}'
+    id='{{ table_container_id }}-{{ table_col.label }}-query-input' role='presentation' autocomplete='off' type='search' value="{% if table_col.label == table.active_search_var %}{{ table.active_query_value or '' }}{% endif %}">
+</th>
+<script>
+    $("#{{ table_container_id }}-{{ table_col.label }}-query-input").on("keyup", function(e) {
+        if (e.which == 13) {
+            table_query('{{ table.url }}', '{{ table_container_id }}', '{{ table_col.label }}', e.target.value);
+        }
+    });
+</script>
+{% endif %}
+
+{% if table_col.choices %}
+<th scope='col' class='col-{{ table_col.col_size }} temp-query-input' id='{{ table_container_id }}:{{ table_col.label }}-filter'
+    {% if not filter_values %}style="display: none;"{% endif %}>
+    {{
+        multi_select(
+            choices=table_col.choices,
+            field_name=table_col.label,
+            url=table.url,
+            table_container_id=table_container_id,
+            selected=filter_values,
+        )
+    }}
+</th>
+{% endif %}
+{%- endmacro %}
+
 {% macro browser_col(column_name, column_var, sort_by, sort_order, sort_url, url_context={}, col_size=1) %}
 <th class="col-{{ col_size }} sortable-col" scope="col">
     {{ column_name }}

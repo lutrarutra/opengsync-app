@@ -89,7 +89,7 @@ class SeqRequest(Base):
     )
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="seq_request", lazy="select")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "requestor_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
 
     def get_checklist(self) -> dict:
         if orm.object_session(self) is None:

@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/table_col.jinja2" import table_col, table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
@@ -8,63 +8,14 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='project-table', column_name='ID', column_var='id',
-                        sort_url='projects_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='projects_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number",
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-table', column_name='Identifier', column_var='identifier',
-                        sort_url='projects_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='projects_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-table', column_name='Title', column_var='title',
-                        sort_url='projects_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='projects_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=3
-                    )
-                }}
-                <th scope="col" class="col-2">Library Types</th>
-                {{
-                    table_col(
-                        table_container_id='project-table', column_name='Status', column_var='status_id',
-                        sort_url='projects_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
-                        multiselect_choices=ProjectStatus.as_list(), multiselect_selected=status_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-table', column_name='Group', column_var='group_id',
-                        sort_url='projects_htmx.get', context={}, sort_by=sort_by, sort_order=sort_order, col_size=2,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-table', column_name='Owner', column_var='owner_id',
-                        sort_url='projects_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1,
-                        query_url='projects_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text"
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-table', column_name='# Samples', column_var='num_samples',
-                        sort_url='projects_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
+                {{ table_col2("project-table", table, "id") }}
+                {{ table_col2("project-table", table, "identifier") }}
+                {{ table_col2("project-table", table, "title") }}
+                {{ table_col2("project-table", table, "library_types") }}
+                {{ table_col2("project-table", table, "status") }}
+                {{ table_col2("project-table", table, "group") }}
+                {{ table_col2("project-table", table, "owner_name") }}
+                {{ table_col2("project-table", table, "num_samples") }}
             </tr>
         </thead>
         <tbody>

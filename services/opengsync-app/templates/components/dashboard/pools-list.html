@@ -4,7 +4,7 @@
 {% for pool in pools %}
 <div class="element-banner"
 {% if loop.last and limit == loop.index %}
-hx-get="{{ url_for('pools_htmx.get_recent_pools', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#pools-htmx-indicator" hx-swap="outerHTML" hx-indicator="#pools-htmx-indicator"
+hx-get="{{ url_for('pools_htmx.get_recent', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#pools-htmx-indicator" hx-swap="outerHTML" hx-indicator="#pools-htmx-indicator"
 {% endif %}>
     <div class="row pb-1">
         <div class="title col-3"><a href="{{ url_for('pools_page.pool', pool_id=pool.id) }}">{{ pool.name }}</a></div>

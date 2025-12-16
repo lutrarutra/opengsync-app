@@ -218,42 +218,6 @@ def query():
     )
 
 
-@wrappers.htmx_route(pools_htmx, db=db)
-def query_libraries(current_user: models.User, pool_id: int):
-    if (word := request.args.get("name")) is not None:
-        field_name = "name"
-    elif (word := request.args.get("id")) is not None:
-        field_name = "id"
-    else:
-        raise exceptions.BadRequestException()
-    
-    if (pool := db.pools.get(pool_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    if pool.owner != current_user.id and not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-
-    libraries: list[models.Library] = []
-    if field_name == "name":
-        libraries = db.libraries.query(name=word, pool_id=pool_id)
-    elif field_name == "id":
-        try:
-            _id = int(word)
-            if (library := db.libraries.get(_id)) is not None:
-                if library.pool_id == pool_id:
-                    libraries.append(library)
-        except ValueError:
-            pass
-
-    return make_response(
-        render_template(
-            "components/tables/pool-library.html",
-            current_query=word, active_query_field=field_name,
-            pool=pool, libraries=libraries,
-        )
-    )
-
-
 @wrappers.htmx_route(pools_htmx, db=db, methods=["GET", "POST"])
 def plate_pool(current_user: models.User, pool_id: int, form_type: Literal["create", "edit"]):
     if form_type not in ["create", "edit"]:
@@ -417,7 +381,7 @@ def browse_query(current_user: models.User, workflow: str):
 
 
 @wrappers.htmx_route(pools_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
-def get_recent_pools(current_user: models.User, page: int = 0):
+def get_recent(current_user: models.User, page: int = 0):
     PAGE_LIMIT = 10
     
     if not current_user.is_insider():

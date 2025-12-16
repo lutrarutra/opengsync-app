@@ -1,47 +1,17 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="group-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='group-table', column_name='ID', column_var='id',
-                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='group-table', column_name='Name', column_var='name',
-                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=4
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='group-table', column_name='Type', column_var='type_id',
-                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='group-table', column_name='# Users', column_var='num_users',
-                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='group-table', column_name='# Requests', column_var='num_seq_requests',
-                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='group-table', column_name='# Projects', column_var='num_projects',
-                        sort_url='groups_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                    )
-                }}
+                {{ table_col2("group-table", table, "id") }}
+                {{ table_col2("group-table", table, "name") }}
+                {{ table_col2("group-table", table, "type") }}
+                {{ table_col2("group-table", table, "num_users") }}
+                {{ table_col2("group-table", table, "num_projects") }}
+                {{ table_col2("group-table", table, "num_seq_requests") }}
             </tr>
         </thead>
         <tbody>
@@ -58,5 +28,5 @@
         </tbody>
     </table>
     {{ spinner("group-table-spinner") }}
-    {{ pagination("group-table", "groups_htmx.get", n_pages, active_page) }}
+    {{ pagination2("group-table", table) }}
 </div>

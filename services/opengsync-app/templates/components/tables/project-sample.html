@@ -1,52 +1,16 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="project-sample-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='project-sample-table', column_name='ID', column_var='id',
-                        sort_url='samples_htmx.get', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='projects_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number",
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-sample-table', column_name='Name', column_var='name',
-                        sort_url='samples_htmx.get', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='projects_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, col_size=4
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-sample-table', column_name='Status', column_var='status_id',
-                        sort_url='samples_htmx.get', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=3,
-                        multiselect_choices=SampleStatus.as_list(), multiselect_selected=status_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-sample-table', column_name='Owner', column_var='owner_id',
-                        sort_url='samples_htmx.get', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=3
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-sample-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='samples_htmx.get', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1,
-                    )
-                }}
+                {{ table_col2("project-sample-table", table, "id") }}
+                {{ table_col2("project-sample-table", table, "name") }}
+                {{ table_col2("project-sample-table", table, "status") }}
+                {{ table_col2("project-sample-table", table, "owner") }}
+                {{ table_col2("project-sample-table", table, "num_libraries") }}
             </tr>
         </thead>
         <tbody>
@@ -62,5 +26,5 @@
         </tbody>
     </table>
     {{ spinner("project-sample-table-spinner") }}
-    {{ pagination("project-sample-table", "samples_htmx.get", n_pages, active_page, context={ "project_id":project.id }) }}
+    {{ pagination2("project-sample-table", table) }}
 </div>

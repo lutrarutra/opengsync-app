@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
@@ -8,38 +8,10 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id="pool-library-table", column_name="ID", column_var="id",
-                        sort_url="libraries_htmx.get", context={"pool_id": pool.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url="pools_htmx.query_libraries", current_query=current_query,
-                        active_query_field=active_query_field, query_type="number", col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id="pool-library-table", column_name="Library Name", column_var="name",
-                        sort_url="libraries_htmx.get", context={"pool_id": pool.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url="pools_htmx.query_libraries", current_query=current_query,
-                        active_query_field=active_query_field, col_size=2
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id="pool-library-table", column_name="Type", column_var="type_id",
-                        sort_url="libraries_htmx.get", context={"pool_id": pool.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id="pool-library-table", column_name="Owner", column_var="owner_id",
-                        sort_url="libraries_htmx.get", context={"pool_id": pool.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2
-                    )
-                }}
+                {{ table_col2("sample-library-table", table, "id") }}
+                {{ table_col2("sample-library-table", table, "name") }}
+                {{ table_col2("sample-library-table", table, "type") }}
+                {{ table_col2("sample-library-table", table, "seq_request") }}
                 <th scope="col" class="col-4">
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
@@ -63,7 +35,7 @@
                         {{ library.type.abbreviation }}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
                     </span>
                 </td>
-                <td><a href="{{ url_for('users_page.user', library_id=library.owner_id, from='pool@' + pool.id | string) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
+                <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=library.seq_request_id, from='pool@' + pool.id | string) }}">{{ library.seq_request.name }}</a></td>
                 <td class="x-scroll-cell">
                     {{ library_index_cell(library) }}
                 </td>
@@ -72,7 +44,7 @@
         </tbody>
     </table>
     {{ spinner("pool-library-table-spinner") }}
-    {{ pagination("pool-library-table", "libraries_htmx.get", n_pages, active_page, context={"pool_id": pool.id}) }}
+    {{ pagination2("pool-library-table", table) }}
     <script>
         var selected_library_id = null;
         var selected_library_name = null;

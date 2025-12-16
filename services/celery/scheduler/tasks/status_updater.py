@@ -31,6 +31,19 @@ def __find_seq_requests_with_stored_samples(q):
         )
     )
 
+def __find_seq_requests_with_pooled_libraries(q):
+    return q.where(
+        sa.exists().where(
+            (models.Library.seq_request_id == models.SeqRequest.id) &
+            (models.Library.status_id == categories.LibraryStatus.POOLED.id)
+        )
+    ).where(
+        ~sa.exists().where(
+            (models.Library.seq_request_id == models.SeqRequest.id) &
+            (models.Library.status_id < categories.LibraryStatus.POOLED.id)
+        )
+    )
+
 
 def __find_finished_experiments(q):
     return q.join(
@@ -200,6 +213,16 @@ def update_statuses(db: DBHandler):
         custom_query=__find_seq_requests_with_stored_samples, limit=None
     )[0]:
         seq_request.status = categories.SeqRequestStatus.SAMPLES_RECEIVED
+        logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
+        db.seq_requests.update(seq_request)
+
+    db.flush()
+
+    for seq_request in db.seq_requests.find(
+        status=categories.SeqRequestStatus.SAMPLES_RECEIVED,
+        custom_query=__find_seq_requests_with_pooled_libraries, limit=None
+    )[0]:
+        seq_request.status = categories.SeqRequestStatus.PREPARED
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
         db.seq_requests.update(seq_request)
 

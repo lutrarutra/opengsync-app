@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -11,39 +11,14 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='experiment-pool-table', column_name='ID', column_var='id',
-                        sort_url='pools_htmx.get', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order, query_type="number"
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='experiment-pool-table', column_name='Pool Name', column_var='name',
-                        sort_url='pools_htmx.get', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=3
-                    )
-                }}
+                {{ table_col2("experiment-pool-table", table, "id") }}
+                {{ table_col2("experiment-pool-table", table, "name") }}
                 <th scope="col" class="col-3">Lanes</th>
-                <th scope="col" class="col-2">Library Types</th>
-                {{
-                    table_col(
-                        table_container_id='experiment-pool-table', column_name='Status', column_var='status_id',
-                        sort_url='pools_htmx.get', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order,col_size=1,
-                    )
-                }}
+                {{ table_col2("experiment-pool-table", table, "library_types") }}
+                {{ table_col2("experiment-pool-table", table, "status") }}
                 <th class="col-1" scope="col"># Reads</th>
                 <th class="col-1" scope="col" {{ tooltip("Sample molarity of the pool") }}>Molarity</th>
-                {{
-                    table_col(
-                        table_container_id='experiment-pool-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='pools_htmx.get', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=1,
-                    )
-                }}
+                {{ table_col2("experiment-pool-table", table, "num_libraries") }}
             </tr>
         </thead>
         <tbody>

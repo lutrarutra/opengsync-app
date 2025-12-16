@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
@@ -8,42 +8,12 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='library-table', column_name='ID', column_var='id',
-                        sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        query_url='libraries_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number", col_size=1,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='library-table', column_name='Name', column_var='name',
-                        sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        query_url='libraries_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=3,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='library-table', column_name='Library Type', column_var='type_id',
-                        sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
-                        multiselect_choices=LibraryType.as_list(), multiselect_selected=type_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='library-table', column_name='Status', column_var='status_id',
-                        sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1,
-                        multiselect_choices=LibraryStatus.as_list(), multiselect_selected=status_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='library-table', column_name='Request', column_var='seq_request_id',
-                        sort_url='libraries_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                    )
-                }}
+                {{ table_col2("library-table", table, "id") }}
+                {{ table_col2("library-table", table, "name") }}
+                {{ table_col2("library-table", table, "pool_name") }}
+                {{ table_col2("library-table", table, "type") }}
+                {{ table_col2("library-table", table, "status") }}
+                {{ table_col2("library-table", table, "seq_request") }}
                 <th scope="col" class="col-4">
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
@@ -63,6 +33,11 @@
                     </a>
                 </td>
                 <td>
+                {% if library.pool_id %}
+                    <a href="{{ url_for('pools_page.pool', pool_id=library.pool_id)}}">{{ library.pool.name }}</a>
+                {% endif %}
+                </td>
+                <td>
                     <span {{ tooltip(library.type.name) }}>
                         {{ library.type.identifier }}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
                     </span>
@@ -77,6 +52,6 @@
         </tbody>
     </table>
     {{ spinner("library-table-spinner") }}
-    {{ pagination("library-table", "libraries_htmx.get", n_pages, active_page) }}
+    {{ pagination2("library-table", table) }}
 </div>
 

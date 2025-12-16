@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
 
@@ -7,32 +7,10 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='group-user-table', column_name='ID', column_var='id',
-                        sort_url='groups_htmx.get_users', context={"group_id": group.id}, sort_by=sort_by, sort_order=sort_order
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='group-user-table', column_name='Name', column_var='name',
-                        sort_url='groups_htmx.get_users', context={"group_id": group.id}, sort_by=sort_by, sort_order=sort_order, col_size=4,
-                    )
-                }}
-                
-                {{
-                    table_col(
-                        table_container_id='group-user-table', column_name='Email', column_var='email',
-                        sort_url='groups_htmx.get_users', context={"group_id": group.id}, sort_by=sort_by, sort_order=sort_order, col_size=4
-                    )
-                
-                }}
-                {{
-                    table_col(
-                        table_container_id='group-user-table', column_name='Affiliation Type', column_var='affiliation_type_id',
-                        sort_url='groups_htmx.get_users', context={"group_id": group.id}, sort_by=sort_by, sort_order=sort_order, col_size=3,
-                    )
-                }}
+                {{ table_col2("group-user-table", table, "id") }}
+                {{ table_col2("group-user-table", table, "user_name") }}
+                {{ table_col2("group-user-table", table, "email") }}
+                <th scope="col" class="col-2">Affiliation</th>
             </tr>
         </thead>
         <tbody>
@@ -63,5 +41,5 @@
         </tbody>
     </table>
     {{ spinner("group-user-table-spinner") }}
-    {{ pagination("group-user-table", "groups_htmx.get_users", n_pages, active_page, context={"group_id": group.id}) }}
+    {{ pagination2("group-user-table", table) }}
 </div>

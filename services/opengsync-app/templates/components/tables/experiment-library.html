@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -9,40 +9,10 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='experiment-library-table', column_name='ID', column_var='id',
-                        sort_url='libraries_htmx.get', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='experiments_htmx.query_libraries', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number", col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='experiment-library-table', column_name='Name', column_var='name',
-                        sort_url='libraries_htmx.get', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='experiments_htmx.query_libraries', current_query=current_query,
-                        active_query_field=active_query_field, col_size=2
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='experiment-library-table', column_name='Library Type', column_var='type_id',
-                        sort_url='libraries_htmx.get', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='experiment-library-table', column_name='Pool', column_var='pool_id',
-                        sort_url='libraries_htmx.get', context={"experiment_id": experiment.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                        col_size=1
-                    )
-                }}
+                {{ table_col2("experiment-library-table", table, "id") }}
+                {{ table_col2("experiment-library-table", table, "name") }}
+                {{ table_col2("experiment-library-table", table, "type") }}
+                {{ table_col2("experiment-library-table", table, "pool_name") }}
                 <th scope="col" class="col-4">
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
@@ -81,13 +51,5 @@
         </tbody>
     </table>
     {{ spinner("experiment-library-table-spinner") }}
-    {{
-        pagination(
-            "experiment-library-table",
-            url="libraries_htmx.get",
-            n_pages=n_pages,
-            active_page=active_page,
-            context={"experiment_id": experiment.id}
-        )
-    }}
+    {{ pagination("experiment-library-table", table) }}
 </div>

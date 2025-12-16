@@ -55,7 +55,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('groups_htmx.get_users', group_id=group.id) }}" hx-trigger="load" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('groups_htmx.get_affiliations', group_id=group.id) }}" hx-trigger="load" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
