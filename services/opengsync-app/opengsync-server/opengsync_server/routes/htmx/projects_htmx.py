@@ -7,7 +7,7 @@ from flask import Blueprint, url_for, render_template, flash, request, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import SampleStatus, ProjectStatus, LibraryStatus, SeqRequestStatus, AccessType, DataPathType, ExperimentStatus
+from opengsync_db.categories import ProjectStatus, LibraryStatus, SeqRequestStatus, AccessType, DataPathType, ExperimentStatus
 
 from ... import db, forms, logger, logic
 from ...core import wrappers, exceptions

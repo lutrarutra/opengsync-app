@@ -9,7 +9,7 @@ import pandas as pd
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import (
-    SeqRequestStatus, LibraryStatus, LibraryType,
+    SeqRequestStatus, LibraryStatus,
     SampleStatus, SubmissionType, PoolStatus, AccessType,
     DataPathType
 )

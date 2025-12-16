@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
@@ -29,5 +29,5 @@
         </tbody>
     </table>
     {{ spinner("group-project-table-spinner") }}
-    {{ pagination("group-project-table", "projects_htmx.get", n_pages, active_page) }}
+    {{ pagination2("group-project-table", table) }}
 </div>

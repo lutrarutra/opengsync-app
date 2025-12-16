@@ -17,7 +17,7 @@ class SamplePoolingForm(HTMXFlaskForm):
 
     columns = [
         IntegerColumn("sample_id", "Sample ID", 100, required=True, read_only=True),
-        TextColumn("sample_name", "Demultiplexed Name", 300, required=True, read_only=True),
+        TextColumn("sample_name", "Sample Name", 300, required=True, read_only=True),
         TextColumn("sample_pool", "Pool", 300, required=True, read_only=False),
     ]
 
@@ -90,7 +90,7 @@ class SamplePoolingForm(HTMXFlaskForm):
                     mux_type=old_library.mux_type,
                     nuclei_isolation=old_library.nuclei_isolation,
                     index_type=old_library.index_type,
-                    original_library_id=old_library.original_library_id if old_library.original_library_id is not None else old_library.id
+                    original_library_id=old_library.original_library_id if old_library.original_library_id is not None else None,
                 )
                 libraries[library_name] = new_library
 

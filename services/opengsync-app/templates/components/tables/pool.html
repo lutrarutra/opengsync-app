@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
@@ -35,7 +35,7 @@
         </tbody>
     </table>
     {{ spinner("pool-table-spinner") }}
-    {{ pagination("pool-table", "pools_htmx.get", n_pages, active_page) }}
+    {{ pagination2("pool-table", table) }}
     <script>
         var selected_pool_id = null;
         

@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col, table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/assignee_list.jinja2" import assignee_list %}
@@ -41,5 +41,5 @@
         </tbody>
     </table>
     {{ spinner("project-table-spinner") }}
-    {{ pagination("project-table", "projects_htmx.get", n_pages, active_page) }}
+    {{ pagination2("project-table", table) }}
 </div>
