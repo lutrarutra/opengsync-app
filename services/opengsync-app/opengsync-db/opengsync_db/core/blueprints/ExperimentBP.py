@@ -156,7 +156,7 @@ class ExperimentBP(DBBlueprint):
             
             count = query.count()
             n_pages = math.ceil(count / limit)
-            offset = page * limit
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
         else:
             n_pages = None
 
