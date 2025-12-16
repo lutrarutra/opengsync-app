@@ -7,7 +7,7 @@
 {% for project in projects %}
 {% if loop.last and limit == loop.index %}
 <div class="element-banner"
-hx-get="{{ url_for('projects_htmx.get_recent_projects', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#projects-htmx-indicator" hx-swap="outerHTML" hx-indicator="#projects-htmx-indicator">
+hx-get="{{ url_for('projects_htmx.get_recent', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#projects-htmx-indicator" hx-swap="outerHTML" hx-indicator="#projects-htmx-indicator">
 {% else %}
 <div class="element-banner">
 {% endif %}

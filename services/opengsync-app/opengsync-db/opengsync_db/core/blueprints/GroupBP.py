@@ -71,22 +71,39 @@ class GroupBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        user_id: Optional[int], type: Optional[GroupTypeEnum] = None,
+        user_id: Optional[int] = None, type: Optional[GroupTypeEnum] = None,
+        name: str | None = None,
+        id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         type_in: Optional[list[GroupTypeEnum]] = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False
+        page: int | None = None,
     ) -> tuple[list[models.Group], int | None]:
         query = self.db.session.query(models.Group)
         query = GroupBP.where(query, user_id=user_id, type=type, type_in=type_in)
-
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
         if sort_by is not None:
             attr = getattr(models.Group, sort_by)
             if descending:
                 attr = attr.desc()
             query = query.order_by(attr)
+
+        if name is not None:
+            query = query.order_by(
+                sa.nulls_last(sa.func.similarity(models.Group.name, name).desc())
+            )
+        elif id is not None:
+            query = query.where(models.Group.id == id)
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
+        else:
+            n_pages = None
 
         if limit is not None:
             query = query.limit(limit)
@@ -131,7 +148,8 @@ class GroupBP(DBBlueprint):
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         type_in: Optional[list[GroupTypeEnum]] = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False
+        user_name: str | None = None,
+        page: int | None = None,
     ) -> tuple[list[models.links.UserAffiliation], int | None]:
         query = self.db.session.query(models.links.UserAffiliation).where(
             models.links.UserAffiliation.group_id == group_id
@@ -143,13 +161,29 @@ class GroupBP(DBBlueprint):
         if type_in is not None:
             query = query.where(models.links.UserAffiliation.affiliation_type_id.in_([t.id for t in type_in]))
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
-
         if sort_by is not None:
             attr = getattr(models.links.UserAffiliation, sort_by)
             if descending:
                 attr = attr.desc()
             query = query.order_by(attr)
+
+        if user_name is not None:
+            query = query.join(
+                models.User,
+                models.User.id == models.links.UserAffiliation.user_id
+            ).order_by(
+                sa.nulls_last(sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, user_name).desc())
+            )
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
+        else:
+            n_pages = None
 
         if limit is not None:
             query = query.limit(limit)

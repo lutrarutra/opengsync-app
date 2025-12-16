@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from 'components/spinner.jinja2' import spinner %}
 
@@ -7,39 +7,13 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='project-experiment-table', column_name='ID', column_var='id',
-                        sort_url='projects_htmx.get_experiments', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-experiment-table', column_name='Name', column_var='name',
-                        sort_url='projects_htmx.get_experiments', context={'project_id': project.id}, sort_by=sort_by, sort_order=sort_order,
-                        col_size=3
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-experiment-table', column_name='Status', column_var='status_id',
-                        sort_url='projects_htmx.get_experiments', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=ExperimentStatus.as_list(), multiselect_selected=status_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-experiment-table', column_name='Workflow', column_var='workflow_id',
-                        sort_url='projects_htmx.get_experiments', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=ExperimentWorkFlow.as_list(), multiselect_selected=workflow_in
-                    )
-                }}
+                {{ table_col2("project-experiment-table", table, "id") }}
+                {{ table_col2("project-experiment-table", table, "name") }}
+                {{ table_col2("project-experiment-table", table, "status") }}
+                {{ table_col2("project-experiment-table", table, "workflow") }}
                 {% if current_user.is_insider() %}
-                <th class="col-2" scope="col">Operator</th>
-                <th class="col-2" scope="col">Finished</th>
+                {{ table_col2("project-experiment-table", table, "operator") }}
+                {{ table_col2("project-experiment-table", table, "timestamp_completed") }}
                 {% endif %}
             </tr>
         </thead>
@@ -63,5 +37,5 @@
         </tbody>
     </table>
     {{ spinner("project-experiment-table-spinner") }}
-    {{ pagination("project-experiment-table", "projects_htmx.get_experiments", n_pages, active_page, context={'project_id': project.id}) }}
+    {{ pagination2("project-experiment-table", table) }}
 </div>

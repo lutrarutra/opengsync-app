@@ -1,42 +1,16 @@
 {% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="user-project-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='user-project-table', column_name='ID', column_var='id',
-                        sort_url='projects_htmx.get', context={'user_id': user.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-table', column_name='Identifier', column_var='identifier',
-                        sort_url='projects_htmx.get', context={},
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url='projects_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=2
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='user-project-table', column_name='Title', column_var='title',
-                        sort_url='projects_htmx.get', context={'user_id': user.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=7
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-table', column_name='Status', column_var='status_id',
-                        sort_url='projects_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=ProjectStatus.as_list(), multiselect_selected=status_in, context={'user_id': user.id}
-                    )
-                }}
-                <th scope="col col-2"># Samples</th>
+                {{ table_col2("user-project-table", table, "id") }}
+                {{ table_col2("user-project-table", table, "identifier") }}
+                {{ table_col2("user-project-table", table, "title") }}
+                {{ table_col2("user-project-table", table, "status") }}
+                {{ table_col2("user-project-table", table, "num_samples") }}
             </tr>
         </thead>
         <tbody>

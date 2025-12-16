@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import Query
     
-from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum, AccessType, AccessTypeEnum, UserRole
+from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum, AccessType, AccessTypeEnum, UserRole, LibraryTypeEnum
 from ... import PAGE_LIMIT, models
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -22,10 +22,11 @@ class PoolBP(DBBlueprint):
         experiment_id: int | None = None,
         lab_prep_id: int | None = None,
         seq_request_id: int | None = None,
-        associated_to_experiment: Optional[bool] = None,
-        status: Optional[PoolStatusEnum] = None,
-        status_in: Optional[list[PoolStatusEnum]] = None,
-        type_in: Optional[list[PoolTypeEnum]] = None,
+        associated_to_experiment: bool | None = None,
+        status: PoolStatusEnum | None = None,
+        status_in: list[PoolStatusEnum] | None = None,
+        library_types_in: list[LibraryTypeEnum] | None = None,
+        type_in: list[PoolTypeEnum] | None = None,
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
         if user_id is not None:
@@ -58,6 +59,14 @@ class PoolBP(DBBlueprint):
 
         if type_in is not None:
             query = query.where(models.Pool.type_id.in_([t.id for t in type_in]))
+
+        if library_types_in is not None:
+            query = query.join(
+                models.Library,
+                models.Library.pool_id == models.Pool.id
+            ).where(
+                models.Library.type_id.in_([lt.id for lt in library_types_in])
+            )
 
         if associated_to_experiment is not None:
             if associated_to_experiment:
@@ -148,12 +157,16 @@ class PoolBP(DBBlueprint):
         experiment_id: int | None = None,
         lab_prep_id: int | None = None,
         seq_request_id: int | None = None,
-        associated_to_experiment: Optional[bool] = None,
-        status: Optional[PoolStatusEnum] = None,
-        status_in: Optional[list[PoolStatusEnum]] = None,
-        type_in: Optional[list[PoolTypeEnum]] = None,
+        name: str | None = None,
+        owner: str | None = None,
+        id: int | None = None,
+        associated_to_experiment: bool | None = None,
+        status: PoolStatusEnum | None = None,
+        status_in: list[PoolStatusEnum] | None = None,
+        library_types_in: list[LibraryTypeEnum] | None = None,
+        type_in: list[PoolTypeEnum] | None = None,
         custom_query: Callable[[Query], Query] | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         page: int | None = None,
         options: ExecutableOption | None = None,
@@ -172,7 +185,8 @@ class PoolBP(DBBlueprint):
             status=status,
             status_in=status_in,
             type_in=type_in,
-            custom_query=custom_query
+            custom_query=custom_query,
+            library_types_in=library_types_in,
         )
         if options is not None:
             query = query.options(options)
@@ -182,6 +196,18 @@ class PoolBP(DBBlueprint):
             if descending:
                 attr = attr.desc()
             query = query.order_by(attr)
+
+        if name is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.Pool.name, name).desc()))
+        elif owner is not None:
+            query = query.join(
+                models.User,
+                models.User.id == models.Pool.owner_id
+            ).order_by(
+                sa.nulls_last(sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, owner).desc())
+            )
+        elif id is not None:
+            query = query.where(models.Pool.id == id)
         
         if offset is not None:
             query = query.offset(offset)

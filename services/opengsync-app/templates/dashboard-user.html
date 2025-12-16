@@ -15,7 +15,7 @@
                     </div>
                 </div>
                 <div class="dash-component-content">
-                    <div class="banner-container" hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests') }}" hx-trigger="load once">
+                    <div class="banner-container" hx-get="{{ url_for('seq_requests_htmx.get_recent') }}" hx-trigger="load once">
                         {{ spinner() }}
                     </div>
                 </div>
@@ -29,7 +29,7 @@
                     </div>
                 </div>
                 <div class="dash-component-content">
-                    <div class="banner-container" hx-get="{{ url_for('projects_htmx.get_recent_projects') }}" hx-trigger="load once">
+                    <div class="banner-container" hx-get="{{ url_for('projects_htmx.get_recent') }}" hx-trigger="load once">
                         {{ spinner() }}
                     </div>
                 </div>

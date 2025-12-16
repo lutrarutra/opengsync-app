@@ -1,54 +1,17 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="user-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='user-table', column_name='ID', column_var='id',
-                        query_url='users_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number",
-                        sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='user-table', column_name='Name', column_var='last_name',
-                        query_url='users_htmx.table_query', current_query=current_query,
-                        sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='user-table', column_name='Email', column_var='email',
-                        query_url='users_htmx.table_query', current_query=current_query,
-                        sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3
-                    )
-                
-                }}
-                {{
-                    table_col(
-                        table_container_id='user-table', column_name='Role', column_var='role_id',
-                        sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=UserRole.as_list(), multiselect_selected=role_in
-                    )
-                
-                }}
-                {{
-                    table_col(
-                        table_container_id='user-table', column_name='# Seq Requests', column_var='num_seq_requests',
-                        sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='user-table', column_name='# Projects', column_var='num_projects',
-                        sort_url='users_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
+                {{ table_col2("user-table", table, "id") }}
+                {{ table_col2("user-table", table, "name") }}
+                {{ table_col2("user-table", table, "email") }}
+                {{ table_col2("user-table", table, "role") }}
+                {{ table_col2("user-table", table, "num_seq_requests") }}
+                {{ table_col2("user-table", table, "num_projects") }}
             </tr>
         </thead>
         <tbody>
@@ -65,5 +28,5 @@
         </tbody>
     </table>
     {{ spinner("user-table-spinner") }}
-    {{ pagination("user-table", "users_htmx.get", n_pages, active_page) }}
+    {{ pagination2("user-table", table) }}
 </div>

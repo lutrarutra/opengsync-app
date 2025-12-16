@@ -131,9 +131,11 @@ class UserBP(DBBlueprint):
         self,
         role_in: Optional[list[UserRoleEnum]] = None,
         group_id: int | None = None, exclude_group_id: int | None = None,
+        name: str | None = None,
+        id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False,
+        page: int | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.User], int | None]:
         """Query users
@@ -164,8 +166,21 @@ class UserBP(DBBlueprint):
             if descending:
                 attr = attr.desc()
             query = query.order_by(attr)
+        
+        if name is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity((models.User.first_name + ' ' + models.User.last_name), name).desc()))
+        elif id is not None:
+            query = query.where(models.User.id == id)
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
+        else:
+            n_pages = None
 
         if offset is not None:
             query = query.offset(offset)
@@ -267,7 +282,8 @@ class UserBP(DBBlueprint):
     def get_affiliations(
         self, user_id: int, limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None,
-        count_pages: bool = False
+        group_name: str | None = None,
+        page: int | None = None
     ) -> tuple[list[models.links.UserAffiliation], int | None]:
         query = self.db.session.query(models.links.UserAffiliation).where(
             models.links.UserAffiliation.user_id == user_id
@@ -278,13 +294,29 @@ class UserBP(DBBlueprint):
                 models.links.UserAffiliation.affiliation_type_id == affiliation_type.id
             )
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
-
         if sort_by is not None:
             attr = getattr(models.links.UserAffiliation, sort_by)
             if descending:
                 attr = attr.desc()
             query = query.order_by(attr)
+
+        if group_name is not None:
+            query = query.join(
+                models.Group,
+                models.Group.id == models.links.UserAffiliation.group_id
+            ).order_by(
+                sa.nulls_last(sa.func.similarity(models.Group.name, group_name).desc())
+            )
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
+        else:
+            n_pages = None
 
         if limit is not None:
             query = query.limit(limit)

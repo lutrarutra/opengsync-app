@@ -192,7 +192,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="project-experiments-tab" role="tabpanel" tabindex="4">
-            <div hx-get="{{ url_for('projects_htmx.get_experiments', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('experiments_htmx.get', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

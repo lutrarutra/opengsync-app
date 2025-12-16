@@ -51,7 +51,7 @@
     {% else %}
         {% set user_role = none %}
     {% endif %}
-    <nav id="navbar">
+    <nav id="navbar" {% if current_user.is_authenticated and current_user.is_admin() %}class="admin"{% endif %}>
         <div class="nav-left">
             <div id="burger">
                 <div class="line1"></div>

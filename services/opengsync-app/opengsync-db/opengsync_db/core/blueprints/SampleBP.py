@@ -114,12 +114,14 @@ class SampleBP(DBBlueprint):
         pool_id: int | None = None,
         lab_prep_id: int | None = None,
         seq_request_id: int | None = None,
-        status: Optional[SampleStatusEnum] = None,
-        status_in: Optional[list[SampleStatusEnum]] = None,
+        status: SampleStatusEnum | None = None,
+        status_in: list[SampleStatusEnum] | None = None,
         custom_query: Callable[[Query], Query] | None = None,
+        name: str | None = None,
+        id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         page: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         options: ExecutableOption | None = None
     ) -> tuple[list[models.Sample], int | None]:
 
@@ -137,6 +139,11 @@ class SampleBP(DBBlueprint):
             if descending:
                 attr = attr.desc()
             query = query.order_by(attr)
+        
+        if name is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.Sample.name, name).desc()))
+        elif id is not None:
+            query = query.where(models.Sample.id == id)
 
         if page is not None:
             if limit is None:

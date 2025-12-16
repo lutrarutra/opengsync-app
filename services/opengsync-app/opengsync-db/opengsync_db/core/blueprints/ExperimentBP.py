@@ -108,10 +108,13 @@ class ExperimentBP(DBBlueprint):
         status: Optional[ExperimentStatusEnum] = None,
         status_in: Optional[list[ExperimentStatusEnum]] = None,
         workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
+        operator: str | None = None,
+        id: int | None = None,
+        name: str | None = None,
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False,
+        page: int | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.Experiment], int | None]:
 
@@ -127,13 +130,35 @@ class ExperimentBP(DBBlueprint):
         if options is not None:
             query = query.options(options)
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
-
         if sort_by is not None:
             attr = getattr(models.Experiment, sort_by)
             if descending:
                 attr = attr.desc()
             query = query.order_by(attr)
+
+        if name is not None:
+            query = query.order_by(
+                sa.nulls_last(sa.func.similarity(models.Experiment.name, name).desc())
+            )
+        elif id is not None:
+            query = query.where(models.Experiment.id == id)
+        elif operator is not None:
+            query = query.join(
+                models.User,
+                models.Experiment.operator_id == models.User.id
+            ).order_by(
+                sa.nulls_last(sa.func.similarity(models.User.first_name + " " + models.User.last_name, operator).desc())
+            )
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            offset = page * limit
+        else:
+            n_pages = None
 
         if offset is not None:
             query = query.offset(offset)

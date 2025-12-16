@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -9,48 +9,12 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id="lab_prep-library-table", column_name="ID", column_var="id",
-                        sort_url="libraries_htmx.get", context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id="lab_prep-library-table", column_name="Library Name", column_var="name",
-                        sort_url="libraries_htmx.get", context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=4
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id="lab_prep-library-table", column_name="Type", column_var="type_id",
-                        sort_url="libraries_htmx.get", context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id="lab_prep-library-table", column_name="Status", column_var="status_id",
-                        sort_url="libraries_htmx.get", context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='lab_prep-library-table', column_name='Pool', column_var='pool_id',
-                        sort_url='libraries_htmx.get', context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id="lab_prep-library-table", column_name="Owner", column_var="owner_id",
-                        sort_url="libraries_htmx.get", context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2
-                    )
-                }}
+                {{ table_col2("lab_prep-library-table", table, "id") }}
+                {{ table_col2("lab_prep-library-table", table, "name") }}
+                {{ table_col2("lab_prep-library-table", table, "type") }}
+                {{ table_col2("lab_prep-library-table", table, "status") }}
+                {{ table_col2("lab_prep-library-table", table, "pool_name") }}
+                {{ table_col2("lab_prep-library-table", table, "seq_request") }}
                 <th scope="col" class="col-3">
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
@@ -70,7 +34,7 @@
                         {"type": "hxdelete", "label": "Remove Library" ,
                         "disabled": false if lab_prep.status == PrepStatus.PREPARING else true, "config": 
                         {
-                            "url": url_for("lab_preps_htmx.remove_library", lab_prep_id=lab_prep.id, library_id=library.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
+                            "url": url_for("lab_preps_htmx.remove_library", library_id=library.id, **table.get_state()),
                             "target": "#lab_prep-library-table", 
                             "title": "Remove {library.name} from {lab_prep.name}?".format(library=library, lab_prep=lab_prep)
                         },}
@@ -86,7 +50,7 @@
                 </td>
                 <td>{{ library.status.icon }} {{ library.status.name }}</td>
                 <td>{% if library.pool_id %}<a href="{{ url_for('pools_page.pool', pool_id=library.pool_id, from='lab_prep@' + lab_prep.id | string)}}">{{ library.pool.name }}</a>{% endif %}</td>
-                <td><a href="{{ url_for('users_page.user', library_id=library.owner_id, from='lab_prep@' + lab_prep.id | string) }}">{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></a></td>
+                <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=library.seq_request_id, from='lab_prep@' + lab_prep.id | string) }}">{{ library.seq_request.name }}</a></td>
                 <td class="x-scroll-cell">
                     {{ library_index_cell(library) }}
                 </td>
@@ -95,5 +59,5 @@
         </tbody>
     </table>
     {{ spinner("lab_prep-library-table-spinner") }}
-    {{ pagination("lab_prep-library-table", "libraries_htmx.get", n_pages, active_page, context={"lab_prep_id": lab_prep.id}) }}
+    {{ pagination2("lab_prep-library-table", table) }}
 </div>

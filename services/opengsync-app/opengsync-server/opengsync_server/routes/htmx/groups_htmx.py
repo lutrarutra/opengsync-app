@@ -1,42 +1,19 @@
-import json
-
 from flask import Blueprint, render_template, request, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import AffiliationType, UserRole, ProjectStatus
 
-from ... import db, forms
+from ... import db, forms, logic
 from ...core import wrappers, exceptions
 
 groups_htmx = Blueprint("groups_htmx", __name__, url_prefix="/htmx/groups/")
 
 
 @wrappers.htmx_route(groups_htmx, db=db)
-def get(current_user: models.User, page: int = 0):
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = page * PAGE_LIMIT
-
-    groups: list[models.Group] = []
-
-    if not current_user.is_insider():
-        user_id = current_user.id
-    else:
-        user_id = None
-
-    groups, n_pages = db.groups.find(
-        user_id=user_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/group.html", groups=groups, n_pages=n_pages,
-            sort_by=sort_by, sort_order=sort_order,
-            active_page=page
-        )
-    )
+def get(current_user: models.User):
+    context = logic.tables.render_group_table(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(groups_htmx, db=db, methods=["POST"])
@@ -83,30 +60,9 @@ def edit(current_user: models.User, group_id: int):
 
 
 @wrappers.htmx_route(groups_htmx, db=db)
-def get_users(current_user: models.User, group_id: int, page: int = 0):
-    sort_by = request.args.get("sort_by", "affiliation_type_id")
-    sort_order = request.args.get("sort_order", "asc")
-    descending = sort_order == "desc"
-    offset = page * PAGE_LIMIT
-
-    if (group := db.groups.get(group_id)) is None:
-        raise exceptions.NotFoundException()
-
-    affiliations, n_pages = db.groups.get_affiliations(
-        group_id=group_id, sort_by=sort_by, descending=descending, offset=offset, count_pages=True
-    )
-
-    affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=group_id)
-    can_edit = current_user.role == UserRole.ADMIN or (affiliation is not None and affiliation.affiliation_type == AffiliationType.OWNER)
-    can_add_users = current_user.is_insider() or (affiliation is not None and affiliation.affiliation_type in (AffiliationType.OWNER, AffiliationType.MANAGER))
-
-    return make_response(
-        render_template(
-            "components/tables/group-user.html", affiliations=affiliations, n_pages=n_pages,
-            sort_by=sort_by, sort_order=sort_order, active_page=page, group=group,
-            can_edit=can_edit, can_add_users=can_add_users, affiliation=affiliation
-        )
-    )
+def get_affiliations(current_user: models.User, page: int = 0):
+    context = logic.tables.render_affiliation_table(current_user=current_user, request=request, page=page)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(groups_htmx, db=db, methods=["DELETE"])

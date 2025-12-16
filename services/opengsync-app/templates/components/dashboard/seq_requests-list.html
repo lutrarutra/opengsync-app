@@ -6,7 +6,7 @@
 {% for seq_request in seq_requests %}
 {% if loop.last and limit == loop.index %}
 <div class="element-banner"
-hx-get="{{ url_for('seq_requests_htmx.get_recent_seq_requests', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#seq_requests-htmx-indicator" hx-swap="outerHTML" hx-indicator="#seq_requests-htmx-indicator">
+hx-get="{{ url_for('seq_requests_htmx.get_recent', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#seq_requests-htmx-indicator" hx-swap="outerHTML" hx-indicator="#seq_requests-htmx-indicator">
 {% else %}
 <div class="element-banner">
 {% endif %}

@@ -58,7 +58,10 @@ class LabPrepBP(DBBlueprint):
         status_in: Optional[list[PrepStatusEnum]] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False,
+        name: str | None = None,
+        creator: str | None = None,
+        id: int | None = None,
+        page: int | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.LabPrep], int | None]:
         query = self.db.session.query(models.LabPrep)
@@ -75,11 +78,33 @@ class LabPrepBP(DBBlueprint):
 
         if options is not None:
             query = query.options(options)
-            
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
         if sort_by is not None:
             query = query.order_by(getattr(models.LabPrep, sort_by).desc() if descending else getattr(models.LabPrep, sort_by))
+
+        if name is not None:
+            query = query.order_by(
+                sa.func.similarity(models.LabPrep.name, name).desc()
+            )
+        elif creator is not None:
+            query = query.join(
+                models.User,
+                models.User.id == models.LabPrep.creator_id
+            ).order_by(
+                sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, creator).desc()
+            )
+        elif id is not None:
+            query = query.where(models.LabPrep.id == id)
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
+        else:
+            n_pages = None
 
         if limit is not None:
             query = query.limit(limit)

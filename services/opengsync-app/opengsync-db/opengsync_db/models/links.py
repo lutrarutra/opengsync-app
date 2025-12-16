@@ -51,6 +51,8 @@ class UserAffiliation(Base):
 
     affiliation_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
+    sortable_fields: ClassVar[list[str]] = ["affiliation_type_id"]
+
     @property
     def affiliation_type(self) -> AffiliationTypeEnum:
         return AffiliationType.get(self.affiliation_type_id)

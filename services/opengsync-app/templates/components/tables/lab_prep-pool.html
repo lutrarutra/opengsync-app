@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
@@ -9,43 +9,12 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='lab_prep-pool-table', column_name='ID', column_var='id',
-                        sort_url='pools_htmx.get', context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='lab_prep-pool-table', column_name='Pool Name', column_var='name',
-                        sort_url='pools_htmx.get', context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=3
-                    )
-                }}
-                <th scope="col" class="col-2">Library Types</th>
-                {{
-                    table_col(
-                        table_container_id='lab_prep-pool-table', column_name='Status', column_var='status_id',
-                        sort_url='pools_htmx.get', context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order,col_size=1,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='lab_prep-pool-table', column_name='Owner', column_var='owner_id',
-                        sort_url='pools_htmx.get', context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='lab_prep-pool-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='pools_htmx.get', context={"lab_prep_id": lab_prep.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1,
-                    )
-                }}
-                <th class="col-1" scope="col"># Reads Requested</th>
+                {{ table_col2("lab_prep-pool-table", table, "id") }}
+                {{ table_col2("lab_prep-pool-table", table, "name") }}
+                {{ table_col2("lab_prep-pool-table", table, "library_types") }}
+                {{ table_col2("lab_prep-pool-table", table, "status") }}
+                {{ table_col2("lab_prep-pool-table", table, "owner") }}
+                {{ table_col2("lab_prep-pool-table", table, "num_libraries") }}
             </tr>
         </thead>
         <tbody>
@@ -61,12 +30,6 @@
                 <td>{{ pool.status.icon }} {{ pool.status.name }}</td>
                 <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                 <td>{{ pool.num_libraries }}</td>
-                <td>
-                    <div class="quantity-container">
-                        <div class="value">{{ pool.num_m_reads_requested | int if pool.num_m_reads_requested }}</div>
-                        <div class="unit">M</div>
-                    </div>
-                </td>
             </tr>
             {% endfor %}
         </tbody>

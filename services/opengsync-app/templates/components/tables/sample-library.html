@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
@@ -8,39 +8,11 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='sample-library-table', column_name='ID', column_var='id',
-                        sort_url='libraries_htmx.get', context={"sample_id": sample.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='sample-library-table', column_name='Name', column_var='name',
-                        sort_url='libraries_htmx.get', context={"sample_id": sample.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=3
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='sample-library-table', column_name='Library Type', column_var='type_id',
-                        sort_url='libraries_htmx.get', context={"sample_id": sample.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=LibraryType.as_list(), multiselect_selected=type_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='sample-library-table', column_name='Status', column_var='status_id',
-                        sort_url='libraries_htmx.get', context={"sample_id": sample.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1,
-                        multiselect_choices=LibraryStatus.as_list(), multiselect_selected=status_in
-                    )
-                }}
-                <th scope="col" class="col-2">
-                    Request
-                </th>
+                {{ table_col2("sample-library-table", table, "id") }}
+                {{ table_col2("sample-library-table", table, "name") }}
+                {{ table_col2("sample-library-table", table, "type") }}
+                {{ table_col2("sample-library-table", table, "status") }}
+                {{ table_col2("sample-library-table", table, "request") }}
                 <th scope="col" class="col-2">
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
@@ -73,6 +45,6 @@
         </tbody>
     </table>
     {{ spinner("sample-library-table-spinner") }}
-    {{ pagination("sample-library-table", "libraries_htmx.get", n_pages, active_page) }}
+    {{ pagination2("sample-library-table", table) }}
 </div>
 

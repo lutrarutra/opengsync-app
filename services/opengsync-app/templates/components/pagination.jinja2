@@ -23,3 +23,28 @@
 </ul>
 {% endif %}
 {%- endmacro %}
+
+{% macro pagination2(target_id, table) -%}
+{% if (table.num_pages and table.num_pages > 1)  %}
+<ul class="pagination">
+    <li class="page-item">
+        <a class="page-link" onclick="table_page('{{ table.page_url(0) }}', '{{ target_id }}');">
+            <span aria-hidden="true">&laquo;</span>
+        </a>
+    </li>
+    {% set min_page = [0, table.active_page -3] | max %}
+    {% set max_page = [table.num_pages, table.active_page + 7 + min_page-table.active_page] | min %}
+    {% set min_page = [0, table.active_page -7 + max_page-table.active_page ] | max %}
+    {% for i in range(min_page, max_page)  %}
+        <li class="page-item {{ 'active' if i == table.active_page else '' }}">
+            <a class="page-link" onclick="table_page('{{ table.page_url(i) }}', '{{ target_id }}');">{{i+1}}</a>
+        </li>
+    {% endfor %}
+    <li class="page-item">
+        <a class="page-link" onclick="table_page('{{ table.page_url(table.num_pages-1) }}', '{{ target_id }}');">
+            <span aria-hidden="true">&raquo;</span>
+        </a>
+    </li>
+</ul>
+{% endif %}
+{%- endmacro %}

@@ -20,7 +20,7 @@
                 <ul class="dropdown-menu">
                     <li>
                         <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
-                        hx-get="{{ url_for('lab_preps_htmx.get_form', form_type='edit', lab_prep_id=lab_prep.id) }}"
+                        hx-get="{{ url_for('lab_preps_htmx.edit', lab_prep_id=lab_prep.id) }}"
                         hx-swap="innerHTML" hx-trigger="click">
                             Edit Prep
                         </button>
@@ -53,7 +53,7 @@
                                 method="hx-post",
                                 url=url_for('lab_preps_htmx.uncomplete', lab_prep_id=lab_prep.id),
                                 class="dropdown-item",
-                                disabled=lab_prep.status < PrepStatus.COMPLETED
+                                disabled=lab_prep.status < PrepStatus.COMPLETED or not current_user.is_admin()
                             )
                         }}
                     </li>
