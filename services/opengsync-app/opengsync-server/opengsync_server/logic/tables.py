@@ -1,8 +1,8 @@
 import json
 
-from flask import Request, url_for
+from flask import Request
 
-from opengsync_db import models, categories, PAGE_LIMIT
+from opengsync_db import models, categories
 
 from ..import db, logger
 from ..tools.HTMXTable import AffiliationTable, ExperimentTable, GroupTable, LabPrepTable, LibraryTable, PoolTable, ProjectTable, SampleTable, SeqRequestTable, UserTable
@@ -11,9 +11,8 @@ from .context import parse_context
 
 def render_project_table(current_user: models.User, request: Request, **kwargs) -> dict:
     fnc_context = {}
-    page = request.args.get("page", 0, type=int)
 
-    table = ProjectTable(route="projects_htmx.get")
+    table = ProjectTable(route="projects_htmx.get", page=request.args.get("page", 0, type=int))
 
     if (identifier := request.args.get("identifier")) is not None:
         fnc_context["identifier"] = identifier
@@ -93,13 +92,10 @@ def render_project_table(current_user: models.User, request: Request, **kwargs) 
         if not current_user.is_insider():
             fnc_context["user_id"] = current_user.id
 
-    projects, n_pages = db.projects.find(page=page, **fnc_context)
+    projects, table.num_pages = db.projects.find(page=table.active_page, **fnc_context)
 
     context.update({
         "projects": projects,
-        "n_pages": n_pages,
-        "active_page": page,
-        "status_in": status_in,
         "template_name_or_list": template,
         "table": table,
     })
@@ -109,9 +105,8 @@ def render_project_table(current_user: models.User, request: Request, **kwargs) 
 
 def render_seq_request_table(current_user: models.User, request: Request, **kwargs) -> dict:
     fnc_context = {}
-    page = request.args.get("page", 0, type=int)
 
-    table = SeqRequestTable(route="seq_requests_htmx.get")
+    table = SeqRequestTable(route="seq_requests_htmx.get", page=request.args.get("page", 0, type=int))
     
     context = parse_context(current_user, request) | kwargs
     
@@ -194,12 +189,10 @@ def render_seq_request_table(current_user: models.User, request: Request, **kwar
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
-    seq_requests, n_pages = db.seq_requests.find(page=page, **fnc_context)
+    seq_requests, table.num_pages = db.seq_requests.find(page=table.active_page, **fnc_context)
 
     context.update({
         "seq_requests": seq_requests,
-        "n_pages": n_pages,
-        "active_page": page,
         "template_name_or_list": template,
         "table": table,
     })
@@ -208,10 +201,7 @@ def render_seq_request_table(current_user: models.User, request: Request, **kwar
 
 def render_pool_table(current_user: models.User, request: Request, **kwargs) -> dict:
     fnc_context = {}
-    page = request.args.get("page", 0, type=int)
-
-    table = PoolTable(route="pools_htmx.get")
-
+    table = PoolTable(route="pools_htmx.get", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
     
     if (status_in := request.args.get("status_in")) is not None:
@@ -293,12 +283,10 @@ def render_pool_table(current_user: models.User, request: Request, **kwargs) -> 
         if not current_user.is_insider():
             fnc_context["user_id"] = current_user.id
 
-    pools, n_pages = db.pools.find(page=page, **fnc_context)
+    pools, table.num_pages = db.pools.find(page=table.active_page, **fnc_context)
         
     context.update({
         "pools": pools,
-        "n_pages": n_pages,
-        "active_page": page,
         "template_name_or_list": template,
         "table": table,
     })
@@ -307,9 +295,7 @@ def render_pool_table(current_user: models.User, request: Request, **kwargs) -> 
 
 def render_library_table(current_user: models.User, request: Request, **kwargs) -> dict:
     fnc_context = {}
-    page = request.args.get("page", 0, type=int)
-
-    table = LibraryTable(route="libraries_htmx.get")
+    table = LibraryTable(route="libraries_htmx.get", page=request.args.get("page", 0, type=int))
 
     if (status_in := request.args.get("status_in")) is not None:
         status_in = json.loads(status_in)
@@ -386,12 +372,10 @@ def render_library_table(current_user: models.User, request: Request, **kwargs) 
         if not current_user.is_insider():
             fnc_context["user_id"] = current_user.id
 
-    libraries, n_pages = db.libraries.find(page=page, **fnc_context)
+    libraries, table.num_pages = db.libraries.find(page=table.active_page, **fnc_context)
         
     context.update({
         "libraries": libraries,
-        "n_pages": n_pages,
-        "active_page": page,
         "template_name_or_list": template,
         "table": table,
     })
@@ -401,10 +385,7 @@ def render_library_table(current_user: models.User, request: Request, **kwargs) 
 
 def render_sample_table(current_user: models.User, request: Request, **kwargs) -> dict:
     fnc_context = {}
-    page = request.args.get("page", 0, type=int)
-
-    table = SampleTable(route="samples_htmx.get")
-
+    table = SampleTable(route="samples_htmx.get", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
     
     if (status_in := request.args.get("status_in")) is not None:
@@ -463,12 +444,10 @@ def render_sample_table(current_user: models.User, request: Request, **kwargs) -
         if not current_user.is_insider():
             fnc_context["user_id"] = current_user.id
 
-    samples, n_pages = db.samples.find(page=page, **fnc_context)
+    samples, table.num_pages = db.samples.find(page=table.active_page, **fnc_context)
     
     context.update({
         "samples": samples,
-        "n_pages": n_pages,
-        "active_page": page,
         "template_name_or_list": template,
         "table": table,
     })
@@ -479,11 +458,7 @@ def render_user_table(current_user: models.User, request: Request, **kwargs) -> 
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
     fnc_context = {}
-    page = request.args.get("page", 0, type=int)
-
-    table = UserTable(route="users_htmx.get")
-
-    users, n_pages = db.users.find(page=page)
+    table = UserTable(route="users_htmx.get", page=request.args.get("page", 0, type=int))
 
     if (role_in := request.args.get("role_in")) is not None:
         role_in = json.loads(role_in)
@@ -526,12 +501,10 @@ def render_user_table(current_user: models.User, request: Request, **kwargs) -> 
     if not current_user.is_insider():
         fnc_context["user_id"] = current_user.id
 
-    users, n_pages = db.users.find(page=page, **fnc_context)
+    users, table.num_pages = db.users.find(page=table.active_page, **fnc_context)
 
     context.update({
         "users": users,
-        "n_pages": n_pages,
-        "active_page": page,
         "template_name_or_list": template,
         "table": table,
     })
@@ -541,10 +514,7 @@ def render_user_table(current_user: models.User, request: Request, **kwargs) -> 
 
 def render_affiliation_table(current_user: models.User, request: Request, **kwargs) -> dict:
     fnc_context = {}
-    page = request.args.get("page", 0, type=int)
-
-    table = AffiliationTable(route="")
-
+    table = AffiliationTable(route="", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
     
     if (user_name := request.args.get("user_name")) is not None:
@@ -581,19 +551,17 @@ def render_affiliation_table(current_user: models.User, request: Request, **kwar
         affiliation = db.groups.get_user_affiliation(current_user.id, group.id)
         context["can_add_users"] = current_user.is_insider() or affiliation is not None and affiliation.affiliation_type in (categories.AffiliationType.OWNER, categories.AffiliationType.MANAGER)
         table.url_params["group_id"] = group.id
-        affiliations, n_pages = db.groups.get_affiliations(group_id=group.id, page=page, **fnc_context)
+        affiliations, table.num_pages = db.groups.get_affiliations(group_id=group.id, page=table.active_page, **fnc_context)
     elif (user := context.get("user")) is not None:
         template = "components/tables/user-affiliation.html"
         table.route = "users_htmx.get_affiliations"
         table.url_params["user_id"] = user.id
-        affiliations, n_pages = db.users.get_affiliations(user_id=user.id, page=page, **fnc_context)
+        affiliations, table.num_pages = db.users.get_affiliations(user_id=user.id, page=table.active_page, **fnc_context)
     else:
         raise exceptions.BadRequestException("Group or User context is required to render group affiliation table.")
 
     context.update({
         "affiliations": affiliations,
-        "n_pages": n_pages,
-        "active_page": page,
         "group": group,
         "template_name_or_list": template,
         "table": table,
@@ -604,9 +572,7 @@ def render_affiliation_table(current_user: models.User, request: Request, **kwar
 
 def render_group_table(current_user: models.User, request: Request, **kwargs) -> dict:
     fnc_context = {}
-    page = request.args.get("page", 0, type=int)
-
-    table = GroupTable(route="groups_htmx.get")
+    table = GroupTable(route="groups_htmx.get", page=request.args.get("page", 0, type=int))
 
     if (type_in := request.args.get("type_in")) is not None:
         type_in = json.loads(type_in)
@@ -645,13 +611,11 @@ def render_group_table(current_user: models.User, request: Request, **kwargs) ->
     if not current_user.is_insider():
         fnc_context["user_id"] = current_user.id
 
-    groups, n_pages = db.groups.find(page=page, **fnc_context)
+    groups, table.num_pages = db.groups.find(page=table.active_page, **fnc_context)
 
     context = parse_context(current_user, request) | kwargs
     context.update({
         "groups": groups,
-        "n_pages": n_pages,
-        "active_page": page,
         "template_name_or_list": "components/tables/group.html",
         "table": table,
     })
@@ -661,10 +625,9 @@ def render_group_table(current_user: models.User, request: Request, **kwargs) ->
 def render_experiment_table(current_user: models.User, request: Request, **kwargs) -> dict:
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
+    
     fnc_context = {}
-
     table = ExperimentTable(route="experiments_htmx.get", page=request.args.get("page", 0, type=int))
-
     context = parse_context(current_user, request) | kwargs
 
     if (status_in := request.args.get("status_in")) is not None:
@@ -740,11 +703,9 @@ def render_experiment_table(current_user: models.User, request: Request, **kwarg
 def render_lab_prep_table(current_user: models.User, request: Request, **kwargs) -> dict:
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
+    
     fnc_context = {}
-    page = request.args.get("page", 0, type=int)
-
-    table = LabPrepTable(route="lab_preps_htmx.get")
-
+    table = LabPrepTable(route="lab_preps_htmx.get", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
     
     if (status_in := request.args.get("status_in")) is not None:
@@ -812,12 +773,10 @@ def render_lab_prep_table(current_user: models.User, request: Request, **kwargs)
     else:
         template = "components/tables/lab_prep.html"
 
-    lab_preps, n_pages = db.lab_preps.find(page=page, **fnc_context)
+    lab_preps, table.num_pages = db.lab_preps.find(page=table.active_page, **fnc_context)
         
     context.update({
         "lab_preps": lab_preps,
-        "n_pages": n_pages,
-        "active_page": page,
         "template_name_or_list": template,
         "table": table,
     })

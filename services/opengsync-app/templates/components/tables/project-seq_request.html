@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/assignee_list.jinja2" import assignee_list %}
@@ -73,5 +73,5 @@
         </tbody>
     </table>
     {{ spinner("project-seq_request-table-spinner") }}
-    {{ pagination("project-seq_request-table", "seq_requests_htmx.get", n_pages, active_page, context={"project_id": project.id}) }}
+    {{ pagination2("project-seq_request-table", table) }}
 </div>

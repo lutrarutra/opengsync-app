@@ -49,7 +49,6 @@ class Library(Base):
     name: Mapped[str] = mapped_column(sa.String(86), nullable=False)
     sample_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     clone_number: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
-    original_library_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("library.id", ondelete="SET NULL"), nullable=True, default=None)
 
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
@@ -90,6 +89,9 @@ class Library(Base):
 
     protocol_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("protocol.id", ondelete="SET NULL"), nullable=True)
     protocol: Mapped[Optional["Protocol"]] = relationship("Protocol", lazy="select")
+
+    original_library_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("library.id", ondelete="SET NULL"), nullable=True, default=None)
+    original_library: Mapped[Optional["Library"]] = relationship("Library", remote_side=[id], lazy="select")
 
     sample_links: Mapped[list[links.SampleLibraryLink]] = relationship(
         links.SampleLibraryLink, back_populates="library", lazy="select",

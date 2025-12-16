@@ -42,12 +42,6 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
-            data-bs-target="#library-metadata-tab" type="button" role="tab"
-            aria-controls="library-metadata-tab" aria-selected="true">
-            Metadata</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-samples-tab" type="button" role="tab"
             aria-controls="library-samples-tab" aria-selected="true">
             Samples ({{ library.num_samples }})</button>
@@ -195,6 +189,35 @@
                 {{ metadata_group("Experiment", "", class="col-4") }}
                 {% endif %}
             </div>
+            <div class="row">
+                {% if library.original_library %}
+                {{
+                    metadata_group_link(
+                        "Original Library", library.original_library.name,
+                        url_for("libraries_page.library", library_id=library.original_library.id), class="col-6"
+                    )
+                }}
+                {% else %}
+                {{ metadata_group("Original Library", "", class="col-6") }}
+                {% endif %}
+                {{ metadata_group("Clone Number", library.clone_number, class="col-6") }}
+            </div>
+            <div class="row">
+                {{ 
+                    metadata_group_link(
+                        "Owner Name",
+                        library.owner.name,
+                        url_for("users_page.user", user_id=library.owner.id),
+                        class="col"
+                    )
+                }}
+                {{
+                    metadata_group_email_link(
+                        "Owner Email", library.owner.email, class="col",
+                        subject=organization_name + " Library: " + library.name + " " + library.type.abbreviation + " " + " (" + library.id | string + ")"
+                    )
+                }}
+            </div>
             <h4>Barcodes</h4>
             {% for index in library.indices %}
             <div class="row">
@@ -229,24 +252,6 @@
             </div>
             <div class="row">
                 {{ metadata_group("Sequencing Depth (reads)", library.seq_depth_requested, class="col-3", unit="M") }}
-            </div>
-        </div>
-        <div class="tab-pane fade" id="library-metadata-tab" role="tabpanel" tabindex="2">
-            <div class="row">
-                {{ 
-                    metadata_group_link(
-                        "Owner Name",
-                        library.owner.name,
-                        url_for("users_page.user", user_id=library.owner.id),
-                        class="col"
-                    )
-                }}
-                {{
-                    metadata_group_email_link(
-                        "Owner Email", library.owner.email, class="col",
-                        subject=organization_name + " Library: " + library.name + " " + library.type.abbreviation + " " + " (" + library.id | string + ")"
-                    )
-                }}
             </div>
         </div>
         <div class="tab-pane fade" id="library-samples-tab" role="tabpanel" tabindex="3">

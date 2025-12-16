@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
@@ -35,5 +35,5 @@
         </tbody>
     </table>
     {{ spinner("lab_prep-pool-table-spinner") }}
-    {{ pagination("lab_prep-pool-table", "pools_htmx.get", n_pages, active_page, context={"lab_prep_id": lab_prep.id}) }}
+    {{ pagination2("lab_prep-pool-table", table) }}
 </div>

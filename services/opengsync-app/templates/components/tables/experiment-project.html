@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -46,5 +46,5 @@
         </tbody>
     </table>
     {{ spinner("experiment-project-table-spinner") }}
-    {{ pagination("experiment-project-table", "projects_htmx.get", n_pages, active_page, context={"experiment_id": experiment.id}) }}
+    {{ pagination2("experiment-project-table", table) }}
 </div>
