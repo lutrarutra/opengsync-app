@@ -191,28 +191,29 @@ class ExperimentBP(DBBlueprint):
 
         if experiment.workflow != prev_workflow:
             workflow = experiment.workflow
-            experiment.workflow = workflow
 
-            if prev_workflow.flow_cell_type.num_lanes > workflow.flow_cell_type.num_lanes:
+            if len(experiment.lanes) > workflow.flow_cell_type.num_lanes:
                 lanes = experiment.lanes.copy()
                 for lane in lanes:
-                    if lane.number > experiment.flowcell_type.num_lanes:
-                        self.db.lanes.delete(lane.id)
+                    if lane.number > workflow.flow_cell_type.num_lanes:
+                        experiment.lanes.remove(lane)
 
-            elif prev_workflow.flow_cell_type.num_lanes < workflow.flow_cell_type.num_lanes:
-                for lane_num in range(workflow.flow_cell_type.num_lanes - prev_workflow.flow_cell_type.num_lanes + 1, workflow.flow_cell_type.num_lanes + 1):
+            elif len(experiment.lanes) < workflow.flow_cell_type.num_lanes:
+                for lane_num in range(1, workflow.flow_cell_type.num_lanes + 1):
                     if lane_num in [lane.number for lane in experiment.lanes]:
-                        raise ValueError(f"Lane {lane_num} already exists in experiment {experiment.id}")
-                    lane = models.Lane(number=lane_num, experiment_id=experiment.id)
-                    self.db.session.add(lane)
+                        continue
+                    experiment.lanes.append(models.Lane(number=lane_num))
                 
+            self.db.flush()
             if experiment.workflow.combined_lanes:
                 lps = set([(link.lane_id, link.pool_id) for link in experiment.laned_pool_links])
                 for lane in experiment.lanes:
                     for pool in experiment.pools:
                         if (lane.id, pool.id) not in lps:
                             lane = self.db.links.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
-            
+        
+        if len(experiment.lanes) != experiment.workflow.flow_cell_type.num_lanes:
+            raise ValueError(f"Experiment {experiment.id} has {len(experiment.lanes)} lanes, but workflow {experiment.workflow.name} requires {experiment.workflow.flow_cell_type.num_lanes} lanes.")
         self.db.session.add(experiment)
 
     @DBBlueprint.transaction

@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 
@@ -7,38 +7,11 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='protocol-kit-table', column_name='ID', column_var='id',
-                        sort_url='protocols_htmx.get_kits', sort_by=sort_by, sort_order=sort_order,
-                        query_url='protocols_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number", col_size=1, context={'protocol_id': protocol.id}
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='protocol-kit-table', column_name='Identifier', column_var='identifier',
-                        sort_url='protocols_htmx.get_kits', sort_by=sort_by, sort_order=sort_order,
-                        query_url='protocols_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=2, context={'protocol_id': protocol.id}
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='protocol-kit-table', column_name='Name', column_var='name',
-                        sort_url='protocols_htmx.get_kits', sort_by=sort_by, sort_order=sort_order,
-                        query_url='protocols_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=6, context={'protocol_id': protocol.id}
-                    )
-                }}
+                {{ table_col2("protocol-kit-table", table, "id") }}
+                {{ table_col2("protocol-kit-table", table, "identifier") }}
+                {{ table_col2("protocol-kit-table", table, "name") }}
                 <th scope="col" class="col-2">Combinations</th>
-                {{
-                    table_col(
-                        table_container_id='protocol-kit-table', column_name='Type', column_var='kit_type_id',
-                        sort_url='protocols_htmx.get_kits', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=KitType.as_list(), multiselect_selected=type_in, context={'protocol_id': protocol.id}
-                    )
-                }}
+                {{ table_col2("protocol-kit-table", table, "type") }}
             </tr>
         </thead>
         <tbody>
@@ -50,7 +23,7 @@
                     context_menu([
                         {"type": "copy", "value": kit.identifier, "label": "Copy Identifier"},
                         {"type": "hxdelete", "label": "Remove Kit", "disabled": false if current_user.is_insider() else true, "config": {
-                            "url": url_for('protocols_htmx.remove_kit', protocol_id=protocol.id, kit_id=kit.id, sort_by=sort_by, sort_order=sort_order),
+                            "url": url_for('protocols_htmx.remove_kit', kit_id=kit.id, **table.get_state()),
                             "target": "#protocol-kit-table",
                             "title": "Remove '{kit.name}' from '{protocol.name}'?".format(kit=kit, protocol=protocol),
                             "text": "This will remove all combinations associated with this kit. Do you want to proceed?"
@@ -83,7 +56,7 @@
                     <span class="badge cm-callback" {{
                         context_menu([
                             {"type": "hxdelete", "label": "Remove Combination", "disabled": false if current_user.is_insider() else true, "config": {
-                                "url": url_for('protocols_htmx.remove_kit_combination', protocol_id=protocol.id, kit_id=kit.id, combination_num=link.combination_num, sort_by=sort_by, sort_order=sort_order),
+                                "url": url_for('protocols_htmx.remove_kit_combination', kit_id=kit.id, combination_num=link.combination_num, **table.get_state()),
                                 "target": "#protocol-kit-table",
                                 "title": "Remove combination '{link.combination_num}' ({kit.name}) from {protocol.name}?".format(link=link, kit=kit, protocol=protocol)
                             },},

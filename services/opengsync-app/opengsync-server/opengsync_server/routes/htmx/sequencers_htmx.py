@@ -4,27 +4,16 @@ from flask_htmx import make_response
 from opengsync_db import PAGE_LIMIT, exceptions as db_exc, models
 from opengsync_db.categories import UserRole
 
-from ... import db, forms
+from ... import db, forms, logic
 from ...core import wrappers, exceptions
 
 sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/htmx/sequencers/")
 
 
 @wrappers.htmx_route(sequencers_htmx, db=db, cache_timeout_seconds=60, cache_type="user")
-def get(current_user: models.User, page: int = 0):
-    if current_user.role != UserRole.ADMIN:
-        raise exceptions.NoPermissionsException()
-    
-    sequencers, n_pages = db.sequencers.find(offset=PAGE_LIMIT * page, count_pages=True)
-    
-    return make_response(
-        render_template(
-            "components/tables/sequencer.html",
-            sequencers=sequencers,
-            n_pages=n_pages,
-            active_page=page
-        )
-    )
+def get(current_user: models.User):
+    context = logic.tables.render_sequencers_table(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(sequencers_htmx, db=db, methods=["POST"])

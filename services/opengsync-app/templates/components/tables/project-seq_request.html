@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 {% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/spinner.jinja2" import spinner %}
 
@@ -8,48 +9,12 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='project-seq_request-table', column_name='ID', column_var='id',
-                        sort_url='seq_requests_htmx.get', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-seq_request-table', column_name='Name', column_var='name',
-                        sort_url='seq_requests_htmx.get', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=3,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-seq_request-table', column_name='Status', column_var='status_id',
-                        sort_url='seq_requests_htmx.get', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-seq_request-table', column_name='Submitted', column_var='submitted_time',
-                        sort_url='seq_requests_htmx.get', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-seq_request-table', column_name='Finished', column_var='finished_time',
-                        sort_url='seq_requests_htmx.get', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='project-seq_request-table', column_name='# Libraries', column_var='num_libraries',
-                        sort_url='seq_requests_htmx.get', context={'project_id': project.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=1,
-                    )
-                }}
+                {{ table_col2("project-seq_request-table", table, "id") }}
+                {{ table_col2("project-seq_request-table", table, "name") }}
+                {{ table_col2("project-seq_request-table", table, "status") }}
+                {{ table_col2("project-seq_request-table", table, "timestamp_submitted") }}
+                {{ table_col2("project-seq_request-table", table, "library_types") }}
+                {{ table_col2("project-seq_request-table", table, "num_libraries") }}
             </tr>
         </thead>
         <tbody>
@@ -66,7 +31,7 @@
                 <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, from='project@' + project.id | string) }}">{{ seq_request.name }}</a></td>
                 <td>{{ seq_request.status.icon }} {{ seq_request.status.name }}</td>
                 <td>{{ seq_request.timestamp_submitted_str() }}</td>
-                <td>{{ seq_request.timestamp_finished_str() }}</td>
+                <td class="x-scroll-cell">{{ library_type_badge_list(seq_request.library_types) }}</td>
                 <td>{{ seq_request.num_libraries }}</td>
             </tr>
             {% endfor %}

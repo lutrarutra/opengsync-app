@@ -463,58 +463,6 @@ def query(current_user: models.User):
     )
 
 
-@wrappers.htmx_route(seq_requests_htmx, db=db)
-def table_query(current_user: models.User):
-    if (word := request.args.get("name")) is not None:
-        field_name = "name"
-    elif (word := request.args.get("id")) is not None:
-        field_name = "id"
-    elif (word := request.args.get("requestor_id")) is not None:
-        field_name = "requestor_id"
-    elif (word := request.args.get("group_id")) is not None:
-        field_name = "group_id"
-    else:
-        raise exceptions.BadRequestException()
-    
-    user_id = current_user.id if not current_user.is_insider() else None
-
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [SeqRequestStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if len(status_in) == 0:
-            status_in = None
-
-    seq_requests: list[models.SeqRequest] = []
-    if field_name == "name":
-        seq_requests = db.seq_requests.query(name=word, user_id=user_id, status_in=status_in)
-    elif field_name == "id":
-        try:
-            _id = int(word)
-            if (seq_request := db.seq_requests.get(_id)) is not None:
-                if user_id is None or seq_request.requestor_id == user_id:
-                    seq_requests = [seq_request]
-                if status_in is not None and seq_request.status not in status_in:
-                    seq_requests = []
-        except ValueError:
-            pass
-    elif field_name == "requestor_id":
-        seq_requests = db.seq_requests.query(requestor=word, user_id=user_id, status_in=status_in)
-    elif field_name == "group_id":
-        seq_requests = db.seq_requests.query(group=word, user_id=user_id, status_in=status_in)
-
-    return make_response(
-        render_template(
-            "components/tables/seq_request.html",
-            current_query=word, active_query_field=field_name,
-            seq_requests=seq_requests, status_in=status_in
-        )
-    )
-
-
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def process_request(current_user: models.User, seq_request_id: int):
     if not current_user.is_insider():

@@ -41,12 +41,39 @@ class SequencerBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def find(
-        self, limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        count_pages: bool = False
+        self,
+        name: str | None = None,
+        id: int | None = None,
+        model_in: list[SequencerModelEnum] | None = None,
+        sort_by: Optional[str] = None, descending: bool = False,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        page: int | None = None,
     ) -> tuple[list[models.Sequencer], int | None]:
         query = self.db.session.query(models.Sequencer)
+        if model_in is not None:
+            model_ids = [model.id for model in model_in]
+            query = query.where(models.Sequencer.model_id.in_(model_ids))
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        if sort_by is not None:
+            attr = getattr(models.Sequencer, sort_by)
+            if descending:
+                attr = attr.desc()
+            query = query.order_by(attr)
+
+        if name is not None:
+            query = query.where(models.Sequencer.name.ilike(f"%{name}%"))
+        if id is not None:
+            query = query.where(models.Sequencer.id == id)
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
+        else:
+            n_pages = None
 
         if offset is not None:
             query = query.offset(offset)

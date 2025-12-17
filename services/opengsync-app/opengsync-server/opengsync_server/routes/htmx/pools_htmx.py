@@ -152,37 +152,6 @@ def remove_library(current_user: models.User, pool_id: int, library_id: int):
     return make_response(render_template(**context))
 
 
-@wrappers.htmx_route(pools_htmx, db=db)
-def table_query():
-    if (word := request.args.get("name", None)) is not None:
-        field_name = "name"
-    elif (word := request.args.get("id", None)) is not None:
-        field_name = "id"
-    else:
-        raise exceptions.BadRequestException()
-    
-    if word is None:
-        raise exceptions.BadRequestException()
-    
-    if field_name == "name":
-        pools = db.pools.query(word)
-    elif field_name == "id":
-        try:
-            pools = [db.pools.get(int(word))]
-        except ValueError:
-            pools = []
-    else:
-        raise exceptions.BadRequestException()
-
-    return make_response(
-        render_template(
-            "components/tables/pool.html",
-            pools=pools, field_name=field_name,
-            current_query=word, Pool=models.Pool,
-        )
-    )
-
-
 @wrappers.htmx_route(pools_htmx, methods=["POST"], db=db)
 def query():
     field_name = next(iter(request.form.keys()))

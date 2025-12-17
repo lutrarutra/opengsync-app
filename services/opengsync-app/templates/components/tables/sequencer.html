@@ -1,14 +1,14 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="sequencer-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                <th scope="col" class="col-1">ID</th>
-                <th scope="col" class="col-4">Name</th>
-                <th scope="col" class="col-4">Model</th>
-                <th scope="col" class="col-3">IP</th>
+                {{ table_col2("sequencer-table", table, "id") }}
+                {{ table_col2("sequencer-table", table, "name") }}
+                {{ table_col2("sequencer-table", table, "model") }}
             </tr>
         </thead>
         <tbody>
@@ -17,11 +17,10 @@
                 <th scope="row">{{ sequencer.id }}</th>
                 <td><a href="{{ url_for('devices_page.sequencer', sequencer_id=sequencer.id) }}">{{ sequencer.name }}</a></td>
                 <td>{{ sequencer.model.display_name }}</td>
-                <td>{{ sequencer.ip if sequencer.ip }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {{ spinner("sequencer-table-spinner") }}
-    {{ pagination("sequencer-table", "sequencers_htmx.get", n_pages, active_page) }}
+    {{ pagination2("sequencer-table", table) }}
 </div>

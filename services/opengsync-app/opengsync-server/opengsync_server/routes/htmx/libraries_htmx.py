@@ -150,68 +150,6 @@ def get_crispr_guides(current_user: models.User, library_id: int):
 
 
 @wrappers.htmx_route(libraries_htmx, db=db)
-def table_query(current_user: models.User):
-    if (word := request.args.get("name")) is not None:
-        field_name = "name"
-    elif (word := request.args.get("id")) is not None:
-        field_name = "id"
-    elif (word := request.args.get("owner_id")) is not None:
-        field_name = "owner_id"
-    else:
-        raise exceptions.BadRequestException()
-    
-    user_id = current_user.id if not current_user.is_insider() else None
-
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [LibraryStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-
-    if (type_in := request.args.get("type_id_in")) is not None:
-        type_in = json.loads(type_in)
-        try:
-            type_in = [LibraryType.get(int(type_)) for type_ in type_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(type_in) == 0:
-            type_in = None
-
-    libraries: list[models.Library] = []
-    if field_name == "name":
-        libraries = db.libraries.query(name=word, user_id=user_id, status_in=status_in, type_in=type_in)
-    elif field_name == "id":
-        try:
-            _id = int(word)
-            if (library := db.libraries.get(_id)) is not None:
-                libraries = [library]
-                if user_id is not None:
-                    if library.owner_id != user_id:
-                        libraries = []
-                if status_in is not None and library.status not in status_in:
-                    libraries = []
-                if type_in is not None and library.type not in type_in:
-                    libraries = []
-        except ValueError:
-            pass
-    elif field_name == "owner_id":
-        libraries = db.libraries.query(owner=word, user_id=user_id, status_in=status_in, type_in=type_in)
-
-    return make_response(
-        render_template(
-            "components/tables/library.html",
-            current_query=word, active_query_field=field_name,
-            libraries=libraries, type_in=type_in, status_in=status_in
-        )
-    )
-
-
-@wrappers.htmx_route(libraries_htmx, db=db)
 def get_data_paths(current_user: models.User, library_id: int, page: int = 0):
     if (library := db.libraries.get(library_id)) is None:
         raise exceptions.NotFoundException()

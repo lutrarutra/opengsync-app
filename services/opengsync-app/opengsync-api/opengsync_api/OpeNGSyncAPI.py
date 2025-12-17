@@ -23,21 +23,22 @@ class OpeNGSyncAPI:
     
     def add_data_path(
         self,
-        path: str, path_type: categories.DataPathTypeEnum,
+        path: str,
         seq_request_id: int | None = None,
         project_id: int | None = None,
         experiment_id: int | None = None,
         library_id: int | None = None,
+        path_type: categories.DataPathTypeEnum | None = None,
     ):
         """Adds a data path associated with the given ids. Checks that path exists on server and is a child of a share-directory.
 
         Args:
             path (str): path to the data
-            path_type (categories.DataPathTypeEnum): type of the data path
             seq_request_id (int | None, optional): id of the sequencing request. Defaults to None.
             project_id (int | None, optional): id of the project. Defaults to None.
             experiment_id (int | None, optional): id of the experiment. Defaults to None.
             library_id (int | None, optional): id of the library. Defaults to None.
+            path_type (categories.DataPathTypeEnum | None): type of the data path (default: None -> infer based on filepath extension)
         Raises:
             ValueError: if none of seq_request_id, project_id, experiment_id, or library_id is provided
             requests.HTTPError: if the request fails
@@ -55,7 +56,7 @@ class OpeNGSyncAPI:
             "experiment_id": experiment_id,
             "library_id": library_id,
             "path": path,
-            "path_type_id": path_type.id
+            "path_type_id": path_type.id if path_type is not None else None,
         }
         response = requests.post(f"{self.base_url}/api/shares/add_data_path/", json=payload)
         try:
@@ -71,7 +72,7 @@ class OpeNGSyncAPI:
         experiment_id: int | None = None,
         library_id: int | None = None,
     ):
-        """removes all data paths associated with the given identifiers
+        """Removes all data paths associated with the given identifiers
 
         Args:
             project_id (int | None, optional): id of the project. Defaults to None.

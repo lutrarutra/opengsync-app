@@ -41,12 +41,8 @@ def get_real_path(share_path: str) -> str | None:
     return None
 
 
-def resolve_share_path(path: str, path_type_id: int) -> tuple[str, DataPathTypeEnum]:
+def resolve_share_path(path: str, path_type: DataPathTypeEnum) -> tuple[str, DataPathTypeEnum]:
     path = Path(path).resolve().as_posix()
-    try:
-        path_type = DataPathType.get(path_type_id)
-    except ValueError:
-        raise exceptions.BadRequestException(f"Invalid path type ID '{path_type_id}'.")
     
     if not Path(path).is_absolute():
         raise exceptions.BadRequestException(f"Path '{path}' is not an absolute path.")
@@ -74,13 +70,37 @@ def resolve_share_path(path: str, path_type_id: int) -> tuple[str, DataPathTypeE
 
 @wrappers.api_route(shares_api_bp, db=db, methods=["POST"], json_params=["project_id", "seq_request_id", "experiment_id", "library_id", "path", "path_type_id"], limit="3/second", limit_override=True)
 def add_data_path(
-    path: str, path_type_id: int,
+    path: str,
     seq_request_id: int | None = None,
     project_id: int | None = None,
     experiment_id: int | None = None,
     library_id: int | None = None,
+    path_type_id: int | None = None
 ):
-    share_path, path_type = resolve_share_path(path, path_type_id)
+    if path_type_id is not None:
+        try:
+            path_type = DataPathType.get(path_type_id)
+        except ValueError:
+            raise exceptions.BadRequestException(f"Invalid path type ID '{path_type_id}'.")
+    else:
+        if (p := Path(path)).is_dir():
+            path_type = DataPathType.DIRECTORY
+        else:
+            match p.suffix.lower().lstrip("."):
+                case "pdf":
+                    path_type = DataPathType.PDF
+                case "tsv" | "csv":
+                    path_type = DataPathType.TABLE
+                case "xlsx" | "xls":
+                    path_type = DataPathType.EXCEL
+                case "png" | "jpg" | "jpeg":
+                    path_type = DataPathType.IMAGE
+                case "html":
+                    path_type = DataPathType.HTML
+                case _:
+                    path_type = DataPathType.CUSTOM 
+
+    share_path, path_type = resolve_share_path(path, path_type)
     
     if project_id is not None:
         if (project := db.projects.get(project_id)) is None:

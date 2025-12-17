@@ -5,7 +5,10 @@ from flask import Request
 from opengsync_db import models, categories
 
 from ..import db, logger
-from ..tools.HTMXTable import AffiliationTable, ExperimentTable, GroupTable, LabPrepTable, LibraryTable, PoolTable, ProjectTable, SampleTable, SeqRequestTable, UserTable
+from ..tools.HTMXTable import (
+    AdapterTable, AffiliationTable, ExperimentTable, FeatureKitTable, GroupTable, IndexKitTable, LabPrepTable, LibraryTable, PoolTable,
+    ProjectTable, SampleTable, SeqRequestTable, UserTable, KitTable, SeqRunTable, ProtocolTable, SequencerTable
+)
 from ..core import exceptions
 from .context import parse_context
 
@@ -14,15 +17,15 @@ def render_project_table(current_user: models.User, request: Request, **kwargs) 
 
     table = ProjectTable(route="projects_htmx.get", page=request.args.get("page", 0, type=int))
 
-    if (identifier := request.args.get("identifier")) is not None:
+    if (identifier := request.args.get("identifier")):
         fnc_context["identifier"] = identifier
         table.active_search_var = "identifier"
         table.active_query_value = identifier
-    elif (title := request.args.get("title")) is not None:
+    elif (title := request.args.get("title")):
         fnc_context["title"] = title
         table.active_search_var = "title"
         table.active_query_value = title
-    elif (project_id := request.args.get("id")) is not None:
+    elif (project_id := request.args.get("id")):
         try:
             project_id = int(project_id)
             fnc_context["id"] = project_id
@@ -30,7 +33,7 @@ def render_project_table(current_user: models.User, request: Request, **kwargs) 
             table.active_query_value = str(project_id)
         except ValueError:
             raise exceptions.BadRequestException()
-    elif (owner_name := request.args.get("owner_name")) is not None:
+    elif (owner_name := request.args.get("owner_name")):
         fnc_context["owner_name"] = owner_name
         table.active_search_var = "owner_name"
         table.active_query_value = owner_name
@@ -48,7 +51,7 @@ def render_project_table(current_user: models.User, request: Request, **kwargs) 
     
     context = parse_context(current_user, request) | kwargs
 
-    if (status_in := request.args.get("status_in")) is not None:
+    if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
             status_in = [categories.ProjectStatus.get(int(status)) for status in status_in]
@@ -58,7 +61,7 @@ def render_project_table(current_user: models.User, request: Request, **kwargs) 
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (library_types_in := request.args.get("library_types_in")) is not None:
+    if (library_types_in := request.args.get("library_types_in")):
         library_types_in = json.loads(library_types_in)
         try:
             library_types_in = [categories.LibraryType.get(int(library_type)) for library_type in library_types_in]
@@ -110,7 +113,7 @@ def render_seq_request_table(current_user: models.User, request: Request, **kwar
     
     context = parse_context(current_user, request) | kwargs
     
-    if (status_in := request.args.get("status_in")) is not None:
+    if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
             status_in = [categories.SeqRequestStatus.get(int(status)) for status in status_in]
@@ -120,7 +123,7 @@ def render_seq_request_table(current_user: models.User, request: Request, **kwar
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (submission_type_in := request.args.get("submission_type_in")) is not None:
+    if (submission_type_in := request.args.get("submission_type_in")):
         submission_type_in = json.loads(submission_type_in)
         try:
             submission_type_in = [categories.SubmissionType.get(int(submission_type)) for submission_type in submission_type_in]
@@ -130,7 +133,7 @@ def render_seq_request_table(current_user: models.User, request: Request, **kwar
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (library_types_in := request.args.get("library_types_in")) is not None:
+    if (library_types_in := request.args.get("library_types_in")):
         library_types_in = json.loads(library_types_in)
         try:
             library_types_in = [categories.LibraryType.get(int(library_type)) for library_type in library_types_in]
@@ -157,19 +160,19 @@ def render_seq_request_table(current_user: models.User, request: Request, **kwar
         if not current_user.is_insider():
             fnc_context["user_id"] = current_user.id
 
-    if (name := request.args.get("name")) is not None:
+    if (name := request.args.get("name")):
         fnc_context["name"] = name
         table.active_search_var = "name"
         table.active_query_value = name
-    elif (requestor_name := request.args.get("requestor_name")) is not None:
+    elif (requestor_name := request.args.get("requestor_name")):
         fnc_context["requestor_name"] = requestor_name
         table.active_search_var = "requestor_name"
         table.active_query_value = requestor_name
-    elif (group := request.args.get("group")) is not None:
+    elif (group := request.args.get("group")):
         fnc_context["group"] = group
         table.active_search_var = "group"
         table.active_query_value = group
-    elif (id_ := request.args.get("id")) is not None:
+    elif (id_ := request.args.get("id")):
         try:
             id_ = int(id_)
             fnc_context["id"] = id_
@@ -204,7 +207,7 @@ def render_pool_table(current_user: models.User, request: Request, **kwargs) -> 
     table = PoolTable(route="pools_htmx.get", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
     
-    if (status_in := request.args.get("status_in")) is not None:
+    if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
             status_in = [categories.PoolStatus.get(int(status)) for status in status_in]
@@ -214,7 +217,7 @@ def render_pool_table(current_user: models.User, request: Request, **kwargs) -> 
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (type_in := request.args.get("type_in")) is not None:
+    if (type_in := request.args.get("type_in")):
         type_in = json.loads(type_in)
         try:
             type_in = [categories.PoolType.get(int(type)) for type in type_in]
@@ -224,7 +227,7 @@ def render_pool_table(current_user: models.User, request: Request, **kwargs) -> 
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (library_types_in := request.args.get("library_types_in")) is not None:
+    if (library_types_in := request.args.get("library_types_in")):
         library_types_in = json.loads(library_types_in)
         try:
             library_types_in = [categories.LibraryType.get(int(library_type)) for library_type in library_types_in]
@@ -234,11 +237,11 @@ def render_pool_table(current_user: models.User, request: Request, **kwargs) -> 
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (name := request.args.get("name")) is not None:
+    if (name := request.args.get("name")):
         fnc_context["name"] = name
         table.active_search_var = "name"
         table.active_query_value = name
-    elif (id_ := request.args.get("id")) is not None:
+    elif (id_ := request.args.get("id")):
         try:
             id_ = int(id_)
             fnc_context["id"] = id_
@@ -246,7 +249,7 @@ def render_pool_table(current_user: models.User, request: Request, **kwargs) -> 
             table.active_query_value = str(id_)
         except ValueError:
             raise exceptions.BadRequestException()
-    elif (owner := request.args.get("owner")) is not None:
+    elif (owner := request.args.get("owner")):
         fnc_context["owner"] = owner
         table.active_search_var = "owner"
         table.active_query_value = owner
@@ -272,12 +275,13 @@ def render_pool_table(current_user: models.User, request: Request, **kwargs) -> 
         template = "components/tables/experiment-pool.html"  
         fnc_context["experiment_id"] = experiment.id
         table.url_params["experiment_id"] = experiment.id
+        table.active_page = None
+        fnc_context["limit"] = None
 
     elif (lab_prep := context.get("lab_prep")) is not None:
         template = "components/tables/lab_prep-pool.html"
         fnc_context["lab_prep_id"] = lab_prep.id
         table.url_params["lab_prep_id"] = lab_prep.id
-
     else:
         template = "components/tables/pool.html"
         if not current_user.is_insider():
@@ -297,7 +301,7 @@ def render_library_table(current_user: models.User, request: Request, **kwargs) 
     fnc_context = {}
     table = LibraryTable(route="libraries_htmx.get", page=request.args.get("page", 0, type=int))
 
-    if (status_in := request.args.get("status_in")) is not None:
+    if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
             status_in = [categories.LibraryStatus.get(int(status)) for status in status_in]
@@ -307,7 +311,7 @@ def render_library_table(current_user: models.User, request: Request, **kwargs) 
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (type_in := request.args.get("type_in")) is not None:
+    if (type_in := request.args.get("type_in")):
         type_in = json.loads(type_in)
         try:
             type_in = [categories.LibraryType.get(int(type_)) for type_ in type_in]
@@ -317,15 +321,15 @@ def render_library_table(current_user: models.User, request: Request, **kwargs) 
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (name := request.args.get("name")) is not None:
+    if (name := request.args.get("name")):
         fnc_context["name"] = name
         table.active_search_var = "name"
         table.active_query_value = name
-    elif (pool_name := request.args.get("pool_name")) is not None:
+    elif (pool_name := request.args.get("pool_name")):
         fnc_context["pool_name"] = pool_name
         table.active_search_var = "pool_name"
         table.active_query_value = pool_name
-    elif (id_ := request.args.get("id")) is not None:
+    elif (id_ := request.args.get("id")):
         try:
             id_ = int(id_)
             fnc_context["id"] = id_
@@ -388,7 +392,7 @@ def render_sample_table(current_user: models.User, request: Request, **kwargs) -
     table = SampleTable(route="samples_htmx.get", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
     
-    if (status_in := request.args.get("status_in")) is not None:
+    if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
             status_in = [categories.SampleStatus.get(int(status)) for status in status_in]
@@ -399,11 +403,11 @@ def render_sample_table(current_user: models.User, request: Request, **kwargs) -
             raise exceptions.BadRequestException()
     
 
-    if (name := request.args.get("name")) is not None:
+    if (name := request.args.get("name")):
         fnc_context["name"] = name
         table.active_search_var = "name"
         table.active_query_value = name
-    elif (id_ := request.args.get("id")) is not None:
+    elif (id_ := request.args.get("id")):
         try:
             id_ = int(id_)
             fnc_context["id"] = id_
@@ -460,7 +464,7 @@ def render_user_table(current_user: models.User, request: Request, **kwargs) -> 
     fnc_context = {}
     table = UserTable(route="users_htmx.get", page=request.args.get("page", 0, type=int))
 
-    if (role_in := request.args.get("role_in")) is not None:
+    if (role_in := request.args.get("role_in")):
         role_in = json.loads(role_in)
         try:
             role_in = [categories.UserRole.get(int(role)) for role in role_in]
@@ -472,11 +476,11 @@ def render_user_table(current_user: models.User, request: Request, **kwargs) -> 
 
     context = parse_context(current_user, request) | kwargs
 
-    if (name := request.args.get("name")) is not None:
+    if (name := request.args.get("name")):
         fnc_context["name"] = name
         table.active_search_var = "name"
         table.active_query_value = name
-    elif (id_ := request.args.get("id")) is not None:
+    elif (id_ := request.args.get("id")):
         try:
             id_ = int(id_)
             fnc_context["id"] = id_
@@ -517,15 +521,15 @@ def render_affiliation_table(current_user: models.User, request: Request, **kwar
     table = AffiliationTable(route="", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
     
-    if (user_name := request.args.get("user_name")) is not None:
+    if (user_name := request.args.get("user_name")):
         fnc_context["user_name"] = user_name
         table.active_search_var = "user_name"
         table.active_query_value = user_name
-    elif (group_name := request.args.get("group_name")) is not None:
+    elif (group_name := request.args.get("group_name")):
         fnc_context["group_name"] = group_name
         table.active_search_var = "group_name"
         table.active_query_value = group_name
-    elif (id_ := request.args.get("id")) is not None:
+    elif (id_ := request.args.get("id")):
         try:
             id_ = int(id_)
             fnc_context["id"] = id_
@@ -574,7 +578,7 @@ def render_group_table(current_user: models.User, request: Request, **kwargs) ->
     fnc_context = {}
     table = GroupTable(route="groups_htmx.get", page=request.args.get("page", 0, type=int))
 
-    if (type_in := request.args.get("type_in")) is not None:
+    if (type_in := request.args.get("type_in")):
         type_in = json.loads(type_in)
         try:
             type_in = [categories.GroupType.get(int(role)) for role in type_in]
@@ -584,11 +588,11 @@ def render_group_table(current_user: models.User, request: Request, **kwargs) ->
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (name := request.args.get("name")) is not None:
+    if (name := request.args.get("name")):
         fnc_context["name"] = name
         table.active_search_var = "name"
         table.active_query_value = name
-    elif (id_ := request.args.get("id")) is not None:
+    elif (id_ := request.args.get("id")):
         try:
             id_ = int(id_)
             fnc_context["id"] = id_
@@ -630,7 +634,7 @@ def render_experiment_table(current_user: models.User, request: Request, **kwarg
     table = ExperimentTable(route="experiments_htmx.get", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
 
-    if (status_in := request.args.get("status_in")) is not None:
+    if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
             status_in = [categories.ExperimentStatus.get(int(status)) for status in status_in]
@@ -640,7 +644,7 @@ def render_experiment_table(current_user: models.User, request: Request, **kwarg
         except ValueError:
             raise exceptions.BadRequestException()  
     
-    if (workflow_in := request.args.get("workflow_in")) is not None:
+    if (workflow_in := request.args.get("workflow_in")):
         workflow_in = json.loads(workflow_in)
         try:
             workflow_in = [categories.ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
@@ -650,15 +654,15 @@ def render_experiment_table(current_user: models.User, request: Request, **kwarg
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (name := request.args.get("name")) is not None:
+    if (name := request.args.get("name")):
         fnc_context["name"] = name
         table.active_search_var = "name"
         table.active_query_value = name
-    elif (operator := request.args.get("operator")) is not None:
+    elif (operator := request.args.get("operator")):
         fnc_context["operator"] = operator
         table.active_search_var = "operator"
         table.active_query_value = operator
-    elif (id_ := request.args.get("id")) is not None:
+    elif (id_ := request.args.get("id")):
         try:
             id_ = int(id_)
             fnc_context["id"] = id_
@@ -708,7 +712,7 @@ def render_lab_prep_table(current_user: models.User, request: Request, **kwargs)
     table = LabPrepTable(route="lab_preps_htmx.get", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
     
-    if (status_in := request.args.get("status_in")) is not None:
+    if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
             status_in = [categories.PrepStatus.get(int(status)) for status in status_in]
@@ -718,7 +722,7 @@ def render_lab_prep_table(current_user: models.User, request: Request, **kwargs)
         except ValueError:
             raise exceptions.BadRequestException()
         
-    if (checklist_type_in := request.args.get("checklist_in")) is not None:
+    if (checklist_type_in := request.args.get("checklist_in")):
         checklist_type_in = json.loads(checklist_type_in)
         try:
             checklist_type_in = [categories.LabChecklistType.get(int(checklist_type)) for checklist_type in checklist_type_in]
@@ -728,7 +732,7 @@ def render_lab_prep_table(current_user: models.User, request: Request, **kwargs)
         except ValueError:
             raise exceptions.BadRequestException()
         
-    if (service_in := request.args.get("service_in")) is not None:
+    if (service_in := request.args.get("service_in")):
         service_in = json.loads(service_in)
         try:
             service_in = [categories.ServiceType.get(int(service)) for service in service_in]
@@ -738,11 +742,11 @@ def render_lab_prep_table(current_user: models.User, request: Request, **kwargs)
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (name := request.args.get("name")) is not None:
+    if (name := request.args.get("name")):
         fnc_context["name"] = name
         table.active_search_var = "name"
         table.active_query_value = name
-    elif (id_ := request.args.get("id")) is not None:
+    elif (id_ := request.args.get("id")):
         try:
             id_ = int(id_)
             fnc_context["id"] = id_
@@ -750,7 +754,7 @@ def render_lab_prep_table(current_user: models.User, request: Request, **kwargs)
             table.active_query_value = str(id_)
         except ValueError:
             raise exceptions.BadRequestException()
-    elif (creator := request.args.get("creator")) is not None:
+    elif (creator := request.args.get("creator")):
         fnc_context["creator"] = creator
         table.active_search_var = "creator"
         table.active_query_value = creator
@@ -781,3 +785,389 @@ def render_lab_prep_table(current_user: models.User, request: Request, **kwargs)
         "table": table,
     })
     return context
+
+
+def render_kit_table(current_user: models.User, request: Request, **kwargs) -> dict:
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
+    
+    fnc_context = {}
+    table = KitTable(route="kits_htmx.get", page=request.args.get("page", 0, type=int))
+
+    if (name := request.args.get("name")):
+        fnc_context["name"] = name
+        table.active_search_var = "name"
+        table.active_query_value = name
+    elif (identifier := request.args.get("identifier")):
+        fnc_context["identifier"] = identifier
+        table.active_search_var = "identifier"
+        table.active_query_value = identifier
+    elif (id_ := request.args.get("id")):
+        try:
+            id_ = int(id_)
+            fnc_context["id"] = id_
+            table.active_search_var = "id"
+            table.active_query_value = str(id_)
+        except ValueError:
+            raise exceptions.BadRequestException()
+    else:
+        sort_by = request.args.get("sort_by", "id")
+        sort_order = request.args.get("sort_order", "desc")
+        descending = sort_order == "desc"
+        if sort_by not in models.Kit.sortable_fields:
+            raise exceptions.BadRequestException()
+        
+        fnc_context["sort_by"] = sort_by
+        fnc_context["descending"] = descending
+        table.active_sort_var = sort_by
+        table.active_sort_descending = descending
+
+    context = parse_context(current_user, request) | kwargs
+
+    if (type_in := request.args.get("type_in")) is not None:
+        type_in = json.loads(type_in)
+        try:
+            type_in = [categories.KitType.get(int(kit_type)) for kit_type in type_in]
+            if type_in:
+                fnc_context["type_in"] = type_in
+                table.filter_values["type"] = type_in
+        except ValueError:
+            raise exceptions.BadRequestException()
+        
+    if (protocol := context.get("protocol")) is not None:
+        template = "components/tables/protocol-kit.html"        
+        fnc_context["protocol_id"] = protocol.id
+        table.url_params["protocol_id"] = protocol.id
+    else:
+        template = "components/tables/kit.html"
+    
+    kits, table.num_pages = db.kits.find(page=table.active_page, **fnc_context)
+        
+    context.update({
+        "kits": kits,
+        "template_name_or_list": template,
+        "table": table,
+    })
+    return context
+
+
+def render_index_kit_table(current_user: models.User, request: Request, **kwargs) -> dict:
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
+    
+    fnc_context = {}
+    table = IndexKitTable(route="index_kits_htmx.get", page=request.args.get("page", 0, type=int))
+
+    if (name := request.args.get("name")):
+        fnc_context["name"] = name
+        table.active_search_var = "name"
+        table.active_query_value = name
+    elif (identifier := request.args.get("identifier")):
+        fnc_context["identifier"] = identifier
+        table.active_search_var = "identifier"
+        table.active_query_value = identifier
+    elif (id_ := request.args.get("id")):
+        try:
+            id_ = int(id_)
+            fnc_context["id"] = id_
+            table.active_search_var = "id"
+            table.active_query_value = str(id_)
+        except ValueError:
+            raise exceptions.BadRequestException()
+    else:
+        sort_by = request.args.get("sort_by", "id")
+        sort_order = request.args.get("sort_order", "desc")
+        descending = sort_order == "desc"
+        if sort_by not in models.IndexKit.sortable_fields:
+            raise exceptions.BadRequestException()
+        
+        fnc_context["sort_by"] = sort_by
+        fnc_context["descending"] = descending
+        table.active_sort_var = sort_by
+        table.active_sort_descending = descending
+
+    if (type_in := request.args.get("type_in")):
+        type_in = json.loads(type_in)
+        try:
+            type_in = [categories.IndexType.get(int(kit_type)) for kit_type in type_in]
+            if type_in:
+                fnc_context["type_in"] = type_in
+                table.filter_values["type"] = type_in
+        except ValueError:
+            raise exceptions.BadRequestException()
+
+    context = parse_context(current_user, request) | kwargs
+
+    index_kits, table.num_pages = db.index_kits.find(page=table.active_page, **fnc_context)
+        
+    context.update({
+        "index_kits": index_kits,
+        "template_name_or_list": "components/tables/index_kit.html",
+        "table": table,
+    })
+    return context
+
+
+def render_feature_kits_table(current_user: models.User, request: Request, **kwargs) -> dict:
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
+    
+    fnc_context = {}
+    table = FeatureKitTable(route="feature_kits_htmx.get", page=request.args.get("page", 0, type=int))
+
+    if (name := request.args.get("name")):
+        fnc_context["name"] = name
+        table.active_search_var = "name"
+        table.active_query_value = name
+    elif (identifier := request.args.get("identifier")):
+        fnc_context["identifier"] = identifier
+        table.active_search_var = "identifier"
+        table.active_query_value = identifier
+    elif (id_ := request.args.get("id")):
+        try:
+            id_ = int(id_)
+            fnc_context["id"] = id_
+            table.active_search_var = "id"
+            table.active_query_value = str(id_)
+        except ValueError:
+            raise exceptions.BadRequestException()
+    else:
+        sort_by = request.args.get("sort_by", "id")
+        sort_order = request.args.get("sort_order", "desc")
+        descending = sort_order == "desc"
+        if sort_by not in models.FeatureKit.sortable_fields:
+            raise exceptions.BadRequestException()
+        
+        fnc_context["sort_by"] = sort_by
+        fnc_context["descending"] = descending
+        table.active_sort_var = sort_by
+        table.active_sort_descending = descending
+
+    if (type_in := request.args.get("type_in")):
+        type_in = json.loads(type_in)
+        try:
+            type_in = [categories.FeatureType.get(int(kit_type)) for kit_type in type_in]
+            if type_in:
+                fnc_context["type_in"] = type_in
+                table.filter_values["type"] = type_in
+        except ValueError:
+            raise exceptions.BadRequestException()
+
+    context = parse_context(current_user, request) | kwargs
+
+    feature_kits, table.num_pages = db.feature_kits.find(page=table.active_page, **fnc_context)
+        
+    context.update({
+        "feature_kits": feature_kits,
+        "template_name_or_list": "components/tables/feature_kit.html",
+        "table": table,
+    })
+    return context
+
+
+def render_adapter_table(current_user: models.User, request: Request, **kwargs) -> dict:
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
+    
+    fnc_context = {}
+    table = AdapterTable(route="adapters_htmx.get", page=request.args.get("page", 0, type=int))
+
+    if (name := request.args.get("name")):
+        fnc_context["name"] = name
+        table.active_search_var = "name"
+        table.active_query_value = name
+    elif (well := request.args.get("well")):
+        fnc_context["well"] = well
+        table.active_search_var = "well"
+        table.active_query_value = well
+    elif (sequence := request.args.get("sequence")):
+        fnc_context["sequence"] = sequence
+        table.active_search_var = "sequence"
+        table.active_query_value = sequence
+    elif (id_ := request.args.get("id")):
+        try:
+            id_ = int(id_)
+            fnc_context["id"] = id_
+            table.active_search_var = "id"
+            table.active_query_value = str(id_)
+        except ValueError:
+            raise exceptions.BadRequestException()
+    else:
+        sort_by = request.args.get("sort_by", "id")
+        sort_order = request.args.get("sort_order", "desc")
+        descending = sort_order == "desc"
+        if sort_by not in models.Adapter.sortable_fields:
+            raise exceptions.BadRequestException()
+        
+        fnc_context["sort_by"] = sort_by
+        fnc_context["descending"] = descending
+        table.active_sort_var = sort_by
+        table.active_sort_descending = descending
+
+    context = parse_context(current_user, request) | kwargs
+
+    if (index_kit := context.get("index_kit")) is not None:
+        template = "components/tables/index_kit-adapter.html"  
+        table.route = "index_kits_htmx.get_adapters"      
+        fnc_context["index_kit_id"] = index_kit.id
+        table.url_params["index_kit_id"] = index_kit.id
+    else:
+        template = "components/tables/adapter.html"
+
+    adapters, table.num_pages = db.adapters.find(page=table.active_page, **fnc_context)
+    
+    context.update({
+        "adapters": adapters,
+        "template_name_or_list": template,
+        "table": table,
+    })
+    return context
+
+
+def render_seq_run_table(current_user: models.User, request: Request, **kwargs) -> dict:
+    fnc_context = {}
+    table = SeqRunTable(route="seq_runs_htmx.get", page=request.args.get("page", 0, type=int))
+    context = parse_context(current_user, request) | kwargs
+    
+    if (status_in := request.args.get("status_in")):
+        status_in = json.loads(status_in)
+        try:
+            status_in = [categories.RunStatus.get(int(status)) for status in status_in]
+            if status_in:
+                fnc_context["status_in"] = status_in
+                table.filter_values["status"] = status_in
+        except ValueError:
+            raise exceptions.BadRequestException()
+        
+    if (experiment := request.args.get("experiment")):
+        fnc_context["experiment"] = experiment
+        table.active_search_var = "experiment"
+        table.active_query_value = experiment
+    elif (run_folder := request.args.get("run_folder")):
+        fnc_context["run_folder"] = run_folder
+        table.active_search_var = "run_folder"
+        table.active_query_value = run_folder
+    elif (flow_cell_id := request.args.get("flow_cell_id")):
+        fnc_context["flow_cell_id"] = flow_cell_id
+        table.active_search_var = "flow_cell_id"
+        table.active_query_value = flow_cell_id
+    elif (id_ := request.args.get("id")):
+        try:
+            id_ = int(id_)
+            fnc_context["id"] = id_
+            table.active_search_var = "id"
+            table.active_query_value = str(id_)
+        except ValueError:
+            raise exceptions.BadRequestException()
+    else:
+        sort_by = request.args.get("sort_by", "id")
+        sort_order = request.args.get("sort_order", "desc")
+        descending = sort_order == "desc"
+        if sort_by not in models.SeqRun.sortable_fields:
+            raise exceptions.BadRequestException()
+        
+        fnc_context["sort_by"] = sort_by
+        fnc_context["descending"] = descending
+        table.active_sort_var = sort_by
+        table.active_sort_descending = descending
+
+    seq_runs, table.num_pages = db.seq_runs.find(page=table.active_page, **fnc_context)
+
+    context.update({
+        "seq_runs": seq_runs,
+        "template_name_or_list": "components/tables/seq_run.html",
+        "table": table,
+    })
+    return context
+
+
+def render_protocol_table(current_user: models.User, request: Request, **kwargs) -> dict:
+    fnc_context = {}
+    table = ProtocolTable(route="protocols_htmx.get", page=request.args.get("page", 0, type=int))
+
+    if (name := request.args.get("name")):
+        fnc_context["name"] = name
+        table.active_search_var = "name"
+        table.active_query_value = name
+    elif (id_ := request.args.get("id")):
+        try:
+            id_ = int(id_)
+            fnc_context["id"] = id_
+            table.active_search_var = "id"
+            table.active_query_value = str(id_)
+        except ValueError:
+            raise exceptions.BadRequestException()
+    else:
+        sort_by = request.args.get("sort_by", "id")
+        sort_order = request.args.get("sort_order", "desc")
+        descending = sort_order == "desc"
+        if sort_by not in models.Protocol.sortable_fields:
+            raise exceptions.BadRequestException()
+        
+        fnc_context["sort_by"] = sort_by
+        fnc_context["descending"] = descending
+        table.active_sort_var = sort_by
+        table.active_sort_descending = descending
+
+    if (service_type_in := request.args.get("service_type_in")) is not None:
+        service_type_in = json.loads(service_type_in)
+        try:
+            service_type_in = [categories.ServiceType.get(int(service_type)) for service_type in service_type_in]
+            if service_type_in:
+                fnc_context["service_type_in"] = service_type_in
+                table.filter_values["service_type"] = service_type_in
+        except ValueError:
+            raise exceptions.BadRequestException()
+
+    context = parse_context(current_user, request) | kwargs
+
+    protocols, table.num_pages = db.protocols.find(page=table.active_page, **fnc_context)
+        
+    context.update({
+        "protocols": protocols,
+        "template_name_or_list": "components/tables/protocol.html",
+        "table": table,
+    })
+    return context
+    
+
+def render_sequencers_table(current_user: models.User, request: Request, **kwargs) -> dict:
+    fnc_context = {}
+    table = SequencerTable(route="sequencers_htmx.get", page=request.args.get("page", 0, type=int))
+
+    if (name := request.args.get("name")):
+        fnc_context["name"] = name
+        table.active_search_var = "name"
+        table.active_query_value = name
+    elif (id_ := request.args.get("id")):
+        try:
+            id_ = int(id_)
+            fnc_context["id"] = id_
+            table.active_search_var = "id"
+            table.active_query_value = str(id_)
+        except ValueError:
+            raise exceptions.BadRequestException()
+    else:
+        sort_by = request.args.get("sort_by", "id")
+        sort_order = request.args.get("sort_order", "desc")
+        descending = sort_order == "desc"
+        if sort_by not in models.Sequencer.sortable_fields:
+            raise exceptions.BadRequestException()
+        
+        fnc_context["sort_by"] = sort_by
+        fnc_context["descending"] = descending
+        table.active_sort_var = sort_by
+        table.active_sort_descending = descending
+
+    context = parse_context(current_user, request) | kwargs
+
+    sequencers, table.num_pages = db.sequencers.find(page=table.active_page, **fnc_context)
+
+    context.update({
+        "sequencers": sequencers,
+        "template_name_or_list": "components/tables/sequencer.html",
+        "table": table,
+    })
+    return context
+
+        

@@ -31,59 +31,6 @@ def get(current_user: models.User):
     return make_response(render_template(**context))
 
 
-@wrappers.htmx_route(lab_preps_htmx, db=db)
-def table_query():
-    if (word := request.args.get("name")) is not None:
-        field_name = "name"
-    elif (word := request.args.get("id")) is not None:
-        field_name = "id"
-    elif (word := request.args.get("creator_id")) is not None:
-        field_name = "creator_id"
-    else:
-        raise exceptions.BadRequestException()
-
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [PrepStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-
-    if (checklist_type_in := request.args.get("checklist_type_id_in")) is not None:
-        checklist_type_in = json.loads(checklist_type_in)
-        try:
-            checklist_type_in = [LabChecklistType.get(int(checklist_type)) for checklist_type in checklist_type_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(checklist_type_in) == 0:
-            checklist_type_in = None
-
-    lab_preps: list[models.LabPrep] = []
-    if field_name == "name":
-        lab_preps = db.lab_preps.query(name=word, checklist_type_in=checklist_type_in, status_in=status_in)
-    elif field_name == "id":
-        try:
-            _id = int(word)
-            if (lab_prep := db.lab_preps.get(_id)) is not None:
-                lab_preps.append(lab_prep)
-        except ValueError:
-            pass
-    elif field_name == "creator_id":
-        lab_preps = db.lab_preps.query(creator=word, checklist_type_in=checklist_type_in, status_in=status_in)
-
-    return make_response(
-        render_template(
-            "components/tables/lab_prep.html",
-            current_query=word, active_query_field=field_name,
-            lab_preps=lab_preps, checklist_type_in=checklist_type_in, status_in=status_in
-        )
-    )
-
-
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
     if not current_user.is_insider():

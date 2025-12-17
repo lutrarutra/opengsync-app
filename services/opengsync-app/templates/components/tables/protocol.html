@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 
@@ -7,32 +7,10 @@
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='protocol-table', column_name='ID', column_var='id',
-                        sort_url='protocols_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        query_url='protocols_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="number", col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='protocol-table', column_name='Name', column_var='name',
-                        sort_url='protocols_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        query_url='protocols_htmx.table_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=7
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='protocol-table', column_name='Assay', column_var='service_type_id',
-                        sort_url='protocols_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=ServiceType.as_list(), multiselect_selected=service_type_in
-                    )
-                }}
-                <th scope="col" class="col-2">
-                    Read Structure
-                </th>
+                {{ table_col2("protocol-table", table, "id") }}
+                {{ table_col2("protocol-table", table, "name") }}
+                {{ table_col2("protocol-table", table, "service_type") }}
+                {{ table_col2("protocol-table", table, "read_structure") }}
             </tr>
         </thead>
         <tbody>
@@ -53,5 +31,5 @@
         </tbody>
     </table>
     {{ spinner("protocol-table-spinner") }}
-    {{ pagination("protocol-table", "protocols_htmx.get", n_pages, active_page) }}
+    {{ pagination2("protocol-table", table) }}
 </div>
