@@ -1,10 +1,7 @@
-import json
-
 from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import UserRole, SeqRequestStatus, ProjectStatus
 
 from ... import db, logger, forms, logic  # noqa F401
 from ...core import wrappers, exceptions
@@ -14,44 +11,19 @@ users_htmx = Blueprint("users_htmx", __name__, url_prefix="/htmx/users/")
 
 @wrappers.htmx_route(users_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get(current_user: models.User):
-    context = logic.tables.render_user_table(current_user=current_user, request=request)
+    context = logic.user.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
-@wrappers.htmx_route(users_htmx, db=db, methods=["POST"])
-def query(current_user: models.User):
+@wrappers.htmx_route(users_htmx, db=db)
+def search(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    field_name = next(iter(request.form.keys()))
-    query = request.form.get(field_name)
-
-    if query is None:
-        raise exceptions.BadRequestException()
-    
-    if (role_in := request.args.get("role_id_in")) is not None:
-        role_in = json.loads(role_in)
-        try:
-            role_in = [UserRole.get(int(role)) for role in role_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if len(role_in) == 0:
-            role_in = None
-
-    only_insiders = request.args.get("only_insiders") == "True"
-    results = db.users.query(query, role_in=role_in, only_insiders=only_insiders)
-    
-    return make_response(
-        render_template(
-            "components/search/user.html",
-            results=results, field_name=field_name
-        )
-    )
-
+    return make_response(render_template(**logic.user.get_search_context(current_user=current_user, request=request)))
 
 @wrappers.htmx_route(users_htmx, db=db)
 def get_affiliations(current_user: models.User):
-    context = logic.tables.render_affiliation_table(current_user=current_user, request=request)
+    context = logic.affiliation.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
 @wrappers.htmx_route(users_htmx, db=db)

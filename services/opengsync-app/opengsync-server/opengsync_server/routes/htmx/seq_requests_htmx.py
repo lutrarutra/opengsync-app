@@ -24,7 +24,7 @@ seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/htmx/s
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get(current_user: models.User):
-    context = logic.tables.render_seq_request_table(current_user=current_user, request=request)
+    context = logic.seq_request.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
 
@@ -363,7 +363,7 @@ def remove_library(current_user: models.User, seq_request_id: int, library_id: i
     db.libraries.delete(library)
     flash("Library Removed!.", "success")
 
-    context = logic.tables.render_library_table(current_user=current_user, request=request, seq_request=seq_request)
+    context = logic.library.get_table_context(current_user=current_user, request=request, seq_request=seq_request)
     return make_response(render_template(**context))
 
 
@@ -390,7 +390,7 @@ def reseq_library(current_user: models.User, seq_request_id: int, library_id: in
     db.libraries.clone(library_id=library.id, seq_request_id=seq_request.id, status=LibraryStatus.PREPARING, indexed=True)
     flash(f"Library Cloned!", "success")
 
-    context = logic.tables.render_library_table(current_user=current_user, request=request, seq_request=seq_request)
+    context = logic.library.get_table_context(current_user=current_user, request=request, seq_request=seq_request)
     return make_response(render_template(**context))
 
 
@@ -416,7 +416,7 @@ def remove_sample(current_user: models.User, seq_request_id: int, sample_id: int
         db.libraries.delete(library_link.library, delete_orphan_samples=False)
 
     flash("Removed all libraries associated with the sample.", "success")
-    context = logic.tables.render_sample_table(current_user=current_user, request=request, seq_request=seq_request)
+    context = logic.sample.get_table_context(current_user=current_user, request=request, seq_request=seq_request)
     return make_response(render_template(**context))
         
 

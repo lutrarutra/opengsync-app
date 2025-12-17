@@ -12,7 +12,7 @@ sequencers_htmx = Blueprint("sequencers_htmx", __name__, url_prefix="/htmx/seque
 
 @wrappers.htmx_route(sequencers_htmx, db=db, cache_timeout_seconds=60, cache_type="user")
 def get(current_user: models.User):
-    context = logic.tables.render_sequencers_table(current_user=current_user, request=request)
+    context = logic.sequencer.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
 

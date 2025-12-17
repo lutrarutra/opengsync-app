@@ -243,9 +243,15 @@ class User(Base, UserMixin):
     def role(self, value: UserRoleEnum):
         self.role_id = value.id
     
-    @property
-    def name(self) -> str:
+    @hybrid_property
+    def name(self) -> str:  # type: ignore[override]
         return self.first_name + " " + self.last_name
+    
+    @name.expression
+    def name(cls) -> sa.ScalarSelect[str]:
+        return sa.select(
+            (cls.first_name + " " + cls.last_name)  # type: ignore[arg-type]
+        ).correlate(cls).scalar_subquery()
 
     def search_value(self) -> int:
         return self.id

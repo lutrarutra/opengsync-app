@@ -1,15 +1,15 @@
 <ul class="list-group search-component">
-    {% if results is defined and results %}
-    {% for res in results %}
-    <li {% if loop.last %} class="last" {% endif %}>
+    {% if projects is defined and projects %}
+    {% for project in projects %}
+    <li class="{% if loop.last %}last{% endif %} {% if selected_id is defined and project.id == selected_id %}selected{% endif %}">
         <a id="option-{{ field_name }}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
         data-field="{{ field_name }}"
-        data-value="{{ res.id }}"
+        data-value="{{ project.id }}"
         aria-controls="{{ field_name }}">
-            <span class="search-select-header">{{ res.identifier or "" }}</span>
-            <span class="search-select-name">{{ res.title }}</span>
-            <span class="search-select-desc">{{ res.status.name }} {{ res.status.icon }}</span>
+            <span class="search-select-header">{{ project.identifier or "" }}</span>
+            <span class="search-select-name">{{ project.title }}</span>
+            <span class="search-select-desc">{{ project.status.name }} {{ project.status.icon }}</span>
         </a>
     </li>
     {% endfor %}

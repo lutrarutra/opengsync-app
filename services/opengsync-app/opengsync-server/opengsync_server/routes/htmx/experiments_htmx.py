@@ -22,7 +22,7 @@ experiments_htmx = Blueprint("experiments_htmx", __name__, url_prefix="/htmx/exp
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get(current_user: models.User):
-    context = logic.tables.render_experiment_table(current_user=current_user, request=request)
+    context = logic.experiment.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
 
@@ -97,23 +97,12 @@ def delete(current_user: models.User, experiment_id: int):
     )
 
 
-@wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
-def query(current_user: models.User):
+@wrappers.htmx_route(experiments_htmx, db=db)
+def search(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    field_name = next(iter(request.form.keys()))
-    if (word := request.form.get(field_name)) is None:
-        raise exceptions.BadRequestException()
-
-    results = db.experiments.query(word)
-
-    return make_response(
-        render_template(
-            "components/search/experiment.html",
-            results=results, field_name=field_name,
-        )
-    )
+    return make_response(render_template(**logic.experiment.get_search_context(current_user=current_user, request=request)))
 
 
 @wrappers.htmx_route(experiments_htmx, db=db)
@@ -174,7 +163,7 @@ def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_
     )
 
     flash("Added pool to Lane!'.", "success")
-    return make_response(render_template(**logic.tables.render_pool_table(current_user=current_user, request=request, experiment=experiment)))
+    return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
 
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
@@ -201,7 +190,7 @@ def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lan
     )
 
     flash("Removed pool from Lane!", "success")
-    return make_response(render_template(**logic.tables.render_pool_table(current_user=current_user, request=request, experiment=experiment)))
+    return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
 
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])

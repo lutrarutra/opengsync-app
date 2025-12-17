@@ -12,7 +12,7 @@ groups_htmx = Blueprint("groups_htmx", __name__, url_prefix="/htmx/groups/")
 
 @wrappers.htmx_route(groups_htmx, db=db)
 def get(current_user: models.User):
-    context = logic.tables.render_group_table(current_user=current_user, request=request)
+    context = logic.group.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
 
@@ -61,7 +61,7 @@ def edit(current_user: models.User, group_id: int):
 
 @wrappers.htmx_route(groups_htmx, db=db)
 def get_affiliations(current_user: models.User, page: int = 0):
-    context = logic.tables.render_affiliation_table(current_user=current_user, request=request, page=page)
+    context = logic.affiliation.get_table_context(current_user=current_user, request=request, page=page)
     return make_response(render_template(**context))
 
 
