@@ -15,7 +15,7 @@ kits_htmx = Blueprint("kits_htmx", __name__, url_prefix="/htmx/kits/")
 
 @wrappers.htmx_route(kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
 def get(current_user: models.User):
-    context = logic.tables.render_kit_table(current_user=current_user, request=request)
+    context = logic.kit.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
 

@@ -1,15 +1,15 @@
 <ul class="list-group search-component">
-    {% if results is defined and results %}
-    {% for res in results %}
-    <li {% if loop.last %} class="last" {% endif %} data-email="{{ res.email }}" data-name="{{ res.name }}" data-role="{{ res.role.id }}">
+    {% if users is defined and users %}
+    {% for user in users %}
+    <li class="{% if loop.last %}last{% endif %} {% if selected_id is defined and user.id == selected_id %}selected{% endif %}" data-email="{{ user.email }}" data-name="{{ user.name }}" data-role="{{ user.role.id }}">
         <a id="option-{{ field_name }}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
         data-field="{{ field_name }}"
-        data-value="{{ res.id }}"
+        data-value="{{ user.id }}"
         aria-controls="{{ field_name }}">
-            <span class="search-select-name">{{ res.role.icon }} {{ res.role.name }}</span>
-            <span class="search-select-name">{{ res.name }}</span>
-            <span class="search-select-desc">{{ res.email }}</span>
+            <span class="search-select-header">{{ user.name }}</span>
+            <span class="search-select-name">{{ user.role.icon }} {{ user.role.name }}</span>
+            <span class="search-select-desc">{{ user.email }}</span>
         </a>
     </li>
     {% endfor %}

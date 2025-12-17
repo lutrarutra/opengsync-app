@@ -1,4 +1,4 @@
-{% from "components/search_select.jinja2" import search_select_field %}
+{% from "components/search_select.jinja2" import search_select_field2 %}
 
 <div class="modal-content" id="add-project-assignee-form-container">
     <div class="modal-header">
@@ -6,12 +6,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body" id="add-project-assignee-form">
-            {{ 
-                search_select_field(
-                    form.user,
-                    url_for('users_htmx.query', only_insiders=True),
-                )
-            }}
+            {{ search_select_field2(form.user, url_for('users_htmx.search', insider=True), "name")}}
         {{ form.csrf_token() }}
     </div>
     <div class="modal-footer">

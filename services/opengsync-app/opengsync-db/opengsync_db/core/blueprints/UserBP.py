@@ -21,6 +21,7 @@ class UserBP(DBBlueprint):
         query: Query,
         role_in: Optional[list[UserRoleEnum]] = None,
         group_id: int | None = None,
+        insider: bool | None = None,
         exclude_group_id: int | None = None,
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
@@ -45,6 +46,12 @@ class UserBP(DBBlueprint):
             ).where(
                 models.links.UserAffiliation.group_id != exclude_group_id
             )
+
+        if insider is not None:
+            if insider:
+                query = query.where(models.User.role_id.in_([role.id for role in UserRole.insiders()]))
+            else:
+                query = query.where(models.User.role_id == UserRole.CLIENT.id)
 
         if custom_query is not None:
             query = custom_query(query)
@@ -130,9 +137,11 @@ class UserBP(DBBlueprint):
     def find(
         self,
         role_in: Optional[list[UserRoleEnum]] = None,
-        group_id: int | None = None, exclude_group_id: int | None = None,
+        group_id: int | None = None,
+        exclude_group_id: int | None = None,
         name: str | None = None,
         id: int | None = None,
+        insider: bool | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
         page: int | None = None,
@@ -156,7 +165,7 @@ class UserBP(DBBlueprint):
         query = self.db.session.query(models.User)
         query = self.where(
             query, role_in=role_in, group_id=group_id,
-            exclude_group_id=exclude_group_id
+            exclude_group_id=exclude_group_id, insider=insider
         )
         if options is not None:
             query = query.options(options)
@@ -168,7 +177,7 @@ class UserBP(DBBlueprint):
             query = query.order_by(attr)
         
         if name is not None:
-            query = query.order_by(sa.nulls_last(sa.func.similarity((models.User.first_name + ' ' + models.User.last_name), name).desc()))
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, name).desc()))
         elif id is not None:
             query = query.where(models.User.id == id)
 

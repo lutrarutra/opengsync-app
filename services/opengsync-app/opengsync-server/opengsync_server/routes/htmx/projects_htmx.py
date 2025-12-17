@@ -19,40 +19,13 @@ projects_htmx = Blueprint("projects_htmx", __name__, url_prefix="/htmx/projects/
 
 @wrappers.htmx_route(projects_htmx, db=db, cache_timeout_seconds=120, cache_type="insider")
 def get(current_user: models.User):    
-    context = logic.tables.render_project_table(current_user=current_user, request=request)
+    context = logic.project.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
-@wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
-def query(current_user: models.User):
-    field_name = next(iter(request.form.keys()))
-    if (word := request.form.get(field_name, default="")) is None:
-        raise exceptions.BadRequestException()
-
-    if not current_user.is_insider():
-        _user_id = current_user.id
-    else:
-        _user_id = None
-
-    if (group_id := request.args.get("group_id", None)) is not None:
-        try:
-            group_id = int(group_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if (_ := db.groups.get(group_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        _user_id = None
-            
-    results = db.projects.query(identifier_title=word, user_id=_user_id, group_id=group_id)
-
-    return make_response(
-        render_template(
-            "components/search/project.html",
-            results=results,
-            field_name=field_name
-        )
-    )
+@wrappers.htmx_route(projects_htmx, db=db)
+def search(current_user: models.User):
+    context = logic.project.get_search_context(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
@@ -449,7 +422,7 @@ def add_assignee(current_user: models.User, project_id: int, assignee_id: int | 
     if request.args.get("context") == "dashboard":
         return make_response(redirect=url_for("dashboard"))
     else:
-        return make_response(render_template(**logic.tables.render_project_table(current_user=current_user, request=request)))
+        return make_response(render_template(**logic.project.get_table_context(current_user=current_user, request=request)))
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def add_assignee_form(current_user: models.User, project_id: int):

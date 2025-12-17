@@ -3,8 +3,8 @@ import json
 from flask import Blueprint, url_for, render_template, flash, request
 from flask_htmx import make_response
 
-from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import UserRole, SampleStatus, AccessType, LibraryStatus, LibraryType
+from opengsync_db import models
+from opengsync_db.categories import UserRole, SampleStatus, AccessType
 
 from ... import db, logger, forms, logic
 from ...core import wrappers, exceptions
@@ -15,7 +15,7 @@ samples_htmx = Blueprint("samples_htmx", __name__, url_prefix="/htmx/samples/")
 
 @wrappers.htmx_route(samples_htmx, db=db)
 def get(current_user: models.User):
-    return make_response(render_template(**logic.tables.render_sample_table(current_user=current_user, request=request)))
+    return make_response(render_template(**logic.sample.get_table_context(current_user=current_user, request=request)))
 
 
 @wrappers.htmx_route(samples_htmx, db=db, methods=["DELETE"])

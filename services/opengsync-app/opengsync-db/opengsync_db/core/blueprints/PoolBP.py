@@ -410,7 +410,7 @@ class PoolBP(DBBlueprint):
         cloned_pool = self.create(
             name=pool.name,
             owner_id=pool.owner_id,
-            seq_request_id=seq_request_id,
+            seq_request_id=seq_request_id or pool.seq_request_id,
             num_m_reads_requested=pool.num_m_reads_requested,
             lab_prep_id=pool.lab_prep_id,
             contact_email=pool.contact.email if pool.contact.email is not None else "unknown",
@@ -420,6 +420,11 @@ class PoolBP(DBBlueprint):
             original_pool_id=pool.original_pool_id if pool.original_pool_id is not None else pool.id,
             status=status,
         )
+
+        cloned_pool.avg_fragment_size = pool.avg_fragment_size
+        cloned_pool.qubit_concentration = pool.qubit_concentration
+        cloned_pool.num_m_reads_requested = pool.num_m_reads_requested
+
         return cloned_pool
 
     @DBBlueprint.transaction

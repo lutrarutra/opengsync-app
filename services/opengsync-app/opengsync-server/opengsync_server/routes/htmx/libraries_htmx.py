@@ -18,7 +18,7 @@ libraries_htmx = Blueprint("libraries_htmx", __name__, url_prefix="/htmx/librari
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get(current_user: models.User):
-    return make_response(render_template(**logic.tables.render_library_table(current_user, request)))
+    return make_response(render_template(**logic.library.get_table_context(current_user, request)))
 
 
 @wrappers.htmx_route(libraries_htmx, db=db, methods=["POST"])

@@ -13,5 +13,5 @@ seq_runs_htmx = Blueprint("seq_runs_htmx", __name__, url_prefix="/htmx/seq_run/"
 def get(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
-    context = logic.tables.render_seq_run_table(current_user=current_user, request=request)
+    context = logic.seq_run.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))

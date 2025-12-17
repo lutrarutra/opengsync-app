@@ -15,7 +15,7 @@ pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/htmx/pools/")
 
 @wrappers.htmx_route(pools_htmx, db=db)
 def get(current_user: models.User):
-    return make_response(render_template(**logic.tables.render_pool_table(current_user, request)))
+    return make_response(render_template(**logic.pool.get_table_context(current_user, request)))
 
 
 @wrappers.htmx_route(pools_htmx, methods=["POST"], db=db)
@@ -148,7 +148,7 @@ def remove_library(current_user: models.User, pool_id: int, library_id: int):
 
     flash("Library Removed!", "success")
 
-    context = logic.tables.render_library_table(current_user, request, pool=pool)
+    context = logic.library.get_table_context(current_user, request, pool=pool)
     return make_response(render_template(**context))
 
 

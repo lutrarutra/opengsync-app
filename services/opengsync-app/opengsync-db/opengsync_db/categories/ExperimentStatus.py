@@ -11,6 +11,10 @@ class ExperimentStatusEnum(DBEnum):
     @property
     def select_name(self) -> str:
         return self.icon
+    
+    @property
+    def display_name(self) -> str:
+        return f"{self.name} {self.icon}"
 
 
 class ExperimentStatus(ExtendedEnum[ExperimentStatusEnum], enum_type=ExperimentStatusEnum):

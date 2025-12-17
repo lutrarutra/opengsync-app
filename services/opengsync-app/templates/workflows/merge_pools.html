@@ -1,5 +1,5 @@
 {% from 'components/form_group.jinja2' import form_group, select_input %}
-{% from 'components/search_select.jinja2' import search_select_field %}
+{% from 'components/search_select.jinja2' import search_select_field2 %}
 {% from 'components/barcode_clashes_table.jinja2' import barcode_clashes_table with context %}
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 
@@ -45,13 +45,7 @@
                     </div>
                     <div class="row">
                         {% if current_user.is_insider() %}
-                        {{
-                            search_select_field(
-                                form.contact,
-                                query_url=url_for('users_htmx.query', only_insiders=True),
-                                class="col-4"
-                            )
-                        }}
+                        {{ search_select_field2(form.contact, url_for('users_htmx.search', insider=True), "name", class="col-4") }}
                         {{ form_group(form.contact_name, class="col-2") }}
                         {{ form_group(form.contact_email, class="col-3") }}
                         {{ form_group(form.contact_phone, class="col-3") }}

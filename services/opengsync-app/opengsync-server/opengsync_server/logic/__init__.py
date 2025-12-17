@@ -1,1 +1,18 @@
-from . import tables
+from . import context  # noqa: F401
+from . import adapter  # noqa: F401
+from . import affiliation  # noqa: F401
+from . import experiment  # noqa: F401
+from . import feature_kit  # noqa: F401
+from . import group  # noqa: F401
+from . import index_kit  # noqa: F401
+from . import kit  # noqa: F401
+from . import lab_prep  # noqa: F401
+from . import library  # noqa: F401
+from . import pool  # noqa: F401
+from . import project  # noqa: F401
+from . import protocol  # noqa: F401
+from . import sample  # noqa: F401
+from . import seq_request  # noqa: F401
+from . import seq_run  # noqa: F401
+from . import sequencer  # noqa: F401
+from . import user  # noqa: F401

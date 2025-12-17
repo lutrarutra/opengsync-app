@@ -14,7 +14,7 @@ index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/htmx/index
 
 @wrappers.htmx_route(index_kits_htmx, db=db)
 def get(current_user: models.User):
-    context = logic.tables.render_index_kit_table(current_user=current_user, request=request)
+    context = logic.index_kit.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
 
@@ -37,7 +37,7 @@ def query():
 
 @wrappers.htmx_route(index_kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
 def get_adapters(current_user: models.User):
-    context = logic.tables.render_adapter_table(current_user=current_user, request=request)
+    context = logic.adapter.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
 

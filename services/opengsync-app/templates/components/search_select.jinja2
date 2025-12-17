@@ -19,7 +19,7 @@
         data-field="{{ field.name }}"
         hx-include="#{{ field.name }}-search" hx-target="#{{ field.name }}-results"
         hx-trigger="keyup changed delay:500ms, {{ field.name }}, change{% if not results is defined or not results %}, load{% endif %}" 
-        hx-post="{{ query_url}}"
+        hx-post="{{ query_url }}"
         hx-swap="innerHTML"
         placeholder="Search">
         <span id="{{ field.name }}-selected_bar" class="form-control selected-bar" style="display: none;" data-field="{{ field.name }}"></span>
@@ -34,6 +34,47 @@
         {% if field.errors %}
             {% for error in field.selected.errors %}
             <p>{{ error }}</p>
+            {% endfor %}
+        {% endif %}
+    </div>
+    {{ field.csrf_token() }}
+</div>
+{%- endmacro %}
+
+{% macro search_select_field2(field, query_url, search_param, class="") -%}
+<div class="form-group search-select {{ class }}" id="{{ field.name }}-container">
+    <a {% if field.description %}{{ tooltip(field.description, "top") }}{% endif %}>
+        {{ field.label.text }}
+    </a>
+    <div class="input-group">
+        <input class="input-group-text searchbar-data"
+        type="number" value="{{ field.selected.data if field.selected.data }}"
+        id="{{ field.name }}" name="{{ field.name }}-selected" readonly {% if field.optional %} placeholder="Optional" {% endif %}>
+        <input type="hidden" name="field_name" id="{{ field.name }}-field_name" value="{{ field.name }}">
+        <input
+            type="text"
+            autocomplete="off"
+            class="form-control searchbar-input search-component {% if field.selected.errors %} is-invalid {% endif %}"
+            value="{{ field.search_bar.data if field.search_bar.data else '' }}"
+            name="{{ search_param }}"
+            id="{{ field.name }}-search"
+            data-field="{{ field.name }}"
+            hx-target="#{{ field.name }}-results"
+            hx-trigger="keyup changed delay:500ms, {{ field.name }}, change{% if not results is defined or not results %}, load{% endif %}"
+            hx-get="{{ query_url }}"
+            hx-include="#{{ field.name }}, #{{ field.name }}-search, #{{ field.name }}-field_name"
+            hx-swap="innerHTML"
+            placeholder="Search">
+        <span id="{{ field.name }}-selected_bar" class="form-control selected-bar" style="display: none;" data-field="{{ field.name }}"></span>
+        <button class="btn btn-outline-secondary clear-search-btn" type="button" data-field="{{ field.name }}">Clear</button>
+    </div>
+    <div class="search-select-results-container">
+        <div id="{{ field.name }}-results" class="search-select-results" style="display: none; width: 100%; z-index: 100;"></div>
+    </div>
+    <div class="invalid-feedback-container" id="{{ field.name }}-invalid-container">
+        {% if field.errors %}
+            {% for error in field.selected.errors %}
+                <p>{{ error }}</p>
             {% endfor %}
         {% endif %}
     </div>

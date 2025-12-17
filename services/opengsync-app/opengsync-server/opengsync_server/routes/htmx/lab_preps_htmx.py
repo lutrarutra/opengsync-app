@@ -27,7 +27,7 @@ lab_preps_htmx = Blueprint("lab_preps_htmx", __name__, url_prefix="/htmx/lab_pre
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get(current_user: models.User):
-    context = logic.tables.render_lab_prep_table(current_user=current_user, request=request)
+    context = logic.lab_prep.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
 
@@ -133,7 +133,7 @@ def remove_library(current_user: models.User, lab_prep_id: int, library_id: int)
     db.lab_preps.remove_library(lab_prep_id=lab_prep.id, library_id=library_id)
 
     flash("Library Removed!.", "success")
-    context = logic.tables.render_library_table(current_user=current_user, request=request, lab_prep=lab_prep)
+    context = logic.library.get_table_context(current_user=current_user, request=request, lab_prep=lab_prep)
     return make_response(render_template(**context))
 
 

@@ -190,16 +190,14 @@ class ExperimentBP(DBBlueprint):
         prev_workflow = ExperimentWorkFlow.get(prev_workflow_id[0])
 
         if experiment.workflow != prev_workflow:
-            workflow = experiment.workflow
-
-            if len(experiment.lanes) > workflow.flow_cell_type.num_lanes:
+            if len(experiment.lanes) > experiment.num_lanes:
                 lanes = experiment.lanes.copy()
                 for lane in lanes:
-                    if lane.number > workflow.flow_cell_type.num_lanes:
+                    if lane.number > experiment.num_lanes:
                         experiment.lanes.remove(lane)
 
-            elif len(experiment.lanes) < workflow.flow_cell_type.num_lanes:
-                for lane_num in range(1, workflow.flow_cell_type.num_lanes + 1):
+            elif len(experiment.lanes) < experiment.num_lanes:
+                for lane_num in range(1, experiment.num_lanes + 1):
                     if lane_num in [lane.number for lane in experiment.lanes]:
                         continue
                     experiment.lanes.append(models.Lane(number=lane_num))
@@ -212,7 +210,7 @@ class ExperimentBP(DBBlueprint):
                         if (lane.id, pool.id) not in lps:
                             lane = self.db.links.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
         
-        if len(experiment.lanes) != experiment.workflow.flow_cell_type.num_lanes:
+        if len(experiment.lanes) != experiment.num_lanes:
             raise ValueError(f"Experiment {experiment.id} has {len(experiment.lanes)} lanes, but workflow {experiment.workflow.name} requires {experiment.workflow.flow_cell_type.num_lanes} lanes.")
         self.db.session.add(experiment)
 

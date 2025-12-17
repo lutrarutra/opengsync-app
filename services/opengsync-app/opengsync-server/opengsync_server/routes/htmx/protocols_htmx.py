@@ -12,7 +12,7 @@ protocols_htmx = Blueprint("protocols_htmx", __name__, url_prefix="/htmx/protoco
 
 @wrappers.htmx_route(protocols_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
 def get(current_user: models.User):
-    context = logic.tables.render_protocol_table(current_user=current_user, request=request)
+    context = logic.protocol.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
 
@@ -61,7 +61,7 @@ def remove_kit(current_user: models.User, protocol_id: int, kit_id: int):
     db.protocols.update(protocol)
     db.flush()
     flash("Kit Removed!", "success")
-    return make_response(render_template(**logic.tables.render_kit_table(current_user=current_user, protocol=protocol, request=request)))
+    return make_response(render_template(**logic.kit.get_table_context(current_user=current_user, protocol=protocol, request=request)))
 
 @wrappers.htmx_route(protocols_htmx, db=db, methods=["DELETE"])
 def remove_kit_combination(current_user: models.User, protocol_id: int, kit_id: int, combination_num: int):
@@ -83,7 +83,7 @@ def remove_kit_combination(current_user: models.User, protocol_id: int, kit_id: 
     db.protocols.update(protocol)
     db.flush()
     flash("Kit Combination Removed!", "success")
-    return make_response(render_template(**logic.tables.render_kit_table(current_user=current_user, protocol=protocol, request=request)))
+    return make_response(render_template(**logic.kit.get_table_context(current_user=current_user, protocol=protocol, request=request)))
 
 
 @wrappers.htmx_route(protocols_htmx, db=db, methods=["DELETE"])
