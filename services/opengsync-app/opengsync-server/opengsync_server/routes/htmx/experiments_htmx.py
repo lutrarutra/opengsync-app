@@ -148,52 +148,6 @@ def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: 
             "components/lane-pooling-ratios.html", experiment=experiment, df=df
         )
     )
-
-
-@wrappers.htmx_route(experiments_htmx, db=db)
-def table_query(current_user: models.User):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    if (word := request.args.get("name", None)) is not None:
-        field_name = "name"
-    elif (word := request.args.get("id", None)) is not None:
-        field_name = "id"
-    else:
-        raise exceptions.BadRequestException()
-    
-    if word is None:
-        raise exceptions.BadRequestException()
-    
-    if (workflow_in := request.args.get("workflow_id_in")) is not None:
-        workflow_in = json.loads(workflow_in)
-        try:
-            workflow_in = [ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(workflow_in) == 0:
-            workflow_in = None
-    
-    experiments = []
-    if field_name == "name":
-        experiments = db.experiments.query(word, workflow_in=workflow_in)
-    elif field_name == "id":
-        try:
-            if (experiment := db.experiments.get(int(word))) is not None:
-                experiments = [experiment]
-                if workflow_in is not None and experiment.workflow not in workflow_in:
-                    experiments = []
-        except ValueError:
-            pass
-
-    return make_response(
-        render_template(
-            "components/tables/experiment.html",
-            experiments=experiments, current_query=word, field_name=field_name,
-            ExperimentWorkFlow=ExperimentWorkFlow, workflow_in=workflow_in
-        )
-    )
                      
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])

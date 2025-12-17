@@ -39,11 +39,13 @@ class ProtocolBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
+        id: int | None = None,
+        name: str | None = None,
         service_type: ServiceTypeEnum | None = None,
         service_type_in: list[ServiceTypeEnum] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = 0,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False
+        page: int | None = None,
     ) -> tuple[list[models.Protocol], int | None]:
 
         query = self.db.session.query(models.Protocol)
@@ -62,7 +64,20 @@ class ProtocolBP(DBBlueprint):
                 attr = attr.desc()
             query = query.order_by(attr)
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        if id is not None:
+            query = query.where(models.Protocol.id == id)
+        if name is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.Protocol.name, name).desc()))
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
+        else:
+            n_pages = None
 
         if limit is not None:
             query = query.limit(limit)

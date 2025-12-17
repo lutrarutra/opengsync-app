@@ -7,7 +7,7 @@ from .TableCol import TableCol
 
 class HTMXTable:
     columns: list[TableCol] = []
-    def __init__(self, route: str, page: int = 0):
+    def __init__(self, route: str, page: int | None = 0):
         self.active_search_var: str | None = None
         self.active_sort_var: str | None = None
         self.active_sort_descending: bool = False
@@ -15,7 +15,7 @@ class HTMXTable:
         self.filter_values: dict[str, list] = {}
         self.route = route
         self.num_pages: int | None = None
-        self.active_page = page
+        self.active_page: int | None = page
         self.url_params: dict = {}
 
     def __getitem__(self, item: str) -> TableCol:
@@ -65,8 +65,8 @@ class ProjectTable(HTMXTable):
 class SeqRequestTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
-        TableCol(title="Name", label="name", col_size=3, search_type="text", sortable=True),
-        TableCol(title="Library Types", label="library_types", col_size=2, choices=cats.LibraryType.as_list()),
+        TableCol(title="Name", label="name", col_size=4, search_type="text", sortable=True),
+        TableCol(title="Library Types", label="library_types", col_size=3, choices=cats.LibraryType.as_list()),
         TableCol(title="Status", label="status", col_size=1, search_type="text", sortable=True, sort_by="status_id", choices=cats.SeqRequestStatus.as_list()),
         TableCol(title="Submission Type", label="submission_type", col_size=1, choices=cats.SubmissionType.as_list()),
         TableCol(title="Group", label="group", col_size=2, search_type="text"),
@@ -165,3 +165,69 @@ class LabPrepTable(HTMXTable):
         TableCol(title="Creator", label="creator", col_size=2, search_type="text"),
     ]
     
+class KitTable(HTMXTable):
+    columns = [
+        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
+        TableCol(title="Name", label="name", col_size=3, search_type="text", sortable=True),
+        TableCol(title="Identifier", label="identifier", col_size=2, search_type="text", sortable=True),
+        TableCol(title="Type", label="type", col_size=2, choices=cats.KitType.as_list(), sortable=True, sort_by="kit_type_id"),
+    ]
+
+class IndexKitTable(HTMXTable):
+    columns = [
+        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
+        TableCol(title="Name", label="name", col_size=3, search_type="text", sortable=True),
+        TableCol(title="Identifier", label="identifier", col_size=2, search_type="text", sortable=True),
+        TableCol(title="Index Type", label="type", col_size=2, choices=cats.IndexType.as_list(), sortable=True, sort_by="type_id"),
+        TableCol(title="Protocols", label="protocols", col_size=2),
+    ]
+
+class FeatureKitTable(HTMXTable):
+    columns = [
+        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
+        TableCol(title="Name", label="name", col_size=3, search_type="text", sortable=True),
+        TableCol(title="Identifier", label="identifier", col_size=2, search_type="text", sortable=True),
+        TableCol(title="Feature Type", label="type", col_size=2, choices=cats.FeatureType.as_list(), sortable=True, sort_by="type_id"),
+    ]
+
+class AdapterTable(HTMXTable):
+    columns = [
+        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
+        TableCol(title="Well", label="well", col_size=3, search_type="text", sortable=True),
+        TableCol(title="Name", label="name", col_size=2, sortable=True),
+        TableCol(title="Name i7", label="name_i7", col_size=2),
+        TableCol(title="Name i5", label="name_i5", col_size=2),
+        TableCol(title="Sequence i7", label="sequence_i7", col_size=2),
+        TableCol(title="Sequence i5", label="sequence_i5", col_size=2),
+        TableCol(title="Sequence 1", label="sequence_1", col_size=2),
+        TableCol(title="Sequence 2", label="sequence_2", col_size=2),
+        TableCol(title="Sequence 3", label="sequence_3", col_size=2),
+        TableCol(title="Sequence 4", label="sequence_4", col_size=2),
+    ]
+
+class SeqRunTable(HTMXTable):
+    columns = [
+        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
+        TableCol(title="Experiment", label="experiment", col_size=2, search_type="text", sortable=True, sort_by="experiment_name"),
+        TableCol(title="Status", label="status", col_size=1, choices=cats.RunStatus.as_list(), sortable=True, sort_by="status_id"),
+        TableCol(title="Cycles", label="cycles", col_size=1),
+        TableCol(title="Flow Cell ID", label="flow_cell_id", search_type="text", col_size=1),
+        TableCol(title="Run Folder", label="run_folder", col_size=4, search_type="text"),
+        TableCol(title="Started", label="started", col_size=2),
+        TableCol(title="Completed", label="completed", col_size=2),
+    ]
+
+class ProtocolTable(HTMXTable):
+    columns = [
+        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
+        TableCol(title="Name", label="name", col_size=3, search_type="text", sortable=True),
+        TableCol(title="Read Structure", label="read_structure", col_size=3),
+        TableCol(title="Assay", label="service_type", col_size=2, choices=cats.ServiceType.as_list(), sortable=True, sort_by="service_type_id"),
+    ]
+
+class SequencerTable(HTMXTable):
+    columns = [
+        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
+        TableCol(title="Name", label="name", col_size=3, search_type="text", sortable=True),
+        TableCol(title="Model", label="model", col_size=2, choices=cats.SequencerModel.as_list(), sortable=True, sort_by="model_id"),
+    ]

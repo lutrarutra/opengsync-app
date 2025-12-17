@@ -32,6 +32,8 @@
 
     <!-- jQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+
+    <!-- hyperscript -->
     <script src="https://unpkg.com/hyperscript.org@0.9.11"></script>
 
     <!-- Bootstrap JS -->
@@ -227,6 +229,7 @@
         </div>
     </div>
 
+    <script src="{{ url_for('static', filename='js/flash-message.js') }}"></script>
     <script type="text/javascript">
         $(document).on("click", "#right-click-bg", function(e) {
             $("#context-menu-container").css({
@@ -247,38 +250,6 @@
                 });
             }
         });
-
-        function render_flash_messages() {
-            $.ajax({
-                url: "{{ url_for('retrieve_flash_messages') }}",
-                type: "GET"
-            }).done(function(data) {
-                let messages = Array.isArray(data) ? data : (data && data.messages ? data.messages : []);
-                if (!messages.length) {
-                    return;
-                }
-                showOneFlashFromList(messages, 0);
-            });
-        }
-
-        function showOneFlashFromList(messages, index) {
-            if (index >= messages.length) {
-                return;  // No more messages
-            }
-            const msg = messages[index];
-            Swal.fire({
-                position: 'top',
-                icon: msg.category || 'success',
-                html: `<div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 0; font-weight: 600;">${msg.message}</div>`,
-                showConfirmButton: false,
-                timer: msg.category === 'error' ? null : 1000,
-                toast: true,
-                showCloseButton: true,
-                willClose: function() {
-                    showOneFlashFromList(messages, index + 1);
-                }
-            });
-        }
 
         function print_div(id) {
             var div = document.getElementById(id);
@@ -321,7 +292,7 @@
             render_flash_messages();
         });
     </script>
-
+    
     <script src="{{ url_for('static', filename='js/searchbar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/contextmenu.js') }}"></script>
     <script src="{{ url_for('static', filename='js/reverse_complement.js') }}"></script>

@@ -1,58 +1,54 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="seq_run-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='seq_run-table', column_name='ID', column_var='id',
-                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order,
-                        col_size=1,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_run-table', column_name='Experiment Name', column_var='experiment_name',
-                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3,
-                        query_url="seq_runs_htmx.table_query", current_query=current_query,
-                        active_query_field=active_query_field, query_type="text",
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='seq_run-table', column_name='Status', column_var='status_id',
-                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=RunStatus.as_list(), multiselect_selected=status_in
-                    )
-                }}
-                <th scope="col" class="col-1">Cycles</th>
-                <th scope="col" class="col-2">Flowcell ID</th>
-                {{
-                    table_col(
-                        table_container_id='seq_run-table', column_name='Run Folder', column_var='run_folder',
-                        sort_url='seq_runs_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3,
-                    )
-                }}
+                {{ table_col2("seq_run-table", table, "id") }}
+                {{ table_col2("seq_run-table", table, "experiment") }}
+                {{ table_col2("seq_run-table", table, "status") }}
+                {{ table_col2("seq_run-table", table, "cycles") }}
+                {{ table_col2("seq_run-table", table, "flow_cell_id") }}
+                {{ table_col2("seq_run-table", table, "run_folder") }}
+                {{ table_col2("seq_run-table", table, "started") }}
+                {{ table_col2("seq_run-table", table, "completed") }}
             </tr>
         </thead>
         <tbody>
             {% for seq_run in seq_runs %}
             <tr>
                 <th scope="row">{{ seq_run.id }}</th>
-                <td><a href="{{ url_for('seq_runs_page.seq_run', seq_run_id=seq_run.id) }}">{{ seq_run.experiment_name }}</a></td>
+                <td class="cm-callback"
+                {{
+                    context_menu([
+                        {"type": "copy", "value": seq_run.experiment_name, "label": "Copy Experiment Name"},
+                    ])
+                }}><a href="{{ url_for('seq_runs_page.seq_run', seq_run_id=seq_run.id) }}">{{ seq_run.experiment_name }}</a></td>
                 <td>{{ seq_run.status.icon }} {{ seq_run.status.name }}</td>
                 <td>{{ seq_run.cycles_str }}</td>
-                <td>{{ seq_run.flowcell_id }}</td>
-                <td>{{ seq_run.run_folder }}</td>
+                <td class="cm-callback"
+                {{
+                    context_menu([
+                        {"type": "copy", "value": seq_run.flowcell_id, "label": "Copy Flowcell ID"},
+                    ])
+                }}>{{ seq_run.flowcell_id }}</td>
+                <td class="cm-callback"
+                {{
+                    context_menu([
+                        {"type": "copy", "value": seq_run.run_folder, "label": "Copy Run Folder"},
+                    ])
+                }}>{{ seq_run.run_folder }}</td>
+                <td>{{ seq_run.get_timestamp("started") | format_datetime }}</td>
+                <td>{{ seq_run.get_timestamp("completed") | format_datetime }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {{ spinner("seq_run-table-spinner") }}
-    {{ pagination("seq_run-table", "seq_runs_htmx.get", n_pages, active_page) }}
+    {{ pagination2("seq_run-table", table) }}
 </div>
 

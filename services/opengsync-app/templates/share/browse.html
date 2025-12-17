@@ -49,5 +49,11 @@
                 {% endfor %}
             </tbody>
         </table>
+        <script src="{{ url_for('static', filename='js/flash-message.js') }}"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                render_flash_messages();
+            });
+        </script>
     </body>
 </html>

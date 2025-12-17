@@ -57,10 +57,14 @@ class KitBP(DBBlueprint):
         type: KitTypeEnum | None = None,
         type_in: list[KitTypeEnum] | None = None,
         protocol: models.Protocol | None = None,
+        protocol_id: int | None = None,
         not_in_protocol: models.Protocol | None = None,
+        name: str | None = None,
+        identifier: str | None = None,
+        id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = 0,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False
+        page: int | None = None
     ) -> tuple[list[models.Kit], int | None]:
 
         query = self.db.session.query(models.Kit)
@@ -75,6 +79,13 @@ class KitBP(DBBlueprint):
             query = query.where(
                 sa.exists().where(
                     (models.links.ProtocolKitLink.protocol_id == protocol.id) &
+                    (models.links.ProtocolKitLink.kit_id == models.Kit.id)
+                )
+            )
+        elif protocol_id is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.links.ProtocolKitLink.protocol_id == protocol_id) &
                     (models.links.ProtocolKitLink.kit_id == models.Kit.id)
                 )
             )
@@ -95,7 +106,22 @@ class KitBP(DBBlueprint):
                 attr = attr.desc()
             query = query.order_by(attr)
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        if id is not None:
+            query = query.where(models.Kit.id == id)
+        if name is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.Kit.name, name).desc()))
+        elif identifier is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.Kit.identifier, identifier).desc()))
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
+        else:
+            n_pages = None
 
         if limit is not None:
             query = query.limit(limit)

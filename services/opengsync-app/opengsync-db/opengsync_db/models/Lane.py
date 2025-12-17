@@ -35,7 +35,8 @@ class Lane(Base):
     ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select")
 
     pool_links: Mapped[list["links.LanePoolLink"]] = relationship(
-        "LanePoolLink", back_populates="lane", lazy="select"
+        "LanePoolLink", back_populates="lane", lazy="select",
+        cascade="save-update, merge, delete, delete-orphan",
     )
 
     sortable_fields: ClassVar[list[str]] = ["id", "number", "experiment_id", "phi_x"]

@@ -1,28 +1,29 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/table_col.jinja2" import table_col2 %}
 
 <div id="index_kit-adapter-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                <th scope="col" class="col-1">ID</th>
+                {{ table_col2("index_kit-adapter-table", table, "id") }}
                 {% if index_kit.type != IndexType.COMBINATORIAL_DUAL_INDEX %}
-                <th scope="col" class="col-1">Well</th>
+                {{ table_col2("index_kit-adapter-table", table, "well") }}
                 {% endif %}
                 {% if index_kit.type == IndexType.SINGLE_INDEX_I7 %}
-                <th scope="col" class="col-2">Name i7</th>
-                <th scope="col" class="col-2">Index i7</th>
+                {{ table_col2("index_kit-adapter-table", table, "name_i7") }}
+                {{ table_col2("index_kit-adapter-table", table, "sequence_i7") }}
                 {% elif index_kit.type in [IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX] %}
-                <th scope="col" class="col-1">Name i7</th>
-                <th scope="col" class="col-2">Sequence i7</th>
-                <th scope="col" class="col-1">Name i5</th>
-                <th scope="col" class="col-2">Sequence i5</th>
+                {{ table_col2("index_kit-adapter-table", table, "name_i7") }}
+                {{ table_col2("index_kit-adapter-table", table, "sequence_i7") }}
+                {{ table_col2("index_kit-adapter-table", table, "name_i5") }}
+                {{ table_col2("index_kit-adapter-table", table, "sequence_i5") }}
                 {% elif index_kit.type == IndexType.TENX_ATAC_INDEX %}
-                <th scope="col" class="col-1">Name</th>
-                <th scope="col" class="col-1">Index 1</th>
-                <th scope="col" class="col-1">Index 2</th>
-                <th scope="col" class="col-1">Index 3</th>
-                <th scope="col" class="col-1">Index 4</th>
+                {{ table_col2("index_kit-adapter-table", table, "name") }}
+                {{ table_col2("index_kit-adapter-table", table, "sequence_1") }}
+                {{ table_col2("index_kit-adapter-table", table, "sequence_2") }}
+                {{ table_col2("index_kit-adapter-table", table, "sequence_3") }}
+                {{ table_col2("index_kit-adapter-table", table, "sequence_4") }}
                 {% endif %}
             </tr>
         </thead>
@@ -58,5 +59,5 @@
         </tbody>
     </table>
     {{ spinner("index_kit-adapter-table-spinner") }}
-    {{ pagination("index_kit-adapter-table", "index_kits_htmx.get_adapters", n_pages, active_page, context={"index_kit_id": index_kit.id}) }}
+    {{ pagination2("index_kit-adapter-table", table) }}
 </div>

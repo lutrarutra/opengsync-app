@@ -21,6 +21,8 @@ class FeatureKit(Kit):
 
     __mapper_args__ = {"polymorphic_identity": KitType.FEATURE_KIT.id}
 
+    sortable_fields: ClassVar[list[str]] = ["id", "name", "identifier", "kit_type_id", "type_id"]
+
     @property
     def type(self) -> FeatureTypeEnum:
         return FeatureType.get(self.type_id)

@@ -106,6 +106,10 @@ class SeqRunBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
+        id: int | None = None,
+        experiment: str | None = None,
+        run_folder: str | None = None,
+        flow_cell_id: str | None = None,
         status: Optional[RunStatusEnum] = None,
         status_in: Optional[list[RunStatusEnum]] = None,
         experiment_status: Optional[ExperimentStatusEnum] = None,
@@ -113,7 +117,7 @@ class SeqRunBP(DBBlueprint):
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False,
+        page: int | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.SeqRun], int | None]:
         query = self.db.session.query(models.SeqRun)
@@ -134,9 +138,32 @@ class SeqRunBP(DBBlueprint):
                 attr = attr.desc()
             query = query.order_by(attr)
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        if id is not None:
+            query = query.where(models.SeqRun.id == id)
+        if experiment is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.SeqRun.experiment_name, experiment).desc()))
+        elif run_folder is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.SeqRun.run_folder, run_folder).desc()))
+        elif flow_cell_id is not None:
+            query = query.where(models.SeqRun.flowcell_id == flow_cell_id)
 
-        seq_runs = query.limit(limit).offset(offset).all()
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
+        else:
+            n_pages = None
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        if offset is not None:
+            query = query.offset(offset)
+
+        seq_runs = query.all()
         return seq_runs, n_pages
 
     @DBBlueprint.transaction

@@ -1,6 +1,8 @@
 import math
 from typing import Optional
 
+import sqlalchemy as sa
+
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 from ...categories import FeatureTypeEnum, KitType
@@ -49,9 +51,12 @@ class FeatureKitBP(DBBlueprint):
         self,
         type: FeatureTypeEnum | None = None,
         type_in: list[FeatureTypeEnum] | None = None,
+        name: str | None = None,
+        identifier: str | None = None,
+        id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
-        count_pages: bool = False
+        page: int | None = None,
     ) -> tuple[list[models.FeatureKit], int | None]:
         
         query = self.db.session.query(models.FeatureKit)
@@ -67,7 +72,22 @@ class FeatureKitBP(DBBlueprint):
                 sort_attr = sort_attr.desc()
             query = query.order_by(sort_attr)
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        if id is not None:
+            query = query.where(models.FeatureKit.id == id)
+        if name is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.FeatureKit.name, name).desc()))
+        elif identifier is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.FeatureKit.identifier, identifier).desc()))
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
+        else:
+            n_pages = None
 
         if offset is not None:
             query = query.offset(offset)

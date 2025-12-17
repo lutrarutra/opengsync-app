@@ -63,7 +63,7 @@
 <div class="page-content">
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="protocol-kits-tab" role="tabpanel" tabindex="0">
-            <div hx-get="{{ url_for('protocols_htmx.get_kits', protocol_id=protocol.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('kits_htmx.get', protocol_id=protocol.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

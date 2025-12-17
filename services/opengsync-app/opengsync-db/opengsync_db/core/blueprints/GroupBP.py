@@ -101,7 +101,7 @@ class GroupBP(DBBlueprint):
             
             count = query.count()
             n_pages = math.ceil(count / limit)
-            query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
         else:
             n_pages = None
 
@@ -181,7 +181,7 @@ class GroupBP(DBBlueprint):
             
             count = query.count()
             n_pages = math.ceil(count / limit)
-            query = query.offset(min(page, max(0, n_pages - (count % limit == 0))) * limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
         else:
             n_pages = None
 

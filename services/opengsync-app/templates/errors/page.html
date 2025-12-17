@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="page-content">
-    {% include "errors/error.html" %}
+    <div class="exception-container">
+        <h2>{{ msg }} ({{ code }})</h2>
+    </div>
 </div>
 {% endblock content %}

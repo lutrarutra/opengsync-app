@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import PoolStatus, LibraryStatus
 
-from ... import db, forms, logic
+from ... import db, forms, logic, logger
 from ...core import wrappers, exceptions
 pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/htmx/pools/")
 
@@ -120,20 +120,12 @@ def clone(current_user: models.User, pool_id: int):
 
 
 @wrappers.htmx_route(pools_htmx, methods=["DELETE"], db=db)
-def remove_library(current_user: models.User, pool_id: int):
+def remove_library(current_user: models.User, pool_id: int, library_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
     if (pool := db.pools.get(pool_id)) is None:
         raise exceptions.NotFoundException()
-    
-    if (library_id := request.args.get("library_id")) is None:
-        raise exceptions.BadRequestException()
-    
-    try:
-        library_id = int(library_id)
-    except ValueError:
-        raise exceptions.BadRequestException()
     
     if (library := db.libraries.get(library_id)) is None:
         raise exceptions.NotFoundException()
@@ -141,47 +133,23 @@ def remove_library(current_user: models.User, pool_id: int):
     if library.pool_id != pool.id:
         raise exceptions.BadRequestException()
     
-    library.pool_id = None
+    pool.libraries.remove(library)
     if library.status == LibraryStatus.POOLED:
         library.status = LibraryStatus.STORED
 
     if library.experiment_id == pool.experiment_id:
         library.experiment_id = None
+
     db.libraries.update(library)
+    db.pools.update(pool)
+    db.flush()
 
-    flash("Library removed from pool", "success")
-    return make_response(redirect=url_for("pools_page.pool", pool_id=pool_id))
+    db.refresh(pool)
 
+    flash("Library Removed!", "success")
 
-@wrappers.htmx_route(pools_htmx, db=db)
-def table_query():
-    if (word := request.args.get("name", None)) is not None:
-        field_name = "name"
-    elif (word := request.args.get("id", None)) is not None:
-        field_name = "id"
-    else:
-        raise exceptions.BadRequestException()
-    
-    if word is None:
-        raise exceptions.BadRequestException()
-    
-    if field_name == "name":
-        pools = db.pools.query(word)
-    elif field_name == "id":
-        try:
-            pools = [db.pools.get(int(word))]
-        except ValueError:
-            pools = []
-    else:
-        raise exceptions.BadRequestException()
-
-    return make_response(
-        render_template(
-            "components/tables/pool.html",
-            pools=pools, field_name=field_name,
-            current_query=word, Pool=models.Pool,
-        )
-    )
+    context = logic.tables.render_library_table(current_user, request, pool=pool)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(pools_htmx, methods=["POST"], db=db)

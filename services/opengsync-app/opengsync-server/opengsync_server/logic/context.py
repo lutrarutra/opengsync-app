@@ -136,5 +136,27 @@ def parse_context(current_user: models.User, request: Request) -> dict:
             raise exceptions.NoPermissionsException()
         
         context["sample"] = sample
+
+    if (index_kit_id := request.args.get("index_kit_id", None)) is not None:
+        try:
+            index_kit_id = int(index_kit_id)
+        except ValueError:
+            raise exceptions.BadRequestException()
+        
+        if (index_kit := db.index_kits.get(index_kit_id)) is None:
+            raise exceptions.NotFoundException()
+        
+        context["index_kit"] = index_kit
+
+    if (protocol_id := request.args.get("protocol_id", None)) is not None:
+        try:
+            protocol_id = int(protocol_id)
+        except ValueError:
+            raise exceptions.BadRequestException()
+        
+        if (protocol := db.protocols.get(protocol_id)) is None:
+            raise exceptions.NotFoundException()
+        
+        context["protocol"] = protocol
     
     return context

@@ -1,14 +1,10 @@
-import json
-
-import pandas as pd
-
 from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import IndexType, KitType
+from opengsync_db.categories import IndexType
 
-from ... import db, logger, forms
+from ... import db, logger, forms, logic
 from ...core import wrappers, exceptions
 from ...tools.spread_sheet_components import TextColumn
 from ...tools import StaticSpreadSheet
@@ -17,34 +13,9 @@ index_kits_htmx = Blueprint("index_kits_htmx", __name__, url_prefix="/htmx/index
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db)
-def get(page: int = 0):
-    sort_by = request.args.get("sort_by", "identifier")
-    sort_order = request.args.get("sort_order", "asc")
-    descending = sort_order == "desc"
-
-    if sort_by not in models.IndexKit.sortable_fields:
-        raise exceptions.BadRequestException()
-    
-    if (type_in := request.args.get("type_id_in")) is not None:
-        type_in = json.loads(type_in)
-        try:
-            type_in = [IndexType.get(int(status)) for status in type_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(type_in) == 0:
-            type_in = None
-
-    index_kits, n_pages = db.index_kits.find(offset=PAGE_LIMIT * page, sort_by=sort_by, descending=descending, type_in=type_in, count_pages=True)
-
-    return make_response(
-        render_template(
-            "components/tables/index_kit.html", index_kits=index_kits,
-            n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order,
-            type_in=type_in
-        )
-    )
+def get(current_user: models.User):
+    context = logic.tables.render_index_kit_table(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db, methods=["POST"])
@@ -64,68 +35,10 @@ def query():
     )
 
 
-@wrappers.htmx_route(index_kits_htmx, db=db)
-def table_query():
-    if (word := request.args.get("name")) is not None:
-        field_name = "name"
-    elif (word := request.args.get("id")) is not None:
-        field_name = "id"
-    elif (word := request.args.get("identifier")) is not None:
-        field_name = "identifier"
-    else:
-        raise exceptions.BadRequestException()
-    
-    if (type_in := request.args.get("type_id_in")) is not None:
-        type_in = json.loads(type_in)
-        try:
-            type_in = [IndexType.get(int(status)) for status in type_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(type_in) == 0:
-            type_in = None
-    
-    index_kits: list[models.Kit] = []
-    if field_name == "id":
-        try:
-            _id = int(word)
-            if (index_kit := db.index_kits.get(_id)) is not None:
-                if type_in is None or index_kit.type in type_in:
-                    index_kits.append(index_kit)
-
-        except ValueError:
-            pass
-    elif field_name in ["name", "identifier"]:
-        index_kits = db.kits.query(word, kit_type=KitType.INDEX_KIT)
-
-    return make_response(
-        render_template(
-            "components/tables/index_kit.html", index_kits=index_kits,
-            active_query_field=field_name, current_query=word, type_in=type_in
-        )
-    )
-
-
 @wrappers.htmx_route(index_kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
-def get_adapters(index_kit_id: int, page: int = 0):
-    if (index_kit := db.index_kits.get(index_kit_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = page * PAGE_LIMIT
-
-    adapters, n_pages = db.adapters.find(index_kit_id=index_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
-
-    return make_response(
-        render_template(
-            "components/tables/index_kit-adapter.html", adapters=adapters,
-            n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order,
-            index_kit=index_kit
-        )
-    )
+def get_adapters(current_user: models.User):
+    context = logic.tables.render_adapter_table(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db)

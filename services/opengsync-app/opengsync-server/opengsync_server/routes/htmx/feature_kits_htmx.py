@@ -1,42 +1,21 @@
-import pandas as pd
-
 from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import KitType
 
-from ... import db
+from ... import db, logic, forms
 from ...core import wrappers, exceptions
-from ... import forms
 from ...tools.spread_sheet_components import TextColumn
 from ...tools import StaticSpreadSheet
 
 feature_kits_htmx = Blueprint("feature_kits_htmx", __name__, url_prefix="/htmx/feature_kits/")
 
 
-@wrappers.htmx_route(feature_kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
-def get(page: int = 0):
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-
-    if sort_by not in models.FeatureKit.sortable_fields:
-        raise exceptions.BadRequestException()
-
-    feature_kits, n_pages = db.feature_kits.find(
-        offset=PAGE_LIMIT * page,
-        sort_by=sort_by, descending=descending, count_pages=True
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/feature_kit.html",
-            feature_kits=feature_kits,
-            n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order
-        )
-    )
+@wrappers.htmx_route(feature_kits_htmx, db=db)
+def get(current_user: models.User):
+    context = logic.tables.render_feature_kits_table(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["POST"])
@@ -55,40 +34,6 @@ def query():
             "components/search/feature_kit.html",
             results=results,
             field_name=field_name
-        )
-    )
-
-
-@wrappers.htmx_route(feature_kits_htmx, db=db)
-def table_query(current_user: models.User):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-
-    if (word := request.args.get("name")) is not None:
-        field_name = "name"
-    elif (word := request.args.get("id")) is not None:
-        field_name = "id"
-    else:
-        raise exceptions.BadRequestException()
-
-    feature_kits = []
-    if field_name == "name":
-        feature_kits = db.kits.query(word, kit_type=KitType.FEATURE_KIT)
-    elif field_name == "id":
-        try:
-            _id = int(word)
-        except ValueError:
-            raise exceptions.BadRequestException()
-
-        if (feature_kit := db.feature_kits.get(_id)) is not None:
-            feature_kits.append(feature_kit)
-    else:
-        raise exceptions.BadRequestException()
-
-    return make_response(
-        render_template(
-            "components/tables/feature_kit.html",
-            feature_kits=feature_kits, current_query=word
         )
     )
 
