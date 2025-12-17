@@ -1159,6 +1159,16 @@ def render_sequencers_table(current_user: models.User, request: Request, **kwarg
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
+    if (model_in := request.args.get("model_in")) is not None:
+        model_in = json.loads(model_in)
+        try:
+            model_in = [categories.SequencerModel.get(int(model)) for model in model_in]
+            if model_in:
+                fnc_context["model_in"] = model_in
+                table.filter_values["model"] = model_in
+        except ValueError:
+            raise exceptions.BadRequestException()
+
     context = parse_context(current_user, request) | kwargs
 
     sequencers, table.num_pages = db.sequencers.find(page=table.active_page, **fnc_context)
