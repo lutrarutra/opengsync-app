@@ -2,16 +2,17 @@
 {% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
 <div id="pool-library-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("sample-library-table", table, "id") }}
-                {{ table_col2("sample-library-table", table, "name") }}
-                {{ table_col2("sample-library-table", table, "type") }}
-                {{ table_col2("sample-library-table", table, "seq_request") }}
+                {{ table_col2("pool-library-table", table, "id") }}
+                {{ table_col2("pool-library-table", table, "name") }}
+                {{ table_col2("pool-library-table", table, "type") }}
+                {{ table_col2("pool-library-table", table, "seq_request") }}
                 <th scope="col" class="col-4">
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
@@ -25,7 +26,17 @@
             {% for library in libraries %}
             <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td class="library-name-cell" data-library-id="{{ library.id }}" data-library-name="{{ library.name }}">
+                <td  class="cm-callback"
+                {{
+                    context_menu([
+                        {"type": "copy", "value": library.name, "label": "Copy Name"},
+                        {"type": "hxdelete", "label": "Remove Library", "disabled": false if current_user.is_admin() or (pool.status < PoolStatus.SEQUENCED and current_user.is_insider())  else true, "config": {
+                            "url": url_for('pools_htmx.remove_library', library_id=library.id, **table.get_state()),
+                            "target": "#pool-library-table",
+                            "title": "Remove {library.name} from {pool.name}?".format(library=library, pool=pool)
+                        },},
+                    ])
+                }}>
                     <a href="{{ url_for('libraries_page.library', library_id=library.id, from='pool@' + pool.id | string) }}">
                         {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
                     </a>
@@ -45,44 +56,4 @@
     </table>
     {{ spinner("pool-library-table-spinner") }}
     {{ pagination2("pool-library-table", table) }}
-    <script>
-        var selected_library_id = null;
-        var selected_library_name = null;
-
-        function remove_library() {
-            Swal.fire({
-                title: `Remove library id='${selected_library_name}' from '{{pool.name}}'-request ?`,
-                showDenyButton: true,
-                text: 'Are you sure?',
-                confirmButtonText: 'Yes',
-                icon: 'question',
-                denyButtonText: 'No'
-            }).then(function(e) {
-                if (e.isConfirmed) {
-                    htmx.ajax(
-                        "DELETE", `{{ url_for('pools_htmx.remove_library', pool_id=pool.id) }}?library_id=${selected_library_id}`, null,
-                        { target: "#seq_request-seq_request-library-table", swapStyle: "outerHTML" }
-                    );
-                }
-            });
-        }
-
-        $(document).off("contextmenu", ".library-name-cell").on("contextmenu", ".library-name-cell", function(e) {
-            e.preventDefault();
-            const x = e.pageX;
-            const y = e.pageY;
-            selected_library_id = parseInt($(this).data("library-id"));
-            selected_library_name = $(this).data("library-name");
-            $("#context-menu-container").css({
-                display: "block",
-                left: x + 8, top: y + 8
-            }).empty().append([
-                `<li><a class="dropdown-item" onclick="remove_library()">Remove Library</a></li>`,
-            ]);
-
-            $("#right-click-bg").css({
-                display: "block"
-            });
-        })
-    </script>
 </div>

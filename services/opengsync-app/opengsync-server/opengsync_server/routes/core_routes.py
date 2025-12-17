@@ -27,7 +27,7 @@ if runtime.app.debug:
     
     @wrappers.htmx_route(runtime.app, db=db, login_required=True)
     def htmx_test():
-        raise NotImplementedError()
+        raise exceptions.NotFoundException()
 
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def mail_template(current_user: models.User):

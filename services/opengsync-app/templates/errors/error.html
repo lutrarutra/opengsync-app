@@ -1,3 +1,29 @@
-<div class="exception-container">
-    <h2>{{ msg }} ({{ code }})</h2>
-</div>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="icon" href="{{ url_for('static', filename='images/logo/opengsync_128.png') }}" sizes="any" type="image/png">
+
+        <title>OpeNGSync</title>
+        <!-- Custom CSS --> 
+        <link href="{{ url_for('static', filename='style/compiled/style.css') }}" rel="stylesheet" type="text/css"> 
+        
+        <!-- jQuery -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+
+        <!-- Sweet Alert 2 -->
+        <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4@4/bootstrap-4.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    </head>
+
+    <body>
+        <h2 style="padding-left: 10px; margin: 0;">{{ msg }} ({{ code }})</h2>
+        <script src="{{ url_for('static', filename='js/flash-message.js') }}"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                render_flash_messages();
+            });
+        </script>
+    </body>
+</html>

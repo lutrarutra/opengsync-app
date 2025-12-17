@@ -217,6 +217,8 @@ def release_project_data(current_user: models.User, recipients: list[str] | None
         _recipients: list[str] = db.pd.get_project_latest_request_share_emails(project.id)["email"].unique().tolist()
         recipients = _recipients
 
+    recipients = list(set(recipients))
+
     if len(recipients) == 0:  # type: ignore
         raise exceptions.BadRequestException("No recipients specified and no emails found in latest sequencing request share-tab.")
 

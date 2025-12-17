@@ -230,24 +230,21 @@ def _page_handler(e: Exception):
 
     match type(e):
         case serv_exceptions.NoPermissionsException:
-            flash(msg, category="error")
-            return render_template("errors/page.html", msg=msg, code=403), 403
+            code = 403
         case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
-            flash(msg, category="error")
-            return render_template("errors/page.html", msg=msg, code=404), 404
+            code = 404
         case serv_exceptions.BadRequestException:
-            flash(msg, category="error")
-            return render_template("errors/page.html", msg=msg, code=400), 400
+            code = 400
         case serv_exceptions.MethodNotAllowedException:
-            flash(msg, category="error")
-            return render_template("errors/page.html", msg=msg, code=405), 405
+            code = 405
         case serv_exceptions.TooManyRequestsException:
-            flash(msg, category="error")
-            return render_template("errors/page.html", msg=msg, code=429), 429
+            code = 429
         case _:
-            flash(__get_flash_msg(msg), category="error")
-            return render_template("errors/page.html", msg=msg, code=500), 500
+            msg = __get_flash_msg(msg)
+            code = 500
 
+    flash(msg, category="error")
+    return render_template("errors/page.html", msg=msg, code=code), code
 
 def _htmx_handler(e: Exception):
     if isinstance(e, serv_exceptions.OpeNGSyncServerException):
@@ -259,20 +256,20 @@ def _htmx_handler(e: Exception):
 
     match type(e):
         case serv_exceptions.NoPermissionsException:
-            flash(msg, category="error")
+            code = 403
         case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
-            flash(msg, category="error")
+            code = 404
         case serv_exceptions.BadRequestException:
-            flash(msg, category="error")
+            code = 400
         case serv_exceptions.MethodNotAllowedException:
-            flash(msg, category="error")
+            code = 405
         case serv_exceptions.TooManyRequestsException:
-            flash(msg, category="error")
+            code = 429
         case _:
-            msg = __get_flash_msg(msg)
-            flash(msg, category="error")
+            code = 500
 
-    return make_response("", 200, retarget="#alert-container", reswap="innerHTML")
+    flash(msg, category="error")
+    return make_response("", code, retarget="#alert-container", reswap="innerHTML")
 
 
 def _api_handler(e: Exception):
@@ -308,23 +305,21 @@ def _resource_handler(e: Exception):
 
     match type(e):
         case serv_exceptions.NoPermissionsException:
-            flash(msg, category="error")
-            return render_template("errors/error.html", msg=msg, code=403), 403
+            code = 403
         case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
-            flash(msg, category="error")
-            return render_template("errors/error.html", msg=msg, code=404), 404
+            code = 404
         case serv_exceptions.BadRequestException:
-            flash(msg, category="error")
-            return render_template("errors/error.html", msg=msg, code=400), 400
+            code = 400
         case serv_exceptions.MethodNotAllowedException:
-            flash(msg, category="error")
-            return render_template("errors/error.html", msg=msg, code=405), 405
+            code = 405
         case serv_exceptions.TooManyRequestsException:
-            flash(msg, category="error")
-            return render_template("errors/error.html", msg=msg, code=429), 429
+            code = 429
         case _:
-            flash(__get_flash_msg(msg), category="error")
-            return render_template("errors/error.html", msg=msg, code=500), 500
+            code = 500
+            msg = __get_flash_msg(msg) 
+    
+    flash(msg, category="error")
+    return render_template("errors/error.html", msg=msg, code=code), code
 
 
 def page_route(
