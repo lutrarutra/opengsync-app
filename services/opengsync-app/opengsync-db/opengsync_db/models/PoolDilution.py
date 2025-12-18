@@ -20,12 +20,12 @@ class PoolDilution(Base):
     identifier: Mapped[str] = mapped_column(sa.String(4), nullable=False)
     
     pool_id: Mapped[int] = mapped_column(sa.ForeignKey("pool.id", ondelete="CASCADE"))
-    pool: Mapped["Pool"] = relationship("Pool", back_populates="dilutions", lazy="joined")
+    pool: Mapped["Pool"] = relationship("Pool", back_populates="dilutions", lazy="select")
 
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     operator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
-    operator: Mapped[models.User] = relationship("User", lazy="joined")
+    operator: Mapped[models.User] = relationship("User", lazy="select")
 
     qubit_concentration: Mapped[float] = mapped_column(sa.Float)
     volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)

@@ -7,7 +7,7 @@ from opengsync_db import models
 from opengsync_db.categories import UserRole
 
 from ... import db, forms, logger, mail_handler, serializer
-from ...core import wrappers, exceptions, runtime
+from ...core import wrappers, exceptions, runtime, tokens
 
 auth_htmx = Blueprint("auth_htmx", __name__, url_prefix="/htmx/auth/")
 
@@ -73,7 +73,7 @@ def reset_password_email(current_user: models.User, user_id: int):
     if current_user.role != UserRole.ADMIN and current_user.id != user_id:
         raise exceptions.NoPermissionsException()
         
-    token = user.generate_reset_token(serializer=serializer)
+    token = tokens.generate_reset_token(user=user, serializer=serializer)
     link = runtime.url_for("auth_page.reset_password_page", token=token, _external=True)
     style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
 
@@ -110,7 +110,7 @@ def activate_account(current_user: models.User, user_id: int):
     user.role = UserRole.CLIENT
     db.users.update(user)
 
-    token = user.generate_reset_token(serializer=serializer)
+    token = tokens.generate_reset_token(user=user, serializer=serializer)
     link = runtime.url_for("auth_page.reset_password_page", token=token, _external=True)
     style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
 

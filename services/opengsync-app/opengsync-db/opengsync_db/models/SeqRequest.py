@@ -49,10 +49,10 @@ class SeqRequest(Base):
     organization_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[organization_contact_id], cascade="save-update, merge")
 
     requestor_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
-    requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="joined", foreign_keys=[requestor_id])
+    requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="select", foreign_keys=[requestor_id])
 
     group_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("group.id"), nullable=True)
-    group: Mapped[Optional["Group"]] = relationship("Group", back_populates="seq_requests", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
+    group: Mapped[Optional["Group"]] = relationship("Group", back_populates="seq_requests", lazy="select", foreign_keys=[group_id], cascade="save-update, merge")
 
     bioinformatician_contact_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("contact.id"), nullable=True)
     bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="select", foreign_keys=[bioinformatician_contact_id], cascade="save-update, merge")
@@ -64,7 +64,7 @@ class SeqRequest(Base):
     billing_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[billing_contact_id], cascade="save-update, merge")
 
     seq_auth_form_file: Mapped[Optional["MediaFile"]] = relationship(
-        "MediaFile", lazy="joined", viewonly=True, uselist=False,
+        "MediaFile", lazy="select", viewonly=True, uselist=False,
         primaryjoin=f"and_(SeqRequest.id == MediaFile.seq_request_id, MediaFile.type_id == {MediaFileType.SEQ_AUTH_FORM.id})",
     )
 

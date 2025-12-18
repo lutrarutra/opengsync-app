@@ -31,7 +31,7 @@ class LabPrep(Base):
     service_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     creator_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
-    creator: Mapped["User"] = relationship("User", back_populates="preps", lazy="joined")
+    creator: Mapped["User"] = relationship("User", back_populates="preps", lazy="select")
 
     plates: Mapped[list["Plate"]] = relationship("Plate", back_populates="lab_prep", cascade="save-update, merge, delete, delete-orphan", lazy="select", order_by="Plate.id")
 

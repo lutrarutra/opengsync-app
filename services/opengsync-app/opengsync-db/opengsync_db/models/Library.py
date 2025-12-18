@@ -72,14 +72,14 @@ class Library(Base):
 
     pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True)
     pool: Mapped[Optional["Pool"]] = relationship(
-        "Pool", back_populates="libraries", lazy="joined", cascade="save-update, merge"
+        "Pool", back_populates="libraries", lazy="select", cascade="save-update, merge"
     )
 
     experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True, default=None)
     experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select", back_populates="libraries")
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
-    owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="joined")
+    owner: Mapped["User"] = relationship("User", back_populates="libraries", lazy="select")
     
     seq_request_id: Mapped[int] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=False)
     seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="libraries", lazy="select")
@@ -99,7 +99,7 @@ class Library(Base):
     )
     features: Mapped[list["Feature"]] = relationship("Feature", secondary=links.LibraryFeatureLink.__tablename__, lazy="select", cascade="save-update, merge")
     plate_links: Mapped[list["links.SamplePlateLink"]] = relationship("SamplePlateLink", back_populates="library", lazy="select", cascade="all, delete, delete-orphan")
-    indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="joined", cascade="all, save-update, merge, delete, delete-orphan")
+    indices: Mapped[list["LibraryIndex"]] = relationship("LibraryIndex", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan", order_by="SeqQuality.lane")
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="library", lazy="select", cascade="all, delete, delete-orphan")
 

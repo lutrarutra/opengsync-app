@@ -35,7 +35,7 @@
                         {{
                             confirm_action_button(
                                 text="Reset Password",
-                                title="Send Reset Password Email to '{{ user.email }}'?",
+                                title="Send Reset Password Email to {email}?".format(email=user.email),
                                 body="This will send an email to the user with instructions to reset their password. Do you want to continue?",
                                 method="hx-post",
                                 url=url_for('auth_htmx.reset_password_email', user_id=user.id),

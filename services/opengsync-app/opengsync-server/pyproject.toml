@@ -14,8 +14,6 @@ requires-python = ">=3.11"
 dependencies = [
     "numpy >= 2.2",
     "pandas >= 2.3",
-    "numba >= 0.61.2",
-    "numexpr >= 2.11.0",
     "bcrypt >= 4.0.1",
     "blinker >= 1.6.2",
     "click >= 8.1.7",
@@ -34,7 +32,7 @@ dependencies = [
     "idna >= 3.4",
     "premailer >= 3.10.0",
     "iniconfig >= 2.0.0",
-    "redis >= 5.0.8",
+    "redis",
     "itsdangerous >= 2.1.2",
     "Jinja2 >= 3.1.2",
     "loguru >= 0.7.2",

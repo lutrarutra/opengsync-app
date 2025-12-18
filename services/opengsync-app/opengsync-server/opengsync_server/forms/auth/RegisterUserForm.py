@@ -9,7 +9,7 @@ from opengsync_db.categories import UserRole
 from opengsync_db import models
 
 from ... import db, serializer, logger, mail_handler
-from ...core import runtime
+from ...core import runtime, tokens
 from ..HTMXFlaskForm import HTMXFlaskForm
 from .CompleteRegistrationForm import CompleteRegistrationForm
     
@@ -82,7 +82,7 @@ class RegisterUserForm(HTMXFlaskForm):
         email = self.email.data.strip()  # type: ignore
         user_role = UserRole.get(self.role.data)
 
-        token = models.User.generate_registration_token(email=email, role=user_role, serializer=serializer)
+        token = tokens.generate_registration_token(email=email, role=user_role, serializer=serializer)
         if user_role == UserRole.DEACTIVATED:
             next_form = CompleteRegistrationForm(token=token)
             return next_form.make_response()

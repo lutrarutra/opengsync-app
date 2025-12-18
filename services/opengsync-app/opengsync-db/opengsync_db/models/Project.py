@@ -60,10 +60,10 @@ class Project(Base):
     share_token: Mapped["ShareToken | None"] = relationship("ShareToken", lazy="select")
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
-    owner: Mapped["User"] = relationship("User", back_populates="projects", lazy="joined")
+    owner: Mapped["User"] = relationship("User", back_populates="projects", lazy="select")
 
     group_id: Mapped[int | None] = mapped_column(sa.ForeignKey("group.id"), nullable=True)
-    group: Mapped["Group | None"] = relationship("Group", back_populates="projects", lazy="joined", foreign_keys=[group_id], cascade="save-update, merge")
+    group: Mapped["Group | None"] = relationship("Group", back_populates="projects", lazy="select", foreign_keys=[group_id], cascade="save-update, merge")
 
     __software: Mapped[dict[str, dict] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="software")
 

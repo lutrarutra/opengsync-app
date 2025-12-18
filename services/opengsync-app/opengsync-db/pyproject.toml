@@ -15,9 +15,6 @@ requires-python = ">=3.11"
 dependencies = [
     "numpy>= 2.2",
     "pandas>= 2.3",
-    "numba >= 0.61",
-    "numexpr >= 2.11",
-    "itsdangerous >= 2.1.2",
     "loguru >= 0.7",
     "psycopg[binary] >= 3.2",
     "SQLAlchemy >= 2.0",

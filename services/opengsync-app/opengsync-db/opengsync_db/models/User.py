@@ -4,7 +4,6 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from .Base import Base
 from . import links
@@ -202,38 +201,6 @@ class User(Base, UserMixin):
     
     def is_admin(self) -> bool:
         return self.role == UserRole.ADMIN
-
-    def generate_reset_token(self, serializer: URLSafeTimedSerializer) -> str:
-        return str(serializer.dumps({"id": self.id, "email": self.email, "hash": self.password}))
-
-    @staticmethod
-    def generate_registration_token(email: str, serializer: URLSafeTimedSerializer, role: UserRoleEnum = UserRole.CLIENT) -> str:
-        return str(serializer.dumps({"email": email, "role": role.id}))
-
-    @staticmethod
-    def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) -> tuple[str, UserRoleEnum] | None:
-        try:
-            data = serializer.loads(token, max_age=3600)
-            email = data["email"]
-            role = UserRole.get(data.get("role", UserRole.CLIENT.id))
-        except SignatureExpired:
-            return None
-        except BadSignature:
-            return None
-        return email, role
-    
-    @staticmethod
-    def verify_reset_token(token: str, serializer: URLSafeTimedSerializer) -> tuple[int, str, str] | None:
-        try:
-            data = serializer.loads(token, max_age=3600)
-            id = data["id"]
-            email = data["email"]
-            hash = data["hash"]
-        except SignatureExpired:
-            return None
-        except BadSignature:
-            return None
-        return id, email, hash
 
     @property
     def role(self) -> UserRoleEnum:

@@ -6,6 +6,7 @@ from wtforms.validators import DataRequired, Length, EqualTo
 from opengsync_db import models
 
 from ... import bcrypt, db, serializer, logger
+from ...core import tokens
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -23,7 +24,7 @@ class CompleteRegistrationForm(HTMXFlaskForm):
         self.token = token
         self._email = None
         self._role = None
-        if (data := models.User.verify_registration_token(token=self.token, serializer=serializer)) is not None:
+        if (data := tokens.verify_registration_token(token=self.token, serializer=serializer)) is not None:
             self._email, self._role = data
     
     def prepare(self):
@@ -39,7 +40,7 @@ class CompleteRegistrationForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        if (data := models.User.verify_registration_token(token=self.token, serializer=serializer)) is None:
+        if (data := tokens.verify_registration_token(token=self.token, serializer=serializer)) is None:
             self.email.errors = ("Token expired or invalid.",)
             return False
         

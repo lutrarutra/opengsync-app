@@ -119,3 +119,4 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
         "num_pages": num_pages,
     })
     return context
+

@@ -3,13 +3,13 @@ from flask import Blueprint, render_template, redirect, request, url_for, flash
 from opengsync_db import models
 
 from ... import db, serializer
-from ...core import wrappers
+from ...core import wrappers, tokens
 
-auth_page_bp = Blueprint("auth_page", __name__)
+auth_page_bp = Blueprint("auth_page", __name__, url_prefix="/auth/")
 
 
 @wrappers.page_route(auth_page_bp, db=db, login_required=False)
-def reset_password_page(token: str):
+def reset_password(token: str):
     return render_template("reset_password_page.html", token=token)
 
 
@@ -24,7 +24,7 @@ def auth(current_user: models.User | None):
 
 @wrappers.page_route(auth_page_bp, db=db, login_required=False)
 def register(token: str):
-    if (data := models.User.verify_registration_token(token=token, serializer=serializer)) is None:
+    if (data := tokens.verify_registration_token(token=token, serializer=serializer)) is None:
         flash("Token expired or invalid.", "warning")
         return redirect(url_for("auth_page.auth"))
     
