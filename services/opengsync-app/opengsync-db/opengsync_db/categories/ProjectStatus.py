@@ -20,6 +20,6 @@ class ProjectStatusEnum(DBEnum):
 class ProjectStatus(ExtendedEnum[ProjectStatusEnum], enum_type=ProjectStatusEnum):
     DRAFT = ProjectStatusEnum(0, "Draft", "Project has been created but no samples have been submitted for sequencing.", "✍🏼")
     PROCESSING = ProjectStatusEnum(1, "Processing", "Project is being worked on in the lab.", "🔬")
-    SEQUENCED = ProjectStatusEnum(2, "Sequenced", "All libraries are sequenced. We are working on data analysis.", "🧬")
+    SEQUENCED = ProjectStatusEnum(2, "Sequenced", "All libraries are sequenced. We are working on data processing.", "🧬")
     DELIVERED = ProjectStatusEnum(3, "Delivered", "Project is completed and data is delivered.", "✅")
     ARCHIVED = ProjectStatusEnum(11, "Archived", "Data is archived.", "🗃️")

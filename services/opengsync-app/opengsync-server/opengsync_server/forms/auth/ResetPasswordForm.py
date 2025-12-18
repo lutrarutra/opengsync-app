@@ -3,10 +3,8 @@ from flask_htmx import make_response
 from wtforms import PasswordField, EmailField
 from wtforms.validators import DataRequired, Length, EqualTo
 
-from opengsync_db import models
-
 from ... import bcrypt, db, serializer, logger
-from ...core import runtime
+from ...core import runtime, tokens
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -22,7 +20,7 @@ class ResetPasswordForm(HTMXFlaskForm):
         self.token = token
 
     def prepare(self):
-        if (data := models.User.verify_reset_token(token=self.token, serializer=serializer)) is not None:
+        if (data := tokens.verify_reset_token(token=self.token, serializer=serializer)) is not None:
             user_id, email, hash = data
             if (user := db.users.get(user_id)) is None:
                 self.email.errors = ("Token expired or invalid.",)
@@ -41,7 +39,7 @@ class ResetPasswordForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        if (data := models.User.verify_reset_token(token=self.token, serializer=serializer)) is None:
+        if (data := tokens.verify_reset_token(token=self.token, serializer=serializer)) is None:
             self.email.errors = ("Token expired or invalid.",)
             return False
         
@@ -70,7 +68,7 @@ class ResetPasswordForm(HTMXFlaskForm):
         self.user.password = hashed_password
         db.users.update(self.user)
         logger.info(f"Password reset for {self.user.id}")
-        flash("Password updated!", "success")
         runtime.app.delete_user_sessions(self.user.id)
         runtime.session.clear()
+        flash("Password updated!", "success")
         return make_response(redirect=url_for("auth_page.auth"))

@@ -39,7 +39,7 @@ class Pool(Base):
     qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
-    owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="joined")
+    owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="select")
 
     plate_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("plate.id"), nullable=True)
     plate: Mapped[Optional["Plate"]] = relationship("Plate", lazy="select")

@@ -23,7 +23,7 @@ class Plate(Base):
     num_rows: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
-    owner: Mapped["User"] = relationship("User", lazy="joined")
+    owner: Mapped["User"] = relationship("User", lazy="select")
     
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="plates")
