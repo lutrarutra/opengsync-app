@@ -15,7 +15,7 @@ class SeqRequestTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
         TableCol(title="Name", label="name", col_size=4, search_type="text", sortable=True),
         TableCol(title="Library Types", label="library_types", col_size=3, choices=cats.LibraryType.as_list()),
-        TableCol(title="Status", label="status", col_size=1, search_type="text", sortable=True, sort_by="status_id", choices=cats.SeqRequestStatus.as_list()),
+        TableCol(title="Status", label="status", col_size=1, sortable=True, sort_by="status_id", choices=cats.SeqRequestStatus.as_list()),
         TableCol(title="Submission Type", label="submission_type", col_size=1, choices=cats.SubmissionType.as_list()),
         TableCol(title="Group", label="group", col_size=2, search_type="text"),
         TableCol(title="Requestor", label="requestor", col_size=2, search_type="text"),
@@ -84,9 +84,9 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         fnc_context["name"] = name
         table.active_search_var = "name"
         table.active_query_value = name
-    elif (requestor_name := request.args.get("requestor_name")):
+    elif (requestor_name := request.args.get("requestor")):
         fnc_context["requestor_name"] = requestor_name
-        table.active_search_var = "requestor_name"
+        table.active_search_var = "requestor"
         table.active_query_value = requestor_name
     elif (group := request.args.get("group")):
         fnc_context["group"] = group
