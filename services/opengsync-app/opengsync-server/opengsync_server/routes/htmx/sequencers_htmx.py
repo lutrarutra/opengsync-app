@@ -59,20 +59,9 @@ def delete(current_user: models.User, sequencer_id: int):
     )
 
 
-@wrappers.htmx_route(sequencers_htmx, db=db, methods=["POST"])
-def query():
-    field_name = next(iter(request.form.keys()))
-    query = request.form.get(field_name)
-
-    if query is None:
-        raise exceptions.BadRequestException()
+@wrappers.htmx_route(sequencers_htmx, db=db)
+def search(current_user: models.User):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
     
-    results = db.sequencers.query(query)
-    
-    return make_response(
-        render_template(
-            "components/search/sequencer.html",
-            results=results,
-            field_name=field_name
-        )
-    )
+    return make_response(render_template(**logic.sequencer.get_search_context(current_user=current_user, request=request)))

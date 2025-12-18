@@ -13,13 +13,7 @@
             <div class="row">
                 {{ form_group(form.name, class="col-4") }}
                 {{ select_input(form.workflow, class="col-4") }}
-                {{ 
-                    search_select_field(
-                        form.sequencer,
-                        query_url=url_for('sequencers_htmx.query'),
-                        class="col-4"
-                    ) 
-                }}
+                {{ search_select_field2(form.sequencer, url_for('sequencers_htmx.search'), "name", class="col-4") }}
             </div>
             <div class="row">
                 {{ search_select_field2(form.operator, url_for('users_htmx.search', insider=True), "name", class="col-6") }}

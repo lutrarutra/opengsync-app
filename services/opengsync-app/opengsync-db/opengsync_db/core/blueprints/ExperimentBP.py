@@ -217,6 +217,7 @@ class ExperimentBP(DBBlueprint):
         if experiment.workflow.combined_lanes:
             if len(experiment.laned_pool_links) != len(experiment.lanes) * len(experiment.pools):
                 raise ValueError(f"Experiment {experiment.id} with workflow {experiment.workflow.name} requires all lanes to be linked to all pools.")
+        
         self.db.session.add(experiment)
 
     @DBBlueprint.transaction
