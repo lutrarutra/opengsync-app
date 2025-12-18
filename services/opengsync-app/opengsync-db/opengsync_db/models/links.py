@@ -112,7 +112,10 @@ class LanePoolLink(Base):
     lane_num: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     def __str__(self) -> str:
-        return f"LanePoolLink(experiment_id: {self.experiment_id}, lane_id: {self.lane_id}, pool_id: {self.pool_id})"
+        return f"LanePoolLink(e: {self.experiment_id}, lane: {self.lane_num}, pool: {self.pool_id}, num_m_reads: {self.num_m_reads})"
+    
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class LibraryFeatureLink(Base):

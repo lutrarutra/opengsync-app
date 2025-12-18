@@ -54,7 +54,7 @@ def test_experiment_lanes(db: DBHandler):
 
     empty_pool = create_pool(db, user, seq_request)
     db.links.link_pool_experiment(experiment.id, empty_pool.id)
-    lane = db.links.add_pool_to_lane(experiment.id, pool_id=empty_pool.id, lane_num=1)
+    lane = db.links.add_pool_to_lane(experiment, pool=empty_pool, lane_num=1)
     db.refresh(lane)
 
     assert len(lane.pool_links) == 1
@@ -74,7 +74,7 @@ def test_experiment_lanes(db: DBHandler):
             assert _lane.id != lane.id
             assert len(_lane.pool_links) == 0
 
-    lane = db.links.remove_pool_from_lane(experiment.id, empty_pool.id, 1)
+    lane = db.links.remove_pool_from_lane(experiment, empty_pool, 1)
     db.refresh(lane)
     assert len(lane.pool_links) == 0
 
@@ -89,7 +89,7 @@ def test_experiment_lanes(db: DBHandler):
         assert len(lane.pool_links) == 0
 
     for i, pool in enumerate(pools):
-        db.links.add_pool_to_lane(experiment.id, pool.id, (i % experiment.num_lanes) + 1)
+        db.links.add_pool_to_lane(experiment, pool, (i % experiment.num_lanes) + 1)
 
     counter = 0
     experiment = db.experiments.get(experiment.id)

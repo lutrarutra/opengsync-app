@@ -24,7 +24,7 @@ services:
 
     postgres:
         container_name: opengsync-postgres-db-test
-        image: postgres:17.5-alpine3.22
+        image: postgres:17-alpine
         command: "-c logging_collector=on"
         environment:
             POSTGRES_USER: admin

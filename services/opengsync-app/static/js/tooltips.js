@@ -4,6 +4,7 @@ function init_tooltips(container = document) {
         new bootstrap.Tooltip(tooltipTriggerEl, { html: true });
         tooltipTriggerEl.setAttribute('data-bs-tooltip-initialized', 'true');
     });
+    $(".tooltip.fade.show").remove();
 }
 
 document.addEventListener("DOMContentLoaded", () => init_tooltips());

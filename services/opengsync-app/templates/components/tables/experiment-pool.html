@@ -8,6 +8,33 @@
 {% set experiment_lanes = experiment.lanes_map %}
 
 <div id="experiment-pool-table" class="table-container">
+    <div class="progress-bar-container flowcell-capacity-container pb-1 pt-1">
+        {% if experiment.workflow.combined_lanes %}
+        {% set m_reads_used = experiment.m_reads_planned() %}
+        {% set reads_used_pct = 100.0 * m_reads_used / experiment.flowcell_type.max_m_reads %}
+        <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;"
+        hx-get="{{ url_for('dist_reads_workflow.begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">
+            <div class="progress-title">
+                <b>Flowcell</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; {{ m_reads_used | int }}/{{ experiment.flowcell_type.max_m_reads }} Million Reads)
+            </div>
+            <div class="progress-bar progress-bar-striped text-dark {% if reads_used_pct <= 100 %}bg-cemm-blue{% else %}bg-cemm-red{% endif %}" style="width: {{ reads_used_pct }}%;">
+            </div>  
+        </div>
+        {% else %}
+        {% for lane in experiment.lanes %}
+        {% set m_reads_used = lane.m_reads_planned() %}
+        {% set reads_used_pct = 100.0 * m_reads_used / experiment.flowcell_type.max_m_reads_per_lane %}
+        <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;"
+        hx-get="{{ url_for('dist_reads_workflow.begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">
+            <div class="progress-title">
+                <b>Lane {{ lane.number }}</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; {{ m_reads_used | int }}/{{ experiment.flowcell_type.max_m_reads_per_lane }} Million Reads)
+            </div>
+            <div class="progress-bar progress-bar-striped text-dark {% if reads_used_pct <= 100 %}bg-cemm-blue{% else %}bg-cemm-red{% endif %}" style="width: {{ reads_used_pct }}%;">
+            </div>  
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
     <table class="table">
         <thead>
             <tr>
@@ -40,40 +67,42 @@
                         {{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}
                     </a>
                 </td>
-                <td>
-                    {% if experiment.workflow.combined_lanes %}
-                    <span class="table-btn" {{ tooltip("You cannot edit laning configurations in this workflow.", "top", category="warning") }}>
-                    {% endif %}
-                        <div class="btn-group table-btn {% if experiment.workflow.combined_lanes %}disabled{% endif %}">
-                            {% for lane_num in range(1, experiment.num_lanes + 1) %}
-                            {% set lane, num_m_reads = pool.lane(lane_num) %}
-                            {% if experiment.workflow.combined_lanes %}
-                            <button type="button" class="btn btn-primary table-btn disabled pool-lane-btn">
-                                {{ lane_num }}
-                            </button>
-                            {% else %}
-                            {% if pool.id in experiment_lanes[lane_num] %}
-                            {% set lane, num_m_reads = pool.lane(lane_num) %}
-                            <button type="button" class="btn btn-primary table-btn pool-lane-btn"
-                            hx-target="#experiment-pool-table" hx-swap="outerHTML"
-                            hx-delete="{{ url_for('experiments_htmx.unlane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num, sort_by=sort_by, sort_order=sort_order) }}">
-                                <span {{ tooltip("Reads: " + num_m_reads | string) }}>
+                <td class="x-scroll-cell">
+                    <span class="scroll-container">
+                        {% if experiment.workflow.combined_lanes %}
+                        <span class="table-btn" {{ tooltip("You cannot edit laning configurations in this workflow.", "top", category="warning") }}>
+                        {% endif %}
+                            <div class="btn-group table-btn {% if experiment.workflow.combined_lanes %}disabled{% endif %}">
+                                {% for lane_num in range(1, experiment.num_lanes + 1) %}
+                                {% set lane, num_m_reads = pool.lane(lane_num) %}
+                                {% if experiment.workflow.combined_lanes %}
+                                <button type="button" class="btn {% if pool.id in experiment_lanes[lane_num] %}btn-primary{% else %}btn-outline-primary{% endif %} table-btn disabled pool-lane-btn">
                                     {{ lane_num }}
-                                </span>
-                            </button>
-                            {% else %}
-                            <button type="button" class="btn btn-outline-primary table-btn pool-lane-btn"
-                            hx-target="#experiment-pool-table" hx-swap="outerHTML"
-                            hx-post="{{ url_for('experiments_htmx.lane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num, sort_by=sort_by, sort_order=sort_order) }}">
-                                {{ lane_num }}
-                            </button>
-                            {% endif %}
-                            {% endif %}
-                            {% endfor %}
-                        </div>
-                    {% if experiment.workflow.combined_lanes %}
+                                </button>
+                                {% else %}
+                                {% if pool.id in experiment_lanes[lane_num] %}
+                                {% set lane, num_m_reads = pool.lane(lane_num) %}
+                                <button type="button" class="btn btn-primary table-btn pool-lane-btn"
+                                hx-target="#experiment-pool-table" hx-swap="outerHTML"
+                                hx-delete="{{ url_for('experiments_htmx.unlane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num, sort_by=sort_by, sort_order=sort_order) }}">
+                                    <span {{ tooltip("Reads: " + (num_m_reads or 0) | string) }}>
+                                        {{ lane_num }}
+                                    </span>
+                                </button>
+                                {% else %}
+                                <button type="button" class="btn btn-outline-primary table-btn pool-lane-btn"
+                                hx-target="#experiment-pool-table" hx-swap="outerHTML"
+                                hx-post="{{ url_for('experiments_htmx.lane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num, sort_by=sort_by, sort_order=sort_order) }}">
+                                    {{ lane_num }}
+                                </button>
+                                {% endif %}
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% if experiment.workflow.combined_lanes %}
+                        </span>
+                        {% endif %}
                     </span>
-                    {% endif %}
                 </td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(pool.library_types) }}</td>
                 <td>{{ pool.status.icon }} {{ pool.status.name }}</td>

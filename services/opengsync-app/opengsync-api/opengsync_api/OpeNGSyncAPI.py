@@ -159,13 +159,14 @@ class OpeNGSyncAPI:
         Creates temporary share-token and sends the token with instructions to recipients via email.
         Previous token is invalidated.
         Project status is updated to -> DELIVERED.
+        Sequencing request share email links status -> DISPATCHED
 
         Args:
             project_id (int): id of the project to share
             internal_access (bool): if True, add instructions for internal access
             time_valid_min (int): time in minutes for which the share is valid
             recipients (list[str] | None): list of email addresses to send the instructions to. If None, emails are sent to all emails added to Share-tab in the latest sequencing request.
-            anonymous_send (bool, optional): if True, send the email anonymously. Defaults to False.
+            anonymous_send (bool, optional): if True, send the email anonymously. Defaults to False (owner of the API token).
 
         Raises:
             requests.HTTPError: if the request fails

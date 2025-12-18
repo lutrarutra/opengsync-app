@@ -157,10 +157,12 @@ def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_
         raise exceptions.NotFoundException()
     
     db.links.add_pool_to_lane(
-        experiment_id=experiment_id,
-        pool_id=pool_id,
+        experiment=experiment,
+        pool=pool,
         lane_num=lane_num
     )
+    
+    db.refresh(pool)
 
     flash("Added pool to Lane!'.", "success")
     return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
@@ -184,11 +186,11 @@ def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lan
         raise exceptions.NotFoundException()
     
     db.links.remove_pool_from_lane(
-        experiment_id=experiment_id,
-        pool_id=pool_id,
+        experiment=experiment,
+        pool=pool,
         lane_num=lane_num,
     )
-
+    db.refresh(pool)
     flash("Removed pool from Lane!", "success")
     return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
 
