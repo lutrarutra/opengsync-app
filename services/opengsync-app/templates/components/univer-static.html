@@ -10,66 +10,72 @@
 </div>
 
 <script>
-    $(async function() {
-        const $loader = $('#{{ uid }}-loader');
-        const $container = $('#{{ uid }}');
-        $loader.show();
-        $container.hide();
+    const $loader = $('#{{ uid }}-loader');
+    const $container = $('#{{ uid }}');
+    $loader.show();
+    $container.hide();
 
-        const data = {{ univer_snapshot | tojson | safe }};
-        const col_style = {{ col_style | tojson | safe }};
+    load_univer().then(() => {
+        $.ajax({
+            url: "{{ url_for('xlsx_data', file_id=file.id) }}",
+            method: "GET",
+            dataType: "json",
+            success: function(response) {
+                const data = response["data"];
+                const style = response["style"];
 
-        try {
-            await load_univer();
-            // Core
-            const { createUniver } = UniverPresets;
-            const { LocaleType, mergeLocales } = UniverCore;
-            const { UniverSheetsCorePreset } = UniverPresetSheetsCore;
+                try {
+                    const { createUniver } = UniverPresets;
+                    const { LocaleType, mergeLocales } = UniverCore;
+                    const { UniverSheetsCorePreset } = UniverPresetSheetsCore;
+                    const { UniverSheetsDataValidationPreset } = UniverPresetSheetsDataValidation;
 
-            // Presets
-            const { UniverSheetsDataValidationPreset } = UniverPresetSheetsDataValidation;
-
-            const { univerAPI } = createUniver({
-                locale: LocaleType.EN_US,
-                locales: {
-                    [LocaleType.EN_US]: mergeLocales(
-                        UniverPresetSheetsCoreEnUS,
-                        UniverPresetSheetsDataValidationEnUS,
-                    ),
-                },
-                darkMode: false,
-                presets: [
-                    UniverSheetsCorePreset({
-                        container: '{{ uid }}',
-                        toolbar: false,
-                        ribbonType: "simple",
-                        header: false,
-                        footer: {
-                            sheetBar: true,
-                            menus: true,
-                            statisticBar: false,
-                            zoomSlider: true,
+                    const { univerAPI } = createUniver({
+                        locale: LocaleType.EN_US,
+                        locales: {
+                            [LocaleType.EN_US]: mergeLocales(
+                                UniverPresetSheetsCoreEnUS,
+                                UniverPresetSheetsDataValidationEnUS,
+                            ),
                         },
-                        contextMenu: true,
-                        disableAutoFocus: true,
-                    }),
-                    UniverSheetsDataValidationPreset({
-                    }),
-                ],
+                        darkMode: false,
+                        presets: [
+                            UniverSheetsCorePreset({
+                                container: '{{ uid }}',
+                                toolbar: false,
+                                ribbonType: "simple",
+                                header: false,
+                                footer: {
+                                    sheetBar: true,
+                                    menus: true,
+                                    statisticBar: false,
+                                    zoomSlider: true,
+                                },
+                                contextMenu: true,
+                                disableAutoFocus: true,
+                            }),
+                            UniverSheetsDataValidationPreset({
+                            }),
+                        ],
 
-            });
+                    });
 
-            const workbook = univerAPI.createUniverSheet(data);
+                    const workbook = univerAPI.createUniverSheet(data);
 
-            for (const sheet of workbook.getSheets()) {
-                sheet.setColumnCustom(col_style[sheet.getSheetName()] || {});
+                    for (const sheet of workbook.getSheets()) {
+                        sheet.setColumnCustom(style[sheet.getSheetName()] || {});
+                    }
+                    $loader.hide();
+                    $container.show();
+                } catch(err) {
+                    console.error("Error loading Univer Sheets:", err);
+                    $loader.html('<div style="color: red;">Error loading Univer Sheets. Please try again later.</div>');
+                    show_frontend_notification("Error loading Excel file: " + err.message, "error");
+                }
+            },
+            error: function(xhr, status, error) {
+                show_frontend_notification("Error loading Excel file: " + error, "error");
             }
-            $loader.hide();
-            $container.show();
-        } catch(err) {
-            console.error("Error loading Univer Sheets:", err);
-            $loader.html('<div style="color: red;">Error loading Univer Sheets. Please try again later.</div>');
-        }
-        
+        });
     });
 </script>

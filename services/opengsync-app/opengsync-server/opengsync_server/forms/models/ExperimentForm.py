@@ -38,17 +38,21 @@ class ExperimentForm(HTMXFlaskForm):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.form_type = "create" if experiment is None else "edit"
         self.experiment = experiment
-        if not formdata:
-            self.__prepare(current_user)
+        self.current_user = current_user
         if experiment is not None:
             self._context["experiment"] = experiment
 
-    def __prepare(self, user: models.User):
-        if user is not None:
-            self.operator.selected.data = user.id
-            self.operator.search_bar.data = user.search_name()
-
-        if self.experiment is not None:
+    def prepare(self):
+        if self.form_type == "create":
+            if self.experiment is not None:
+                raise ValueError("Experiment must be None for create form type")
+            
+            self.operator.selected.data = self.current_user.id
+            self.operator.search_bar.data = self.current_user.search_name()
+        else:
+            if self.experiment is None:
+                raise ValueError("Experiment must be provided for edit form type")
+            
             self.name.data = self.experiment.name
             self.workflow.data =  self.experiment.workflow_id
             self.sequencer.selected.data =  self.experiment.sequencer.id
@@ -102,9 +106,6 @@ class ExperimentForm(HTMXFlaskForm):
         self.experiment.i2_cycles = self.i2_cycles.data
         self.experiment.operator_id = self.operator.selected.data
         self.experiment.status = status
-
-        logger.debug(self.experiment.name)
-        logger.debug(self.name.data)
 
         db.experiments.update(self.experiment)
 

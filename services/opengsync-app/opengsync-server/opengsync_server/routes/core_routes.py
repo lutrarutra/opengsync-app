@@ -6,12 +6,11 @@ from flask import (
     request,
     make_response,
 )
-from flask_htmx import make_response as make_htmx_response
 
 from opengsync_db import models
 
 from ..core import exceptions, wrappers
-from ..tools import utils
+from ..tools import utils, univer
 from ..core.RunTime import runtime
 from .. import db, logger, flash_cache
 
@@ -177,6 +176,26 @@ def download_file(file_id: int, current_user: models.User):
     response.headers["Content-Type"] = "application/octet-stream"
     response.headers["Content-Disposition"] = f"attachment; filename={file.name}{file.extension}"
     return response
+
+@wrappers.resource_route(runtime.app, db=db)
+def xlsx_data(current_user: models.User, file_id: int):
+    if (file := db.media_files.get(file_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if file.uploader_id != current_user.id and not current_user.is_insider():
+        if not db.media_files.permissions_check(user_id=current_user.id, file_id=file_id):
+            raise exceptions.NoPermissionsException()
+
+    filepath = os.path.join(runtime.app.media_folder, file.path)
+    if not os.path.exists(filepath):
+        logger.error(f"File not found: {filepath}")
+        raise exceptions.NotFoundException()
+    
+    if not filepath.lower().endswith((".xlsx", ".xls")):
+        raise exceptions.BadRequestException("File is not an Excel file")
+    
+    data, style = univer.xlsx_to_univer_snapshot(filepath)
+    return jsonify({"data": data, "style": style}), 200
 
 
 @wrappers.api_route(runtime.app, login_required=False, api_token_required=False, limit="5/second", limit_override=True, track_usage=False)

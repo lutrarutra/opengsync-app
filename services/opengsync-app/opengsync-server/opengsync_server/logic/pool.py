@@ -116,3 +116,4 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     })
 
     return context
+    
