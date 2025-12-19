@@ -2,26 +2,54 @@
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/metadata_group.jinja2" import metadata_quantity %}
 
+<div class="accordion" id="experimentStatsAccordion">
+    <!-- Library Section -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingLibrary">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLibrary"
+                aria-expanded="true" aria-controls="collapseLibrary">
+                <b>Library Stats</b>
+            </button>
+        </h2>
+        <div id="collapseLibrary" class="accordion-collapse collapse show" aria-labelledby="headingLibrary"
+            data-bs-parent="#experimentStatsAccordion">
+            <div class="accordion-body">
+                <div class="row">
+                    {{ metadata_quantity("Library Reads", num_library_reads, class="col-3") }}
+                    {{ metadata_quantity("Total Reads", num_total_reads, class="col-3") }}
+                </div>
+                <h4>Library Stats</h4>
+                {{ static_spreadsheet(library_stats) }}
+                <div hx-get="{{ url_for('plots_api.experiment_library_reads', experiment_id=experiment.id) }}"
+                    hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Pool Section -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingPool">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#collapsePool" aria-expanded="false" aria-controls="collapsePool">
+                <b>Pool Stats</b>
+            </button>
+        </h2>
+        <div id="collapsePool" class="accordion-collapse collapse" aria-labelledby="headingPool"
+            data-bs-parent="#experimentStatsAccordion">
+            <div class="accordion-body">
+                <h4>Pool Reads</h4>
+                {{ static_spreadsheet(pool_stats) }}
 
-<div class="row">
-    {{ metadata_quantity("Library Reads", num_library_reads, class="col-3") }}
-    {{ metadata_quantity("Total Reads", num_total_reads, class="col-3") }}
-</div>
-
-<h2>Library Stats</h2>
-{{ static_spreadsheet(library_stats) }}
-
-<h2>Pool Reads</h2>
-{{ static_spreadsheet(pool_stats) }}
-
-<div hx-get="{{ url_for('plots_api.experiment_library_reads', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-    {{ spinner() }}
-</div>
-
-<div hx-get="{{ url_for('plots_api.experiment_pool_reads', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-    {{ spinner() }}
-</div>
-
-<div hx-get="{{ url_for('plots_api.experiment_pool_per_library_reads', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-    {{ spinner() }}
+                <div hx-get="{{ url_for('plots_api.experiment_pool_reads', experiment_id=experiment.id) }}"
+                    hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
+                </div>
+                <div hx-get="{{ url_for('plots_api.experiment_pool_per_library_reads', experiment_id=experiment.id) }}"
+                    hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

@@ -40,7 +40,7 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
         ))
     
     request_args = request.get_json()
-    width = request_args.get("width", 700)
+    width = request_args.get("width", 1000)
     
     df = db.pd.get_experiment_seq_qualities(experiment_id)
     if len(df) == 0:
@@ -77,7 +77,7 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
     fig = _add_traces(barplot, fig)
     fig.update_layout(
         width=width,
-        height=30 * len(df["library_name"].unique()) + 200,
+        height=50 * len(df["library_name"].unique()) + 200,
         margin=dict(t=25, r=5, b=5, l=5),
         paper_bgcolor="rgba(0,0,0,0)",
         yaxis=dict(tickfont=dict(size=15)),
@@ -103,7 +103,7 @@ def experiment_pool_reads(current_user: models.User, experiment_id: int):
         ))
     
     request_args = request.get_json()
-    width = request_args.get("width", 700)
+    width = request_args.get("width", 1000)
     
     df = db.pd.get_experiment_stats(experiment_id)
     if len(df) == 0:
@@ -166,7 +166,7 @@ def experiment_pool_per_library_reads(current_user: models.User, experiment_id: 
         ))
     
     request_args = request.get_json()
-    width = request_args.get("width", 700)
+    width = request_args.get("width", 1000)
     
     df = db.pd.get_experiment_stats(experiment_id)
     if len(df) == 0:
@@ -225,7 +225,7 @@ def weekday_usage(current_user: models.User):
         ))
     
     request_args = request.get_json()
-    width = request_args.get("width", 700)
+    width = request_args.get("width", 1000)
 
     from ... import monitor
     
