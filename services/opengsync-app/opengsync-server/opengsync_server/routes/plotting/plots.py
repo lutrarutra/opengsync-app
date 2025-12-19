@@ -115,8 +115,6 @@ def experiment_pool_reads(current_user: models.User, experiment_id: int):
 
     df["perc_reads"] = df["num_reads"] / df["num_reads"].sum()
 
-    logger.debug(df)
-
     df["label"] = df.apply(
         lambda row: f"{row['num_reads'] / 1_000_000:.1f} M ({row['perc_reads'] * 100:.1f} %)", axis=1
     )

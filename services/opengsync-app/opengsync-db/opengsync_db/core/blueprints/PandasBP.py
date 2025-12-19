@@ -1213,9 +1213,18 @@ class PandasBP(DBBlueprint):
         stats = pd.merge(
             stats, planned_reads, on="pool_id", how="left"
         )
+        
+        stats["num_reads_requested"] = None
+        stats.loc[stats["num_m_reads_requested"].notna(), "num_reads_requested"] = stats["num_m_reads_requested"] * 1_000_000
 
-        stats["num_reads_requested"] = stats["num_m_reads_requested"] * 1_000_000
-        stats["num_planned_reads"] = stats["num_m_reads_planned"] * 1_000_000
-        stats["sequenced_vs_planned"] = (stats["num_reads"] / stats["num_planned_reads"] * 100).round(1)
+
+        stats["num_planned_reads"] = None
+        stats.loc[stats["num_m_reads_planned"].notna(), "num_planned_reads"] = stats["num_m_reads_planned"] * 1_000_000
+
+        stats["sequenced_vs_planned"] = None
+        idx = (stats["num_reads"].notna()) & (stats["num_planned_reads"].notna()) & (stats["num_planned_reads"] > 0)
+        stats.loc[idx, "sequenced_vs_planned"] = (
+            stats.loc[idx, "num_reads"] / stats.loc[idx, "num_planned_reads"] * 100.0
+        ).astype(pd.Float64Dtype()).round(1)
         
         return stats
