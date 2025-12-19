@@ -115,11 +115,11 @@ class ProjectForm(HTMXFlaskForm):
             
             if self.project is not None:
                 if not self.project.owner.is_insider() and db.groups.get_user_affiliation(user_id=self.project.owner_id, group_id=group.id) is None:
-                    self.group.search_bar.errors = ("Project owner must be part of the group.",)
+                    self.group.selected.errors = ("Project owner must be part of the group.",)
                     return False
             else:
                 if not user.is_insider() and db.groups.get_user_affiliation(user_id=user.id, group_id=group.id) is None:
-                    self.group.search_bar.errors = ("You must be part of the group.",)
+                    self.group.selected.errors = ("You must be part of the group.",)
                     return False
                 
         if self.title.data:

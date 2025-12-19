@@ -1,24 +1,24 @@
 <div class="plot-container" style="width: 100%;">
     <div class="d-flex justify-content-between">
         <div>
-            <h2>Library Reads</h2>
+            <h2>Pool per Library Reads</h2>
         </div>
     </div>
-    <div class="fig-body" id="experiment-library-reads-figure"></div>
+    <div class="fig-body" id="experiment-pool-per-library-reads-figure"></div>
 </div>
 <script>
     load_plotly().then(() => {
         const plot_projection = () => {
             $.ajax({
-                url: "{{ url_for('plots_api.experiment_library_reads', experiment_id=experiment.id) }}",
+                url: "{{ url_for('plots_api.experiment_pool_per_library_reads', experiment_id=experiment.id) }}",
                 type: "POST",
                 contentType: "application/json; charset=utf-8",
                 data: JSON.stringify({
-                    "width": $("#experiment-library-reads-figure").width(),
+                    "width": $("#experiment-pool-per-library-reads-figure").width(),
                 }),
                 dataType: "json",
                 success: function(figure){
-                    Plotly.newPlot("experiment-library-reads-figure", figure.data, figure.layout, {responsive: true});
+                    Plotly.newPlot("experiment-pool-per-library-reads-figure", figure.data, figure.layout, {responsive: true});
                 }
             });
         };

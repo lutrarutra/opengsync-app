@@ -501,17 +501,37 @@ def render_stats_tab(current_user: models.User, experiment_id: int):
     if (experiment := db.experiments.get(experiment_id)) is None:
         raise exceptions.NotFoundException()
     
-    df = db.pd.get_experiment_stats(experiment.id, per_lane=False).drop(columns=["library_id"])
+    library_stats_df = db.pd.get_experiment_stats(experiment.id, per_lane=False).drop(columns=["library_id"])
+    library_stats_df.loc[library_stats_df["library_name"].isna(), "library_name"] = "Undetermined"
+    library_stats_df = library_stats_df.drop(columns=["pool_id", "pool_name"])
+    library_stats_df = library_stats_df.rename(columns={
+        "num_reads": "Sequenced Reads",
+    })
 
     columns = []
-    for col in df.columns:
+    for col in library_stats_df.columns:
         columns.append(TextColumn(col, col.replace("_", " ").title(), {"library_name": 250}.get(col, 150), max_length=1000))
 
-    spreadsheet = StaticSpreadSheet(df=df, columns=columns, id=f"experiment-{experiment_id}-stats")
+    library_stats = StaticSpreadSheet(df=library_stats_df, columns=columns, id=f"experiment-{experiment_id}-stats")
+
+    pool_stats_df = db.pd.get_pool_num_reads_stats(experiment.id)
+    pool_stats_df.loc[pool_stats_df["pool_id"].isna(), "pool_name"] = "Undetermined"
+    pool_stats_df = pool_stats_df[["pool_name", "num_reads", "num_planned_reads", "sequenced_vs_planned", "num_reads_requested"]]
+    pool_stats_df = pool_stats_df.rename(columns={
+        "num_reads": "Sequenced Reads",
+        "num_planned_reads": "Planned Reads",
+        "sequenced_vs_planned": "Sequenced vs Planned (%)",
+        "num_reads_requested": "Requested Reads"
+    })
+
+    columns = []
+    for col in pool_stats_df.columns:
+        columns.append(TextColumn(col, col.replace("_", " ").title(), {"pool_name": 250}.get(col, 250), max_length=1000))
+    pool_stats = StaticSpreadSheet(df=pool_stats_df, columns=columns, id=f"experiment-{experiment_id}-pool-stats")
     
     return make_response(render_template(
         "components/experiment-stats.html",
-        experiment=experiment, spreadsheet=spreadsheet,
+        experiment=experiment, library_stats=library_stats, pool_stats=pool_stats,
         num_total_reads=units.Quantity(experiment.get_demultiplexed_reads(), units.read),
         num_library_reads=units.Quantity(experiment.get_demultiplexed_reads(include_undetermined=False), units.read)
     ))

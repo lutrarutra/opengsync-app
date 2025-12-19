@@ -8,8 +8,20 @@
     {{ metadata_quantity("Total Reads", num_total_reads, class="col-3") }}
 </div>
 
-{{ static_spreadsheet(spreadsheet) }}
+<h2>Library Stats</h2>
+{{ static_spreadsheet(library_stats) }}
+
+<h2>Pool Reads</h2>
+{{ static_spreadsheet(pool_stats) }}
 
 <div hx-get="{{ url_for('plots_api.experiment_library_reads', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+    {{ spinner() }}
+</div>
+
+<div hx-get="{{ url_for('plots_api.experiment_pool_reads', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+    {{ spinner() }}
+</div>
+
+<div hx-get="{{ url_for('plots_api.experiment_pool_per_library_reads', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
     {{ spinner() }}
 </div>

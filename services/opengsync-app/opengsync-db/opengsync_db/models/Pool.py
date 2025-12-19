@@ -201,6 +201,15 @@ class Pool(Base):
                 num_reads += link.num_m_reads
         return num_reads
     
+    def get_num_sequenced_reads(self) -> int:
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open")
+        
+        num_reads = 0
+        for library in self.libraries:
+            num_reads += library.get_num_sequenced_reads()
+        return num_reads
+    
     __table_args__ = (
         sa.Index(
             "trgm_pool_name_idx",

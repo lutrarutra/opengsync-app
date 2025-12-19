@@ -194,7 +194,7 @@ class Library(Base):
         ).where(
             DataPath.library_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
-    
+
     @property
     def status(self) -> LibraryStatusEnum:
         return LibraryStatus.get(self.status_id)

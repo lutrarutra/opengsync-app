@@ -247,7 +247,24 @@ class Project(Base):
                 (Library.experiment_id == Experiment.id)
             )
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+    
 
+    @property
+    def share_email_links(self) -> list["links.SeqRequestDeliveryEmailLink"]:
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'share_email_links' attribute.")
+        
+        from .links import SeqRequestDeliveryEmailLink
+        from .Sample import Sample
+        from .Library import Library
+        return session.query(SeqRequestDeliveryEmailLink).where(
+            sa.exists().where(
+                (Sample.project_id == self.id) &
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.seq_request_id == SeqRequestDeliveryEmailLink.seq_request_id)
+            )
+        ).all()
 
     def set_software(self, software: str, version: str, comment: str | None = None) -> None:
         if self.__software is None:

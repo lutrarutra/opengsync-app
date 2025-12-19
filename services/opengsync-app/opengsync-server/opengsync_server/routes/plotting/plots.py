@@ -86,6 +86,132 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
     )
     
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+
+@wrappers.htmx_route(plots_api, db=db, methods=["GET", "POST"])
+def experiment_pool_reads(current_user: models.User, experiment_id: int):
+    if not current_user.is_insider():
+        raise exceptions.BadRequestException()
+    
+    if (experiment := db.experiments.get(experiment_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if request.method == "GET":
+        return make_response(render_template(
+            "components/plots/experiment_pool_reads.html",
+            experiment=experiment
+        ))
+    
+    request_args = request.get_json()
+    width = request_args.get("width", 700)
+    
+    df = db.pd.get_experiment_stats(experiment_id)
+    if len(df) == 0:
+        return make_response()
+    
+    df = df.groupby(["pool_id", "pool_name"], dropna=False).agg(
+        num_reads=pd.NamedAgg(column="num_reads", aggfunc="sum")
+    ).reset_index()
+
+    df["perc_reads"] = df["num_reads"] / df["num_reads"].sum()
+
+    df["label"] = df.apply(
+        lambda row: f"{row['num_reads'] / 1_000_000:.1f} M ({row['perc_reads'] * 100:.1f} %)", axis=1
+    )
+
+    df["y_ticks"] = df.apply(
+        lambda row: f"<a href='{url_for('pools_page.pool', pool_id=row['pool_id'])}?from=experiment@{experiment.id}' target='_self'>{row['pool_name']}</a>"
+        if pd.notna(row["pool_id"]) else "", axis=1  # type: ignore
+    )
+    df.loc[df["pool_name"].isna(), "y_ticks"] = "Undetermined"
+
+    df = df.sort_values(by=["num_reads"], ascending=[True])
+    
+    fig = go.Figure()
+
+    barplot = px.bar(
+        df, x="num_reads", y="y_ticks",
+        text=df["label"],
+        labels={
+            "y_ticks": "Pool",
+        },
+        color_discrete_sequence=px.colors.qualitative.D3
+    )
+    fig = _add_traces(barplot, fig)
+    fig.update_layout(
+        width=width,
+        height=30 * len(df) + 200,
+        margin=dict(t=25, r=5, b=5, l=5),
+        paper_bgcolor="rgba(0,0,0,0)",
+        yaxis=dict(tickfont=dict(size=15)),
+        xaxis=dict(tickfont=dict(size=15)),
+        font=dict(size=15),
+    )
+    
+    return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+
+@wrappers.htmx_route(plots_api, db=db, methods=["GET", "POST"])
+def experiment_pool_per_library_reads(current_user: models.User, experiment_id: int):
+    if not current_user.is_insider():
+        raise exceptions.BadRequestException()
+    
+    if (experiment := db.experiments.get(experiment_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if request.method == "GET":
+        return make_response(render_template(
+            "components/plots/experiment_pool_per_library_reads.html",
+            experiment=experiment
+        ))
+    
+    request_args = request.get_json()
+    width = request_args.get("width", 700)
+    
+    df = db.pd.get_experiment_stats(experiment_id)
+    if len(df) == 0:
+        return make_response()
+
+    df["perc_reads"] = df["num_reads"] / df.groupby("pool_id")["num_reads"].transform("sum")
+
+    df["label"] = df.apply(
+        lambda row: f"{row['num_reads'] / 1_000_000:.1f} M ({row['perc_reads'] * 100:.1f} %)", axis=1
+    )
+
+    df["pool_reads"] = df.groupby("pool_id")["num_reads"].transform("sum")
+
+    df["y_ticks"] = df.apply(
+        lambda row: f"<a href='{url_for('pools_page.pool', pool_id=row['pool_id'])}?from=experiment@{experiment.id}' target='_self'>{row['pool_name']}</a>"
+        if pd.notna(row["pool_id"]) else "", axis=1  # type: ignore
+    )
+    df.loc[df["pool_name"].isna(), "y_ticks"] = "Undetermined"
+
+    df = df.sort_values(by=["pool_reads", "num_reads"], ascending=[True, False])
+    
+    fig = go.Figure()
+
+    barplot = px.bar(
+        df, x="num_reads", y="y_ticks", color="library_name",
+        text=df["perc_reads"].apply(lambda x: f"{x * 100:.1f} %"),
+        labels={
+            "num_reads": "# Reads",
+            "y_ticks": "Pool",
+            "text": "%-Reads in Lane"
+        },
+        color_discrete_sequence=px.colors.qualitative.D3
+    )
+    fig = _add_traces(barplot, fig)
+    fig.update_layout(
+        width=width,
+        height=30 * len(df["pool_id"].unique()) + 200,
+        margin=dict(t=25, r=5, b=5, l=5),
+        paper_bgcolor="rgba(0,0,0,0)",
+        yaxis=dict(tickfont=dict(size=15)),
+        xaxis=dict(tickfont=dict(size=15)),
+        font=dict(size=15),
+    )
+    
+    return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     
 
 @wrappers.htmx_route(plots_api, db=db, methods=["GET", "POST"])
