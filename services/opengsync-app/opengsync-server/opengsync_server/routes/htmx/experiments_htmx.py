@@ -26,54 +26,28 @@ def get(current_user: models.User):
     return make_response(render_template(**context))
 
 
-@wrappers.htmx_route(experiments_htmx, db=db)
-def get_form(current_user: models.User, form_type: Literal["create", "edit"]):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    if form_type not in ["create", "edit"]:
-        raise exceptions.BadRequestException()
-    
-    if (experiment_id := request.args.get("experiment_id")) is not None:
-        try:
-            experiment_id = int(experiment_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-        
-        if form_type != "edit":
-            raise exceptions.BadRequestException()
-        
-        if (experiment := db.experiments.get(experiment_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        return forms.models.ExperimentForm(form_type=form_type, experiment=experiment).make_response()
-
-    # seq_request_id must be provided if form_type is "edit"
-    if form_type == "edit":
-        raise exceptions.BadRequestException()
-
-    return forms.models.ExperimentForm(form_type=form_type, current_user=current_user).make_response()
-
-
-@wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
 
-    return forms.models.ExperimentForm(formdata=request.form, form_type="create").process_request()
+    if request.method == "GET":
+        return forms.models.ExperimentForm(current_user=current_user).make_response()
+    return forms.models.ExperimentForm(current_user=current_user, formdata=request.form).process_request()
 
 
-@wrappers.htmx_route(experiments_htmx, methods=["POST"], db=db)
+@wrappers.htmx_route(experiments_htmx, methods=["GET", "POST"], db=db)
 def edit(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.experiments.get(experiment_id)) is None:
         raise exceptions.NotFoundException()
+    
+    if request.method == "GET":
+        return forms.models.ExperimentForm(current_user=current_user, experiment=experiment).make_response()
 
-    return forms.models.ExperimentForm(formdata=request.form, form_type="edit").process_request(
-        experiment=experiment
-    )
+    return forms.models.ExperimentForm(current_user=current_user, experiment=experiment, formdata=request.form).process_request()
 
 
 @wrappers.htmx_route(experiments_htmx, methods=["DELETE"], db=db)
@@ -157,10 +131,12 @@ def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_
         raise exceptions.NotFoundException()
     
     db.links.add_pool_to_lane(
-        experiment_id=experiment_id,
-        pool_id=pool_id,
+        experiment=experiment,
+        pool=pool,
         lane_num=lane_num
     )
+    
+    db.refresh(pool)
 
     flash("Added pool to Lane!'.", "success")
     return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
@@ -184,11 +160,11 @@ def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lan
         raise exceptions.NotFoundException()
     
     db.links.remove_pool_from_lane(
-        experiment_id=experiment_id,
-        pool_id=pool_id,
+        experiment=experiment,
+        pool=pool,
         lane_num=lane_num,
     )
-
+    db.refresh(pool)
     flash("Removed pool from Lane!", "success")
     return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
 

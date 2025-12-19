@@ -1,19 +1,15 @@
 import os
-import openpyxl
 import mimetypes
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
-
-from flask import Blueprint, render_template, Response, send_from_directory, request
+from flask import Blueprint, render_template, Response, send_from_directory, request, jsonify
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import AccessType
+from opengsync_db.categories import AccessType, MediaFileType
 
 from ... import db, logger
-from ...tools import utils, FileBrowser, univer
+from ...tools import utils, FileBrowser
 from ...core import wrappers, exceptions
 from ...core.RunTime import runtime
 
@@ -34,8 +30,7 @@ def render_xlsx(current_user: models.User, file_id: int):
         logger.error(f"File not found: {filepath}")
         raise exceptions.NotFoundException()
     
-    snapshot, col_style = univer.xlsx_to_univer_snapshot(filepath)
-    return make_response(render_template("components/univer-static.html", univer_snapshot=snapshot, col_style=col_style))
+    return make_response(render_template("components/univer-static.html", file=file))
 
 
 @wrappers.resource_route(files_htmx, db=db, login_required=True)

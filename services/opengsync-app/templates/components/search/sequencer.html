@@ -1,14 +1,14 @@
 <ul class="list-group search-component">
-    {% if results is defined and results %}
-    {% for res in results %}
-    <li {% if loop.last %} class="last" {% endif %}>
+    {% if sequencers is defined and sequencers %}
+    {% for sequencer in sequencers %}
+    <li {% if loop.last %}last{% endif %} {% if selected_id is defined and sequencer.id == selected_id %}selected{% endif %}>
         <a id="option-{{ field_name }}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
         data-field="{{ field_name }}"
-        data-value="{{ res.id }}"
+        data-value="{{ sequencer.id }}"
         aria-controls="{{ field_name }}">
-            <span class="search-select-name">{{ res.name }}</span>
-            <span class="search-select-desc">{{ res.model.manufacturer }} {{ res.model.name }}</span>
+            <span class="search-select-name">{{ sequencer.name }}</span>
+            <span class="search-select-desc">{{ sequencer.model.manufacturer }} {{ sequencer.model.name }}</span>
         </a>
     </li>
     {% endfor %}

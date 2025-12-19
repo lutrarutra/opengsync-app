@@ -1,8 +1,8 @@
 import math
-from typing import Optional, Callable, Iterable
+from typing import Optional, Callable
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Query, interfaces
+from sqlalchemy.orm import Query
 from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
@@ -208,10 +208,16 @@ class ExperimentBP(DBBlueprint):
                 for lane in experiment.lanes:
                     for pool in experiment.pools:
                         if (lane.id, pool.id) not in lps:
-                            lane = self.db.links.add_pool_to_lane(experiment_id=experiment.id, lane_num=lane.number, pool_id=pool.id)
+                            lane = self.db.links.add_pool_to_lane(experiment=experiment, lane_num=lane.number, pool=pool, flush=False)
+
+                self.db.flush()
         
         if len(experiment.lanes) != experiment.num_lanes:
             raise ValueError(f"Experiment {experiment.id} has {len(experiment.lanes)} lanes, but workflow {experiment.workflow.name} requires {experiment.workflow.flow_cell_type.num_lanes} lanes.")
+        if experiment.workflow.combined_lanes:
+            if len(experiment.laned_pool_links) != len(experiment.lanes) * len(experiment.pools):
+                raise ValueError(f"Experiment {experiment.id} with workflow {experiment.workflow.name} requires all lanes to be linked to all pools.")
+        
         self.db.session.add(experiment)
 
     @DBBlueprint.transaction

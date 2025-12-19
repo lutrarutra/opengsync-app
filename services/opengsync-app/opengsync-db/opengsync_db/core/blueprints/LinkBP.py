@@ -157,24 +157,19 @@ class LinkBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def add_pool_to_lane(
-        self, experiment_id: int, pool_id: int, lane_num: int, flush: bool = True
+        self, experiment: models.Experiment, pool: models.Pool, lane_num: int, flush: bool = True
     ) -> models.Lane:
-        if (experiment := self.db.session.get(models.Experiment, experiment_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
-
         if (lane := self.db.session.query(models.Lane).where(
-            models.Lane.experiment_id == experiment_id,
+            models.Lane.experiment_id == experiment.id,
             models.Lane.number == lane_num,
         ).first()) is None:
-            raise exceptions.ElementDoesNotExist(f"Lane with number {lane_num} does not exist in experiment with id {experiment_id}")
-        if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+            raise exceptions.ElementDoesNotExist(f"Lane with number {lane_num} does not exist in experiment with id {experiment.id}")
         
         if self.db.session.query(models.links.LanePoolLink).where(
-            models.links.LanePoolLink.pool_id == pool_id,
+            models.links.LanePoolLink.pool_id == pool.id,
             models.links.LanePoolLink.lane_id == lane.id,
         ).first():
-            raise exceptions.LinkAlreadyExists(f"Lane with id '{lane.id}' and Pool with id '{pool_id}' are already linked.")
+            raise exceptions.LinkAlreadyExists(f"Lane with id '{lane.id}' and Pool with id '{pool.id}' are already linked.")
         
         if experiment.workflow.combined_lanes:
             num_m_reads_per_lane = pool.num_m_reads_requested / experiment.num_lanes if pool.num_m_reads_requested else None
@@ -183,15 +178,17 @@ class LinkBP(DBBlueprint):
 
         for link in pool.lane_links:
             link.num_m_reads = num_m_reads_per_lane
-            self.db.session.add(link)
-        
-        link = models.links.LanePoolLink(
-            lane_id=lane.id, pool_id=pool_id, experiment_id=experiment_id,
-            num_m_reads=num_m_reads_per_lane,
-            lane_num=lane_num,
+
+        experiment.laned_pool_links.append(
+            models.links.LanePoolLink(
+                lane_id=lane.id, pool_id=pool.id, experiment_id=experiment.id,
+                num_m_reads=num_m_reads_per_lane,
+                lane_num=lane_num,
+            )
         )
         
-        self.db.session.add(link)
+        self.db.session.add(pool)
+        self.db.session.add(experiment)
 
         if flush:
             self.db.flush()
@@ -199,31 +196,29 @@ class LinkBP(DBBlueprint):
         return lane
 
     @DBBlueprint.transaction
-    def remove_pool_from_lane(self, experiment_id: int, pool_id: int, lane_num: int, flush: bool = True) -> models.Lane:
+    def remove_pool_from_lane(self, experiment: models.Experiment, pool: models.Pool, lane_num: int, flush: bool = True) -> models.Lane:
         if (lane := self.db.session.query(models.Lane).where(
-            models.Lane.experiment_id == experiment_id,
+            models.Lane.experiment_id == experiment.id,
             models.Lane.number == lane_num,
         ).first()) is None:
-            raise exceptions.ElementDoesNotExist(f"Lane with number {lane_num} does not exist in experiment with id {experiment_id}")
-        
-        if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+            raise exceptions.ElementDoesNotExist(f"Lane with number {lane_num} does not exist in experiment with id {experiment.id}")
         
         if (link := self.db.session.query(models.links.LanePoolLink).where(
-            models.links.LanePoolLink.pool_id == pool_id,
+            models.links.LanePoolLink.pool_id == pool.id,
             models.links.LanePoolLink.lane_id == lane.id,
         ).first()) is None:
-            raise exceptions.LinkDoesNotExist(f"Lane with id '{lane.id}' and Pool with id '{pool_id}' are not linked.")
+            raise exceptions.LinkDoesNotExist(f"Lane with id '{lane.id}' and Pool with id '{pool.id}' are not linked.")
         
-        self.db.session.delete(link)
+        experiment.laned_pool_links.remove(link)
         
         for _link in pool.lane_links:
             if _link.lane_id == lane.id:
                 continue
             _link.num_m_reads = pool.num_m_reads_requested / len(pool.lane_links) if pool.num_m_reads_requested else None
-            self.db.session.add(_link)
 
         self.db.session.add(lane)
+        self.db.session.add(pool)
+        self.db.session.add(experiment)
 
         if flush:
             self.db.flush()
@@ -245,7 +240,7 @@ class LinkBP(DBBlueprint):
 
         if experiment.workflow.combined_lanes:
             for lane in experiment.lanes:
-                self.add_pool_to_lane(experiment_id=experiment_id, pool_id=pool_id, lane_num=lane.number)
+                self.add_pool_to_lane(experiment=experiment, pool=pool, lane_num=lane.number)
 
         self.db.session.add(experiment)
         self.db.session.add(pool)

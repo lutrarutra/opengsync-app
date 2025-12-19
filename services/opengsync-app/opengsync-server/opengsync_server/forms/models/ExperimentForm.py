@@ -1,5 +1,3 @@
-from typing import Optional, Literal
-
 from flask import Response, flash, url_for
 from flask_htmx import make_response
 from wtforms import StringField, IntegerField, SelectField, FormField
@@ -8,7 +6,8 @@ from wtforms.validators import DataRequired, Length, Optional as OptionalValidat
 from opengsync_db import models, exceptions
 from opengsync_db.categories import ExperimentWorkFlow, ExperimentStatus
 from ..HTMXFlaskForm import HTMXFlaskForm
-from ... import db
+
+from ... import db, logger
 from ..SearchBar import SearchBar
 
 
@@ -35,38 +34,44 @@ class ExperimentForm(HTMXFlaskForm):
     i1_cycles = IntegerField("I1 Cycles", validators=[DataRequired()])
     i2_cycles = IntegerField("I2 Cycles", validators=[OptionalValidator()])
 
-    def __init__(self, form_type: Literal["create", "edit"], current_user: Optional[models.User] = None, experiment: Optional[models.Experiment] = None, formdata: Optional[dict] = None):
+    def __init__(self, current_user: models.User, experiment: models.Experiment | None = None, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        self.form_type = form_type
-        self.__prepare(current_user, experiment)
+        self.form_type = "create" if experiment is None else "edit"
+        self.experiment = experiment
+        self.current_user = current_user
         if experiment is not None:
             self._context["experiment"] = experiment
 
-    def __prepare(self, user: Optional[models.User], experiment: Optional[models.Experiment]):
-        if user is not None:
-            self.operator.selected.data = user.id
-            self.operator.search_bar.data = user.search_name()
+    def prepare(self):
+        if self.form_type == "create":
+            if self.experiment is not None:
+                raise ValueError("Experiment must be None for create form type")
+            
+            self.operator.selected.data = self.current_user.id
+            self.operator.search_bar.data = self.current_user.search_name()
+        else:
+            if self.experiment is None:
+                raise ValueError("Experiment must be provided for edit form type")
+            
+            self.name.data = self.experiment.name
+            self.workflow.data =  self.experiment.workflow_id
+            self.sequencer.selected.data =  self.experiment.sequencer.id
+            self.sequencer.search_bar.data =  self.experiment.sequencer.name
+            self.r1_cycles.data =  self.experiment.r1_cycles
+            self.r2_cycles.data =  self.experiment.r2_cycles
+            self.i1_cycles.data =  self.experiment.i1_cycles
+            self.i2_cycles.data =  self.experiment.i2_cycles
+            self.operator.selected.data =  self.experiment.operator_id
+            self.operator.search_bar.data =  self.experiment.operator.search_name()
+            self.status.data =  self.experiment.status_id
 
-        if experiment is not None:
-            self.name.data = experiment.name
-            self.workflow.data = experiment.workflow_id
-            self.sequencer.selected.data = experiment.sequencer.id
-            self.sequencer.search_bar.data = experiment.sequencer.name
-            self.r1_cycles.data = experiment.r1_cycles
-            self.r2_cycles.data = experiment.r2_cycles
-            self.i1_cycles.data = experiment.i1_cycles
-            self.i2_cycles.data = experiment.i2_cycles
-            self.operator.selected.data = experiment.operator_id
-            self.operator.search_bar.data = experiment.operator.search_name()
-            self.status.data = experiment.status_id
-
-    def validate(self, experiment: Optional[models.Experiment]) -> bool:
+    def validate(self) -> bool:
         if (validated := super().validate()) is False:
             return False
         
         try:
             if (e := db.experiments.get(self.name.data)) is not None:  # type: ignore
-                if experiment is None or experiment.id != e.id:
+                if self.experiment is None or  self.experiment.id != e.id:
                     self.name.errors = ("An experiment with this name already exists.",)
                     return False
         except exceptions.ElementDoesNotExist:
@@ -86,25 +91,26 @@ class ExperimentForm(HTMXFlaskForm):
             
         return validated
     
-    def __update_existing_experiment(self, experiment: models.Experiment) -> Response:
+    def __update_existing_experiment(self) -> Response:
+        if self.experiment is None:
+            raise ValueError("No experiment provided for update.")
         workflow = ExperimentWorkFlow.get(self.workflow.data)
         status = ExperimentStatus.get(self.status.data)
 
-        experiment.name = self.name.data  # type: ignore
-        experiment.workflow = workflow
-        experiment.sequencer_id = self.sequencer.selected.data
-        experiment.r1_cycles = self.r1_cycles.data  # type: ignore
-        experiment.r2_cycles = self.r2_cycles.data
-        experiment.i1_cycles = self.i1_cycles.data  # type: ignore
-        experiment.i2_cycles = self.i2_cycles.data
-        experiment.operator_id = self.operator.selected.data
-        experiment.status = status
+        self.experiment.name = self.name.data  # type: ignore
+        self.experiment.workflow = workflow
+        self.experiment.sequencer_id = self.sequencer.selected.data
+        self.experiment.r1_cycles = self.r1_cycles.data  # type: ignore
+        self.experiment.r2_cycles = self.r2_cycles.data
+        self.experiment.i1_cycles = self.i1_cycles.data  # type: ignore
+        self.experiment.i2_cycles = self.i2_cycles.data
+        self.experiment.operator_id = self.operator.selected.data
+        self.experiment.status = status
 
-        db.experiments.update(experiment)
+        db.experiments.update(self.experiment)
 
-        flash(f"Edited experiment '{experiment.name}'.", "success")
-
-        return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment.id))
+        flash(f"Changes Saved!.", "success")
+        return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
 
     def __create_new_experiment(self) -> Response:
         workflow = ExperimentWorkFlow.get(self.workflow.data)
@@ -128,14 +134,12 @@ class ExperimentForm(HTMXFlaskForm):
             redirect=url_for("experiments_page.experiment", experiment_id=experiment.id),
         )
 
-    def process_request(self, **context) -> Response:
-        experiment = context.get("experiment")
-
-        if not self.validate(experiment):
-            return self.make_response(**context)
+    def process_request(self) -> Response:
+        if not self.validate():
+            return self.make_response()
         
-        if experiment is not None:
-            return self.__update_existing_experiment(experiment)
+        if self.form_type == "edit":
+            return self.__update_existing_experiment()
 
         return self.__create_new_experiment()
     

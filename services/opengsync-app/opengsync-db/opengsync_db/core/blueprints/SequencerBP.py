@@ -61,7 +61,7 @@ class SequencerBP(DBBlueprint):
             query = query.order_by(attr)
 
         if name is not None:
-            query = query.where(models.Sequencer.name.ilike(f"%{name}%"))
+            query = query.order_by(sa.nulls_last(sa.func.similarity(models.Sequencer.name, name).desc()))
         if id is not None:
             query = query.where(models.Sequencer.id == id)
 

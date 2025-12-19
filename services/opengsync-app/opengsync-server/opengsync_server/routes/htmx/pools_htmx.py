@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import PoolStatus, LibraryStatus
+from opengsync_db.categories import PoolStatus, LibraryStatus, AccessType
 
 from ... import db, forms, logic, logger
 from ...core import wrappers, exceptions
@@ -18,13 +18,70 @@ def get(current_user: models.User):
     return make_response(render_template(**logic.pool.get_table_context(current_user, request)))
 
 
-@wrappers.htmx_route(pools_htmx, methods=["POST"], db=db)
+@wrappers.htmx_route(pools_htmx, methods=["GET", "POST"], db=db)
 def create(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    form = forms.models.PoolForm("create", formdata=request.form)
-    return form.process_request(user=current_user)
+    form = forms.models.PoolForm("create", formdata=request.form, current_user=current_user)
+    if request.method == "GET":
+        return form.make_response()
+    return form.process_request()
+
+@wrappers.htmx_route(pools_htmx, db=db, methods=["GET", "POST"])
+def clone(current_user: models.User, pool_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (pool := db.pools.get(pool_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    form = forms.models.PoolForm("clone", pool=pool, current_user=current_user, formdata=request.form)
+    if request.method == "GET":
+        return form.make_response()
+    return form.process_request()
+    
+
+@wrappers.htmx_route(pools_htmx, db=db)
+def get_form(current_user: models.User, form_type: Literal["create", "edit"], pool_id: int | None = None):
+    if form_type not in ["create", "edit"]:
+        raise exceptions.BadRequestException()
+    
+    if form_type == "create":
+        if pool_id is not None:
+            raise exceptions.BadRequestException()
+        
+        form = forms.models.PoolForm("create", current_user=current_user)
+        return form.make_response()
+    
+    if form_type == "edit":
+        if pool_id is None:
+            raise exceptions.BadRequestException()
+        
+        if (pool := db.pools.get(pool_id)) is None:
+            raise exceptions.NotFoundException()
+        
+        if not current_user.is_insider() and pool.owner_id != current_user.id:
+            raise exceptions.NoPermissionsException()
+        
+        form = forms.models.PoolForm("edit", current_user=current_user, pool=pool)
+        return form.make_response()
+    
+
+@wrappers.htmx_route(pools_htmx, db=db, methods=["GET", "POST"])
+def edit(current_user: models.User, pool_id: int):
+    if (pool := db.pools.get(pool_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.pools.get_access_type(pool, current_user)
+    if access_type < AccessType.EDIT:
+        raise exceptions.NoPermissionsException()
+    
+    form = forms.models.PoolForm("edit", current_user=current_user, pool=pool, formdata=request.form)
+    if request.method == "GET":
+        return form.make_response()
+    
+    return form.process_request()
 
 
 @wrappers.htmx_route(pools_htmx, methods=["DELETE"], db=db)
@@ -65,60 +122,6 @@ def remove_libraries(current_user: models.User, pool_id: int):
     return make_response(redirect=url_for("pools_page.pool", pool_id=pool_id))
 
 
-@wrappers.htmx_route(pools_htmx, db=db)
-def get_form(current_user: models.User, form_type: Literal["create", "edit"], pool_id: int | None = None):
-    if form_type not in ["create", "edit"]:
-        raise exceptions.BadRequestException()
-    
-    if form_type == "create":
-        if pool_id is not None:
-            raise exceptions.BadRequestException()
-        
-        form = forms.models.PoolForm("create")
-        form.contact.selected.data = current_user.id
-        form.contact.search_bar.data = current_user.name
-        return form.make_response()
-    
-    if form_type == "edit":
-        if pool_id is None:
-            raise exceptions.BadRequestException()
-        
-        if (pool := db.pools.get(pool_id)) is None:
-            raise exceptions.NotFoundException()
-        
-        if not current_user.is_insider() and pool.owner_id != current_user.id:
-            raise exceptions.NoPermissionsException()
-        
-        form = forms.models.PoolForm("edit", pool=pool)
-        return form.make_response()
-    
-
-@wrappers.htmx_route(pools_htmx, methods=["POST"], db=db)
-def edit(current_user: models.User, pool_id: int):
-    if (pool := db.pools.get(pool_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    if not current_user.is_insider() and pool.owner_id != current_user.id:
-        raise exceptions.NoPermissionsException()
-    return forms.models.PoolForm("edit", pool=pool, formdata=request.form).process_request(user=current_user)
-
-
-@wrappers.htmx_route(pools_htmx, methods=["GET", "POST"], db=db)
-def clone(current_user: models.User, pool_id: int):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    if (pool := db.pools.get(pool_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    if request.method == "GET":
-        form = forms.models.PoolForm("clone", pool=pool)
-        return form.make_response()
-    else:
-        form = forms.models.PoolForm("clone", formdata=request.form, pool=pool)
-        return form.process_request(user=current_user)
-
-
 @wrappers.htmx_route(pools_htmx, methods=["DELETE"], db=db)
 def remove_library(current_user: models.User, pool_id: int, library_id: int):
     if not current_user.is_insider():
@@ -150,40 +153,6 @@ def remove_library(current_user: models.User, pool_id: int, library_id: int):
 
     context = logic.library.get_table_context(current_user, request, pool=pool)
     return make_response(render_template(**context))
-
-
-@wrappers.htmx_route(pools_htmx, methods=["POST"], db=db)
-def query():
-    field_name = next(iter(request.form.keys()))
-    query = request.form.get(field_name)
-
-    if query is None:
-        raise exceptions.BadRequestException()
-    
-    if (status_in := request.args.get("status_id_in")) is not None:
-        status_in = json.loads(status_in)
-        try:
-            status_in = [PoolStatus.get(int(status)) for status in status_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(status_in) == 0:
-            status_in = None
-
-    if (seq_request_id := request.args.get("seq_request_id")) is not None:
-        try:
-            seq_request_id = int(seq_request_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-
-    results = db.pools.query(query, status_in=status_in, seq_request_id=seq_request_id)
-    
-    return make_response(
-        render_template(
-            "components/search/pool.html",
-            results=results, field_name=field_name
-        )
-    )
 
 
 @wrappers.htmx_route(pools_htmx, db=db, methods=["GET", "POST"])

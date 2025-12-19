@@ -1,6 +1,5 @@
 import os
 import io
-import json
 from typing import Literal
 
 import pandas as pd
@@ -13,7 +12,7 @@ from flask import Blueprint, render_template, request, flash, url_for, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import LabChecklistType, PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType, SampleStatus
+from opengsync_db.categories import PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType
 
 from ... import db, forms, logger, logic
 from ...core import wrappers, exceptions

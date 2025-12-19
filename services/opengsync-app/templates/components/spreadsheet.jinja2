@@ -1,47 +1,35 @@
-{% macro spreadsheet(id="spreadsheet-grid", errors=none, height=none) -%}
-<div class="spreadsheet-container" {% if height %}style="height: {{ height }};"{% endif %}>
-    <div class="invalid-feedback-container">
-        {% if errors %}
-        <p>Errors:</p>
-        {% for error in errors %}
-            <p>{{ error }}</p>
-        {% endfor %}
-        {% endif %}
-    </div>
-    <div id="{{ id }}" class="spreadsheet-grid"></div>
-</div>
-{%- endmacro %}
-
 {% macro static_spreadsheet(element) -%}
 <div class="spreadsheet-container" {% if height is defined and height %}style="height: {{ height }};"{% endif %}>
     <div id="{{ element._id }}" class="spreadsheet-grid">
     </div>
 </div>
 <script>
-    jspreadsheet(document.getElementById("{{ element._id }}"), {
-        worksheets: [{
-            data: {{ element._data }},
-            columns: [
-                {% for col in element.columns %}
-                {%- if col.type == "text" or col.type == "numeric" -%}
-                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
-                {%- elif col["type"] == "dropdown" -%}
-                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
-                {%- endif -%}
-                {% endfor %}
-            ],
-            allowInsertRow: false,
-            allowManualInsertRow: false,
-            allowDeleteRow: false,
-            allowDeleteColumn: false,
-            allowInsertColumn: false,
-            allowRenameColumn: false,
-            editable: false,
-            tableOverflow: true,
-            tableWidth: "100%",
-            tableHeight: "100%",
-            style: {{ element.style | tojson }},
-        }],
+    load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
+        window.jspreadsheet(document.getElementById("{{ element._id }}"), {
+            worksheets: [{
+                data: {{ element._data }},
+                columns: [
+                    {% for col in element.columns %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                allowInsertRow: false,
+                allowManualInsertRow: false,
+                allowDeleteRow: false,
+                allowDeleteColumn: false,
+                allowInsertColumn: false,
+                allowRenameColumn: false,
+                editable: false,
+                tableOverflow: true,
+                tableWidth: "100%",
+                tableHeight: "100%",
+                style: {{ element.style | tojson }},
+            }],
+        });
     });
 </script>
 {%- endmacro %}
@@ -59,53 +47,54 @@
     <div id="{{ element.id }}" class="spreadsheet-grid"></div>
 </div>
 <script>
-    var spread_sheet = jspreadsheet(document.getElementById("{{ element.id }}"), {
-        worksheets: [{
-            data: {{ element.raw_data if element.raw_data else "[[null]]" }},
-            columns: [
-                {% for col in element.columns.values() %}
-                {%- if col.type == "text" or col.type == "numeric" -%}
-                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true{% endif %} },
-                {%- elif col["type"] == "dropdown" -%}
-                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true{% if col.read_only %},  readOnly: true {% endif %} },
-                {%- endif -%}
-                {% endfor %}
-            ],
-            minSpareRows: {{ element.min_spare_rows }},
-            allowInsertColumn: {{ element.allow_new_cols }},
-            allowDeleteColumn: {{ element.allow_new_cols }},
-            allowManualInsertRow: {{ element.allow_new_rows }},
-            allowInsertRow: {{ element.allow_new_rows }},
-            allowDeleteRow: {{ element.allow_new_rows }},
-            allowRenameColumn: {{ element.allow_col_rename }},
-            tableOverflow: true,
-            tableWidth: "100%",
-            tableHeight: "100%",
-            style: {{ element.style | tojson if element.style else "{}" }},
-        }],
-    })[0];
+    load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
+        var spread_sheet = window.jspreadsheet(document.getElementById("{{ element.id }}"), {
+            worksheets: [{
+                data: {{ element.raw_data if element.raw_data else "[[null]]" }},
+                columns: [
+                    {% for col in element.columns.values() %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} {% if col.read_only %},  readOnly: true{% endif %} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true{% if col.read_only %},  readOnly: true {% endif %} },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                minSpareRows: {{ element.min_spare_rows }},
+                allowInsertColumn: {{ element.allow_new_cols }},
+                allowDeleteColumn: {{ element.allow_new_cols }},
+                allowManualInsertRow: {{ element.allow_new_rows }},
+                allowInsertRow: {{ element.allow_new_rows }},
+                allowDeleteRow: {{ element.allow_new_rows }},
+                allowRenameColumn: {{ element.allow_col_rename }},
+                tableOverflow: true,
+                tableWidth: "100%",
+                tableHeight: "100%",
+                style: {{ element.style | tojson if element.style else "{}" }},
+            }],
+        })[0];
 
-    {% if submit_btn_id %}
-    $("#{{ submit_btn_id }}").on("click", function() {
-        var data = spread_sheet.getData();
+        {% if submit_btn_id %}
+        $("#{{ submit_btn_id }}").on("click", function() {
+            var data = spread_sheet.getData();
 
-        htmx.ajax("POST", "{{ element.post_url | safe }}", {
-            "target": "#{{ target_element_id }}",
-            "swap": "outerHTML",
-            "values": {
-                "spreadsheet": JSON.stringify(data),
-                "csrf_token": "{{ element.csrf_token }}",
-                "columns": JSON.stringify(spread_sheet.getHeaders()),
-                {% for key, val in post_request_kwargs.items() %}
-                "{{ key }}": "{{ val }}"
-                {% endfor %}
-            },
+            htmx.ajax("POST", "{{ element.post_url | safe }}", {
+                "target": "#{{ target_element_id }}",
+                "swap": "outerHTML",
+                "values": {
+                    "spreadsheet": JSON.stringify(data),
+                    "csrf_token": "{{ element.csrf_token }}",
+                    "columns": JSON.stringify(spread_sheet.getHeaders()),
+                    {% for key, val in post_request_kwargs.items() %}
+                    "{{ key }}": "{{ val }}"
+                    {% endfor %}
+                },
+            });
+
+            disable_button($("#{{ submit_btn_id }}"));
         });
-
-        disable_button($("#{{ submit_btn_id }}"));
+        {% endif %}
     });
-    {% endif %}
-    
 </script>
 {%- endmacro %}
 
@@ -138,31 +127,33 @@
     </div>
 </div>
 <script>
-    jspreadsheet(document.getElementById("{{ element.file.id }}-spreadsheet"), {
-        worksheets: [{
-            data: {{ element._data }},
-            columns: [
-                {% for label in element.cell_errors.keys() %}
-                {% set col = element.columns[label] %}
-                {%- if col.type == "text" or col.type == "numeric" -%}
-                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
-                {%- elif col["type"] == "dropdown" -%}
-                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
-                {%- endif -%}
-                {% endfor %}
-            ],
-            allowInsertRow: true,
-            allowManualInsertRow: false,
-            allowDeleteRow: false,
-            allowDeleteColumn: false,
-            allowInsertColumn: true,
-            allowRenameColumn: false,
-            editable: false,
-            tableOverflow: true,
-            tableWidth: "100%",
-            tableHeight: "100%",
-            style: {{ element.style | tojson }},
-        }],
+    load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
+        window.jspreadsheet(document.getElementById("{{ element.file.id }}-spreadsheet"), {
+            worksheets: [{
+                data: {{ element._data }},
+                columns: [
+                    {% for label in element.cell_errors.keys() %}
+                    {% set col = element.columns[label] %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+                allowInsertRow: true,
+                allowManualInsertRow: false,
+                allowDeleteRow: false,
+                allowDeleteColumn: false,
+                allowInsertColumn: true,
+                allowRenameColumn: false,
+                editable: false,
+                tableOverflow: true,
+                tableWidth: "100%",
+                tableHeight: "100%",
+                style: {{ element.style | tojson }},
+            }],
+        });
     });
 </script>
 {% endif %}
