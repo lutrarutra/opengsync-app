@@ -245,6 +245,21 @@ def get_software(current_user: models.User, project_id: int):
         )
     )
 
+@wrappers.htmx_route(projects_htmx, db=db)
+def get_shares(current_user: models.User, project_id: int):
+    if (project := db.projects.get(project_id)) is None:
+        raise exceptions.NotFoundException()
+
+    access_type = db.projects.get_access_type(project, current_user)
+    if access_type < AccessType.VIEW:
+        raise exceptions.NoPermissionsException()
+    
+    return make_response(
+        render_template(
+            "components/tables/project-share.html",
+            project=project,
+        )
+    )
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def overview(current_user: models.User, project_id: int):

@@ -1089,11 +1089,17 @@ class PandasBP(DBBlueprint):
             models.SeqQuality.qc.label("qc"),
             models.Library.id.label("library_id"),
             models.Library.name.label("library_name"),
+            models.Pool.id.label("pool_id"),
+            models.Pool.name.label("pool_name"),
         ).where(
             models.SeqQuality.experiment_id == experiment_id
         ).join(
             models.Library,
             models.Library.id == models.SeqQuality.library_id,
+            isouter=True
+        ).join(
+            models.Pool,
+            models.Pool.id == models.Library.pool_id,
             isouter=True
         ).order_by(
             models.SeqQuality.lane
@@ -1160,3 +1166,56 @@ class PandasBP(DBBlueprint):
         df = pd.read_sql(query, self.db._engine)
         df["status"] = df["status_id"].map(categories.DeliveryStatus.get)
         return df
+    
+    @DBBlueprint.transaction
+    def get_pool_num_reads_stats(self, experiment_id: int) -> pd.DataFrame:
+        query = sa.select(
+            models.Pool.id.label("pool_id"),
+            models.Pool.name.label("pool_name"),
+            models.Pool.num_m_reads_requested.label("num_m_reads_requested"),
+            models.SeqQuality.num_reads.label("num_reads"),
+        ).where(
+            models.SeqQuality.experiment_id == experiment_id
+        ).join(
+            models.Library,
+            models.Library.id == models.SeqQuality.library_id,
+            isouter=True
+        ).join(
+            models.Pool,
+            models.Pool.id == models.Library.pool_id,
+            isouter=True
+        )
+
+        df = pd.read_sql(query, self.db._engine)
+        df["pool_id"] = df["pool_id"].astype(pd.Int64Dtype())
+
+        stats = df.groupby(
+            ["pool_id", "pool_name"], dropna=False
+        ).agg(
+            num_reads=pd.NamedAgg(column="num_reads", aggfunc="sum"),
+            num_m_reads_requested=pd.NamedAgg(column="num_m_reads_requested", aggfunc="first"),
+        ).reset_index()
+
+        query = sa.select(
+            models.links.LanePoolLink.pool_id.label("pool_id"),
+            models.links.LanePoolLink.num_m_reads.label("num_m_reads"),
+        ).where(
+            models.links.LanePoolLink.experiment_id == experiment_id
+        )
+
+        planned_reads_df = pd.read_sql(query, self.db._engine)
+        planned_reads_df["pool_id"] = planned_reads_df["pool_id"].astype(pd.Int64Dtype())
+        planned_reads = planned_reads_df.groupby(
+            ["pool_id"], dropna=False
+        ).agg(
+            num_m_reads_planned=pd.NamedAgg(column="num_m_reads", aggfunc="sum"),
+        ).reset_index()
+        stats = pd.merge(
+            stats, planned_reads, on="pool_id", how="left"
+        )
+
+        stats["num_reads_requested"] = stats["num_m_reads_requested"] * 1_000_000
+        stats["num_planned_reads"] = stats["num_m_reads_planned"] * 1_000_000
+        stats["sequenced_vs_planned"] = (stats["num_reads"] / stats["num_planned_reads"] * 100).round(1)
+        
+        return stats

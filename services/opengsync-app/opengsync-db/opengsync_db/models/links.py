@@ -145,4 +145,7 @@ class SeqRequestDeliveryEmailLink(Base):
         self.status_id = value.id
 
     def __str__(self) -> str:
-        return f"SeqRequestDeliveryEmail(email: {self.email})"
+        return f"SeqRequestDeliveryEmail(email: {self.email}, seq_request: {self.seq_request_id}, status: {self.status.display_name})"
+    
+    def __repr__(self) -> str:
+        return self.__str__()
