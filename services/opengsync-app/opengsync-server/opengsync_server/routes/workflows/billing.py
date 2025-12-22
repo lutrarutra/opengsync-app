@@ -62,6 +62,8 @@ def download(current_user: models.User) -> Response:
         "pool_name": [],
         "pool_type": [],
         "workflow": [],
+        "protocol": [],
+        "service": [],
         "num_m_reads_loaded": [],
         "lane_share": [],
         "flowcell_share": [],
@@ -76,6 +78,7 @@ def download(current_user: models.User) -> Response:
         "num_m_reads_requested": [],
         "lab_contact_name": [],
         "lab_contact_email": [],
+        "checklist": [],
         "pool_id": [],
         "info": [],
     }
@@ -138,7 +141,7 @@ def download(current_user: models.User) -> Response:
             num_m_reads_loaded = 0
             lane_share = {}
             for link in pool.lane_links:
-                if link.num_m_reads is not None:
+                if link.num_m_reads is not None and lane_loaded_reads.get(link.lane_num):
                     num_m_reads_loaded += link.num_m_reads
                     lane_share[link.lane_num] = f"{link.num_m_reads / lane_loaded_reads[link.lane_num]:.3%}"
                 else:
@@ -148,7 +151,7 @@ def download(current_user: models.User) -> Response:
             
             pool_data["lane_share"].append(lane_share or "")
             
-            if num_m_reads_loaded is not None:
+            if num_m_reads_loaded is not None and flowcell_loaded_reads:
                 flowcell_share = (num_m_reads_loaded / flowcell_loaded_reads)
                 pool_data["flowcell_share"].append(f"{flowcell_share:.3%}")
             else:
@@ -175,6 +178,9 @@ def download(current_user: models.User) -> Response:
                 info += "⚠️ Libraries in pool are from different requests "
                 
             pool_data["workflow"].append(experiment.workflow.name)
+            pool_data["protocol"].append(", ".join(sorted({library.protocol.name for library in pool.libraries if library.protocol})))
+            pool_data["checklist"].append(pool.lab_prep.checklist_type.name if pool.lab_prep else "")
+            pool_data["service"].append(pool.lab_prep.service_type.name if pool.lab_prep else "")
             pool_data["contact_name"].append(contact.name if contact else "")
             pool_data["contact_email"].append(contact.email if contact else "")
             pool_data["billing_name"].append(seq_request.billing_contact.name if seq_request else "")

@@ -425,6 +425,8 @@ class PoolBP(DBBlueprint):
         cloned_pool.qubit_concentration = pool.qubit_concentration
         cloned_pool.num_m_reads_requested = pool.num_m_reads_requested
 
+        cloned_pool.ba_report_id = pool.ba_report_id
+
         return cloned_pool
 
     @DBBlueprint.transaction
