@@ -39,12 +39,12 @@ class OligoReMuxForm(CommonOligoMuxForm):
             TextColumn("barcode", "Sequence", 150),
             TextColumn("pattern", "Pattern", 200),
             TextColumn("read", "Read", 100),
-        ])
+        ], id="example-spreadsheet-library-sample-pool-table")
 
     def prepare(self):
         self.apply_to_sample_pool.data = self.library_sample_pool_table.duplicated(
             ["sample_name", "barcode", "pattern", "read"], keep=False
-        ).all()
+        ).all()  # type: ignore
 
     def process_request(self) -> Response:
         if not self.validate():
@@ -96,5 +96,5 @@ class OligoReMuxForm(CommonOligoMuxForm):
                     db.links.update_sample_library_link(link)
 
         flash("Changes saved!", "success")
-        return make_response(redirect=(url_for("libraries_page.library", library_id=self.library.id)))
+        return make_response(redirect=(url_for("libraries_page.library", library_id=self.library.id, tab="library-multiplexing-tab")))
         
