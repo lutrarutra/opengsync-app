@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from flask import Blueprint, request
+from flask import Blueprint, request, flash
 
 from opengsync_db import models
 from opengsync_db.categories import PoolStatus, LibraryStatus
@@ -38,7 +38,11 @@ def begin(current_user: models.User, lab_prep_id: int):
         library_table = pd.DataFrame(data)
         return wff.LibraryProtocolSelectForm(lab_prep=lab_prep, uuid=None, library_table=library_table).make_response()
         
-    df = pd.read_excel(os.path.join(runtime.app.media_folder, lab_prep.prep_file.path), sheet_name="prep_table")
+    if os.path.exists(path := os.path.join(runtime.app.media_folder, lab_prep.prep_file.path)):
+        df = pd.read_excel(path, sheet_name="prep_table")
+    else:
+        flash("Library prep file not found..", "warning")
+        df = pd.DataFrame()
     if "library_kits" not in df.columns or df["library_kits"].isna().all():
         data = {
             "library_id": [],
