@@ -504,9 +504,11 @@ def render_stats_tab(current_user: models.User, experiment_id: int):
     library_stats_df = db.pd.get_experiment_stats(experiment.id, per_lane=False).drop(columns=["library_id"])
     library_stats_df.loc[library_stats_df["library_name"].isna(), "library_name"] = "Undetermined"
     library_stats_df = library_stats_df.drop(columns=["pool_id", "pool_name"])
+    library_stats_df = library_stats_df.sort_values(by="num_reads", ascending=False)
     library_stats_df = library_stats_df.rename(columns={
         "num_reads": "Sequenced Reads",
     })
+    library_stats_df["% of the Sequenced"] = (library_stats_df["Sequenced Reads"] / library_stats_df["Sequenced Reads"].sum()).apply(lambda x: f"{x:.1%}")
 
     columns = []
     for col in library_stats_df.columns:
@@ -517,12 +519,14 @@ def render_stats_tab(current_user: models.User, experiment_id: int):
     pool_stats_df = db.pd.get_pool_num_reads_stats(experiment.id)
     pool_stats_df.loc[pool_stats_df["pool_id"].isna(), "pool_name"] = "Undetermined"
     pool_stats_df = pool_stats_df[["pool_name", "num_reads", "num_planned_reads", "sequenced_vs_planned", "num_reads_requested"]]
+    pool_stats_df = pool_stats_df.sort_values(by="num_reads", ascending=False)
     pool_stats_df = pool_stats_df.rename(columns={
         "num_reads": "Sequenced Reads",
         "num_planned_reads": "Planned Reads",
         "sequenced_vs_planned": "Sequenced vs Planned (%)",
         "num_reads_requested": "Requested Reads"
     })
+    pool_stats_df["% of the Sequenced"] = (pool_stats_df["Sequenced Reads"] / pool_stats_df["Sequenced Reads"].sum()).apply(lambda x: f"{x:.1%}")
 
     columns = []
     for col in pool_stats_df.columns:
