@@ -850,8 +850,8 @@ class PandasBP(DBBlueprint):
                 "library_type", "genome_ref", "experiment_name", "lanes",
                 "mux", "mux_type", "library_id", "sample_id", "seq_request_id"
             ]
-            lanes = lanes.groupby(
-                lanes.columns.difference(["lane"]).tolist(), as_index=False, dropna=False
+            lanes = lanes.sort_values("lane").groupby(
+                lanes.columns.difference(["lane"]).tolist(), as_index=False, dropna=False,
             ).agg({"lane": list}).rename(columns={"lane": "lanes"})
         else:
             order = [
