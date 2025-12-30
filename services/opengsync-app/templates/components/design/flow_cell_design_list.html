@@ -1,0 +1,23 @@
+<div class="flow-cell-design-container">
+    {% for design in designs %}
+    <div class="accordion" id="flow-cell-design-{{ design.id }}">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#design-{{ design.id }}" aria-expanded="true" aria-controls="design-{{ design.id }}">
+                    <div class="d-flex justify-content-between w-100 px-1">
+                        <div><b>{{ design.name }}</b></div>
+                        <div>Planned: 0 / {{ design.workflow.flow_cell_type.max_m_reads }}M - Lanes: {{ design.workflow.flow_cell_type.num_lanes }} R1: {{ design.cycles_r1 }} R2: {{ design.cycles_r2 }}</div>
+                        <div><b>{{ design.workflow.display_name }}</b></div>
+                    </div>
+                </button>
+            </h2>
+            <div id="design-{{ design.id }}" class="accordion-collapse collapse show" data-bs-parent="#flow-cell-design-{{ design.id }}">
+                <div class="accordion-body">
+                    <p>R1 Cycles: {{ design.cycles_r1 }}</p>
+                    <p>R2 Cycles: {{ design.cycles_r2 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>

@@ -7,18 +7,20 @@ from sqlalchemy.ext.mutable import MutableDict
 
 from .Base import Base
 
-from opengsync_db.categories import DeliveryStatus, DeliveryStatusEnum, AffiliationType, AffiliationTypeEnum
+from opengsync_db.categories import AffiliationType, AffiliationTypeEnum, DeliveryStatus, DeliveryStatusEnum
 
 if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
-    from .SeqRequest import SeqRequest
     from .Plate import Plate
     from .Group import Group
     from .User import User
     from .Pool import Pool
     from .Lane import Lane
     from . import PoolDilution
+    from .SeqRequest import SeqRequest
+    from .PoolDesign import PoolDesign
+    from .FlowCellDesign import FlowCellDesign
 
 class ProjectAssigneeLink(Base):
     __tablename__ = "project_assignee_link"
@@ -116,6 +118,19 @@ class LanePoolLink(Base):
     
     def __repr__(self) -> str:
         return self.__str__()
+    
+
+class DesignPoolFlowCellLink(Base):
+    __tablename__ = "design_pool_flow_cell_link"
+
+    pool_design_id: Mapped[int] = mapped_column(sa.ForeignKey("pool_design.id"), primary_key=True)
+    flow_cell_design_id: Mapped[int] = mapped_column(sa.ForeignKey("flow_cell_design.id"), primary_key=True)
+    lane: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, primary_key=True)
+
+    num_m_reads: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+
+    pool_design: Mapped["PoolDesign"] = relationship("PoolDesign", back_populates="flow_cell_design_links", lazy="select")
+    flow_cell_design: Mapped["FlowCellDesign"] = relationship("FlowCellDesign", back_populates="pool_design_links", lazy="select")
 
 
 class LibraryFeatureLink(Base):

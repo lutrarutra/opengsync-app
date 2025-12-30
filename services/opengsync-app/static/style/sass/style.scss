@@ -740,3 +740,10 @@ span.id-desc::after {
         transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
     }
 }
+
+.flow-cell-design-container {
+    padding: 10px 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}

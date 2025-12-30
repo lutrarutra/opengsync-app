@@ -25,6 +25,8 @@ from .LabPrep import LabPrep  # noqa: F401
 from .Event import Event  # noqa: F401
 from .Group import Group  # noqa: F401
 from .Kit import Kit  # noqa: F401
+from .FlowCellDesign import FlowCellDesign  # noqa: F401
+from .PoolDesign import PoolDesign  # noqa: F401
 from . import links  # noqa: F401
 from .SharePath import SharePath  # noqa: F401
 from .ShareToken import ShareToken  # noqa: F401
