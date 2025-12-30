@@ -710,8 +710,6 @@ span.id-desc::after {
     }
 }
 
-
-
 .input-with-unit {
     display: flex;
     input {
@@ -745,5 +743,28 @@ span.id-desc::after {
     padding: 10px 5px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
+
+    .pool-design-container {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        padding: 10px;
+        gap: 10px;
+        .pool-design {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 7px 10px;
+            border-radius: 5px;
+            border: 1px solid $gray-300;
+            gap: 10px;
+            div:last-child {
+                display: flex;
+                justify-content: flex-end;
+            }
+        }
+    }
 }

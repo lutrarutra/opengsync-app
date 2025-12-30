@@ -125,7 +125,7 @@ class DesignPoolFlowCellLink(Base):
 
     pool_design_id: Mapped[int] = mapped_column(sa.ForeignKey("pool_design.id"), primary_key=True)
     flow_cell_design_id: Mapped[int] = mapped_column(sa.ForeignKey("flow_cell_design.id"), primary_key=True)
-    lane: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, primary_key=True)
+    lane_num: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, primary_key=True)
 
     num_m_reads: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
 

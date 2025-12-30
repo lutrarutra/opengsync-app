@@ -1,4 +1,9 @@
+{% from 'components/spinner.jinja2' import spinner %}
+
 <div class="flow-cell-design-container">
+    <div hx-get="{{ url_for('design_htmx.create_flow_cell_design') }}" hx-trigger="load" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
     {% for design in designs %}
     <div class="accordion" id="flow-cell-design-{{ design.id }}">
         <div class="accordion-item">
@@ -6,15 +11,31 @@
                 <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#design-{{ design.id }}" aria-expanded="true" aria-controls="design-{{ design.id }}">
                     <div class="d-flex justify-content-between w-100 px-1">
                         <div><b>{{ design.name }}</b></div>
-                        <div>Planned: 0 / {{ design.workflow.flow_cell_type.max_m_reads }}M - Lanes: {{ design.workflow.flow_cell_type.num_lanes }} R1: {{ design.cycles_r1 }} R2: {{ design.cycles_r2 }}</div>
+                        <div>Planned: 0 / {{ design.workflow.flow_cell_type.max_m_reads }}M - Lanes: {{ design.workflow.flow_cell_type.num_lanes }} - R1: {{ design.cycles_r1 }} R2: {{ design.cycles_r2 }}</div>
                         <div><b>{{ design.workflow.display_name }}</b></div>
                     </div>
                 </button>
             </h2>
             <div id="design-{{ design.id }}" class="accordion-collapse collapse show" data-bs-parent="#flow-cell-design-{{ design.id }}">
-                <div class="accordion-body">
-                    <p>R1 Cycles: {{ design.cycles_r1 }}</p>
-                    <p>R2 Cycles: {{ design.cycles_r2 }}</p>
+                <div class="accordion-body pool-design-container">
+                    {% for pool_design in design.pool_designs %}
+                    <div class="pool-design">
+                        <div style="width: 30%;"><b>{{ pool_design.name }}</b></div>
+                        <div style="width: 30%;">Reads: {{ pool_design.num_m_planned_reads }}{% if pool_design.num_m_requested_reads %}M / {{ pool_design.num_m_requested_reads }}M{% endif %}</div>
+                        <div style="width: 40%;">
+                            <div class="btn-group">
+                                {% for lane_num in range(1, design.num_lanes + 1) %}
+                                <button type="button" class="btn {% if lane_num in pool_design.lanes %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                    {{ lane_num }}
+                                </button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div hx-get="{{ url_for('design_htmx.create_pool_design', flow_cell_design_id=design.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                        {{ spinner() }}
+                    </div>
                 </div>
             </div>
         </div>

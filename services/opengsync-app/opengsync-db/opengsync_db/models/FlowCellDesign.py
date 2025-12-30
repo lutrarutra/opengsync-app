@@ -29,8 +29,16 @@ class FlowCellDesign(Base):
     )
 
     @property
+    def pool_designs(self) -> list["PoolDesign"]:
+        return [link.pool_design for link in self.pool_design_links]
+
+    @property
     def workflow(self) -> ExperimentWorkFlowEnum:
         return ExperimentWorkFlow.get(self.workflow_id)
+    
+    @property
+    def num_lanes(self) -> int:
+        return self.workflow.flow_cell_type.num_lanes
     
     @workflow.setter
     def workflow(self, value: ExperimentWorkFlowEnum):

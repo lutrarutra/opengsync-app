@@ -1,0 +1,15 @@
+{% from 'components/form_group.jinja2' import form_group, select_input %}
+
+<div class="flow-cell-design d-flex justify-content-between w-100" id="flow-cell-design-form">
+    {{ form.csrf_token() }}
+    <div style="width: 30%;">{{ form_group(form.name) }}</div>
+    <div style="width: 15%;">{{ form_group(form.r1_cycles) }}</div>
+    <div style="width: 15%;">{{ form_group(form.r2_cycles) }}</div>
+    <div style="width: 30%;">{{ form_group(form.workflow_id) }}</div>
+    <div style="width: 10%; align-items: center; display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-success"
+        hx-post="{{ url_for('design_htmx.create_flow_cell_design') }}"
+        hx-include="#flow-cell-design-form"
+        hx-target="#flow-cell-design-form">Add</button>
+    </div>
+</div>

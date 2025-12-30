@@ -27,6 +27,20 @@ class PoolDesign(Base):
         cascade="all, delete-orphan",
     )
 
+    num_m_requested_reads: Mapped[float | None] = mapped_column(sa.Float, nullable=True, default=None)
+
+    @property
+    def lanes(self) -> list[int]:
+        return [link.lane_num for link in self.flow_cell_design_links]
+    
+    @property
+    def num_m_planned_reads(self) -> float:
+        total_reads = 0.0
+        for link in self.flow_cell_design_links:
+            if link.num_m_reads:
+                total_reads += link.num_m_reads
+        return total_reads
+
     __table_args__ = (
         sa.Index(
             "trgm_pool_design_name_idx",

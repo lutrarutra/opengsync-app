@@ -13,4 +13,3 @@ def design(current_user: models.User):
         raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
     
     return render_template("design_page.html")
-

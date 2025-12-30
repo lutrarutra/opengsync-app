@@ -133,7 +133,7 @@
     {{ 
         field(
             class="form-control " + input_class + (" is-invalid" if (field.errors) else ""), 
-            placeholder=(field.errors | first) if field.errors else "",
+            placeholder=(field.errors | first) if field.errors else field.label.text,
             value=field.data if field.data else "",
             id=field.name, autocomplete="off",
         )
