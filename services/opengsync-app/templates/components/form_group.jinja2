@@ -129,7 +129,7 @@
 
 
 {% macro form_cell(field, class='', input_class='', unit=none) %}
-<div class="{{ class }} form-group {% if unit != '' %}input-with-unit{% endif %}">
+<div class="{{ class }} form-group {% if unit %}input-with-unit{% endif %}">
     {{ 
         field(
             class="form-control " + input_class + (" is-invalid" if (field.errors) else ""), 

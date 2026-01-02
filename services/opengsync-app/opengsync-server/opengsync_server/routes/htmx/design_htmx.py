@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, url_for
 from flask_htmx import make_response
 
 from opengsync_db import models
@@ -46,3 +46,29 @@ def create_pool_design(current_user: models.User, flow_cell_design_id: int):
     return form.make_response()
     
 
+@wrappers.htmx_route(design_htmx, db=db, methods=["DELETE"])
+def delete_pool_design(current_user: models.User, pool_design_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+    
+    if (pool_design := db.session.get(models.PoolDesign, pool_design_id)) is None:
+        raise exceptions.NotFoundException("Pool Design not found")
+    
+    db.session.delete(pool_design)
+    db.flush()
+    
+    return make_response(redirect=url_for("design_page.design"))
+
+
+@wrappers.htmx_route(design_htmx, db=db, methods=["DELETE"])
+def delete_flow_cell_design(current_user: models.User, flow_cell_design_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+    
+    if (flow_cell_design := db.session.get(models.FlowCellDesign, flow_cell_design_id)) is None:
+        raise exceptions.NotFoundException("Flow Cell Design not found")
+    
+    db.session.delete(flow_cell_design)
+    db.flush()
+    
+    return make_response(redirect=url_for("design_page.design"))

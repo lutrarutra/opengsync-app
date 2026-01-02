@@ -29,8 +29,37 @@ class FlowCellDesign(Base):
     )
 
     @property
+    def num_m_reads_planned(self) -> float:
+        if "pool_design_links" in orm.attributes.instance_state(self).unloaded:
+            total = 0.0
+            for link in self.pool_design_links:
+                if link.pool_design.num_m_requested_reads is not None:
+                    total += link.pool_design.num_m_requested_reads
+            return total
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("FlowCellDesign instance is not bound to a session.")
+        
+        return session.query(sa.func.coalesce(sa.func.sum(links.DesignPoolFlowCellLink.pool_design.has().num_m_requested_reads), 0.0)).filter(
+            links.DesignPoolFlowCellLink.flow_cell_design_id == self.id
+        ).scalar()
+
+    @property
     def pool_designs(self) -> list["PoolDesign"]:
-        return [link.pool_design for link in self.pool_design_links]
+        if "pool_design_links" in orm.attributes.instance_state(self).unloaded:
+            return [link.pool_design for link in self.pool_design_links]
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("FlowCellDesign instance is not bound to a session.")
+        
+        from .PoolDesign import PoolDesign
+        
+        return session.query(PoolDesign).filter(
+            sa.exists().where(
+                (links.DesignPoolFlowCellLink.flow_cell_design_id == self.id) &
+                (links.DesignPoolFlowCellLink.pool_design_id == PoolDesign.id)
+            )
+        ).all()
 
     @property
     def workflow(self) -> ExperimentWorkFlowEnum:

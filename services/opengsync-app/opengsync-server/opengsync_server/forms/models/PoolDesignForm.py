@@ -13,7 +13,7 @@ from ..HTMXFlaskForm import HTMXFlaskForm
 class PoolDesignForm(HTMXFlaskForm):
     _template_path = "forms/pool_design.html"
 
-    name = StringField("Name", validators=[DataRequired(), Length(min=1, max=models.PoolDesign.name.type.length)], description="Name of the pool design.")
+    pool_design_name = StringField("Name", validators=[DataRequired(), Length(min=1, max=models.PoolDesign.name.type.length)], description="Name of the pool design.")
     num_requested_reads_millions = FloatField("Number of Requested Reads (Millions)", validators=[DataRequired()], description="Number of requested reads in millions for the pool design.")
 
     def __init__(
@@ -43,7 +43,7 @@ class PoolDesignForm(HTMXFlaskForm):
         if self.pool_design is None:
             raise exceptions.InternalServerErrorException("Pool design must be set when editing an existing pool design.")
 
-        self.pool_design.name = self.name.data  # type: ignore
+        self.pool_design.name = self.pool_design_name.data  # type: ignore
         self.pool_design.num_requested_reads_millions = self.num_requested_reads_millions.data  # type: ignore
 
         db.session.add(self.pool_design)
@@ -53,7 +53,7 @@ class PoolDesignForm(HTMXFlaskForm):
 
     def __create_new_pool_design(self) -> Response:
         new_pool_design = models.PoolDesign(
-            name=self.name.data,  # type: ignore
+            name=self.pool_design_name.data,  # type: ignore
             num_m_requested_reads=self.num_requested_reads_millions.data,  # type: ignore
         )
         self.flow_cell_design.pool_design_links.append(

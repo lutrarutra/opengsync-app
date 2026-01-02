@@ -31,15 +31,50 @@ class PoolDesign(Base):
 
     @property
     def lanes(self) -> list[int]:
-        return [link.lane_num for link in self.flow_cell_design_links]
+        if "flow_cell_design_links" in orm.attributes.instance_state(self).unloaded:
+            return [link.lane_num for link in self.flow_cell_design_links]
+
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("PoolDesign instance is not bound to a session.")
+        
+        return session.query(links.DesignPoolFlowCellLink.lane_num).filter(
+            links.DesignPoolFlowCellLink.pool_design_id == self.id
+        ).all()[0]  # type: ignore
     
     @property
     def num_m_planned_reads(self) -> float:
-        total_reads = 0.0
-        for link in self.flow_cell_design_links:
-            if link.num_m_reads:
-                total_reads += link.num_m_reads
-        return total_reads
+        if "flow_cell_design_links" in orm.attributes.instance_state(self).unloaded:
+            total_reads = 0.0
+            for link in self.flow_cell_design_links:
+                if link.num_m_reads:
+                    total_reads += link.num_m_reads        
+            return total_reads
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("PoolDesign instance is not bound to a session.")
+        
+        return session.query(sa.func.coalesce(sa.func.sum(links.DesignPoolFlowCellLink.num_m_reads), 0.0)).filter(
+            links.DesignPoolFlowCellLink.pool_design_id == self.id
+        ).scalar()
+    
+    @property
+    def flow_cell_design(self) -> "FlowCellDesign | None":
+        if "flow_cell_design_links" in orm.attributes.instance_state(self).unloaded:
+            if not self.flow_cell_design_links:
+                return None
+            return self.flow_cell_design_links[0].flow_cell_design
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("PoolDesign instance is not bound to a session.")
+        
+        from .FlowCellDesign import FlowCellDesign
+
+        return session.query(FlowCellDesign).join(
+            links.DesignPoolFlowCellLink,
+            links.DesignPoolFlowCellLink.flow_cell_design_id == FlowCellDesign.id,
+        ).filter(
+            links.DesignPoolFlowCellLink.pool_design_id == self.id
+        ).first()
 
     __table_args__ = (
         sa.Index(

@@ -3,10 +3,11 @@
 
 <div class="pool-design" id="design-{{ flow_cell_design.id }}-create-pool-design-form">
     {{ form.csrf_token() }}
-    <div style="width: 45%;">{{ form_cell(form.name) }}</div>
+    <div style="width: 45%;">{{ form_cell(form.pool_design_name) }}</div>
     <div style="width: 45%;">{{ form_cell(form.num_requested_reads_millions, unit="M") }}</div>
     <div style="width: 10%;"><button type="button" class="btn btn-success"
     hx-post="{{ url_for('design_htmx.create_pool_design', flow_cell_design_id=flow_cell_design.id) }}"
     hx-include="#design-{{ flow_cell_design.id }}-create-pool-design-form"
-    hx-target="#design-{{ flow_cell_design.id }}-create-pool-design-form">Add</button></div>
+    hx-target="#design-{{ flow_cell_design.id }}-create-pool-design-form"
+    hx-swap="outerHTML">Add</button></div>
 </div>

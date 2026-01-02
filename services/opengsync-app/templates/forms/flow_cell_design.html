@@ -10,6 +10,7 @@
         <button type="button" class="btn btn-success"
         hx-post="{{ url_for('design_htmx.create_flow_cell_design') }}"
         hx-include="#flow-cell-design-form"
-        hx-target="#flow-cell-design-form">Add</button>
+        hx-target="#flow-cell-design-form"
+        hx-swap="outerHTML">Add</button>
     </div>
 </div>
