@@ -43,7 +43,7 @@
                         denyButtonText: 'No'
                     })
                     if result.isConfirmed issueRequest()"
-                    {% if (file.type == MediaFileType.SEQ_AUTH_FORM and seq_request.status != SeqRequestStatus.DRAFT) or current_user.is_admin() %}disabled{% endif %}>
+                    {% if (file.type == MediaFileType.SEQ_AUTH_FORM and seq_request.status != SeqRequestStatus.DRAFT) and not current_user.is_insider() %}disabled{% endif %}>
                         Delete
                     </button>
                     
