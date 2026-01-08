@@ -13,17 +13,17 @@ class ExperimentWorkFlowEnum(DBEnum):
 
 
 class ExperimentWorkFlow(ExtendedEnum[ExperimentWorkFlowEnum], enum_type=ExperimentWorkFlowEnum):
-    NOVASEQ_6K_SP_STD = ExperimentWorkFlowEnum(1, "NovaSeq SP Standard", 120, FlowCellType.NOVSASEQ_6K_SP, True)
-    NOVASEQ_6K_SP_XP = ExperimentWorkFlowEnum(2, "NovaSeq SP XP", 30, FlowCellType.NOVSASEQ_6K_SP)
+    NOVASEQ_6K_SP_STD = ExperimentWorkFlowEnum(1, "NovaSeq SP Standard", 120, FlowCellType.NOVASEQ_6K_SP, True)
+    NOVASEQ_6K_SP_XP = ExperimentWorkFlowEnum(2, "NovaSeq SP XP", 30, FlowCellType.NOVASEQ_6K_SP)
     
-    NOVASEQ_6K_S1_STD = ExperimentWorkFlowEnum(3, "NovaSeq S1 Standard", 120, FlowCellType.NOVSASEQ_6K_S1, True)
-    NOVASEQ_6K_S1_XP = ExperimentWorkFlowEnum(4, "NovaSeq S1 XP", 30, FlowCellType.NOVSASEQ_6K_S1)
+    NOVASEQ_6K_S1_STD = ExperimentWorkFlowEnum(3, "NovaSeq S1 Standard", 120, FlowCellType.NOVASEQ_6K_S1, True)
+    NOVASEQ_6K_S1_XP = ExperimentWorkFlowEnum(4, "NovaSeq S1 XP", 30, FlowCellType.NOVASEQ_6K_S1)
 
-    NOVASEQ_6K_S2_STD = ExperimentWorkFlowEnum(5, "NovaSeq S2 Standard", 170, FlowCellType.NOVSASEQ_6K_S2, True)
-    NOVASEQ_6K_S2_XP = ExperimentWorkFlowEnum(6, "NovaSeq S2 XP", 30, FlowCellType.NOVSASEQ_6K_S2)
+    NOVASEQ_6K_S2_STD = ExperimentWorkFlowEnum(5, "NovaSeq S2 Standard", 170, FlowCellType.NOVASEQ_6K_S2, True)
+    NOVASEQ_6K_S2_XP = ExperimentWorkFlowEnum(6, "NovaSeq S2 XP", 30, FlowCellType.NOVASEQ_6K_S2)
 
-    NOVASEQ_6K_S4_STD = ExperimentWorkFlowEnum(7, "NovaSeq S4 Standard", 320, FlowCellType.NOVSASEQ_6K_S4, True)
-    NOVASEQ_6K_S4_XP = ExperimentWorkFlowEnum(8, "NovaSeq S4 XP", 50, FlowCellType.NOVSASEQ_6K_S4)
+    NOVASEQ_6K_S4_STD = ExperimentWorkFlowEnum(7, "NovaSeq S4 Standard", 320, FlowCellType.NOVASEQ_6K_S4, True)
+    NOVASEQ_6K_S4_XP = ExperimentWorkFlowEnum(8, "NovaSeq S4 XP", 50, FlowCellType.NOVASEQ_6K_S4)
 
     MISEQ_v3 = ExperimentWorkFlowEnum(10, "MiSeq v3", 20, FlowCellType.MISEQ_V3, True)
     MISEQ_v2 = ExperimentWorkFlowEnum(11, "MiSeq v2", 21, FlowCellType.MISEQ_V2, True)

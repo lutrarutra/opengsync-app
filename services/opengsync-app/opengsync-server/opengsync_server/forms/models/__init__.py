@@ -15,3 +15,6 @@ from .KitForm import KitForm # noqa
 from .ProtocolForm import ProtocolForm  # noqa
 from .APIToken import APITokenForm  # noqa
 from .UserForm import UserForm  # noqa
+from .PoolDesignForm import PoolDesignForm  # noqa
+from .FlowCellDesignForm import FlowCellDesignForm  # noqa
+from .TODOCommentForm import TODOCommentForm  # noqa

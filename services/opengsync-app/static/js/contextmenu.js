@@ -80,6 +80,10 @@ function copy_text(text) {
 
 function init_context_menu_callbacks() {
     $(document).off("contextmenu", ".cm-callback").on("contextmenu", ".cm-callback", function(e) {
+        // if shift is held down, do not show context menu
+        if (e.shiftKey) {
+            return;
+        }
         e.preventDefault();
         
         const $element = $(this);
@@ -122,6 +126,8 @@ function hx_request(url, title, text, icon, swap, target, confirm, type) {
         });
     }
 
+    console.log(confirm);
+
     if (confirm) {
         Swal.fire({
             title: title,
@@ -155,25 +161,26 @@ function handleContextMenuAction(action, $contextElement) {
             const config = action.config;
             hx_request(
                 config.url,
-                config.title,
+                config.title || "",
                 config.text || "Do you want to continue?",
                 config.icon || "question",
                 config.swap || "outerHTML",
                 config.target,
-                config.confirm || true,
+                config.confirm ?? true,
                 "DELETE"
             );
         },
         hxpost: (action) => {
             const config = action.config;
+            console.log(config);
             hx_request(
                 config.url,
-                config.title,
+                config.title || "",
                 config.text || "Do you want to continue?",
                 config.icon || "question",
                 config.swap || "outerHTML",
                 config.target,
-                config.confirm || true,
+                config.confirm ?? true,
                 "POST"
             );
         },
@@ -181,12 +188,12 @@ function handleContextMenuAction(action, $contextElement) {
             const config = action.config;
             hx_request(
                 config.url,
-                config.title,
+                config.title || "",
                 config.text || "Do you want to continue?",
                 config.icon || "question",
                 config.swap || "outerHTML",
                 config.target,
-                config.confirm || true,
+                config.confirm ?? true,
                 "GET"
             );
         }

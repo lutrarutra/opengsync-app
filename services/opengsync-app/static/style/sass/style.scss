@@ -16,6 +16,7 @@
 @import "form.scss";
 @import "browser.scss";
 @import "components.scss";
+@import "design.scss";
 
 body.waiting,
 body.waiting * {
@@ -709,8 +710,6 @@ span.id-desc::after {
         }
     }
 }
-
-
 
 .input-with-unit {
     display: flex;

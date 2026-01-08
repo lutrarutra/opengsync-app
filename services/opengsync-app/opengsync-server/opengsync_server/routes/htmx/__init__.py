@@ -21,3 +21,4 @@ from .kits_htmx import kits_htmx   # noqa: F401
 from .share_tokens_htmx import share_tokens_htmx   # noqa: F401
 from .protocols_htmx import protocols_htmx   # noqa: F401
 from .api_tokens_htmx import api_tokens_htmx   # noqa: F401
+from .design_htmx import design_htmx   # noqa: F401

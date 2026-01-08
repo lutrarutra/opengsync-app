@@ -72,6 +72,9 @@
             </div>
             {% if current_user.is_authenticated and current_user.is_insider() %}
             <div class="nav-item">
+                <a class="nav-link {{'active' if active_page == 'design-page' else ''}}" href="{{ url_for('design_page.design') }}">Design</a>
+            </div>
+            <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'lab_preps-page' else ''}}" href="{{ url_for('lab_preps_page.lab_preps') }}">Preps</a>
             </div>
             <div class="nav-item">

@@ -1,0 +1,202 @@
+{% from 'components/spinner.jinja2' import spinner %}
+{% from 'components/tooltip.jinja2' import tooltip %}
+{% from 'components/button.jinja2' import confirm_action_button %}
+{% from "components/design/flow_cell_type_cm.jinja2" import flow_cell_type_cm with context %}
+{% from 'components/design/comment-list.jinja2' import comment_list with context %}
+
+<div class="flow-cell-design-container" id="flow-cell-design-list">
+    <em class="text-muted">
+        Unassigned Pools
+        <a type="button" hx-get="{{ url_for('design_htmx.create_pool_design') }}" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content">
+            <i class="bi bi-plus-circle" {{ tooltip('New Pool') }}></i>
+        </a>
+    </em>
+    <div class="orphan-pool-design-container">
+        <div hx-get="{{ url_for('design_htmx.render_pool_designs') }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            {{ spinner() }}
+        </div>
+    </div>
+
+    <div class="pool-design-container d-flex justify-content-center align-items-center" style="min-height: 80px;" data-flow-cell-design-id="-1">
+        <em style="display: none;" class="hidden-label">Drag Pool here to create a new Flow Cell Design</em>
+    </div>
+
+    <em class="text-muted">Flow Cell Designs</em>
+
+    {% for design in designs %}
+    <div class="accordion" id="flow-cell-design-{{ design.id }}">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button cm-callback" type="button" data-bs-toggle="collapse" data-bs-target="#design-{{ design.id }}" aria-expanded="true" aria-controls="design-{{ design.id }}">
+                    <div class="d-flex justify-content-between align-items-center w-100 px-1">
+                        <div style="width: 30%;">
+                            <b>{{ design.name }}</b>
+                            {{
+                                confirm_action_button(
+                                    text='<i class="bi bi-trash"></i>',
+                                    title='Delete Flow Cell Design Permanently',
+                                    url=url_for('design_htmx.delete_flow_cell_design', flow_cell_design_id=design.id),
+                                    container="a",
+                                    class="",
+                                    method="hx-delete",
+                                    tooltip='Delete Design'
+                                )
+                            }}
+                        </div>
+                        <div style="width: 40%;">
+                            <div class="progress-bar-container cm-callback" {{ flow_cell_type_cm(design) }}>
+                                {% set m_reads_planned = design.num_m_reads %}
+                                {% set flow_cell = design.flow_cell_type %}
+                                {% set reads_used_pct = (m_reads_planned / flow_cell.max_m_reads) * 100 if m_reads_planned else 0 %}
+                                <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 20px;">
+                                    <div class="progress-title">
+                                        <b>{{ m_reads_planned | int }} / {{ flow_cell.max_m_reads }} M.</b> ({{ "%0.1f" % reads_used_pct }}% {{ flow_cell.display_name }})
+                                    </div>
+                                    <div class="progress-bar progress-bar-striped text-dark {% if reads_used_pct <= 100 %}bg-cemm-blue{% else %}bg-cemm-red{% endif %}" style="width: {{ reads_used_pct }}%;">
+                                    </div>  
+                                </div>
+                            </div>
+                        </div>
+                        <div style="width: 30%; display: flex; justify-content: flex-end; align-items: center;"><b>{{ design.flow_cell_cycles_requirements() }}</b></div>
+                    </div>
+                </button>
+            </h2>
+            <div id="design-{{ design.id }}" class="accordion-collapse collapse show" data-bs-parent="#flow-cell-design-{{ design.id }}">
+                <div class="accordion-body pool-designs-accordion-body">
+                    <div class="flow-cell-comment-container">
+                        <a href="#" hx-trigger="click once" hx-get="{{ url_for('design_htmx.comment_form', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
+                        <em class="text-muted">Flow Cell Notes:</em>
+                        <hr>
+                        {{ comment_list(design.comments) }}
+                    </div>
+                    <div class="pool-design-container" data-flow-cell-design-id="{{ design.id }}">
+                        <div hx-get="{{ url_for('design_htmx.render_pool_designs', flow_cell_design_id=design.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                            {{ spinner() }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<script>
+    function dragMoveListener(event) {
+        const target = event.target;
+        const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+        const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+        
+        // Use translate3d for hardware acceleration (smoother scrolling)
+        target.style.transform = 'translate3d(' + x + 'px, ' + y + 'px, 0)';
+        
+        target.setAttribute('data-x', x);
+        target.setAttribute('data-y', y);
+    }
+
+    function resetDraggable(el) {
+        el.style.transform = '';
+        el.removeAttribute('data-x');
+        el.removeAttribute('data-y');
+        el.style.zIndex = '';
+        el.style.position = '';
+        el.style.left = '';
+        el.style.top = '';
+        el.style.width = '';
+        el.style.margin = '';
+        el.dropSuccessful = false;
+    }
+
+    $(function() {
+        interact('.pool-design').draggable({
+            autoScroll: true,
+            listeners: {
+                start(event) {
+                    const el = event.target;
+                    el.style.position = 'relative';
+                    el.style.zIndex = 1000;
+                },
+                move: dragMoveListener,
+                end(event) {
+                    const el = event.target;
+                    if (!el.dropSuccessful) {
+                        resetDraggable(el);
+                    }
+                }
+            }
+        }).styleCursor(false);
+
+        interact('.pool-design-container').dropzone({
+            accept: '.pool-design',
+            overlap: 'pointer', 
+            ondropactivate(event) {
+                event.target.classList.add('drop-active');
+            },
+            ondragenter(event) {
+                event.target.classList.add('drop-target');
+                event.relatedTarget.classList.add('can-drop');
+            },
+            ondragleave(event) {
+                event.target.classList.remove('drop-target');
+                event.relatedTarget.classList.remove('can-drop');
+            },
+            ondrop(event) {
+                const dragged = event.relatedTarget;
+                const dropzone = event.target;
+                
+                dragged.dropSuccessful = true;
+
+                // Move in DOM *before* resetting styles
+                const siblings = Array.from(dropzone.querySelectorAll('.pool-design')).filter(el => el !== dragged);
+                const containerRect = dropzone.getBoundingClientRect();
+                const yInContainer = event.dragEvent.clientY - containerRect.top + dropzone.scrollTop;
+                
+                let insertBefore = null;
+                let cum = 0;
+
+                for (const sib of siblings) {
+                    const h = sib.getBoundingClientRect().height;
+                    if (yInContainer < cum + h / 2) {
+                        insertBefore = sib;
+                        break;
+                    }
+                    cum += h;
+                }
+
+                if (insertBefore) {
+                    dropzone.insertBefore(dragged, insertBefore);
+                } else {
+                    dropzone.appendChild(dragged);
+                }
+
+                resetDraggable(dragged);
+
+                const pool_design_id = parseInt(dragged.getAttribute('data-pool-design-id'));
+                const flow_cell_design_id = parseInt(dropzone.getAttribute('data-flow-cell-design-id'));
+                const original_flow_cell_design_id = parseInt(dragged.getAttribute('data-original-flow-cell-design-id'));
+
+                if (flow_cell_design_id == -1) {
+                    htmx.ajax("POST", "{{ url_for('design_htmx.create_flow_cell_design') }}", {
+                        target: "#flow-cell-design-list",
+                        swap: "outerHTML",
+                        values: {
+                            pool_design_id: pool_design_id,
+                        }
+                    });
+                } else if (original_flow_cell_design_id !== flow_cell_design_id) {
+                    htmx.ajax("POST", "{{ url_for('design_htmx.move_pool_design') }}", {
+                        target: "#flow-cell-design-list",
+                        swap: "outerHTML",
+                        values: {
+                            pool_design_id: pool_design_id,
+                            new_flow_cell_design_id: flow_cell_design_id
+                        }
+                    });
+                }
+            },
+            ondropdeactivate(event) {
+                event.target.classList.remove('drop-active');
+                event.target.classList.remove('drop-target');
+            }
+        });
+    });
+</script>

@@ -1,6 +1,6 @@
-{% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/tooltip.jinja2" import tooltip as tooltip_func %}
 
-{% macro confirm_action_button(text, title, url, class="btn btn-primary", container="button", method="hx-get", body="Do you want to proceed?", icon="warning", disabled=false) %}
+{% macro confirm_action_button(text, title, url, class="btn btn-primary", container="button", method="hx-get", body="Do you want to proceed?", icon="warning", disabled=false, tooltip=none, tooltip_category="primary", tooltip_position="top") %}
 <{{ container }} type="button" class="{{ class }}"
     {% if not disabled %}
     {{ method }}="{{ url }}"
@@ -15,7 +15,7 @@
             denyButtonText: "No"
         })
         if result.isConfirmed issueRequest()'
-    {% else %}disabled{%endif%}>{{ text }}</{{ container }}>
+    {% else %}disabled{%endif%} {% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>{{ text }}</{{ container }}>
 {% endmacro %}
 
 {% macro xl_modal_button(text, container="button", class="btn btn-primary", disabled=false, hx_get=none, hx_post=none, hx_delete=none, tooltip=none, tooltip_category="primary", tooltip_position="top") %}
@@ -29,7 +29,7 @@ hx-post="{{ hx_post }}"
 hx-delete="{{ hx_delete }}"
 {% endif %}
 {% if disabled %}disabled{% endif %}
-{% if tooltip %}{{ tooltip(tooltip, tooltip_position, tooltip_category) }}{% endif %}>
+{% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>
     {{ text }}
 </{{ container }}>
 {% endmacro %}
@@ -45,7 +45,7 @@ hx-post="{{ hx_post }}"
 hx-delete="{{ hx_delete }}"
 {% endif %}
 {% if disabled %}disabled{% endif %}
-{% if tooltip %}{{ tooltip(tooltip, tooltip_position, tooltip_category) }}{% endif %}>
+{% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>
     {{ text }}
 </{{ container }}>
 {% endmacro %}

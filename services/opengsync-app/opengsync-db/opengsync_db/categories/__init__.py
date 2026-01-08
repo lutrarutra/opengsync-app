@@ -34,3 +34,4 @@ from .ProjectStatus import ProjectStatus, ProjectStatusEnum  # noqa: F401
 from .MUXType import MUXType, MUXTypeEnum  # noqa: F401
 from .DataPathType import DataPathType, DataPathTypeEnum  # noqa: F401
 from .BarcodeOrientation import BarcodeOrientation, BarcodeOrientationEnum  # noqa: F401
+from .TaskStatus import TaskStatus, TaskStatusEnum  # noqa: F401

@@ -7,18 +7,20 @@ from sqlalchemy.ext.mutable import MutableDict
 
 from .Base import Base
 
-from opengsync_db.categories import DeliveryStatus, DeliveryStatusEnum, AffiliationType, AffiliationTypeEnum
+from opengsync_db.categories import AffiliationType, AffiliationTypeEnum, DeliveryStatus, DeliveryStatusEnum
 
 if TYPE_CHECKING:
     from .Sample import Sample
     from .Library import Library
-    from .SeqRequest import SeqRequest
     from .Plate import Plate
     from .Group import Group
     from .User import User
     from .Pool import Pool
     from .Lane import Lane
     from . import PoolDilution
+    from .SeqRequest import SeqRequest
+    from .PoolDesign import PoolDesign
+    from .FlowCellDesign import FlowCellDesign
 
 class ProjectAssigneeLink(Base):
     __tablename__ = "project_assignee_link"

@@ -9,7 +9,7 @@ from sqlalchemy import exc
 PAGE_LIMIT = 15
 if (__timezone := os.environ.get("TIMEZONE")) is None:
     import tzlocal
-    __timezone = tzlocal.get_localzone_name()
+    __timezone = tzlocal.get_localzone_name() or "UTC"
 TIMEZONE: pytz.BaseTzInfo = pytz.timezone(__timezone)
 
 

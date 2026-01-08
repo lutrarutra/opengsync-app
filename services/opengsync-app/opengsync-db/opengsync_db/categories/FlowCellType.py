@@ -16,10 +16,10 @@ class FlowCellTypeEnum(DBEnum):
 
 # https://emea.illumina.com/systems/sequencing-platforms/novaseq/specifications.html
 class FlowCellType(ExtendedEnum[FlowCellTypeEnum], enum_type=FlowCellTypeEnum):
-    NOVSASEQ_6K_SP = FlowCellTypeEnum(1, "NovaSeq 6000 SP", "Illumina", 2, 325)
-    NOVSASEQ_6K_S1 = FlowCellTypeEnum(2, "NovaSeq 6000 S1", "Illumina", 2, 650)
-    NOVSASEQ_6K_S2 = FlowCellTypeEnum(3, "NovaSeq 6000 S2", "Illumina", 2, 1650)
-    NOVSASEQ_6K_S4 = FlowCellTypeEnum(4, "NovaSeq 6000 S4", "Illumina", 4, 2000)
+    NOVASEQ_6K_SP = FlowCellTypeEnum(1, "NovaSeq 6000 SP", "Illumina", 2, 325)
+    NOVASEQ_6K_S1 = FlowCellTypeEnum(2, "NovaSeq 6000 S1", "Illumina", 2, 650)
+    NOVASEQ_6K_S2 = FlowCellTypeEnum(3, "NovaSeq 6000 S2", "Illumina", 2, 1650)
+    NOVASEQ_6K_S4 = FlowCellTypeEnum(4, "NovaSeq 6000 S4", "Illumina", 4, 2000)
 
     MISEQ_V3 = FlowCellTypeEnum(10, "MiSeq v3", "Illumina", 1, 22)
     MISEQ_V2 = FlowCellTypeEnum(11, "MiSeq v2", "Illumina", 1, 12)

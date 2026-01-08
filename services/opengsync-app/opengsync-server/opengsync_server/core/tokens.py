@@ -21,7 +21,7 @@ def generate_registration_token(email: str, serializer: URLSafeTimedSerializer, 
 
 def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) -> tuple[str, cats.UserRoleEnum] | None:
     try:
-        data = serializer.loads(token, max_age=3600)
+        data = serializer.loads(token, max_age=24 * 3600)
         email = data["email"]
         role = cats.UserRole.get(data.get("role", cats.UserRole.CLIENT.id))
     except SignatureExpired:
@@ -33,7 +33,7 @@ def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) ->
 
 def verify_reset_token(token: str, serializer: URLSafeTimedSerializer) -> tuple[int, str, str] | None:
     try:
-        data = serializer.loads(token, max_age=3600)
+        data = serializer.loads(token, max_age=24 * 3600)
         id = data["id"]
         email = data["email"]
         hash = data["hash"]

@@ -107,7 +107,7 @@ class CommonBarcodeInputForm(MultiStepForm):
                     prep_table["index_well"] = prep_table["index_well"].apply(lambda x: x if pd.isna(x) else str(x).strip())
                     prep_table["name_i7"] = prep_table["name_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip())
                     prep_table["name_i5"] = prep_table["name_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip())
-
+                    logger.debug(prep_table)
                     for idx, row in library_table[library_table["sequence_i7"].isna()].iterrows():
                         library_table.at[idx, "kit_i7"] = next(iter(prep_table[  # type: ignore
                             (prep_table["library_id"] == row["library_id"])
@@ -124,6 +124,7 @@ class CommonBarcodeInputForm(MultiStepForm):
                         library_table.at[idx, "name_i5"] = next(iter(prep_table[  # type: ignore
                             (prep_table["library_id"] == row["library_id"])
                         ]["name_i5"].values.tolist()), None)
+                    logger.debug(library_table)
                         
             self.library_table = library_table
         else:
