@@ -75,7 +75,7 @@ def previous(current_user: models.User, uuid: str):
 def begin(current_user: models.User) -> Response:
     context = get_context(current_user, request.args)
         
-    if isinstance(lab_prep := context.get("lab_prep"), models.LabPrep):
+    if isinstance(lab_prep := context.get("lab_prep"), models.LabPrep):            
         form = SelectSamplesForm(
             "reindex", context=context,
             select_libraries=True,

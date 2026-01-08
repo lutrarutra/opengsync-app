@@ -296,6 +296,8 @@ class App(Flask):
                 DataPathType=categories.DataPathType,
                 ExperimentWorkFlow=categories.ExperimentWorkFlow,
                 DeliveryStatus=categories.DeliveryStatus,
+                TaskStatus=categories.TaskStatus,
+                FlowCellType=categories.FlowCellType,
                 SpreadSheetErrors=[
                     ssc.InvalidCellValue(""),
                     ssc.MissingCellValue(""),

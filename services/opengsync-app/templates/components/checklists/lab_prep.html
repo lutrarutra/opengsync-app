@@ -129,15 +129,18 @@
         </h2>
         <div id="sops-accordiod-collapse-6" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
             <div class="accordion-body">
-                <b>Steps:</b>
+                <select class="form-select" style="width: 250px;" id="checklist_id">
+                    {% for checklist in LabChecklistType.as_list() %}
+                    <option value="{{ checklist.id }}" {% if lab_prep.checklist_type.id == checklist.id %}selected{% endif %}>{{ checklist.name }}</option>
+                    {% endfor %}
+                </select>
+                <b class="pt-2">Steps:</b>
                 <ol>
                     <li>
                         Download 
-                        <a class="btn btn-primary" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='rows') }}"
-                        {% if lab_prep.libraries | length == 0 %}onclick="confirmation(event)"{% endif %}>Rows</a>
+                        <a class="btn btn-primary" onclick="download_template()" data-url="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='rows') }}">Rows</a>
                         or
-                        <a class="btn btn-primary" href="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='columns') }}"
-                        {% if lab_prep.libraries | length == 0 %}onclick="confirmation(event)"{% endif %}>Columns</a>
+                        <a class="btn btn-primary" onclick="download_template()" data-url="{{ url_for('lab_preps_htmx.download_template', lab_prep_id=lab_prep.id, direction='columns') }}">Columns</a>
                     </li>
                     <li>
                         Fill the template as required and <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
@@ -360,3 +363,10 @@
         </div> 
     </div>
 </div>
+<script>
+    function download_template() {
+        const url = event.target.getAttribute('data-url');
+        const checklist_type_id = parseInt($("#checklist_id").val());
+        window.location.href = url + "?checklist_id=" + checklist_type_id;
+    }
+</script>

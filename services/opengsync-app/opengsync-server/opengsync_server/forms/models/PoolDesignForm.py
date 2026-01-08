@@ -1,6 +1,6 @@
 from flask import Response, flash, url_for
 from flask_htmx import make_response
-from wtforms import StringField, FloatField
+from wtforms import StringField, FloatField, IntegerField
 from wtforms.validators import DataRequired, Length
 
 from opengsync_db import models
@@ -14,30 +14,26 @@ class PoolDesignForm(HTMXFlaskForm):
     _template_path = "forms/pool_design.html"
 
     pool_design_name = StringField("Name", validators=[DataRequired(), Length(min=1, max=models.PoolDesign.name.type.length)], description="Name of the pool design.")
+    r1_cycles = IntegerField("R1 Cycles", validators=[DataRequired()])
+    i1_cycles = IntegerField("I1 Cycles", validators=[DataRequired()])
+    i2_cycles = IntegerField("I2 Cycles", validators=[DataRequired()])
+    r2_cycles = IntegerField("R2 Cycles", validators=[DataRequired()])
     num_requested_reads_millions = FloatField("Number of Requested Reads (Millions)", validators=[DataRequired()], description="Number of requested reads in millions for the pool design.")
 
     def __init__(
         self,
-        flow_cell_design: models.FlowCellDesign,
         pool_design: models.PoolDesign | None,
         formdata: dict | None = None,
     ):
         super().__init__(formdata=formdata)
         self.pool_design = pool_design
-        self.flow_cell_design = flow_cell_design
         self._context["pool_design"] = pool_design
-        self._context["flow_cell_design"] = flow_cell_design
-
-    def prepare(self) -> None:
-        if self.pool_design is None:
-            return
         
     def validate(self) -> bool:
         if not super().validate():
             return False
         
         return True
-    
 
     def __edit_existing_pool_design(self) -> Response:
         if self.pool_design is None:
@@ -45,6 +41,10 @@ class PoolDesignForm(HTMXFlaskForm):
 
         self.pool_design.name = self.pool_design_name.data  # type: ignore
         self.pool_design.num_requested_reads_millions = self.num_requested_reads_millions.data  # type: ignore
+        self.pool_design.cycles_r1 = self.r1_cycles.data  # type: ignore
+        self.pool_design.cycles_i1 = self.i1_cycles.data  # type: ignore
+        self.pool_design.cycles_r2 = self.r2_cycles.data  # type: ignore
+        self.pool_design.cycles_i2 = self.i2_cycles.data  # type: ignore
 
         db.session.add(self.pool_design)
         db.flush()
@@ -55,16 +55,13 @@ class PoolDesignForm(HTMXFlaskForm):
         new_pool_design = models.PoolDesign(
             name=self.pool_design_name.data,  # type: ignore
             num_m_requested_reads=self.num_requested_reads_millions.data,  # type: ignore
-        )
-        self.flow_cell_design.pool_design_links.append(
-            models.links.DesignPoolFlowCellLink(
-                flow_cell_design=self.flow_cell_design,
-                pool_design=new_pool_design,
-                lane_num=1
-            )
+            cycles_r1=self.r1_cycles.data,  # type: ignore
+            cycles_i1=self.i1_cycles.data,  # type: ignore
+            cycles_r2=self.r2_cycles.data,  # type: ignore
+            cycles_i2=self.i2_cycles.data,  # type: ignore
         )
 
-        db.session.add(self.flow_cell_design)
+        db.session.add(new_pool_design)
         db.flush()
         flash("Design Created!", "success")
         return make_response(redirect=url_for("design_page.design"))

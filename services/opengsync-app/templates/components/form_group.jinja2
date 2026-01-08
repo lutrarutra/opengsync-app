@@ -69,13 +69,15 @@
 </div>
 {%- endmacro %}
 
-{% macro select_input(field, class='', disabled=false) -%}
+{% macro select_input(field, class='', disabled=false, hide_label=false) -%}
 <div class="{{class}} form-group">
+    {% if not hide_label %}
     <a {% if field.description %}
     {{ tooltip(field.description, "top") }}
     {% endif %}>
         {{ field.label }}
     </a>
+    {% endif %}
     <div class="select-container">
         <select class="form-control select-field {% if field.errors %}is-invalid{% endif %} {{ 'disabled' if disabled else '' }}" 
         {% if disabled %}disabled{% endif %}

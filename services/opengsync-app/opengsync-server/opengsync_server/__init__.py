@@ -54,6 +54,6 @@ file_handler = FileHandler()
 
 limiter = Limiter(
     lambda: request.headers.get("X-Real-IP", request.remote_addr, type=str),  # type: ignore
-    default_limits=["1000 per day", "200 per hour"],
+    default_limits=["100000 per day", "1000 per minute", "20 per second"],
     storage_uri=f"redis://redis-cache:{REDIS_PORT}/3",
 )

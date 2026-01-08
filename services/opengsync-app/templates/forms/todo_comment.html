@@ -1,0 +1,28 @@
+{% from 'components/form_group.jinja2' import form_group, select_input, checkbox_input %}
+
+
+<div class="modal-content" id="todo-comment-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Add Comment</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="todo-comment-form">
+            {{ form.csrf_token() }}
+            {{ form_group(form.text) }}
+            {{ select_input(form.status_id) }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+                hx-post="{{ form.post_url }}" hx-include="#todo-comment-form"
+                hx-target="#todo-comment-form-container" hx-swap="outerHTML">Add</button>
+        </div>
+    </div>
+</div>
+

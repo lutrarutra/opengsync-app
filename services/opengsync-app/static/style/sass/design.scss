@@ -1,0 +1,74 @@
+@import "colors.scss";
+
+.flow-cell-design-container {
+    i {
+        color: $cemm-blue;
+    }
+
+    a i {
+        padding: 5px;
+        border-radius: 5px;
+        &:hover {
+            background-color: $gray-200;
+            cursor: pointer;
+        }
+    }
+    padding: 10px 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .flow-cell-comment-container {
+        width: 100%;
+    }
+
+    .drop-active {
+        border: 2px dashed $cemm-blue;
+        .hidden-label {
+            display: block !important;
+            color: $cemm-blue;
+        }
+    }
+
+    hr {
+        margin: 5px 0;
+    }
+
+    .drop-target {
+        background-color: #feffcb;
+    }
+
+    .pool-designs-accordion-body,
+    .orphan-pool-design-container {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        padding: 10px;
+        gap: 10px;
+
+        .pool-design-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            min-height: 60px;
+            gap: 10px;
+            position: relative;
+        }
+        .pool-design {
+            background-color: $white;
+            width: 100%;
+            padding: 7px 10px;
+            border-radius: 5px;
+            border: 1px solid $gray-300;
+
+            cursor: pointer;
+            
+            .pool-design-header {
+                div:last-child {
+                    display: flex;
+                    justify-content: flex-end;
+                }
+            }
+        }
+    }
+}

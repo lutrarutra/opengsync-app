@@ -1,0 +1,63 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
+{% from 'components/spinner.jinja2' import spinner %}
+{% from 'components/design/comment-list.jinja2' import comment_list with context %}
+{% from 'components/button.jinja2' import confirm_action_button %}
+
+{% for pool_design in pool_designs %}
+<div class="pool-design" data-pool-design-id="{{ pool_design.id }}" {% if flow_cell_design %}data-original-flow-cell-design-id="{{ flow_cell_design.id }}"{% endif %}>
+    <div class="pool-design-header">
+        <div class="row">
+            <div class="col-4">
+                <b>{{ pool_design.name }}</b>
+                {% if flow_cell_design %}
+                {{ 
+                    confirm_action_button(
+                        text='<i class="bi bi-journal-x"></i>',
+                        title='Remove Pool from Flow Cell',
+                        container="a",
+                        class="",
+                        method="hx-delete",
+                        url=url_for('design_htmx.remove_pool_design', pool_design_id=pool_design.id),
+                        tooltip='Remove from Flow Cell'
+                    )
+                }}
+                {% else %}
+                {{
+                    confirm_action_button(
+                        text='<i class="bi bi-trash"></i>',
+                        title='Delete Pool Design Permanently',
+                        container="a",
+                        class="",
+                        method="hx-delete",
+                        url=url_for('design_htmx.delete_pool_design', pool_design_id=pool_design.id),
+                        tooltip='Delete Design'
+                    )
+                }}
+                {% endif %}
+            </div>
+            <div class="col-4 text-center">
+                <b>{{ pool_design.num_m_requested_reads or "" }}{% if pool_design.num_m_requested_reads %}M{% endif %}</b>
+            </div>
+            <div class="col-4">
+                {% if flow_cell_design %}
+                <b style="color: {% if pool_design.cycles_r1 == flow_cell_design.r1_cycles %}#198754{% else %}#fd7e14;{% endif %}">{{ pool_design.cycles_r1 }}</b>
+                -
+                <b style="color: {% if pool_design.cycles_i1 == flow_cell_design.i1_cycles %}#198754{% else %}#fd7e14;{% endif %}">{{ pool_design.cycles_i1 }}</b>
+                -
+                <b style="color: {% if pool_design.cycles_i2 == flow_cell_design.i2_cycles %}#198754{% else %}#fd7e14;{% endif %}">{{ pool_design.cycles_i2 }}</b>
+                -
+                <b style="color: {% if pool_design.cycles_r2 == flow_cell_design.r2_cycles %}#198754{% else %}#fd7e14;{% endif %}">{{ pool_design.cycles_r2 }}</b>
+                {% else %}
+                <b>{{ pool_design.cycles_r1 }}-{{ pool_design.cycles_i1 }}-{{ pool_design.cycles_i2 }}-{{ pool_design.cycles_r2 }}</b>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="pool-design-body pt-2">
+        <a hx-trigger="click once" hx-get="{{ url_for('design_htmx.comment_form', pool_design_id=pool_design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
+        <em class="text-muted">Pool Notes:</em>
+        <hr>
+        {{ comment_list(pool_design.comments) }}
+    </div>
+</div>
+{% endfor %}

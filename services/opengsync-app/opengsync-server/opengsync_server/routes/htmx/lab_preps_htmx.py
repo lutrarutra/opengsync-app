@@ -12,7 +12,7 @@ from flask import Blueprint, render_template, request, flash, url_for, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType
+from opengsync_db.categories import PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType, LabChecklistType
 
 from ... import db, forms, logger, logic
 from ...core import wrappers, exceptions
@@ -136,8 +136,8 @@ def remove_library(current_user: models.User, lab_prep_id: int, library_id: int)
     return make_response(render_template(**context))
 
 
-@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET"])
-def download_template(current_user: models.User, lab_prep_id: int, direction: Literal["rows", "columns"]) -> Response:
+@wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET"], arg_params=["checklist_id"])
+def download_template(current_user: models.User, lab_prep_id: int, direction: Literal["rows", "columns"], checklist_id: int | None = None) -> Response:
     if direction not in ("rows", "columns"):
         raise exceptions.BadRequestException()
     
@@ -146,12 +146,20 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
     
     if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
         raise exceptions.NotFoundException()
+    
+    if checklist_id is not None:
+        try:
+            checklist = LabChecklistType.get(checklist_id)
+        except ValueError:
+            raise exceptions.BadRequestException(f"Unknown checklist ID: {checklist_id}")
+    else:
+        checklist = lab_prep.checklist_type
 
     if runtime.app.static_folder is None:
         logger.error("Static folder not set")
         raise ValueError("Static folder not set")
 
-    filepath = os.path.join(runtime.app.static_folder, "resources", "templates", "library_prep", lab_prep.checklist_type.prep_file_name)
+    filepath = os.path.join(runtime.app.static_folder, "resources", "templates", "library_prep", checklist.prep_file_name)
 
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")

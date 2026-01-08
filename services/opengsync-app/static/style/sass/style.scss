@@ -16,6 +16,7 @@
 @import "form.scss";
 @import "browser.scss";
 @import "components.scss";
+@import "design.scss";
 
 body.waiting,
 body.waiting * {
@@ -736,35 +737,5 @@ span.id-desc::after {
     input:focus ~ .unit-container {
         box-shadow: 0 0 3px rgba(13,110,253,.25);
         transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
-    }
-}
-
-.flow-cell-design-container {
-    padding: 10px 5px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
-    .pool-design-container {
-        display: flex;
-        align-items: center;
-        flex-direction: column;
-        padding: 10px;
-        gap: 10px;
-        .pool-design {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding: 7px 10px;
-            border-radius: 5px;
-            border: 1px solid $gray-300;
-            gap: 10px;
-            div:last-child {
-                display: flex;
-                justify-content: flex-end;
-            }
-        }
     }
 }
