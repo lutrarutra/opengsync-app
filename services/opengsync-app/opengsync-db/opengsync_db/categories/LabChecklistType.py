@@ -18,5 +18,5 @@ class LabChecklistType(ExtendedEnum[LabChecklistTypeEnum], enum_type=LabChecklis
     WGS = LabChecklistTypeEnum(4, "Whole Genome Sequencing", "WGS", "W", "WGS_COV.xlsx")
     TENX = LabChecklistTypeEnum(5, "10X Genomics", "10x", "T", "TENX.xlsx")
     WES = LabChecklistTypeEnum(6, "Whole Exome Sequencing", "WES", "E", "WES.xlsx")
-    ATAC_SEQ = LabChecklistTypeEnum(7, "ATAC-seq", "ATAC", "A", "template.xlsx")
+    ATAC_SEQ = LabChecklistTypeEnum(7, "ATAC-seq", "ATAC", "A", "ATAC.xlsx")
     TENX_MULTIOME = LabChecklistTypeEnum(8, "10X Multiome", "10X_MULTIOME", "M", "template.xlsx")

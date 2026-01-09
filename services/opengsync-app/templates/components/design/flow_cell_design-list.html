@@ -23,7 +23,7 @@
 
     <em class="text-muted">Flow Cell Designs</em>
 
-    {% for design in designs %}
+    {% for design in flow_cell_designs %}
     <div class="accordion" id="flow-cell-design-{{ design.id }}">
         <div class="accordion-item">
             <h2 class="accordion-header">
@@ -40,6 +40,17 @@
                                     class="",
                                     method="hx-delete",
                                     tooltip='Delete Design'
+                                )
+                            }}
+                            {{
+                                confirm_action_button(
+                                    text='<i class="bi bi-archive"></i>',
+                                    title='Archive Flow Cell Design',
+                                    url=url_for('design_htmx.archive_flow_cell_design', flow_cell_design_id=design.id),
+                                    container="a",
+                                    class="",
+                                    method="hx-post",
+                                    tooltip='Archive Design'
                                 )
                             }}
                         </div>
