@@ -215,10 +215,8 @@
                 <div id="organization-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
                     <div class="accordion-body">
                         {{ sub_form.csrf_token() }}
-                        <div class="row">
-                            {{ form_group(sub_form.organization_name, class="col-6") }}
-                            {{ form_group(sub_form.organization_address, class="col-6") }}
-                        </div>
+                        {{ form_group(sub_form.organization_name) }}
+                        {{ form_group(sub_form.organization_address) }}
                     </div>
                 </div>
             </div>
@@ -234,18 +232,14 @@
                 <div id="billing-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
                     <div class="accordion-body">
                         {{ sub_form.csrf_token() }}
-                        <div class="row d-flex align-items-end">
-                            {{ form_group(sub_form.billing_contact, class="col-6") }}
-                            <div class="col-6">
-                                {% if seq_request_form.form_type == "create" %}
-                                <div class="form-check form-switch">
-                                    {{ sub_form.billing_is_organization(class="form-check-input") }}
-                                    <label class="form-check-label">Use organization's address</label>
-                                </div>
-                                {% endif %}
-                                {{ form_group(sub_form.billing_address, disabled=sub_form.billing_is_organization.data) }}
-                            </div>
+                        {{ form_group(sub_form.billing_contact) }}
+                        {% if seq_request_form.form_type == "create" %}
+                        <div class="form-check form-switch">
+                            {{ sub_form.billing_is_organization(class="form-check-input") }}
+                            <label class="form-check-label">Use organization's address</label>
                         </div>
+                        {% endif %}
+                        {{ form_group(sub_form.billing_address, disabled=sub_form.billing_is_organization.data) }}
                         <div class="row">
                             {{ form_group(sub_form.billing_email, class="col-6") }}
                             {{ form_group(sub_form.billing_phone, class="col-6") }}
@@ -320,7 +314,22 @@
             }
         }
 
+        function update_contact_person(force=false) {
+            if (force) {
+                $("#contact_form-current_user_is_contact").prop("checked", true);
+            }
+            if ($("#contact_form-current_user_is_contact").is(":checked") || force) {
+                var container = $("#user_select_form-user-search").parent().parent();
+                $("#contact_form-contact_person_email").val(container.find("li.selected").first().data("email"));
+                $("#contact_form-contact_person_name").val(container.find("li.selected").first().data("name"));
+            }
+        }
+
         $(document).ready(function(){
+            $("#user_select_form-user").on("change", function() {
+                $("#contact_form-current_user_is_contact").prop("checked", true);
+            });
+
             $("#billing_form-billing_is_organization").on("click", function(){
                 update_billing_is_organization();
             });
@@ -350,11 +359,7 @@
             });
 
             $("#user_select_form-user").on("change", function() {
-                if ($("#contact_form-current_user_is_contact").is(":checked")) {
-                    var container = $(this).parent().parent();
-                    $("#contact_form-contact_person_email").val(container.find("li.selected").first().data("email"));
-                    $("#contact_form-contact_person_name").val(container.find("li.selected").first().data("name"));
-                }
+                update_contact_person();
             });
 
         });

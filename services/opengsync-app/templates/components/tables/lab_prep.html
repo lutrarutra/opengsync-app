@@ -26,9 +26,15 @@
                     context_menu([
                         {"type": "copy", "value": lab_prep.name, "label": "Copy Name"},
                     ])
-                }}><a href="{{ url_for('lab_preps_page.lab_prep', lab_prep_id=lab_prep.id) }}">{{ lab_prep.display_name }}</a></td>
+                }}><a href="{{ url_for('lab_preps_page.lab_prep', lab_prep_id=lab_prep.id) }}">
+                    {% if lab_prep.name == lab_prep.identifier %}
+                    {{ lab_prep.name }}
+                    {% else %}
+                    <span>{{ lab_prep.name }} <span class="desc">{{ lab_prep.identifier }}</span></span>
+                    {% endif %}
+                </a></td>
                 <td>{{ lab_prep.status.icon }} {{ lab_prep.status.name }}</td>
-                <td>{{ lab_prep.checklist_type.display_name }} <sup class="mux-type">{% for mux_type in lab_prep.mux_types %}{{ mux_type.abbreviation }}{% endfor %}</sup></td>
+                <td>{{ lab_prep.checklist_type.display_name }}<sup class="mux-type">{% for mux_type in lab_prep.mux_types %}{{ mux_type.abbreviation }}{% endfor %}</sup></td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(lab_prep.library_types) }}</td>
                 <td>{{ lab_prep.num_libraries }}</td>
                 <td>{{ lab_prep.num_samples }}</td>

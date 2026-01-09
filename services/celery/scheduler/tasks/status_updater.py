@@ -16,18 +16,26 @@ def __find_stored_samples(q):
     )
 
 def __find_seq_requests_with_stored_samples(q):
-    return q.where(
+    return q.filter(
         sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
             (models.links.SampleLibraryLink.library_id == models.Library.id) &
             (models.Sample.id == models.links.SampleLibraryLink.sample_id)
         )
-    ).where(
-        ~sa.exists().where(
-            (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.links.SampleLibraryLink.library_id == models.Library.id) &
-            (models.Sample.id == models.links.SampleLibraryLink.sample_id) &
-            (models.Sample.status_id < categories.SampleStatus.STORED.id)
+    ).filter(
+        sa.and_(
+            ~sa.exists().where(
+                (models.Library.seq_request_id == models.SeqRequest.id) &
+                (models.links.SampleLibraryLink.library_id == models.Library.id) &
+                (models.Sample.id == models.links.SampleLibraryLink.sample_id) &
+                (models.Sample.status_id < categories.SampleStatus.STORED.id)
+            ),
+            ~sa.exists().where(
+                (models.Library.seq_request_id == models.SeqRequest.id) &
+                (models.links.SampleLibraryLink.library_id == models.Library.id) &
+                (models.Library.pool_id == models.Pool.id) &
+                (models.Pool.status_id < categories.PoolStatus.STORED.id)
+            )
         )
     )
 

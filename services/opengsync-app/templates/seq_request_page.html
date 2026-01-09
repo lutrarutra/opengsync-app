@@ -463,10 +463,8 @@
                         ) 
                     }}
                 </div>
-                <div class="row">
-                    {{ metadata_group("Organization", seq_request.organization_contact.name, class="col-6") }}
-                    {{ metadata_group("Organization Address", seq_request.organization_contact.address, class="col-6") }}
-                </div>
+                {{ metadata_group("Organization", seq_request.organization_contact.name) }}
+                {{ metadata_group_textarea("Organization Address", seq_request.organization_contact.address) }}
                 
                 {% if seq_request.bioinformatician_contact_id %}
                 <br>
@@ -485,10 +483,9 @@
             
                 <br>
                 <h4>Billing Info</h4>
-                <div class="row">
-                    {{ metadata_group("Billing Contact", seq_request.billing_contact.name, class="col-6") }}
-                    {{ metadata_group("Address", seq_request.billing_contact.address, class="col-6") }}
-                </div>
+                {{ metadata_group("Billing Contact", seq_request.billing_contact.name) }}
+                {{ metadata_group_textarea("Address", seq_request.billing_contact.address) }}
+                
                 <div class="row">
                     {{ 
                         metadata_group_email_link(

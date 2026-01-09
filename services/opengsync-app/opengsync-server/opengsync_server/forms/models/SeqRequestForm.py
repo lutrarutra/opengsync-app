@@ -203,8 +203,8 @@ class OrganizationSubForm(FlaskForm):
         "Organization Name", validators=[DataRequired(), Length(max=models.Contact.name.type.length)],
         description="Name of the organization."
     )
-    organization_address = StringField(
-        "Organization Address", validators=[DataRequired(), Length(max=models.Contact.name.type.length)],
+    organization_address = TextAreaField(
+        "Organization Address", validators=[DataRequired(), Length(max=2048)],
         description="Address of the organization."
     )
 
@@ -227,8 +227,8 @@ class BillingSubForm(FlaskForm):
         "Billing Contact", validators=[DataRequired(), Length(max=models.Contact.name.type.length)],
         description="Name of the billing contact person, department or institution."
     )
-    billing_address = StringField(
-        "Billing Address", validators=[DataRequired(), Length(max=models.Contact.address.type.length)],
+    billing_address = TextAreaField(
+        "Billing Address", validators=[DataRequired(), Length(max=2048)],
         description="Address for billing."
     )
     billing_email = EmailField(
