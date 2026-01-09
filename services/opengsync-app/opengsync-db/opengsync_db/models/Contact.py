@@ -12,7 +12,7 @@ class Contact(Base):
     name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
     email: Mapped[Optional[str]] = mapped_column(sa.String(128), nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
-    address: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
 
     def __str__(self) -> str:
         return self.__repr__()
