@@ -52,7 +52,7 @@ class PoolDesignForm(HTMXFlaskForm):
         return make_response(redirect=url_for("design_page.design"))
 
     def __create_new_pool_design(self) -> Response:
-        new_pool_design = models.PoolDesign(
+        new_pool_design = db.pool_designs.create(
             name=self.pool_design_name.data,  # type: ignore
             num_m_requested_reads=self.num_requested_reads_millions.data,  # type: ignore
             cycles_r1=self.r1_cycles.data,  # type: ignore

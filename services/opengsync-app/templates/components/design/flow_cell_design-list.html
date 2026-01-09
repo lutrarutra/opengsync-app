@@ -31,28 +31,6 @@
                     <div class="d-flex justify-content-between align-items-center w-100 px-1">
                         <div style="width: 30%;">
                             <b>{{ design.name }}</b>
-                            {{
-                                confirm_action_button(
-                                    text='<i class="bi bi-trash"></i>',
-                                    title='Delete Flow Cell Design Permanently',
-                                    url=url_for('design_htmx.delete_flow_cell_design', flow_cell_design_id=design.id),
-                                    container="a",
-                                    class="",
-                                    method="hx-delete",
-                                    tooltip='Delete Design'
-                                )
-                            }}
-                            {{
-                                confirm_action_button(
-                                    text='<i class="bi bi-archive"></i>',
-                                    title='Archive Flow Cell Design',
-                                    url=url_for('design_htmx.archive_flow_cell_design', flow_cell_design_id=design.id),
-                                    container="a",
-                                    class="",
-                                    method="hx-post",
-                                    tooltip='Archive Design'
-                                )
-                            }}
                         </div>
                         <div style="width: 40%;">
                             <div class="progress-bar-container cm-callback" {{ flow_cell_type_cm(design) }}>
@@ -75,8 +53,36 @@
             <div id="design-{{ design.id }}" class="accordion-collapse collapse show" data-bs-parent="#flow-cell-design-{{ design.id }}">
                 <div class="accordion-body pool-designs-accordion-body">
                     <div class="flow-cell-comment-container">
-                        <a href="#" hx-trigger="click once" hx-get="{{ url_for('design_htmx.comment_form', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
-                        <em class="text-muted">Flow Cell Notes:</em>
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <a href="#" hx-trigger="click once" hx-get="{{ url_for('design_htmx.comment_form', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
+                                <em class="text-muted">Flow Cell Notes:</em>
+                            </div>
+                            <div>
+                                {{
+                                    confirm_action_button(
+                                        text='<i class="bi bi-trash"></i>',
+                                        title='Delete Flow Cell Design Permanently',
+                                        url=url_for('design_htmx.delete_flow_cell_design', flow_cell_design_id=design.id),
+                                        container="a",
+                                        class="",
+                                        method="hx-delete",
+                                        tooltip='Delete Design'
+                                    )
+                                }}
+                                {{
+                                    confirm_action_button(
+                                        text='<i class="bi bi-archive"></i>',
+                                        title='Archive Flow Cell Design',
+                                        url=url_for('design_htmx.archive_flow_cell_design', flow_cell_design_id=design.id),
+                                        container="a",
+                                        class="",
+                                        method="hx-post",
+                                        tooltip='Archive Design'
+                                    )
+                                }}
+                            </div>
+                        </div>
                         <hr>
                         {{ comment_list(design.comments) }}
                     </div>

@@ -172,7 +172,6 @@ function handleContextMenuAction(action, $contextElement) {
         },
         hxpost: (action) => {
             const config = action.config;
-            console.log(config);
             hx_request(
                 config.url,
                 config.title || "",

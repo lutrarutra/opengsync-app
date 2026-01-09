@@ -23,7 +23,7 @@ def create_flow_cell_design(current_user: models.User, pool_design_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
     
-    if (pool_design := db.session.get(models.PoolDesign, pool_design_id)) is None:
+    if (pool_design := db.pool_designs.get(pool_design_id)) is None:
         raise exceptions.NotFoundException("Pool Design not found")
     
     if textgen is None:
@@ -33,13 +33,11 @@ def create_flow_cell_design(current_user: models.User, pool_design_id: int):
             "Come up with a short unique animal-themed name. It can be two or more words, like Small Whale or Lazy Otter. Reply only with the name. No special characters.",
         ) or f"Flow Cell Design {db.session.query(models.FlowCellDesign).count() + 1}"
 
-    flow_cell_design = models.FlowCellDesign(
+    flow_cell_design = db.flow_cell_designs.create(
         name=name,
-        pool_designs=[pool_design],
     )
-
-    db.session.add(flow_cell_design)
-    db.flush()
+    flow_cell_design.pool_designs = [pool_design]
+    db.flow_cell_designs.update(flow_cell_design)
 
     return make_response(redirect=url_for("design_page.design"))
 
@@ -74,7 +72,7 @@ def remove_pool_design(current_user: models.User, pool_design_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
     
-    if (pool_design := db.session.get(models.PoolDesign, pool_design_id)) is None:
+    if (pool_design := db.pool_designs.get(pool_design_id)) is None:
         raise exceptions.NotFoundException("Pool Design not found")
     
     pool_design.flow_cell_design = None
@@ -88,13 +86,13 @@ def delete_flow_cell_design(current_user: models.User, flow_cell_design_id: int)
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
     
-    if (flow_cell_design := db.session.get(models.FlowCellDesign, flow_cell_design_id)) is None:
+    if (flow_cell_design := db.flow_cell_designs.get(flow_cell_design_id)) is None:
         raise exceptions.NotFoundException("Flow Cell Design not found")
     
     for pool_design in flow_cell_design.pool_designs:
         pool_design.flow_cell_design = None
-    db.session.delete(flow_cell_design)
-    db.flush()
+
+    db.flow_cell_designs.delete(flow_cell_design)
     
     return make_response(redirect=url_for("design_page.design"))
 
@@ -104,10 +102,10 @@ def move_pool_design(current_user: models.User, pool_design_id: int, new_flow_ce
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
     
-    if (pool_design := db.session.get(models.PoolDesign, pool_design_id)) is None:
+    if (pool_design := db.pool_designs.get(pool_design_id)) is None:
         raise exceptions.NotFoundException("Pool Design not found")
     
-    if (new_flow_cell_design := db.session.get(models.FlowCellDesign, new_flow_cell_design_id)) is None:
+    if (new_flow_cell_design := db.flow_cell_designs.get(new_flow_cell_design_id)) is None:
         raise exceptions.NotFoundException("Flow Cell Design not found")
     
     pool_design.flow_cell_design = new_flow_cell_design
@@ -130,11 +128,11 @@ def comment_form(current_user: models.User, todo_comment_id: int | None = None, 
             raise exceptions.NotFoundException("TODO Comment not found")
     
     if flow_cell_design_id is not None:
-        if (flow_cell_design := db.session.get(models.FlowCellDesign, flow_cell_design_id)) is None:
+        if (flow_cell_design := db.flow_cell_designs.get(flow_cell_design_id)) is None:
             raise exceptions.NotFoundException("Flow Cell Design not found")
     
     if pool_design_id is not None:
-        if (pool_design := db.session.get(models.PoolDesign, pool_design_id)) is None:
+        if (pool_design := db.pool_designs.get(pool_design_id)) is None:
             raise exceptions.NotFoundException("Pool Design not found")
     
     form = forms.models.TODOCommentForm(
@@ -188,7 +186,7 @@ def set_flow_cell_type(current_user: models.User, flow_cell_design_id: int, flow
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
     
-    if (flow_cell_design := db.session.get(models.FlowCellDesign, flow_cell_design_id)) is None:
+    if (flow_cell_design := db.flow_cell_designs.get(flow_cell_design_id)) is None:
         raise exceptions.NotFoundException("Flow Cell Design not found")
     
     if flow_cell_type_id == -1:
@@ -196,8 +194,7 @@ def set_flow_cell_type(current_user: models.User, flow_cell_design_id: int, flow
     else:
         flow_cell_design.flow_cell_type = cats.FlowCellType.get(flow_cell_type_id)
     
-    db.session.add(flow_cell_design)
-    db.flush()
+    db.flow_cell_designs.update(flow_cell_design)
     
     return make_response(render_template(**logic.design.get_flow_cell_list_context(current_user, request)))
 
@@ -207,11 +204,10 @@ def archive_flow_cell_design(current_user: models.User, flow_cell_design_id: int
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
     
-    if (flow_cell_design := db.session.get(models.FlowCellDesign, flow_cell_design_id)) is None:
+    if (flow_cell_design := db.flow_cell_designs.get(flow_cell_design_id)) is None:
         raise exceptions.NotFoundException("Flow Cell Design not found")
     
     flow_cell_design.task_status = cats.TaskStatus.ARCHIVED
-    db.session.add(flow_cell_design)
-    db.flush()
+    db.flow_cell_designs.update(flow_cell_design)
 
     return make_response(redirect=url_for("design_page.design"))

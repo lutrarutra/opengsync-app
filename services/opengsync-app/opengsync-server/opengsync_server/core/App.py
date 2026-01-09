@@ -242,6 +242,8 @@ class App(Flask):
         @login_manager.unauthorized_handler
         def unauthorized():
             next = url_for(request.endpoint, **request.view_args)  # type: ignore
+            if next and next.strip() == "/":
+                next = None
             return redirect(url_for("auth_page.auth", next=next))
 
         @self.context_processor

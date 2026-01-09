@@ -217,54 +217,6 @@ class ProjectBP(DBBlueprint):
     @DBBlueprint.transaction
     def update(self, project: models.Project):
         self.db.session.add(project)
-
-    @DBBlueprint.transaction
-    def query(
-        self,
-        id: int | None = None,
-        identifier: str | None = None,
-        title: str | None = None,
-        identifier_title: str | None = None,
-        seq_request_id: int | None = None,
-        group_id: int | None = None,
-        owner_name: str | None = None,
-        status: Optional[ProjectStatusEnum] = None,
-        status_in: Optional[list[ProjectStatusEnum]] = None,
-        user_id: int | None = None,
-        limit: int | None = PAGE_LIMIT,
-    ) -> list[models.Project]:
-        query = self.db.session.query(models.Project)
-        query = ProjectBP.where(
-            query, seq_request_id=seq_request_id,
-            group_id=group_id, status=status,
-            status_in=status_in, user_id=user_id
-        )
-        
-        if identifier is None and title is None and identifier_title is None and owner_name is None and id is None:
-            raise ValueError("Either identifier, owner_name, or title must be provided")
-        if identifier is not None:
-            query = query.order_by(sa.nulls_last(sa.func.similarity(models.Project.identifier, identifier).desc()))
-        elif title is not None:
-            query = query.order_by(sa.func.similarity(models.Project.title, title).desc())
-        elif id is not None:
-            query = query.where(models.Project.id == id)
-        elif identifier_title is not None:
-            query = query.order_by(
-                sa.nulls_last(sa.func.greatest(
-                    sa.func.similarity(models.Project.title, identifier_title),
-                    sa.func.similarity(models.Project.identifier, identifier_title)
-                ).desc())
-            )
-        elif owner_name is not None:
-            query = query.join(models.User, models.Project.owner_id == models.User.id)
-            query = query.order_by(
-                sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, owner_name).desc()
-            )
-        if limit is not None:
-            query = query.limit(limit)
-
-        res = query.all()
-        return res
     
     @DBBlueprint.transaction
     def get_access_type(self, project: models.Project, user: models.User) -> AccessTypeEnum:
