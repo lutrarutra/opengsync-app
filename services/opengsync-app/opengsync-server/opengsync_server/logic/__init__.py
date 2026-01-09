@@ -16,3 +16,4 @@ from . import seq_request  # noqa: F401
 from . import seq_run  # noqa: F401
 from . import sequencer  # noqa: F401
 from . import user  # noqa: F401
+from . import design  # noqa: F401

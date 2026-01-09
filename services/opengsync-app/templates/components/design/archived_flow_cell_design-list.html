@@ -1,0 +1,53 @@
+{% from 'components/spinner.jinja2' import spinner %}
+{% from 'components/tooltip.jinja2' import tooltip %}
+{% from 'components/button.jinja2' import confirm_action_button %}
+{% from "components/design/flow_cell_type_cm.jinja2" import flow_cell_type_cm with context %}
+{% from 'components/design/comment-list.jinja2' import comment_list with context %}
+
+<div class="flow-cell-design-container" id="archived-flow-cell-design-list">
+    {% for design in flow_cell_designs %}
+    <div class="accordion" id="archived-flow-cell-design-{{ design.id }}">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button cm-callback collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#archived-design-{{ design.id }}" aria-expanded="false" aria-controls="archived-design-{{ design.id }}">
+                    <div class="d-flex justify-content-between align-items-center w-100 px-1">
+                        <div style="width: 30%;">
+                            <b>{{ design.name }}</b>
+                        </div>
+                        <div style="width: 40%;">
+                            <div class="progress-bar-container cm-callback" {{ flow_cell_type_cm(design) }}>
+                                {% set m_reads_planned = design.num_m_reads %}
+                                {% set flow_cell = design.flow_cell_type %}
+                                {% set reads_used_pct = (m_reads_planned / flow_cell.max_m_reads) * 100 if m_reads_planned else 0 %}
+                                <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 20px;">
+                                    <div class="progress-title">
+                                        <b>{{ m_reads_planned | int }} / {{ flow_cell.max_m_reads }} M.</b> ({{ "%0.1f" % reads_used_pct }}% {{ flow_cell.display_name }})
+                                    </div>
+                                    <div class="progress-bar progress-bar-striped text-dark {% if reads_used_pct <= 100 %}bg-cemm-blue{% else %}bg-cemm-red{% endif %}" style="width: {{ reads_used_pct }}%;">
+                                    </div>  
+                                </div>
+                            </div>
+                        </div>
+                        <div style="width: 30%; display: flex; justify-content: flex-end; align-items: center;"><b>{{ design.flow_cell_cycles_requirements() }}</b></div>
+                    </div>
+                </button>
+            </h2>
+            <div id="archived-design-{{ design.id }}" class="accordion-collapse collapse collapsed">
+                <div class="accordion-body pool-designs-accordion-body">
+                    <div class="flow-cell-comment-container">
+                        <a href="#" hx-trigger="click once" hx-get="{{ url_for('design_htmx.comment_form', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
+                        <em class="text-muted">Flow Cell Notes:</em>
+                        <hr>
+                        {{ comment_list(design.comments) }}
+                    </div>
+                    <div class="pool-design-container" data-flow-cell-design-id="{{ design.id }}">
+                        <div hx-get="{{ url_for('design_htmx.render_pool_designs', flow_cell_design_id=design.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                            {{ spinner() }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>

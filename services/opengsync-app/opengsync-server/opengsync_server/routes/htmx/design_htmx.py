@@ -3,7 +3,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models, categories as cats
 
-from ... import db, forms, logger
+from ... import db, forms, logger, logic
 from ...tools import textgen
 from ...core import wrappers, exceptions, runtime
 
@@ -12,19 +12,11 @@ design_htmx = Blueprint("design_htmx", __name__, url_prefix="/htmx/design/")
 
 @wrappers.htmx_route(design_htmx, db=db)
 def flow_cells(current_user: models.User):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
-    
-    designs = db.session.query(models.FlowCellDesign).order_by(models.FlowCellDesign.id.desc()).all()
+    return make_response(render_template(**logic.design.get_flow_cell_list_context(current_user, request)))
 
-    orphan_pool_designs = db.session.query(models.PoolDesign).filter(
-        models.PoolDesign.flow_cell_design_id.is_(None)
-    ).all()
-
-    return make_response(render_template(
-        "components/design/flow_cell_design-list.html", designs=designs,
-        orphan_pool_designs=orphan_pool_designs,
-    ))
+@wrappers.htmx_route(design_htmx, db=db)
+def archived_flow_cells(current_user: models.User):
+    return make_response(render_template(**logic.design.get_flow_cell_list_context(current_user, request, archived=True)))
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["pool_design_id"])
 def create_flow_cell_design(current_user: models.User, pool_design_id: int):
@@ -121,16 +113,7 @@ def move_pool_design(current_user: models.User, pool_design_id: int, new_flow_ce
     pool_design.flow_cell_design = new_flow_cell_design
     db.flush()
     
-    designs = db.session.query(models.FlowCellDesign).order_by(models.FlowCellDesign.id.desc()).all()
-
-    orphan_pool_designs = db.session.query(models.PoolDesign).filter(
-        models.PoolDesign.flow_cell_design_id.is_(None)
-    ).all()
-
-    return make_response(render_template(
-        "components/design/flow_cell_design-list.html", designs=designs,
-        orphan_pool_designs=orphan_pool_designs,
-    ))
+    return make_response(render_template(**logic.design.get_flow_cell_list_context(current_user, request)))
 
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["GET", "POST"], arg_params=["todo_comment_id", "flow_cell_design_id", "pool_design_id"])
@@ -178,37 +161,12 @@ def edit_comment_status(current_user: models.User, todo_comment_id: int, new_sta
     todo_comment.task_status_id = new_status_id
     db.flush()
     
-    designs = db.session.query(models.FlowCellDesign).order_by(models.FlowCellDesign.id.desc()).all()
-
-    orphan_pool_designs = db.session.query(models.PoolDesign).filter(
-        models.PoolDesign.flow_cell_design_id.is_(None)
-    ).all()
-
-    return make_response(render_template(
-        "components/design/flow_cell_design-list.html", designs=designs,
-        orphan_pool_designs=orphan_pool_designs,
-    ))
+    return make_response(render_template(**logic.design.get_flow_cell_list_context(current_user, request)))
 
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["GET"])
 def render_pool_designs(current_user: models.User, flow_cell_design_id: int | None = None):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
-    
-    if flow_cell_design_id is not None:
-        if (flow_cell_design := db.session.get(models.FlowCellDesign, flow_cell_design_id)) is None:
-            raise exceptions.NotFoundException("Flow Cell Design not found")
-    else:
-        flow_cell_design = None
-    
-    query = db.session.query(models.PoolDesign)
-    if flow_cell_design_id is not None:
-        query = query.filter(models.PoolDesign.flow_cell_design_id == flow_cell_design_id)
-    else:
-        query = query.filter(models.PoolDesign.flow_cell_design_id.is_(None))
-    pool_designs = query.order_by(models.PoolDesign.id.desc()).all()
-
-    return make_response(render_template("components/design/pool_design-list.html", pool_designs=pool_designs, flow_cell_design=flow_cell_design))
+    return make_response(render_template(**logic.design.get_pool_list_context(current_user, request, flow_cell_design_id=flow_cell_design_id)))
 
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["DELETE"], arg_params=["todo_comment_id"])
@@ -222,16 +180,8 @@ def delete_comment(current_user: models.User, todo_comment_id: int):
     db.session.delete(todo_comment)
     db.flush()
     
-    designs = db.session.query(models.FlowCellDesign).order_by(models.FlowCellDesign.id.desc()).all()
+    return make_response(render_template(**logic.design.get_flow_cell_list_context(current_user, request)))
 
-    orphan_pool_designs = db.session.query(models.PoolDesign).filter(
-        models.PoolDesign.flow_cell_design_id.is_(None)
-    ).all()
-
-    return make_response(render_template(
-        "components/design/flow_cell_design-list.html", designs=designs,
-        orphan_pool_designs=orphan_pool_designs,
-    ))
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["flow_cell_design_id", "flow_cell_type_id"])
 def set_flow_cell_type(current_user: models.User, flow_cell_design_id: int, flow_cell_type_id: int):
@@ -249,13 +199,19 @@ def set_flow_cell_type(current_user: models.User, flow_cell_design_id: int, flow
     db.session.add(flow_cell_design)
     db.flush()
     
-    designs = db.session.query(models.FlowCellDesign).order_by(models.FlowCellDesign.id.desc()).all()
+    return make_response(render_template(**logic.design.get_flow_cell_list_context(current_user, request)))
 
-    orphan_pool_designs = db.session.query(models.PoolDesign).filter(
-        models.PoolDesign.flow_cell_design_id.is_(None)
-    ).all()
 
-    return make_response(render_template(
-        "components/design/flow_cell_design-list.html", designs=designs,
-        orphan_pool_designs=orphan_pool_designs,
-    ))
+@wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["flow_cell_design_id"])
+def archive_flow_cell_design(current_user: models.User, flow_cell_design_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+    
+    if (flow_cell_design := db.session.get(models.FlowCellDesign, flow_cell_design_id)) is None:
+        raise exceptions.NotFoundException("Flow Cell Design not found")
+    
+    flow_cell_design.task_status = cats.TaskStatus.ARCHIVED
+    db.session.add(flow_cell_design)
+    db.flush()
+
+    return make_response(redirect=url_for("design_page.design"))
