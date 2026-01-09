@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from 'components/spinner.jinja2' import spinner %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 
@@ -11,9 +12,8 @@
                 {{ table_col2("experiment-table", table, "id") }}
                 {{ table_col2("experiment-table", table, "name") }}
                 {{ table_col2("experiment-table", table, "status") }}
-                <th scope="col" class="col-2">Pools <span class="badge bg-success">Int.</span> <span class="badge">Ext.</span> <span class="badge bg-warning">Cstm.</span></th>
+                <th scope="col" class="col-3">Pools <span class="badge bg-success">Int.</span> <span class="badge">Ext.</span> <span class="badge bg-warning">Cstm.</span></th>
                 {{ table_col2("experiment-table", table, "library_types") }}
-                {{ table_col2("experiment-table", table, "operator") }}
                 {{ table_col2("experiment-table", table, "timestamp_created") }}
                 {{ table_col2("experiment-table", table, "workflow") }}
             </tr>
@@ -21,8 +21,12 @@
         <tbody>
             {% for experiment in experiments %}
             <tr>
-                <th scope="row">{{ experiment.id }}</th>
-                <td><a href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}">{{ experiment.name }}</a></td>
+                <th scope="row"><span class="x-scroll">{{ experiment.id }} <span class="badge assignee-badge {% if experiment.operator == current_user %}badge-success{% endif %}" {{ tooltip(experiment.operator.name, category="success" if experiment.operator == current_user else "primary") }}>{{ experiment.operator.initials }}</span></span></th>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": experiment.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}">{{ experiment.name }}</a></td>
                 <td>{{ experiment.status.icon | safe }} {{ experiment.status.name }}</td>
                 <td class="x-scroll-cell">
                     <div class="scroll-container">
@@ -32,7 +36,6 @@
                     </div>
                 </td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(experiment.library_types) }}</td>
-                <td><a href="{{ url_for('users_page.user', user_id=experiment.operator_id) }}">{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></a></td>
                 <td>{{ experiment.timestamp_created_str("%Y-%m-%d") }}</td>
                 <td>{{ experiment.workflow.name }}</td>
             </tr>

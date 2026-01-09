@@ -5,7 +5,7 @@ from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from opengsync_db.categories import LabChecklistType, LabChecklistTypeEnum, PrepStatus, PrepStatusEnum, MediaFileType, ServiceTypeEnum, ServiceType, MUXType, LibraryStatus
+from opengsync_db.categories import LabChecklistType, LabChecklistTypeEnum, PrepStatus, PrepStatusEnum, MediaFileType, ServiceTypeEnum, ServiceType, MUXType, LibraryStatus, MUXTypeEnum, LibraryType, LibraryTypeEnum
 
 from .Base import Base
 from . import links
@@ -142,6 +142,35 @@ class LabPrep(Base):
             "protocols_selected": protocols_selected,
             "lab_prep_completed": lab_prep_completed,
         }
+    
+    @property
+    def mux_types(self) -> list[MUXTypeEnum]:
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            return list(set(library.mux_type for library in self.libraries if library.mux_type is not None))
+        
+        from .Library import Library
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
+        
+        mux_type_ids = session.query(Library.mux_type_id).where(
+            Library.lab_prep_id == self.id
+        ).distinct().all()[0]
+
+        return [MUXType.get(mux_type_id) for mux_type_id in mux_type_ids if mux_type_id is not None]
+    
+    @hybrid_property
+    def library_types(self) -> list[LibraryTypeEnum]:
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            types = set()
+            for lib in self.libraries:
+                types.add(lib.type_id)
+
+            return [LibraryType.get(type_id) for type_id in sorted(types)]
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_types' attribute.")
+        from .Library import Library
+        type_ids = session.query(Library.type_id).filter(Library.lab_prep_id == self.id).distinct().order_by(Library.type_id).all()
+        return [LibraryType.get(type_id) for (type_id,) in type_ids]
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]

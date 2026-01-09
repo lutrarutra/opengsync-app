@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 <div id="group-table" class="table-container">
     <table class="table">
@@ -18,7 +19,11 @@
             {% for group in groups %}
             <tr>
                 <th scope="row">{{ group.id }}</th>
-                <td><a href="{{ url_for('groups_page.group', group_id=group.id) }}">{{ group.name }}</a></td>
+                <td class="cm-callback" {{ 
+                    context_menu([
+                        {"type": "copy", "value": group.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('groups_page.group', group_id=group.id) }}">{{ group.name }}</a></td>
                 <td>{{ group.type.icon }} {{ group.type.name }}</td>
                 <td>{{ group.num_users }}</td>
                 <td>{{ group.num_seq_requests }}</td>

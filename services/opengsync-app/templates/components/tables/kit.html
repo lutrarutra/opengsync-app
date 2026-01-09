@@ -1,5 +1,6 @@
 {% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="kit-table" class="table-container">
@@ -16,7 +17,11 @@
             {% for kit in kits %}
             <tr>
                 <th scope="row">{{ kit.id }}</th>
-                <td><a 
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": kit.identifier, "label": "Copy Identifier"},
+                    ])
+                }}><a 
                     {% if kit.kit_type == KitType.INDEX_KIT %}
                     href="{{ url_for('kits_page.index_kit', index_kit_id=kit.id) }}"
                     {% elif kit.kit_type == KitType.FEATURE_KIT %}
@@ -25,7 +30,11 @@
                     href="{{ url_for('kits_page.kit', kit_id=kit.id) }}"
                     {% endif %}>{{ kit.identifier }}</a>
                 </td>
-                <td><a 
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": kit.name, "label": "Copy Name"},
+                    ])
+                }}><a 
                     {% if kit.kit_type == KitType.INDEX_KIT %}
                     href="{{ url_for('kits_page.index_kit', index_kit_id=kit.id) }}"
                     {% elif kit.kit_type == KitType.FEATURE_KIT %}

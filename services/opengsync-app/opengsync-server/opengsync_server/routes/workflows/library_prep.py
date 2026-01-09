@@ -31,7 +31,7 @@ def begin(current_user: models.User, lab_prep_id: int) -> Response:
     if lab_prep.checklist_type == LabChecklistType.CUSTOM:
         _args["library_type_filter"] = None
     else:
-        _args["library_type_filter"] = LibraryType.get_check_list_library_types(lab_prep.checklist_type)
+        _args["library_type_filter"] = LibraryType.get_check_list_library_types(lab_prep.checklist_type) or None
 
     form = SelectSamplesForm(**_args, context={"lab_prep": lab_prep})
     return form.make_response()
@@ -49,7 +49,7 @@ def select(current_user: models.User, lab_prep_id: int) -> Response:
     if lab_prep.checklist_type == LabChecklistType.CUSTOM:
         _args["library_type_filter"] = None
     else:
-        _args["library_type_filter"] = LibraryType.get_check_list_library_types(lab_prep.checklist_type)
+        _args["library_type_filter"] = LibraryType.get_check_list_library_types(lab_prep.checklist_type) or None
     
     form = SelectSamplesForm(formdata=request.form, context={"lab_prep": lab_prep}, **_args)
     

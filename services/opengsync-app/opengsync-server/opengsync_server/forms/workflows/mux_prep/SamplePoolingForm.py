@@ -1,7 +1,7 @@
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
-from opengsync_db import models, exceptions
+from opengsync_db import models, exceptions, categories as cats
 
 from .... import logger, tools, db  # noqa F401
 from ....tools import utils
@@ -75,7 +75,7 @@ class SamplePoolingForm(HTMXFlaskForm):
 
         for (new_sample_pool, library_id), _df in self.sample_table.groupby(["new_sample_pool", "library_id"]):
             old_library = old_libraries[int(library_id)]
-            library_name = f"{new_sample_pool}_{old_library.type.identifier}"
+            library_name = f"{new_sample_pool}_{old_library.type.identifier}" if new_sample_pool != "x" else f"canceled_samples_{old_library.type.identifier}"
             if (new_library := libraries.get(library_name)) is None:
                 new_library = db.libraries.create(
                     name=library_name,
@@ -95,6 +95,8 @@ class SamplePoolingForm(HTMXFlaskForm):
                 libraries[library_name] = new_library
 
             new_library.features = old_library.features
+            if new_sample_pool == "x":
+                new_library.status = cats.LibraryStatus.FAILED
             db.libraries.update(new_library)
 
             for _, row in _df.iterrows():

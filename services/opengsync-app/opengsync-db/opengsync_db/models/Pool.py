@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 from . import links
-from ..categories import PoolStatus, PoolStatusEnum, PoolType, PoolTypeEnum, LibraryType, LibraryTypeEnum
+from ..categories import PoolStatus, PoolStatusEnum, PoolType, PoolTypeEnum, LibraryType, LibraryTypeEnum, MUXType, MUXTypeEnum
 from .Experiment import Experiment
 
 if TYPE_CHECKING:
@@ -81,6 +81,21 @@ class Pool(Base):
     warning_max_molarity: ClassVar[float] = 5.0
     error_min_molarity: ClassVar[float] = 0.5
     error_max_molarity: ClassVar[float] = 10.0
+
+    @property
+    def mux_types(self) -> list[MUXTypeEnum]:
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            return list(set(library.mux_type for library in self.libraries if library.mux_type is not None))
+        
+        from .Library import Library
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
+        
+        mux_type_ids = session.query(Library.mux_type_id).where(
+            Library.lab_prep_id == self.id
+        ).distinct().all()[0]
+
+        return [MUXType.get(mux_type_id) for mux_type_id in mux_type_ids if mux_type_id is not None]
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]

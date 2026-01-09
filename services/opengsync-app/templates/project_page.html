@@ -1,6 +1,7 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from "components/status_bar.jinja2" import project_status_bar with context %}
+{% from 'components/button.jinja2' import confirm_action_button %}
 
 {% extends "base.html" %}
 {% set active_page = "projects-page" %}
@@ -13,19 +14,15 @@
         <div class="page-controls">
             {% if current_user.is_insider() and project.status == ProjectStatus.PROCESSING %}
             <span {{ tooltip('Mark project and all samples in it completed.', category='success') }}>
-                <button hx-post="{{ url_for('projects_htmx.complete', project_id=project.id) }}" class="btn btn-success"
-                    _="on htmx:confirm(issueRequest)
-                    halt the event
-                    call Swal.fire({
-                        title: 'Complete project \'{{ project.title }}\'',
-                        showDenyButton: true,
-                        text: 'Do you want to proceed?',
-                        confirmButtonText: 'Yes',
-                        denyButtonText: 'No'
-                    })
-                    if result.isConfirmed issueRequest()">
-                    Complete Project
-                </button>
+                {{
+                    confirm_action_button(
+                        text="Complete Project",
+                        title='Complete project \'{{ project.title }}\'',
+                        url=url_for('projects_htmx.complete', project_id=project.id),
+                        container="button",
+                        method="hx-post",
+                    )
+                }}
             </span>
             {% endif %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" 
@@ -41,20 +38,17 @@
             {% if project.num_samples > 0 %}
             {{ tooltip('Project containing samples cannot be deleted.', category='danger') }}
             {% endif %}>
-                <button hx-delete="{{ url_for('projects_htmx.delete', project_id=project.id) }}" class="btn btn-danger"
-                    _="on htmx:confirm(issueRequest)
-                    halt the event
-                    call Swal.fire({
-                        title: 'Delete project \'{{ project.title }}\'',
-                        showDenyButton: true,
-                        text: 'Proceed?',
-                        confirmButtonText: 'Yes',
-                        denyButtonText: 'No'
-                    })
-                    if result.isConfirmed issueRequest()"
-                    {% if project.num_samples > 0 %}disabled{% endif %}>
-                    Delete Project
-                </button>
+                {{
+                    confirm_action_button(
+                        text="Delete Project",
+                        title='Delete project \'{{ project.title }}\'',
+                        url=url_for('projects_htmx.delete', project_id=project.id),
+                        container="button",
+                        class="btn btn-danger",
+                        method="hx-delete",
+                        disabled=project.num_samples > 0
+                    )
+                }}
             </span>
         </div>
     </div>

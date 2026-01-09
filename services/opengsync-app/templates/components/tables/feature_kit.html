@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="feature_kit-table" class="table-container">
@@ -17,8 +18,16 @@
             {% for feature_kit in feature_kits %}
             <tr>
                 <th scope="row">{{ feature_kit.id }}</th>
-                <td>{{ feature_kit.identifier }}</td>
-                <td><a href="{{ url_for('kits_page.feature_kit', feature_kit_id=feature_kit.id) }}">{{ feature_kit.name }}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": feature_kit.identifier, "label": "Copy Identifier"},
+                    ])
+                }}>{{ feature_kit.identifier }}</td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": feature_kit.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('kits_page.feature_kit', feature_kit_id=feature_kit.id) }}">{{ feature_kit.name }}</a></td>
                 <td>{{ feature_kit.type.name }}</td>
             </tr>
             {% endfor %}
