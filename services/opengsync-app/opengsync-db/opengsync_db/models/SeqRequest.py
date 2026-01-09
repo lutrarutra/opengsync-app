@@ -326,10 +326,11 @@ class SeqRequest(Base):
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
         
         mux_type_ids = session.query(Library.mux_type_id).where(
-            Library.seq_request_id == self.id
-        ).distinct().all()[0]
+            (Library.seq_request_id == self.id) &
+            Library.mux_type_id.isnot(None)
+        ).distinct().all()
 
-        return [MUXType.get(mux_type_id) for mux_type_id in mux_type_ids if mux_type_id is not None]
+        return [MUXType.get(mux_type_id) for (mux_type_id,) in mux_type_ids]
     
     @hybrid_property
     def library_type_counts(self) -> dict[LibraryTypeEnum, int]:

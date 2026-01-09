@@ -92,10 +92,11 @@ class Pool(Base):
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
         
         mux_type_ids = session.query(Library.mux_type_id).where(
-            Library.lab_prep_id == self.id
-        ).distinct().all()[0]
+            (Library.pool_id == self.id) &
+            Library.mux_type_id.isnot(None)
+        ).distinct().all()
 
-        return [MUXType.get(mux_type_id) for mux_type_id in mux_type_ids if mux_type_id is not None]
+        return [MUXType.get(mux_type_id) for (mux_type_id,) in mux_type_ids]
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
