@@ -1,5 +1,6 @@
 {% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="user-table" class="table-container">
@@ -18,8 +19,20 @@
             {% for user in users %}
             <tr>
                 <th scope="row">{{ user.id }}</th>
-                <td><a href="{{ url_for('users_page.user', user_id=user.id) }}">{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span>{% endif %}</a></td>
-                <td>{{ user.email }}</td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": user.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('users_page.user', user_id=user.id) }}">{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span>{% endif %}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": user.email, "label": "Copy Email"},
+                        {"type": "mailto", "label": "Send Email", "config": {
+                            "subject": "", 
+                            "recipient": user.email,
+                        },},
+                    ])
+                }}>{{ user.email }}</td>
                 <td>{{ user.role.icon }} {{ user.role.name }}</td>
                 <td>{{ user.num_seq_requests }}</td>
                 <td>{{ user.num_projects }}</td>

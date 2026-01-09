@@ -83,7 +83,9 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
                 LibraryType.TENX_MUX_OLIGO, LibraryType.TENX_CRISPR_SCREENING, LibraryType.TENX_VDJ_B, LibraryType.TENX_VDJ_T,
                 LibraryType.TENX_VDJ_T_GD, LibraryType.TENX_SC_ABC_FLEX
             ],
-        }[checklist_type]
+            LabChecklistType.ATAC_SEQ: [LibraryType.ATAC_SEQ],
+            LabChecklistType.TENX_MULTIOME: [LibraryType.TENX_SC_GEX_3PRIME, LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_MUX_OLIGO]
+        }.get(checklist_type, [])
     
     @classmethod
     def get_visium_library_types(cls) -> list[LibraryTypeEnum]:

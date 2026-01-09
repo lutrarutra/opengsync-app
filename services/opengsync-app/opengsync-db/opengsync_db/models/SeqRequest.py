@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from .Base import Base
-from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadTypeEnum, DataDeliveryMode, DataDeliveryModeEnum, SubmissionType, SubmissionTypeEnum, MediaFileType, LibraryType, LibraryTypeEnum
+from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadTypeEnum, DataDeliveryMode, DataDeliveryModeEnum, SubmissionType, SubmissionTypeEnum, MediaFileType, LibraryType, LibraryTypeEnum, MUXType, MUXTypeEnum
 from . import links
 
 if TYPE_CHECKING:
@@ -301,7 +301,7 @@ class SeqRequest(Base):
             DataPath.seq_request_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
-    @hybrid_property
+    @property
     def library_types(self) -> list[LibraryTypeEnum]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
@@ -315,6 +315,21 @@ class SeqRequest(Base):
         from .Library import Library
         type_ids = session.query(Library.type_id).filter(Library.seq_request_id == self.id).distinct().order_by(Library.type_id).all()
         return [LibraryType.get(type_id) for (type_id,) in type_ids]
+    
+    @property
+    def mux_types(self) -> list[MUXTypeEnum]:
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            return list(set(library.mux_type for library in self.libraries if library.mux_type is not None))
+        
+        from .Library import Library
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
+        
+        mux_type_ids = session.query(Library.mux_type_id).where(
+            Library.seq_request_id == self.id
+        ).distinct().all()[0]
+
+        return [MUXType.get(mux_type_id) for mux_type_id in mux_type_ids if mux_type_id is not None]
     
     @hybrid_property
     def library_type_counts(self) -> dict[LibraryTypeEnum, int]:

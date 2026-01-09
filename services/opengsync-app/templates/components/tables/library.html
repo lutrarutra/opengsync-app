@@ -1,6 +1,7 @@
 {% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
@@ -27,12 +28,20 @@
             {% for library in libraries %}
             <tr>
                 <th scope="row">{{ library.id }}</th>
-                <td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": library.name, "label": "Copy Name"},
+                    ])
+                }}>
                     <a href="{{ url_for('libraries_page.library', library_id=library.id) }}">
                         {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
                     </a>
                 </td>
-                <td>
+                <td {% if library.pool_id %}class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": library.pool.name, "label": "Copy Name"},
+                    ])
+                }}{% endif %}>
                 {% if library.pool_id %}
                     <a href="{{ url_for('pools_page.pool', pool_id=library.pool_id)}}">{{ library.pool.name }}</a>
                 {% endif %}
@@ -43,7 +52,11 @@
                     </span>
                 </td>
                 <td>{{ library.status.icon }} {{ library.status.name }}</td>
-                <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=library.seq_request_id) }}">{{ library.seq_request.name }}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": library.seq_request.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=library.seq_request_id) }}">{{ library.seq_request.name }}</a></td>
                 <td class="x-scroll-cell">
                     {{ library_index_cell(library) }}
                 </td>

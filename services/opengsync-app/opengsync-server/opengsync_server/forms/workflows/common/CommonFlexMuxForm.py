@@ -23,8 +23,21 @@ class CommonFlexMuxForm(MultiStepForm):
     def padded_barcode_id(s: int | str | None) -> str | None:
         if pd.isna(s):
             return None
-        number = ''.join(filter(str.isdigit, str(s)))
-        return f"BC{number.zfill(3)}"
+        barcode_numbers = str(s).split(";")
+        for i, bc in enumerate(barcode_numbers):
+            barcode_numbers[i] = f"BC{''.join(filter(str.isdigit, bc)).zfill(3)}"
+            
+        return ';'.join(sorted(barcode_numbers))
+    
+    @staticmethod
+    def is_valid_barcode(s: str | None) -> bool:
+        if pd.isna(s):
+            return True
+        
+        for bc in s.split(";"):
+            if bc not in CommonFlexMuxForm.allowed_barcodes:
+                return False
+        return True
 
     allowed_barcodes = [f"BC{i:03}" for i in range(1, 17)]
     mux_type = MUXType.TENX_FLEX_PROBE
@@ -129,10 +142,10 @@ class CommonFlexMuxForm(MultiStepForm):
         
         df = self.spreadsheet.df
 
-        duplicated = df.duplicated(subset=["sample_pool", "barcode_id"], keep=False)
+        duplicated = df.duplicated(subset=["sample_pool", "barcode_id"] if "sample_pool" in df.columns else ["barcode_id"], keep=False) & pd.notna(df["barcode_id"])
         
         for idx, row in df.iterrows():
-            if pd.notna(row["barcode_id"]) and row["barcode_id"] not in CommonFlexMuxForm.allowed_barcodes:
+            if pd.notna(row["barcode_id"]) and not CommonFlexMuxForm.is_valid_barcode(row["barcode_id"]):
                 self.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"'Barcode ID' must be one of: {', '.join(CommonFlexMuxForm.allowed_barcodes)}"))
 
             if duplicated.at[idx]:

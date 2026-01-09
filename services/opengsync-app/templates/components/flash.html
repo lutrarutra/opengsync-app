@@ -62,7 +62,7 @@
 <script>
     Swal.fire({
         title: {{ praise.title | tojson }},
-        html: {{ praise.html | tojson | safe }},
+        html: {{ praise.html | tojson | forceescape }},
         icon: 'success',
         confirmButtonText: 'Ok'
     });

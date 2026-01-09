@@ -45,6 +45,7 @@
                 <b>Notes:</b>
                 <ul>
                     <li>Required only when multiple samples are multiplexed into a library</li>
+                    <li>If you want to remove sample from a library (e.g. sample failed), specify <span class="code-highlight">x</span> as the Pool for the failed/canceled sample. New 'dummy'-library named 'canceled_samples_' will be created for these samples with status {{ LibraryStatus.FAILED.display_name }}.</li>
                 </ul>
             </div>
         </div>
@@ -93,6 +94,7 @@
                 <b>Notes:</b>
                 <ul>
                     <li>Only required when multiplexed Flex library is included in the prep.</li>
+                    <li>If sample contains more than one barcode, separate them with a semicolon <span class="code-highlight">;</span>.</li>
                 </ul>
             </div>
         </div>
