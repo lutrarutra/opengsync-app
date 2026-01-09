@@ -59,6 +59,8 @@ class DBHandler():
         from .blueprints.PandasBP import PandasBP
         from .blueprints.ProtocolBP import ProtocolBP
         from .blueprints.APITokenBP import APITokenBP
+        from .blueprints.FlowCellDesignBP import FlowCellDesignBP
+        from .blueprints.PoolDesignBP import PoolDesignBP
 
         self.seq_requests = SeqRequestBP("seq_requests", self)
         self.libraries = LibraryBP("libraries", self)
@@ -88,6 +90,8 @@ class DBHandler():
         self.data_paths = DataPathBP("data_paths", self)
         self.protocols = ProtocolBP("protocols", self)
         self.api_tokens = APITokenBP("api_tokens", self)
+        self.flow_cell_designs = FlowCellDesignBP("flow_cell_designs", self)
+        self.pool_designs = PoolDesignBP("pool_designs", self)
         self.pd = PandasBP("pd", self)
 
     def connect(

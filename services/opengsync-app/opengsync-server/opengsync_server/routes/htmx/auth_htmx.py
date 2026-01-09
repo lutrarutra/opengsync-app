@@ -17,7 +17,7 @@ def login(current_user: models.User | None):
     if current_user:
         return make_response(redirect=url_for("dashboard"))
     
-    dest = request.args.get("next", "/")
+    dest = request.args.get("next", None)
     if request.method == "GET":
         return forms.auth.LoginForm().make_response(next=dest)
     

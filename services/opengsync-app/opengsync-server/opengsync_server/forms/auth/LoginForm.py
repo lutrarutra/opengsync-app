@@ -27,7 +27,7 @@ class LoginForm(HTMXFlaskForm):
     def process_request(self, dest: str | None = None) -> Response:
         if not self.validate():
             return self.make_response()
-        
+
         # invalid email
         if (user := db.users.get_with_email(self.email.data)) is None:  # type: ignore
             self.email.errors = ("Invalid email or password.",)
@@ -49,4 +49,6 @@ class LoginForm(HTMXFlaskForm):
         runtime.app.session_interface.regenerate(runtime.session)  # type: ignore
 
         flash("Login successful.", "success")
+        if dest and dest.strip() == "/":
+            dest = None
         return make_response(redirect=dest or url_for("dashboard"))
