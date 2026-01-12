@@ -104,8 +104,6 @@ function createMenuItem(action, $contextElement) {
         text: action.label || formatActionLabel(action),
     });
 
-    console.log(action.active)
-
     if (action.disabled) {
         link.addClass('disabled');
     } else {
@@ -127,8 +125,6 @@ function hx_request(url, title, text, icon, swap, target, confirm, type) {
             swap: swap,
         });
     }
-
-    console.log(confirm);
 
     if (confirm) {
         Swal.fire({

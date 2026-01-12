@@ -112,7 +112,7 @@ def move_pool_design(current_user: models.User, pool_design_id: int, new_flow_ce
     pool_design.flow_cell_design = new_flow_cell_design
     db.flush()
     
-    return make_response(render_template(**logic.design.get_flow_cell_list_context(current_user, request)))
+    return make_response(redirect=url_for("design_page.design"))
 
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["GET", "POST"], arg_params=["todo_comment_id", "flow_cell_design_id", "pool_design_id"])
@@ -179,7 +179,7 @@ def delete_comment(current_user: models.User, todo_comment_id: int):
     db.session.delete(todo_comment)
     db.flush()
     
-    return make_response(render_template(**logic.design.get_flow_cell_list_context(current_user, request)))
+    return make_response(redirect=url_for("design_page.design"))
 
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["flow_cell_design_id", "flow_cell_type_id"])
@@ -197,7 +197,7 @@ def set_flow_cell_type(current_user: models.User, flow_cell_design_id: int, flow
     
     db.flow_cell_designs.update(flow_cell_design)
     
-    return make_response(render_template(**logic.design.get_flow_cell_list_context(current_user, request)))
+    return make_response(redirect=url_for("design_page.design"))
 
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["flow_cell_design_id"])

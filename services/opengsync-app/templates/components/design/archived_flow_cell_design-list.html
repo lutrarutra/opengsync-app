@@ -9,13 +9,13 @@
     <div class="accordion" id="archived-flow-cell-design-{{ design.id }}">
         <div class="accordion-item">
             <h2 class="accordion-header">
-                <button class="accordion-button cm-callback collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#archived-design-{{ design.id }}" aria-expanded="false" aria-controls="archived-design-{{ design.id }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#archived-design-{{ design.id }}" aria-expanded="false" aria-controls="archived-design-{{ design.id }}">
                     <div class="d-flex justify-content-between align-items-center w-100 px-1">
                         <div style="width: 30%;">
                             <b>{{ design.name }}</b>
                         </div>
                         <div style="width: 40%;">
-                            <div class="progress-bar-container cm-callback" {{ flow_cell_type_cm(design) }}>
+                            <div class="progress-bar-container">
                                 {% set m_reads_planned = design.num_m_reads %}
                                 {% set flow_cell = design.flow_cell_type %}
                                 {% set reads_used_pct = (m_reads_planned / flow_cell.max_m_reads) * 100 if m_reads_planned else 0 %}
