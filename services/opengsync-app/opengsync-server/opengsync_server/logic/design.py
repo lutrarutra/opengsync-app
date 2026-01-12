@@ -7,14 +7,14 @@ from ..core import exceptions
 
 def get_flow_cell_list_context(current_user: models.User, request: Request, archived: bool = False, **kwargs) -> dict:
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if not archived:
         template = "components/design/flow_cell_design-list.html"
     else:
         template = "components/design/archived_flow_cell_design-list.html"
     
-    flow_cell_designs, _ = db.flow_cell_designs.find(archived=archived, limit=None)
+    flow_cell_designs, _ = db.flow_cell_designs.find(archived=archived, limit=None, sort_by="id", descending=True)
     
     return {
         "template_name_or_list": template,
@@ -23,7 +23,7 @@ def get_flow_cell_list_context(current_user: models.User, request: Request, arch
 
 def get_pool_list_context(current_user: models.User, request: Request, flow_cell_design_id: int | None = None, **kwargs) -> dict:
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     orphan_pool_only = None
     if flow_cell_design_id is not None:
@@ -33,7 +33,7 @@ def get_pool_list_context(current_user: models.User, request: Request, flow_cell
         flow_cell_design = None
         orphan_pool_only = True
 
-    pool_designs, _ = db.pool_designs.find(flow_cell_design_id=flow_cell_design_id, orphan=orphan_pool_only)
+    pool_designs, _ = db.pool_designs.find(flow_cell_design_id=flow_cell_design_id, orphan=orphan_pool_only, sort_by="id", descending=True)
 
     return {
         "template_name_or_list": "components/design/pool_design-list.html",

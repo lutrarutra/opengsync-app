@@ -148,8 +148,9 @@ class FlowCellDesign(Base):
             selected_type = flow_cell_types[0]
 
             for fc_type in flow_cell_types:
-                current_diff = abs(fc_type.max_m_reads - num_m_reads)
-                if current_diff < diff:
+                current_diff = fc_type.max_m_reads - num_m_reads
+                fit = current_diff > 0 or abs(current_diff) / fc_type.max_m_reads < 0.1
+                if fit and current_diff < diff:
                     diff = current_diff
                     selected_type = fc_type
 

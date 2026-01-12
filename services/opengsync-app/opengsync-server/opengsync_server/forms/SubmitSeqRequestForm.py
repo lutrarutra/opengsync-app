@@ -25,7 +25,7 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
         validators=[OptionalValidator()], default=False
     )
     comment = TextAreaField(
-        "Additional Comment for Submission", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)],
+        "Additional Comment for Submission", validators=[OptionalValidator(), Length(max=4096)],
         description="You can provide any additional information regarding the submission here.",
     )
 

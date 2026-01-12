@@ -1,7 +1,7 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from 'components/spinner.jinja2' import spinner %}
 {% from 'components/design/comment-list.jinja2' import comment_list with context %}
-{% from 'components/button.jinja2' import confirm_action_button %}
+{% from 'components/button.jinja2' import confirm_action_button, xl_modal_button %}
 
 {% for pool_design in pool_designs %}
 <div class="pool-design" data-pool-design-id="{{ pool_design.id }}" {% if flow_cell_design %}data-original-flow-cell-design-id="{{ flow_cell_design.id }}"{% endif %}>
@@ -9,6 +9,15 @@
         <div class="row">
             <div class="col-4">
                 <b>{{ pool_design.name }}</b>
+                {{
+                    xl_modal_button(
+                        text='<i class="bi bi-pencil-square"></i>',
+                        hx_get=url_for('design_htmx.edit_pool_design', pool_design_id=pool_design.id),
+                        container="a",
+                        class="",
+                        tooltip='Edit Design'
+                    )
+                }}
                 {% if flow_cell_design %}
                 {{ 
                     confirm_action_button(

@@ -18,6 +18,21 @@
     {% else %}disabled{%endif%} {% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>{{ text }}</{{ container }}>
 {% endmacro %}
 
+{% macro sm_modal_button(text, container="button", class="btn btn-primary", disabled=false, hx_get=none, hx_post=none, hx_delete=none, tooltip=none, tooltip_category="primary", tooltip_position="top") %}
+<{{ container }} type="button" class="{{ class }}"
+data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content" hx-swap="innerHTML"
+{% if hx_get %}
+hx-get="{{ hx_get }}"
+{% elif hx_post %}
+hx-post="{{ hx_post }}"
+{% elif hx_delete %}
+hx-delete="{{ hx_delete }}"
+{% endif %}
+{% if disabled %}disabled{% endif %}>
+    <span {% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>{{ text }}</span>
+</{{ container }}>
+{% endmacro %}
+
 {% macro xl_modal_button(text, container="button", class="btn btn-primary", disabled=false, hx_get=none, hx_post=none, hx_delete=none, tooltip=none, tooltip_category="primary", tooltip_position="top") %}
 <{{ container }} type="button" class="{{ class }}"
 data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
@@ -28,9 +43,8 @@ hx-post="{{ hx_post }}"
 {% elif hx_delete %}
 hx-delete="{{ hx_delete }}"
 {% endif %}
-{% if disabled %}disabled{% endif %}
-{% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>
-    {{ text }}
+{% if disabled %}disabled{% endif %}>
+    <span {% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>{{ text }}</span>
 </{{ container }}>
 {% endmacro %}
 
@@ -44,8 +58,7 @@ hx-post="{{ hx_post }}"
 {% elif hx_delete %}
 hx-delete="{{ hx_delete }}"
 {% endif %}
-{% if disabled %}disabled{% endif %}
-{% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>
-    {{ text }}
+{% if disabled %}disabled{% endif %}>
+    <span {% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>{{ text }}</span>
 </{{ container }}>
 {% endmacro %}

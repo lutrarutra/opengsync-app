@@ -26,6 +26,11 @@ body.waiting * {
     }
 }
 
+.dropdown-menu .active {
+    background-color: $gray-200;
+    color: #000;
+}
+
 .swal2-container.swal2-top {
     .swal2-popup {
         display: flex !important;

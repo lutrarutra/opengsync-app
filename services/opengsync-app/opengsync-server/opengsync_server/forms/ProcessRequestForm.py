@@ -17,7 +17,7 @@ class ProcessRequestForm(HTMXFlaskForm):
 
     response_type = SelectField("Response", choices=[(-1, "")] + RequestResponse.as_selectable(), validators=[DataRequired()], default=None, coerce=int)
     notification_receiver = EmailField("Notification Email", validators=[OptionalValidator(), Length(max=models.User.email.type.length)])
-    notification_comment = TextAreaField("Notification Comment", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)])
+    notification_comment = TextAreaField("Notification Comment", validators=[OptionalValidator(), Length(max=4096)])
     assign_seq_request_to_me = BooleanField("Assign request to me", default=True)
 
     def __init__(self, seq_request: models.SeqRequest, formdata: dict | None = None):

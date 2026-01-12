@@ -41,15 +41,15 @@ def render_data_file(current_user: models.User, data_path_id: int):
     if not current_user.is_insider():
         if data_path.project is not None:
             if not db.projects.get_access_type(data_path.project, current_user) < AccessType.VIEW:
-                raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+                raise exceptions.NoPermissionsException()
         elif data_path.seq_request is not None:
             if not db.seq_requests.get_access_type(data_path.seq_request, current_user) < AccessType.VIEW:
-                raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+                raise exceptions.NoPermissionsException()
         elif data_path.library is not None:
             if not db.libraries.get_access_type(data_path.library, current_user) < AccessType.VIEW:
-                raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+                raise exceptions.NoPermissionsException()
         else:
-            raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+            raise exceptions.NoPermissionsException()
     
     path = Path(runtime.app.share_root) / data_path.path
     if not path.exists():
@@ -75,7 +75,7 @@ def share_path(current_user: models.User):
     from ...forms.workflows.share.AssociatePathForm import AssociatePathForm
 
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if (path := request.args.get("path")) is None:
         raise exceptions.BadRequestException("No path specified")
@@ -91,7 +91,7 @@ def share_path(current_user: models.User):
 @wrappers.htmx_route(files_htmx, db=db, login_required=True)
 def files(current_user: models.User, subpath: Path = Path(), page: int = 0):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if isinstance(subpath, str):
         subpath = Path(subpath)

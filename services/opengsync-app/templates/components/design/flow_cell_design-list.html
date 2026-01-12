@@ -1,6 +1,6 @@
 {% from 'components/spinner.jinja2' import spinner %}
 {% from 'components/tooltip.jinja2' import tooltip %}
-{% from 'components/button.jinja2' import confirm_action_button %}
+{% from 'components/button.jinja2' import confirm_action_button, sm_modal_button %}
 {% from "components/design/flow_cell_type_cm.jinja2" import flow_cell_type_cm with context %}
 {% from 'components/design/comment-list.jinja2' import comment_list with context %}
 
@@ -25,7 +25,7 @@
 
     {% for design in flow_cell_designs %}
     <div class="accordion" id="flow-cell-design-{{ design.id }}">
-        <div class="accordion-item">
+        <div class="accordion-item" id="flow-cell-design-item-{{ design.id }}">
             <h2 class="accordion-header">
                 <button class="accordion-button cm-callback" type="button" data-bs-toggle="collapse" data-bs-target="#design-{{ design.id }}" aria-expanded="true" aria-controls="design-{{ design.id }}">
                     <div class="d-flex justify-content-between align-items-center w-100 px-1">
@@ -60,14 +60,12 @@
                             </div>
                             <div>
                                 {{
-                                    confirm_action_button(
-                                        text='<i class="bi bi-trash"></i>',
-                                        title='Delete Flow Cell Design Permanently',
-                                        url=url_for('design_htmx.delete_flow_cell_design', flow_cell_design_id=design.id),
+                                    sm_modal_button(
+                                        text='<i class="bi bi-pencil-square"></i>',
+                                        hx_get=url_for('design_htmx.edit_flow_cell_design', flow_cell_design_id=design.id),
                                         container="a",
                                         class="",
-                                        method="hx-delete",
-                                        tooltip='Delete Design'
+                                        tooltip='Edit Design'
                                     )
                                 }}
                                 {{
@@ -79,6 +77,17 @@
                                         class="",
                                         method="hx-post",
                                         tooltip='Archive Design'
+                                    )
+                                }}
+                                {{
+                                    confirm_action_button(
+                                        text='<i class="bi bi-trash"></i>',
+                                        title='Delete Flow Cell Design Permanently',
+                                        url=url_for('design_htmx.delete_flow_cell_design', flow_cell_design_id=design.id),
+                                        container="a",
+                                        class="",
+                                        method="hx-delete",
+                                        tooltip='Delete Design'
                                     )
                                 }}
                             </div>
@@ -123,7 +132,39 @@
         el.dropSuccessful = false;
     }
 
+    
     $(function() {
+        $('.accordion-item').each(function () {
+            var $item = $(this);
+            var id = $item.attr('id');
+            if (!id) return;
+
+            var storageKey = 'flow-cell-design-accordion-' + id;
+            var $collapse = $item.find('.accordion-collapse');
+            var $button   = $item.find('.accordion-button');
+
+            // Load saved state
+            var saved = localStorage.getItem(storageKey);
+            if (saved === 'closed') {
+                $collapse.removeClass('show');
+                $button.attr('aria-expanded', 'false');
+            } else if (saved === 'open') {
+                $collapse.addClass('show');
+                $button.attr('aria-expanded', 'true');
+            }
+
+            // Save state when it changes
+            $collapse.on('shown.bs.collapse', function () {
+                localStorage.setItem(storageKey, 'open');
+            });
+
+            $collapse.on('hidden.bs.collapse', function () {
+                localStorage.setItem(storageKey, 'closed');
+            });
+
+            $item.find(".accordion-header .accordion-button").attr('aria-expanded', $collapse.hasClass('show') ? 'true' : 'false').removeClass("collapsed").addClass($collapse.hasClass('show') ? '' : 'collapsed');
+        });
+
         interact('.pool-design').draggable({
             autoScroll: true,
             listeners: {

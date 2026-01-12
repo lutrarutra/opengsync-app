@@ -100,9 +100,11 @@ function init_context_menu_callbacks() {
 function createMenuItem(action, $contextElement) {
     const li = $('<li>');
     const link = $('<button>', {
-        class: 'dropdown-item',
+        class: 'dropdown-item' + (action.active ? ' active' : ''),
         text: action.label || formatActionLabel(action),
     });
+
+    console.log(action.active)
 
     if (action.disabled) {
         link.addClass('disabled');

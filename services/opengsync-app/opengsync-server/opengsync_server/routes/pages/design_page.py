@@ -10,7 +10,7 @@ design_page_bp = Blueprint("design_page", __name__)
 @wrappers.page_route(design_page_bp, db=db, cache_timeout_seconds=60)
 def design(current_user: models.User):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     num_flowcell_designs = db.session.query(models.FlowCellDesign).filter(
         models.FlowCellDesign.task_status_id < cats.TaskStatus.COMPLETED.id
