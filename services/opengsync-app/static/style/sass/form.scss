@@ -6,6 +6,28 @@
     }
 }
 
+input.disabled,
+textarea.disabled {
+    background-color: var(--bs-secondary-bg);
+    opacity: 1;
+    box-shadow: none;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    cursor: not-allowed;
+}
+
+input.disabled:focus,
+textarea.disabled:focus {
+    box-shadow: none;
+    background-color: var(--bs-secondary-bg);
+    border: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+.display-form {
+    input.disabled {
+        background-color: $white;
+    }
+}
+
 .form-group {
     padding: 0 5px 0 5px;
     margin: 0;

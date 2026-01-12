@@ -231,8 +231,16 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                         for library in pool.libraries:
                             library.status = LibraryStatus.SEQUENCED
             
-            # This should not happen
+            # if run folder was removed and then added back, e.g. maintenance.
             if run.status == RunStatus.ARCHIVED:
+                run.status = RunStatus.FINISHED
+                if run.experiment is not None:
+                    run.experiment.status = ExperimentStatus.SEQUENCED
+                    for pool in run.experiment.pools:
+                        pool.status = PoolStatus.SEQUENCED
+                        for library in pool.libraries:
+                            library.status = LibraryStatus.SEQUENCED
+                db.seq_runs.update(run)
                 continue
             
             metrics = parse_metrics(run_folder)
@@ -288,6 +296,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                         pool.status = PoolStatus.SEQUENCED
                         for library in pool.libraries:
                             library.status = LibraryStatus.SEQUENCED
+                            
             elif run.status == RunStatus.RUNNING:
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.SEQUENCING
