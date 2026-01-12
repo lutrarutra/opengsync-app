@@ -18,7 +18,7 @@ class PoolDesignForm(HTMXFlaskForm):
     i1_cycles = IntegerField("I1 Cycles", validators=[DataRequired()])
     i2_cycles = IntegerField("I2 Cycles", validators=[DataRequired()])
     r2_cycles = IntegerField("R2 Cycles", validators=[DataRequired()])
-    num_requested_reads_millions = FloatField("Number of Requested Reads (Millions)", validators=[DataRequired()], description="Number of requested reads in millions for the pool design.")
+    num_m_requested_reads = FloatField("Number of Requested Reads (Millions)", validators=[DataRequired()], description="Number of requested reads in millions for the pool design.")
 
     def __init__(
         self,
@@ -28,6 +28,18 @@ class PoolDesignForm(HTMXFlaskForm):
         super().__init__(formdata=formdata)
         self.pool_design = pool_design
         self._context["pool_design"] = pool_design
+
+    def prepare(self) -> None:
+        if self.formdata:
+            return
+        if not self.pool_design:
+            return
+        self.pool_design_name.data = self.pool_design.name
+        self.r1_cycles.data = self.pool_design.cycles_r1
+        self.r2_cycles.data = self.pool_design.cycles_r2
+        self.i1_cycles.data = self.pool_design.cycles_i1
+        self.i2_cycles.data = self.pool_design.cycles_i2
+        self.num_m_requested_reads.data = self.pool_design.num_m_requested_reads
         
     def validate(self) -> bool:
         if not super().validate():
@@ -40,7 +52,7 @@ class PoolDesignForm(HTMXFlaskForm):
             raise exceptions.InternalServerErrorException("Pool design must be set when editing an existing pool design.")
 
         self.pool_design.name = self.pool_design_name.data  # type: ignore
-        self.pool_design.num_requested_reads_millions = self.num_requested_reads_millions.data  # type: ignore
+        self.pool_design.num_m_requested_reads = self.num_m_requested_reads.data  # type: ignore
         self.pool_design.cycles_r1 = self.r1_cycles.data  # type: ignore
         self.pool_design.cycles_i1 = self.i1_cycles.data  # type: ignore
         self.pool_design.cycles_r2 = self.r2_cycles.data  # type: ignore
@@ -54,7 +66,7 @@ class PoolDesignForm(HTMXFlaskForm):
     def __create_new_pool_design(self) -> Response:
         new_pool_design = db.pool_designs.create(
             name=self.pool_design_name.data,  # type: ignore
-            num_m_requested_reads=self.num_requested_reads_millions.data,  # type: ignore
+            num_m_requested_reads=self.num_m_requested_reads.data,  # type: ignore
             cycles_r1=self.r1_cycles.data,  # type: ignore
             cycles_i1=self.i1_cycles.data,  # type: ignore
             cycles_r2=self.r2_cycles.data,  # type: ignore

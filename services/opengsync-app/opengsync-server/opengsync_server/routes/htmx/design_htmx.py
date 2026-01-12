@@ -21,7 +21,7 @@ def archived_flow_cells(current_user: models.User):
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["pool_design_id"])
 def create_flow_cell_design(current_user: models.User, pool_design_id: int):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if (pool_design := db.pool_designs.get(pool_design_id)) is None:
         raise exceptions.NotFoundException("Pool Design not found")
@@ -29,12 +29,13 @@ def create_flow_cell_design(current_user: models.User, pool_design_id: int):
     if textgen is None:
         name = f"Flow Cell Design {db.session.query(models.FlowCellDesign).count() + 1}"
     else:
+        recent_names = db.session.query(models.FlowCellDesign.name).order_by(models.FlowCellDesign.id.desc()).limit(5).all()
         name = textgen.generate(
-            "Come up with a short unique animal-themed name. It can be two or more words, like Small Whale or Lazy Otter. Reply only with the name. No special characters.",
+            f"Create a simple animal-themed name. Use a combination of simple adjectives and animal names. It can be two or more words, like Small Whale, Smart Kitten, Loyal Dog, Idiot Mouse, or Lazy Otter etc... Reply only with the name. No special characters. Recently used names: {', '.join([n[0] for n in recent_names])}",
         ) or f"Flow Cell Design {db.session.query(models.FlowCellDesign).count() + 1}"
 
     flow_cell_design = db.flow_cell_designs.create(
-        name=name,
+        name=name[:models.FlowCellDesign.name.type.length],
     )
     flow_cell_design.pool_designs = [pool_design]
     db.flow_cell_designs.update(flow_cell_design)
@@ -44,7 +45,7 @@ def create_flow_cell_design(current_user: models.User, pool_design_id: int):
 @wrappers.htmx_route(design_htmx, db=db, methods=["GET", "POST"])
 def create_pool_design(current_user: models.User):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     form = forms.models.PoolDesignForm(pool_design=None, formdata=request.form)
     if request.method == "POST":
@@ -56,7 +57,7 @@ def create_pool_design(current_user: models.User):
 @wrappers.htmx_route(design_htmx, db=db, methods=["DELETE"])
 def delete_pool_design(current_user: models.User, pool_design_id: int):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if (pool_design := db.session.get(models.PoolDesign, pool_design_id)) is None:
         raise exceptions.NotFoundException("Pool Design not found")
@@ -70,7 +71,7 @@ def delete_pool_design(current_user: models.User, pool_design_id: int):
 @wrappers.htmx_route(design_htmx, db=db, methods=["DELETE"])
 def remove_pool_design(current_user: models.User, pool_design_id: int):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if (pool_design := db.pool_designs.get(pool_design_id)) is None:
         raise exceptions.NotFoundException("Pool Design not found")
@@ -84,7 +85,7 @@ def remove_pool_design(current_user: models.User, pool_design_id: int):
 @wrappers.htmx_route(design_htmx, db=db, methods=["DELETE"])
 def delete_flow_cell_design(current_user: models.User, flow_cell_design_id: int):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if (flow_cell_design := db.flow_cell_designs.get(flow_cell_design_id)) is None:
         raise exceptions.NotFoundException("Flow Cell Design not found")
@@ -100,7 +101,7 @@ def delete_flow_cell_design(current_user: models.User, flow_cell_design_id: int)
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["pool_design_id", "new_flow_cell_design_id"])
 def move_pool_design(current_user: models.User, pool_design_id: int, new_flow_cell_design_id: int):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if (pool_design := db.pool_designs.get(pool_design_id)) is None:
         raise exceptions.NotFoundException("Pool Design not found")
@@ -117,7 +118,7 @@ def move_pool_design(current_user: models.User, pool_design_id: int, new_flow_ce
 @wrappers.htmx_route(design_htmx, db=db, methods=["GET", "POST"], arg_params=["todo_comment_id", "flow_cell_design_id", "pool_design_id"])
 def comment_form(current_user: models.User, todo_comment_id: int | None = None, flow_cell_design_id: int | None = None, pool_design_id: int | None = None):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     todo_comment = None
     flow_cell_design = None
@@ -151,7 +152,7 @@ def comment_form(current_user: models.User, todo_comment_id: int | None = None, 
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["todo_comment_id", "new_status_id"])
 def edit_comment_status(current_user: models.User, todo_comment_id: int, new_status_id: int | None):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if (todo_comment := db.session.get(models.TODOComment, todo_comment_id)) is None:
         raise exceptions.NotFoundException("TODO Comment not found")
@@ -170,7 +171,7 @@ def render_pool_designs(current_user: models.User, flow_cell_design_id: int | No
 @wrappers.htmx_route(design_htmx, db=db, methods=["DELETE"], arg_params=["todo_comment_id"])
 def delete_comment(current_user: models.User, todo_comment_id: int):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if (todo_comment := db.session.get(models.TODOComment, todo_comment_id)) is None:
         raise exceptions.NotFoundException("TODO Comment not found")
@@ -184,7 +185,7 @@ def delete_comment(current_user: models.User, todo_comment_id: int):
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["flow_cell_design_id", "flow_cell_type_id"])
 def set_flow_cell_type(current_user: models.User, flow_cell_design_id: int, flow_cell_type_id: int):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if (flow_cell_design := db.flow_cell_designs.get(flow_cell_design_id)) is None:
         raise exceptions.NotFoundException("Flow Cell Design not found")
@@ -202,7 +203,7 @@ def set_flow_cell_type(current_user: models.User, flow_cell_design_id: int, flow
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["flow_cell_design_id"])
 def archive_flow_cell_design(current_user: models.User, flow_cell_design_id: int):
     if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+        raise exceptions.NoPermissionsException()
     
     if (flow_cell_design := db.flow_cell_designs.get(flow_cell_design_id)) is None:
         raise exceptions.NotFoundException("Flow Cell Design not found")
@@ -211,3 +212,35 @@ def archive_flow_cell_design(current_user: models.User, flow_cell_design_id: int
     db.flow_cell_designs.update(flow_cell_design)
 
     return make_response(redirect=url_for("design_page.design"))
+
+
+@wrappers.htmx_route(design_htmx, db=db, methods=["GET", "POST"])
+def edit_flow_cell_design(current_user: models.User, flow_cell_design_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (flow_cell_design := db.flow_cell_designs.get(flow_cell_design_id)) is None:
+        raise exceptions.NotFoundException("Flow Cell Design not found")
+    
+    if request.method == "GET":
+        form = forms.models.FlowCellDesignForm(flow_cell_design)
+        return form.make_response()
+    
+    form = forms.models.FlowCellDesignForm(flow_cell_design, formdata=request.form)
+    return form.process_request()
+
+
+@wrappers.htmx_route(design_htmx, db=db, methods=["GET", "POST"])
+def edit_pool_design(current_user: models.User, pool_design_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (pool_design := db.pool_designs.get(pool_design_id)) is None:
+        raise exceptions.NotFoundException("Pool Design not found")
+    
+    if request.method == "GET":
+        form = forms.models.PoolDesignForm(pool_design)
+        return form.make_response()
+    
+    form = forms.models.PoolDesignForm(pool_design, formdata=request.form)
+    return form.process_request()

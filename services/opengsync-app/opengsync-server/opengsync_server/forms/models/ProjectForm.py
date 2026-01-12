@@ -17,9 +17,9 @@ from ..SearchBar import OptionalSearchBar
 class ProjectForm(HTMXFlaskForm):
     _template_path = "forms/project.html"
 
-    identifier = StringField("Identifier", validators=[OptionalValidator(), Length(min=1, max=models.Project.identifier.type.length)], description="Identifier of the project. It must be unique across all projects.")
+    identifier = StringField("Identifier", validators=[OptionalValidator(), Length(max=models.Project.identifier.type.length)], description="Identifier of the project. It must be unique across all projects.")
     title = StringField("Title", validators=[DataRequired(), Length(min=6, max=models.Project.title.type.length)], description="Title of the project")
-    description = TextAreaField("Description", validators=[DataRequired(), Length(min=1, max=models.Project.description.type.length)])
+    description = TextAreaField("Description", validators=[DataRequired(), Length(max=2048)])
     status = SelectField("Status", choices=ProjectStatus.as_selectable(), coerce=int, default=ProjectStatus.DRAFT.id, description="Status of the project")
     group = FormField(OptionalSearchBar, label="Group", description="Group to which the project belongs. All users of that group will be able to see this project.")
 

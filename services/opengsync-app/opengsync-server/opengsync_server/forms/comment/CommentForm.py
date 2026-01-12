@@ -10,7 +10,7 @@ class CommentForm(HTMXFlaskForm):
     _template_path = "components/popups/comment-form.html"
     _form_label = "comment_form"
 
-    comment = TextAreaField("Comment", validators=[DataRequired(), Length(max=models.Comment.text.type.length)])
+    comment = TextAreaField("Comment", validators=[DataRequired(), Length(max=4096)])
 
     def validate(self) -> bool:
         return super().validate()

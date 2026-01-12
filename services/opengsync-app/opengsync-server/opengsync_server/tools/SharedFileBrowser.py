@@ -78,7 +78,7 @@ class SharedFileBrowser:
         Returns list of DAVResponse objects.
         """
         if not self._is_safe(subpath):
-            raise exceptions.NoPermissionsException("You do not have permissions to access this resource")
+            raise exceptions.NoPermissionsException()
 
         full_path = self.root_dir / subpath
 

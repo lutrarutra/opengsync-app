@@ -2,7 +2,7 @@
 
 <div class="modal-content" id="pool-design-form-container">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >Create Pool Design</h1>
+        <h1 class="modal-title fs-5" >{% if form.pool_design %}Edit{% else %}Create{% endif %} Pool Design</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
@@ -10,7 +10,7 @@
             {{ form.csrf_token() }}
             <div class="row">
                 <div class="col-6">{{ form_group(form.pool_design_name) }}</div>
-                <div class="col-6">{{ form_group(form.num_requested_reads_millions, unit="M") }}</div>
+                <div class="col-6">{{ form_group(form.num_m_requested_reads, unit="M") }}</div>
             </div>
             <div class="row">
                 <div class="col-3">{{ form_group(form.r1_cycles) }}</div>
@@ -28,7 +28,11 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-success"
+            {% if form.pool_design %}
+            hx-post="{{ url_for('design_htmx.edit_pool_design', pool_design_id=form.pool_design.id) }}"
+            {% else %}
             hx-post="{{ url_for('design_htmx.create_pool_design') }}"
+            {% endif %}
             hx-include="#pool-design-form"
             hx-target="#pool-design-form-container"
             hx-swap="outerHTML">Add</button>

@@ -27,7 +27,7 @@ class OpenSTAnnotationForm(MultiStepForm):
         TextColumn("image", "Image", 170, max_length=512, required=True),
     ]
 
-    instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=models.Comment.text.type.length)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
+    instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=4096)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:

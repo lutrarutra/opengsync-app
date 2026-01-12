@@ -55,7 +55,7 @@ class SelectServiceForm(MultiStepForm):
     _step_name = "select_service"
 
     service_type = SelectField("Service Type", choices=[(-1, "Select Service")] + ServiceType.as_selectable(), validators=[OptionalValidator()], coerce=int, default=-1)
-    additional_info = TextAreaField("Additional Information", validators=[OptionalValidator(), Length(max=models.Comment.text.type.length)])
+    additional_info = TextAreaField("Additional Information", validators=[OptionalValidator(), Length(max=4096)])
     optional_assays = FormField(OptionalAssaysForm)
     additional_services = FormField(AdditionalSerevicesForm)
 

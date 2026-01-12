@@ -18,7 +18,7 @@ class ProjectSelectForm(MultiStepForm):
 
     existing_project = FormField(OptionalSearchBar, label="Select Existing Project")
     new_project = StringField("Create New Project", validators=[OptionalValidator(), Length(min=6, max=models.Project.title.type.length)])
-    project_description = TextAreaField("Project Description", validators=[OptionalValidator(), Length(max=models.Project.description.type.length)], description="New projects only: brief context/background of the project.")
+    project_description = TextAreaField("Project Description", validators=[OptionalValidator(), Length(max=2048)], description="New projects only: brief context/background of the project.")
     set_requestor_as_owner = BooleanField(default=True)
 
     def __init__(self, seq_request: models.SeqRequest, formdata: dict | None = None, uuid: str | None = None):

@@ -32,7 +32,7 @@ class Project(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     identifier: Mapped[str | None] = mapped_column(sa.String(16), default=None, nullable=True, index=True)
     title: Mapped[str] = mapped_column(sa.String(128), nullable=False, index=True)
-    description: Mapped[str | None] = mapped_column(sa.String(1024), default=None, nullable=True)
+    description: Mapped[str | None] = mapped_column(sa.Text, default=None, nullable=True)
 
     timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 

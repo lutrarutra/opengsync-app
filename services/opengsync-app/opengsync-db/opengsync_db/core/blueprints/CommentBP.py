@@ -39,7 +39,7 @@ class CommentBP(DBBlueprint):
             raise exceptions.ElementDoesNotExist(f"User with id '{author_id}', not found.")
 
         comment = models.Comment(
-            text=text.strip()[:models.Comment.text.type.length],
+            text=text.strip()[:4096],
             author_id=author_id,
             file_id=file_id,
             experiment_id=experiment_id,
