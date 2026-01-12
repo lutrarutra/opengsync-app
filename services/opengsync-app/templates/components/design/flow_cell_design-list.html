@@ -131,130 +131,131 @@
         el.style.margin = '';
         el.dropSuccessful = false;
     }
-
     
     $(function() {
-        $('.accordion-item').each(function () {
-            var $item = $(this);
-            var id = $item.attr('id');
-            if (!id) return;
+        load_interactjs().then(() => {
+            $('.accordion-item').each(function () {
+                var $item = $(this);
+                var id = $item.attr('id');
+                if (!id) return;
 
-            var storageKey = 'flow-cell-design-accordion-' + id;
-            var $collapse = $item.find('.accordion-collapse');
-            var $button   = $item.find('.accordion-button');
+                var storageKey = 'flow-cell-design-accordion-' + id;
+                var $collapse = $item.find('.accordion-collapse');
+                var $button   = $item.find('.accordion-button');
 
-            // Load saved state
-            var saved = localStorage.getItem(storageKey);
-            if (saved === 'closed') {
-                $collapse.removeClass('show');
-                $button.attr('aria-expanded', 'false');
-            } else if (saved === 'open') {
-                $collapse.addClass('show');
-                $button.attr('aria-expanded', 'true');
-            }
+                // Load saved state
+                var saved = localStorage.getItem(storageKey);
+                if (saved === 'closed') {
+                    $collapse.removeClass('show');
+                    $button.attr('aria-expanded', 'false');
+                } else if (saved === 'open') {
+                    $collapse.addClass('show');
+                    $button.attr('aria-expanded', 'true');
+                }
 
-            // Save state when it changes
-            $collapse.on('shown.bs.collapse', function () {
-                localStorage.setItem(storageKey, 'open');
+                // Save state when it changes
+                $collapse.on('shown.bs.collapse', function () {
+                    localStorage.setItem(storageKey, 'open');
+                });
+
+                $collapse.on('hidden.bs.collapse', function () {
+                    localStorage.setItem(storageKey, 'closed');
+                });
+
+                $item.find(".accordion-header .accordion-button").attr('aria-expanded', $collapse.hasClass('show') ? 'true' : 'false').removeClass("collapsed").addClass($collapse.hasClass('show') ? '' : 'collapsed');
             });
 
-            $collapse.on('hidden.bs.collapse', function () {
-                localStorage.setItem(storageKey, 'closed');
-            });
+            interact('.pool-design').draggable({
+                autoScroll: true,
+                listeners: {
+                    start(event) {
+                        const el = event.target;
+                        el.style.position = 'relative';
+                        el.style.zIndex = 1000;
+                    },
+                    move: dragMoveListener,
+                    end(event) {
+                        const el = event.target;
+                        if (!el.dropSuccessful) {
+                            resetDraggable(el);
+                        }
+                    }
+                }
+            }).styleCursor(false);
 
-            $item.find(".accordion-header .accordion-button").attr('aria-expanded', $collapse.hasClass('show') ? 'true' : 'false').removeClass("collapsed").addClass($collapse.hasClass('show') ? '' : 'collapsed');
-        });
-
-        interact('.pool-design').draggable({
-            autoScroll: true,
-            listeners: {
-                start(event) {
-                    const el = event.target;
-                    el.style.position = 'relative';
-                    el.style.zIndex = 1000;
+            interact('.pool-design-container').dropzone({
+                accept: '.pool-design',
+                overlap: 'pointer', 
+                ondropactivate(event) {
+                    event.target.classList.add('drop-active');
                 },
-                move: dragMoveListener,
-                end(event) {
-                    const el = event.target;
-                    if (!el.dropSuccessful) {
-                        resetDraggable(el);
-                    }
-                }
-            }
-        }).styleCursor(false);
+                ondragenter(event) {
+                    event.target.classList.add('drop-target');
+                    event.relatedTarget.classList.add('can-drop');
+                },
+                ondragleave(event) {
+                    event.target.classList.remove('drop-target');
+                    event.relatedTarget.classList.remove('can-drop');
+                },
+                ondrop(event) {
+                    const dragged = event.relatedTarget;
+                    const dropzone = event.target;
+                    
+                    dragged.dropSuccessful = true;
 
-        interact('.pool-design-container').dropzone({
-            accept: '.pool-design',
-            overlap: 'pointer', 
-            ondropactivate(event) {
-                event.target.classList.add('drop-active');
-            },
-            ondragenter(event) {
-                event.target.classList.add('drop-target');
-                event.relatedTarget.classList.add('can-drop');
-            },
-            ondragleave(event) {
-                event.target.classList.remove('drop-target');
-                event.relatedTarget.classList.remove('can-drop');
-            },
-            ondrop(event) {
-                const dragged = event.relatedTarget;
-                const dropzone = event.target;
-                
-                dragged.dropSuccessful = true;
+                    // Move in DOM *before* resetting styles
+                    const siblings = Array.from(dropzone.querySelectorAll('.pool-design')).filter(el => el !== dragged);
+                    const containerRect = dropzone.getBoundingClientRect();
+                    const yInContainer = event.dragEvent.clientY - containerRect.top + dropzone.scrollTop;
+                    
+                    let insertBefore = null;
+                    let cum = 0;
 
-                // Move in DOM *before* resetting styles
-                const siblings = Array.from(dropzone.querySelectorAll('.pool-design')).filter(el => el !== dragged);
-                const containerRect = dropzone.getBoundingClientRect();
-                const yInContainer = event.dragEvent.clientY - containerRect.top + dropzone.scrollTop;
-                
-                let insertBefore = null;
-                let cum = 0;
-
-                for (const sib of siblings) {
-                    const h = sib.getBoundingClientRect().height;
-                    if (yInContainer < cum + h / 2) {
-                        insertBefore = sib;
-                        break;
-                    }
-                    cum += h;
-                }
-
-                if (insertBefore) {
-                    dropzone.insertBefore(dragged, insertBefore);
-                } else {
-                    dropzone.appendChild(dragged);
-                }
-
-                resetDraggable(dragged);
-
-                const pool_design_id = parseInt(dragged.getAttribute('data-pool-design-id'));
-                const flow_cell_design_id = parseInt(dropzone.getAttribute('data-flow-cell-design-id'));
-                const original_flow_cell_design_id = parseInt(dragged.getAttribute('data-original-flow-cell-design-id'));
-
-                if (flow_cell_design_id == -1) {
-                    htmx.ajax("POST", "{{ url_for('design_htmx.create_flow_cell_design') }}", {
-                        target: "#flow-cell-design-list",
-                        swap: "outerHTML",
-                        values: {
-                            pool_design_id: pool_design_id,
+                    for (const sib of siblings) {
+                        const h = sib.getBoundingClientRect().height;
+                        if (yInContainer < cum + h / 2) {
+                            insertBefore = sib;
+                            break;
                         }
-                    });
-                } else if (original_flow_cell_design_id !== flow_cell_design_id) {
-                    htmx.ajax("POST", "{{ url_for('design_htmx.move_pool_design') }}", {
-                        target: "#flow-cell-design-list",
-                        swap: "outerHTML",
-                        values: {
-                            pool_design_id: pool_design_id,
-                            new_flow_cell_design_id: flow_cell_design_id
-                        }
-                    });
+                        cum += h;
+                    }
+
+                    if (insertBefore) {
+                        dropzone.insertBefore(dragged, insertBefore);
+                    } else {
+                        dropzone.appendChild(dragged);
+                    }
+
+                    resetDraggable(dragged);
+
+                    const pool_design_id = parseInt(dragged.getAttribute('data-pool-design-id'));
+                    const flow_cell_design_id = parseInt(dropzone.getAttribute('data-flow-cell-design-id'));
+                    const original_flow_cell_design_id = parseInt(dragged.getAttribute('data-original-flow-cell-design-id'));
+
+                    if (flow_cell_design_id == -1) {
+                        htmx.ajax("POST", "{{ url_for('design_htmx.create_flow_cell_design') }}", {
+                            target: "#flow-cell-design-list",
+                            swap: "outerHTML",
+                            values: {
+                                pool_design_id: pool_design_id,
+                            }
+                        });
+                    } else if (original_flow_cell_design_id !== flow_cell_design_id) {
+                        htmx.ajax("POST", "{{ url_for('design_htmx.move_pool_design') }}", {
+                            target: "#flow-cell-design-list",
+                            swap: "outerHTML",
+                            values: {
+                                pool_design_id: pool_design_id,
+                                new_flow_cell_design_id: flow_cell_design_id
+                            }
+                        });
+                    }
+                },
+                ondropdeactivate(event) {
+                    event.target.classList.remove('drop-active');
+                    event.target.classList.remove('drop-target');
                 }
-            },
-            ondropdeactivate(event) {
-                event.target.classList.remove('drop-active');
-                event.target.classList.remove('drop-target');
-            }
+            });
         });
     });
 </script>

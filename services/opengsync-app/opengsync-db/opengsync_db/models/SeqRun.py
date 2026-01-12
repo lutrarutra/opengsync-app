@@ -99,24 +99,7 @@ class SeqRun(Base):
 
     @property
     def cycles_str(self) -> str:
-        res = f"{self.r1_cycles}"
-        
-        if self.i1_cycles is not None:
-            res += f"-{self.i1_cycles}"
-        else:
-            res += "-0"
-        
-        if self.i2_cycles is not None:
-            res += f"-{self.i2_cycles}"
-        else:
-            res += "-0"
-
-        if self.r2_cycles is not None:
-            res += f"-{self.r2_cycles}"
-        else:
-            res += "-0"
-
-        return res
+        return f"{self.r1_cycles}-{self.i1_cycles or 0}-{self.i2_cycles or 0}-{self.r2_cycles or 0}"
     
     def __str__(self) -> str:
         return f"SeqRun(id={self.id}, experiment_name={self.experiment_name}, status={self.status}, read_type={self.read_type})"
