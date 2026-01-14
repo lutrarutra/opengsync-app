@@ -1150,18 +1150,16 @@ class PandasBP(DBBlueprint):
             models.links.SeqRequestDeliveryEmailLink.email.label("email"),
             models.links.SeqRequestDeliveryEmailLink.status_id.label("status_id"),
         ).where(
-            sa.and_(
-                models.links.SeqRequestDeliveryEmailLink.seq_request_id.in_(
-                    sa.select(sa.func.max(models.SeqRequest.id)).where(
-                        sa.exists().where(
-                            (models.Sample.project_id == project_id) &
-                            (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
-                            (models.Library.id == models.links.SampleLibraryLink.library_id) &
-                            (models.Library.seq_request_id == models.SeqRequest.id)
-                        )
-                    ).group_by(models.SeqRequest.id)
+            models.links.SeqRequestDeliveryEmailLink.seq_request_id == sa.select(
+                sa.func.max(models.SeqRequest.id)
+            ).where(
+                sa.exists().where(
+                    (models.Sample.project_id == project_id) &
+                    (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                    (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                    (models.Library.seq_request_id == models.SeqRequest.id)
                 )
-            )
+            ).scalar_subquery()
         )
         df = pd.read_sql(query, self.db._engine)
         df["status"] = df["status_id"].map(categories.DeliveryStatus.get)

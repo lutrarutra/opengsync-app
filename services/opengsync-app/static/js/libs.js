@@ -2,6 +2,7 @@
 let _jspreadsheetLoadPromise = null;
 let _univerLoadPromise = null;
 let _plotlyLoadPromise = null;
+let _interactjsLoadPromise = null;
 
 async function load_univer() {
     if (window.Univer && window.React && window.ECharts) {
@@ -92,6 +93,30 @@ function load_plotly() {
     return _plotlyLoadPromise;
 }
 
+function load_interactjs() {
+    if (typeof interact !== 'undefined') {
+        console.log("Interact.js is already loaded.");
+        return Promise.resolve(interact);
+    }
+    if (_interactjsLoadPromise) {
+        return _interactjsLoadPromise;
+    }
+    _interactjsLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js";
+        script.async = true;
+        script.onload = () => {
+            resolve(window.interact);
+        };
+        script.onerror = (err) => {
+            _interactjsLoadPromise = null;
+            reject(new Error('Failed to load interact.js script'));
+        };
+        document.head.appendChild(script);
+    });
+    console.log("Loading interact.js script...");
+    return _interactjsLoadPromise;
+}
 
 async function load_jspreadsheet(src) {
     if (window.jspreadsheet && window.jSuites) {
