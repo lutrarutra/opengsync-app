@@ -25,7 +25,7 @@ class OCMMuxForm(MultiStepForm):
             return None
         barcode_numbers = str(s).split(";")
         for i, bc in enumerate(barcode_numbers):
-            barcode_numbers[i] = f"OB{''.join(filter(str.isdigit, bc)).zfill(3)}"
+            barcode_numbers[i] = f"OB{''.join(filter(str.isdigit, bc))}"
             
         return ';'.join(sorted(barcode_numbers))
     
