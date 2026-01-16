@@ -146,13 +146,13 @@ function hx_request(url, title, text, icon, swap, target, confirm, type) {
 
 
 function handleContextMenuAction(action, $contextElement) {
+    var show_modal = action.show_modal;
     const handlers = {
         copy: (action) => {
             copy_to_clipboard(action.value);
         },
         mailto: (action) => {
             const config = action.config;
-            // Open mailto link
             window.location.href = `mailto:${encodeURIComponent(config.recipient || '')}?subject=${encodeURIComponent(config.subject || '')}`;
         },
         hxdelete: (action) => {
@@ -195,6 +195,10 @@ function handleContextMenuAction(action, $contextElement) {
             );
         }
     };
+
+    if (show_modal) {
+        $(show_modal).modal('show');
+    }
     
     const handler = handlers[action.type];
     if (handler) {
@@ -222,7 +226,6 @@ function hideContextMenu() {
     $("#context-menu-container, #right-click-bg").hide();
 }
 
-// Close menu when clicking elsewhere
 $(document).on('click', '#right-click-bg, body', function(e) {
     if ($(e.target).is('#right-click-bg') || !$(e.target).closest('#context-menu-container').length) {
         hideContextMenu();

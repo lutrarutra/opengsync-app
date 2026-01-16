@@ -192,7 +192,7 @@ table input.table-query-input{
                     gap: 5px;
                     align-items: center;
                     height: 100%;
-                    overflow-x: auto;
+                    overflow-x: auto !important;
                     white-space: nowrap;
 
                     scrollbar-width: thin;

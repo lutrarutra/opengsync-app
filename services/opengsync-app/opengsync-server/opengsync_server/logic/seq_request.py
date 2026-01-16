@@ -121,3 +121,49 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     })
 
     return context
+
+
+def get_search_context(current_user: models.User, request: Request, **kwargs) -> dict:
+    context = parse_context(current_user, request) | kwargs
+    fnc_context = {}
+    
+    if not (field_name := request.args.get("field_name")):
+        raise exceptions.BadRequestException("No search field provided.")
+    
+    if (selected_id := request.args.get(f"{field_name}-selected")) is not None:
+        try:
+            selected_id = int(selected_id)
+            context["selected_id"] = selected_id
+        except ValueError:
+            pass
+        
+    context["field_name"] = field_name
+    page = request.args.get("page", 0, type=int)
+    
+    if (name := request.args.get("name")) is not None:
+        if (name := name.strip()):
+            fnc_context["name"] = name
+        else:
+            fnc_context["sort_by"] = "name"
+    else:
+        raise exceptions.BadRequestException("No valid search parameters provided.")
+
+    if (user := context.get("user")) is not None:
+        fnc_context["user_id"] = user.id
+    elif (group := context.get("group")) is not None:
+        fnc_context["group_id"] = group.id
+    elif (project := context.get("project")) is not None:
+        fnc_context["project_id"] = project.id
+    else:
+        if not current_user.is_insider():
+            fnc_context["user_id"] = current_user.id
+    
+    logger.debug(fnc_context)
+    seq_requests, num_pages = db.seq_requests.find(page=page, **fnc_context)
+    
+    context.update({
+        "seq_requests": seq_requests,
+        "template_name_or_list": "components/search/seq_request.html",
+        "num_pages": num_pages,
+    })
+    return context

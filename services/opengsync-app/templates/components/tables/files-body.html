@@ -1,21 +1,34 @@
 {% from "components/spinner.jinja2" import spinner %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 
 {% for browser_path in paths %}
 {% set stat = browser_path.path.stat() %}
-<tr class="path-row" data-path="{{ browser_path.rel_path.as_posix() }}">
-    <td class="col-6">
+<tr class="path-row">
+    <td class="col-6 cm-callback x-scroll-cell"{{
+        context_menu([
+            {"type": "hxget", "show_modal": "#xl-modal", "label": "Share", "config": {
+                "url": url_for('files_htmx.share_path', path=browser_path.rel_path.as_posix()),
+                "target": "#xl-modal-content",
+                "swap": "innerHTML",
+                "confirm": false
+            }, }
+        ])
+    }}>
+        <span class="scroll-container">
         {% if browser_path.path.is_file() %}
-        <i class="bi bi-file-earmark"></i> {{ browser_path.path.name }}
+        <i class="bi bi-file-earmark pl-1"></i> {{ browser_path.path.name }}
         {% else %}
         <a href="{{ url_for('browser_page.files', subpath=(current_path / browser_path.path.name) if current_path else browser_path.path.name, sort_by=sort_by, sort_order=sort_order) }}">
-            <i class="bi bi-archive"></i> {{ browser_path.path.name }}/
+            <i class="bi bi-archive pl-1"></i> {{ browser_path.path.name }}/
         </a>
         {% endif %}
+        </span>
     </td>
     <td class="col-2">{{ stat.st_size | bytes_to_human }}</td>
     <td class="col-2">{{ stat.st_mtime | from_timestamp }}</td>
-    <td class="col-2">
-        {% for data_path in browser_path.data_paths %}
+    <td class="col-2 x-scroll-cell">
+        <span class="scroll-container">
+            {% for data_path in browser_path.data_paths %}
             {% if data_path.project %}
             <a href="{{ url_for('projects_page.project', project_id=data_path.project.id) }}"><span class="badge">{{ data_path.project.identifier or data_path.project.title }}</span></a>
             {% endif %}
@@ -28,7 +41,8 @@
             {% if data_path.library %}
             <a href="{{ url_for('libraries_page.library', library_id=data_path.library.id) }}"><span class="badge">{{ data_path.library.name }}</span></a>
             {% endif %}
-        {% endfor %}
+            {% endfor %}
+        </span>
     </td>
 </tr>
 {% endfor %}

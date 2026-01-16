@@ -25,7 +25,7 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     TENX_SC_GEX_5PRIME = LibraryTypeEnum(4, "10X Single Cell 5-P Gene Expression", "10X 5' GEX", "10XGEX5P", "Gene Expression")
 
     # 10X Visium
-    TENX_VISIUM_HD = LibraryTypeEnum(5, "10X HD Spatial Gene Expression", "10X HD Spatial", "10XVISIUMHD", "Spatial Transcriptomics")
+    TENX_VISIUM_HD = LibraryTypeEnum(5, "10X Visium HD Spatial Gene Expression", "10X HD Spatial", "10XVISIUMHD", "Spatial Transcriptomics")
     TENX_VISIUM_FFPE = LibraryTypeEnum(6, "10X Visium Gene Expression FFPE", "10X Visium FFPE", "10XVISIUMFFPE", "Spatial Transcriptomics")
     TENX_VISIUM = LibraryTypeEnum(7, "10X Visium Gene Expression", "10X Visium", "10XVISIUM", "Spatial Transcriptomics")
     
