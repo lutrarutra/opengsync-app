@@ -1,6 +1,6 @@
 from flask import Response, flash, url_for
 from flask_htmx import make_response
-from wtforms import StringField, FloatField, IntegerField
+from wtforms import StringField, FloatField, IntegerField, FormField
 from wtforms.validators import DataRequired, Length
 
 from opengsync_db import models
@@ -8,6 +8,7 @@ from opengsync_db import models
 from ... import logger, db
 from ...core import exceptions
 from ..HTMXFlaskForm import HTMXFlaskForm
+from ..SearchBar import OptionalSearchBar
 
 
 class PoolDesignForm(HTMXFlaskForm):
@@ -19,6 +20,7 @@ class PoolDesignForm(HTMXFlaskForm):
     i2_cycles = IntegerField("I2 Cycles", validators=[DataRequired()])
     r2_cycles = IntegerField("R2 Cycles", validators=[DataRequired()])
     num_m_requested_reads = FloatField("Number of Requested Reads (Millions)", validators=[DataRequired()], description="Number of requested reads in millions for the pool design.")
+    pool_id = FormField(OptionalSearchBar, label="Pool")
 
     def __init__(
         self,
@@ -34,12 +36,16 @@ class PoolDesignForm(HTMXFlaskForm):
             return
         if not self.pool_design:
             return
+        
         self.pool_design_name.data = self.pool_design.name
         self.r1_cycles.data = self.pool_design.cycles_r1
         self.r2_cycles.data = self.pool_design.cycles_r2
         self.i1_cycles.data = self.pool_design.cycles_i1
         self.i2_cycles.data = self.pool_design.cycles_i2
         self.num_m_requested_reads.data = self.pool_design.num_m_requested_reads
+        if self.pool_design.pool:
+            self.pool_id.selected.data = self.pool_design.pool_id
+            self.pool_id.search_bar.data = self.pool_design.pool.name
         
     def validate(self) -> bool:
         if not super().validate():
@@ -50,8 +56,20 @@ class PoolDesignForm(HTMXFlaskForm):
     def __edit_existing_pool_design(self) -> Response:
         if self.pool_design is None:
             raise exceptions.InternalServerErrorException("Pool design must be set when editing an existing pool design.")
-
-        self.pool_design.name = self.pool_design_name.data  # type: ignore
+        
+        if (pool_id := self.pool_id.selected.data):
+            if (pool := db.pools.get(pool_id)) is None:
+                raise exceptions.NotFoundException(f"Pool with ID {pool_id} not found.")
+            
+            if pool.num_m_reads_requested:
+                self.pool_design.num_m_requested_reads = pool.num_m_reads_requested
+            else:
+                pool.num_m_reads_requested = self.pool_design.num_m_requested_reads
+                db.pools.update(pool)
+            self.pool_design.name = pool.name
+            self.pool_design.pool_id = pool_id
+        else:
+            self.pool_design.name = self.pool_design_name.data  # type: ignore
         self.pool_design.num_m_requested_reads = self.num_m_requested_reads.data  # type: ignore
         self.pool_design.cycles_r1 = self.r1_cycles.data  # type: ignore
         self.pool_design.cycles_i1 = self.i1_cycles.data  # type: ignore
