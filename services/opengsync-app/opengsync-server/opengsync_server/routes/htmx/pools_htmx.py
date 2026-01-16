@@ -17,6 +17,11 @@ pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/htmx/pools/")
 def get(current_user: models.User):
     return make_response(render_template(**logic.pool.get_table_context(current_user, request)))
 
+@wrappers.htmx_route(pools_htmx, db=db)
+def search(current_user: models.User):
+    context = logic.pool.get_search_context(current_user=current_user, request=request)
+    return make_response(render_template(**context))
+
 
 @wrappers.htmx_route(pools_htmx, methods=["GET", "POST"], db=db)
 def create(current_user: models.User):

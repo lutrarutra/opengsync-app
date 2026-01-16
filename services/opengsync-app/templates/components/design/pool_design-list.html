@@ -7,8 +7,13 @@
 <div class="pool-design" data-pool-design-id="{{ pool_design.id }}" {% if flow_cell_design %}data-original-flow-cell-design-id="{{ flow_cell_design.id }}"{% endif %}>
     <div class="pool-design-header">
         <div class="row">
-            <div class="col-4">
+            <div class="col-3 d-flex gap-1">
+                {% if pool_design.pool_id %}
+                <b style="color: #00aecc;">{{ pool_design.name }}{% if pool_design.pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool_design.pool.clone_number }})</sup>{% endif %}</b>
+                <a href="{{ url_for('pools_page.pool', pool_id=pool_design.pool_id) }}" {{ tooltip('View Pool', position='top') }}><i class="bi bi-flask-florence"></i></a>
+                {% else %}
                 <b>{{ pool_design.name }}</b>
+                {% endif %}
                 {{
                     xl_modal_button(
                         text='<i class="bi bi-pencil-square"></i>',
@@ -43,12 +48,21 @@
                     )
                 }}
                 {% endif %}
+                {% if pool_design.pool %}
+                <em class="text-muted">{{ pool_design.pool.status.display_name }}</em>
+                {% endif %}
             </div>
-            <div class="col-4 text-center">
+            <div class="col-6 d-flex gap-3 align-items-center justify-content-center">
                 <b>{{ pool_design.num_m_requested_reads or "" }}{% if pool_design.num_m_requested_reads %}M{% endif %}</b>
+                {% if pool_design.pool %}
+                <div><b>BA:</b> {% if pool_design.pool.avg_fragment_size %}✅{% else %}⚠️{% endif %}</div>
+                <div><b>Qubit:</b> {% if pool_design.pool.qubit_concentration %}✅{% else %}⚠️{% endif %}</div>
+                <div><b>E:</b> {% if pool_design.pool.experiment_id %}{{ pool_design.pool.experiment.name }}{% else %}⚠️{% endif %}</div>
+                {% endif %}
             </div>
-            <div class="col-4">
+            <div class="col-3">
                 {% if flow_cell_design %}
+                <div>
                 <b style="color: {% if pool_design.cycles_r1 == flow_cell_design.r1_cycles %}#198754{% else %}#fd7e14;{% endif %}">{{ pool_design.cycles_r1 }}</b>
                 -
                 <b style="color: {% if pool_design.cycles_i1 == flow_cell_design.i1_cycles %}#198754{% else %}#fd7e14;{% endif %}">{{ pool_design.cycles_i1 }}</b>
@@ -56,13 +70,14 @@
                 <b style="color: {% if pool_design.cycles_i2 == flow_cell_design.i2_cycles %}#198754{% else %}#fd7e14;{% endif %}">{{ pool_design.cycles_i2 }}</b>
                 -
                 <b style="color: {% if pool_design.cycles_r2 == flow_cell_design.r2_cycles %}#198754{% else %}#fd7e14;{% endif %}">{{ pool_design.cycles_r2 }}</b>
+                </div>
                 {% else %}
                 <b>{{ pool_design.cycles_r1 }}-{{ pool_design.cycles_i1 }}-{{ pool_design.cycles_i2 }}-{{ pool_design.cycles_r2 }}</b>
                 {% endif %}
             </div>
         </div>
     </div>
-    <div class="pool-design-body pt-2">
+    <div class="pool-design-body pt-1">
         <a hx-trigger="click once" hx-get="{{ url_for('design_htmx.comment_form', pool_design_id=pool_design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
         <em class="text-muted">Pool Notes:</em>
         <hr>
