@@ -1,14 +1,15 @@
 <ul class="list-group search-component">
-    {% if results is defined and results %}
-    {% for res in results %}
+    {% if seq_requests is defined and seq_requests %}
+    {% for seq_request in seq_requests %}
     <li {% if loop.last %} class="last" {% endif %}>
         <a id="option-{{ field_name }}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
         data-field="{{ field_name }}"
-        data-value="{{ res.id }}"
+        data-value="{{ seq_request.id }}"
         aria-controls="{{ field_name }}">
-            <span class="search-select-name">{{ res.name }}</span>
-            <span class="search-select-desc">{{ res.submission_type.abbreviation }}</span>
+            <span class="search-select-header">{{ seq_request.status.icon }} {{ seq_request.status.name }}</span>
+            <span class="search-select-name">{{ seq_request.name }}</span>
+            <span class="search-select-desc">{{ seq_request.submission_type.abbreviation }}</span>
         </a>
     </li>
     {% endfor %}

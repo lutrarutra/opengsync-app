@@ -123,7 +123,7 @@ class SpreadsheetInput(FlaskForm):
                     continue
                 try:
                     if column.type == "text":
-                        self.__df[label] = self.__df[label].apply(column.clean_up)
+                        self.__df[label] = self.__df[label].apply(lambda x: column.clean_up(x, ignore_missing=True))
                     column.validate(row[label], column_values=self.__df[label].tolist())
                 except SpreadSheetException as e:
                     if column.required and pd.isna(row[label]):

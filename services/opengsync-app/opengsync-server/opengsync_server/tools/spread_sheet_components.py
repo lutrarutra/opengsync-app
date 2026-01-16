@@ -50,9 +50,9 @@ class SpreadSheetColumn:
     read_only: bool = False
     validation_fnc: Optional[Callable[[str], str | None]] = None
 
-    def clean_up(self, value: Any) -> Any:
+    def clean_up(self, value: Any, ignore_missing: bool = False) -> Any:
         if pd.isna(value):
-            if self.required:
+            if self.required and not ignore_missing:
                 logger.error(f"Value for '{self.label}' is required but missing.")
                 raise ValueError(f"Value for '{self.label}' is required but missing.")
             return None

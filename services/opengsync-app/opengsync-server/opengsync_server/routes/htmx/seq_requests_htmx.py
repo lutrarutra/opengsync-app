@@ -27,6 +27,11 @@ def get(current_user: models.User):
     context = logic.seq_request.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))
 
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def search(current_user: models.User):
+    context = logic.seq_request.get_search_context(current_user=current_user, request=request)
+    return make_response(render_template(**context))
+
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def export(current_user: models.User, seq_request_id: int):
@@ -441,25 +446,6 @@ def remove_all_libraries(current_user: models.User, seq_request_id: int):
 
     return make_response(
         redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request_id),
-    )
-
-
-@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
-def query(current_user: models.User):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    field_name = next(iter(request.form.keys()))
-    word = request.form.get(field_name, default="")
-    
-    results = db.seq_requests.query(name=word)
-
-    return make_response(
-        render_template(
-            "components/search/seq_request.html",
-            results=results,
-            field_name=field_name
-        )
     )
 
 
