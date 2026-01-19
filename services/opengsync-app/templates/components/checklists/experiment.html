@@ -302,10 +302,10 @@
                                 <td>
                                     <div class="quantity-container">
                                         <div class="value">
-                                            {% if lane.original_qubit_concentration is not none %}
-                                            {{ lane.original_qubit_concentration }}
-                                            {% elif lane.pool_links | length == 1 %}
-                                            <span class="desc">pool</span> {{ lane.pool_links[0].pool.qubit_concentration }}
+                                            {% if lane._original_qubit_concentration is not none %}
+                                            {{ lane._original_qubit_concentration }}
+                                            {% elif lane.original_qubit_concentration is not none %}
+                                            <span class="desc">pool</span> {{ lane.original_qubit_concentration }}
                                             {% endif %}
                                         </div>
                                         <div class="unit">ng/μL</div>
@@ -356,10 +356,10 @@
                                 <td>
                                     <div class="quantity-container">
                                         <div class="value">
-                                            {% if lane.avg_fragment_size is not none %}
-                                            {{ lane.avg_fragment_size }}
-                                            {% elif lane.pool_links | length == 1 %}
-                                            <span class="desc">pool</span> {{ lane.pool_links[0].pool.avg_fragment_size }}
+                                            {% if lane._avg_fragment_size is not none %}
+                                            {{ lane._avg_fragment_size }}
+                                            {% elif lane.avg_fragment_size is not none %}
+                                            <span class="desc">pool</span> {{ lane.avg_fragment_size }}
                                             {% endif %}
                                         </div>
                                         <div class="unit">bp</div>

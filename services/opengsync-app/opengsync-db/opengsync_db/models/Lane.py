@@ -3,6 +3,7 @@ from typing import Optional, TYPE_CHECKING, ClassVar
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from .Base import Base
 from . import links
@@ -79,8 +80,8 @@ class Lane(Base):
                 reads += link.num_m_reads
         return reads
     
-    @property
-    def avg_fragment_size(self) -> int | None:
+    @hybrid_property
+    def avg_fragment_size(self) -> int | None:  # type: ignore[override]  
         if self._avg_fragment_size is not None:
             return self._avg_fragment_size
         
@@ -92,8 +93,30 @@ class Lane(Base):
         
         return self.pool_links[0].pool.avg_fragment_size
     
-    @property
-    def original_qubit_concentration(self) -> float | None:
+    @avg_fragment_size.expression
+    def avg_fragment_size(cls) -> sa.ScalarSelect[int | None]:
+        from .Pool import Pool
+        
+        # Subquery to count related pools
+        count_subquery = sa.select(sa.func.count(links.LanePoolLink.pool_id)).where(
+            links.LanePoolLink.lane_id == cls.id
+        ).scalar_subquery()
+
+        # Expression to get pool fragment size
+        value_subquery = sa.select(Pool.avg_fragment_size).where(
+            links.LanePoolLink.lane_id == cls.id,
+            links.LanePoolLink.pool_id == Pool.id
+        ).limit(1).scalar_subquery()
+
+        return sa.case(
+            (cls._avg_fragment_size != None, cls._avg_fragment_size),  # type: ignore[comparison-overlap]
+            (count_subquery == 1, value_subquery),
+            else_=None
+        )   # type: ignore[arg-type]
+        
+    
+    @hybrid_property
+    def original_qubit_concentration(self) -> float | None:  # type: ignore[override]
         if self._original_qubit_concentration is not None:
             return self._original_qubit_concentration
         
@@ -104,6 +127,25 @@ class Lane(Base):
             return None
         
         return self.pool_links[0].pool.qubit_concentration
+
+    @original_qubit_concentration.expression
+    def original_qubit_concentration(cls) -> sa.ScalarSelect[float | None]:
+        from .Pool import Pool
+        
+        count_subquery = sa.select(sa.func.count(links.LanePoolLink.pool_id)).where(
+            links.LanePoolLink.lane_id == cls.id
+        ).scalar_subquery()
+
+        value_subquery = sa.select(Pool.qubit_concentration).where(
+            links.LanePoolLink.lane_id == cls.id,
+            links.LanePoolLink.pool_id == Pool.id
+        ).limit(1).scalar_subquery()
+
+        return sa.case(
+            (cls._original_qubit_concentration != None, cls._original_qubit_concentration),  # type: ignore[comparison-overlap]
+            (count_subquery == 1, value_subquery),
+            else_=None
+        )  # type: ignore[arg-type]
 
     @property
     def original_molarity(self) -> float | None:
