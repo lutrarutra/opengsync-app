@@ -100,8 +100,8 @@ class Experiment(Base):
         missing_lane_fragment_sizes = set()
 
         for lane in self.lanes:
-            _lane_qubit_measured = lane.original_qubit_concentration is not None or ((len(lane.pool_links) == 1) and (lane.pool_links[0].pool.qubit_concentration is not None))
-            _lane_fragment_size_measured = lane.avg_fragment_size is not None or ((len(lane.pool_links) == 1) and (lane.pool_links[0].pool.avg_fragment_size is not None))
+            _lane_qubit_measured = lane.original_qubit_concentration is not None
+            _lane_fragment_size_measured = lane.avg_fragment_size is not None
 
             lane_qubit_measured = lane_qubit_measured and _lane_qubit_measured
             lane_fragment_size_measured = lane_fragment_size_measured and _lane_fragment_size_measured
