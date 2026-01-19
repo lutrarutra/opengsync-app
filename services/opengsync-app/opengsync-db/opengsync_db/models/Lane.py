@@ -19,13 +19,12 @@ class Lane(Base):
     number: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     
     phi_x: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
-    avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None)
-    original_qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
+    _avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=None, name="avg_fragment_size")
+    _original_qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None, name="original_qubit_concentration")
     sequencing_qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     
     total_volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
     library_volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
-    # FIXME: save two different
     target_molarity: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True, default=None)
 
     experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id"), nullable=False)
@@ -79,6 +78,32 @@ class Lane(Base):
             if link.num_m_reads is not None:
                 reads += link.num_m_reads
         return reads
+    
+    @property
+    def avg_fragment_size(self) -> int | None:
+        if self._avg_fragment_size is not None:
+            return self._avg_fragment_size
+        
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open to load avg_fragment_size")
+        
+        if len(self.pool_links) != 1:
+            return None
+        
+        return self.pool_links[0].pool.avg_fragment_size
+    
+    @property
+    def original_qubit_concentration(self) -> float | None:
+        if self._original_qubit_concentration is not None:
+            return self._original_qubit_concentration
+        
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open to load original_qubit_concentration")
+        
+        if len(self.pool_links) != 1:
+            return None
+        
+        return self.pool_links[0].pool.qubit_concentration
 
     @property
     def original_molarity(self) -> float | None:
