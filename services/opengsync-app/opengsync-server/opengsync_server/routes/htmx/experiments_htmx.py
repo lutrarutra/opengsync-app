@@ -253,35 +253,8 @@ def remove_pool(current_user: models.User, experiment_id: int, pool_id: int):
 
     db.links.unlink_pool_experiment(experiment_id=experiment_id, pool_id=pool_id)
     logger.info(f"Removed pool (id='{pool_id}') from experiment (id='{experiment_id}')")
-
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    
-    experiment_lanes: dict[int, list[int]] = {}
-
-    if (experiment := db.experiments.get(experiment_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    pools, _ = db.pools.find(
-        experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None
-    )
-
-    for lane in experiment.lanes:
-        experiment_lanes[lane.number] = []
-        
-        for link in lane.pool_links:
-            experiment_lanes[lane.number].append(link.pool_id)
-
     flash("Pool Removed!", "success")
-    return make_response(
-        render_template(
-            "components/tables/experiment-pool.html",
-            pools=pools, n_pages=1, active_page=0,
-            sort_by=sort_by, sort_order=sort_order,
-            experiment=experiment, experiment_lanes=experiment_lanes
-        )
-    )
+    return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def overview(current_user: models.User, experiment_id: int):
