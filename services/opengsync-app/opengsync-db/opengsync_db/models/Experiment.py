@@ -122,8 +122,8 @@ class Experiment(Base):
         flowcell_loaded = all(lane.is_loaded() for lane in self.lanes)
         # if not all lanes are loaded, check that we have the prerequisites
         if not flowcell_loaded:
-             if not lane_qubit_measured or not lane_fragment_size_measured:
-                 flowcell_loaded = None
+            if not lane_qubit_measured or not lane_fragment_size_measured:
+                flowcell_loaded = None
 
         return {
             "pools_added": pools_added,
