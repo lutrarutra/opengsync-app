@@ -74,7 +74,7 @@ def reset_password_email(current_user: models.User, user_id: int):
         raise exceptions.NoPermissionsException()
         
     token = tokens.generate_reset_token(user=user, serializer=serializer)
-    link = runtime.url_for("auth_page.reset_password_page", token=token, _external=True)
+    link = runtime.url_for("auth_page.reset_password", token=token, _external=True)
     style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
 
     try:
@@ -111,7 +111,7 @@ def activate_account(current_user: models.User, user_id: int):
     db.users.update(user)
 
     token = tokens.generate_reset_token(user=user, serializer=serializer)
-    link = runtime.url_for("auth_page.reset_password_page", token=token, _external=True)
+    link = runtime.url_for("auth_page.reset_password", token=token, _external=True)
     style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
 
     try:
