@@ -44,21 +44,11 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
 
         lane = self.experiment.lanes[0]
 
-        if pd.isna(avg_fragment_size := row["avg_fragment_size"]):
-            if len(lane.pool_links) != 1 or not lane.pool_links[0].pool.is_qced():
-                raise ValueError("Cannot determine average fragment size for the lane. Please QC pools first.")
-            avg_fragment_size = lane.pool_links[0].pool.avg_fragment_size
-
-        if avg_fragment_size is None:
-            raise ValueError("Average fragment size is not available.")
-
-        if pd.isna(original_qubit_concentration := row["original_qubit_concentration"]):
-            if len(lane.pool_links) != 1 or not lane.pool_links[0].pool.is_qced():
-                raise ValueError("Cannot determine original qubit concentration for the lane. Please QC pools first.")
-            original_qubit_concentration = lane.pool_links[0].pool.qubit_concentration
-
-        if original_qubit_concentration is None:
-            raise ValueError("Original qubit concentration is not available.")
+        if (avg_fragment_size := lane.avg_fragment_size) is None:
+            raise ValueError("Cannot determine average fragment size for the lane. Please QC pools and lanes first.")
+        
+        if (original_qubit_concentration := lane.original_qubit_concentration) is None:
+            raise ValueError("Cannot determine original qubit concentration for the lane. Please QC pools and lanes first.")
 
         lane_molarity = original_qubit_concentration / (avg_fragment_size * 660) * 1_000_000
 
@@ -159,21 +149,11 @@ class LoadFlowCellForm(HTMXFlaskForm):
             
             lane = db.lanes[entry.lane_id.data]
 
-            if pd.isna(avg_fragment_size := row["avg_fragment_size"]):
-                if len(lane.pool_links) != 1 or not lane.pool_links[0].pool.is_qced():
-                    raise ValueError("Cannot determine average fragment size for the lane. Please QC pools first.")
-                avg_fragment_size = lane.pool_links[0].pool.avg_fragment_size
+            if (avg_fragment_size := lane.avg_fragment_size) is None:
+                raise ValueError("Cannot determine average fragment size for the lane. QC pools and lanes first.")
 
-            if avg_fragment_size is None:
-                raise ValueError("Average fragment size is not available.")
-
-            if pd.isna(original_qubit_concentration := row["original_qubit_concentration"]):
-                if len(lane.pool_links) != 1 or not lane.pool_links[0].pool.is_qced():
-                    raise ValueError("Cannot determine original qubit concentration for the lane. Please QC pools first.")
-                original_qubit_concentration = lane.pool_links[0].pool.qubit_concentration
-
-            if original_qubit_concentration is None:
-                raise ValueError("Original qubit concentration is not available.")
+            if (original_qubit_concentration := lane.original_qubit_concentration) is None:
+                raise ValueError("Cannot determine original qubit concentration for the lane. QC pools and lanes first.")
             
             lane_molarity = original_qubit_concentration / (avg_fragment_size * 660) * 1_000_000
             df.at[idx, "lane_molarity"] = lane_molarity  # type: ignore
