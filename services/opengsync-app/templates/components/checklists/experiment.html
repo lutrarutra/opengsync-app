@@ -287,7 +287,7 @@
                 </ol>
                 <b>Notes:</b>
                 <ul>
-                    <li>Optional when all lanes have only one pool; lane Qubit concentration is assumed to be the pool's Qubit concentration.</li>
+                    <li>Optional when all lanes have only one pool; lane Qubit concentration is assumed to be the pool's Qubit concentration. This will be marked with <span class="desc">single pool</span>.</li>
                 </ul>
                 <div class="table-container">
                     <table class="table">
@@ -305,7 +305,7 @@
                                             {% if lane._original_qubit_concentration is not none %}
                                             {{ lane._original_qubit_concentration }}
                                             {% elif lane.original_qubit_concentration is not none %}
-                                            <span class="desc">pool</span> {{ lane.original_qubit_concentration }}
+                                            <span class="desc">single pool</span> {{ lane.original_qubit_concentration }}
                                             {% endif %}
                                         </div>
                                         <div class="unit">ng/μL</div>
@@ -340,7 +340,7 @@
                 </ol>
                 <b>Notes:</b>
                 <ul>
-                    <li>Optional when all lanes have only one pool; lane fragment size is assumed to be the pool's fragment size.</li>
+                    <li>Optional when all lanes have only one pool; lane fragment size is assumed to be the pool's fragment size. This will be marked with <span class="desc">single pool</span>.</li>
                 </ul>
                 <div class="table-container">
                     <table class="table">
@@ -359,22 +359,17 @@
                                             {% if lane._avg_fragment_size is not none %}
                                             {{ lane._avg_fragment_size }}
                                             {% elif lane.avg_fragment_size is not none %}
-                                            <span class="desc">pool</span> {{ lane.avg_fragment_size }}
+                                            <span class="desc">single pool</span> {{ lane.avg_fragment_size }}
                                             {% endif %}
                                         </div>
                                         <div class="unit">bp</div>
                                     </div>
                                 </td>
                                 <td class="x-scroll-cell">
-                                    {% if lane.ba_report_id %}
+                                    {% if lane.ba_report %}
                                     <span class="scroll-container">
                                         <span class="desc">{{ lane.ba_report.timestamp | format_datetime }}</span>
-                                        <a href="{{ url_for('pdf_file', file_id=lane.ba_report_id) }}" target="_blank">{{ lane.ba_report.name }}</a>
-                                    </span>
-                                    {% elif lane.pool_links | length == 1 and lane.pool_links[0].pool.ba_report_id %}
-                                    <span class="scroll-container">
-                                        <span class="desc">{{ lane.pool_links[0].pool.ba_report.timestamp | format_datetime }}</span>
-                                        <a href="{{ url_for('pdf_file', file_id=lane.pool_links[0].pool.ba_report_id) }}" target="_blank">{{ lane.pool_links[0].pool.ba_report.name }}</a>
+                                        <a href="{{ url_for('pdf_file', file_id=lane.ba_report.id) }}" target="_blank">{{ lane.ba_report.name }}</a>
                                     </span>
                                     {% endif %}
                                 </td>

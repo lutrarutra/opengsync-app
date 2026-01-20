@@ -32,7 +32,7 @@ class Lane(Base):
     experiment: Mapped["Experiment"] = relationship("Experiment", back_populates="lanes", lazy="select")
 
     ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id"), nullable=True, default=None)
-    ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select")
+    _ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select", foreign_keys=[ba_report_id])
 
     pool_links: Mapped[list["links.LanePoolLink"]] = relationship(
         "LanePoolLink", back_populates="lane", lazy="select",
@@ -113,7 +113,19 @@ class Lane(Base):
             (count_subquery == 1, value_subquery),
             else_=None
         )   # type: ignore[arg-type]
+    
+    @property
+    def ba_report(self) -> "MediaFile | None":
+        if self._ba_report is not None:
+            return self._ba_report
         
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open to load ba_report")
+        
+        if len(self.pool_links) != 1:
+            return None
+        
+        return self.pool_links[0].pool.ba_report
     
     @hybrid_property
     def original_qubit_concentration(self) -> float | None:  # type: ignore[override]
