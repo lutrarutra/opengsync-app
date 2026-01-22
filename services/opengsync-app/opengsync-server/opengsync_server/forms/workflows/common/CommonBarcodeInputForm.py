@@ -102,12 +102,25 @@ class CommonBarcodeInputForm(MultiStepForm):
                     prep_table = pd.read_excel(os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
                     prep_table = prep_table.dropna(subset=["library_id", "library_name"])
                     prep_table["library_id"] = prep_table["library_id"].astype(int)
-                    prep_table["kit_i7"] = prep_table["kit_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
-                    prep_table["kit_i5"] = prep_table["kit_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
+
+                    def clean_value(value) -> str:
+                        if pd.isna(value):
+                            return ""
+                        try:
+                            value = int(value)
+                            return str(value)
+                        except ValueError:
+                            pass
+                        value = str(value).strip().removeprefix("#")
+                        return value
+                    
+                    prep_table["kit_i7"] = prep_table["kit_i7"].apply(clean_value).astype(str)
+                    prep_table["kit_i5"] = prep_table["kit_i5"].apply(clean_value).astype(str)
                     prep_table["index_well"] = prep_table["index_well"].apply(lambda x: x if pd.isna(x) else str(x).strip())
                     prep_table["name_i7"] = prep_table["name_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip())
                     prep_table["name_i5"] = prep_table["name_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip())
-                    logger.debug(prep_table)
+
+
                     for idx, row in library_table[library_table["sequence_i7"].isna()].iterrows():
                         library_table.at[idx, "kit_i7"] = next(iter(prep_table[  # type: ignore
                             (prep_table["library_id"] == row["library_id"])
@@ -129,6 +142,8 @@ class CommonBarcodeInputForm(MultiStepForm):
             self.library_table = library_table
         else:
             raise exceptions.InternalServerErrorException(f"Workflow '{workflow}' not supported in CommonBarcodeInputForm")
+        
+        logger.debug(self.library_table)
 
         if self.index_col not in [col.label for col in self.columns]:
             logger.error(f"Index column '{self.index_col}' not found in columns")

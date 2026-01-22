@@ -233,6 +233,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
             
             # if run folder was removed and then added back, e.g. maintenance.
             if run.status == RunStatus.ARCHIVED:
+                logger.info(f"Run folder '{run.run_folder}' was unarchived!")
                 run.status = RunStatus.FINISHED
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.SEQUENCED

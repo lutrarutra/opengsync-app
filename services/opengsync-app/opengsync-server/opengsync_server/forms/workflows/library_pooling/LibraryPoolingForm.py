@@ -10,6 +10,7 @@ from ....tools.spread_sheet_components import TextColumn, IntegerColumn, Invalid
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .CompleteLibraryPoolingForm import CompleteLibraryPoolingForm
+from ....tools import utils
 
 
 class LibraryPoolingForm(MultiStepForm):
@@ -43,13 +44,26 @@ class LibraryPoolingForm(MultiStepForm):
             if self.lab_prep.prep_file is not None:
                 prep_table = pd.read_excel(os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
                 prep_table = prep_table.dropna(subset=["library_id", "library_name"])
-                for idx, row in self.library_table[self.library_table["pool"].isna()].iterrows():
-                    self.library_table.at[idx, "pool"] = next(iter(prep_table[  # type: ignore
-                        (prep_table["library_id"] == row["library_id"])
-                    ]["pool"].values.tolist()), None)
+                order = prep_table["library_id"].tolist()
+                self.library_table["library_id"] = pd.Categorical(self.library_table["library_id"], categories=order, ordered=True)
+                self.library_table = self.library_table.sort_values("library_id").reset_index(drop=True)
+                self.library_table["library_id"] = self.library_table["library_id"].astype(pd.Int64Dtype())
+                self.library_table["pool"] = utils.map_columns(self.library_table, prep_table, idx_columns="library_id", col="pool")
 
         self.post_url = url_for("library_pooling_workflow.upload_pooling_form", uuid=self.uuid, lab_prep_id=self.lab_prep.id)
-        self.library_table.loc[self.library_table["pool"].notna(), "pool"] = self.library_table.loc[self.library_table["pool"].notna(), "pool"].astype(str).str.strip().str.removeprefix(f"{self.lab_prep.name}_")
+        def clean_pool_value(value) -> str:
+            if pd.isna(value):
+                return ""
+            try:
+                value = int(value)
+                return str(value)
+            except ValueError:
+                pass
+            value = str(value).strip()
+            if value.startswith(f"{self.lab_prep.name}_"):
+                value = value[len(f"{self.lab_prep.name}_") :]
+            return value
+        self.library_table["pool"] = self.library_table["pool"].apply(clean_pool_value).astype(str)
 
         self.spreadsheet = SpreadsheetInput(
             columns=LibraryPoolingForm.columns,

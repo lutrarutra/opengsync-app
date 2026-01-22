@@ -10,7 +10,7 @@ from ...core import wrappers, exceptions
 protocols_htmx = Blueprint("protocols_htmx", __name__, url_prefix="/htmx/protocols/")
 
 
-@wrappers.htmx_route(protocols_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
+@wrappers.htmx_route(protocols_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get(current_user: models.User):
     context = logic.protocol.get_table_context(current_user=current_user, request=request)
     return make_response(render_template(**context))

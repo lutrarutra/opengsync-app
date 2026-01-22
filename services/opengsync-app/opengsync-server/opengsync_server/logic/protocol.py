@@ -60,6 +60,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     context = parse_context(current_user, request) | kwargs
 
     protocols, table.num_pages = db.protocols.find(page=table.active_page, **fnc_context)
+    logger.debug(protocols)
         
     context.update({
         "protocols": protocols,

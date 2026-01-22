@@ -43,7 +43,7 @@ class ProtocolBP(DBBlueprint):
         name: str | None = None,
         service_type: ServiceTypeEnum | None = None,
         service_type_in: list[ServiceTypeEnum] | None = None,
-        limit: int | None = PAGE_LIMIT, offset: int | None = 0,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: Optional[str] = None, descending: bool = False,
         page: int | None = None,
     ) -> tuple[list[models.Protocol], int | None]:
@@ -78,6 +78,8 @@ class ProtocolBP(DBBlueprint):
             query = query.offset(min(page, max(0, n_pages - 1)) * limit)
         else:
             n_pages = None
+
+        self.db.debug(page)
 
         if limit is not None:
             query = query.limit(limit)
