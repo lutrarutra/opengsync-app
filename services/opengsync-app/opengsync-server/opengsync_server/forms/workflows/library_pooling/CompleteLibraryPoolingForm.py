@@ -97,23 +97,23 @@ class CompleteLibraryPoolingForm(MultiStepForm):
 
         request_ids = set()
 
-        if self.lab_prep.prep_file is not None:
-            path = os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path)
-            wb = openpyxl.load_workbook(path)
-            active_sheet = wb["prep_table"]
+        # if self.lab_prep.prep_file is not None:
+        #     path = os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path)
+        #     wb = openpyxl.load_workbook(path)
+        #     active_sheet = wb["prep_table"]
             
-            column_mapping: dict[str, str] = {}
-            for col_i in range(1, min(active_sheet.max_column, 96)):
-                col = get_column_letter(col_i + 1)
-                column_name = active_sheet[f"{col}1"].value
-                column_mapping[column_name] = col
+        #     column_mapping: dict[str, str] = {}
+        #     for col_i in range(1, min(active_sheet.max_column, 96)):
+        #         col = get_column_letter(col_i + 1)
+        #         column_name = active_sheet[f"{col}1"].value
+        #         column_mapping[column_name] = col
 
-            for i, ((library_id, pool), _) in enumerate(self.pooling_table.groupby(["library_id", "pool"], dropna=False)):
-                library = db.libraries[int(library_id)]
-                request_ids.add(library.seq_request_id)
-                active_sheet[f"{column_mapping['pool']}{i + 2}"].value = pool
+        #     for i, ((library_id, pool), _) in enumerate(self.pooling_table.groupby(["library_id", "pool"], dropna=False)):
+        #         library = db.libraries[int(library_id)]
+        #         request_ids.add(library.seq_request_id)
+        #         active_sheet[f"{column_mapping['pool']}{i + 2}"].value = pool
 
-            wb.save(path)
+        #     wb.save(path)
 
         for request_id in request_ids:
             if (seq_request := db.seq_requests.get(request_id)) is None:
