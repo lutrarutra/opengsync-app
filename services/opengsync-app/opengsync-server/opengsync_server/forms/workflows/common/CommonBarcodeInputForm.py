@@ -101,7 +101,7 @@ class CommonBarcodeInputForm(MultiStepForm):
                 if self.lab_prep.prep_file is not None:
                     prep_table = pd.read_excel(os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
                     prep_table = prep_table.dropna(subset=["library_id", "library_name"])
-                    prep_table["library_id"] = prep_table["library_id"].astype(int)
+                    prep_table["library_id"] = prep_table["library_id"].astype(pd.Int64Dtype())
 
                     def clean_value(value) -> str:
                         if pd.isna(value):
@@ -191,8 +191,6 @@ class CommonBarcodeInputForm(MultiStepForm):
         
         self.df = self.spreadsheet.df
 
-        self.df.loc[self.df["kit_i7"].notna(), "kit_i7"] = self.df.loc[self.df["kit_i7"].notna(), "kit_i7"].astype(str).str.strip()
-        self.df.loc[self.df["kit_i5"].notna(), "kit_i5"] = self.df.loc[self.df["kit_i5"].notna(), "kit_i5"].astype(str).str.strip()
         self.df.loc[self.df["name_i7"].notna(), "name_i7"] = self.df.loc[self.df["name_i7"].notna(), "name_i7"].astype(str).str.strip()
         self.df.loc[self.df["name_i5"].notna(), "name_i5"] = self.df.loc[self.df["name_i5"].notna(), "name_i5"].astype(str).str.strip()
         self.df.loc[self.df["index_well"].notna(), "index_well"] = self.df.loc[self.df["index_well"].notna(), "index_well"].astype(str).str.strip()
