@@ -107,6 +107,10 @@ class SpreadsheetInput(FlaskForm):
             return False
         
         for label, column in self.columns.items():
+            if column.type == "dropdown":
+                self.__df[label] = self.__df[label].astype(object)
+        
+        for label, column in self.columns.items():
             if isinstance(column, DropdownColumn):
                 if column.all_options_required:
                     if column.source is None:
@@ -136,7 +140,7 @@ class SpreadsheetInput(FlaskForm):
                     else:
                         self.add_error(idx, label, e)
                     continue
-                    
+                
                 self.__df.at[idx, label] = column.clean_up(row[label])  # type: ignore
 
         if len(self._errors) > 0:

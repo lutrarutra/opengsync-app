@@ -222,6 +222,9 @@ def release_project_data(current_user: models.User, recipients: list[str] | None
     
     paths = utils.filter_subpaths([data_path.path for data_path in project.data_paths])
 
+    if len(paths) == 0:
+        raise exceptions.BadRequestException("No data paths associated with project to share.")
+
     if (share_token := project.share_token) is not None:
         if not share_token._expired:
             share_token._expired = True

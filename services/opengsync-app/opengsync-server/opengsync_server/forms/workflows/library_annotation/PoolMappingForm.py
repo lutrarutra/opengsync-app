@@ -12,7 +12,7 @@ from opengsync_db import models
 from .... import logger, db  # noqa F401
 from ....tools import utils
 from ...MultiStepForm import MultiStepForm, StepFile
-from .BarcodeInputForm import BarcodeInputForm
+from .BarcodeInputForm import BarcodeInputForm, TENXATACBarcodeInputForm
 
 
 class PoolMappingSubForm(FlaskForm):
@@ -146,8 +146,16 @@ class PoolMappingForm(MultiStepForm):
         self.add_table("pool_table", self.pool_table)
         self.update_data()
 
-        next_form = BarcodeInputForm(
-            seq_request=self.seq_request,
-            uuid=self.uuid,
-        )
+        if BarcodeInputForm.is_applicable(self):
+            next_form = BarcodeInputForm(
+                seq_request=self.seq_request,
+                uuid=self.uuid,
+            )
+        elif TENXATACBarcodeInputForm.is_applicable(self):
+            next_form = TENXATACBarcodeInputForm(
+                seq_request=self.seq_request,
+                uuid=self.uuid,
+            )
+        else:
+            raise Exception("No applicable barcode input form found.")
         return next_form.make_response()
