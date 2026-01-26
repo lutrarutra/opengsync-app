@@ -30,6 +30,10 @@ class CommonBarcodeInputForm(MultiStepForm):
         sequence = tools.make_alpha_numeric(sequence, keep=[], replace_white_spaces_with="")
         sequence = sequence.upper()  # type: ignore
         return sequence
+    
+    @staticmethod
+    def is_applicable(current_step: MultiStepForm) -> bool:
+        return bool((current_step.tables["library_table"]["library_type_id"] != LibraryType.TENX_SC_ATAC.id).any())
 
     def __init__(
         self,

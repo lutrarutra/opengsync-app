@@ -41,7 +41,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
     )
 
     @staticmethod
-    def is_applicable(current_step: MultiStepForm) -> bool:
+    def is_applicable(current_step: MultiStepForm) -> bool:        
         df = current_step.tables["barcode_table"]
         df = df[df["index_well"] != "del"]
         return not df.empty and bool((
@@ -146,8 +146,6 @@ class CommonBarcodeMatchForm(MultiStepForm):
 
     def validate(self) -> bool:
         if not super().validate():
-            logger.debug(self.i5_kit.data)
-            logger.debug(self.errors)
             return False
 
         if not self.i7_kit.data and self.i7_option.data is None:
