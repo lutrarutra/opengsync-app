@@ -7,7 +7,7 @@ from opengsync_db import models
 from opengsync_db.categories import MUXType
 
 from .... import logger, db
-from ....tools import utils  # noqa F401
+from ....tools import utils
 from ..common.CommonOligoMuxForm import CommonOligoMuxForm
 
 
@@ -18,7 +18,7 @@ class OligoMuxForm(CommonOligoMuxForm):
 
     mux_type = MUXType.TENX_OLIGO
     
-    def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: Optional[str] = None):
+    def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: str | None = None):
         CommonOligoMuxForm.__init__(
             self,
             lab_prep=lab_prep, seq_request=None, library=None,

@@ -143,7 +143,7 @@ class UserBP(DBBlueprint):
         id: int | None = None,
         insider: bool | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         page: int | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.User], int | None]:
@@ -290,7 +290,7 @@ class UserBP(DBBlueprint):
     @DBBlueprint.transaction
     def get_affiliations(
         self, user_id: int, limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None,
+        sort_by: str | None = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None,
         group_name: str | None = None,
         page: int | None = None
     ) -> tuple[list[models.links.UserAffiliation], int | None]:

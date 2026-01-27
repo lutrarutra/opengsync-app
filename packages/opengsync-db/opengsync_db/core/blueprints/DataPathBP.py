@@ -113,9 +113,10 @@ class DataPathBP(DBBlueprint):
         seq_request_id: int | None = None,
         library_id: int | None = None,
         experiment_id: int | None = None,
-        limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
-        count_pages: bool = False,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        page: int | None = None,
+        custom_query: Callable[[Query], Query] | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.DataPath], int | None]:
         
@@ -129,6 +130,7 @@ class DataPathBP(DBBlueprint):
             experiment_id=experiment_id,
             seq_request_id=seq_request_id,
             library_id=library_id,
+            custom_query=custom_query
         )
         if options is not None:
             query = query.options(options)
@@ -139,7 +141,15 @@ class DataPathBP(DBBlueprint):
                 attr = attr.desc()
             query = query.order_by(sa.nulls_last(attr))
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
+        else:
+            n_pages = None
 
         if offset is not None:
             query = query.offset(offset)

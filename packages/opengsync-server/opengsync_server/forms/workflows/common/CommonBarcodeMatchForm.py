@@ -8,7 +8,7 @@ from opengsync_db import models
 from opengsync_db.categories import IndexType, IndexTypeEnum, BarcodeOrientation, BarcodeType
 from opengsync_server.forms.MultiStepForm import StepFile
 
-from .... import logger, db  # noqa F401
+from .... import logger, db
 from ...MultiStepForm import MultiStepForm
 from ....core.RunTime import runtime
 from ....tools import utils

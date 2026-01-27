@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, ClassVar
 from datetime import datetime
 from datetime import timezone
 
@@ -29,6 +29,8 @@ class PoolDilution(Base):
 
     qubit_concentration: Mapped[float] = mapped_column(sa.Float)
     volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
+
+    sortable_fields: ClassVar[list[str]] = ["id", "identifier", "pool_id", "timestamp_utc", "operator_id", "qubit_concentration", "volume_ul"]
 
     def molarity(self, pool: models.Pool) -> float | None:
         if pool.avg_fragment_size is None:

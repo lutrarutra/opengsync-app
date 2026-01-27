@@ -1,1 +1,1 @@
-from .SelectExperimentsForm import SelectExperimentsForm  # noqa
+from .SelectExperimentsForm import SelectExperimentsForm

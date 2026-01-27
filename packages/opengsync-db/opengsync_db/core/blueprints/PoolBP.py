@@ -90,9 +90,9 @@ class PoolBP(DBBlueprint):
         original_pool_id: int | None = None,
         seq_request_id: int | None = None,
         lab_prep_id: int | None = None,
-        num_m_reads_requested: Optional[float] = None,
+        num_m_reads_requested: float | None = None,
         status: PoolStatusEnum = PoolStatus.DRAFT,
-        contact_phone: Optional[str] = None,
+        contact_phone: str | None = None,
         flush: bool = True
     ) -> models.Pool:
         
@@ -248,7 +248,7 @@ class PoolBP(DBBlueprint):
         pool_id: int,
         qubit_concentration: float,
         operator_id: int,
-        volume_ul: Optional[float] = None,
+        volume_ul: float | None = None,
         flush: bool = True
     ) -> models.Pool:
 
@@ -332,9 +332,11 @@ class PoolBP(DBBlueprint):
     def get_dilutions(
         self, pool_id: int | None = None,
         experiment_id: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        custom_query: Callable[[Query], Query] | None = None,
+        sort_by: str | None = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        count_pages: bool = False
+        page: int | None = None,
+        options: ExecutableOption | None = None,
     ) -> tuple[list[models.PoolDilution], int | None]:
 
         if pool_id is not None and experiment_id is not None:
@@ -360,8 +362,16 @@ class PoolBP(DBBlueprint):
                 attr = attr.desc()
             query = query.order_by(attr)
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
-        
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
+        else:
+            n_pages = None
+
         if offset is not None:
             query = query.offset(offset)
 

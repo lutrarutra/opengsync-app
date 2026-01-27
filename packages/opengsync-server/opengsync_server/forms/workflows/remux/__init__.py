@@ -1,2 +1,2 @@
-from .FlexReMuxForm import FlexReMuxForm  # noqa F401
-from .OligoReMuxForm import OligoReMuxForm  # noqa F401
+from .FlexReMuxForm import FlexReMuxForm
+from .OligoReMuxForm import OligoReMuxForm

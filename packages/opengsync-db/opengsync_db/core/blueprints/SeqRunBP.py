@@ -53,8 +53,8 @@ class SeqRunBP(DBBlueprint):
         self, experiment_name: str, status: RunStatusEnum, instrument_name: str,
         run_folder: str, flowcell_id: str, read_type: ReadTypeEnum,
         r1_cycles: Optional[int], i1_cycles: Optional[int], r2_cycles: Optional[int], i2_cycles: Optional[int],
-        quantities: Optional[dict[str, "Quantity"]] = None, rta_version: Optional[str] = None, recipe_version: Optional[str] = None,
-        side: Optional[str] = None, flowcell_mode: Optional[str] = None,
+        quantities: Optional[dict[str, "Quantity"]] = None, rta_version: str | None = None, recipe_version: str | None = None,
+        side: str | None = None, flowcell_mode: str | None = None,
         flush: bool = True
     ) -> models.SeqRun:
         seq_run = models.SeqRun(
@@ -116,7 +116,7 @@ class SeqRunBP(DBBlueprint):
         experiment_status_in: Optional[list[ExperimentStatusEnum]] = None,
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         page: int | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.SeqRun], int | None]:

@@ -8,7 +8,7 @@ from wtforms.validators import DataRequired
 from opengsync_db import models
 from opengsync_db.categories import AffiliationType
 
-from .. import db, logger  # noqa F401
+from .. import db, logger
 from .HTMXFlaskForm import HTMXFlaskForm
 
 

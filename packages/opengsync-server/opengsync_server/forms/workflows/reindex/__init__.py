@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
-from .BarcodeInputForm import BarcodeInputForm  # noqa
-from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm  # noqa
-from .BarcodeMatchForm import BarcodeMatchForm  # noqa
-from .CompleteReindexForm import CompleteReindexForm  # noqa
+from .BarcodeInputForm import BarcodeInputForm
+from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm
+from .BarcodeMatchForm import BarcodeMatchForm
+from .CompleteReindexForm import CompleteReindexForm
 
 if TYPE_CHECKING:
     from ... import MultiStepForm

@@ -5,7 +5,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models
 
-from .... import db, logger  # noqa
+from .... import db, logger
 from ....core import runtime
 from ....tools.spread_sheet_components import CategoricalDropDown
 from ...MultiStepForm import MultiStepForm

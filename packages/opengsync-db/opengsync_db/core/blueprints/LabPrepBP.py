@@ -57,7 +57,7 @@ class LabPrepBP(DBBlueprint):
         status: Optional[PrepStatusEnum] = None,
         status_in: Optional[list[PrepStatusEnum]] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         name: str | None = None,
         creator: str | None = None,
         id: int | None = None,
@@ -138,7 +138,7 @@ class LabPrepBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query(
-        self, name: Optional[str] = None, creator: Optional[str] = None,
+        self, name: str | None = None, creator: str | None = None,
         checklist_type: Optional[LabChecklistTypeEnum] = None,
         checklist_type_in: Optional[list[LabChecklistTypeEnum]] = None,
         status: Optional[PrepStatusEnum] = None,

@@ -5,7 +5,7 @@ from wtforms import BooleanField
 from opengsync_db import models
 from opengsync_db.categories import IndexType, BarcodeType
 
-from .... import db, logger  # noqa
+from .... import db, logger
 from ....core.RunTime import runtime
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DuplicateCellValue, MissingCellValue, SpreadSheetColumn

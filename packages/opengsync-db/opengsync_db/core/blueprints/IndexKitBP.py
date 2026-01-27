@@ -102,7 +102,7 @@ class IndexKitBP(DBBlueprint):
         identifier: str | None = None,
         id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         page: int | None = None,
     ) -> tuple[list[models.IndexKit], int | None]:
         query = self.db.session.query(models.IndexKit)

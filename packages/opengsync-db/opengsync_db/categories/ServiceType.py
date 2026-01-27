@@ -8,7 +8,7 @@ from .LibraryType import LibraryType, LibraryTypeEnum
 @dataclass(eq=False)
 class ServiceTypeEnum(DBEnum):
     abbreviation: str
-    platform: Optional[str] = None
+    platform: str | None = None
     oligo_multiplexing: bool = False
     ocm_multiplexing: bool = False
     library_types: list[LibraryTypeEnum] = field(default_factory=list)

@@ -109,7 +109,7 @@ class DBHandler():
 
         self.session_factory = orm.sessionmaker(bind=self._engine, expire_on_commit=self.expire_on_commit)
         DBHandler.Session = orm.scoped_session(self.session_factory)
-        from . import listeners  # noqa: F401
+        from . import listeners
 
     def info(self, *values: object) -> None:
         message = " ".join([str(value) for value in values])

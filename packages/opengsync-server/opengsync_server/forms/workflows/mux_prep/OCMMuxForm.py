@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import LibraryStatus, MUXType
 
-from .... import logger, tools, db  # noqa F401
+from .... import logger, tools, db
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, SpreadSheetColumn, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
@@ -49,7 +49,7 @@ class OCMMuxForm(MultiStepForm):
     allowed_barcodes = [f"OB{i}" for i in range(1, 5)]
     mux_type = MUXType.TENX_ON_CHIP
 
-    def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: Optional[str] = None):
+    def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: str | None = None):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=OCMMuxForm._workflow_name,
             step_name=OCMMuxForm._step_name, step_args={"mux_type_id": OCMMuxForm.mux_type.id}

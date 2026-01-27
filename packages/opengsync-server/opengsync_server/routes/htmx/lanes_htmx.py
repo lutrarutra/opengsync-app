@@ -3,7 +3,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 
-from ... import db, forms, logger  # noqa
+from ... import db, forms, logger
 from ...core import wrappers, exceptions
 
 lanes_htmx = Blueprint("lanes_htmx", __name__, url_prefix="/htmx/lanes/")

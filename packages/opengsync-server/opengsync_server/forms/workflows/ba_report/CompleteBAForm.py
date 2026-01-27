@@ -12,7 +12,7 @@ from flask_wtf import FlaskForm
 from opengsync_db import models
 from opengsync_db.categories import MediaFileType, PoolStatus
 
-from .... import db, logger  # noqa
+from .... import db, logger
 from ....core import exceptions
 from ....core.RunTime import runtime
 from ...MultiStepForm import MultiStepForm

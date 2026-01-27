@@ -8,7 +8,7 @@ from opengsync_db.categories import LibraryType, IndexType, BarcodeOrientation
 
 from ....core import exceptions
 from ....core.RunTime import runtime
-from .... import logger, tools, db  # noqa F401
+from .... import logger, tools, db
 from ....tools import utils
 from ...MultiStepForm import MultiStepForm, StepFile
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn

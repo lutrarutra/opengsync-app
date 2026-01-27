@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, url_for, request, flash
 
 from opengsync_db import models
 
-from ... import db, logger  # noqa: F401
+from ... import db, logger
 from ...core import wrappers, exceptions
 
 users_page_bp = Blueprint("users_page", __name__)

@@ -9,7 +9,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import PoolStatus, PoolType, LibraryStatus
 
-from ... import logger, db  # noqa F401
+from ... import logger, db
 from ..SearchBar import OptionalSearchBar
 from ..HTMXFlaskForm import HTMXFlaskForm
 

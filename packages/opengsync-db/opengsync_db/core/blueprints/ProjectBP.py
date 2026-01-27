@@ -144,7 +144,7 @@ class ProjectBP(DBBlueprint):
         identifier_title: str | None = None,
         owner_name: str | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         page: int | None = None,
         custom_query: Callable[[Query], Query] | None = None,
         options: ExecutableOption | None = None,

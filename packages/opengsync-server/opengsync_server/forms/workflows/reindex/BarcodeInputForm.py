@@ -2,7 +2,7 @@ from flask import Response
 
 from opengsync_db import models
 
-from .... import logger, db  # noqa F401
+from .... import logger, db
 from ....tools.spread_sheet_components import InvalidCellValue, IntegerColumn
 from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm
 from ..common import CommonBarcodeInputForm

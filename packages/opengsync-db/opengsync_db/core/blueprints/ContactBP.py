@@ -8,9 +8,9 @@ class ContactBP(DBBlueprint):
     @DBBlueprint.transaction
     def create_contact(
         self, name: str,
-        email: Optional[str] = None,
-        phone: Optional[str] = None,
-        address: Optional[str] = None,
+        email: str | None = None,
+        phone: str | None = None,
+        address: str | None = None,
         flush: bool = True
     ) -> models.Contact:
 

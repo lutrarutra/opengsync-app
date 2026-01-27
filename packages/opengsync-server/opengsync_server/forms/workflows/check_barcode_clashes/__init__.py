@@ -1,1 +1,1 @@
-from .CheckBarcodeClashesForm import CheckBarcodeClashesForm  # noqa: F401
+from .CheckBarcodeClashesForm import CheckBarcodeClashesForm

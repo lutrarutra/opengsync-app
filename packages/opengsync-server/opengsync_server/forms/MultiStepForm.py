@@ -106,7 +106,7 @@ class MultiStepForm(HTMXFlaskForm):
     def fill_previous_form(self, previous_form: StepFile):
         logger.warning(f"Workflow '{self.workflow}', step '{self.step_name}', fill_previous_form() not implemented in subclass...")
 
-    def complete(self, path: Optional[str] = None):
+    def complete(self, path: str | None = None):
         if path is not None:
             shutil.copyfile(self.__path, path)
 

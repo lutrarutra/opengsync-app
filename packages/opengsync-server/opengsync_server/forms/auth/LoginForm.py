@@ -6,7 +6,7 @@ from wtforms.validators import DataRequired, Email
 
 from opengsync_db.categories import UserRole
 
-from ... import bcrypt, db, logger  # noqa
+from ... import bcrypt, db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ...core import runtime
 

@@ -29,7 +29,7 @@ class KitBP(DBBlueprint):
         return kit
 
     @DBBlueprint.transaction
-    def get(self, id: int | None = None, identifier: Optional[str] = None, name: Optional[str] = None) -> models.Kit | None:
+    def get(self, id: int | None = None, identifier: str | None = None, name: str | None = None) -> models.Kit | None:
         if id is None and identifier is None and name is None:
             raise ValueError("Either id or identifier must be provided.")
 
@@ -63,7 +63,7 @@ class KitBP(DBBlueprint):
         identifier: str | None = None,
         id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = 0,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         page: int | None = None
     ) -> tuple[list[models.Kit], int | None]:
 

@@ -14,7 +14,7 @@ class MediaFileBP(DBBlueprint):
     def create(
         self, name: str, type: MediaFileTypeEnum,
         uploader_id: int, extension: str, size_bytes: int,
-        uuid: Optional[str] = None,
+        uuid: str | None = None,
         seq_request_id: int | None = None,
         experiment_id: int | None = None,
         lab_prep_id: int | None = None,

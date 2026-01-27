@@ -9,7 +9,7 @@ from opengsync_db import models, exceptions
 from opengsync_db.categories import PoolStatus, PoolType
 
 from ...core import exceptions as serv_exceptions
-from ... import db, logger, tools  # noqa F401
+from ... import db, logger, tools
 from ..MultiStepForm import MultiStepForm
 from ..SearchBar import OptionalSearchBar
 

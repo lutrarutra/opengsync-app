@@ -49,7 +49,7 @@ class LaneBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self, experiment_id: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         count_pages: bool = False,
         options: ExecutableOption | None = None,

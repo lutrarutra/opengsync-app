@@ -9,7 +9,7 @@ from wtforms.validators import Length, Optional as OptionalValidator, DataRequir
 
 from opengsync_db import models
 
-from .... import logger, db  # noqa F401
+from .... import logger, db
 from ....tools import utils
 from ...MultiStepForm import MultiStepForm, StepFile
 from .BarcodeInputForm import BarcodeInputForm, TENXATACBarcodeInputForm

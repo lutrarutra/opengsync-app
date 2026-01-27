@@ -5,7 +5,7 @@ from pandas.core.api import DataFrame as DataFrame
 from opengsync_db import models
 from opengsync_db.categories import IndexType, BarcodeOrientation
 
-from .... import logger, db  # noqa F401
+from .... import logger, db
 from ...MultiStepForm import StepFile
 from ..common import CommonTENXATACBarcodeInputForm
 from .VisiumAnnotationForm import VisiumAnnotationForm

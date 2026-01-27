@@ -6,7 +6,7 @@ from opengsync_db import models
 from opengsync_db.categories import FeatureType, MUXType, LibraryType, ServiceType, LibraryTypeEnum, SubmissionType
 from opengsync_server.forms.MultiStepForm import StepFile
 
-from .... import logger, db  # noqa
+from .... import logger, db
 from ..common.CommonOligoMuxForm import CommonOligoMuxForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm

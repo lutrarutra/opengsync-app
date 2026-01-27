@@ -6,7 +6,7 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 
 @dataclass(eq=False)
 class GenomeRefEnum(DBEnum):
-    organism_latin_name: Optional[str] = None
+    organism_latin_name: str | None = None
     organism_tax_id: int | None = None
 
     @property

@@ -2,7 +2,7 @@ from flask import Response
 
 from opengsync_db import models
 
-from .... import logger, tools, db  # noqa F401
+from .... import logger, tools, db
 
 from ..common import CommonBarcodeInputForm
 from .VisiumAnnotationForm import VisiumAnnotationForm

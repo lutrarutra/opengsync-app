@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import AttributeType
 
-from .. import logger, db  # noqa F401
+from .. import logger, db
 from ..tools.spread_sheet_components import TextColumn, IntegerColumn, DropdownColumn, SpreadSheetColumn, InvalidCellValue
 from .HTMXFlaskForm import HTMXFlaskForm
 from .SpreadsheetInput import SpreadsheetInput

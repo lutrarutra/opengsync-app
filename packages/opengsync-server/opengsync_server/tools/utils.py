@@ -202,7 +202,7 @@ def make_filenameable(val, keep: list[str] = ['-', '.', '_']) -> str:
     return "".join(c for c in str(val) if c.isalnum() or c in keep)
 
 
-def make_alpha_numeric(val: str | None, keep: list[str] = [".", "-", "_"], replace_white_spaces_with: Optional[str] = "_") -> str | None:
+def make_alpha_numeric(val: str | None, keep: list[str] = [".", "-", "_"], replace_white_spaces_with: str | None = "_") -> str | None:
     if pd.isna(val) or val is None or val == "":
         return None
     

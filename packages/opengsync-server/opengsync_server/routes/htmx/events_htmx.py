@@ -5,7 +5,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models
 
-from ... import db, logger  # noqa
+from ... import db, logger
 from ...core import wrappers, exceptions
 
 events_htmx = Blueprint("events_htmx", __name__, url_prefix="/htmx/events/")

@@ -1,1 +1,1 @@
-from .CompleteQubitMeasureForm import CompleteQubitMeasureForm  # noqa F401
+from .CompleteQubitMeasureForm import CompleteQubitMeasureForm

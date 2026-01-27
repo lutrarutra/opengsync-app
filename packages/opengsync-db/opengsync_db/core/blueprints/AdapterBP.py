@@ -13,7 +13,7 @@ class AdapterBP(DBBlueprint):
     @DBBlueprint.transaction
     def create(
         self, index_kit_id: int,
-        well: Optional[str] = None, flush: bool = True
+        well: str | None = None, flush: bool = True
     ) -> models.Adapter:
         if well is not None:
             if self.db.session.query(models.Adapter).where(
@@ -43,7 +43,7 @@ class AdapterBP(DBBlueprint):
         name: str | None = None,
         id: int | None = None,
         well: str | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         page: int | None = None,
     ) -> tuple[list[models.Adapter], int | None]:

@@ -7,7 +7,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models
 
-from .... import logger, tools, db  # noqa F401
+from .... import logger, tools, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DuplicateCellValue, IntegerColumn
 from ..common.CommonFlexMuxForm import CommonFlexMuxForm
@@ -19,7 +19,7 @@ class FlexMuxForm(CommonFlexMuxForm):
     _workflow_name = "mux_prep"
     lab_prep: models.LabPrep
 
-    def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: Optional[str] = None):
+    def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: str | None = None):
         CommonFlexMuxForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=FlexMuxForm._workflow_name,
             seq_request=None, library=None, lab_prep=lab_prep, columns=[

@@ -8,7 +8,7 @@ from opengsync_db import models
 from opengsync_db.categories import LibraryType, FeatureType
 from opengsync_server.forms.MultiStepForm import StepFile
 
-from .... import logger, tools, db  # noqa F401
+from .... import logger, tools, db
 from ....tools.spread_sheet_components import DropdownColumn, TextColumn, CategoricalDropDown, DuplicateCellValue, InvalidCellValue, MissingCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
@@ -32,7 +32,7 @@ class CommonFeatureAnnotationForm(MultiStepForm):
         seq_request: models.SeqRequest | None,
         additional_columns: list[SpreadSheetColumn],
         formdata: dict | None = None,
-        uuid: Optional[str] = None,
+        uuid: str | None = None,
     ):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=workflow,
@@ -230,7 +230,7 @@ class CommonFeatureAnnotationForm(MultiStepForm):
             library_name: str | None, feature_name: str,
             sequence: str, pattern: str, read: str,
             identifier: str | None,
-            kit_name: Optional[str] = None,
+            kit_name: str | None = None,
             kit_id: int | None = None,
             feature_id: int | None = None
         ):

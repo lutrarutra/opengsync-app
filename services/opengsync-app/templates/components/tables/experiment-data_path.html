@@ -1,33 +1,14 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="experiment-data_path-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='experiment-data_path-table', column_name='ID', column_var='id',
-                        sort_url='experiments_htmx.get_data_paths', context={'experiment_id': experiment.id},
-                        sort_by=sort_by, sort_order=sort_order,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='experiment-data_path-table', column_name='Path', column_var='path',
-                        sort_url='experiments_htmx.get_data_paths', context={'experiment_id': experiment.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=9
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='experiment-data_path-table', column_name='Type', column_var='type_id',
-                        sort_url='experiments_htmx.get_data_paths', context={'experiment_id': experiment.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=DataPathType.as_list(), multiselect_selected=type_in
-                    )
-                }}
+                {{ table_col2("experiment-data_path-table", table, "id") }}
+                {{ table_col2("experiment-data_path-table", table, "path") }}
+                {{ table_col2("experiment-data_path-table", table, "type") }}
             </tr>
         </thead>
         <tbody>
@@ -45,5 +26,5 @@
         </tbody>
     </table>
     {{ spinner("experiment-data_path-table-spinner") }}
-    {{ pagination("experiment-data_path-table", "experiments_htmx.get_data_paths", n_pages, active_page, context={ "experiment_id":experiment.id }) }}
+    {{ pagination2("experiment-data_path-table", table) }}
 </div>

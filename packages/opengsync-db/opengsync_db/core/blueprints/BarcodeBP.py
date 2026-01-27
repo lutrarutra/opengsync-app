@@ -45,7 +45,7 @@ class BarcodeBP(DBBlueprint):
         adapter_id: int | None = None,
         type: Optional[BarcodeTypeEnum] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         count_pages: bool = False
     ) -> tuple[list[models.Barcode], int | None]:
         query = self.db.session.query(models.Barcode)

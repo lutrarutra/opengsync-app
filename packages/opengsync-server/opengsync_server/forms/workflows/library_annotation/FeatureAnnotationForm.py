@@ -5,7 +5,7 @@ from flask import Response
 from opengsync_db import models
 from opengsync_db.categories import FeatureType
 
-from .... import tools, logger  # noqa
+from .... import tools, logger
 from ..common.CommonFeatureAnnotationForm import CommonFeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .CompleteSASForm import CompleteSASForm

@@ -103,41 +103,6 @@ def complete(current_user: models.User, project_id: int):
 
 
 @wrappers.htmx_route(projects_htmx, db=db)
-def get_data_paths(current_user: models.User, project_id: int, page: int = 0):
-    if (project := db.projects.get(project_id)) is None:
-        raise exceptions.NotFoundException()
-
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.VIEW:
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = page * PAGE_LIMIT
-
-    if (type_in := request.args.get("type_id_in")) is not None:
-        type_in = json.loads(type_in)
-        try:
-            type_in = [DataPathType.get(int(t)) for t in type_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(type_in) == 0:
-            type_in = None
-
-    data_paths, n_pages = db.data_paths.find(offset=offset, project_id=project_id, type_in=type_in, sort_by=sort_by, descending=descending, count_pages=True)
-
-    return make_response(
-        render_template(
-            "components/tables/project-data_path.html", data_paths=data_paths,
-            n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order,
-            project=project, type_in=type_in
-        )
-    )
-
-@wrappers.htmx_route(projects_htmx, db=db)
 def get_sample_attributes(current_user: models.User, project_id: int):
     if (project := db.projects.get(project_id)) is None:
         raise exceptions.NotFoundException()

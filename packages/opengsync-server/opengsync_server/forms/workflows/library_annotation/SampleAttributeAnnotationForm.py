@@ -9,7 +9,7 @@ from opengsync_db import models
 from opengsync_db.categories import AttributeType
 from opengsync_server.forms.MultiStepForm import StepFile
 
-from .... import logger, db  # noqa F401
+from .... import logger, db
 from ....core import runtime
 from ....tools.spread_sheet_components import TextColumn, MissingCellValue, SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm

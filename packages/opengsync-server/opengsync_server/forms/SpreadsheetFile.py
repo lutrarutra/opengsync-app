@@ -18,7 +18,7 @@ class SpreadsheetFile(FlaskForm):
 
     def __init__(
         self, columns: list[SpreadSheetColumn], post_url: str, csrf_token: Optional[str],
-        sheet_name: Optional[str] = None, formdata: Optional[dict] = None,
+        sheet_name: str | None = None, formdata: Optional[dict] = None,
     ):
         super().__init__(formdata=formdata)
         self.columns: dict[str, SpreadSheetColumn] = {}

@@ -10,7 +10,7 @@ from wtforms import SelectField, StringField, FieldList, FormField
 
 from opengsync_db import models
 
-from .... import db, logger  # noqa
+from .... import db, logger
 from ....tools import utils
 from ....core import runtime
 from ...MultiStepForm import MultiStepForm

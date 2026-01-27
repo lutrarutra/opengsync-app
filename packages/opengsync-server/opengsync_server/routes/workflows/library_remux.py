@@ -3,7 +3,7 @@ from flask import Blueprint, request
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, LibraryStatus, AccessType, MUXType
 
-from ... import db, logger  # noqa
+from ... import db, logger
 from ...forms.workflows import remux as forms
 from ...core import wrappers, exceptions
 

@@ -27,25 +27,6 @@ def get_context(request: Request) -> dict:
 
     return context
 
-
-@wrappers.htmx_route(api_tokens_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
-def get(current_user: models.User, page: int = 0):
-    raise NotImplementedError()
-    context = get_context(request)
-
-    api_tokens, n_pages = db.shares.find(
-        offset=context["offset"], sort_by=context["sort_by"], descending=context["descending"], count_pages=True,
-        owner=current_user if not current_user.is_insider() else None
-    )
-
-    return make_response(
-        render_template(
-            "components/tables/share_token.html", api_tokens=api_tokens,
-            n_pages=n_pages, active_page=page,
-            sort_by=context["sort_by"], sort_order=context["sort_order"],
-        )
-    )
-
 @wrappers.htmx_route(api_tokens_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User, user_id: int):
     if (user := db.users.get(user_id)) is None:

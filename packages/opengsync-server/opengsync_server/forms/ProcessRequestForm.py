@@ -6,7 +6,7 @@ from wtforms.validators import Optional as OptionalValidator, DataRequired, Leng
 from opengsync_db import models
 from opengsync_db.categories import RequestResponse, SeqRequestStatus
 
-from .. import logger, db  # noqa
+from .. import logger, db
 from .HTMXFlaskForm import HTMXFlaskForm
 from ..core import exceptions
 

@@ -71,12 +71,12 @@ class GroupBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        user_id: Optional[int] = None, type: Optional[GroupTypeEnum] = None,
+        user_id: int | None = None, type: Optional[GroupTypeEnum] = None,
         name: str | None = None,
         id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         type_in: Optional[list[GroupTypeEnum]] = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         page: int | None = None,
     ) -> tuple[list[models.Group], int | None]:
         query = self.db.session.query(models.Group)
@@ -147,7 +147,7 @@ class GroupBP(DBBlueprint):
         self, group_id: int, type: Optional[GroupTypeEnum] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         type_in: Optional[list[GroupTypeEnum]] = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         user_name: str | None = None,
         page: int | None = None,
     ) -> tuple[list[models.links.UserAffiliation], int | None]:

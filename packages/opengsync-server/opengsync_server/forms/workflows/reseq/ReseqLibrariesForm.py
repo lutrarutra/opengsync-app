@@ -7,7 +7,7 @@ from wtforms import SelectField
 from opengsync_db.core import exceptions
 from opengsync_db.categories import LibraryStatus
 
-from .... import logger, tools, db  # noqa F401
+from .... import logger, tools, db
 from ...MultiStepForm import MultiStepForm
 from ....tools.spread_sheet_components import IntegerColumn, TextColumn
 

@@ -8,7 +8,7 @@ from wtforms.validators import DataRequired, Length
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, GenomeRef, LibraryStatus, MUXType
 
-from ... import db, logger  # noqa: F401
+from ... import db, logger
 from ...tools import utils
 from ..HTMXFlaskForm import HTMXFlaskForm
 

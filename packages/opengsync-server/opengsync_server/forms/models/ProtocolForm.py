@@ -7,7 +7,7 @@ from wtforms.validators import DataRequired, Length, Optional as OptionalValidat
 
 from opengsync_db import models
 from opengsync_db.categories import ServiceType
-from ... import logger, db  # noqa
+from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 

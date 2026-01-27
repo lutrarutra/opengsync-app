@@ -5,7 +5,7 @@ from wtforms.validators import Optional as OptionalValidator, Length
 from opengsync_db import models
 from opengsync_server.forms.MultiStepForm import StepFile
 
-from .... import db, logger  # noqa F401
+from .... import db, logger
 from ...SearchBar import OptionalSearchBar
 from ...MultiStepForm import MultiStepForm
 from .SampleAnnotationForm import SampleAnnotationForm

@@ -10,7 +10,7 @@ from flask_htmx import make_response
 from opengsync_db import models, to_utc
 from opengsync_db.categories import MediaFileType, LibraryStatus
 
-from .... import logger, db  # noqa F401
+from .... import logger, db
 from ....core import exceptions
 from ....core.RunTime import runtime
 from ...HTMXFlaskForm import HTMXFlaskForm

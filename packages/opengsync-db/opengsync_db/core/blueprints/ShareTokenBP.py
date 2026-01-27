@@ -1,6 +1,7 @@
 import math
 from typing import Callable
 
+from sqlalchemy.orm import Query
 from sqlalchemy.sql.base import ExecutableOption
 
 from ..DBBlueprint import DBBlueprint
@@ -46,35 +47,31 @@ class ShareTokenBP(DBBlueprint):
         return token
 
     @DBBlueprint.transaction
-    def get(self, id: int | str, options: ExecutableOption | None = None) -> models.ShareToken | None:
+    def get(self, uuid: str, options: ExecutableOption | None = None) -> models.ShareToken | None:
         if options is None:
-            if isinstance(id, int):
-                token = self.db.session.get(models.ShareToken, id)
-            elif isinstance(id, str):
-                token = self.db.session.query(models.ShareToken).filter(models.ShareToken.uuid == id).first()
+            token = self.db.session.query(models.ShareToken).filter(models.ShareToken.uuid == uuid).first()
         else:
-            if isinstance(id, int):
-                token = self.db.session.query(models.ShareToken).options(options).filter(models.ShareToken.id == id).first()
-            elif isinstance(id, str):
-                token = self.db.session.query(models.ShareToken).options(options).filter(models.ShareToken.uuid == id).first()
+            token = self.db.session.query(models.ShareToken).options(options).filter(models.ShareToken.uuid == uuid).first()
         return token
 
     @DBBlueprint.transaction
     def find(
         self,
         owner: models.User | None = None,
-        limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
-        count_pages: bool = False,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        page: int | None = None,
+        custom_query: Callable[[Query], Query] | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.ShareToken], int | None]:
         query = self.db.session.query(models.ShareToken)
 
         query = ShareTokenBP.where(query, owner_id=owner.id if owner is not None else None)
+        if custom_query is not None:
+            query = custom_query(query)
+
         if options is not None:
             query = query.options(options)
-
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
 
         if sort_by is not None:
             attr = getattr(models.ShareToken, sort_by)
@@ -82,6 +79,16 @@ class ShareTokenBP(DBBlueprint):
                 attr = attr.desc()
             query = query.order_by(attr)
         
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
+        else:
+            n_pages = None
+
         if offset is not None:
             query = query.offset(offset)
 
@@ -100,7 +107,7 @@ class ShareTokenBP(DBBlueprint):
         self.db.session.delete(token)
     
     @DBBlueprint.transaction
-    def __getitem__(self, key: int | str) -> models.ShareToken:
-        if (token := self.get(key)) is None:
-            raise exceptions.ElementDoesNotExist(f"ShareToken with ID/UUID '{key}' not found.")
+    def __getitem__(self, uuid: str) -> models.ShareToken:
+        if (token := self.get(uuid)) is None:
+            raise exceptions.ElementDoesNotExist(f"ShareToken with ID/UUID '{uuid}' not found.")
         return token

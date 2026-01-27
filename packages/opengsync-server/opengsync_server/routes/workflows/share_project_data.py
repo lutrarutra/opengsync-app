@@ -3,7 +3,7 @@ from flask import Blueprint, request
 from opengsync_db import models
 from opengsync_db.categories import AccessType
 
-from ... import db, logger  # noqa
+from ... import db, logger
 from ...core import wrappers, exceptions
 
 share_project_data_workflow = Blueprint("share_project_data_workflow", __name__, url_prefix="/workflows/dilute_pools/")

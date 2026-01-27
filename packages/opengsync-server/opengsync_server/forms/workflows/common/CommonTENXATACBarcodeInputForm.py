@@ -8,9 +8,9 @@ from opengsync_db.categories import LibraryType, IndexType
 
 from ....core import exceptions
 from ....core.RunTime import runtime
-from .... import logger, db  # noqa F401
+from .... import logger, db
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, CategoricalDropDown
-from .... import logger, tools, db  # noqa F401
+from .... import logger, tools, db
 from ....tools import utils
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
 from ...MultiStepForm import MultiStepForm

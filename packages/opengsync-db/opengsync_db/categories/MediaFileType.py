@@ -8,7 +8,7 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class MediaFileTypeEnum(DBEnum):
     dir: str
     extensions: Optional[list[str]] = None
-    render_url: Optional[str] = None
+    render_url: str | None = None
 
 
 class MediaFileType(ExtendedEnum[MediaFileTypeEnum], enum_type=MediaFileTypeEnum):

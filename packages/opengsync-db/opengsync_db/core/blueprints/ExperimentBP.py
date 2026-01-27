@@ -17,7 +17,7 @@ class ExperimentBP(DBBlueprint):
         cls,
         query: Query,
         status: Optional[ExperimentStatusEnum] = None,
-        project_id: Optional[int] = None,
+        project_id: int | None = None,
         status_in: Optional[list[ExperimentStatusEnum]] = None,
         workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
         custom_query: Callable[[Query], Query] | None = None,
@@ -104,7 +104,7 @@ class ExperimentBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        project_id: Optional[int] = None,
+        project_id: int | None = None,
         status: Optional[ExperimentStatusEnum] = None,
         status_in: Optional[list[ExperimentStatusEnum]] = None,
         workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
@@ -113,7 +113,7 @@ class ExperimentBP(DBBlueprint):
         name: str | None = None,
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         page: int | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.Experiment], int | None]:

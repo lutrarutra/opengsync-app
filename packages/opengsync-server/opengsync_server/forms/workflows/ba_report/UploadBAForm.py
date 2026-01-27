@@ -14,7 +14,7 @@ from flask_wtf import FlaskForm
 
 from opengsync_db import models
 
-from .... import db, logger  # noqa
+from .... import db, logger
 from ....core import exceptions
 from ...MultiStepForm import MultiStepForm
 from .ParseBAExcelFile import ParseBAExcelFile

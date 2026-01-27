@@ -21,7 +21,7 @@ class FlexReMuxForm(CommonFlexMuxForm):
     allowed_barcodes = [f"BC{i:03}" for i in range(1, 17)]
     abc_allowed_barcodes = [f"AB{i:03}" for i in range(1, 17)]
 
-    def __init__(self, library: models.Library, formdata: dict | None = None, uuid: Optional[str] = None):
+    def __init__(self, library: models.Library, formdata: dict | None = None, uuid: str | None = None):
         match library.type:
             case LibraryType.TENX_SC_GEX_FLEX:
                 allowed_barcodes = FlexReMuxForm.allowed_barcodes

@@ -1,1 +1,1 @@
-from .plots import plots_api  # noqa: F401
+from .plots import plots_api

@@ -179,28 +179,8 @@ def plate_pool(current_user: models.User, pool_id: int, form_type: Literal["crea
 
 
 @wrappers.htmx_route(pools_htmx, db=db)
-def get_dilutions(current_user: models.User, pool_id: int, page: int = 0):
-    if (pool := db.pools.get(pool_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    if not current_user.is_insider() and pool.owner_id != current_user.id:
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
-
-    dilutions, n_pages = db.pools.get_dilutions(offset=offset, pool_id=pool_id, sort_by=sort_by, descending=descending, limit=None)
-    
-    return make_response(
-        render_template(
-            "components/tables/pool-dilution.html",
-            dilutions=dilutions, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, pool=pool,
-            n_pages=n_pages
-        )
-    )
+def get_dilutions(current_user: models.User):
+    return make_response(render_template(**logic.dilution.get_table_context(current_user, request)))
 
 
 @wrappers.htmx_route(pools_htmx, db=db)

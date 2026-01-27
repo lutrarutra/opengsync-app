@@ -43,7 +43,7 @@ class SpreadSheetColumn:
     var_type: Type
     source: Optional[Any] = None
     clean_up_fnc: Optional[Callable] = None
-    letter: Optional[str] = None
+    letter: str | None = None
     required: bool = False
     optional_col: bool = False
     unique: bool = False
@@ -84,7 +84,7 @@ class TextColumn(SpreadSheetColumn):
     def __init__(
         self, label: str, name: str, width: float, max_length: int = 1024, min_length: int = 0,
         required: bool = False, optional_col: bool = False, clean_up_fnc: Optional[Callable] = None,
-        letter: Optional[str] = None, unique: bool = False, read_only: bool = False, validation_fnc: Optional[Callable] = None
+        letter: str | None = None, unique: bool = False, read_only: bool = False, validation_fnc: Optional[Callable] = None
     ):
         super().__init__(
             label=label, name=name, type="text", width=width, var_type=str, clean_up_fnc=clean_up_fnc,
@@ -115,7 +115,7 @@ class TextColumn(SpreadSheetColumn):
 
 class IntegerColumn(SpreadSheetColumn):
     def __init__(
-        self, label: str, name: str, width: float, required: bool = False, letter: Optional[str] = None,
+        self, label: str, name: str, width: float, required: bool = False, letter: str | None = None,
         optional_col: bool = False, unique: bool = False, read_only: bool = False
     ):
         super().__init__(
@@ -140,7 +140,7 @@ class IntegerColumn(SpreadSheetColumn):
 
 class FloatColumn(SpreadSheetColumn):
     def __init__(
-        self, label: str, name: str, width: float, required: bool = False, letter: Optional[str] = None,
+        self, label: str, name: str, width: float, required: bool = False, letter: str | None = None,
         optional_col: bool = False, unique: bool = False, read_only: bool = False
     ):
         super().__init__(
@@ -167,7 +167,7 @@ class DropdownColumn(SpreadSheetColumn):
 
     def __init__(
         self, label: str, name: str, width: float, choices: list[Any], required: bool = False,
-        letter: Optional[str] = None, optional_col: bool = False, unique: bool = False, all_options_required: bool = False, read_only: bool = False
+        letter: str | None = None, optional_col: bool = False, unique: bool = False, all_options_required: bool = False, read_only: bool = False
     ):
         super().__init__(
             label=label, name=name, type="dropdown", width=width, var_type=str, source=choices,
@@ -189,7 +189,7 @@ class DropdownColumn(SpreadSheetColumn):
 class CategoricalDropDown(SpreadSheetColumn):
     def __init__(
         self, label: str, name: str, width: float, categories: dict[Any, str], required: bool = False,
-        letter: Optional[str] = None, optional_col: bool = False, unique: bool = False, read_only: bool = False
+        letter: str | None = None, optional_col: bool = False, unique: bool = False, read_only: bool = False
     ):
         super().__init__(
             label=label, name=name, type="dropdown", width=width, var_type=str,

@@ -7,7 +7,7 @@ from flask import url_for
 from opengsync_db import models, exceptions
 from opengsync_db.categories import LibraryType, MUXType
 
-from .... import logger, tools, db  # noqa F401
+from .... import logger, tools, db
 from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
@@ -49,7 +49,7 @@ class CommonFlexMuxForm(MultiStepForm):
         seq_request: models.SeqRequest | None,
         library: models.Library | None,
         formdata: dict | None = None,
-        uuid: Optional[str] = None,
+        uuid: str | None = None,
         columns: list[SpreadSheetColumn] = []
     ):
         MultiStepForm.__init__(

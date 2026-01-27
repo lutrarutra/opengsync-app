@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, MUXType
 
-from .... import logger, tools, db  # noqa F401
+from .... import logger, tools, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, IntegerColumn
 from ...MultiStepForm import MultiStepForm
@@ -47,7 +47,7 @@ class FlexABCForm(CommonFlexABCForm):
         sample_table = current_step.tables["sample_table"]
         return LibraryType.TENX_SC_ABC_FLEX in sample_table["library_type"].values
 
-    def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: Optional[str] = None):
+    def __init__(self, lab_prep: models.LabPrep, formdata: dict | None = None, uuid: str | None = None):
         CommonFlexABCForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=FlexABCForm._workflow_name,
             lab_prep=lab_prep, seq_request=None, library=None, columns=FlexABCForm.columns

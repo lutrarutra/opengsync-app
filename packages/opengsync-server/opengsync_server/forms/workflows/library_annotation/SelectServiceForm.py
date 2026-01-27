@@ -9,7 +9,7 @@ from opengsync_db import models
 from opengsync_db.categories import ServiceType, MUXType, LibraryTypeEnum, LibraryType, SubmissionType
 from opengsync_server.forms.MultiStepForm import StepFile
 
-from .... import logger, db  # noqa
+from .... import logger, db
 from ...MultiStepForm import MultiStepForm
 from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm
 from .VisiumAnnotationForm import VisiumAnnotationForm

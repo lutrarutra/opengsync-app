@@ -1,1 +1,1 @@
-from .OpeNGSyncAPI import OpeNGSyncAPI  # noqa
+from .OpeNGSyncAPI import OpeNGSyncAPI

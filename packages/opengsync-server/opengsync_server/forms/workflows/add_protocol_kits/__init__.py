@@ -1,1 +1,1 @@
-from .AddKitCombinationsFrom import AddKitCombinationsFrom  # noqa
+from .AddKitCombinationsFrom import AddKitCombinationsFrom

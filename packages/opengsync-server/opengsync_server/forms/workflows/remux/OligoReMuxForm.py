@@ -8,7 +8,7 @@ from opengsync_db import models
 from opengsync_db.categories import MUXType
 
 from .... import logger, db, tools
-from ....tools import utils, StaticSpreadSheet  # noqa F401
+from ....tools import utils, StaticSpreadSheet
 from ....tools.spread_sheet_components import TextColumn
 from ..common.CommonOligoMuxForm import CommonOligoMuxForm
 
@@ -22,7 +22,7 @@ class OligoReMuxForm(CommonOligoMuxForm):
 
     mux_type = MUXType.TENX_OLIGO
     
-    def __init__(self, library: models.Library, formdata: dict | None = None, uuid: Optional[str] = None):
+    def __init__(self, library: models.Library, formdata: dict | None = None, uuid: str | None = None):
         CommonOligoMuxForm.__init__(
             self,
             library=library, seq_request=None, lab_prep=None,

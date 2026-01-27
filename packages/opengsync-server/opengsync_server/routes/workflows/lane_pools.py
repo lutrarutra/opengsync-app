@@ -2,7 +2,7 @@ from flask import Blueprint, request
 
 from opengsync_db import models
 
-from ... import db, logger  # noqa
+from ... import db, logger
 from ...forms.workflows import lane_pools as wff
 from ...core import wrappers, exceptions
 

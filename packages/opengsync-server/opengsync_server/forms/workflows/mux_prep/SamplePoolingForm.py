@@ -3,7 +3,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models, exceptions, categories as cats
 
-from .... import logger, tools, db  # noqa F401
+from .... import logger, tools, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, IntegerColumn
 from ...HTMXFlaskForm import HTMXFlaskForm

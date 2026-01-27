@@ -12,7 +12,7 @@ REDIS_PORT = int(os.environ["REDIS_PORT"])
 
 celery = Celery("opengsync-worker", broker=f"redis://redis-cache:{REDIS_PORT}/4",)
 
-from opengsync_worker import tasks  # noqa: E402, F401
+from opengsync_worker import tasks
 celery.autodiscover_tasks()
 
 run_folder = Path(config["illumina_run_folder"])

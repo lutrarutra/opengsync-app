@@ -14,7 +14,7 @@ class SequencerBP(DBBlueprint):
     def create(
         self, name: str,
         model: SequencerModelEnum,
-        ip: Optional[str] = None,
+        ip: str | None = None,
         flush: bool = True
     ) -> models.Sequencer:
         if self.db.session.query(models.Sequencer).where(
@@ -45,7 +45,7 @@ class SequencerBP(DBBlueprint):
         name: str | None = None,
         id: int | None = None,
         model_in: list[SequencerModelEnum] | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         page: int | None = None,
     ) -> tuple[list[models.Sequencer], int | None]:

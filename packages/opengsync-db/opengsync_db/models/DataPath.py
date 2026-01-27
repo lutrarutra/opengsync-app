@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -32,6 +32,8 @@ class DataPath(Base):
 
     seq_request_id: Mapped[int | None] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
     seq_request: Mapped["SeqRequest | None"] = relationship("SeqRequest", back_populates="data_paths", lazy="select")
+
+    sortable_fields: ClassVar[list[str]] = ["id", "path", "type_id"]
 
     @property
     def type(self) -> DataPathTypeEnum:

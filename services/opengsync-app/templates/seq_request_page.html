@@ -584,7 +584,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="request-data_paths-tab" role="tabpanel" tabindex="12">
-            <div hx-get="{{ url_for('seq_requests_htmx.get_data_paths', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('share_htmx.get_data_paths', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

@@ -2,7 +2,7 @@ from flask import Blueprint, request, Response
 
 from opengsync_db import models
 
-from ... import db, logger  # noqa
+from ... import db, logger
 from ...forms.workflows import dist_reads as forms
 from ...core import wrappers, exceptions
 

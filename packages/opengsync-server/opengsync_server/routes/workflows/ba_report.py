@@ -7,7 +7,7 @@ from flask import Blueprint, request, Request
 from opengsync_db import models
 from opengsync_db.categories import PoolStatus, LibraryStatus
 
-from ... import db, logger  # noqa
+from ... import db, logger
 from ...forms.workflows import ba_report as wff
 from ...forms import SelectSamplesForm
 from ...core import wrappers, exceptions

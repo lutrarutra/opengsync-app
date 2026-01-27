@@ -7,7 +7,7 @@ from opengsync_db import models
 from opengsync_db.categories import PoolStatus, LibraryStatus
 from opengsync_server.routes.htmx import lab_preps_htmx
 
-from ... import db, logger  # noqa
+from ... import db, logger
 from ...core import runtime
 from ...forms.workflows import select_library_protocols as wff
 from ...core import wrappers, exceptions

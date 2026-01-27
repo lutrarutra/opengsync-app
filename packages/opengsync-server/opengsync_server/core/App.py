@@ -317,7 +317,7 @@ class App(Flask):
         db.close_session()
 
         with self.app_context():
-            from ..routes import core_routes  # noqa
+            from ..routes import core_routes
 
         self.register_blueprint(routes.htmx.samples_htmx)
         self.register_blueprint(routes.htmx.projects_htmx)
@@ -339,7 +339,7 @@ class App(Flask):
         self.register_blueprint(routes.htmx.events_htmx)
         self.register_blueprint(routes.htmx.groups_htmx)
         self.register_blueprint(routes.htmx.kits_htmx)
-        self.register_blueprint(routes.htmx.share_tokens_htmx)
+        self.register_blueprint(routes.htmx.share_htmx)
         self.register_blueprint(routes.htmx.protocols_htmx)
         self.register_blueprint(routes.htmx.api_tokens_htmx)
         self.register_blueprint(routes.htmx.design_htmx)

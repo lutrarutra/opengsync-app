@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 from uuid_extensions import uuid7str
 from datetime import datetime
 from datetime import timezone, timedelta
@@ -28,6 +28,8 @@ class ShareToken(Base):
     owner: Mapped["User"] = relationship("User", lazy="select")
 
     paths: Mapped[list["SharePath"]] = relationship("SharePath", back_populates="token", lazy="select", cascade="all, delete-orphan")
+
+    sortable_fields: ClassVar[list[str]] = ["uuid", "expiration", "time_valid_min", "owner_id", "num_paths"]
 
     @hybrid_property
     def num_paths(self) -> int:  # type: ignore[override]

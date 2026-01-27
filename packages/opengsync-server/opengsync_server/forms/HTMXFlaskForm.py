@@ -14,7 +14,7 @@ class ABCHTMXFlaskForm(FormMeta, ABC):
 
 
 class HTMXFlaskForm(FlaskForm, metaclass=ABCHTMXFlaskForm):
-    _template_path: Optional[str] = None
+    _template_path: str | None = None
     _form_label: str = "form"
 
     def __init__(self, formdata: Optional[dict[str, Any]] = None, **kwargs):

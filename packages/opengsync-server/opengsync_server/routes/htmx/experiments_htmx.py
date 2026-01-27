@@ -352,41 +352,6 @@ def overview(current_user: models.User, experiment_id: int):
 
 
 @wrappers.htmx_route(experiments_htmx, db=db)
-def get_data_paths(current_user: models.User, experiment_id: int, page: int = 0):
-    if (experiment := db.experiments.get(experiment_id)) is None:
-        raise exceptions.NotFoundException()
-
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = page * PAGE_LIMIT
-
-    if (type_in := request.args.get("type_id_in")) is not None:
-        type_in = json.loads(type_in)
-        try:
-            type_in = [DataPathType.get(int(t)) for t in type_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(type_in) == 0:
-            type_in = None
-
-    data_paths, n_pages = db.data_paths.find(offset=offset, experiment_id=experiment_id, type_in=type_in, sort_by=sort_by, descending=descending, count_pages=True)
-
-    return make_response(
-        render_template(
-            "components/tables/experiment-data_path.html", data_paths=data_paths,
-            n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order,
-            experiment=experiment, type_in=type_in
-        )
-    )
-
-
-@wrappers.htmx_route(experiments_htmx, db=db)
 def get_comments(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
@@ -417,32 +382,6 @@ def get_files(current_user: models.User, experiment_id: int):
             delete_context={"experiment_id": experiment_id}
         )
     )
-
-
-@wrappers.htmx_route(experiments_htmx, db=db)
-def get_pool_dilutions(current_user: models.User, experiment_id: int, page: int = 0):
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    if (experiment := db.experiments.get(experiment_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    sort_by = request.args.get("sort_by", "pool_id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
-
-    dilutions, n_pages = db.pools.get_dilutions(offset=offset, experiment_id=experiment_id, sort_by=sort_by, descending=descending, limit=None)
-    
-    return make_response(
-        render_template(
-            "components/tables/experiment-pool-dilution.html",
-            dilutions=dilutions, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, experiment=experiment,
-            n_pages=n_pages
-        )
-    )
-
 
 @wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def get_recent(current_user: models.User, page: int = 0):

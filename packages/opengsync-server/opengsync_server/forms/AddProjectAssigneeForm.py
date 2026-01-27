@@ -6,7 +6,7 @@ from wtforms import FormField
 
 from opengsync_db import models
 
-from .. import logger, db  # noqa
+from .. import logger, db
 from .HTMXFlaskForm import HTMXFlaskForm
 from .SearchBar import SearchBar
 

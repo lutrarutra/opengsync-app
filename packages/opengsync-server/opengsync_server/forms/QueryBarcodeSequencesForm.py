@@ -6,7 +6,7 @@ from wtforms import StringField
 
 from opengsync_db import models
 
-from .. import db, logger, tools  # noqa: F401
+from .. import db, logger, tools
 from .HTMXFlaskForm import HTMXFlaskForm
 
 

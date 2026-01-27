@@ -1,1 +1,1 @@
-from .ReseqLibrariesForm import ReseqLibrariesForm  # noqa
+from .ReseqLibrariesForm import ReseqLibrariesForm

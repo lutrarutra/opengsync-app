@@ -1,18 +1,18 @@
-from .samples_page import samples_page_bp  # noqa: F401
-from .projects_page import projects_page_bp  # noqa: F401
-from .experiments_page import experiments_page_bp  # noqa: F401
-from .libraries_page import libraries_page_bp  # noqa: F401
-from .auth_page import auth_page_bp  # noqa: F401
-from .users_page import users_page_bp  # noqa: F401
-from .seq_requests_page import seq_requests_page_bp  # noqa: F401
-from .devices_page import devices_page_bp  # noqa: F401
-from .pools_page import pools_page_bp  # noqa: F401
-from .seq_runs_page import seq_runs_page_bp  # noqa: F401
-from .lab_preps_page import lab_preps_page_bp  # noqa: F401
-from .groups_page import groups_page_bp  # noqa: F401
-from .kits_page import kits_page_bp  # noqa: F401
-from .share_tokens_page import share_tokens_page_bp  # noqa: F401
-from .browser_page import browser_page_bp  # noqa: F401
-from .protocols_page import protocols_page_bp  # noqa: F401
-from .admin_page import admin_pages_bp  # noqa: F401
-from .design_page import design_page_bp  # noqa: F401
+from .samples_page import samples_page_bp
+from .projects_page import projects_page_bp
+from .experiments_page import experiments_page_bp
+from .libraries_page import libraries_page_bp
+from .auth_page import auth_page_bp
+from .users_page import users_page_bp
+from .seq_requests_page import seq_requests_page_bp
+from .devices_page import devices_page_bp
+from .pools_page import pools_page_bp
+from .seq_runs_page import seq_runs_page_bp
+from .lab_preps_page import lab_preps_page_bp
+from .groups_page import groups_page_bp
+from .kits_page import kits_page_bp
+from .share_tokens_page import share_tokens_page_bp
+from .browser_page import browser_page_bp
+from .protocols_page import protocols_page_bp
+from .admin_page import admin_pages_bp
+from .design_page import design_page_bp

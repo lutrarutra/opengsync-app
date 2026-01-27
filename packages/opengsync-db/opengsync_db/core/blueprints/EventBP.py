@@ -12,7 +12,7 @@ class EventBP(DBBlueprint):
     @DBBlueprint.transaction
     def create(
         self, title: str, timestamp_utc: datetime, type: EventTypeEnum,
-        user_id: int, note: Optional[str] = None, flush: bool = True
+        user_id: int, note: str | None = None, flush: bool = True
     ) -> models.Event:
         event = models.Event(
             title=title.strip(),
@@ -39,7 +39,7 @@ class EventBP(DBBlueprint):
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        sort_by: Optional[str] = None, descending: bool = False,
+        sort_by: str | None = None, descending: bool = False,
         count_pages: bool = False
     ) -> tuple[list[models.Event], int | None]:
         query = self.db.session.query(models.Event)

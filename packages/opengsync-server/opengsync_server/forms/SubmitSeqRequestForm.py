@@ -8,7 +8,7 @@ from wtforms.validators import Optional as OptionalValidator, Length
 from opengsync_db import models, to_utc
 from opengsync_db.categories import EventType
 
-from .. import db, logger  # noqa F401
+from .. import db, logger
 from .HTMXFlaskForm import HTMXFlaskForm
 from ..core.RunTime import runtime
 

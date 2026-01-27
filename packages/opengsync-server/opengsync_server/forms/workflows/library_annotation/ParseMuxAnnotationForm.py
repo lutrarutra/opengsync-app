@@ -5,7 +5,7 @@ from flask import Response, url_for
 from opengsync_db import models
 from opengsync_db.categories import MUXType, ServiceType, LibraryTypeEnum, LibraryType, SubmissionType
 
-from .... import logger, db  # noqa
+from .... import logger, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm, StepFile

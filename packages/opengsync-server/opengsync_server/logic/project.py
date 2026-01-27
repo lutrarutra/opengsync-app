@@ -84,17 +84,14 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         template = "components/tables/user-project.html"
         fnc_context["user_id"] = user.id
         table.url_params["user_id"] = user.id
-
     elif (experiment := context.get("experiment")) is not None:
         template = "components/tables/experiment-project.html"        
         fnc_context["experiment_id"] = experiment.id
         table.url_params["experiment_id"] = experiment.id
-
     elif (seq_request := context.get("seq_request")) is not None:
         template = "components/tables/seq_request-project.html"
         fnc_context["seq_request_id"] = seq_request.id
         table.url_params["seq_request_id"] = seq_request.id
-
     elif (group := context.get("group")) is not None:
         template = "components/tables/group-project.html"
         fnc_context["group_id"] = group.id

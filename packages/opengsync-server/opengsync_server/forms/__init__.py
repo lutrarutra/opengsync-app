@@ -1,16 +1,16 @@
-from .MultiStepForm import MultiStepForm    # noqa
-from .SeqAuthForm import SeqAuthForm    # noqa
-from .SearchBar import SearchBar    # noqa
-from .ProcessRequestForm import ProcessRequestForm  # noqa
-from .SeqRequestShareEmailForm import SeqRequestShareEmailForm  # noqa
-from .SelectSamplesForm import SelectSamplesForm  # noqa
-from .SubmitSeqRequestForm import SubmitSeqRequestForm  # noqa
-from .AddUserToGroupForm import AddUserToGroupForm  # noqa
-from .SampleAttributeTableForm import SampleAttributeTableForm  # noqa
-from .EditKitFeaturesForm import EditKitFeaturesForm  # noqa
-from .QueryBarcodeSequencesForm import QueryBarcodeSequencesForm  # noqa
-from .AddProjectAssigneeForm import AddProjectAssigneeForm  # noqa
-from .AddSeqRequestAssigneeForm import AddSeqRequestAssigneeForm  # noqa
+from .MultiStepForm import MultiStepForm  
+from .SeqAuthForm import SeqAuthForm  
+from .SearchBar import SearchBar  
+from .ProcessRequestForm import ProcessRequestForm
+from .SeqRequestShareEmailForm import SeqRequestShareEmailForm
+from .SelectSamplesForm import SelectSamplesForm
+from .SubmitSeqRequestForm import SubmitSeqRequestForm
+from .AddUserToGroupForm import AddUserToGroupForm
+from .SampleAttributeTableForm import SampleAttributeTableForm
+from .EditKitFeaturesForm import EditKitFeaturesForm
+from .QueryBarcodeSequencesForm import QueryBarcodeSequencesForm
+from .AddProjectAssigneeForm import AddProjectAssigneeForm
+from .AddSeqRequestAssigneeForm import AddSeqRequestAssigneeForm
 
 
-from . import models, comment, file, workflows, auth  # noqa
+from . import models, comment, file, workflows, auth
