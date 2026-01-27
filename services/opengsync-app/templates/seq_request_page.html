@@ -93,7 +93,7 @@
                             denyButtonText: 'No'
                     })
                         if result.isConfirmed issueRequest()"
-                        {% if seq_request.status == SeqRequestStatus.DRAFT or seq_request.status == SeqRequestStatus.ARCHIVED %}disabled{% endif %}>Archive</button>
+                        {% if seq_request.status == SeqRequestStatus.ARCHIVED %}disabled{% endif %}>Archive</button>
                     </li>
                     {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.ARCHIVED %}
                     <li>
