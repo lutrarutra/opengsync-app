@@ -21,14 +21,10 @@ def get(current_user: models.User):
     return make_response(render_template(**logic.library.get_table_context(current_user, request)))
 
 
-@wrappers.htmx_route(libraries_htmx, db=db, methods=["POST"])
-def edit(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
-        raise exceptions.NotFoundException()
-    if not library.is_editable() and not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-
-    return forms.models.LibraryForm(library=library, formdata=request.form).process_request()
+@wrappers.htmx_route(libraries_htmx, db=db)
+def search(current_user: models.User):
+    context = logic.library.get_search_context(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(libraries_htmx, db=db, methods=["POST"])

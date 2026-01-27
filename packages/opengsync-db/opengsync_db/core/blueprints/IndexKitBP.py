@@ -100,6 +100,7 @@ class IndexKitBP(DBBlueprint):
         self, type_in: list[IndexTypeEnum] | None = None,
         name: str | None = None,
         identifier: str | None = None,
+        identifier_name: str | None = None,
         id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
@@ -122,6 +123,10 @@ class IndexKitBP(DBBlueprint):
             query = query.order_by(sa.nulls_last(sa.func.similarity(models.IndexKit.name, name).desc()))
         elif identifier is not None:
             query = query.order_by(sa.nulls_last(sa.func.similarity(models.IndexKit.identifier, identifier).desc()))
+        if identifier_name is not None:
+            query = query.order_by(sa.nulls_last(sa.func.similarity(
+                models.IndexKit.identifier + ' ' + models.IndexKit.name, identifier_name
+            ).desc()))
 
         if page is not None:
             if limit is None:

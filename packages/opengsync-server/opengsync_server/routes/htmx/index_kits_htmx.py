@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
-from opengsync_db import models, PAGE_LIMIT
+from opengsync_db import models
 from opengsync_db.categories import IndexType
 
 from ... import db, logger, forms, logic
@@ -18,21 +18,10 @@ def get(current_user: models.User):
     return make_response(render_template(**context))
 
 
-@wrappers.htmx_route(index_kits_htmx, db=db, methods=["POST"])
-def query():
-    field_name = next(iter(request.form.keys()))
-    if (word := request.form.get(field_name, default="")) is None:
-        raise exceptions.BadRequestException()
-            
-    results = db.index_kits.query(word)
-
-    return make_response(
-        render_template(
-            "components/search/index_kit.html",
-            results=results,
-            field_name=field_name
-        )
-    )
+@wrappers.htmx_route(index_kits_htmx, db=db)
+def search(current_user: models.User):
+    context = logic.index_kit.get_search_context(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(index_kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")

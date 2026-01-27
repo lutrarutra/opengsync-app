@@ -4,7 +4,7 @@ from flask import Request
 
 from opengsync_db import models, categories as cats
 
-from ..import db, logger
+from ..import db
 from .HTMXTable import HTMXTable
 from .TableCol import TableCol
 from ..core import exceptions
@@ -73,5 +73,56 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         "index_kits": index_kits,
         "template_name_or_list": "components/tables/index_kit.html",
         "table": table,
+    })
+    return context
+
+
+def get_search_context(current_user: models.User, request: Request, **kwargs) -> dict:
+    context = parse_context(current_user, request) | kwargs
+    fnc_context = {}
+    
+    if not (field_name := request.args.get("field_name")):
+        raise exceptions.BadRequestException("No search field provided.")
+    
+    if (selected_id := request.args.get(f"{field_name}-selected")) is not None:
+        try:
+            selected_id = int(selected_id)
+            context["selected_id"] = selected_id
+        except ValueError:
+            pass
+        
+    context["field_name"] = field_name
+    page = request.args.get("page", 0, type=int)
+    
+    if (name := request.args.get("name")) is not None:
+        if (name := name.strip()):
+            fnc_context["name"] = name
+        else:
+            fnc_context["sort_by"] = "name"
+    elif (identifier := request.args.get("identifier")) is not None:
+        if (identifier := identifier.strip()):
+            fnc_context["identifier"] = identifier
+        else:
+            fnc_context["sort_by"] = "identifier"
+    elif (identifier_name := request.args.get("identifier_name")) is not None:
+        if (identifier_name := identifier_name.strip()):
+            fnc_context["identifier_name"] = identifier_name
+        else:
+            fnc_context["sort_by"] = "name"
+    else:
+        raise exceptions.BadRequestException("No valid search parameters provided.")
+
+    if (group := context.get("group")) is not None:
+        fnc_context["group_id"] = group.id
+    else:
+        if not current_user.is_insider():
+            fnc_context["user_id"] = current_user.id
+    
+    index_kits, num_pages = db.index_kits.find(page=page, **fnc_context)
+
+    context.update({
+        "index_kits": index_kits,
+        "template_name_or_list": "components/search/index_kit.html",
+        "num_pages": num_pages,
     })
     return context

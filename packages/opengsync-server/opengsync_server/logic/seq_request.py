@@ -158,7 +158,6 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
         if not current_user.is_insider():
             fnc_context["user_id"] = current_user.id
     
-    logger.debug(fnc_context)
     seq_requests, num_pages = db.seq_requests.find(page=page, **fnc_context)
     
     context.update({

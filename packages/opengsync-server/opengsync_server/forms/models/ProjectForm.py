@@ -175,7 +175,6 @@ class ProjectForm(HTMXFlaskForm):
     
     def process_request(self, user: models.User) -> Response:
         if not self.validate(user=user):
-            logger.info(self.errors)
             return self.make_response()
         
         if self.project is None:

@@ -16,28 +16,10 @@ def get(current_user: models.User):
     return make_response(render_template(**context))
 
 
-@wrappers.htmx_route(groups_htmx, db=db, methods=["POST"])
-def query(current_user: models.User):
-    if (field_name := next(iter(request.form.keys()))) is None:
-        raise exceptions.BadRequestException()
-    
-    query = request.form[field_name]
-    
-    if (user_id := request.args.get("user_id")) is not None:
-        try:
-            user_id = int(user_id)
-        except ValueError:
-            raise exceptions.BadRequestException()
-    else:
-        user_id = current_user.id if not current_user.is_insider() else None
-    
-    groups = db.groups.query(name=query, user_id=user_id)
-    return make_response(
-        render_template(
-            "components/search/group.html",
-            results=groups, field_name=field_name,
-        )
-    )
+@wrappers.htmx_route(groups_htmx, db=db)
+def search(current_user: models.User):
+    context = logic.group.get_search_context(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(groups_htmx, db=db, methods=["POST"])

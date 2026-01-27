@@ -145,6 +145,10 @@ class SpreadsheetInput(FlaskForm):
 
         if len(self._errors) > 0:
             return False
+        
+        for label, column in self.columns.items():
+            if column.type == "text":
+                self.__df[label] = self.__df[label].astype(pd.StringDtype())
 
         return True
     

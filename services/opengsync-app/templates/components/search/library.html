@@ -1,14 +1,14 @@
 <ul class="list-group search-component">
-    {% if results is defined and results %}
-    {% for res in results %}
+    {% if libraries %}
+    {% for library in libraries %}
     <li {% if loop.last %} class="last" {% endif %}>
         <a id="option-{{ field_name }}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
         data-field="{{ field_name }}"
-        data-value="{{ res.id }}"
+        data-value="{{ library.id }}"
         aria-controls="{{ field_name }}">
-            <span class="search-select-name">{{ res.name }}{% if res.clone_number > 0 %}<sup class="clone-number">(re:{{ res.clone_number }})</sup>{% endif %}</span>
-            <span class="search-select-desc">{{ res.type.abbreviation }}{% if res.mux_type %}<sup class="mux-type">[{{ res.mux_type.abbreviation }}]</sup>{% endif %}{% if res.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}</span>
+            <span class="search-select-name">{{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}</span>
+            <span class="search-select-desc">{{ library.type.abbreviation }}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}</span>
         </a>
     </li>
     {% endfor %}

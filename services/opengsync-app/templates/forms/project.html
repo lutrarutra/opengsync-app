@@ -1,5 +1,5 @@
 {% from 'components/form_group.jinja2' import form_group, select_input %}
-{% from 'components/search_select.jinja2' import search_select_field %}
+{% from 'components/search_select.jinja2' import search_select_field2 %}
 
 
 <div class="modal-content" id="project-form-container">
@@ -19,7 +19,7 @@
                 {% endif %}
                 {{ select_input(form.status, class="col-6") }}
             </div>
-            {{ search_select_field(form.group, query_url=url_for('groups_htmx.query')) }}
+            {{ search_select_field2(form.group, url_for('groups_htmx.search'), "name") }}
             {{ form_group(form.description) }}
         </div>
     </div>

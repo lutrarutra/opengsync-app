@@ -2,13 +2,11 @@ import pandas as pd
 
 from dataclasses import dataclass
 
-from flask import Response, url_for, flash
-from flask_htmx import make_response
+from flask import Response, url_for
 from wtforms import FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator
 
-from opengsync_db import models
-from opengsync_db.categories import BarcodeType, IndexType
+from opengsync_db.categories import IndexType
 
 from ... import logger, db
 from ...core import exceptions
@@ -106,6 +104,9 @@ class BarcodeConstraintsForm(HTMXFlaskForm):
             return False
         
         df = self.spreadsheet.df
+
+        logger.debug(df)
+        logger.debug(df.dtypes)
 
         if len(df["sequence_i7"].str.len().unique()) > 1:
             self.spreadsheet.add_general_error("All i7 index sequences must be the same length")
