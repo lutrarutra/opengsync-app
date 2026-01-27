@@ -10,9 +10,9 @@ config = yaml.safe_load(open("/app/opengsync.yaml"))
 
 REDIS_PORT = int(os.environ["REDIS_PORT"])
 
-celery = Celery("scheduler", broker=f"redis://redis-cache:{REDIS_PORT}/4",)
+celery = Celery("opengsync-worker", broker=f"redis://redis-cache:{REDIS_PORT}/4",)
 
-from scheduler import tasks  # noqa: E402, F401
+from opengsync_worker import tasks  # noqa: E402, F401
 celery.autodiscover_tasks()
 
 run_folder = Path(config["illumina_run_folder"])
@@ -45,17 +45,17 @@ def parse_schedule(schedule_value):
 
 beat_schedule = {
     "rf_scan": {
-        "task": "scheduler.tasks.process_run_folder_wrapper",
+        "task": "opengsync_worker.tasks.process_run_folder_wrapper",
         "schedule": parse_schedule(config["scheduler"]["rf_scan_interval_min"] * 60),
         "args": (run_folder.as_posix(),),
     },
     "status_update": {
-        "task": "scheduler.tasks.update_statuses_wrapper",
+        "task": "opengsync_worker.tasks.update_statuses_wrapper",
         "schedule": parse_schedule(config["scheduler"]["status_update_interval_min"] * 60),
         "args": (),
     },
     "clean_upload_folder": {
-        "task": "scheduler.tasks.clean_upload_folder_wrapper",
+        "task": "opengsync_worker.tasks.clean_upload_folder_wrapper",
         "schedule": parse_schedule(config["scheduler"]["upload_folder_clean_schedule"]),
         "args": (upload_folder.as_posix(), upload_folder_file_age_days,),
     },

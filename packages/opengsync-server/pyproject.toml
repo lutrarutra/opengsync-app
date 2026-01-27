@@ -3,7 +3,7 @@ requires = ["setuptools>=70.1", "wheel>=0.43"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "opengsync_server"
+name = "opengsync-server"
 version = "1.0"
 description = "Web server for NGS sample/library/project tracking"
 authors = [

@@ -1,0 +1,60 @@
+# --- BASE: Common system deps and uv setup ---
+FROM python:3.13-slim AS base
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_PROJECT_ENVIRONMENT=/app/.venv
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- BUILDER: Install dependencies ONLY ---
+FROM base AS builder
+COPY pyproject.toml uv.lock ./
+COPY packages/opengsync-db/pyproject.toml ./packages/opengsync-db/
+COPY packages/opengsync-server/pyproject.toml ./packages/opengsync-server/
+COPY packages/opengsync-worker/pyproject.toml ./packages/opengsync-worker/
+RUN uv sync --frozen --no-install-project
+
+# --- SERVER ---
+FROM builder AS opengsync-app
+# ARG APPUSER=1000
+# ARG APPGROUP=1000
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+# RUN [ "${APPGROUP}" -eq 0 ] || groupadd -g ${APPGROUP} opengsync && \
+#     [ "${APPUSER}" -eq 0 ] || useradd -u ${APPUSER} -g ${APPGROUP} -s /bin/bash opengsync
+
+COPY packages /app/packages
+COPY ./services/opengsync-app/scripts /app/scripts
+RUN uv sync --frozen
+RUN chmod +x /app/scripts/entrypoint.sh
+# USER opengsync
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]
+
+# --- CELERY BASE ---
+FROM builder AS celery-base
+RUN apt-get update && apt-get install -y cron wget && rm -rf /var/lib/apt/lists/*
+RUN uv pip install celery[redis]
+
+# --- CELERY WORKER ---
+FROM celery-base AS celery-worker
+COPY packages /app/packages
+RUN uv sync --frozen
+
+# --- CELERY FLOWER ---
+FROM celery-base AS celery-flower
+RUN uv pip install flower
+
+# --- PYTEST ---
+FROM builder AS pytest
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+RUN uv sync --frozen
+CMD ["pytest"]

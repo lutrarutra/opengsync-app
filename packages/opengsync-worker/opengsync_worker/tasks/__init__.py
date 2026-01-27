@@ -7,11 +7,10 @@ from loguru import logger
 
 from opengsync_db import DBHandler
 
-from scheduler import celery
-
-from scheduler.tasks.clean_upload_folder import clean_upload_folder
-from scheduler.tasks.rf_scanner import process_run_folder
-from scheduler.tasks.status_updater import update_statuses
+from opengsync_worker import celery
+from opengsync_worker.tasks.clean_upload_folder import clean_upload_folder
+from opengsync_worker.tasks.rf_scanner import process_run_folder
+from opengsync_worker.tasks.status_updater import update_statuses
 
 logger.remove()
 

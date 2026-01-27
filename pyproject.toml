@@ -1,0 +1,18 @@
+[project]
+name = "opengsync-app"
+version = "0.1.0"
+dependencies = [
+    "opengsync-db",
+    "opengsync-server",
+    "opengsync-worker",
+]
+
+[tool.uv.workspace]
+members = [
+    "packages/*",
+]
+
+[tool.uv.sources]
+opengsync-db = { workspace = true }
+opengsync-server = { workspace = true }
+opengsync-worker = { workspace = true }

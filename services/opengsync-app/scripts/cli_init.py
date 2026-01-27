@@ -1,7 +1,7 @@
+import os
+from opengsync_db.core import DBHandler
 
 def main():
-    import os
-    from opengsync_db.core import DBHandler
 
     db = DBHandler()
     db.connect(
