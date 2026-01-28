@@ -100,36 +100,8 @@ def check_experiment_barcode_clashes(current_user: models.User, experiment_id: i
     
     if (experiment := db.experiments.get(experiment_id)) is None:
         raise exceptions.NotFoundException()
-    
-    library_data = {
-        "library_id": [],
-        "library_name": [],
-        "lane": [],
-        "lane_id": [],
-        "pool": [],
-        "sequence_i7": [],
-        "sequence_i5": [],
-        "kit_i7_id": [],
-        "kit_i5_id": [],
-        "index_type_id": [],
-    }
 
-    for lane in experiment.lanes:
-        for pool_link in lane.pool_links:
-            for library in pool_link.pool.libraries:
-                for index in library.indices:
-                    library_data["library_id"].append(library.id)
-                    library_data["library_name"].append(library.name)
-                    library_data["lane"].append(lane.number)
-                    library_data["lane_id"].append(lane.id)
-                    library_data["pool"].append(pool_link.pool.name)
-                    library_data["sequence_i7"].append(index.sequence_i7)
-                    library_data["sequence_i5"].append(index.sequence_i5)
-                    library_data["kit_i7_id"].append(index.index_kit_i7_id)
-                    library_data["kit_i5_id"].append(index.index_kit_i5_id)
-                    library_data["index_type_id"].append(index.type.id)
-
-    library_df = pd.DataFrame(library_data)
+    library_df = db.pd.get_experiment_barcodes(experiment_id=experiment.id)
     return wff.CheckBarcodeClashesForm(library_df, groupby="lane").process_request()
 
 
