@@ -1,12 +1,9 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import url_for
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, FeatureType
-from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, tools, db
 from ....tools.spread_sheet_components import DropdownColumn, TextColumn, CategoricalDropDown, DuplicateCellValue, InvalidCellValue, MissingCellValue
@@ -20,8 +17,8 @@ class CommonFeatureAnnotationForm(MultiStepForm):
     feature_table: pd.DataFrame
 
     @staticmethod
-    def is_applicable(previous_form: MultiStepForm) -> bool:
-        return bool(previous_form.tables["library_table"]["library_type_id"].isin(
+    def is_applicable(current_step: MultiStepForm) -> bool:
+        return bool(current_step.tables["library_table"]["library_type_id"].isin(
             [LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id]
         ).any())
 
@@ -78,8 +75,8 @@ class CommonFeatureAnnotationForm(MultiStepForm):
             formdata=formdata, allow_new_rows=True
         )
 
-    def fill_previous_form(self, previous_form: StepFile):
-        feature_table = previous_form.tables["feature_table"]
+    def fill_previous_form(self):
+        feature_table = self.tables["feature_table"]
         self.spreadsheet.set_data(feature_table)
 
     def validate(self) -> bool:

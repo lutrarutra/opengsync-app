@@ -4,7 +4,6 @@ from flask import Response
 
 from opengsync_db import models
 from opengsync_db.categories import FeatureType, MUXType, LibraryType, ServiceType, LibraryTypeEnum, SubmissionType
-from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db
 from ..common.CommonOligoMuxForm import CommonOligoMuxForm
@@ -33,8 +32,8 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
             additional_columns=[]
         )
 
-    def fill_previous_form(self, previous_form: StepFile):
-        mux_table = CommonOligoMuxForm.get_mux_table(previous_form.tables["sample_pooling_table"])
+    def fill_previous_form(self):
+        mux_table = CommonOligoMuxForm.get_mux_table(self.tables["sample_pooling_table"])
         self.spreadsheet.set_data(mux_table)
     
     def process_request(self) -> Response:
@@ -110,15 +109,15 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
 
         if kit_table.shape[0] > 0:
             if (existing_kit_table := self.tables.get("kit_table")) is None:  # type: ignore
-                self.add_table("kit_table", kit_table)
+                self.tables["kit_table"] = kit_table
             else:
                 kit_table = pd.concat([kit_table[kit_table["type_id"] != FeatureType.CMO.id], existing_kit_table])
-                self.update_table("kit_table", kit_table, update_data=False)
+                self.tables["kit_table"] = kit_table
         
-        self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)
-        self.update_data()
+        self.tables["sample_pooling_table"] = sample_pooling_table
+        self.step()
 
-        if self.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id:
+        if self.seq_request.submission_type.id == SubmissionType.POOLED_LIBRARIES.id:
             next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OCMAnnotationForm.is_applicable(self):
             next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

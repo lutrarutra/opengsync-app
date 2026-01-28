@@ -6,12 +6,9 @@ from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db import models
 from opengsync_db.categories import IndexType, IndexTypeEnum, BarcodeOrientation, BarcodeType
-from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db
 from ...MultiStepForm import MultiStepForm
-from ....core.RunTime import runtime
-from ....tools import utils
 
 
 class CommonBarcodeMatchForm(MultiStepForm):
@@ -43,8 +40,8 @@ class CommonBarcodeMatchForm(MultiStepForm):
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:        
         df = current_step.tables["barcode_table"]
-        df = df[df["index_well"] != "del"]
-        return not df.empty and bool((
+        df = df[(df["index_well"] != "del") | (df["index_well"].isna())]
+        return (not df.empty) and bool((
             df["kit_i7"].isna().all() and df["kit_i5"].isna().all()
         ))  # since all of the indices are reverse complemented in case of not forward orientation, we need .all()
     
@@ -82,10 +79,8 @@ class CommonBarcodeMatchForm(MultiStepForm):
         self._context["pool"] = pool
 
         self.barcode_table = self.tables["barcode_table"]
-        self.barcode_map = pd.DataFrame()
-        self.barcode_map_i7 = self.barcode_map[(self.barcode_map["barcode_type_id"] == BarcodeType.INDEX_I7.id)].copy()  # TODO: 10X ATAC
-        self.barcode_map_i5 = self.barcode_map[(self.barcode_map["barcode_type_id"] == BarcodeType.INDEX_I5.id)].copy()  # TODO: 10X ATAC
         self.index_type = CommonBarcodeMatchForm.check_index_type(self.barcode_table)
+
         self._context["index_type"] = self.index_type
 
         self.url_context = {}
@@ -104,20 +99,23 @@ class CommonBarcodeMatchForm(MultiStepForm):
         df = self.barcode_table.copy()
         df["rc_sequence_i7"] = df["sequence_i7"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
         df["rc_sequence_i5"] = df["sequence_i5"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
+        
+        kits_i7 = db.pd.match_barcodes_to_kit(df["sequence_i7"].tolist(), BarcodeType.INDEX_I7)
+        kits_i5 = db.pd.match_barcodes_to_kit(df["sequence_i5"].tolist(), BarcodeType.INDEX_I5)
+        kits_rc_i7 = db.pd.match_barcodes_to_kit(df["rc_sequence_i7"].tolist(), BarcodeType.INDEX_I7)
+        kits_rc_i5 = db.pd.match_barcodes_to_kit(df["rc_sequence_i5"].tolist(), BarcodeType.INDEX_I5)
 
         kit_i7s = []
-        for (kit_id, kit,), kit_barcodes in self.barcode_map_i7.groupby(["kit_id", "kit"]):
-            if df["sequence_i7"].isin(kit_barcodes["sequence"]).all():
-                kit_i7s.append((kit_id, kit))
-            elif df["rc_sequence_i7"].isin(kit_barcodes["sequence"]).all():
-                kit_i7s.append((kit_id, kit + " (Reverse Complement)"))
+        for _, row in kits_i7.iterrows():
+            kit_i7s.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}'))
+        for _, row in kits_rc_i7.iterrows():
+            kit_i7s.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}' + " (Reverse Complement)"))
 
         kit_i5s = []
-        for (kit_id, kit,), kit_barcodes in self.barcode_map_i5.groupby(["kit_id", "kit"]):
-            if df["sequence_i5"].isin(kit_barcodes["sequence"]).all():
-                kit_i5s.append((kit_id, kit))
-            elif df["rc_sequence_i5"].isin(kit_barcodes["sequence"]).all():
-                kit_i5s.append((kit_id, kit + " (Reverse Complement)"))
+        for _, row in kits_i5.iterrows():
+            kit_i5s.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}'))
+        for _, row in kits_rc_i5.iterrows():
+            kit_i5s.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}' + " (Reverse Complement)"))
         
         self.i7_kit.choices = [(0, "Custom")] + kit_i7s  # type: ignore
         self.i5_kit.choices = [(0, "Custom")] + kit_i5s  # type: ignore
@@ -129,8 +127,8 @@ class CommonBarcodeMatchForm(MultiStepForm):
 
         self._context["kits"] = list(set(kit_i7s + kit_i5s))
 
-    def fill_previous_form(self, previous_form: StepFile):
-        d = previous_form.metadata.get("barcode_match_form", {})
+    def fill_previous_form(self):
+        d = self.metadata.get("barcode_match_form", {})
         self.i7_kit.data = d.get("i7_kit", 0)
         self.i5_kit.data = d.get("i5_kit", 0)
         self.i7_option.data = d.get("i7_option", None)

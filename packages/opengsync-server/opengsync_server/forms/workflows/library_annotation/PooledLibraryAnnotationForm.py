@@ -5,7 +5,7 @@ from opengsync_db.categories import SubmissionType
 
 from .... import logger, db
 from ....tools.spread_sheet_components import TextColumn
-from ...MultiStepForm import MultiStepForm, StepFile
+from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .PoolMappingForm import PoolMappingForm
 
@@ -43,8 +43,8 @@ class PooledLibraryAnnotationForm(MultiStepForm):
             formdata=formdata, allow_new_rows=False, df=self.library_table
         )
 
-    def fill_previous_form(self, previous_form: StepFile):
-        df = previous_form.tables["library_table"]
+    def fill_previous_form(self):
+        df = self.tables["library_table"]
         self.spreadsheet.set_data(df)
 
     def validate(self) -> bool:
@@ -68,8 +68,8 @@ class PooledLibraryAnnotationForm(MultiStepForm):
         for _, row in self.spreadsheet.df.iterrows():
             self.library_table.loc[(self.library_table["library_name"] == row["library_name"]), "pool"] = row["pool"]
         
-        self.update_table("library_table", self.library_table)
-
+        self.tables["library_table"] = self.library_table
+        self.step()
         next_form = PoolMappingForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()
 

@@ -6,7 +6,6 @@ from flask import Response, url_for
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType
-from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger # noqa
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue
@@ -64,10 +63,10 @@ class OpenSTAnnotationForm(MultiStepForm):
 
         return pd.DataFrame(data)
     
-    def fill_previous_form(self, previous_form: StepFile):
-        library_properties_table = previous_form.tables["library_properties_table"]
+    def fill_previous_form(self):
+        library_properties_table = self.tables["library_properties_table"]
         self.spreadsheet.set_data(library_properties_table)
-        self.instructions.data = previous_form.metadata["visium_annotation_instructions"]
+        self.instructions.data = self.metadata["visium_annotation_instructions"]
 
     def validate(self) -> bool:
         if not super().validate():
@@ -94,11 +93,7 @@ class OpenSTAnnotationForm(MultiStepForm):
         if not self.validate():
             return self.make_response()
         
-        self.add_comment(
-            context="open_st_annotation",
-            text=f"Images: {self.instructions.data}",
-            update_data=False
-        )
+        self.add_comment(context="open_st_annotation", text=f"Images: {self.instructions.data}")
         self.metadata["visium_annotation_instructions"] = self.instructions.data
 
         if (library_properties_table := self.tables.get("library_properties")) is None:
@@ -109,8 +104,8 @@ class OpenSTAnnotationForm(MultiStepForm):
         for _, row in self.df.iterrows():
             library_properties_table.loc[library_properties_table["library_name"] == row["library_name"], "image"] = row["image"]
         
-        self.add_table("library_properties_table", library_properties_table)
-        self.update_data()
+        self.tables["library_properties_table"] = library_properties_table
+        self.step()
 
         if VisiumAnnotationForm.is_applicable(self):
             next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

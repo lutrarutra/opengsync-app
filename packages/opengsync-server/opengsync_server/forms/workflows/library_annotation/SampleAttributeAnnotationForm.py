@@ -7,7 +7,6 @@ from flask import Response, url_for
 
 from opengsync_db import models
 from opengsync_db.categories import AttributeType
-from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db
 from ....core import runtime
@@ -40,6 +39,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
 
         sample_table = self.tables["sample_table"]
         df = sample_table[["sample_name", "sample_id"]].copy()
+        df["sample_id"] = df["sample_id"].astype(pd.StringDtype())
         df.loc[df["sample_id"].isna(), "sample_id"] = "new"
     
         for col in SampleAttributeAnnotationForm.predefined_columns:
@@ -66,8 +66,8 @@ class SampleAttributeAnnotationForm(MultiStepForm):
             formdata=formdata, allow_new_cols=True, allow_col_rename=True, df=df
         )
 
-    def fill_previous_form(self, previous_form: StepFile):
-        df = previous_form.tables["sample_table"]
+    def fill_previous_form(self):
+        df = self.tables["sample_table"]
         df.loc[df["sample_id"].isna(), "sample_id"] = "new"
         for col in df.columns:
             if col.startswith("_attr_"):
@@ -137,7 +137,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
                     continue
                 self.sample_table.loc[self.sample_table["sample_name"] == sample_name, f"_attr_{col}"] = row[col]
 
-        self.update_table("sample_table", self.sample_table)
+        self.tables["sample_table"] = self.sample_table
         
         next_form = SelectServiceForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

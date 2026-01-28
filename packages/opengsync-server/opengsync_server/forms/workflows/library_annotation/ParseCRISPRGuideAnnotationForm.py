@@ -1,9 +1,7 @@
 from flask import Response, url_for
-import pandas as pd
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType
-from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger # noqa
 from ....tools.spread_sheet_components import TextColumn
@@ -44,8 +42,8 @@ class ParseCRISPRGuideAnnotationForm(MultiStepForm):
             formdata=formdata, allow_new_rows=True
         )
     
-    def fill_previous_form(self, previous_form: StepFile):
-        crispr_guide_table = previous_form.tables["crispr_guide_table"]
+    def fill_previous_form(self):
+        crispr_guide_table = self.tables["crispr_guide_table"]
         self.spreadsheet.set_data(crispr_guide_table)
 
     def validate(self) -> bool:
@@ -67,8 +65,8 @@ class ParseCRISPRGuideAnnotationForm(MultiStepForm):
         if not self.validate():
             return self.make_response()
 
-        self.add_table("crispr_guide_table", self.df)
-        self.update_data()
+        self.tables["crispr_guide_table"] = self.df
+        self.step()
 
         next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

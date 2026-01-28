@@ -119,9 +119,9 @@ class LibraryPoolingForm(MultiStepForm):
             self._context["active_tab"] = "spreadsheet"
             return self.make_response()
         
-        self.add_table("pooling_table", self.df)
-        self.add_table("library_table", self.library_table)
-        self.update_data()
+        self.tables["pooling_table"] = self.df
+        self.tables["library_table"] = self.library_table
+        self.step()
 
         form = CompleteLibraryPoolingForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         return form.make_response()

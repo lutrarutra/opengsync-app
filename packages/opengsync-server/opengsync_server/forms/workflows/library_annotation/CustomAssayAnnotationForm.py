@@ -7,7 +7,7 @@ from opengsync_db.categories import LibraryType, MUXType, LibraryTypeEnum
 
 from .... import logger, db
 from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, DropdownColumn, CategoricalDropDown
-from ...MultiStepForm import MultiStepForm, StepFile
+from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
@@ -49,8 +49,8 @@ class CustomAssayAnnotationFrom(MultiStepForm):
         )
         self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata.get("mux_type_id") is not None else None
 
-    def fill_previous_form(self, previous_form: StepFile):
-        df = previous_form.tables["library_table"].rename(columns={"sample_name": "sample_pool"})
+    def fill_previous_form(self):
+        df = self.tables["library_table"].rename(columns={"sample_name": "sample_pool"})
         df = df[["sample_pool", "library_type_id"]].drop_duplicates()
         self.spreadsheet.set_data(df)
 
@@ -119,9 +119,9 @@ class CustomAssayAnnotationFrom(MultiStepForm):
         self.sample_pooling_table["mux_type_id"] = self.mux_type.id if self.mux_type else None
         self.sample_pooling_table["mux_barcode"] = None
 
-        self.add_table("library_table", library_table)
-        self.add_table("sample_pooling_table", self.sample_pooling_table)
-        self.update_data()
+        self.tables["library_table"] = library_table
+        self.tables["sample_pooling_table"] = self.sample_pooling_table
+        self.step()
 
         if OCMAnnotationForm.is_applicable(self):
             next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

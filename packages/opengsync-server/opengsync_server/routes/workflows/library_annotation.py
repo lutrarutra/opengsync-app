@@ -48,15 +48,13 @@ def previous(current_user: models.User, seq_request_id: int, uuid: str):
     if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
         raise exceptions.NoPermissionsException()
     
-    if (response := MultiStepForm.pop_last_step("library_annotation", uuid)) is None:
+    if (step_name := MultiStepForm.PopLastStep("library_annotation", uuid)) is None:
         logger.error("Failed to pop last step")
         raise exceptions.NotFoundException()
-    
-    step_name, step = response
 
     prev_step_cls = forms.steps[step_name]
-    prev_step = prev_step_cls(uuid=uuid, seq_request=seq_request, **step.args)  # type: ignore
-    prev_step.fill_previous_form(step)
+    prev_step = prev_step_cls(uuid=uuid, formdata=None, seq_request=seq_request) # type: ignore
+    prev_step.fill_previous_form()
     return prev_step.make_response()
 
 

@@ -1226,3 +1226,35 @@ class PandasBP(DBBlueprint):
         ).astype(pd.Float64Dtype()).round(1)
         
         return stats
+    
+    @DBBlueprint.transaction
+    def match_barcodes_to_kit(self, sequences: list[str], barcode_type: categories.BarcodeTypeEnum, index_type: categories.IndexTypeEnum | None = None) -> pd.DataFrame:
+        unique_sequences = list(set(sequences))
+        num_sequences = len(unique_sequences)
+
+        # Subquery to find IDs of kits that contain all requested sequences
+        matched_kits_query = (
+            sa.select(models.Barcode.index_kit_id)
+            .where(
+                models.Barcode.type_id == barcode_type.id,
+                models.Barcode.sequence.in_(unique_sequences)
+            )
+            .group_by(models.Barcode.index_kit_id)
+            .having(sa.func.count(sa.distinct(models.Barcode.sequence)) == num_sequences)
+        ).scalar_subquery()
+
+        # Final query to fetch kit metadata for those IDs
+        query = sa.select(
+            models.IndexKit.id.label("kit_id"),
+            models.IndexKit.name.label("kit_name"),
+            models.IndexKit.identifier.label("kit_identifier"),
+        ).where(
+            models.IndexKit.id.in_(matched_kits_query),
+        )
+        if index_type is not None:
+            query = query.where(
+                models.IndexKit.type_id == index_type.id
+            )
+
+        df = pd.read_sql(query, self.db._engine)
+        return df

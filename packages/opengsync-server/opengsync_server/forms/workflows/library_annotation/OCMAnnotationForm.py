@@ -8,7 +8,7 @@ from opengsync_db.categories import MUXType, ServiceType, LibraryTypeEnum, Libra
 from .... import logger, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, DuplicateCellValue
-from ...MultiStepForm import MultiStepForm, StepFile
+from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .FeatureAnnotationForm import FeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
@@ -54,8 +54,8 @@ class OCMAnnotationForm(MultiStepForm):
             formdata=formdata, allow_new_rows=True, df=self.sample_pooling_table
         )
 
-    def fill_previous_form(self, previous_form: StepFile):
-        df = previous_form.tables["sample_pooling_table"]
+    def fill_previous_form(self):
+        df = self.tables["sample_pooling_table"]
         df["barcode_id"] = df["mux_barcode"]
         self.spreadsheet.set_data(df)
 
@@ -98,7 +98,7 @@ class OCMAnnotationForm(MultiStepForm):
             return self.make_response()
 
         self.sample_pooling_table["mux_barcode"] = utils.map_columns(self.sample_pooling_table, self.df, idx_columns=["sample_name", "sample_pool"], col="barcode_id")
-        self.update_table("sample_pooling_table", self.sample_pooling_table, update_data=False)
+        self.tables["sample_pooling_table"] = self.sample_pooling_table
 
         library_table_data = {
             "library_name": [],
@@ -137,12 +137,12 @@ class OCMAnnotationForm(MultiStepForm):
             if self.metadata["crispr_screening"]:
                 add_library(sample_pool, LibraryType.TENX_CRISPR_SCREENING)
 
-        self.update_data()
+        self.step()
         if FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
             next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif ParseMuxAnnotationForm.is_applicable(self):
             next_form = ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif self.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id:
+        elif self.seq_request.submission_type.id == SubmissionType.POOLED_LIBRARIES.id:
             next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

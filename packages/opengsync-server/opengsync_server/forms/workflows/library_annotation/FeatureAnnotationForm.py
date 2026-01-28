@@ -5,7 +5,6 @@ from flask import Response
 from opengsync_db import models
 from opengsync_db.categories import FeatureType
 
-from .... import tools, logger
 from ..common.CommonFeatureAnnotationForm import CommonFeatureAnnotationForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .CompleteSASForm import CompleteSASForm
@@ -34,15 +33,15 @@ class FeatureAnnotationForm(CommonFeatureAnnotationForm):
         if (kit_table := self.tables.get("kit_table")) is None:  # type: ignore
             kit_table = self.feature_table.loc[self.feature_table["kit"].notna(), ["kit", "kit_id"]].drop_duplicates().copy().rename(columns={"kit": "name"})
             kit_table["type_id"] = FeatureType.ANTIBODY.id
-            self.add_table("kit_table", kit_table)
+            self.tables["kit_table"] = kit_table
         else:
             _kit_table = self.feature_table.loc[self.feature_table["kit"].notna(), ["kit", "kit_id"]].drop_duplicates().copy().rename(columns={"kit": "name"})
             _kit_table["type_id"] = FeatureType.ANTIBODY.id
             kit_table = pd.concat([kit_table[kit_table["type_id"] != FeatureType.ANTIBODY.id], _kit_table])
-            self.update_table("kit_table", kit_table, False)
+            self.tables["kit_table"] = kit_table
 
-        self.add_table("feature_table", self.feature_table)
-        self.update_data()
+        self.tables["feature_table"] = self.feature_table
+        self.step()
 
         if OpenSTAnnotationForm.is_applicable(self):
             next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

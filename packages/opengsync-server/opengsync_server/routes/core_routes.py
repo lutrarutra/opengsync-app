@@ -18,10 +18,7 @@ from .. import db, logger, flash_cache
 if runtime.app.debug:
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def test():
-        runtime.app.add_praise(
-            "Sequencing Request Submitted for Review!",
-            render_template("components/after-seq_request-submit-info.html", email="hello@test.com")
-        )
+        logger.debug("HELLLOO")
         return render_template("test.html")
     
     @wrappers.htmx_route(runtime.app, db=db, login_required=True)

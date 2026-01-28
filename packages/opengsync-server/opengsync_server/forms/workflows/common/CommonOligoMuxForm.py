@@ -6,7 +6,7 @@ from opengsync_db import models
 from opengsync_db.categories import LibraryType, FeatureType, MUXType
 
 from .... import logger, tools, db
-from ...MultiStepForm import MultiStepForm, StepFile
+from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, CategoricalDropDown, DropdownColumn, DuplicateCellValue
 
@@ -149,8 +149,8 @@ class CommonOligoMuxForm(MultiStepForm):
         if not formdata:
             self.spreadsheet.set_data(self.mux_table)
 
-    def fill_previous_form(self, previous_form: StepFile):
-        df = previous_form.tables["sample_pooling_table"]
+    def fill_previous_form(self):
+        df = self.tables["sample_pooling_table"]
         df = df.drop_duplicates(subset=["sample_name"]).rename(columns={
             "sample_name": "sample_name",
         })

@@ -8,7 +8,7 @@ from opengsync_db.categories import ServiceType, LibraryType, LibraryTypeEnum, M
 from .... import logger, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue, DropdownColumn
-from ...MultiStepForm import MultiStepForm, StepFile
+from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
 from .FlexAnnotationForm import FlexAnnotationForm
@@ -64,8 +64,8 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         self.parse_bcr = self.metadata.get("parse_bcr", False)
         self.parse_crispr = self.metadata.get("parse_crispr", False)
 
-    def fill_previous_form(self, previous_form: StepFile):
-        sample_pooling_table = previous_form.tables["sample_pooling_table"].rename(
+    def fill_previous_form(self):
+        sample_pooling_table = self.tables["sample_pooling_table"].rename(
             columns={"sample_pool": "pool"}
         )
         sample_pooling_table = sample_pooling_table.drop_duplicates(subset=["sample_name", "pool"])
@@ -147,8 +147,8 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 sample_pooling_table["sample_name"].append(sample_name)
                 
             sample_pooling_table = pd.DataFrame(sample_pooling_table)
-            self.add_table("sample_pooling_table", sample_pooling_table)
-            self.update_data()
+            self.tables["sample_pooling_table"] = sample_pooling_table
+            self.step()
             next_form = CustomAssayAnnotationFrom(seq_request=self.seq_request, uuid=self.uuid)
             return next_form.make_response()
 
@@ -240,9 +240,9 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
         sample_pooling_table["mux_type_id"] = self.mux_type.id
         sample_pooling_table["mux_barcode"] = None
 
-        self.add_table("library_table", library_table)
-        self.add_table("sample_pooling_table", sample_pooling_table)
-        self.update_data()
+        self.tables["library_table"] = library_table
+        self.tables["sample_pooling_table"] = sample_pooling_table
+        self.step()
 
         if OligoMuxAnnotationForm.is_applicable(self):
             next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

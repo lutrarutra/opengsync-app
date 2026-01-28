@@ -4,7 +4,6 @@ from flask import Response
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, SubmissionType, LibraryTypeEnum, SubmissionType
-from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db
 from ....tools import utils
@@ -43,8 +42,8 @@ class FlexAnnotationForm(CommonFlexMuxForm):
             seq_request=seq_request, library=None, lab_prep=None, columns=FlexAnnotationForm.columns
         )
 
-    def fill_previous_form(self, previous_form: StepFile):
-        mux_table = previous_form.tables["sample_pooling_table"][["sample_name", "sample_pool", "mux_barcode"]].drop_duplicates(["sample_name", "sample_pool"])
+    def fill_previous_form(self):
+        mux_table = self.tables["sample_pooling_table"][["sample_name", "sample_pool", "mux_barcode"]].drop_duplicates(["sample_name", "sample_pool"])
         mux_table["barcode_id"] = mux_table["mux_barcode"].str.replace("AB", "BC").values
         self.spreadsheet.set_data(mux_table)
     
@@ -63,7 +62,7 @@ class FlexAnnotationForm(CommonFlexMuxForm):
         library_table = self.tables["library_table"]
         abc_libraries = library_table.loc[library_table["library_type_id"] == LibraryType.TENX_SC_ABC_FLEX.id, "library_name"].values.tolist()
         sample_pooling_table.loc[sample_pooling_table["library_name"].isin(abc_libraries), "mux_barcode"] = sample_pooling_table.loc[sample_pooling_table["library_name"].isin(abc_libraries), "mux_barcode"].str.replace("BC", "AB")
-        self.update_table("sample_pooling_table", sample_pooling_table, update_data=False)
+        self.tables["sample_pooling_table"] = sample_pooling_table
 
         library_table_data = {
             "library_name": [],
@@ -86,9 +85,9 @@ class FlexAnnotationForm(CommonFlexMuxForm):
 
         library_table = pd.DataFrame(library_table_data)
         library_table["seq_depth"] = None
-        self.update_table("library_table", library_table)
+        self.tables["library_table"] = library_table
                         
-        if self.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id:
+        if self.seq_request.submission_type.id == SubmissionType.POOLED_LIBRARIES.id:
             next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif ParseMuxAnnotationForm.is_applicable(self):
             next_form = ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

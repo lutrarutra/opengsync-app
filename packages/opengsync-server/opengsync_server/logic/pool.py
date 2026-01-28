@@ -1,4 +1,5 @@
 import json
+from typing import cast
 
 from flask import Request
 
@@ -90,13 +91,25 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         template = "components/tables/seq_request-pool.html"        
         fnc_context["seq_request_id"] = seq_request.id
         table.url_params["seq_request_id"] = seq_request.id
-
-    elif (experiment := context.get("experiment")) is not None:      
-        template = "components/tables/experiment-pool.html"  
+    elif (experiment := context.get("experiment")) is not None:   
+        experiment = cast(models.Experiment, experiment)
+        template = "components/tables/experiment-pool.html" 
         fnc_context["experiment_id"] = experiment.id
         table.url_params["experiment_id"] = experiment.id
         table.active_page = None
         fnc_context["limit"] = None
+
+        context["can_edit_pooling"] = (
+            (
+                current_user.is_insider() and
+                experiment.status == cats.ExperimentStatus.DRAFT and 
+                not experiment.workflow.combined_lanes
+            ) or 
+            (
+                current_user.is_admin() and not experiment.workflow.combined_lanes
+            )
+        )
+            
 
     elif (lab_prep := context.get("lab_prep")) is not None:
         template = "components/tables/lab_prep-pool.html"

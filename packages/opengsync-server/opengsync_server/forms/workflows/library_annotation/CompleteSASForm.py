@@ -38,9 +38,8 @@ class CompleteSASForm(MultiStepForm):
         self.pool_table = self.tables.get("pool_table")
         self.feature_table = self.tables.get("feature_table")
         self.library_properties_table = self.tables.get("library_properties_table")
-        self.comment_table = self.tables.get("comment_table")
         self.mux_type = MUXType.get(self.metadata["mux_type_id"]) if self.metadata["mux_type_id"] is not None else None
-        self.submission_type = SubmissionType.get(self.metadata["submission_type_id"])
+        self.submission_type = SubmissionType.get(self.seq_request.submission_type.id)
 
         self.library_table["genome_id"] = GenomeRef.CUSTOM.id
         for idx, row in self.library_table.iterrows():
@@ -118,7 +117,6 @@ class CompleteSASForm(MultiStepForm):
         self._context["barcode_table"] = self.barcode_table
         self._context["feature_table"] = self.feature_table
         self._context["library_properties_table"] = self.library_properties_table
-        self._context["comment_table"] = self.comment_table
         self._context["pool_table"] = self.pool_table
 
         LINK_WIDTH_UNIT = 1
@@ -188,14 +186,14 @@ class CompleteSASForm(MultiStepForm):
         self._context["links"] = links
     
     def __update_data(self):
-        self.update_table("sample_table", self.sample_table, False)
-        self.update_table("library_table", self.library_table, False)
+        self.tables["sample_table"] = self.sample_table
+        self.tables["library_table"] = self.library_table
         if self.library_properties_table is not None:
-            self.update_table("library_properties_table", self.library_properties_table, False)
+            self.tables["library_properties_table"] = self.library_properties_table
         if self.sample_pooling_table is not None:
-            self.update_table("sample_pooling_table", self.sample_pooling_table, False)
+            self.tables["sample_pooling_table"] = self.sample_pooling_table
 
-        self.update_data()
+        self.step()
 
     def process_request(self, user: models.User) -> Response:  # type: ignore
         if not self.validate():
@@ -443,49 +441,48 @@ class CompleteSASForm(MultiStepForm):
                 if len(ids := self.feature_table[mask]["feature_id"].values.tolist()) > 0:
                     db.links.link_features_library(feature_ids=ids, library_id=int(library_row["library_id"]))
             
-        if self.comment_table is not None:
-            for _, comment_row in self.comment_table.iterrows():
-                if comment_row["context"] == "visium_instructions":
-                    db.comments.create(
-                        text=f"Visium data instructions: {comment_row['text']}",
-                        author_id=user.id, seq_request_id=self.seq_request.id
-                    )
-                elif comment_row["context"] == "custom_genome_reference":
-                    db.comments.create(
-                        text=f"Custom genome reference: {comment_row['text']}",
-                        author_id=user.id, seq_request_id=self.seq_request.id
-                    )
-                elif comment_row["context"] == "assay_tech_selection":
-                    db.comments.create(
-                        text=f"Additional info from assay selection: {comment_row['text']}",
-                        author_id=user.id, seq_request_id=self.seq_request.id
-                    )
-                elif comment_row["context"] == "i7_option":
-                    db.comments.create(
-                        text=comment_row['text'],
-                        author_id=user.id, seq_request_id=self.seq_request.id
-                    )
-                elif comment_row["context"] == "i5_option":
-                    db.comments.create(
-                        text=comment_row['text'],
-                        author_id=user.id, seq_request_id=self.seq_request.id
-                    )
-                elif comment_row["context"] == "parse_chemistry":
-                    db.comments.create(
-                        text=f"Parse Chemistry: {comment_row['text']}",
-                        author_id=user.id, seq_request_id=self.seq_request.id
-                    )
-                elif comment_row["context"] == "parse_kit":
-                    db.comments.create(
-                        text=f"Parse Kit: {comment_row['text']}",
-                        author_id=user.id, seq_request_id=self.seq_request.id
-                    )
-                else:
-                    logger.warning(f"Unknown comment context: {comment_row['context']}")
-                    db.comments.create(
-                        text=comment_row["context"].replace("_", " ").capitalize() + ": " + comment_row["text"],
-                        author_id=user.id, seq_request_id=self.seq_request.id
-                    )
+        for comment_data in self.get_comments():
+            if comment_data["context"] == "visium_instructions":
+                db.comments.create(
+                    text=f"Visium data instructions: {comment_data['text']}",
+                    author_id=user.id, seq_request_id=self.seq_request.id
+                )
+            elif comment_data["context"] == "custom_genome_reference":
+                db.comments.create(
+                    text=f"Custom genome reference: {comment_data['text']}",
+                    author_id=user.id, seq_request_id=self.seq_request.id
+                )
+            elif comment_data["context"] == "assay_tech_selection":
+                db.comments.create(
+                    text=f"Additional info from assay selection: {comment_data['text']}",
+                    author_id=user.id, seq_request_id=self.seq_request.id
+                )
+            elif comment_data["context"] == "i7_option":
+                db.comments.create(
+                    text=comment_data['text'],
+                    author_id=user.id, seq_request_id=self.seq_request.id
+                )
+            elif comment_data["context"] == "i5_option":
+                db.comments.create(
+                    text=comment_data['text'],
+                    author_id=user.id, seq_request_id=self.seq_request.id
+                )
+            elif comment_data["context"] == "parse_chemistry":
+                db.comments.create(
+                    text=f"Parse Chemistry: {comment_data['text']}",
+                    author_id=user.id, seq_request_id=self.seq_request.id
+                )
+            elif comment_data["context"] == "parse_kit":
+                db.comments.create(
+                    text=f"Parse Kit: {comment_data['text']}",
+                    author_id=user.id, seq_request_id=self.seq_request.id
+                )
+            else:
+                logger.warning(f"Unknown comment context: {comment_data['context']}")
+                db.comments.create(
+                    text=comment_data["context"].replace("_", " ").capitalize() + ": " + comment_data["text"],
+                    author_id=user.id, seq_request_id=self.seq_request.id
+                )
 
         self.__update_data()
 
@@ -494,6 +491,6 @@ class CompleteSASForm(MultiStepForm):
 
         newdir = os.path.join(runtime.app.media_folder, MediaFileType.LIBRARY_ANNOTATION.dir, str(self.seq_request.id))
         os.makedirs(newdir, exist_ok=True)
-        self.complete(os.path.join(newdir, f"{self.uuid}.msf"))
+        self.complete()
 
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id))
