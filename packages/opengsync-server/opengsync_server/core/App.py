@@ -52,7 +52,6 @@ class App(Flask):
     root_folder: Path
     media_folder: Path
     uploads_folder: Path
-    app_data_folder: Path
     share_root: Path
     sample_submission_windows: list[WeekTimeWindow] | None
     email_domain_white_list: list[str] | None
@@ -89,7 +88,6 @@ class App(Flask):
         self.share_root = Path(opengsync_config["share_root"])
         self.media_folder = Path(opengsync_config["media_folder"])
         self.uploads_folder = Path(opengsync_config["uploads_folder"])
-        self.app_data_folder = Path(opengsync_config["app_data_folder"])
         self.share_path_mapping = opengsync_config.get("share_path_mapping", {})
         self.personalization = opengsync_config["personalization"]
 
@@ -104,7 +102,6 @@ class App(Flask):
         file_handler.init_app(
             media_folder=self.media_folder,
             uploads_folder=self.uploads_folder,
-            app_data_folder=self.app_data_folder,
             share_root=self.share_root,
         )
 
@@ -311,10 +308,6 @@ class App(Flask):
                 current_app=runtime.app,
                 session=runtime.session,
             )
-
-        db.open_session()
-        tools.utils.update_index_kits(db, self.app_data_folder)
-        db.close_session()
 
         with self.app_context():
             from ..routes import core_routes
