@@ -50,18 +50,17 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
     - Populate opengsync.yaml as required.
 
 ```sh
-# ${USER} ${GROUP} from .env
-mkdir -p db && sudo chown -R ${USER}:${GROUP} db && sudo chmod -R 750 db
-mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
-mkdir -p db/postgres && sudo chown -R ${USER}:${GROUP} db/postgres
-mkdir -p db/postgres && sudo chown -R ${USER}:${GROUP} db/archive && sudo chmod -R 750 db/archive
+# ${PUID} ${PGID} from .env
+sudo mkdir -p db && sudo chown -R ${PUID}:${PGID} db && sudo chmod -R 750 db
+sudo mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
+sudo mkdir -p db/postgres && sudo chown -R ${PUID}:${PGID} db/postgres
+sudo mkdir -p db/postgres && sudo chown -R ${PUID}:${PGID} db/archive && sudo chmod -R 750 db/archive
+mkdir -p data && sudo chown -R ${PUID}:${PGID} data && sudo chmod -R 750 data
 
-mkdir -p data && sudo chown -R ${USER}:${GROUP} data && sudo chmod -R 750 data
-
-sudo mkdir -p ./data/media && sudo chown -R ${USER}:${GROUP} ./data/media && sudo chmod -R 700 ./data/media 
-sudo mkdir -p ./uploads && sudo chown -R ${USER}:${GROUP} ./uploads && sudo chmod -R 700 ./uploads
-sudo mkdir -p ./cache && sudo chown -R ${USER}:${GROUP} ./cache && sudo chmod -R 700 ./cache
-sudo mkdir -p ./app_data && sudo chown -R ${USER}:${GROUP} ./app_data && sudo chmod -R 700 ./app_data
+sudo mkdir -p ./data/media && sudo chown -R ${PUID}:${PGID} ./data/media && sudo chmod -R 700 ./data/media 
+sudo mkdir -p ./uploads && sudo chown -R ${PUID}:${PGID} ./uploads && sudo chmod -R 700 ./uploads
+sudo mkdir -p ./cache && sudo chown -R ${PUID}:${PGID} ./cache && sudo chmod -R 700 ./cache
+sudo mkdir -p ./app_data && sudo chown -R ${PUID}:${PGID} ./app_data && sudo chmod -R 700 ./app_data
 
 # Add directories for sharing files
 # sudo ln -s <directory you want to share from> ./mnt/share

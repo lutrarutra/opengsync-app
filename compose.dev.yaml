@@ -1,6 +1,5 @@
 services:
     opengsync-app:
-        platform: linux/amd64
         container_name: opengsync-app-dev
         build:
             context: .
@@ -43,7 +42,6 @@ services:
             timeout: 10s
 
     opengsync-celery-worker:
-        platform: linux/amd64
         container_name: opengsync-celery-worker-dev
         build:
             context: .
@@ -69,7 +67,6 @@ services:
             celery -A opengsync_worker.celery worker --loglevel=info
 
     opengsync-celery-beat:
-        platform: linux/amd64
         container_name: opengsync-celery-beat-dev
         build:
             context: .
@@ -92,7 +89,6 @@ services:
             celery -A opengsync_worker.celery beat --loglevel=info
 
     celery-flower:
-        platform: linux/amd64
         container_name: celery-flower-dev
         build:
             context: .

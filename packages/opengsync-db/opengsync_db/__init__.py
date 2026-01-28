@@ -7,7 +7,7 @@ from typing import Callable
 from sqlalchemy import exc
 
 PAGE_LIMIT = 15
-if (__timezone := os.environ.get("TIMEZONE")) is None:
+if (__timezone := os.environ.get("TZ")) is None:
     import tzlocal
     __timezone = tzlocal.get_localzone_name() or "UTC"
 TIMEZONE: pytz.BaseTzInfo = pytz.timezone(__timezone)
