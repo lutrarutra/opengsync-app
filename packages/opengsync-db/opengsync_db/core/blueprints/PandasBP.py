@@ -134,7 +134,7 @@ class PandasBP(DBBlueprint):
             models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
             models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
             models.LibraryIndex._orientation.label("orientation_id"),
-            models.Protocol.read_structure.label("read_structure"), models.Protocol.name.label("protocol_name")
+            models.Protocol.read_structure.label("read_structure"), models.Protocol.name.label("protocol_name"),
         ]
 
         query = sa.select(*columns).where(
@@ -180,6 +180,9 @@ class PandasBP(DBBlueprint):
             models.Pool.id.label("pool_id"), models.Pool.name.label("pool_name"),
             models.LibraryIndex.sequence_i7.label("sequence_i7"), models.LibraryIndex.sequence_i5.label("sequence_i5"),
             models.LibraryIndex.name_i7.label("name_i7"), models.LibraryIndex.name_i5.label("name_i5"),
+            models.LibraryIndex._orientation.label("orientation_id"),
+            models.LibraryIndex.index_kit_i7_id.label("kit_i7_id"),
+            models.LibraryIndex.index_kit_i5_id.label("kit_i5_id"),
         ).where(
             models.Lane.experiment_id == experiment_id
         ).join(
@@ -197,6 +200,7 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
+        df["orientation"] = df["orientation_id"].apply(lambda x: categories.BarcodeOrientation.get(x) if pd.notna(x) else None)  # type: ignore
 
         return df
 

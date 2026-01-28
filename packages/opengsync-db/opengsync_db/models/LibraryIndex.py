@@ -26,7 +26,7 @@ class LibraryIndex(Base):
     sequence_i7: Mapped[str] = mapped_column(sa.String(32), nullable=True)
     sequence_i5: Mapped[Optional[str]] = mapped_column(sa.String(32), nullable=True)
 
-    _orientation: Mapped[Optional[int]] = mapped_column(sa.SmallInteger, nullable=True, name="orientation")
+    _orientation: Mapped[int | None] = mapped_column(sa.SmallInteger, nullable=True, name="orientation")
 
     def __str__(self) -> str:
         return f"LibraryIndex({self.name_i7}: {self.sequence_i7}, {self.name_i5}: {self.sequence_i5})"
