@@ -82,7 +82,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         self._context["pool"] = pool
 
         self.barcode_table = self.tables["barcode_table"]
-        self.barcode_map = utils.get_index_kit_barcode_map(runtime.app.app_data_folder)
+        self.barcode_map = pd.DataFrame()
         self.barcode_map_i7 = self.barcode_map[(self.barcode_map["barcode_type_id"] == BarcodeType.INDEX_I7.id)].copy()  # TODO: 10X ATAC
         self.barcode_map_i5 = self.barcode_map[(self.barcode_map["barcode_type_id"] == BarcodeType.INDEX_I5.id)].copy()  # TODO: 10X ATAC
         self.index_type = CommonBarcodeMatchForm.check_index_type(self.barcode_table)

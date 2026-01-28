@@ -21,10 +21,9 @@ services:
             - ./services/opengsync-app/static/resources:/static/resources:ro
             - ./services/opengsync-app/static/robots.txt:/static/robots.txt:ro
             - compiled_css:/static/style/compiled:ro
-            - ./app_data/opengsync:/app_data
             - ${UPLOADS_DIR}:/uploads
-            - ${DATA_DIR}/media:/media
-            - ${DATA_DIR}/logs/opengsync:/logs
+            - ${MEDIA_DIR}:/media
+            - ${LOG_DIR}/opengsync:/logs
         environment:
             TZ: ${TIMEZONE}
             OPENGSYNC_PORT: ${OPENGSYNC_PORT}
@@ -77,7 +76,7 @@ services:
         volumes:
             - ./opengsync.yaml:/app/opengsync.yaml:ro
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
-            - ${DATA_DIR}/logs/celery-worker:/logs
+            - ${LOG_DIR}/celery-worker:/logs
             - ${UPLOADS_DIR}:/uploads
         depends_on:
             opengsync-celery-beat:
@@ -108,7 +107,7 @@ services:
             POSTGRES_PORT: ${POSTGRES_PORT}
         volumes:
             - ./opengsync.yaml:/app/opengsync.yaml:ro
-            - ${DATA_DIR}/logs/celery-beat:/logs
+            - ${LOG_DIR}/celery-beat:/logs
         depends_on:
             postgres:
                 condition: service_healthy
@@ -155,7 +154,7 @@ services:
         volumes:
             - ${DB_DIR}/backup/dump:/backups/dump
             - ${DB_DIR}/backup/base:/backups/base
-            - ${DATA_DIR}/logs/backup:/var/log
+            - ${LOG_DIR}/backup:/var/log
         depends_on:
             postgres:
                 condition: service_healthy
@@ -185,7 +184,7 @@ services:
             - ./services/opengsync-app/static/resources:/static/resources:ro
             - ./services/opengsync-app/static/robots.txt:/static/robots.txt:ro
             - compiled_css:/static/style/compiled:ro
-            - ${DATA_DIR}/media:/media:ro
+            - ${MEDIA_DIR}:/media:ro
             - ${UPLOADS_DIR}:/uploads:ro
         depends_on:
             opengsync-app:
@@ -201,14 +200,13 @@ services:
 
     redis-cache:
         platform: linux/amd64
-        user: "${PUID:-1000}:${PGID:-1000}"
         container_name: redis-cache
         image: redis:8.0.3-alpine3.21
         ports:
             - ${REDIS_PORT}:${REDIS_PORT}
         restart: always
         volumes:
-            - ./cache:/data
+            - ${CACHE_DIR}:/data
         environment:
             TZ: ${TIMEZONE}
         healthcheck:
@@ -219,6 +217,7 @@ services:
         command: --port ${REDIS_PORT}
 
     postgres:
+        user: "${PUID:-1000}:${PGID:-1000}"
         platform: linux/amd64
         container_name: postgres
         image: postgres:17-alpine

@@ -51,21 +51,17 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 
 ```sh
 # ${PUID} ${PGID} from .env
+source .env
 sudo mkdir -p db && sudo chown -R ${PUID}:${PGID} db && sudo chmod -R 750 db
 sudo mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
 sudo mkdir -p db/postgres && sudo chown -R ${PUID}:${PGID} db/postgres
 sudo mkdir -p db/postgres && sudo chown -R ${PUID}:${PGID} db/archive && sudo chmod -R 750 db/archive
-mkdir -p data && sudo chown -R ${PUID}:${PGID} data && sudo chmod -R 750 data
 
-sudo mkdir -p ./data/media && sudo chown -R ${PUID}:${PGID} ./data/media && sudo chmod -R 700 ./data/media 
-sudo mkdir -p ./uploads && sudo chown -R ${PUID}:${PGID} ./uploads && sudo chmod -R 700 ./uploads
-sudo mkdir -p ./cache && sudo chown -R ${PUID}:${PGID} ./cache && sudo chmod -R 700 ./cache
-sudo mkdir -p ./app_data && sudo chown -R ${PUID}:${PGID} ./app_data && sudo chmod -R 700 ./app_data
+sudo mkdir -p ${MEDIA_DIR} && sudo chown -R ${PUID}:${PGID} ${MEDIA_DIR} && sudo chmod -R 700 ${MEDIA_DIR} 
+sudo mkdir -p ${UPLOADS_DIR} && sudo chown -R ${PUID}:${PGID} ${UPLOADS_DIR} && sudo chmod -R 700 ${UPLOADS_DIR}
+sudo mkdir -p ${LOG_DIR} && sudo chown -R ${PUID}:${PGID} ${LOG_DIR} && sudo chmod -R 700 ${LOG_DIR}
+sudo mkdir -p ${CACHE_DIR} && sudo chown -R ${PUID}:${PGID} ${CACHE_DIR} && sudo chmod -R 700 ${CACHE_DIR}
 
-# Add directories for sharing files
-# sudo ln -s <directory you want to share from> ./mnt/share
-
-# Make .env root readonly
 sudo chown root:root .env && sudo chmod 400 .env
 ```
 
