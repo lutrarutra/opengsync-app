@@ -1,5 +1,5 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="share_token-table" class="table-container">
@@ -7,30 +7,12 @@
         <thead>
             <tr>
                 <th scope="col" class="col-1">UUID</th>
-                {{
-                    table_col(
-                        table_container_id='share_token-table', column_name='Expiration', column_var='expiration',
-                        sort_url='share_tokens_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='share_token-table', column_name='Owner', column_var='owner_id',
-                        sort_url='share_tokens_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=3
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='share_token-table', column_name='Valid Min', column_var='time_valid_min',
-                        sort_url='share_tokens_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='share_token-table', column_name='# Paths', column_var='num_paths',
-                        sort_url='share_tokens_htmx.get', sort_by=sort_by, sort_order=sort_order, col_size=1
-                    )
-                }}
+                {{ table_col2("share_token-table", table, "uuid") }}
+                {{ table_col2("share_token-table", table, "expiration") }}
+                {{ table_col2("share_token-table", table, "owner") }}
+                {{ table_col2("share_token-table", table, "time_valid_min") }}
+                {{ table_col2("share_token-table", table, "num_paths") }}
+                
             </tr>
         </thead>
         <tbody>
@@ -49,5 +31,5 @@
         </tbody>
     </table>
     {{ spinner("share_token-table-spinner") }}
-    {{ pagination("share_token-table", "share_tokens_htmx.get", n_pages, active_page) }}
+    {{ pagination2("share_token-table", table) }}
 </div>

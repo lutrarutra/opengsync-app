@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
 
 source .env
-docker compose -f compose.dev.yaml -p opengsync-dev up "$@"
+uv sync
+docker compose -f compose.dev.yaml -p opengsync-dev up "$@" --remove-orphans

@@ -1,13 +1,13 @@
 services:
     opengsync-app:
-        platform: linux/amd64
         container_name: opengsync-app-dev
         build:
-            context: ./services/opengsync-app
-            dockerfile: Dockerfile.dev
+            context: .
+            dockerfile: ./services/Dockerfile.dev
+            target: opengsync-app
         volumes:
-            - ./services/opengsync-app/opengsync-server:/app/opengsync-server
-            - ./services/opengsync-app/opengsync-db:/app/opengsync-db
+            - ./packages/opengsync-server:/app/packages/opengsync-server
+            - ./packages/opengsync-db:/app/packages/opengsync-db
             - ./opengsync.yaml:/app/opengsync.yaml:ro
             - ./services/opengsync-app/static/images:/static/images:ro
             - ./services/opengsync-app/static/js:/static/js:ro
@@ -40,14 +40,13 @@ services:
             test: ["CMD", "curl", "-f", "http://opengsync-app:${OPENGSYNC_PORT}/status/"]
             interval: 10s
             timeout: 10s
-        command: "sh ./entrypoint.sh"
 
-    celery-worker:
-        platform: linux/amd64
-        container_name: celery-worker-dev
+    opengsync-celery-worker:
+        container_name: opengsync-celery-worker-dev
         build:
-            context: ./services
-            dockerfile: celery/Dockerfile
+            context: .
+            dockerfile: ./services/Dockerfile.dev
+            target: celery-worker
         env_file: .env
         environment:
             TZ: ${TIMEZONE}
@@ -57,7 +56,7 @@ services:
             - ${DATA_DIR}/logs/celery-worker:/logs
             - ${UPLOADS_DIR}:/uploads
         depends_on:
-            celery-scheduler:
+            opengsync-celery-beat:
                 condition: service_started
                 restart: true
             postgres:
@@ -65,14 +64,14 @@ services:
                 restart: true
         restart: always
         command: >
-            celery -A scheduler.celery worker --loglevel=info
+            celery -A opengsync_worker.celery worker --loglevel=info
 
-    celery-scheduler:
-        platform: linux/amd64
-        container_name: celery-scheduler-dev
+    opengsync-celery-beat:
+        container_name: opengsync-celery-beat-dev
         build:
-            context: ./services
-            dockerfile: celery/Dockerfile
+            context: .
+            dockerfile: ./services/Dockerfile.dev
+            target: celery-worker
         env_file: .env
         environment:
             TZ: ${TIMEZONE}
@@ -85,16 +84,16 @@ services:
             redis-cache:
                 condition: service_healthy
                 restart: true
-        restart: always
+        restart: unless-stopped
         command: >
-            celery -A scheduler.celery beat --loglevel=info
+            celery -A opengsync_worker.celery beat --loglevel=info
 
     celery-flower:
-        platform: linux/amd64
         container_name: celery-flower-dev
         build:
-            context: ./services
-            dockerfile: celery/Dockerfile.flower
+            context: .
+            dockerfile: ./services/Dockerfile.dev
+            target: celery-flower
         environment:
             TZ: ${TIMEZONE}
         depends_on:
@@ -103,7 +102,7 @@ services:
                 restart: true
         ports:
             - 5555:5555
-        restart: always
+        restart: unless-stopped
         command: >
             celery --broker=redis://redis-cache:${REDIS_PORT}/4 flower --port=5555 --basic-auth="${FLOWER_USER}:${FLOWER_PASSWORD}"
 
@@ -114,7 +113,7 @@ services:
             - TZ=${TIMEZONE}
         ports:
             - ${REDIS_PORT}:${REDIS_PORT}
-        restart: always
+        restart: unless-stopped
         volumes:
             - ./cache:/data
         healthcheck:
@@ -133,6 +132,7 @@ services:
         command: "sass --watch /app/static/style/sass:/app/static/style/compiled"
         environment:
             - TZ=${TIMEZONE}
+        restart: unless-stopped
         healthcheck:
             test: ["CMD-SHELL", "ps cax | grep -wq sass"]
             interval: 10s
@@ -152,7 +152,7 @@ services:
             - ${POSTGRES_PORT}
         ports:
             - ${POSTGRES_PORT}:${POSTGRES_PORT}
-        restart: always
+        restart: unless-stopped
         volumes:
             - ./templates/postgres/postgresql.conf:/etc/postgresql.conf
             - ${DB_DIR}/postgres:/var/lib/postgresql/data
@@ -173,7 +173,7 @@ services:
             TZ: ${TIMEZONE}
         ports:
             - ${PGADMIN_PORT}:80
-        restart: always
+        restart: unless-stopped
         volumes:
             - ${DB_DIR}/pgadmin:/var/lib/pgadmin
         depends_on:

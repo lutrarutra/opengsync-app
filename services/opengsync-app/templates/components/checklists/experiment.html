@@ -229,7 +229,7 @@
                         hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if lanes_assigned is none %}disabled{% endif %}>Begin</button> 'Dilute Pools' - Workflow.
                     </li>
                 </ol>
-                <div hx-get="{{ url_for('experiments_htmx.get_pool_dilutions', experiment_id=experiment.id) }}" hx-trigger="intersect once">
+                <div hx-get="{{ url_for('pools_htmx.get_dilutions', experiment_id=experiment.id) }}" hx-trigger="intersect once">
                     {{ spinner() }}
                 </div>
             </div>

@@ -323,7 +323,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="library-data_paths-tab" role="tabpanel" tabindex="11">
-            <div hx-get="{{ url_for('libraries_htmx.get_data_paths', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('share_htmx.get_data_paths', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

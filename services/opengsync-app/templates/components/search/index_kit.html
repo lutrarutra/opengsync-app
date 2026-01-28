@@ -1,15 +1,15 @@
 <ul class="list-group search-component">
-    {% if results is defined and results %}
-    {% for res in results %}
+    {% if index_kits %}
+    {% for index_kit in index_kits %}
     <li {% if loop.last %} class="last" {% endif %}>
         <a id="option-{{ field_name }}-{{ loop.index }}"
         class="list-group-item search-component search-select-option"
         data-field="{{ field_name }}"
-        data-value="{{ res.id }}"
+        data-value="{{ index_kit.id }}"
         aria-controls="{{ field_name }}">
-            <span class="search-select-header">{{ res.identifier }}</span>
-            <span class="search-select-name">{{ res.name }}</span>
-            <span class="search-select-desc">{{ res.type.name }}</span>
+            <span class="search-select-header">{{ index_kit.identifier }}</span>
+            <span class="search-select-name">{{ index_kit.name }}</span>
+            <span class="search-select-desc">{{ index_kit.type.name }}</span>
         </a>
     </li>
     {% endfor %}

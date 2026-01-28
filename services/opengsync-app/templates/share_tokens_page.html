@@ -12,7 +12,7 @@
 </div>
 
 <div class="page-content">
-    <div hx-get="{{ url_for('share_tokens_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
+    <div hx-get="{{ url_for('share_htmx.get_share_tokens') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

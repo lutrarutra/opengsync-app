@@ -1,4 +1,4 @@
-{% from "components/search_select.jinja2" import search_select_field, search_select_field2 %}
+{% from "components/search_select.jinja2" import search_select_field2 %}
 {% from 'components/metadata_group.jinja2' import metadata_group %}
 
 <div id="associate-path-form-container" class="modal-content">
@@ -13,7 +13,7 @@
             {{ search_select_field2(form.project, url_for('projects_htmx.search'), "identifier_title") }}
             {{ search_select_field2(form.experiment, url_for('experiments_htmx.search'), "name") }}
             {{ search_select_field2(form.seq_request, url_for('seq_requests_htmx.search'), "name") }}
-            {{ search_select_field(form.library, url_for('libraries_htmx.query')) }}
+            {{ search_select_field2(form.library, url_for('libraries_htmx.search'), "name") }}
         </div>
     </div>
     <div class="modal-footer">

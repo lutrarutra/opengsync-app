@@ -1,6 +1,6 @@
 {% from 'components/form_group.jinja2' import form_group, select_input, switch_input %}
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
-{% from "components/search_select.jinja2" import search_select_field %}
+{% from "components/search_select.jinja2" import search_select_field2 %}
 {% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
 {% macro highlight_bases(seq, bases) %}
@@ -32,9 +32,7 @@
         <div class="tab-content">
             <div class="tab-pane fade {% if form.active_tab == 'form-tab-form' %}show active{% endif %}" id="form-tab-form" role="tabpanel" tabindex="0">
                 {{ 
-                    search_select_field(
-                        form.kit, url_for('index_kits_htmx.query'),
-                    )
+                    search_select_field2(form.kit, url_for('index_kits_htmx.search'), "identifier_name")
                 }}
                 {{ form_group(form.min_samples) }}
                 {{ spreadsheet_input(element=form.spreadsheet) }}

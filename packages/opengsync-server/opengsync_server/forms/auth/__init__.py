@@ -1,0 +1,6 @@
+from .RegisterUserForm import RegisterUserForm
+from .ChangePasswordForm import ChangePasswordForm
+from .LoginForm import LoginForm
+from .ChangePasswordForm import ChangePasswordForm
+from .CompleteRegistrationForm import CompleteRegistrationForm
+from .ResetPasswordForm import ResetPasswordForm

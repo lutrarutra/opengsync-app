@@ -1,29 +1,45 @@
 services:
     opengsync-app:
+        image: opengsync-app:latest
         platform: linux/amd64
-        user: "${USER}:${GROUP}"
+        user: "${PUID:-1000}:${PGID:-1000}"
         container_name: opengsync-app
         build:
-            context: ./services/opengsync-app
-            args:
-                - APPUSER=${USER}
-                - APPGROUP=${GROUP}
+            context: .
+            dockerfile: ./services/Dockerfile
+            target: opengsync-app
         restart: always
         command: >
-            gunicorn -w 4 --bind 0.0.0.0:${OPENGSYNC_PORT} 'wsgi:create_app(config_path="/app/opengsync.yaml")'
+            gunicorn -w 4 --bind 0.0.0.0:${OPENGSYNC_PORT} 'scripts.wsgi:create_app(config_path="/app/opengsync.yaml")'
         volumes:
-            - ./services/opengsync-app/opengsync-server:/app/opengsync-server
-            - ./services/opengsync-app/templates:/templates:ro
             - ./opengsync.yaml:/app/opengsync.yaml:ro
-            - ./services/opengsync-app/static/:/static/:ro
+            - ./services/opengsync-app/templates:/templates:ro
+            # - ./services/opengsync-app/opengsync-server:/app/opengsync-server
+            # - ./services/opengsync-app/static/:/static/:ro
+            - ./services/opengsync-app/static/js:/static/js:ro
+            - ./services/opengsync-app/static/images:/static/images:ro
+            - ./services/opengsync-app/static/resources:/static/resources:ro
+            - ./services/opengsync-app/static/robots.txt:/static/robots.txt:ro
             - compiled_css:/static/style/compiled:ro
-            - ./app_data:/app_data
+            - ./app_data/opengsync:/app_data
             - ${UPLOADS_DIR}:/uploads
             - ${DATA_DIR}/media:/media
             - ${DATA_DIR}/logs/opengsync:/logs
-        env_file: .env
         environment:
             TZ: ${TIMEZONE}
+            OPENGSYNC_PORT: ${OPENGSYNC_PORT}
+            REDIS_PORT: ${REDIS_PORT}
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+            POSTGRES_HOST: postgres
+            POSTGRES_PORT: ${POSTGRES_PORT}
+            MAIL_SERVER: ${MAIL_SERVER}
+            MAIL_PORT: ${MAIL_PORT}
+            MAIL_SENDER: ${MAIL_SENDER}
+            MAIL_PASSWORD: ${MAIL_PASSWORD}
+            SECRET_KEY: ${SECRET_KEY}
+            MAIL_USER: ${MAIL_USER}
         expose:
             - ${OPENGSYNC_PORT}
         depends_on:
@@ -42,33 +58,29 @@ services:
             timeout: 10s
             retries: 5
 
-    sass-compiler:
-        container_name: sass-compiler
-        build: ./services/sass-compiler
-        environment:
-            TZ: ${TIMEZONE}
-        volumes:
-            - ./services/opengsync-app/static/style/sass:/static/style/sass:ro
-            - compiled_css:/static/style/compiled
-        command: "sass --style compressed --update /static/style/sass:/static/style/compiled"
-
-    celery-worker:
-        user: "${USER}:${GROUP}"
+    opengsync-celery-worker:
         platform: linux/amd64
-        container_name: celery-worker-prod
+        user: "${PUID:-1000}:${PGID:-1000}"
+        container_name: opengsync-celery-worker
         build:
-            context: ./services
-            dockerfile: celery/Dockerfile
-        env_file: .env
+            context: .
+            dockerfile: ./services/Dockerfile
+            target: celery-worker
         environment:
             TZ: ${TIMEZONE}
+            REDIS_PORT: ${REDIS_PORT}
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+            POSTGRES_HOST: postgres
+            POSTGRES_PORT: ${POSTGRES_PORT}
         volumes:
             - ./opengsync.yaml:/app/opengsync.yaml:ro
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
             - ${DATA_DIR}/logs/celery-worker:/logs
             - ${UPLOADS_DIR}:/uploads
         depends_on:
-            celery-scheduler:
+            opengsync-celery-beat:
                 condition: service_started
                 restart: true
             postgres:
@@ -76,19 +88,27 @@ services:
                 restart: true
         restart: always
         command: >
-            celery -A scheduler.celery worker --loglevel=info
+            celery -A opengsync_worker.celery worker --loglevel=info
 
-    celery-scheduler:
+    opengsync-celery-beat:
         platform: linux/amd64
-        container_name: celery-scheduler-prod
+        user: "${PUID:-1000}:${PGID:-1000}"
+        container_name: opengsync-celery-beat
         build:
-            context: ./services
-            dockerfile: celery/Dockerfile
-        env_file: .env
+            context: .
+            dockerfile: ./services/Dockerfile
+            target: celery-worker
         environment:
             TZ: ${TIMEZONE}
+            REDIS_PORT: ${REDIS_PORT}
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+            POSTGRES_HOST: postgres
+            POSTGRES_PORT: ${POSTGRES_PORT}
         volumes:
             - ./opengsync.yaml:/app/opengsync.yaml:ro
+            - ${DATA_DIR}/logs/celery-beat:/logs
         depends_on:
             postgres:
                 condition: service_healthy
@@ -98,16 +118,72 @@ services:
                 restart: true
         restart: always
         command: >
-            celery -A scheduler.celery beat --loglevel=info
+            celery -A opengsync_worker.celery beat --loglevel=info
+
+    # celery-flower:
+    #     platform: linux/amd64
+    #     user: "${PUID:-1000}:${PGID:-1000}"
+    #     container_name: celery-flower-prod
+    #     build:
+    #         context: .
+    #         dockerfile: ./services/Dockerfile
+    #         target: celery-flower
+    #     environment:
+    #         TZ: ${TIMEZONE}
+    #     depends_on:
+    #         redis-cache:
+    #             condition: service_healthy
+    #             restart: true
+    #     ports:
+    #         - 5555:5555
+    #     restart: always
+    #     command: >
+    #         celery --broker=redis://redis-cache:${REDIS_PORT}/4 flower --port=5555 --basic-auth="${FLOWER_USER}:${FLOWER_PASSWORD}"
+
+    backup-service:
+        platform: linux/amd64
+        container_name: backup-service
+        build:
+            context: ./services/opengsync-backup
+        environment:
+            TZ: ${TIMEZONE}
+            POSTGRES_DB: ${POSTGRES_DB}
+            POSTGRES_PASSWORD: ${POSTGRES_REPLICATOR_PASSWORD}
+            POSTGRES_USER: replicator
+            POSTGRES_PORT: ${POSTGRES_PORT}
+            POSTGRES_HOST: postgres
+        volumes:
+            - ${DB_DIR}/backup/dump:/backups/dump
+            - ${DB_DIR}/backup/base:/backups/base
+            - ${DATA_DIR}/logs/backup:/var/log
+        depends_on:
+            postgres:
+                condition: service_healthy
+        restart: always
+
+    sass-compiler:
+        platform: linux/amd64
+        container_name: sass-compiler
+        build: ./services/sass-compiler
+        environment:
+            TZ: ${TIMEZONE}
+        volumes:
+            - ./services/opengsync-app/static/style/sass:/static/style/sass:ro
+            - compiled_css:/static/style/compiled
+        command: "sass --style compressed --update /static/style/sass:/static/style/compiled"
 
     nginx:
+        platform: linux/amd64
         container_name: nginx-proxy
         build: ./services/nginx
         ports:
             - 80:80
             - 443:443
         volumes:
-            - ./services/opengsync-app/static:/static:ro     # you might need to remove :ro when running for the first time
+            - ./services/opengsync-app/static/js:/static/js:ro
+            - ./services/opengsync-app/static/images:/static/images:ro
+            - ./services/opengsync-app/static/resources:/static/resources:ro
+            - ./services/opengsync-app/static/robots.txt:/static/robots.txt:ro
             - compiled_css:/static/style/compiled:ro
             - ${DATA_DIR}/media:/media:ro
             - ${UPLOADS_DIR}:/uploads:ro
@@ -121,11 +197,11 @@ services:
         environment:
             TZ: ${TIMEZONE}
             OPENGSYNC_PORT: ${OPENGSYNC_PORT}
-            OPENGSYNC_SERVER_NAME: ${OPENGSYNC_SERVER_NAME}
         command: /bin/bash -c "nginx -g 'daemon off;'"
 
     redis-cache:
-        user: "${USER}:${GROUP}"
+        platform: linux/amd64
+        user: "${PUID:-1000}:${PGID:-1000}"
         container_name: redis-cache
         image: redis:8.0.3-alpine3.21
         ports:
@@ -143,8 +219,8 @@ services:
         command: --port ${REDIS_PORT}
 
     postgres:
+        platform: linux/amd64
         container_name: postgres
-        user: "${USER}:${GROUP}"
         image: postgres:17-alpine
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
@@ -168,73 +244,37 @@ services:
             retries: 5
         command: "postgres -c config_file=/etc/postgresql.conf"
 
-    pgadmin:
-        container_name: pgadmin
-        image: dpage/pgadmin4:latest
-        environment:
-            PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
-            PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
-            TZ: ${TIMEZONE}
-        ports:
-            - ${PGADMIN_PORT}:80
-        restart: always
-        volumes:
-            - ${DB_DIR}/pgadmin:/var/lib/pgadmin
-        depends_on:
-            postgres:
-                condition: service_healthy
-                restart: true
-        attach: false  # no logs
+    # pgadmin:
+    #     platform: linux/amd64
+    #     container_name: pgadmin
+    #     image: dpage/pgadmin4:latest
+    #     environment:
+    #         PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+    #         PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    #         TZ: ${TIMEZONE}
+    #     ports:
+    #         - ${PGADMIN_PORT}:80
+    #     restart: always
+    #     volumes:
+    #         - ${DB_DIR}/pgadmin:/var/lib/pgadmin
+    #     depends_on:
+    #         postgres:
+    #             condition: service_healthy
+    #             restart: true
+    #     attach: false  # no logs
 
-    yacht:
-        container_name: yacht
-        image: selfhostedpro/yacht:latest
-        environment:
-            TZ: ${TIMEZONE}
-        ports:
-            - ${YACHT_PORT}:8000
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-            - yacht:/config
-        restart: always
-
-    celery-flower:
-        platform: linux/amd64
-        container_name: celery-flower-prod
-        build:
-            context: ./services
-            dockerfile: celery/Dockerfile.flower
-        environment:
-            TZ: ${TIMEZONE}
-        depends_on:
-            redis-cache:
-                condition: service_healthy
-                restart: true
-        ports:
-            - 5555:5555
-        restart: always
-        command: >
-            celery --broker=redis://redis-cache:${REDIS_PORT}/4 flower --port=5555 --basic-auth="${FLOWER_USER}:${FLOWER_PASSWORD}"
-
-    backup-service:
-        container_name: backup-service
-        build:
-            context: ./services/backup
-        environment:
-            TZ: ${TIMEZONE}
-            POSTGRES_DB: ${POSTGRES_DB}
-            POSTGRES_PASSWORD: ${POSTGRES_REPLICATOR_PASSWORD}
-            POSTGRES_USER: replicator
-            POSTGRES_PORT: ${POSTGRES_PORT}
-            POSTGRES_HOST: postgres
-        volumes:
-            - ${DB_DIR}/backup/dump:/backups/dump
-            - ${DB_DIR}/backup/base:/backups/base
-            - ${DATA_DIR}/logs/backup:/var/log
-        depends_on:
-            postgres:
-                condition: service_healthy
-        restart: always
+    # yacht:
+    #     platform: linux/amd64
+    #     container_name: yacht
+    #     image: selfhostedpro/yacht:latest
+    #     environment:
+    #         TZ: ${TIMEZONE}
+    #     ports:
+    #         - ${YACHT_PORT}:8000
+    #     volumes:
+    #         - /var/run/docker.sock:/var/run/docker.sock
+    #         - yacht:/config
+    #     restart: always
 
 volumes:
     compiled_css:

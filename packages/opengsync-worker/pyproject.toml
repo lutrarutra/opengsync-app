@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=70.1", "wheel>=0.43"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opengsync-worker"
+version = "1.0"
+description = ""
+authors = [
+    { name = "lutrarutra", email = "lutrarutra@pm.me" }
+]
+requires-python = ">=3.11"
+
+dependencies = [
+    "numpy>= 2.2",
+    "interop >= 1.5",
+    "pandas >= 2.3",
+    "loguru >= 0.7",
+    "psycopg[binary] >= 3.2",
+    "SQLAlchemy >= 2.0",
+    "pytz >= 2023.3",
+    "tzlocal >= 5.2",
+    "interop >= 1.5",
+    "celery >= 5.5",
+    "redis",
+    "pyyaml"
+]
+
+[tool.flake8]
+max-line-length = 88
+exclude = [
+    ".git",
+    "__pycache__",
+]
+extend-ignore = ["E501", "W292", "W293"]
+
+[project.urls]
+Repository = "https://github.com/lutrarutra/opengsync-app"

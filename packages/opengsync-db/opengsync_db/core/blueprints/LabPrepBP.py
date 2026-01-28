@@ -1,0 +1,240 @@
+import math
+from typing import Optional
+
+import sqlalchemy as sa
+from sqlalchemy.sql.base import ExecutableOption
+
+from ... import models, PAGE_LIMIT
+from ...categories import LabChecklistTypeEnum, LibraryStatus, PrepStatusEnum, ServiceTypeEnum
+from ..DBBlueprint import DBBlueprint
+from .. import exceptions
+
+
+class LabPrepBP(DBBlueprint):
+    @DBBlueprint.transaction
+    def create(
+        self,
+        name: str | None,
+        creator_id: int,
+        checklist_type: LabChecklistTypeEnum,
+        service_type: ServiceTypeEnum,
+        flush: bool = True
+    ) -> models.LabPrep:
+        if (creator := self.db.session.get(models.User, creator_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"User with id '{creator_id}', not found.")
+        
+        number = self.get_next_protocol_number(checklist_type)
+
+        if not name:
+            name = f"{checklist_type.identifier}{number:04d}"
+
+        lab_prep = models.LabPrep(
+            name=name.strip(),
+            prep_number=number,
+            creator_id=creator.id,
+            checklist_type_id=checklist_type.id,
+            service_type_id=service_type.id,
+        )
+
+        self.db.session.add(lab_prep)
+
+        if flush:
+            self.db.flush()
+        return lab_prep
+
+    @DBBlueprint.transaction
+    def get(self, lab_prep_id: int, options: ExecutableOption | None = None) -> models.LabPrep | None:
+        if options is not None:
+            lab_prep = self.db.session.query(models.LabPrep).options(options).filter(models.LabPrep.id == lab_prep_id).first()
+        else:
+            lab_prep = self.db.session.get(models.LabPrep, lab_prep_id)
+        return lab_prep
+
+    @DBBlueprint.transaction
+    def find(
+        self, checklist_type: Optional[LabChecklistTypeEnum] = None,
+        checklist_type_in: Optional[list[LabChecklistTypeEnum]] = None,
+        status: Optional[PrepStatusEnum] = None,
+        status_in: Optional[list[PrepStatusEnum]] = None,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
+        sort_by: str | None = None, descending: bool = False,
+        name: str | None = None,
+        creator: str | None = None,
+        id: int | None = None,
+        page: int | None = None,
+        options: ExecutableOption | None = None,
+    ) -> tuple[list[models.LabPrep], int | None]:
+        query = self.db.session.query(models.LabPrep)
+
+        if checklist_type is not None:
+            query = query.where(models.LabPrep.checklist_type_id == checklist_type.id)
+        elif checklist_type_in is not None:
+            query = query.where(models.LabPrep.checklist_type_id.in_([p.id for p in checklist_type_in]))
+
+        if status is not None:
+            query = query.where(models.LabPrep.status_id == status.id)
+        elif status_in is not None:
+            query = query.where(models.LabPrep.status_id.in_([s.id for s in status_in]))
+
+        if options is not None:
+            query = query.options(options)
+
+        if sort_by is not None:
+            query = query.order_by(getattr(models.LabPrep, sort_by).desc() if descending else getattr(models.LabPrep, sort_by))
+
+        if name is not None:
+            query = query.order_by(
+                sa.func.similarity(models.LabPrep.name, name).desc()
+            )
+        elif creator is not None:
+            query = query.join(
+                models.User,
+                models.User.id == models.LabPrep.creator_id
+            ).order_by(
+                sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, creator).desc()
+            )
+        elif id is not None:
+            query = query.where(models.LabPrep.id == id)
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
+        else:
+            n_pages = None
+
+        if limit is not None:
+            query = query.limit(limit)
+        if offset is not None:
+            query = query.offset(offset)
+
+        lab_preps = query.all()
+        return lab_preps, n_pages
+
+    @DBBlueprint.transaction
+    def delete(self, lab_prep_id: int, flush: bool = True) -> None:
+        if (lab_prep := self.db.session.get(models.LabPrep, lab_prep_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Lab prep with id '{lab_prep_id}', not found.")
+
+        for library in lab_prep.libraries:
+            library.lab_prep_id = None
+
+        for pool in lab_prep.pools:
+            for library in pool.libraries:
+                library.pool_id = None
+
+        for plate in lab_prep.plates:
+            for link in plate.sample_links:
+                self.db.session.delete(link)
+            self.db.session.delete(plate)
+
+        self.db.session.delete(lab_prep)
+
+        if flush:
+            self.db.flush()
+
+    @DBBlueprint.transaction
+    def query(
+        self, name: str | None = None, creator: str | None = None,
+        checklist_type: Optional[LabChecklistTypeEnum] = None,
+        checklist_type_in: Optional[list[LabChecklistTypeEnum]] = None,
+        status: Optional[PrepStatusEnum] = None,
+        status_in: Optional[list[PrepStatusEnum]] = None,
+        limit: int | None = PAGE_LIMIT
+    ) -> list[models.LabPrep]:
+        query = self.db.session.query(models.LabPrep)
+
+        if checklist_type is not None:
+            query = query.where(models.LabPrep.checklist_type_id == checklist_type.id)
+        elif checklist_type_in is not None:
+            query = query.where(models.LabPrep.checklist_type_id.in_([p.id for p in checklist_type_in]))
+
+        if status is not None:
+            query = query.where(models.LabPrep.status_id == status.id)
+        elif status_in is not None:
+            query = query.where(models.LabPrep.status_id.in_([s.id for s in status_in]))
+
+        if name is not None:
+            query = query.order_by(
+                sa.func.similarity(models.LabPrep.name, name).desc()
+            )
+        elif creator is not None:
+            query = query.join(
+                models.User,
+                models.User.id == models.LabPrep.creator_id
+            )
+            query = query.order_by(
+                sa.func.similarity(models.User.first_name + ' ' + models.User.last_name, creator).desc()
+            )
+        else:
+            raise ValueError("Either 'name' or 'owner' must be provided.")
+        
+        if limit is not None:
+            query = query.limit(limit)
+
+        lab_preps = query.all()
+        return lab_preps
+
+    @DBBlueprint.transaction
+    def get_next_protocol_number(self, checklist_type: LabChecklistTypeEnum) -> int:
+        if not checklist_type.identifier:
+            raise TypeError(f"Pool type {checklist_type} does not have an identifier")
+
+        if (latest_prep := self.db.session.query(models.LabPrep).where(
+            models.LabPrep.checklist_type_id == checklist_type.id
+        ).order_by(
+            models.LabPrep.prep_number.desc()
+        ).first()) is not None:
+            prep_number = latest_prep.prep_number + 1
+        else:
+            prep_number = self.db.lab_protocol_start_number
+        return prep_number
+
+    @DBBlueprint.transaction
+    def update(self, lab_prep: models.LabPrep):
+        self.db.session.add(lab_prep)
+
+    @DBBlueprint.transaction
+    def add_library(
+        self, lab_prep_id: int, library_id: int
+    ) -> models.LabPrep:
+        if (lab_prep := self.db.session.get(models.LabPrep, lab_prep_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Lab prep with id '{lab_prep_id}', not found.")
+        
+        if (library := self.db.session.get(models.Library, library_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Library with id '{library_id}', not found.")
+        
+        if library.status < LibraryStatus.PREPARING:
+            library.status = LibraryStatus.PREPARING
+        
+        lab_prep.libraries.append(library)
+        self.db.session.add(lab_prep)
+        return lab_prep
+
+    @DBBlueprint.transaction
+    def remove_library(
+        self, lab_prep_id: int, library_id: int, flush: bool = True
+    ) -> models.LabPrep:
+        if (lab_prep := self.db.session.get(models.LabPrep, lab_prep_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Lab prep with id '{lab_prep_id}', not found.")
+        
+        if (library := self.db.session.get(models.Library, library_id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Library with id '{library_id}', not found.")
+        
+        if library.status == LibraryStatus.PREPARING:
+            library.status = LibraryStatus.ACCEPTED
+        
+        lab_prep.libraries.remove(library)
+        self.db.session.add(lab_prep)
+        if flush:
+            self.db.flush()
+        return lab_prep
+    
+    @DBBlueprint.transaction
+    def __getitem__(self, id: int) -> models.LabPrep:
+        if (lab_prep := self.db.session.get(models.LabPrep, id)) is None:
+            raise exceptions.ElementDoesNotExist(f"Lab prep with id '{id}', not found.")
+        return lab_prep

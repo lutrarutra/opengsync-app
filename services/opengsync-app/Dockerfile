@@ -15,6 +15,7 @@ RUN apt install build-essential libpq-dev curl postgresql-client -y
 
 RUN pip install --upgrade pip
 
-COPY . /app/
+COPY ./packages/opengsync-db /app/
+COPY ./packages/opengsync-server /app/
 RUN pip install /app/opengsync-db
 RUN pip install /app/opengsync-server

@@ -1,35 +1,17 @@
-{% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col %}
+{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="pool-dilution-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='pool-dilution-table', column_name='Identifier', column_var='identifier',
-                        sort_url='pools_htmx.get_dilutions', context={"pool_id": pool.id},
-                        sort_by=sort_by, sort_order=sort_order, query_type="text", col_size=1
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='pool-dilution-table', column_name='Operator', column_var='operator_id',
-                        sort_url='pools_htmx.get_dilutions', context={"pool_id": pool.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=3
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='pool-dilution-table', column_name='Time', column_var='timestamp_utc',
-                        sort_url='pools_htmx.get_dilutions', context={"pool_id": pool.id},
-                        sort_by=sort_by, sort_order=sort_order, col_size=3
-                    )
-                }}
-                <th scope="col" class="col-3">Qubit Conc.</th>
-                <th scope="col" class="col-3">Molarity</th>
-                <th scope="col" class="col-2">Volume</th>
+                {{ table_col2("pool-dilution-table", table, "identifier") }}
+                {{ table_col2("pool-dilution-table", table, "operator_id") }}
+                {{ table_col2("pool-dilution-table", table, "timestamp_utc") }}
+                {{ table_col2("pool-dilution-table", table, "qubit_concentration") }}
+                {{ table_col2("pool-dilution-table", table, "molarity") }}
+                {{ table_col2("pool-dilution-table", table, "volume_ul") }}
             </tr>
         </thead>
         <tbody>
@@ -61,5 +43,5 @@
         </tbody>
     </table>
     {{ spinner("pool-dilution-table-spinner") }}
-    {{ pagination("pool-dilution-table", "pools_htmx.get_dilutions", n_pages, active_page) }}
+    {{ pagination2("pool-dilution-table", table) }}
 </div>
