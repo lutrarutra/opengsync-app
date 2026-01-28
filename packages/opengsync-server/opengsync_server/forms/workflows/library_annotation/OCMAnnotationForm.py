@@ -35,7 +35,7 @@ class OCMAnnotationForm(MultiStepForm):
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
         return (
-            current_step.metadata["submission_type_id"] in [SubmissionType.POOLED_LIBRARIES.id, SubmissionType.UNPOOLED_LIBRARIES.id] and
+            current_step.seq_request.submission_type_id in [SubmissionType.POOLED_LIBRARIES.id, SubmissionType.UNPOOLED_LIBRARIES.id] and
             (current_step.metadata["mux_type_id"] == MUXType.TENX_ON_CHIP.id)
         )
 

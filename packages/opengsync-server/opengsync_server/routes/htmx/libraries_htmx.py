@@ -608,3 +608,22 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
             service_type=service_type, df=df
         )
     )
+
+
+@wrappers.htmx_route(libraries_htmx, db=db, methods=["GET", "POST"])
+def edit(current_user: models.User, library_id: int):
+    if (library := db.libraries.get(library_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    if access_type < AccessType.EDIT:
+        raise exceptions.NoPermissionsException()
+    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+        raise exceptions.NoPermissionsException()
+    
+    if request.method == "GET":
+        return forms.models.LibraryForm(library=library).make_response()
+    
+    return forms.models.LibraryForm(
+        library=library, formdata=request.form,
+    ).process_request()
