@@ -22,7 +22,7 @@ class PooledLibraryAnnotationForm(MultiStepForm):
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
-        return current_step.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id
+        return current_step.seq_request.submission_type_id == SubmissionType.POOLED_LIBRARIES.id
 
     def __init__(
         self, seq_request: models.SeqRequest, uuid: str,

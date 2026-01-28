@@ -38,8 +38,6 @@ class BarcodeInputForm(CommonBarcodeInputForm):
         barcode_table["name_i7"] = barcode_table["name_i7"].astype(pd.StringDtype())
         barcode_table["name_i5"] = barcode_table["name_i5"].astype(pd.StringDtype())
         self.tables["barcode_table"] = barcode_table
-        logger.debug(barcode_table)
-        logger.debug(barcode_table.dtypes)
         self.step()
 
         if BarcodeMatchForm.is_applicable(self):
