@@ -10,7 +10,7 @@ from ....core import exceptions
 from ....core.RunTime import runtime
 from .... import logger, tools, db
 from ....tools import utils
-from ...MultiStepForm import MultiStepForm, StepFile
+from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, CategoricalDropDown
 
@@ -146,8 +146,6 @@ class CommonBarcodeInputForm(MultiStepForm):
             self.library_table = library_table
         else:
             raise exceptions.InternalServerErrorException(f"Workflow '{workflow}' not supported in CommonBarcodeInputForm")
-        
-        logger.debug(self.library_table)
 
         if self.index_col not in [col.label for col in self.columns]:
             logger.error(f"Index column '{self.index_col}' not found in columns")
@@ -181,8 +179,8 @@ class CommonBarcodeInputForm(MultiStepForm):
         )
         self.kits = []
 
-    def fill_previous_form(self, previous_form: StepFile):
-        barcode_table = previous_form.tables["barcode_table"]
+    def fill_previous_form(self):
+        barcode_table = self.tables["barcode_table"]
         barcode_table = barcode_table[barcode_table["index_type_id"] != IndexType.TENX_ATAC_INDEX.id].copy()
         self.spreadsheet.set_data(barcode_table)
 
@@ -287,7 +285,7 @@ class CommonBarcodeInputForm(MultiStepForm):
                     ] = kit_row["sequence_i5"]
 
         for idx, row in self.df.iterrows():
-            if row["index_well"] == "del":
+            if pd.notna(row["index_well"]) and row["index_well"] == "del":
                 continue
                 
             if pd.notna(row["kit_i7"]):

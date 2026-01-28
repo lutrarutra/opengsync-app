@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import Response, url_for, flash
@@ -7,7 +5,6 @@ from flask_htmx import make_response
 
 from opengsync_db import models
 
-from .... import logger, tools, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DuplicateCellValue, IntegerColumn
 from ..common.CommonFlexMuxForm import CommonFlexMuxForm
@@ -51,11 +48,11 @@ class FlexMuxForm(CommonFlexMuxForm):
             return self.make_response()
         
         self.flex_table["mux_barcode"] = utils.map_columns(self.flex_table, self.df, ["sample_id", "library_id"], "barcode_id")
-        self.add_table("sample_table", self.sample_table)
+        self.tables["sample_table"] = self.sample_table
 
         if FlexABCForm.is_applicable(self):
-            self.add_table("gex_table", self.flex_table)
-            self.update_data()
+            self.tables["gex_table"] = self.flex_table
+            self.step()
             form = FlexABCForm(lab_prep=self.lab_prep, uuid=self.uuid)
             return form.make_response()
 

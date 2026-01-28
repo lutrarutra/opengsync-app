@@ -6,7 +6,6 @@ from opengsync_db import models
 from opengsync_db.categories import IndexType, BarcodeOrientation
 
 from .... import logger, db
-from ...MultiStepForm import StepFile
 from ..common import CommonTENXATACBarcodeInputForm
 from .VisiumAnnotationForm import VisiumAnnotationForm
 from .FeatureAnnotationForm import FeatureAnnotationForm
@@ -30,8 +29,8 @@ class TENXATACBarcodeInputForm(CommonTENXATACBarcodeInputForm):
             pool=None, lab_prep=None, seq_request=seq_request,
         )
 
-    def fill_previous_form(self, previous_form: StepFile):
-        barcode_table = previous_form.tables["tenx_atac_barcode_table"]
+    def fill_previous_form(self):
+        barcode_table = self.tables["tenx_atac_barcode_table"]
         self.spreadsheet.set_data(barcode_table)
 
     def get_barcode_table(self) -> DataFrame:
@@ -117,10 +116,10 @@ class TENXATACBarcodeInputForm(CommonTENXATACBarcodeInputForm):
             return self.make_response()
         
         self.metadata["index_col"] = self.index_col
-        self.add_table("tenx_atac_barcode_table", self.df)
+        self.tables["tenx_atac_barcode_table"] = self.df
         barcode_table = self.get_barcode_table()
-        self.add_table("barcode_table", barcode_table)
-        self.update_data()
+        self.tables["barcode_table"] = barcode_table
+        self.step()
 
         if BarcodeMatchForm.is_applicable(self):
             next_form = BarcodeMatchForm(seq_request=self.seq_request, uuid=self.uuid)

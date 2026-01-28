@@ -3,7 +3,6 @@ from wtforms import StringField, FormField, TextAreaField, BooleanField
 from wtforms.validators import Optional as OptionalValidator, Length
 
 from opengsync_db import models
-from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import db, logger
 from ...SearchBar import OptionalSearchBar
@@ -29,13 +28,13 @@ class ProjectSelectForm(MultiStepForm):
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
 
-    def fill_previous_form(self, previous_form: StepFile):
-        if (project_id := previous_form.metadata.get("project_id")) is not None:
+    def fill_previous_form(self):
+        if (project_id := self.metadata.get("project_id")) is not None:
             self.existing_project.selected.data = project_id
             self.existing_project.search_bar.data = project.title if (project := db.projects.get(project_id)) is not None else None
         else:
-            self.new_project.data = previous_form.metadata.get("project_title")
-            self.project_description.data = previous_form.metadata.get("project_description")
+            self.new_project.data = self.metadata.get("project_title")
+            self.project_description.data = self.metadata.get("project_description")
     
     def validate(self, user: models.User) -> bool:
         if (validated := super().validate()) is False:
@@ -93,8 +92,10 @@ class ProjectSelectForm(MultiStepForm):
         validated = self.validate(user)
         if not validated:
             return self.make_response()
+        
+        self.metadata
 
-        self.metadata["submission_type_id"] = self.seq_request.submission_type.id
+        self.seq_request.submission_type.id = self.seq_request.submission_type.id
         self.metadata["project_title"] = self.project_title
         self.metadata["workflow"] = "library_annotation"
         self.metadata["project_id"] = self.project_id
@@ -102,7 +103,7 @@ class ProjectSelectForm(MultiStepForm):
         self.metadata["user_id"] = user.id
         self.metadata["project_description"] = self.project_description.data
         self.metadata["project_owner_id"] = self.seq_request.requestor.id if self.set_requestor_as_owner.data and user.is_insider() else user.id
-        self.update_data()
+        self.step()
 
         next_form = SampleAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)        
         return next_form.make_response()

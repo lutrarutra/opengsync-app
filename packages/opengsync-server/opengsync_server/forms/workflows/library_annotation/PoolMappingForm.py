@@ -11,7 +11,7 @@ from opengsync_db import models
 
 from .... import logger, db
 from ....tools import utils
-from ...MultiStepForm import MultiStepForm, StepFile
+from ...MultiStepForm import MultiStepForm
 from .BarcodeInputForm import BarcodeInputForm, TENXATACBarcodeInputForm
 
 
@@ -61,12 +61,12 @@ class PoolMappingForm(MultiStepForm):
             if not sub_form.new_pool_name.data:
                 sub_form.new_pool_name.data = str(pool)
         
-    def fill_previous_form(self, previous_form: StepFile):
-        pool_table = previous_form.tables["pool_table"]
+    def fill_previous_form(self):
+        pool_table = self.tables["pool_table"]
 
-        self.contact_name.data = previous_form.metadata.get("pool_contact_name")
-        self.contact_email.data = previous_form.metadata.get("pool_contact_email")
-        self.contact_phone.data = previous_form.metadata.get("pool_contact_phone")
+        self.contact_name.data = self.metadata.get("pool_contact_name")
+        self.contact_email.data = self.metadata.get("pool_contact_email")
+        self.contact_phone.data = self.metadata.get("pool_contact_phone")
 
         for i, (idx, row) in enumerate(pool_table.iterrows()):
             if i > len(self.pool_forms) - 1:
@@ -143,8 +143,8 @@ class PoolMappingForm(MultiStepForm):
         self.metadata["pool_contact_name"] = self.contact_name.data
         self.metadata["pool_contact_email"] = self.contact_email.data
         self.metadata["pool_contact_phone"] = self.contact_phone.data
-        self.add_table("pool_table", self.pool_table)
-        self.update_data()
+        self.tables["pool_table"] = self.pool_table
+        self.step()
 
         if BarcodeInputForm.is_applicable(self):
             next_form = BarcodeInputForm(

@@ -1,10 +1,7 @@
 import pandas as pd
 import os
-import openpyxl
-from openpyxl.utils import get_column_letter
 
-from flask import Response, url_for, flash
-from flask_htmx import make_response
+from flask import Response, url_for
 from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, FieldList, FormField
 
@@ -117,8 +114,8 @@ class ProtocolMappingForm(MultiStepForm):
                 self.library_table["combination"] == sub_form.kit_combination.data, "protocol_id"
             ] = sub_form.protocol.data
 
-        self.add_table("library_table", self.library_table)
-        self.update_data()
+        self.tables["library_table"] = self.library_table
+        self.step()
 
         next_form = LibraryProtocolSelectForm(lab_prep=self.lab_prep, uuid=self.uuid, formdata=None)
         return next_form.make_response()

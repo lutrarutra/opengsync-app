@@ -9,6 +9,8 @@ from .MailHandler import MailHandler
 from .ExcelWriter import ExcelWriter
 from .FileBrowser import FileBrowser
 from .SharedFileBrowser import SharedFileBrowser
+from .MSFTableHandler import MSFTableHandler
+from .CachedDictionary import CachedDictionary
 
 if os.getenv("GEMINI_API_KEY"):
     from .TextGen import TextGen

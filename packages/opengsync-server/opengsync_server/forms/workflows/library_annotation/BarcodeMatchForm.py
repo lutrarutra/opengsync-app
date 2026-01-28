@@ -39,7 +39,10 @@ class BarcodeMatchForm(CommonBarcodeMatchForm):
                 text=f"{dict(self.i5_option.choices)[self.i5_option.data]}: {', '.join(self.barcode_table['library_name'].unique().tolist())}",  # type: ignore
             )
 
-        self.update_table("barcode_table", self.barcode_table)
+        self.tables["barcode_table"] = self.barcode_table
+        logger.debug(self.barcode_table)
+        self.step()
+
         if FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif OpenSTAnnotationForm.is_applicable(self):

@@ -68,9 +68,9 @@ class BarcodeInputForm(CommonBarcodeInputForm):
         
         barcode_table = self.df
         self.metadata["index_col"] = self.index_col
-        self.add_table("library_table", self.library_table)
-        self.add_table("barcode_table", barcode_table)
-        self.update_data()
+        self.tables["library_table"] = self.library_table
+        self.tables["barcode_table"] = barcode_table
+        self.step()
 
         if TENXATACBarcodeInputForm.is_applicable(self):
             form = TENXATACBarcodeInputForm(uuid=self.uuid, lab_prep=self.lab_prep, seq_request=self.seq_request, pool=self.pool, formdata=None)

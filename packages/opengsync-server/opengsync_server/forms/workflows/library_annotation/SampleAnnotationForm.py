@@ -6,7 +6,7 @@ from opengsync_db.categories import GenomeRef
 from .... import logger, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, CategoricalDropDown
-from ...MultiStepForm import MultiStepForm, StepFile
+from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
 from .SampleAttributeAnnotationForm import SampleAttributeAnnotationForm
 
@@ -36,8 +36,8 @@ class SampleAnnotationForm(MultiStepForm):
         )
         self._context["project_id"] = self.metadata.get("project_id")
 
-    def fill_previous_form(self, previous_form: StepFile):
-        self.spreadsheet.set_data(previous_form.tables["sample_table"])
+    def fill_previous_form(self):
+        self.spreadsheet.set_data(self.tables["sample_table"])
 
     def validate(self) -> bool:
         if not super().validate():
@@ -64,8 +64,8 @@ class SampleAnnotationForm(MultiStepForm):
             for sample in project.samples:
                 self.df.loc[self.df["sample_name"] == sample.name, "sample_id"] = sample.id
 
-        self.add_table("sample_table", self.df)
-        self.update_data()
+        self.tables["sample_table"] = self.df
+        self.step()
 
         next_form = SampleAttributeAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         return next_form.make_response()

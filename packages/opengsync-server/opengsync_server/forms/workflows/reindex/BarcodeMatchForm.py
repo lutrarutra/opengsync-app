@@ -2,7 +2,6 @@ from flask import Response
 
 from opengsync_db import models
 
-from .... import logger, tools, db
 from ..common import CommonBarcodeMatchForm
 from .CompleteReindexForm import CompleteReindexForm
 
@@ -28,7 +27,8 @@ class BarcodeMatchForm(CommonBarcodeMatchForm):
         if not self.validate():
             return self.make_response()
 
-        self.update_table("barcode_table", self.barcode_table)
+        self.tables["barcode_table"] = self.barcode_table
+        self.step()
         form = CompleteReindexForm(
             seq_request=self.seq_request,
             lab_prep=self.lab_prep,

@@ -35,8 +35,8 @@ class LibraryProtocolSelectForm(MultiStepForm):
             self.library_table = self.tables["library_table"]
         else:
             self.library_table = library_table
-            self.add_table("library_table", library_table)
-            self.update_data()
+            self.tables["library_table"] = library_table
+            self.step()
 
         self.library_table["library_id"] = self.library_table["library_id"].astype(pd.Int64Dtype())
         self.library_table["protocol_id"] = self.library_table["protocol_id"].astype(pd.Int64Dtype())

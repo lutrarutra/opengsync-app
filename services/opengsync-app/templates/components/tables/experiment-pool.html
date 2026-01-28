@@ -9,7 +9,7 @@
 
 <div id="experiment-pool-table" class="table-container">
     <div class="progress-bar-container flowcell-capacity-container pb-1 pt-1">
-        {% if experiment.workflow.combined_lanes %}
+        {% if not can_edit_pooling %}
         {% set m_reads_used = experiment.m_reads_planned() %}
         {% set reads_used_pct = 100.0 * m_reads_used / experiment.flowcell_type.max_m_reads %}
         <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;"
@@ -69,13 +69,13 @@
                 </td>
                 <td class="x-scroll-cell">
                     <span class="scroll-container">
-                        {% if experiment.workflow.combined_lanes %}
+                        {% if not can_edit_pooling %}
                         <span class="table-btn" {{ tooltip("You cannot edit laning configurations in this workflow.", "top", category="warning") }}>
                         {% endif %}
-                            <div class="btn-group table-btn {% if experiment.workflow.combined_lanes %}disabled{% endif %}">
+                            <div class="btn-group table-btn {% if not can_edit_pooling %}disabled{% endif %}">
                                 {% for lane_num in range(1, experiment.num_lanes + 1) %}
                                 {% set lane, num_m_reads = pool.lane(lane_num) %}
-                                {% if experiment.workflow.combined_lanes %}
+                                {% if not can_edit_pooling %}
                                 <button type="button" class="btn {% if pool.id in experiment_lanes[lane_num] %}btn-primary{% else %}btn-outline-primary{% endif %} table-btn disabled pool-lane-btn">
                                     {{ lane_num }}
                                 </button>
@@ -99,7 +99,7 @@
                                 {% endif %}
                                 {% endfor %}
                             </div>
-                        {% if experiment.workflow.combined_lanes %}
+                        {% if not can_edit_pooling %}
                         </span>
                         {% endif %}
                     </span>

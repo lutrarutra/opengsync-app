@@ -31,7 +31,7 @@ services:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
-            POSTGRES_HOST: postgres
+            POSTGRES_HOST: ${POSTGRES_HOST}
             POSTGRES_PORT: ${POSTGRES_PORT}
             MAIL_SERVER: ${MAIL_SERVER}
             MAIL_PORT: ${MAIL_PORT}
@@ -71,7 +71,7 @@ services:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
-            POSTGRES_HOST: postgres
+            POSTGRES_HOST: ${POSTGRES_HOST}
             POSTGRES_PORT: ${POSTGRES_PORT}
         volumes:
             - ./opengsync.yaml:/app/opengsync.yaml:ro
@@ -103,7 +103,7 @@ services:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
-            POSTGRES_HOST: postgres
+            POSTGRES_HOST: ${POSTGRES_HOST}
             POSTGRES_PORT: ${POSTGRES_PORT}
         volumes:
             - ./opengsync.yaml:/app/opengsync.yaml:ro
@@ -150,7 +150,7 @@ services:
             POSTGRES_PASSWORD: ${POSTGRES_REPLICATOR_PASSWORD}
             POSTGRES_USER: replicator
             POSTGRES_PORT: ${POSTGRES_PORT}
-            POSTGRES_HOST: postgres
+            POSTGRES_HOST: ${POSTGRES_HOST}
         volumes:
             - ${DB_DIR}/backup/dump:/backups/dump
             - ${DB_DIR}/backup/base:/backups/base

@@ -2,17 +2,10 @@ import json
 
 import pandas as pd
 
-from flask import Response, flash, url_for
-from flask_wtf.file import FileField, FileAllowed
-from flask_htmx import make_response
-from wtforms.validators import NumberRange, DataRequired
+from flask import Response
 from wtforms import StringField
-from flask_wtf import FlaskForm
-
-from opengsync_db import models
 
 from .... import db, logger
-from ....core.RunTime import runtime
 from ...MultiStepForm import MultiStepForm
 from .CompleteBAForm import CompleteBAForm
 
@@ -88,7 +81,7 @@ class ParseBAExcelFile(MultiStepForm):
             data["well_name"].append(excel_name)
 
         ba_table = pd.DataFrame(data)
-        self.add_table("ba_table", ba_table)
-        self.update_data()
+        self.tables["ba_table"] = ba_table
+        self.step()
         form = CompleteBAForm(uuid=self.uuid)
         return form.make_response()

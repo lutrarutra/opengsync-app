@@ -7,7 +7,6 @@ from wtforms.validators import Optional as OptionalValidator, Length
 
 from opengsync_db import models
 from opengsync_db.categories import ServiceType, MUXType, LibraryTypeEnum, LibraryType, SubmissionType
-from opengsync_server.forms.MultiStepForm import StepFile
 
 from .... import logger, db
 from ...MultiStepForm import MultiStepForm
@@ -72,32 +71,32 @@ class SelectServiceForm(MultiStepForm):
             self.service_type.label.text = "Assay Type"
             self.service_type.choices = [(-1, "Select Assay")] + ServiceType.as_selectable()  # type: ignore
 
-    def fill_previous_form(self, previous_form: StepFile):
-        self.service_type.data = previous_form.metadata.get("service_type_id")
-        self.additional_services.nuclei_isolation.data = previous_form.metadata.get("nuclei_isolation", False)
-        self.optional_assays.antibody_capture.data = previous_form.metadata.get("antibody_capture", False)
-        self.optional_assays.vdj_b.data = previous_form.metadata.get("vdj_b", False)
-        self.optional_assays.vdj_t.data = previous_form.metadata.get("vdj_t", False)
-        self.optional_assays.vdj_t_gd.data = previous_form.metadata.get("vdj_t_gd", False)
-        self.optional_assays.crispr_screening.data = previous_form.metadata.get("crispr_screening", False)
-        self.optional_assays.antibody_multiplexing.data = previous_form.metadata.get("antibody_multiplexing", False)
+    def fill_previous_form(self):
+        self.service_type.data = self.metadata.get("service_type_id")
+        self.additional_services.nuclei_isolation.data = self.metadata.get("nuclei_isolation", False)
+        self.optional_assays.antibody_capture.data = self.metadata.get("antibody_capture", False)
+        self.optional_assays.vdj_b.data = self.metadata.get("vdj_b", False)
+        self.optional_assays.vdj_t.data = self.metadata.get("vdj_t", False)
+        self.optional_assays.vdj_t_gd.data = self.metadata.get("vdj_t_gd", False)
+        self.optional_assays.crispr_screening.data = self.metadata.get("crispr_screening", False)
+        self.optional_assays.antibody_multiplexing.data = self.metadata.get("antibody_multiplexing", False)
 
-        self.optional_assays.parse_kit.data = previous_form.metadata.get("parse_kit", -1)
-        self.optional_assays.parse_chemistry.data = previous_form.metadata.get("parse_chemistry", -1)
-        self.optional_assays.parse_crispr.data = previous_form.metadata.get("parse_crispr", False)
-        self.optional_assays.parse_mux.data = previous_form.metadata["mux_type_id"] == MUXType.PARSE_WELLS.id
-        self.optional_assays.parse_tcr.data = previous_form.metadata.get("parse_tcr", False)
-        self.optional_assays.parse_bcr.data = previous_form.metadata.get("parse_bcr", False)
+        self.optional_assays.parse_kit.data = self.metadata.get("parse_kit", -1)
+        self.optional_assays.parse_chemistry.data = self.metadata.get("parse_chemistry", -1)
+        self.optional_assays.parse_crispr.data = self.metadata.get("parse_crispr", False)
+        self.optional_assays.parse_mux.data = self.metadata["mux_type_id"] == MUXType.PARSE_WELLS.id
+        self.optional_assays.parse_tcr.data = self.metadata.get("parse_tcr", False)
+        self.optional_assays.parse_bcr.data = self.metadata.get("parse_bcr", False)
 
-        self.optional_assays.antibody_capture_kit.data = previous_form.metadata.get("antibody_capture_kit", "")
+        self.optional_assays.antibody_capture_kit.data = self.metadata.get("antibody_capture_kit", "")
         
-        if previous_form.metadata.get("mux_type_id") == MUXType.TENX_OLIGO.id:
+        if self.metadata.get("mux_type_id") == MUXType.TENX_OLIGO.id:
             self.additional_services.oligo_multiplexing.data = True
-            self.additional_services.oligo_multiplexing_kit.data = previous_form.metadata.get("oligo_multiplexing_kit", "")
-        elif previous_form.metadata.get("mux_type_id") == MUXType.TENX_ON_CHIP.id:
+            self.additional_services.oligo_multiplexing_kit.data = self.metadata.get("oligo_multiplexing_kit", "")
+        elif self.metadata.get("mux_type_id") == MUXType.TENX_ON_CHIP.id:
             self.additional_services.ocm_multiplexing.data = True
 
-        self.additional_info.data = previous_form.metadata.get("additional_info", "")
+        self.additional_info.data = self.metadata.get("additional_info", "")
 
     def validate(self) -> bool:
         if not super().validate():
@@ -210,7 +209,7 @@ class SelectServiceForm(MultiStepForm):
         if (parse_kit := dict(OptionalAssaysForm.Parse_kits).get(self.optional_assays.parse_kit.data)) is not None:
             self.add_comment(context="parse_kit", text=parse_kit)
 
-        self.update_data()
+        self.step()
 
         if DefineMultiplexedSamplesForm.is_applicable(self):
             next_form = DefineMultiplexedSamplesForm(seq_request=self.seq_request, uuid=self.uuid)
@@ -225,8 +224,8 @@ class SelectServiceForm(MultiStepForm):
                 sample_pooling_table["sample_name"].append(sample_name)
                 
             sample_pooling_table = pd.DataFrame(sample_pooling_table)
-            self.add_table("sample_pooling_table", sample_pooling_table)
-            self.update_data()
+            self.tables["sample_pooling_table"] = sample_pooling_table
+            self.step()
             next_form = CustomAssayAnnotationFrom(seq_request=self.seq_request, uuid=self.uuid)
             return next_form.make_response()
         
@@ -294,11 +293,11 @@ class SelectServiceForm(MultiStepForm):
         sample_pooling_table = pd.DataFrame(sample_pooling_table)
         sample_pooling_table["mux_type_id"] = None
 
-        self.add_table("library_table", library_table)
-        self.add_table("sample_pooling_table", sample_pooling_table)
-        self.update_data()
+        self.tables["sample_pooling_table"] = sample_pooling_table
+        self.tables["library_table"] = library_table
+        self.step()
 
-        if self.metadata["submission_type_id"] == SubmissionType.POOLED_LIBRARIES.id:
+        if self.seq_request.submission_type.id == SubmissionType.POOLED_LIBRARIES.id:
             next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
         elif FeatureAnnotationForm.is_applicable(self):
             next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

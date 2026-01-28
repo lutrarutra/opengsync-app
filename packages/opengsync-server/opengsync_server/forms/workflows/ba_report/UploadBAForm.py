@@ -121,15 +121,16 @@ class UploadBAForm(MultiStepForm):
             if df.empty:
                 self.excel.errors = ("No valid data was parsed in the Excel file.",)
                 return self.make_response()
-            self.add_table("excel_table", df)
-            self.update_data()
+
+            self.tables["excel_table"] = df
+            self.step()
             form = ParseBAExcelFile(uuid=self.uuid)
             return form.make_response()
         
         from .CompleteBAForm import CompleteBAForm
         CompleteBAForm.save_changes(
             user=user,
-            metadata=self.metadata,
+            metadata=self.metadata.data,
             report=self.pdf,
             uuid=self.uuid,
             sample_fields=self.sample_fields,  # type: ignore

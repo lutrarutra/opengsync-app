@@ -102,6 +102,10 @@ class SpreadsheetInput(FlaskForm):
         self.__df.columns = [self.col_title_map[col_name] if col_name in self.col_title_map else col_name.lower().replace(" ", "_") for col_name in self.col_names]
         self.__df = self.__df.dropna(how="all")
 
+        for label, column in self.columns.items():
+            if column.type == "text" or column.type == "dropdown":
+                self.__df[label] = self.__df[label].astype(pd.StringDtype())
+
         if len(self.__df) == 0 and not self.can_be_empty:
             self._errors = ["Spreadsheet is empty.",]
             return False
