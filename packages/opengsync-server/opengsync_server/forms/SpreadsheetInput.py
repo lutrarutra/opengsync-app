@@ -11,7 +11,7 @@ from wtforms.validators import DataRequired
 from flask_wtf import FlaskForm
 
 from .. import logger
-from ..tools.spread_sheet_components import SpreadSheetColumn, SpreadSheetException, DropdownColumn, CategoricalDropDown
+from ..tools.spread_sheet_components import TextColumn, FloatColumn, IntegerColumn, SpreadSheetColumn, SpreadSheetException, DropdownColumn, CategoricalDropDown
 
 
 class SpreadsheetInput(FlaskForm):
@@ -111,7 +111,11 @@ class SpreadsheetInput(FlaskForm):
             return False
         
         for label, column in self.columns.items():
-            if column.type == "dropdown":
+            if isinstance(column, CategoricalDropDown):
+                self.__df[label] = self.__df[label].astype(object)
+            elif isinstance(column, TextColumn):
+                self.__df[label] = self.__df[label].astype(pd.StringDtype())
+            elif isinstance(column, DropdownColumn):
                 self.__df[label] = self.__df[label].astype(object)
         
         for label, column in self.columns.items():
@@ -151,8 +155,12 @@ class SpreadsheetInput(FlaskForm):
             return False
         
         for label, column in self.columns.items():
-            if column.type == "text":
+            if isinstance(column, TextColumn):
                 self.__df[label] = self.__df[label].astype(pd.StringDtype())
+            elif isinstance(column, IntegerColumn):
+                self.__df[label] = self.__df[label].astype(pd.Int64Dtype())
+            elif isinstance(column, FloatColumn):
+                self.__df[label] = self.__df[label].astype(pd.Float64Dtype())
 
         return True
     
