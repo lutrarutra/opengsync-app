@@ -47,7 +47,7 @@ class LibraryPoolingForm(MultiStepForm):
                 order = prep_table["library_id"].tolist()
                 self.library_table["library_id"] = pd.Categorical(self.library_table["library_id"], categories=order, ordered=True)
                 self.library_table = self.library_table.sort_values("library_id").reset_index(drop=True)
-                self.library_table["library_id"] = self.library_table["library_id"].astype(pd.Int64Dtype())
+                # self.library_table["library_id"] = self.library_table["library_id"].astype(pd.Int64Dtype())
                 self.library_table["pool"] = utils.map_columns(self.library_table, prep_table, idx_columns="library_id", col="pool")
 
         self.post_url = url_for("library_pooling_workflow.upload_pooling_form", uuid=self.uuid, lab_prep_id=self.lab_prep.id)
