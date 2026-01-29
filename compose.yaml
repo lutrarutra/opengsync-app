@@ -180,7 +180,7 @@ services:
         ports:
             - ${REDIS_PORT}:${REDIS_PORT}
         volumes:
-            - ${CACHE_DIR}:/data
+            - redis_data:/data
         environment:
             TZ: ${TIMEZONE}
         healthcheck:
@@ -239,3 +239,4 @@ services:
 volumes:
     compiled_css:
     pgadmin_data:
+    redis_data:

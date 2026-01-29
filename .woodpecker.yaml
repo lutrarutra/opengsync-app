@@ -3,13 +3,41 @@ when:
       branch: main
 
 steps:
-  - deploy:
+  - name: deploy
     image: docker:27-cli
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    secrets:
+      - OPENGSYNC_PORT
+      - OPENGSYNC_SERVER_NAME
+      - SECRET_KEY
+      - PGADMIN_EMAIL
+      - PGADMIN_PASSWORD
+      - PGADMIN_PORT
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - POSTGRES_PORT
+      - POSTGRES_HOST
+      - POSTGRES_REPLICATOR_PASSWORD
+      - MAIL_SERVER
+      - MAIL_USER
+      - MAIL_SENDER
+      - MAIL_PASSWORD
+      - MAIL_PORT
+      - GEMINI_API_KEY
+      - TIMEZONE
+      - REDIS_PORT
+      - ILLUMINA_RUN_FOLDER
+      - MEDIA_DIR
+      - LOG_DIR
+      - CACHE_DIR
+      - UPLOADS_DIR
+      - DB_DIR
+      - PUID
+      - PGID
     commands:
-      - source .env
       - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod build --pull
-      - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod up -d --remove-orphans
+      - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod up -d --remove-orphans --wait
       - docker image prune -f
 

@@ -53,14 +53,12 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 # ${PUID} ${PGID} from .env
 source .env
 sudo mkdir -p db && sudo chown -R ${PUID}:${PGID} db && sudo chmod -R 750 db
-sudo mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
 sudo mkdir -p db/postgres && sudo chown -R ${PUID}:${PGID} db/postgres
 sudo mkdir -p db/postgres && sudo chown -R ${PUID}:${PGID} db/archive && sudo chmod -R 750 db/archive
 
 sudo mkdir -p ${MEDIA_DIR} && sudo chown -R ${PUID}:${PGID} ${MEDIA_DIR} && sudo chmod -R 700 ${MEDIA_DIR} 
 sudo mkdir -p ${UPLOADS_DIR} && sudo chown -R ${PUID}:${PGID} ${UPLOADS_DIR} && sudo chmod -R 700 ${UPLOADS_DIR}
 sudo mkdir -p ${LOG_DIR} && sudo chown -R ${PUID}:${PGID} ${LOG_DIR} && sudo chmod -R 700 ${LOG_DIR}
-sudo mkdir -p ${CACHE_DIR} && sudo chown -R ${PUID}:${PGID} ${CACHE_DIR} && sudo chmod -R 700 ${CACHE_DIR}
 
 sudo mkdir -p ${LOG_DIR}/{celery-worker,celery-beat,backup,opengsync}
 sudo chown -R ${PUID}:${PGID} ${LOG_DIR}/{celery-worker,celery-beat,backup,opengsync}

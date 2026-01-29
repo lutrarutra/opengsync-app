@@ -114,7 +114,7 @@ services:
             - ${REDIS_PORT}:${REDIS_PORT}
         restart: unless-stopped
         volumes:
-            - ./cache:/data
+            - redis_data:/data
         healthcheck:
             test: ["CMD", "redis-cli", "-p", "${REDIS_PORT}", "ping"]
             interval: 10s
@@ -182,3 +182,4 @@ services:
 volumes:
     compiled_css:
     pgadmin_data:
+    redis_data:
