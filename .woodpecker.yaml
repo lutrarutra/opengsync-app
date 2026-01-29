@@ -7,35 +7,69 @@ steps:
     image: docker:27-cli
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    secrets:
-      - OPENGSYNC_PORT
-      - OPENGSYNC_SERVER_NAME
-      - SECRET_KEY
-      - PGADMIN_EMAIL
-      - PGADMIN_PASSWORD
-      - PGADMIN_PORT
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
-      - POSTGRES_PORT
-      - POSTGRES_HOST
-      - POSTGRES_REPLICATOR_PASSWORD
-      - MAIL_SERVER
-      - MAIL_USER
-      - MAIL_SENDER
-      - MAIL_PASSWORD
-      - MAIL_PORT
-      - GEMINI_API_KEY
-      - TIMEZONE
-      - REDIS_PORT
-      - ILLUMINA_RUN_FOLDER
-      - MEDIA_DIR
-      - LOG_DIR
-      - CACHE_DIR
-      - UPLOADS_DIR
-      - DB_DIR
-      - PUID
-      - PGID
+    environment:
+      OPENGSYNC_PORT:
+        from_secret: OPENGSYNC_PORT
+      OPENGSYNC_SERVER_NAME:
+        from_secret: OPENGSYNC_SERVER_NAME
+      POSTGRES_USER:
+        from_secret: POSTGRES_USER
+      POSTGRES_PASSWORD:
+        from_secret: POSTGRES_PASSWORD
+      POSTGRES_DB:
+        from_secret: POSTGRES_DB
+      POSTGRES_PORT:
+        from_secret: POSTGRES_PORT
+      POSTGRES_HOST:
+        from_secret: POSTGRES_HOST
+      GITEA_CLIENT_ID:
+        from_secret: GITEA_CLIENT_ID
+      GITEA_CLIENT_SECRET:
+        from_secret: GITEA_CLIENT_SECRET
+      WOODPECKER_AGENT_SECRET:
+        from_secret: WOODPECKER_AGENT_SECRET
+      SECRET_KEY:
+        from_secret: SECRET_KEY
+      PGADMIN_EMAIL:
+        from_secret: PGADMIN_EMAIL
+      PGADMIN_PASSWORD:
+        from_secret: PGADMIN_PASSWORD
+      PGADMIN_PORT:
+        from_secret: PGADMIN_PORT
+      POSTGRES_REPLICATOR_PASSWORD:
+        from_secret: POSTGRES_REPLICATOR_PASSWORD
+      MAIL_SERVER:
+        from_secret: MAIL_SERVER
+      MAIL_USER:
+        from_secret: MAIL_USER
+      MAIL_SENDER:
+        from_secret: MAIL_SENDER
+      MAIL_PASSWORD:
+        from_secret: MAIL_PASSWORD
+      MAIL_PORT:
+        from_secret: MAIL_PORT
+      GEMINI_API_KEY:
+        from_secret: GEMINI_API_KEY
+      TIMEZONE:
+        from_secret: TIMEZONE
+      REDIS_PORT:
+        from_secret: REDIS_PORT
+      ILLUMINA_RUN_FOLDER:
+        from_secret: ILLUMINA_RUN_FOLDER
+      MEDIA_DIR:
+        from_secret: MEDIA_DIR
+      LOG_DIR:
+        from_secret: LOG_DIR
+      CACHE_DIR:
+        from_secret: CACHE_DIR
+      UPLOADS_DIR:
+        from_secret: UPLOADS_DIR
+      DB_DIR:
+        from_secret: DB_DIR
+      PUID:
+        from_secret: PUID
+      PGID:
+        from_secret: PGID
     commands:
       - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod build --pull
       - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod up -d --remove-orphans --wait
