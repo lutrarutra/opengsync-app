@@ -1,18 +1,19 @@
 [build-system]
-requires = ["setuptools>=70.1", "wheel>=0.43"]
+requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengsync_api"
-version = "1.0"
-description = "Pythn API for NGS sample/library/project tracking app."
+dynamic = ["version"]
+description = "Python API for NGS sample/library/project tracking app."
 authors = [
     { name = "lutrarutra", email = "lutrarutra@pm.me" }
 ]
 requires-python = ">=3.11"
 
-dependencies = [
-]
+[tool.setuptools_scm]
+root = "../.."
+
 
 [tool.flake8]
 max-line-length = 88

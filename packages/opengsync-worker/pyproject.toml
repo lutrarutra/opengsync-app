@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=70.1", "wheel>=0.43"]
+requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengsync-worker"
-version = "1.0"
+dynamic = ["version"]
 description = ""
 authors = [
     { name = "lutrarutra", email = "lutrarutra@pm.me" }
@@ -25,6 +25,9 @@ dependencies = [
     "redis",
     "pyyaml"
 ]
+
+[tool.setuptools_scm]
+root = "../.."
 
 [tool.flake8]
 max-line-length = 88

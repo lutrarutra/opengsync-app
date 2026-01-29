@@ -32,7 +32,7 @@ FROM builder AS opengsync-app
 
 COPY packages /app/packages
 COPY ./services/opengsync-app/scripts /app/scripts
-RUN uv sync --frozen
+RUN uv sync --frozen --no-editable
 
 COPY opengsync.yaml /app/opengsync.yaml
 COPY services/opengsync-app/templates /templates
@@ -48,7 +48,7 @@ RUN uv pip install celery[redis]
 # --- CELERY WORKER ---
 FROM celery-base AS celery-worker
 COPY packages /app/packages
-RUN uv sync --frozen
+RUN uv sync --frozen --no-editable
 
 # --- PYTEST ---
 FROM builder AS pytest
@@ -56,6 +56,6 @@ FROM builder AS pytest
 COPY packages /app/packages
 COPY services/pytest/tests /app/tests
 COPY services/opengsync-app/static/resources/templates/library_prep/ /app/prep_tables
-RUN uv sync --frozen
+RUN uv sync --frozen --no-editable
 RUN uv pip install pytest
 CMD ["pytest"]

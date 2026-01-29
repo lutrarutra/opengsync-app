@@ -1,10 +1,18 @@
+[build-system]
+requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["packages"]
+
 [project]
 name = "opengsync-app"
-version = "0.1.0"
+dynamic = ["version"]
 dependencies = [
     "opengsync-db",
     "opengsync-server",
     "opengsync-worker",
+    "opengsync-api",
 
     "numpy >= 2.2",
     "pandas >= 2.3, < 3.0",
@@ -17,6 +25,7 @@ dependencies = [
     "redis",
 ]
 
+
 [tool.uv.workspace]
 members = [
     "packages/*",
@@ -24,5 +33,6 @@ members = [
 
 [tool.uv.sources]
 opengsync-db = { workspace = true }
+opengsync-api = { workspace = true }
 opengsync-server = { workspace = true }
 opengsync-worker = { workspace = true }
