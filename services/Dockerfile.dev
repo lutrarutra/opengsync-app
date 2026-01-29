@@ -48,13 +48,3 @@ RUN uv pip install celery[redis]
 FROM celery-base AS celery-worker
 COPY packages /app/packages
 RUN uv sync --frozen
-
-# --- CELERY FLOWER ---
-FROM celery-base AS celery-flower
-RUN uv pip install flower
-
-# --- PYTEST ---
-FROM builder AS pytest
-RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
-RUN uv sync --frozen
-CMD ["pytest"]

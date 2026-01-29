@@ -95,7 +95,6 @@ class CompleteQubitMeasureForm(MultiStepForm):
         library_table = self.tables["library_table"]
         pool_table = self.tables["pool_table"]
         lane_table = self.tables["lane_table"]
-        metadata = self.metadata.copy()
 
         for sub_form in self.library_fields:
             if (library := db.libraries.get(sub_form.obj_id.data)) is None:
@@ -138,7 +137,7 @@ class CompleteQubitMeasureForm(MultiStepForm):
 
         self.complete()
         flash("Qubit Measurements saved!", "success")
-        if (experiment_id := metadata.get("experiment_id")) is not None:
+        if (experiment_id := self.metadata.get("experiment_id")) is not None:
             return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment_id))
         
         return make_response(redirect=url_for("dashboard"))

@@ -1,0 +1,10 @@
+when:
+    - event: push
+      branch:
+        - main
+
+steps:
+    - name: build
+      image: plugins/docker
+      commands:
+        - docker build -t opengsync-app .

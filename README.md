@@ -62,6 +62,10 @@ sudo mkdir -p ${UPLOADS_DIR} && sudo chown -R ${PUID}:${PGID} ${UPLOADS_DIR} && 
 sudo mkdir -p ${LOG_DIR} && sudo chown -R ${PUID}:${PGID} ${LOG_DIR} && sudo chmod -R 700 ${LOG_DIR}
 sudo mkdir -p ${CACHE_DIR} && sudo chown -R ${PUID}:${PGID} ${CACHE_DIR} && sudo chmod -R 700 ${CACHE_DIR}
 
+sudo mkdir -p ${LOG_DIR}/{celery-worker,celery-beat,backup,opengsync}
+sudo chown -R ${PUID}:${PGID} ${LOG_DIR}/{celery-worker,celery-beat,backup,opengsync}
+sudo chmod -R 700 ${LOG_DIR}/{celery-worker,celery-beat,backup,opengsync}
+
 sudo chown root:root .env && sudo chmod 400 .env
 ```
 

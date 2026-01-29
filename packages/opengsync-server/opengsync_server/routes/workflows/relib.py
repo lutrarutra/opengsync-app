@@ -73,11 +73,10 @@ def select(current_user: models.User) -> Response:
         data["nuclei_isolation"].append("Yes" if library.nuclei_isolation else "No")
 
     df = pd.DataFrame(data)
-    logger.debug(df)
 
-    form.add_table("library_table", df)
+    form.tables["library_table"] = df
     form.metadata["workflow"] = "relib"
-    form.update_data()
+    form.step()
 
     next_form = forms.LibraryEditTableForm(
         seq_request=context.get("seq_request"),

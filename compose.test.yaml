@@ -2,13 +2,10 @@ services:
     opengsync-pytest:
         container_name: opengsync-pytest
         build:
-            context: ./services
-            dockerfile: pytest/Dockerfile
+            context: .
+            dockerfile: ./services/Dockerfile
+            target: pytest
         command: "pytest tests/ --capture=tee-sys -vv -W always"
-        volumes:
-            - ./services/pytest/tests:/app/tests:ro
-            - ./services/opengsync-app/static/resources/templates/library_prep/:/app/prep_tables:ro
-            - ./services/opengsync-app/opengsync-db:/app/opengsync-db:ro
         environment:
             POSTGRES_USER: admin
             POSTGRES_PASSWORD: password
