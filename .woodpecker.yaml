@@ -1,13 +1,15 @@
+when:
+    - event: push
+      branch: main
+
 steps:
-    deploy:
-        image: docker:27-cli
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-        commands:
-            - source .env
-            - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod build --pull
-            - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod up -d --remove-orphans
-            - docker image prune -f
-        when:
-            event: push
-            branch: main
+  - deploy:
+    image: docker:27-cli
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    commands:
+      - source .env
+      - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod build --pull
+      - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod up -d --remove-orphans
+      - docker image prune -f
+
