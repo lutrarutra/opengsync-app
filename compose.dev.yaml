@@ -172,7 +172,7 @@ services:
     #         - ${PGADMIN_PORT}:80
     #     restart: unless-stopped
     #     volumes:
-    #         - ${DB_DIR}/pgadmin:/var/lib/pgadmin
+    #         - pgadmin_data:/var/lib/pgadmin
     #     depends_on:
     #         postgres:
     #             condition: service_healthy
@@ -181,4 +181,4 @@ services:
 
 volumes:
     compiled_css:
-    yacht:
+    pgadmin_data:
