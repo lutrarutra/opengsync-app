@@ -74,11 +74,11 @@ def select(current_user: models.User):
         raise exceptions.NoPermissionsException()
 
     context = get_context(request)
-    form: SelectSamplesForm = SelectSamplesForm(workflow="qubit_measure", formdata=request.form, context=context)
+    form = SelectSamplesForm(workflow="qubit_measure", formdata=request.form, context=context)
     if not form.validate():
         return form.make_response()
     
-    complete_qubit_measure_form = wff.CompleteQubitMeasureForm(uuid=None)
+    next_form = wff.CompleteQubitMeasureForm(uuid=None)
     metadata: dict[str, Any] = {"workflow": "qubit_measure"}
 
     if (experiment := context.get("experiment")) is not None:
@@ -88,13 +88,13 @@ def select(current_user: models.User):
     if (pool := context.get("pool")) is not None:
         metadata["pool_id"] = pool.id
 
-    complete_qubit_measure_form.metadata = metadata
-    complete_qubit_measure_form.add_table("sample_table", form.sample_table)
-    complete_qubit_measure_form.add_table("library_table", form.library_table)
-    complete_qubit_measure_form.add_table("pool_table", form.pool_table)
-    complete_qubit_measure_form.add_table("lane_table", form.lane_table)
-    complete_qubit_measure_form.update_data()
-    return complete_qubit_measure_form.make_response()
+    next_form.metadata.update(metadata)
+    next_form.tables["sample_table"] = form.sample_table
+    next_form.tables["library_table"] = form.library_table
+    next_form.tables["pool_table"] = form.pool_table
+    next_form.tables["lane_table"] = form.lane_table
+    next_form.step()
+    return next_form.make_response()
 
 
 @wrappers.htmx_route(qubit_measure_workflow, db=db, methods=["POST"])

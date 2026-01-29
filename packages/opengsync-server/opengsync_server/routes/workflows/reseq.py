@@ -62,13 +62,13 @@ def select(current_user: models.User) -> Response:
     if not form.validate():
         return form.make_response()
 
-    form.add_table("library_table", form.library_table.rename(columns={"id": "library_id", "name": "library_name"}))
+    form.tables["library_table"] = form.library_table.rename(columns={"id": "library_id", "name": "library_name"})
     if "seq_request" in context:
         form.metadata["seq_request_id"] = context["seq_request"].id
     elif "lab_prep" in context:
         form.metadata["lab_prep_id"] = context["lab_prep"].id
     form.metadata["workflow"] = "reseq"
-    form.update_data()
+    form.step()
 
     next_form = forms.ReseqLibrariesForm(form.uuid)
     return next_form.make_response()

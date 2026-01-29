@@ -153,7 +153,7 @@ class CompleteBAForm(MultiStepForm):
 
         self.save_changes(
             user=user,
-            metadata=self.metadata,
+            metadata=self.metadata.data,
             report=self.report,
             uuid=self.uuid,
             sample_fields=self.sample_fields,  # type: ignore

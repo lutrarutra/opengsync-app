@@ -1,5 +1,4 @@
 FROM debian:12.7
 
-RUN apt update
-RUN apt install procps -y
-RUN apt install sass -y
+RUN apt update && apt install procps sass -y
+COPY services/opengsync-app/static/style/sass /static/style/sass

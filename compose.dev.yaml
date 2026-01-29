@@ -38,7 +38,7 @@ services:
             - ${OPENGSYNC_PORT}:${OPENGSYNC_PORT}
         expose:
             - ${OPENGSYNC_PORT}
-        restart: always
+        restart: on-failure
         depends_on:
             postgres:
                 condition: service_healthy
@@ -80,7 +80,7 @@ services:
             postgres:
                 condition: service_healthy
                 restart: true
-        restart: always
+        restart: on-failure
         command: >
             celery -A opengsync_worker.celery worker --loglevel=info
 
@@ -137,7 +137,7 @@ services:
         command: "sass --watch /app/static/style/sass:/app/static/style/compiled"
         environment:
             - TZ=${TIMEZONE}
-        restart: unless-stopped
+        restart: on-failure
         healthcheck:
             test: ["CMD-SHELL", "ps cax | grep -wq sass"]
             interval: 10s
@@ -157,7 +157,7 @@ services:
             - ${POSTGRES_PORT}
         ports:
             - ${POSTGRES_PORT}:${POSTGRES_PORT}
-        restart: unless-stopped
+        restart: on-failure
         volumes:
             - ./templates/postgres/postgresql.conf:/etc/postgresql.conf
             - ${DB_DIR}/postgres:/var/lib/postgresql/data

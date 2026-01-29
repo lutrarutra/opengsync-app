@@ -45,12 +45,10 @@ def get_context(current_user: models.User, args: dict) -> dict:
 @wrappers.htmx_route(reindex_workflow, db=db)
 def previous(current_user: models.User, uuid: str):
     context = get_context(current_user, request.args)
-    
-    if (response := MultiStepForm.pop_last_step("reindex", uuid)) is None:
+
+    if (step_name := MultiStepForm.PopLastStep("reindex", uuid)) is None:
         logger.error("Failed to pop last step")
         raise exceptions.NotFoundException()
-    
-    step_name, step = response
 
     if step_name == "select_samples":
         form = SelectSamplesForm(
@@ -67,7 +65,7 @@ def previous(current_user: models.User, uuid: str):
         pool=context.get("pool"),  # type: ignore
         formdata=None
     )  # type: ignore
-    prev_step.fill_previous_form(step)
+    prev_step.fill_previous_form()
     return prev_step.make_response()
 
 
@@ -104,8 +102,8 @@ def select(current_user: models.User):
 
     libraries = form.get_libraries()
     library_table = utils.get_barcode_table(db, libraries)
-    form.add_table("library_table", library_table)
-    form.update_data()
+    form.tables["library_table"] = library_table
+    form.step()
 
     next_form = forms.BarcodeInputForm(
         seq_request=context.get("seq_request"),

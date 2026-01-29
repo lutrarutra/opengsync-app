@@ -73,7 +73,7 @@ def select(current_user: models.User) -> Response:
     if not form.validate():
         return form.make_response()
 
-    form.add_table("pool_table", form.pool_table)
+    form.tables["pool_table"] = form.pool_table
     barcodes = []
     libraries = []
     for pool in form.get_pools():
@@ -82,10 +82,10 @@ def select(current_user: models.User) -> Response:
 
     barcode_table = pd.concat(barcodes, ignore_index=True)
     library_table = pd.concat(libraries, ignore_index=True)
-    form.add_table("library_table", library_table)
-    form.add_table("barcode_table", barcode_table)
-    form.metadata = form.metadata | context
-    form.update_data()
+    form.tables["library_table"] = library_table
+    form.tables["barcode_table"] = barcode_table
+    form.metadata.update(context)
+    form.step()
     
     next_form = MergePoolsForm(uuid=form.uuid)
     next_form.contact.selected.data = current_user.id

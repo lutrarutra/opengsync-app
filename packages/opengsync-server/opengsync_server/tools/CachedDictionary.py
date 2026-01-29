@@ -67,3 +67,7 @@ class CachedDictionary:
     
     def __len__(self) -> int:
         return len(self.data)
+
+    def update(self, other: dict) -> None:
+        self.data.update(other)
+        self.r.set_dict(self.key(self.current_step), self.data)

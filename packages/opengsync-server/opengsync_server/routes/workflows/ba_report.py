@@ -99,7 +99,7 @@ def select(current_user: models.User):
     if (lab_prep := context.get("lab_prep")) is not None:
         metadata["lab_prep_id"] = lab_prep.id
 
-    form.metadata = metadata
+    form.metadata.update(metadata)
     dfs = []
     df = form.sample_table
     df["sample_type"] = "sample"
@@ -116,8 +116,8 @@ def select(current_user: models.User):
 
     df = pd.concat(dfs, ignore_index=True).reset_index(drop=True)
     df["id"] = df["id"].astype(int)
-    form.add_table("sample_table", df)
-    form.update_data()
+    form.tables["sample_table"] = df
+    form.step()
 
     next_form = wff.UploadBAForm(uuid=form.uuid)
     return next_form.make_response()
