@@ -5,6 +5,9 @@ services:
         user: "${PUID:-1000}:${PGID:-1000}"
         container_name: opengsync-app
         restart: always
+        deploy:
+            update_config:
+                order: start-first
         build:
             context: .
             dockerfile: ./services/Dockerfile
@@ -31,7 +34,7 @@ services:
             SECRET_KEY: ${SECRET_KEY}
             MAIL_USER: ${MAIL_USER}
             OPENGSYNC_DEBUG: 0
-        expose:
+        ports:
             - ${OPENGSYNC_PORT}:5000
         depends_on:
             postgres:

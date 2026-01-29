@@ -1,10 +1,12 @@
-when:
-    - event: push
-      branch:
-        - main
-
-steps:
-    - name: build
-      image: plugins/docker
-      commands:
-        - docker build -t opengsync-app .
+pipeline:
+    deploy:
+        image: docker:27-cli
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        commands:
+            - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod build --pull
+            - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod up -d --remove-orphans
+            - docker image prune -f
+        when:
+            event: push
+            branch: main

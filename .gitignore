@@ -34,6 +34,7 @@ _init_db.ipynb
 __pycache__/
 *.py[cod]
 *$py.class
+compose.woodpecker.yaml
 .hintrc
 .DS_Store
 
