@@ -1,4 +1,4 @@
-@import "colors.scss";
+@import "./colors.css";
 
 table {
     a.sort-btn,
@@ -49,7 +49,7 @@ table input.table-query-input{
         button.assignee-btn {
             padding: 0 4px;
             margin: 0;
-            background-color: $cemm-green;
+            background-color: var(--color-gray-200);
             color: white;
         }
         thead {
@@ -105,7 +105,7 @@ table input.table-query-input{
                     font-size: 14px;
                 }
                 .search-btn:hover {
-                    background-color: $gray-300;
+                    background-color: var(--color-gray-300);
                 }
                 .sort-btn {
                     background-color: transparent;
@@ -114,7 +114,7 @@ table input.table-query-input{
                     font-size: 16px;
                 }
                 .sort-btn:hover {
-                    background-color: $gray-300;
+                    background-color: var(--color-gray-300);
                 }
             }
 
@@ -161,7 +161,7 @@ table input.table-query-input{
                     white-space: nowrap;
 
                     scrollbar-width: thin;
-                    scrollbar-color: $gray-400 transparent;
+                    scrollbar-color: var(--color-gray-400) transparent;
 
                     &::-webkit-scrollbar {
                         height: 4px;
@@ -196,7 +196,7 @@ table input.table-query-input{
                     white-space: nowrap;
 
                     scrollbar-width: thin;
-                    scrollbar-color: $gray-400 transparent;
+                    scrollbar-color: var(--color-gray-400) transparent;
 
                     &::-webkit-scrollbar {
                         height: 4px;
@@ -220,12 +220,12 @@ table input.table-query-input{
                 white-space: nowrap;
                 overflow: hidden;
                 height: 42px;
-                border: 1px solid $gray-200;
+                border: 1px solid var(--color-gray-200);
                 max-width: 200px;
                 min-width: 100px;
             }
             td a {
-                color: $cemm-blue-darker;
+                color: var(--color-cemm-blue-darker);
                 text-decoration: none;
             }
             td .h-list {
@@ -252,10 +252,10 @@ table input.table-query-input{
                     font-weight:500;
                 }
                 :nth-child(2) {
-                    color: $gray-500;
+                    color: var(--color-gray-500);
                 }
                 :nth-child(3) {
-                    color: $gray-500;
+                    color: var(--color-gray-500);
                 }
             }
         }
@@ -275,7 +275,7 @@ table input.table-query-input{
                 font-weight:600;
             }
             :nth-child(3) {
-                color: $gray-500;
+                color: var(--color-gray-500);
             }
         }
     }
@@ -291,27 +291,27 @@ table.barcode-clashes-table tbody td.index-cell {
     }
 
     td .badge {
-        background-color: $cemm-blue;
+        background-color: var(--color-cemm-blue);
     }
 
     td .badge.badge-success {
-        background-color: $cemm-green;
+        background-color: var(--color-cemm-green);
     }
 
     td .badge.badge-warning {
-        background-color: $cemm-yellow;
+        background-color: var(--color-cemm-yellow);
     }
 
     td .badge.badge-danger {
-        background-color: $cemm-red;
+        background-color: var(--color-cemm-red);
     }
 
     tr:hover {
         td, th {
-            background-color: $gray-200 !important;
+            background-color: var(--color-gray-200) !important;
         }
         td:hover {
-            background-color: $gray-300 !important;
+            background-color: var(--color-gray-300) !important;
         }
         cursor: default;
         td:has(a:hover) {
@@ -326,12 +326,12 @@ table.barcode-clashes-table tbody td.index-cell {
             display: none;
         }
         .unit {
-            color: $gray-500;
+            color: var(--color-gray-500);
         }
     }
     
     .unselectable-row td, .unselectable-row th {
-        background-color: $gray-100;
+        background-color: var(--color-gray-100);
     }
 
     .unselectable-row:hover {
@@ -351,7 +351,7 @@ table.barcode-clashes-table tbody td.index-cell {
     }
 
     .disabled td, .disabled th {
-        background-color: $gray-200;
+        background-color: var(--color-gray-200);
         opacity: 0.7;
         border: 0;
     }

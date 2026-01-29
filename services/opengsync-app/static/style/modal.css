@@ -1,4 +1,4 @@
-@import "colors.scss";
+@import "./colors.css";
 
 
 .modal-content {
@@ -54,7 +54,7 @@
             padding-left: 35px;
             background-color: transparent;
             width: 150px;
-            color: $gray-600;
+            color: var(--color-gray-600);
             white-space: nowrap;
             overflow: hidden;
         }

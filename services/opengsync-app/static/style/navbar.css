@@ -1,43 +1,40 @@
 
-@import "colors.scss";
-
-$navbar-color: $cemm-blue;
-$navbar-active-color: $cemm-blue-darker;
+@import "./colors.css";
 
 nav#navbar.admin {
-    background-color: $cemm-red !important;
+    background-color: var(--color-cemm-red) !important;
     .nav-item {
         a.active {
-            background-color: $cemm-red-darker !important;
+            background-color: var(--color-cemm-red-darker) !important;
         }
         a:hover {
             transition: all 0.2s ease-in-out;
-            background-color: $cemm-red-darker !important;
+            background-color: var(--color-cemm-red-darker) !important;
         }
     }
     .nav-item-dropdown {
         ul {
             li {
-                background-color: $cemm-red !important;
+                background-color: var(--color-cemm-red) !important;
             }
             li:hover {
                 transition: all 0.2s ease-in-out;
-                background-color: $cemm-red-darker !important;
+                background-color: var(--color-cemm-red-darker) !important;
             }
         }
         &:has(.active) {
-            background-color: $cemm-red-darker !important;
+            background-color: var(--color-cemm-red-darker) !important;
         }
     }
     .login-btn {
-        background-color: $cemm-red-dark !important;
+        background-color: var(--color-cemm-red-dark) !important;
     }
 }
 
 nav#navbar {
     width: 100vw;
     height: 60px;
-    background-color: $navbar-color;
+    background-color: var(--color-navbar);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -57,7 +54,7 @@ nav#navbar {
         margin: auto 0 auto 0;
         padding: 0 10px 0 10px;
         font-size: 25px;
-        color: $gray-100;
+        color: var(--color-gray-100);
         text-decoration: none;
     }
     
@@ -77,19 +74,19 @@ nav#navbar {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                color: $light;
+                color: var(--color-light);
                 text-decoration: none;
             }
             a.active {
-                background-color: $navbar-active-color;
+                background-color: var(--color-navbar-active);
             }
             a:hover {
                 transition: all 0.2s ease-in-out;
-                background-color: $navbar-active-color;
+                background-color: var(--color-navbar-active);
             }
         }
         .nav-item-dropdown {
-            color: $light;
+            color: var(--color-light);
             width: 100%;
             height: 100%;
             p {
@@ -103,7 +100,7 @@ nav#navbar {
             }
             ul {
                 display: none;
-                background-color: $navbar-color;
+                background-color: var(--color-navbar);
                 margin: 0;
                 padding: 0;
                 li {
@@ -111,7 +108,7 @@ nav#navbar {
                     text-decoration: none;
                     list-style: none;
                     a {
-                        color: $light;
+                        color: var(--color-light);
                         width: 100%;
                         height: 100%;
                         display: flex;
@@ -121,12 +118,12 @@ nav#navbar {
                         padding: 0;
                     }
                     a.active {
-                        background-color: $navbar-active-color;
+                        background-color: var(--color-navbar-active);
                     }
                 }
                 li:hover {
                     transition: all 0.2s ease-in-out;
-                    background-color: $navbar-active-color;
+                    background-color: var(--color-navbar-active);
                 }
             }
         }
@@ -134,7 +131,7 @@ nav#navbar {
             display: block;
         }
         .nav-item-dropdown:has(.active) {
-            background-color: $navbar-active-color;
+            background-color: var(--color-navbar-active);
         }
     }
     .nav-right {
@@ -206,7 +203,7 @@ nav#navbar {
             height: calc(100vh - 60px);
             top: 60px;
             width: 100%;
-            background-color: $dark;
+            background-color: var(--color-dark);
             opacity: 0.95;
             display: flex;
             flex-direction: column;
@@ -215,7 +212,7 @@ nav#navbar {
             transition: transform 0.5s ease-in;
 
             .nav-item-dropdown {
-                color: $light;
+                color: var(--color-light);
                 width: 100%;
         
                 p {
@@ -225,7 +222,7 @@ nav#navbar {
                     display: flex;
                     height: 60px;
                     justify-content: space-evenly;
-                    background-color: $dark;
+                    background-color: var(--color-dark);
                     margin: 0;
                     padding: 0;
                     li {
@@ -234,7 +231,7 @@ nav#navbar {
                         text-decoration: none;
                         list-style: none;
                         a {
-                            color: $light;
+                            color: var(--color-light);
                             width: 100%;
                             height: 100%;
                             display: flex;
@@ -244,7 +241,7 @@ nav#navbar {
                             padding: 0;
                         }
                         a.active {
-                            background-color: $navbar-active-color;
+                            background-color: var(--color-navbar-active);
                         }
                     }
                 }

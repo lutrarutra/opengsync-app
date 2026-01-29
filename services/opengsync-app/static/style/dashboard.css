@@ -1,4 +1,4 @@
-@import "colors.scss";
+@import "./colors.css";
 
 .dash-container {
     padding-top: 10px;
@@ -34,7 +34,7 @@
         }
 
         .dash-component-container {
-            flex: 1; // Makes each cell take equal height
+            flex: 1;
             display: flex;
             flex-direction: column;
             border: solid var(--bs-border-color);
@@ -47,12 +47,12 @@
                 display: flex;
                 align-items: center;
                 padding: 0 10px;
-                background-color: $gray-200;
+                background-color: var(--color-gray-200);
                 border-bottom: solid var(--bs-border-color);
                 justify-content: space-between;
 
                 h4 {
-                    color: $gray-600;
+                    color: var(--color-gray-600);
                     margin: 0;
                     display: flex;
                     align-items: center;
@@ -64,7 +64,7 @@
             }
 
             .dash-component-content {
-                flex: 1; // Take remaining space
+                flex: 1;
                 overflow: hidden;
                 padding: 5px 0px 5px 0px;
                 margin: 0;

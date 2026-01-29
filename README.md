@@ -19,7 +19,7 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 1. `nginx` - Reverse proxy for static files (only prod)
 1. `pgadmin` - PostgreSQL admin interface @ `https://localhost:5050`
 1. `yacht` - Web interface for overview of running docker containers @ `https://localhost:8000`
-1. `sass-compiler` - Compiles scss to css
+1. `tailwind-compiler` - Compiles tailwind css
 1. `redis` - Redis server for celery broker and caching
 
 ## Performance Considerations

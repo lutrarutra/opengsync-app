@@ -14,13 +14,12 @@ services:
             - ./services/opengsync-app/static/resources:/static/resources:ro
             - ./services/opengsync-app/templates:/templates:ro
             - ${UPLOADS_DIR}:/uploads
-            - ${DATA_DIR}/media:/media
-            - ${DATA_DIR}/logs/opengsync:/logs
+            - ${MEDIA_DIR}:/media
+            - ${LOG_DIR}/opengsync:/logs
             - ./share:/share:ro
             - compiled_css:/static/style/compiled:ro
         environment:
             TZ: ${TIMEZONE}
-            OPENGSYNC_PORT: ${OPENGSYNC_PORT}
             REDIS_PORT: ${REDIS_PORT}
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -35,16 +34,11 @@ services:
             MAIL_USER: ${MAIL_USER}
             OPENGSYNC_DEBUG: 1
         ports:
-            - ${OPENGSYNC_PORT}:${OPENGSYNC_PORT}
-        expose:
-            - ${OPENGSYNC_PORT}
+            - ${OPENGSYNC_PORT}:5000
         restart: on-failure
         depends_on:
             postgres:
                 condition: service_healthy
-                restart: true
-            sass-compiler:
-                condition: service_started
                 restart: true
             redis-cache:
                 condition: service_healthy
@@ -71,7 +65,7 @@ services:
         volumes:
             - ./opengsync.yaml:/app/opengsync.yaml:ro
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
-            - ${DATA_DIR}/logs/celery-worker:/logs
+            - ${LOG_DIR}/celery-worker:/logs
             - ${UPLOADS_DIR}:/uploads
         depends_on:
             opengsync-celery-beat:
@@ -128,21 +122,19 @@ services:
             retries: 5
         command: --port ${REDIS_PORT}
 
-    sass-compiler:
-        container_name: sass-compiler-dev
-        build: ./services/sass-compiler
+    tailwind-compiler:
+        container_name: tailwind-compiler
+        tty: true
+        build:
+          context: .
+          dockerfile: ./services/tailwind-compiler/Dockerfile
         volumes:
-            - ./services/opengsync-app/static/style/sass:/app/static/style/sass:ro
+            - ./services/opengsync-app/static/style:/app/style
+            - ./services/opengsync-app/templates:/app/templates
             - compiled_css:/app/static/style/compiled
-        command: "sass --watch /app/static/style/sass:/app/static/style/compiled"
         environment:
             - TZ=${TIMEZONE}
-        restart: on-failure
-        healthcheck:
-            test: ["CMD-SHELL", "ps cax | grep -wq sass"]
-            interval: 10s
-            timeout: 10s
-            retries: 5
+        command: "tailwindcss -i /app/style/style.css  -o /app/static/style/compiled/style.css --watch"
 
     postgres:
         container_name: postgres-dev

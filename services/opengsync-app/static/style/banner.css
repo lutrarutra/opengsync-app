@@ -1,4 +1,4 @@
-@import "colors.scss";
+@import "./colors.css";
 
 .banner-container {
     display: flex;
@@ -10,44 +10,45 @@
     width: 100% !important;
     max-width: 100% !important;
     overflow-x: hidden;
-
     scrollbar-width: thin;
     scrollbar-color: #ccc transparent;
 
-    .element-banner:hover {
+    & .element-banner:hover {
         cursor: default;
     }
 
-    a.element-banner {
+    & a.element-banner {
         color: black;
         text-decoration: none;
     }
 
-    .element-banner a {
+    & .element-banner a {
         font-weight: 600;
-        color: $cemm-blue;
+        color: var(--color-cemm-blue);
         text-decoration: none;
         border-radius: 5px;
         padding: 0;
-    }
-    .element-banner a:hover {
-        background-color: $gray-200;
+
+        &:hover {
+            background-color: var(--color-gray-200);
+        }
     }
 
-    .element-banner button {
-        color: $cemm-green-darker;
+    & .element-banner button {
+        color: var(--color-cemm-green-darker);
         padding: 0 2px;
-    }
-    .element-banner button:hover {
-        cursor: pointer;
-        background-color: $gray-200;
+
+        &:hover {
+            cursor: pointer;
+            background-color: var(--color-gray-200);
+        }
     }
 
-    a .progress-bar:hover {
+    & a .progress-bar:hover {
         cursor: pointer;
     }
 
-    .element-banner {
+    & .element-banner {
         display: flex;
         flex-direction: column;
         border: 1px solid #ccc;
@@ -55,49 +56,49 @@
         margin: 0;
         padding: 7px;
         flex-shrink: 0;
-        
         width: 100% !important;
         max-width: 100% !important;
         overflow-x: hidden;
-        
-        .badge {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        & .badge {
             font-size: 13px;
         }
 
-        .qc-container {
+        & .qc-container {
             display: flex;
             gap: 20px;
             justify-content: flex-start;
             align-items: center;
         }
         
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-
-        .row div {
+        & .row div {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+
+            &:first-child {
+                text-align: start;
+            }
+
+            &:last-child {
+                text-align: end;
+            }
         }
 
-        .title {
+        & .title {
             font-weight: 600;
         }
 
-        .row {
+        & .row {
             width: 100% !important;
             max-width: 100% !important;
             overflow-x: hidden;
             text-align: center;
             vertical-align: middle;
             font-size: 1rem;
-        }
-        .row div:first-child {
-            text-align: start;
-        }
-        .row div:last-child {
-            text-align: end;
         }
     }
 }

@@ -1,15 +1,15 @@
-@import "colors.scss";
+@import "./colors.css";
 
 .flow-cell-design-container {
     i {
-        color: $cemm-blue;
+        color: var(--color-cemm-blue);
     }
 
     a i {
         padding: 5px;
         border-radius: 5px;
         &:hover {
-            background-color: $gray-200;
+            background-color: var(--color-gray-200);
             cursor: pointer;
         }
     }
@@ -23,10 +23,10 @@
     }
 
     .drop-active {
-        border: 2px dashed $cemm-blue;
+        border: 2px dashed var(--color-cemm-blue);
         .hidden-label {
             display: block !important;
-            color: $cemm-blue;
+            color: var(--color-cemm-blue);
         }
     }
 
@@ -55,12 +55,11 @@
             position: relative;
         }
         .pool-design {
-            background-color: $white;
+            background-color: var(--color-white);
             width: 100%;
             padding: 7px 10px;
             border-radius: 5px;
-            border: 1px solid $gray-300;
-
+            border: 1px solid var(--color-gray-300);
             cursor: pointer;
             
             .pool-design-header {
