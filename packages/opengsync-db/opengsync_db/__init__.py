@@ -3,8 +3,14 @@ from functools import wraps
 import pytz
 import datetime as dt
 from typing import Callable
-
 from sqlalchemy import exc
+
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version("opengsync-db")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
 
 PAGE_LIMIT = 15
 if (__timezone := os.environ.get("TZ")) is None:

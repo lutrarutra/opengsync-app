@@ -1245,16 +1245,15 @@ wheels = [
 
 [[package]]
 name = "opengsync-api"
-version = "1.0"
 source = { editable = "packages/opengsync-api" }
 
 [[package]]
 name = "opengsync-app"
-version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "loguru" },
     { name = "numpy" },
+    { name = "opengsync-api" },
     { name = "opengsync-db" },
     { name = "opengsync-server" },
     { name = "opengsync-worker" },
@@ -1271,6 +1270,7 @@ dependencies = [
 requires-dist = [
     { name = "loguru", specifier = ">=0.7" },
     { name = "numpy", specifier = ">=2.2" },
+    { name = "opengsync-api", editable = "packages/opengsync-api" },
     { name = "opengsync-db", editable = "packages/opengsync-db" },
     { name = "opengsync-server", editable = "packages/opengsync-server" },
     { name = "opengsync-worker", editable = "packages/opengsync-worker" },
@@ -1285,7 +1285,6 @@ requires-dist = [
 
 [[package]]
 name = "opengsync-db"
-version = "1.0"
 source = { editable = "packages/opengsync-db" }
 dependencies = [
     { name = "loguru" },
@@ -1312,7 +1311,6 @@ requires-dist = [
 
 [[package]]
 name = "opengsync-server"
-version = "1.0"
 source = { editable = "packages/opengsync-server" }
 dependencies = [
     { name = "bcrypt" },
@@ -1423,7 +1421,6 @@ requires-dist = [
 
 [[package]]
 name = "opengsync-worker"
-version = "1.0"
 source = { editable = "packages/opengsync-worker" }
 dependencies = [
     { name = "celery" },
