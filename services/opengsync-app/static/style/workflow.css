@@ -1,4 +1,4 @@
-@import "colors.scss";
+@import "./colors.css";
 
 .flip-card {
     background-color: transparent;
@@ -79,13 +79,13 @@
 
 .flip-card:hover .flip-card-container {
     transform: rotateY(180deg);
-    box-shadow: 0 .25rem .5rem rgba($black, .075);
+    box-shadow: 0 .25rem .5rem rgba(var(--color-black), .075);
 
 }
 
 .card:hover {
     cursor: pointer;
-    box-shadow: 0 .25rem .5rem rgba($black, .075);
+    box-shadow: 0 .25rem .5rem rgba(var(--color-black), .075);
 }
 
 .flip-card.card.workflow-completed .card-front, 

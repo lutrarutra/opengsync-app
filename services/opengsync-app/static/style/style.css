@@ -1,22 +1,24 @@
-@import "colors.scss";
-@import "scrollbar.css";
-@import "theme.scss";
-@import "navbar.scss";
-@import "responsive.scss";
-@import "tooltip.scss";
-@import "table.scss";
-@import "modal.scss";
-@import "dashboard.scss";
-@import "workflow.scss";
-@import "multiselect.scss";
-@import "plate.scss";
-@import "calendar.scss";
-@import "progress_bar.scss";
-@import "banner.scss";
-@import "form.scss";
-@import "browser.scss";
-@import "components.scss";
-@import "design.scss";
+@import "tailwindcss";
+
+@import "./colors.css";
+@import "./scrollbar.css";
+@import "./theme.css";
+@import "./navbar.css";
+@import "./responsive.css";
+@import "./tooltip.css";
+@import "./table.css";
+@import "./modal.css";
+@import "./dashboard.css";
+@import "./workflow.css";
+@import "./multiselect.css";
+@import "./plate.css";
+@import "./calendar.css";
+@import "./progress_bar.css";
+@import "./banner.css";
+@import "./form.css";
+@import "./browser.css";
+@import "./components.css";
+@import "./design.css";
 
 body.waiting,
 body.waiting * {
@@ -26,9 +28,10 @@ body.waiting * {
     }
 }
 
+
 .dropdown-menu .active {
-    background-color: $gray-200;
-    color: #000;
+    background-color: var(--color-gray-200);
+    color: var(--color-black);
 }
 
 .swal2-container.swal2-top {
@@ -99,7 +102,7 @@ pre.code {
     }
 
     td.readonly {
-        color: $cemm-blue-darker !important;
+        color: var(--color-cemm-blue-darker) !important;
     }
 }
 
@@ -156,7 +159,7 @@ input[type=number] {
     min-width: 450px;
     z-index: 1055;
     .toast-header strong {
-        color: $cemm-blue-darker;
+        color: var(--color-cemm-blue-darker);
     }
 
     .toast-body {
@@ -173,9 +176,9 @@ input[type=number] {
 }
 
 .badge {
-    background-color: $cemm-blue;
+    background-color: var(--color-cemm-blue);
     a {
-        color: $white !important;
+        color: var(--color-white) !important;
         text-decoration: none;
     }
 }
@@ -185,15 +188,15 @@ input[type=number] {
 }
 
 .badge.badge-success {
-    background-color: $cemm-green;
+    background-color: var(--color-cemm-green);
 }
 
 .badge.badge-warning {
-    background-color: $cemm-yellow;
+    background-color: var(--color-cemm-yellow);
 }
 
 .badge.badge-danger {
-    background-color: $cemm-red;
+    background-color: var(--color-cemm-red);
 }
 
 .row {
@@ -201,7 +204,7 @@ input[type=number] {
 }
 
 body {
-    background-color: $light;
+    background-color: var(--color-light);
     font-family: 'Roboto', sans-serif;
     font-size: 16px;
     line-height: 1.5;
@@ -250,7 +253,7 @@ body {
     overflow-y: hidden;
     overflow-y: hidden;
     ::-webkit-scrollbar-track {
-        background-color: $gray-200;
+        background-color: var(--color-gray-200);
     }
 }
 
@@ -269,7 +272,7 @@ body {
         padding: 5px;
         width: 120px;
         margin: 0;
-        background-color: $gray-200;
+        background-color: var(--color-gray-200);
     }
 
     #middle-container {
@@ -277,13 +280,13 @@ body {
         width: calc(100vw - 240px);
         height: 100%;
         padding: 0 10px 0 10px;
-        background-color: $gray-100;
+        background-color: var(--color-gray-100);
         display: flex;
         flex-direction: column;
         overflow: hidden;
 
         .page-header-container {
-            background-color: $gray-100;
+            background-color: var(--color-gray-100);
             z-index: 10;
         }
 
@@ -325,7 +328,7 @@ body {
                     padding: 0;
                     overflow-x: hidden;
                     sup {
-                        color: $gray-500;
+                        color: var(--color-gray-500);
                     }
                 }
 
@@ -350,11 +353,11 @@ body {
         ol {
             padding: 5px 0 0 5px;
             li.active {
-                color: $cemm-blue-dark;
+                color: var(--color-cemm-blue-dark);
             }
             a {
                 text-decoration: none;
-                color: $cemm-blue;
+                color: var(--color-cemm-blue);
             }
             list-style: none;
             li:not(:last-child):after {
@@ -449,7 +452,7 @@ body {
             width: 100%;
             white-space: nowrap;
             text-wrap: nowrap;
-            color: $danger;
+            color: var(--color-danger);
             font-size: 14px;
         }
     }
@@ -493,21 +496,22 @@ body {
     }
 }
 
+@keyframes movein {
+    from { top: -200px; }
+    to   { top: 80px; }
+}
+
+@keyframes moveout {
+    from { top: 80px; }
+    to   { top: -200px; }
+}
+
 .alert {
     animation: movein 0.5s ease forwards, moveout 0.5s 5s ease forwards;
-    @keyframes movein {
-        from { top: -200px; }
-        to   { top: 80px; }
-    }
-    
-    @keyframes moveout {
-        from { top: 80px; }
-        to   { top: -200px; }
-    }
 }
 
 span.desc, span.id-desc {
-    color: $gray-500;    
+    color: var(--color-gray-500);    
 }
 span.desc:before {
     content: "(";
@@ -554,14 +558,14 @@ span.id-desc::after {
         width: 100%;
         white-space: nowrap;
         text-wrap: nowrap;
-        color: $danger;
+        color: var(--color-danger);
         font-size: 14px;
     }
 }
 
 
 .requirement-list {
-    color: $danger;
+    color: var(--color-danger);
     text-transform: capitalize;
     height: 12px;
     padding: 0;
@@ -578,7 +582,7 @@ span.id-desc::after {
 
 .code-highlight {
     font-family: monospace, monospace;
-    background-color: $gray-200;
+    background-color: var(--color-gray-200);
     padding: 2px 4px 2px 4px;
     border-radius: 3px;
 }

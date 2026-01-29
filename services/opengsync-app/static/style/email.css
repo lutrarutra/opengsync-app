@@ -1,4 +1,4 @@
-@import "colors.scss";
+@import "./colors.css";
 
 body {
     font-family: Arial, sans-serif;
@@ -8,19 +8,19 @@ body {
     font-size: 16;
     a {
         text-decoration: none;
-        color: $cemm-blue-darker;
+        color: var(--color-cemm-blue);
     }
 }
 
 .header {
-    color: $cemm-blue;
+    color: var(--color-cemm-blue);
     padding: 10px 5vw 0 5vw;
 }
 .body {
     padding: 5px 5vw;
 }
 .footer {
-    color: $cemm-blue;
+    color: var(--color-cemm-blue);
     padding: 5px 5vw;
     pre {
         font-family: Arial, sans-serif;
@@ -34,15 +34,14 @@ ul.contents {
 }
 
 span.desc {
-    color: $gray-600;    
+    color: var(--color-gray-600);    
 }
 
 span.path {
     font-size: 14;
     padding: 3px;
     border-radius: 5px;
-    background-color: $gray-300;
-    // italic
+    background-color: var(--color-gray-300);
     font-family: monospace;
     font-style: italic;
 }

@@ -1,4 +1,4 @@
-@import "colors.scss";
+@import "./colors.css";
 
 .calendar-container {
     width: 100%;
@@ -47,8 +47,8 @@
             overflow-y: hidden;
 
             .header {
-                color: $gray-600;
-                background-color: $gray-200;
+                color: var(--color-gray-600);
+                background-color: var(--color-gray-200);
                 margin: 0;
                 padding: 0;
                 border-bottom: solid var(--bs-border-color);

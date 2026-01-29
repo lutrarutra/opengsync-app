@@ -1,4 +1,4 @@
-@import "colors.scss";
+@import "./colors.css";
 
 .form-check:has(.disabled) {
     label:hover, input:hover {
@@ -24,7 +24,7 @@ textarea.disabled:focus {
 
 .display-form {
     input.disabled {
-        background-color: $white;
+        background-color: var(--color-white);
     }
 }
 
@@ -32,24 +32,24 @@ textarea.disabled:focus {
     padding: 0 5px 0 5px;
     margin: 0;
     .form-control.readonly {
-        background-color: $gray-100 !important;
+        background-color: var(--color-gray-100) !important;
         cursor: not-allowed !important;
     }
 }
 
 .form-check:has(input.disabled) {
     label {
-        color: $gray-500 !important;
+        color: var(--color-gray-500) !important;
     }
 }
 
 .form-group {
     a.clipboard-btn {
         .not-copied-icon {
-            color: $cemm-blue-darker;
+            color: var(--color-cemm-blue-darker);
         }
         .copied-icon {
-            color: $cemm-green-darker;
+            color: var(--color-cemm-green-darker);
         }
     }
     a.clipboard-btn:hover {

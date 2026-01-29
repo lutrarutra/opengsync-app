@@ -1,4 +1,4 @@
-@import "colors.scss";
+@import "./colors.css";
 
 .plating-container {
     width: 100%;
@@ -34,11 +34,11 @@
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                background-color: $light;
-                border: 1px solid $gray-400;
+                background-color: var(--color-light);
+                border: 1px solid var(--color-gray-400);
             }
             .selectable-element.selected {
-                background-color: $cemm-yellow;
+                background-color: var(--color-cemm-yellow);
                 color: white;
             }
         }
@@ -54,7 +54,7 @@
         width: 100%;
         height: 100%;
         display: flex;
-        border: 2px solid $gray-400;
+        border: 2px solid var(--color-gray-400);
         border-radius: 5px;
         padding: 10px;
         overflow-y: auto;
@@ -72,7 +72,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            color: $gray-700;
+            color: var(--color-gray-700);
             font-weight: 600;
         }
         .plate-header {
@@ -95,10 +95,10 @@
             width: 100%;
             height: 60px;
             font-size: clamp(0.5rem, 1vw, 1rem);
-            border: 1px solid $gray-400;
-            background-color: $light;
+            border: 1px solid var(--color-gray-400);
+            background-color: var(--color-light);
             border-radius: 5px;
-            color: $gray-400;
+            color: var(--color-gray-400);
             overflow: hidden;
             text-overflow: ellipsis;
             word-wrap: break-word;
@@ -107,14 +107,14 @@
 
         .plate-cell.filled {
             background-color: #eaf9ea;
-            color: $dark;
+            color: var(--color-dark);
         }
         .plate-cell.empty {
             cursor: default;
         }
 
         .plate-cell.filled.selected {
-            background-color: $cemm-blue;
+            background-color: var(--color-cemm-blue);
             color: white;
         }
     }
