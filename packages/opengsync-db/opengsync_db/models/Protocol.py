@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, ClassVar
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..categories import ServiceType, ServiceTypeEnum
+from ..categories import ServiceType, ServiceType
 
 
 from .Base import Base
@@ -26,11 +26,11 @@ class Protocol(Base):
     )
 
     @property
-    def service_type(self) -> ServiceTypeEnum:
+    def service_type(self) -> ServiceType:
         return ServiceType.get(self.service_type_id)
     
     @service_type.setter
-    def service_type(self, value: ServiceTypeEnum):
+    def service_type(self, value: ServiceType):
         self.service_type_id = value.id
 
     def search_value(self) -> int:

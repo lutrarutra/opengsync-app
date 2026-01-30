@@ -4,7 +4,6 @@ from datetime import datetime
 from datetime import timezone, timedelta
 
 import sqlalchemy as sa
-from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

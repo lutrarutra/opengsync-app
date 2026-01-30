@@ -13,8 +13,8 @@ from . import links
 from .Base import Base
 from .SeqRequest import SeqRequest
 from ..categories import (
-    LibraryType, LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRef,
-    GenomeRefEnum, ServiceType, ServiceTypeEnum, MUXType, MUXTypeEnum, IndexType, IndexTypeEnum
+    LibraryType, LibraryType, LibraryStatus, LibraryStatus, GenomeRef,
+    GenomeRef, ServiceType, ServiceType, MUXType, MUXType, IndexType, IndexType
 )
 
 if TYPE_CHECKING:
@@ -196,58 +196,58 @@ class Library(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
-    def status(self) -> LibraryStatusEnum:
+    def status(self) -> LibraryStatus:
         return LibraryStatus.get(self.status_id)
     
     @status.setter
-    def status(self, value: LibraryStatusEnum):
+    def status(self, value: LibraryStatus):
         self.status_id = value.id
 
     @property
-    def type(self) -> LibraryTypeEnum:
+    def type(self) -> LibraryType:
         return LibraryType.get(self.type_id)
     
     @type.setter
-    def type(self, value: LibraryTypeEnum):
+    def type(self, value: LibraryType):
         self.type_id = value.id
     
     @property
-    def genome_ref(self) -> GenomeRefEnum:
+    def genome_ref(self) -> GenomeRef:
         return GenomeRef.get(self.genome_ref_id)
     
     @genome_ref.setter
-    def genome_ref(self, value: GenomeRefEnum):
+    def genome_ref(self, value: GenomeRef):
         self.genome_ref_id = value.id
 
     @property
-    def service_type(self) -> ServiceTypeEnum:
+    def service_type(self) -> ServiceType:
         return ServiceType.get(self.service_type_id)
     
     @service_type.setter
-    def service_type(self, value: ServiceTypeEnum):
+    def service_type(self, value: ServiceType):
         self.service_type_id = value.id
 
     @property
-    def mux_type(self) -> MUXTypeEnum | None:
+    def mux_type(self) -> MUXType | None:
         if self.mux_type_id is None:
             return None
         return MUXType.get(self.mux_type_id)
     
     @mux_type.setter
-    def mux_type(self, value: MUXTypeEnum | None):
+    def mux_type(self, value: MUXType | None):
         if value is None:
             self.mux_type_id = None
         else:
             self.mux_type_id = value.id
 
     @property
-    def index_type(self) -> IndexTypeEnum | None:
+    def index_type(self) -> IndexType | None:
         if self.index_type_id is None:
             return None
         return IndexType.get(self.index_type_id)
     
     @index_type.setter
-    def index_type(self, value: IndexTypeEnum | None):
+    def index_type(self, value: IndexType | None):
         if value is None:
             self.index_type_id = None
         else:

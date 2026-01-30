@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
-from ...categories import LabChecklistTypeEnum, LibraryStatus, PrepStatusEnum, ServiceTypeEnum
+from ...categories import LabChecklistType, LibraryStatus, PrepStatus, ServiceType
 from ..DBBlueprint import DBBlueprint
 from .. import exceptions
 
@@ -16,8 +16,8 @@ class LabPrepBP(DBBlueprint):
         self,
         name: str | None,
         creator_id: int,
-        checklist_type: LabChecklistTypeEnum,
-        service_type: ServiceTypeEnum,
+        checklist_type: LabChecklistType,
+        service_type: ServiceType,
         flush: bool = True
     ) -> models.LabPrep:
         if (creator := self.db.session.get(models.User, creator_id)) is None:
@@ -52,10 +52,10 @@ class LabPrepBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def find(
-        self, checklist_type: Optional[LabChecklistTypeEnum] = None,
-        checklist_type_in: Optional[list[LabChecklistTypeEnum]] = None,
-        status: Optional[PrepStatusEnum] = None,
-        status_in: Optional[list[PrepStatusEnum]] = None,
+        self, checklist_type: Optional[LabChecklistType] = None,
+        checklist_type_in: Optional[list[LabChecklistType]] = None,
+        status: Optional[PrepStatus] = None,
+        status_in: Optional[list[PrepStatus]] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
         name: str | None = None,
@@ -139,10 +139,10 @@ class LabPrepBP(DBBlueprint):
     @DBBlueprint.transaction
     def query(
         self, name: str | None = None, creator: str | None = None,
-        checklist_type: Optional[LabChecklistTypeEnum] = None,
-        checklist_type_in: Optional[list[LabChecklistTypeEnum]] = None,
-        status: Optional[PrepStatusEnum] = None,
-        status_in: Optional[list[PrepStatusEnum]] = None,
+        checklist_type: Optional[LabChecklistType] = None,
+        checklist_type_in: Optional[list[LabChecklistType]] = None,
+        status: Optional[PrepStatus] = None,
+        status_in: Optional[list[PrepStatus]] = None,
         limit: int | None = PAGE_LIMIT
     ) -> list[models.LabPrep]:
         query = self.db.session.query(models.LabPrep)
@@ -179,7 +179,7 @@ class LabPrepBP(DBBlueprint):
         return lab_preps
 
     @DBBlueprint.transaction
-    def get_next_protocol_number(self, checklist_type: LabChecklistTypeEnum) -> int:
+    def get_next_protocol_number(self, checklist_type: LabChecklistType) -> int:
         if not checklist_type.identifier:
             raise TypeError(f"Pool type {checklist_type} does not have an identifier")
 

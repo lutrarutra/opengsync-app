@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response, url_for
 
 from opengsync_db import models
-from opengsync_db.categories import ServiceType, LibraryType, LibraryTypeEnum, MUXType
+from opengsync_db.categories import ServiceType, LibraryType, LibraryType, MUXType
 
 from .... import logger, db
 from ....tools import utils
@@ -165,7 +165,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
             "sample_pool": [],
         }
 
-        def add_library(sample_pool: str, library_type: LibraryTypeEnum):
+        def add_library(sample_pool: str, library_type: LibraryType):
             library_name = f"{sample_pool}_{library_type.identifier}"
             
             library_table_data["library_name"].append(library_name)
@@ -173,7 +173,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
             library_table_data["library_type"].append(library_type.name)
             library_table_data["library_type_id"].append(library_type.id)
 
-        def link_sample(sample_name: str, sample_pool: str, library_type: LibraryTypeEnum):
+        def link_sample(sample_name: str, sample_pool: str, library_type: LibraryType):
             sample_pooling_table["sample_name"].append(sample_name)
             sample_pooling_table["sample_pool"].append(sample_pool)
             sample_pooling_table["library_name"].append(f"{sample_pool}_{library_type.identifier}")

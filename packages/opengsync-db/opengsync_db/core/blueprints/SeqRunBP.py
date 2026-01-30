@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 from ..DBBlueprint import DBBlueprint
 from ... import models, PAGE_LIMIT
-from ...categories import ReadTypeEnum, RunStatusEnum, ExperimentStatusEnum
+from ...categories import ReadType, RunStatus, ExperimentStatus
 
 
 class SeqRunBP(DBBlueprint):
@@ -18,10 +18,10 @@ class SeqRunBP(DBBlueprint):
     def where(
         cls,
         query: Query,
-        status: Optional[RunStatusEnum] = None,
-        status_in: Optional[list[RunStatusEnum]] = None,
-        experiment_status: Optional[ExperimentStatusEnum] = None,
-        experiment_status_in: Optional[list[ExperimentStatusEnum]] = None,
+        status: Optional[RunStatus] = None,
+        status_in: Optional[list[RunStatus]] = None,
+        experiment_status: Optional[ExperimentStatus] = None,
+        experiment_status_in: Optional[list[ExperimentStatus]] = None,
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
 
@@ -50,8 +50,8 @@ class SeqRunBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def create(
-        self, experiment_name: str, status: RunStatusEnum, instrument_name: str,
-        run_folder: str, flowcell_id: str, read_type: ReadTypeEnum,
+        self, experiment_name: str, status: RunStatus, instrument_name: str,
+        run_folder: str, flowcell_id: str, read_type: ReadType,
         r1_cycles: Optional[int], i1_cycles: Optional[int], r2_cycles: Optional[int], i2_cycles: Optional[int],
         quantities: Optional[dict[str, "Quantity"]] = None, rta_version: str | None = None, recipe_version: str | None = None,
         side: str | None = None, flowcell_mode: str | None = None,
@@ -110,10 +110,10 @@ class SeqRunBP(DBBlueprint):
         experiment: str | None = None,
         run_folder: str | None = None,
         flow_cell_id: str | None = None,
-        status: Optional[RunStatusEnum] = None,
-        status_in: Optional[list[RunStatusEnum]] = None,
-        experiment_status: Optional[ExperimentStatusEnum] = None,
-        experiment_status_in: Optional[list[ExperimentStatusEnum]] = None,
+        status: Optional[RunStatus] = None,
+        status_in: Optional[list[RunStatus]] = None,
+        experiment_status: Optional[ExperimentStatus] = None,
+        experiment_status_in: Optional[list[ExperimentStatus]] = None,
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,

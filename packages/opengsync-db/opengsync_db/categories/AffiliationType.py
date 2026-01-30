@@ -3,20 +3,24 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class AffiliationTypeEnum(DBEnum):
+    label: str
     icon: str
-    
+
     @property
     def select_name(self) -> str:
         return self.icon
 
     @property
     def display_name(self) -> str:
-        return f"{self.name} {self.icon}"
+        return f"{self.label} {self.icon}"
     
 
-class AffiliationType(ExtendedEnum[AffiliationTypeEnum], enum_type=AffiliationTypeEnum):
+class AffiliationType(ExtendedEnum):
+    label: str
+    icon: str
+    
     OWNER = AffiliationTypeEnum(1, "Owner", "👑")
     MANAGER = AffiliationTypeEnum(2, "Manager", "🤓")
     MEMBER = AffiliationTypeEnum(3, "Member", "👨🏾‍💻")

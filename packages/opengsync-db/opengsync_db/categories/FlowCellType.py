@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class FlowCellTypeEnum(DBEnum):
+    label: str
     manufacturer: str
     num_lanes: int
     max_m_reads_per_lane: int
@@ -15,11 +16,24 @@ class FlowCellTypeEnum(DBEnum):
     
     @property
     def display_name_with_max_m_reads(self) -> str:
-        return f"{self.display_name} ({self.max_m_reads} M.)"
+        return f"{self.label} ({self.max_m_reads} M.)"
 
 
 # https://emea.illumina.com/systems/sequencing-platforms/novaseq/specifications.html
-class FlowCellType(ExtendedEnum[FlowCellTypeEnum], enum_type=FlowCellTypeEnum):
+class FlowCellType(ExtendedEnum):
+    label: str
+    manufacturer: str
+    num_lanes: int
+    max_m_reads_per_lane: int
+
+    @property
+    def max_m_reads(self) -> int:
+        return self.num_lanes * self.max_m_reads_per_lane
+    
+    @property
+    def display_name_with_max_m_reads(self) -> str:
+        return f"{self.label} ({self.max_m_reads} M.)"
+
     NOVASEQ_6K_SP = FlowCellTypeEnum(1, "NovaSeq 6000 SP", "Illumina", 2, 325)
     NOVASEQ_6K_S1 = FlowCellTypeEnum(2, "NovaSeq 6000 S1", "Illumina", 2, 650)
     NOVASEQ_6K_S2 = FlowCellTypeEnum(3, "NovaSeq 6000 S2", "Illumina", 2, 1650)

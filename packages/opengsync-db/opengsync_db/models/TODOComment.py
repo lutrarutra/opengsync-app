@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from .Base import Base
-from ..categories import TaskStatus, TaskStatusEnum
+from ..categories import TaskStatus, TaskStatus
 
 if TYPE_CHECKING:
     from .User import User
@@ -47,13 +47,13 @@ class TODOComment(Base):
         return f"TODOComment(id={self.id}, text={self.text}, timestamp={self.timestamp}, author_id={self.author_id})"
 
     @property
-    def task_status(self) -> TaskStatusEnum | None:
+    def task_status(self) -> TaskStatus | None:
         if self.task_status_id is None:
             return None
         return TaskStatus.get(self.task_status_id)
     
     @task_status.setter
-    def task_status(self, status: TaskStatusEnum | None) -> None:
+    def task_status(self, status: TaskStatus | None) -> None:
         if status is None:
             self.task_status_id = None
         else:

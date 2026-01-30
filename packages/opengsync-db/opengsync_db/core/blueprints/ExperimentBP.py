@@ -7,7 +7,7 @@ from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import ExperimentWorkFlowEnum, ExperimentStatusEnum, ExperimentWorkFlow
+from ...categories import ExperimentWorkFlow, ExperimentStatus, ExperimentWorkFlow
 from ..DBBlueprint import DBBlueprint
 
 
@@ -16,10 +16,10 @@ class ExperimentBP(DBBlueprint):
     def where(
         cls,
         query: Query,
-        status: Optional[ExperimentStatusEnum] = None,
+        status: Optional[ExperimentStatus] = None,
         project_id: int | None = None,
-        status_in: Optional[list[ExperimentStatusEnum]] = None,
-        workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
+        status_in: Optional[list[ExperimentStatus]] = None,
+        workflow_in: Optional[list[ExperimentWorkFlow]] = None,
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
         if status is not None:
@@ -49,7 +49,7 @@ class ExperimentBP(DBBlueprint):
     
     @DBBlueprint.transaction
     def create(
-        self, name: str, workflow: ExperimentWorkFlowEnum, status: ExperimentStatusEnum,
+        self, name: str, workflow: ExperimentWorkFlow, status: ExperimentStatus,
         sequencer_id: int, r1_cycles: int, i1_cycles: int, operator_id: int,
         r2_cycles: int | None = None, i2_cycles: int | None = None, flush: bool = True
     ) -> models.Experiment:
@@ -105,9 +105,9 @@ class ExperimentBP(DBBlueprint):
     def find(
         self,
         project_id: int | None = None,
-        status: Optional[ExperimentStatusEnum] = None,
-        status_in: Optional[list[ExperimentStatusEnum]] = None,
-        workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
+        status: Optional[ExperimentStatus] = None,
+        status_in: Optional[list[ExperimentStatus]] = None,
+        workflow_in: Optional[list[ExperimentWorkFlow]] = None,
         operator: str | None = None,
         id: int | None = None,
         name: str | None = None,
@@ -223,7 +223,7 @@ class ExperimentBP(DBBlueprint):
     @DBBlueprint.transaction
     def query(
         self, word: str,
-        workflow_in: Optional[list[ExperimentWorkFlowEnum]] = None,
+        workflow_in: Optional[list[ExperimentWorkFlow]] = None,
         limit: int | None = PAGE_LIMIT
     ) -> list[models.Experiment]:
 

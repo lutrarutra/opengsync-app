@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
-from ..categories import EventType, EventTypeEnum
+from ..categories import EventType
 from .Base import Base
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ class Event(Base):
     seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest")
     
     @property
-    def type(self) -> EventTypeEnum:
+    def type(self) -> EventType:
         return EventType.get(self.type_id)
 
     @property

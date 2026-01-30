@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class PoolTypeEnum(DBEnum):
+    label: str
     identifier: str
 
     @property
@@ -12,7 +13,9 @@ class PoolTypeEnum(DBEnum):
         return self.identifier
 
 
-class PoolType(ExtendedEnum[PoolTypeEnum], enum_type=PoolTypeEnum):
+class PoolType(ExtendedEnum):
+    label: str
+    identifier: str
     CUSTOM = PoolTypeEnum(0, "Custom", "C")
     EXTERNAL = PoolTypeEnum(1, "External", "E")
     INTERNAL = PoolTypeEnum(2, "Internal", "I")

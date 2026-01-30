@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
-from ..categories import DataPathType, DataPathTypeEnum
+from ..categories import DataPathType
 from .Base import Base
 
 if TYPE_CHECKING:
@@ -36,11 +36,11 @@ class DataPath(Base):
     sortable_fields: ClassVar[list[str]] = ["id", "path", "type_id"]
 
     @property
-    def type(self) -> DataPathTypeEnum:
+    def type(self) -> DataPathType:
         return DataPathType.get(self.type_id)
     
     @type.setter
-    def type(self, value: DataPathTypeEnum) -> None:
+    def type(self, value: DataPathType) -> None:
         self.type_id = value.id
 
     def __str__(self):

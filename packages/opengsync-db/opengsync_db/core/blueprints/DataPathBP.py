@@ -7,7 +7,7 @@ from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
 from ...categories import (
-    DataPathTypeEnum
+    DataPathType
 )
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -19,8 +19,8 @@ class DataPathBP(DBBlueprint):
         cls,
         query: Query,
         path: str | None = None,
-        type: DataPathTypeEnum | None = None,
-        type_in: list[DataPathTypeEnum] | None = None,
+        type: DataPathType | None = None,
+        type_in: list[DataPathType] | None = None,
         project_id: int | None = None,
         seq_request_id: int | None = None,
         library_id: int | None = None,
@@ -57,7 +57,7 @@ class DataPathBP(DBBlueprint):
     def create(
         self,
         path: str,
-        type: DataPathTypeEnum,
+        type: DataPathType,
         project: models.Project | None = None,
         seq_request: models.SeqRequest | None = None,
         library: models.Library | None = None,
@@ -107,8 +107,8 @@ class DataPathBP(DBBlueprint):
     def find(
         self,
         path: str | None = None,
-        type: DataPathTypeEnum | None = None,
-        type_in: list[DataPathTypeEnum] | None = None,
+        type: DataPathType | None = None,
+        type_in: list[DataPathType] | None = None,
         project_id: int | None = None,
         seq_request_id: int | None = None,
         library_id: int | None = None,

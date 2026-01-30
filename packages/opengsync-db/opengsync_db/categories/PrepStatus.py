@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class PrepStatusEnum(DBEnum):
+    label: str
     icon: str
 
     @property
@@ -12,7 +13,10 @@ class PrepStatusEnum(DBEnum):
         return self.icon
 
 
-class PrepStatus(ExtendedEnum[PrepStatusEnum], enum_type=PrepStatusEnum):
+class PrepStatus(ExtendedEnum):
+    label: str
+    icon: str
+
     PREPARING = PrepStatusEnum(0, "Preparing", "🧪")
     COMPLETED = PrepStatusEnum(1, "Completed", "✅")
     ARCHIVED = PrepStatusEnum(10, "Archived", "🗃️")

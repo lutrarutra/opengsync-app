@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class PoolStatusEnum(DBEnum):
+    label: str
     icon: str
     description: str
 
@@ -14,10 +15,14 @@ class PoolStatusEnum(DBEnum):
     
     @property
     def display_name(self) -> str:
-        return f"{self.name} {self.icon}"
+        return f"{self.label} {self.icon}"
 
 
-class PoolStatus(ExtendedEnum[PoolStatusEnum], enum_type=PoolStatusEnum):
+class PoolStatus(ExtendedEnum):
+    label: str
+    icon: str
+    description: str
+
     DRAFT = PoolStatusEnum(0, "Draft", "✍🏼", "Draft plan of the pool")
     SUBMITTED = PoolStatusEnum(1, "Submitted", "🚀", "Pool is submitted for review by a customer")
     ACCEPTED = PoolStatusEnum(2, "Accepted", "👍", "Pool is accepted and waiting to be handed over for sequencing")

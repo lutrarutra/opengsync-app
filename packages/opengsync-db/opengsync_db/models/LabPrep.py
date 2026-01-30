@@ -5,7 +5,7 @@ from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from opengsync_db.categories import LabChecklistType, LabChecklistTypeEnum, PrepStatus, PrepStatusEnum, MediaFileType, ServiceTypeEnum, ServiceType, MUXType, LibraryStatus, MUXTypeEnum, LibraryType, LibraryTypeEnum
+from opengsync_db.categories import LabChecklistType, LabChecklistType, PrepStatus, PrepStatus, MediaFileType, ServiceType, ServiceType, MUXType, LibraryStatus, MUXType, LibraryType, LibraryType
 
 from .Base import Base
 from . import links
@@ -144,7 +144,7 @@ class LabPrep(Base):
         }
     
     @property
-    def mux_types(self) -> list[MUXTypeEnum]:
+    def mux_types(self) -> list[MUXType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             return list(set(library.mux_type for library in self.libraries if library.mux_type is not None))
         
@@ -160,7 +160,7 @@ class LabPrep(Base):
         return [MUXType.get(mux_type_id) for (mux_type_id,) in mux_type_ids]
     
     @hybrid_property
-    def library_types(self) -> list[LibraryTypeEnum]:
+    def library_types(self) -> list[LibraryType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
@@ -304,27 +304,27 @@ class LabPrep(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @property
-    def checklist_type(self) -> LabChecklistTypeEnum:
+    def checklist_type(self) -> LabChecklistType:
         return LabChecklistType.get(self.checklist_type_id)
     
     @checklist_type.setter
-    def checklist_type(self, value: LabChecklistTypeEnum):
+    def checklist_type(self, value: LabChecklistType):
         self.checklist_type_id = value.id
 
     @property
-    def status(self) -> PrepStatusEnum:
+    def status(self) -> PrepStatus:
         return PrepStatus.get(self.status_id)
     
     @status.setter
-    def status(self, value: PrepStatusEnum):
+    def status(self, value: PrepStatus):
         self.status_id = value.id
 
     @property
-    def service_type(self) -> ServiceTypeEnum:
+    def service_type(self) -> ServiceType:
         return ServiceType.get(self.service_type_id)
     
     @service_type.setter
-    def service_type(self, value: ServiceTypeEnum):
+    def service_type(self, value: ServiceType):
         self.service_type_id = value.id
 
     @property

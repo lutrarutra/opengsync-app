@@ -28,7 +28,7 @@ class OpeNGSyncAPI:
         project_id: int | None = None,
         experiment_id: int | None = None,
         library_id: int | None = None,
-        path_type: categories.DataPathTypeEnum | None = None,
+        path_type: categories.DataPathType | None = None,
     ):
         """Adds a data path associated with the given ids. Checks that path exists on server and is a child of a share-directory.
 
@@ -38,7 +38,7 @@ class OpeNGSyncAPI:
             project_id (int | None, optional): id of the project. Defaults to None.
             experiment_id (int | None, optional): id of the experiment. Defaults to None.
             library_id (int | None, optional): id of the library. Defaults to None.
-            path_type (categories.DataPathTypeEnum | None): type of the data path (default: None -> infer based on filepath extension)
+            path_type (categories.DataPathType | None): type of the data path (default: None -> infer based on filepath extension)
         Raises:
             ValueError: if none of seq_request_id, project_id, experiment_id, or library_id is provided
             requests.HTTPError: if the request fails

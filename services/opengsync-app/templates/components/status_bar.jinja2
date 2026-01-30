@@ -4,19 +4,19 @@
 {% if seq_request.status == SeqRequestStatus.DRAFT %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(SeqRequestStatus.DRAFT.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-transparent text-muted" style="width: 100%">
-        {{ SeqRequestStatus.DRAFT.name }} {{ SeqRequestStatus.DRAFT.icon | safe }}
+        {{ SeqRequestStatus.DRAFT.label }} {{ SeqRequestStatus.DRAFT.icon | safe }}
     </div>
 </div>
 {% elif seq_request.status == SeqRequestStatus.ARCHIVED %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(SeqRequestStatus.DRAFT.description, position='top', category='warning') }}>
 <div class="progress-bar progress-bar-striped bg-info text-dark" style="width: 100%">
-        {{ SeqRequestStatus.ARCHIVED.name }} {{ SeqRequestStatus.ARCHIVED.icon | safe }}
+        {{ SeqRequestStatus.ARCHIVED.label }} {{ SeqRequestStatus.ARCHIVED.icon | safe }}
     </div>
 </div>
 {% elif seq_request.status == SeqRequestStatus.FAILED %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(SeqRequestStatus.FAILED.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
-        {{ SeqRequestStatus.FAILED.name }} {{ SeqRequestStatus.FAILED.icon | safe }}
+        {{ SeqRequestStatus.FAILED.label }} {{ SeqRequestStatus.FAILED.icon | safe }}
     </div>
 </div>
 {% else %}
@@ -31,7 +31,7 @@
         {% else %}
         <div class="progress-bar progress-bar-striped text-muted  bg-transparent">
         {% endif %}
-        {{ status.name }} {{ status.icon | safe }}
+        {{ status.label }} {{ status.icon | safe }}
         </div>
     </div>
     {% endfor %}
@@ -43,13 +43,13 @@
 {% if experiment.status == ExperimentStatus.ARCHIVED %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(ExperimentStatus.ARCHIVED.description, position='top', category='warning') }}>
 <div class="progress-bar progress-bar-striped bg-info text-dark" style="width: 100%">
-        {{ ExperimentStatus.ARCHIVED.name }} {{ ExperimentStatus.ARCHIVED.icon | safe }}
+        {{ ExperimentStatus.ARCHIVED.label }} {{ ExperimentStatus.ARCHIVED.icon | safe }}
     </div>
 </div>
 {% elif experiment.status == ExperimentStatus.FAILED %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(ExperimentStatus.FAILED.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
-        {{ ExperimentStatus.FAILED.name }} {{ ExperimentStatus.FAILED.icon | safe }}
+        {{ ExperimentStatus.FAILED.label }} {{ ExperimentStatus.FAILED.icon | safe }}
     </div>
 </div>
 {% else %}
@@ -64,7 +64,7 @@
         {% else %}
         <div class="progress-bar progress-bar-striped text-muted  bg-transparent">
         {% endif %}
-        {{ status.name }} {{ status.icon | safe }}
+        {{ status.label }} {{ status.icon | safe }}
         </div>
     </div>
     {% endfor %}
@@ -76,13 +76,13 @@
 {% if library.status == LibraryStatus.DRAFT %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(LibraryStatus.DRAFT.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-transparent text-muted" style="width: 100%">
-        {{ LibraryStatus.DRAFT.name }} {{ LibraryStatus.DRAFT.icon | safe }}
+        {{ LibraryStatus.DRAFT.label }} {{ LibraryStatus.DRAFT.icon | safe }}
     </div>
 </div>
 {% elif library.status == LibraryStatus.FAILED %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(LibraryStatus.FAILED.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
-        {{ LibraryStatus.FAILED.name }} {{ LibraryStatus.FAILED.icon | safe }}
+        {{ LibraryStatus.FAILED.label }} {{ LibraryStatus.FAILED.icon | safe }}
     </div>
 </div>
 {% else %}
@@ -97,7 +97,7 @@
         {% else %}
         <div class="progress-bar progress-bar-striped text-muted bg-transparent">
         {% endif %}
-        {{ status.name }} {{ status.icon | safe }}
+        {{ status.label }} {{ status.icon | safe }}
         </div>
     </div>
     {% endfor %}
@@ -109,19 +109,19 @@
 {% if pool.status == PoolStatus.DRAFT %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(PoolStatus.DRAFT.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-transparent text-muted" style="width: 100%">
-        {{ PoolStatus.DRAFT.name }} {{ PoolStatus.DRAFT.icon | safe }}
+        {{ PoolStatus.DRAFT.label }} {{ PoolStatus.DRAFT.icon | safe }}
     </div>
 </div>
 {% elif pool.status == PoolStatus.REJECTED %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(PoolStatus.FAILED.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
-        {{ PoolStatus.REJECTED.name }} {{ PoolStatus.REJECTED.icon | safe }}
+        {{ PoolStatus.REJECTED.label }} {{ PoolStatus.REJECTED.icon | safe }}
     </div>
 </div>
 {% elif pool.status == PoolStatus.ARCHIVED %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(PoolStatus.ARCHIVED.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-info text-dark" style="width: 100%">
-        {{ PoolStatus.ARCHIVED.name }} {{ PoolStatus.ARCHIVED.icon | safe }}
+        {{ PoolStatus.ARCHIVED.label }} {{ PoolStatus.ARCHIVED.icon | safe }}
     </div>
 </div>
 {% else %}
@@ -136,7 +136,7 @@
         {% else %}
         <div class="progress-bar progress-bar-striped text-muted bg-transparent">
         {% endif %}
-        {{ status.name }} {{ status.icon | safe }}
+        {{ status.label }} {{ status.icon | safe }}
         </div>
     </div>
     {% endfor %}
@@ -149,13 +149,13 @@
 {% if project.status == ProjectStatus.DRAFT %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(ProjectStatus.DRAFT.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-transparent text-muted" style="width: 100%">
-        {{ ProjectStatus.DRAFT.name }} {{ ProjectStatus.DRAFT.icon | safe }}
+        {{ ProjectStatus.DRAFT.label }} {{ ProjectStatus.DRAFT.icon | safe }}
     </div>
 </div>
 {% elif project.status == ProjectStatus.ARCHIVED %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(ProjectStatus.ARCHIVED.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-info text-dark" style="width: 100%">
-        {{ ProjectStatus.ARCHIVED.name }} {{ ProjectStatus.ARCHIVED.icon | safe }}
+        {{ ProjectStatus.ARCHIVED.label }} {{ ProjectStatus.ARCHIVED.icon | safe }}
     </div>
 </div>
 {% else %}
@@ -170,7 +170,7 @@
         {% else %}
         <div class="progress-bar progress-bar-striped text-muted bg-transparent">
         {% endif %}
-        {{ status.name }} {{ status.icon | safe }}
+        {{ status.label }} {{ status.icon | safe }}
         </div>
     </div>
     {% endfor %}

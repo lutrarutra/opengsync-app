@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response, url_for
 
 from opengsync_db import models
-from opengsync_db.categories import MUXType, ServiceType, LibraryTypeEnum, LibraryType, SubmissionType
+from opengsync_db.categories import MUXType, ServiceType, LibraryType, LibraryType, SubmissionType
 
 from .... import logger, db
 from ....tools import utils
@@ -109,7 +109,7 @@ class OCMAnnotationForm(MultiStepForm):
 
         service_type_enum = ServiceType.get(self.metadata["service_type_id"])
 
-        def add_library(sample_pool: str, library_type: LibraryTypeEnum):
+        def add_library(sample_pool: str, library_type: LibraryType):
             library_table_data["library_name"].append(f"{sample_pool}_{library_type.identifier}")
             library_table_data["sample_name"].append(sample_pool)
             library_table_data["library_type"].append(library_type.name)

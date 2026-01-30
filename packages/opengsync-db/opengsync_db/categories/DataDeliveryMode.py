@@ -3,12 +3,15 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class DataDeliveryModeEnum(DBEnum):
+    label: str
     description: str
 
 
-class DataDeliveryMode(ExtendedEnum[DataDeliveryModeEnum], enum_type=DataDeliveryModeEnum):
+class DataDeliveryMode(ExtendedEnum):
+    label: str
+    description: str
     CUSTOM = DataDeliveryModeEnum(0, "Custom", "I am not sure...")
     READS_ONLY = DataDeliveryModeEnum(1, "Reads only", "We will provide you with the raw reads (fastq-files).")
     ALIGNMENT = DataDeliveryModeEnum(2, "Alignment", "We will provide you with the aligned reads (bam-files).")

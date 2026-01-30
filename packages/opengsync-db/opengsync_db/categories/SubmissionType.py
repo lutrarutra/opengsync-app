@@ -3,13 +3,18 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class SubmissionTypeEnum(DBEnum):
+    label: str
     abbreviation: str
     description: str
 
 
-class SubmissionType(ExtendedEnum[SubmissionTypeEnum], enum_type=SubmissionTypeEnum):
+class SubmissionType(ExtendedEnum):
+    label: str
+    abbreviation: str
+    description: str
+    
     RAW_SAMPLES = SubmissionTypeEnum(1, "Raw Samples", "Raw", "Submit raw samples for library preparation and sequencing.")
     POOLED_LIBRARIES = SubmissionTypeEnum(2, "Pooled Libraries", "Pooled", "Submit ready-to-sequence pooled libraries for sequencing.")
     UNPOOLED_LIBRARIES = SubmissionTypeEnum(3, "Un-Pooled Libraries", "Un-Pooled", "Submit un-pooled libraries for pooling and sequencing.")

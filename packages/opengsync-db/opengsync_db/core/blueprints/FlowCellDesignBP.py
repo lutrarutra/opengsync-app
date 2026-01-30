@@ -6,7 +6,7 @@ from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import Query
 
 from ... import models, PAGE_LIMIT
-from ...categories import TaskStatus, TaskStatusEnum, FlowCellTypeEnum
+from ...categories import TaskStatus, TaskStatus, FlowCellType
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 
@@ -16,8 +16,8 @@ class FlowCellDesignBP(DBBlueprint):
     def where(
         cls,
         query: Query,
-        status: TaskStatusEnum | None = None,
-        status_in: list[TaskStatusEnum] | None = None,
+        status: TaskStatus | None = None,
+        status_in: list[TaskStatus] | None = None,
         archived: bool | None = None,
         custom_query: Callable[[Query], Query] | None = None
     ) -> Query:
@@ -50,8 +50,8 @@ class FlowCellDesignBP(DBBlueprint):
     def create(
         self,
         name: str,
-        task_status: TaskStatusEnum = TaskStatus.DRAFT,
-        flow_cell_type: FlowCellTypeEnum | None = None,
+        task_status: TaskStatus = TaskStatus.DRAFT,
+        flow_cell_type: FlowCellType | None = None,
         flush: bool = True
     ) -> models.FlowCellDesign:
         
@@ -76,8 +76,8 @@ class FlowCellDesignBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        status: TaskStatusEnum | None = None,
-        status_in: list[TaskStatusEnum] | None = None,
+        status: TaskStatus | None = None,
+        status_in: list[TaskStatus] | None = None,
         archived: bool | None = None,
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,

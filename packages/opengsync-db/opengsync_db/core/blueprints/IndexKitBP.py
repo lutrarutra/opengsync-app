@@ -3,7 +3,7 @@ from typing import Optional
 
 import sqlalchemy as sa
 
-from ...categories import IndexTypeEnum, LabChecklistTypeEnum, KitType
+from ...categories import IndexType, LabChecklistType, KitType
 from ... import models, PAGE_LIMIT
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -13,8 +13,8 @@ class IndexKitBP(DBBlueprint):
     @DBBlueprint.transaction
     def create(
         self, identifier: str, name: str,
-        supported_protocols: list[LabChecklistTypeEnum],
-        type: IndexTypeEnum,
+        supported_protocols: list[LabChecklistType],
+        type: IndexType,
         flush: bool = True
     ) -> models.IndexKit:
         if self.db.session.query(models.IndexKit).where(models.IndexKit.name == name).first():
@@ -53,8 +53,8 @@ class IndexKitBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query(
-        self, word: str, limit: int | None = PAGE_LIMIT, index_type: Optional[IndexTypeEnum] = None,
-        index_type_in: Optional[list[IndexTypeEnum]] = None
+        self, word: str, limit: int | None = PAGE_LIMIT, index_type: Optional[IndexType] = None,
+        index_type_in: Optional[list[IndexType]] = None
     ) -> list[models.IndexKit]:
         query = self.db.session.query(models.IndexKit)
         query = query.where(models.IndexKit.kit_type_id == KitType.INDEX_KIT.id)
@@ -97,7 +97,7 @@ class IndexKitBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def find(
-        self, type_in: list[IndexTypeEnum] | None = None,
+        self, type_in: list[IndexType] | None = None,
         name: str | None = None,
         identifier: str | None = None,
         identifier_name: str | None = None,

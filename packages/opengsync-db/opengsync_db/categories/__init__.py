@@ -1,37 +1,37 @@
-from .ServiceType import ServiceType, ServiceTypeEnum
-from .BarcodeType import BarcodeType, BarcodeTypeEnum
-from .DataDeliveryMode import DataDeliveryMode, DataDeliveryModeEnum
-from .DeliveryStatus import DeliveryStatus, DeliveryStatusEnum
-from .ExperimentStatus import ExperimentStatus, ExperimentStatusEnum
-from .FeatureType import FeatureType, FeatureTypeEnum
-from .MediaFileType import MediaFileType, MediaFileTypeEnum
-from .FlowCellType import FlowCellType, FlowCellTypeEnum
-from .GenomeRef import GenomeRef, GenomeRefEnum
+from .ServiceType import ServiceType
+from .BarcodeType import BarcodeType
+from .DataDeliveryMode import DataDeliveryMode
+from .DeliveryStatus import DeliveryStatus
+from .ExperimentStatus import ExperimentStatus
+from .FeatureType import FeatureType
+from .MediaFileType import MediaFileType
+from .FlowCellType import FlowCellType
+from .GenomeRef import GenomeRef
 from .HTTPResponse import HTTPResponse
-from .LibraryStatus import LibraryStatus, LibraryStatusEnum
-from .LibraryType import LibraryType, LibraryTypeEnum
-from .RequestResponse import RequestResponse, RequestResponseEnum
-from .SeqRequestStatus import SeqRequestStatus, SeqRequestStatusEnum
-from .ReadType import ReadType, ReadTypeEnum
-from .UserRole import UserRole, UserRoleEnum
-from .SequencerModel import SequencerModel, SequencerModelEnum
-from .PoolStatus import PoolStatus, PoolStatusEnum
-from .ExperimentWorkFlow import ExperimentWorkFlow, ExperimentWorkFlowEnum
-from .PoolType import PoolType, PoolTypeEnum
-from .SampleStatus import SampleStatus, SampleStatusEnum
-from .RunStatus import RunStatus, RunStatusEnum
-from .AttributeType import AttributeType, AttributeTypeEnum
-from .IndexType import IndexType, IndexTypeEnum
-from .SubmissionType import SubmissionType, SubmissionTypeEnum
-from .LabChecklistType import LabChecklistType, LabChecklistTypeEnum
-from .EventType import EventType, EventTypeEnum
-from .AffiliationType import AffiliationType, AffiliationTypeEnum
-from .AccessType import AccessType, AccessTypeEnum
-from .GroupType import GroupType, GroupTypeEnum
-from .PrepStatus import PrepStatus, PrepStatusEnum
-from .KitType import KitType, KitTypeEnum
-from .ProjectStatus import ProjectStatus, ProjectStatusEnum
-from .MUXType import MUXType, MUXTypeEnum
-from .DataPathType import DataPathType, DataPathTypeEnum
-from .BarcodeOrientation import BarcodeOrientation, BarcodeOrientationEnum
-from .TaskStatus import TaskStatus, TaskStatusEnum
+from .LibraryStatus import LibraryStatus
+from .LibraryType import LibraryType
+from .RequestResponse import RequestResponse
+from .SeqRequestStatus import SeqRequestStatus
+from .ReadType import ReadType
+from .UserRole import UserRole
+from .SequencerModel import SequencerModel
+from .PoolStatus import PoolStatus
+from .ExperimentWorkFlow import ExperimentWorkFlow
+from .PoolType import PoolType
+from .SampleStatus import SampleStatus
+from .RunStatus import RunStatus
+from .AttributeType import AttributeType
+from .IndexType import IndexType
+from .SubmissionType import SubmissionType
+from .LabChecklistType import LabChecklistType
+from .EventType import EventType
+from .AffiliationType import AffiliationType
+from .AccessType import AccessType
+from .GroupType import GroupType
+from .PrepStatus import PrepStatus
+from .KitType import KitType
+from .ProjectStatus import ProjectStatus
+from .MUXType import MUXType
+from .DataPathType import DataPathType
+from .BarcodeOrientation import BarcodeOrientation
+from .TaskStatus import TaskStatus

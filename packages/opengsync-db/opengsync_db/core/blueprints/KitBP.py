@@ -2,7 +2,7 @@ import math
 from typing import Optional
 
 import sqlalchemy as sa
-from ...categories import KitTypeEnum, KitType
+from ...categories import KitType, KitType
 from ... import PAGE_LIMIT, models
 from ..DBBlueprint import DBBlueprint
 
@@ -13,7 +13,7 @@ class KitBP(DBBlueprint):
         self,
         name: str,
         identifier: str,
-        kit_type: KitTypeEnum = KitType.LIBRARY_KIT,
+        kit_type: KitType = KitType.LIBRARY_KIT,
         flush: bool = True
     ) -> models.Kit:
 
@@ -54,8 +54,8 @@ class KitBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        type: KitTypeEnum | None = None,
-        type_in: list[KitTypeEnum] | None = None,
+        type: KitType | None = None,
+        type_in: list[KitType] | None = None,
         protocol: models.Protocol | None = None,
         protocol_id: int | None = None,
         not_in_protocol: models.Protocol | None = None,
@@ -135,7 +135,7 @@ class KitBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query(
-        self, word: str, limit: int | None = PAGE_LIMIT, kit_type: Optional[KitTypeEnum] = None,
+        self, word: str, limit: int | None = PAGE_LIMIT, kit_type: Optional[KitType] = None,
     ) -> list[models.Kit]:
         query = self.db.session.query(models.Kit)
         if kit_type is not None:

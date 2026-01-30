@@ -5,7 +5,7 @@ from sqlalchemy import orm
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
-from ..categories import ExperimentWorkFlow, ExperimentWorkFlowEnum, FlowCellType, FlowCellTypeEnum, TaskStatus, TaskStatusEnum
+from ..categories import ExperimentWorkFlow, ExperimentWorkFlow, FlowCellType, FlowCellType, TaskStatus, TaskStatus
 
 if TYPE_CHECKING:
     from .PoolDesign import PoolDesign
@@ -111,7 +111,7 @@ class FlowCellDesign(Base):
         return f"{r1}-{i1}-{i2}-{r2}"
 
     @property
-    def workflow(self) -> ExperimentWorkFlowEnum:
+    def workflow(self) -> ExperimentWorkFlow:
         return ExperimentWorkFlow.get(self.workflow_id)
     
     @property
@@ -119,15 +119,15 @@ class FlowCellDesign(Base):
         return self.workflow.flow_cell_type.num_lanes
     
     @workflow.setter
-    def workflow(self, value: ExperimentWorkFlowEnum):
+    def workflow(self, value: ExperimentWorkFlow):
         self.workflow_id = value.id
 
     @property
-    def task_status(self) -> TaskStatusEnum:
+    def task_status(self) -> TaskStatus:
         return TaskStatus.get(self.task_status_id)
     
     @task_status.setter
-    def task_status(self, status: TaskStatusEnum) -> None:
+    def task_status(self, status: TaskStatus) -> None:
         self.task_status_id = status.id
 
     __table_args__ = (
@@ -139,7 +139,7 @@ class FlowCellDesign(Base):
     )
 
     @property
-    def flow_cell_type(self) -> FlowCellTypeEnum | None:
+    def flow_cell_type(self) -> FlowCellType | None:
         if self.flow_cell_type_id is None:
             num_m_reads = self.num_m_reads
             diff = float('inf')
@@ -158,7 +158,7 @@ class FlowCellDesign(Base):
         return FlowCellType.get(self.flow_cell_type_id)
     
     @flow_cell_type.setter
-    def flow_cell_type(self, fc_type: FlowCellTypeEnum | None) -> None:
+    def flow_cell_type(self, fc_type: FlowCellType | None) -> None:
         if fc_type is None:
             self.flow_cell_type_id = None
         else:

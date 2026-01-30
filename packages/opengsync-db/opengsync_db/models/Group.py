@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 from . import links
-from ..categories import GroupType, GroupTypeEnum, AffiliationType
+from ..categories import GroupType, AffiliationType
 
 from typing import TYPE_CHECKING, ClassVar
 if TYPE_CHECKING:
@@ -96,11 +96,11 @@ class Group(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
-    def type(self) -> GroupTypeEnum:
+    def type(self) -> GroupType:
         return GroupType.get(self.type_id)
     
     @type.setter
-    def type(self, value: GroupTypeEnum):
+    def type(self, value: GroupType):
         self.type_id = value.id
     
     def __str__(self) -> str:

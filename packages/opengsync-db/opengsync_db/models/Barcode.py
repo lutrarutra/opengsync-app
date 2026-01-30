@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 
-from opengsync_db.categories import BarcodeType, BarcodeTypeEnum
+from opengsync_db.categories import BarcodeType
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
@@ -27,7 +27,7 @@ class Barcode(Base):
     index_kit: Mapped["IndexKit"] = relationship("IndexKit", back_populates="barcodes", lazy="select")
 
     @property
-    def type(self) -> BarcodeTypeEnum:
+    def type(self) -> BarcodeType:
         return BarcodeType.get(self.type_id)
 
     def __str__(self) -> str:

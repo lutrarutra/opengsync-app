@@ -5,7 +5,7 @@ from wtforms import SelectField, RadioField
 from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import IndexType, IndexTypeEnum, BarcodeOrientation, BarcodeType
+from opengsync_db.categories import IndexType, IndexType, BarcodeOrientation, BarcodeType
 
 from .... import logger, db, tools
 from ...MultiStepForm import MultiStepForm
@@ -46,7 +46,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         ))  # since all of the indices are reverse complemented in case of not forward orientation, we need .all()
     
     @staticmethod
-    def check_index_type(barcode_table: pd.DataFrame) -> IndexTypeEnum | None:
+    def check_index_type(barcode_table: pd.DataFrame) -> IndexType | None:
         if (barcode_table["index_type_id"] == IndexType.DUAL_INDEX.id).all():
             return IndexType.DUAL_INDEX
         elif (barcode_table["index_type_id"] == IndexType.SINGLE_INDEX_I7.id).all():

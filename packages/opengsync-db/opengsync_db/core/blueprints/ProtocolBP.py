@@ -2,7 +2,7 @@ import math
 from typing import Optional
 
 import sqlalchemy as sa
-from ...categories import ServiceType, ServiceTypeEnum
+from ...categories import ServiceType, ServiceType
 from ... import PAGE_LIMIT, models
 from ..DBBlueprint import DBBlueprint
 
@@ -12,7 +12,7 @@ class ProtocolBP(DBBlueprint):
     def create(
         self,
         name: str,
-        service_type: ServiceTypeEnum,
+        service_type: ServiceType,
         read_structure: str | None = None,
         flush: bool = True
     ) -> models.Protocol:
@@ -41,8 +41,8 @@ class ProtocolBP(DBBlueprint):
         self,
         id: int | None = None,
         name: str | None = None,
-        service_type: ServiceTypeEnum | None = None,
-        service_type_in: list[ServiceTypeEnum] | None = None,
+        service_type: ServiceType | None = None,
+        service_type_in: list[ServiceType] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
         page: int | None = None,
@@ -93,7 +93,7 @@ class ProtocolBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query(
-        self, word: str, limit: int | None = PAGE_LIMIT, service_type: Optional[ServiceTypeEnum] = None,
+        self, word: str, limit: int | None = PAGE_LIMIT, service_type: Optional[ServiceType] = None,
     ) -> list[models.Protocol]:
         query = self.db.session.query(models.Protocol)
 

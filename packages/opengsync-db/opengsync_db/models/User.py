@@ -7,7 +7,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 from .Base import Base
 from . import links
-from ..categories import UserRole, UserRoleEnum
+from ..categories import UserRole, UserRole
 
 
 if TYPE_CHECKING:
@@ -197,17 +197,17 @@ class User(Base, UserMixin):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     def is_insider(self) -> bool:
-        return self.role.is_insider()
+        return self.role.insider
     
     def is_admin(self) -> bool:
         return self.role == UserRole.ADMIN
 
     @property
-    def role(self) -> UserRoleEnum:
+    def role(self) -> UserRole:
         return UserRole.get(self.role_id)
     
     @role.setter
-    def role(self, value: UserRoleEnum):
+    def role(self, value: UserRole):
         self.role_id = value.id
     
     @hybrid_property

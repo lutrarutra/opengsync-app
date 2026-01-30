@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.mutable import MutableDict
 
-from ..categories import RunStatus, RunStatusEnum, ReadType, ReadTypeEnum
+from ..categories import RunStatus, RunStatus, ReadType, ReadType
 from ..core import units
 from .Base import Base
 
@@ -44,19 +44,19 @@ class SeqRun(Base):
     sortable_fields: ClassVar[list[str]] = ["id", "experiment_name", "status_id", "read_type_id"]
 
     @property
-    def status(self) -> RunStatusEnum:
+    def status(self) -> RunStatus:
         return RunStatus.get(self.status_id)
     
     @status.setter
-    def status(self, value: RunStatusEnum):
+    def status(self, value: RunStatus):
         self.status_id = value.id
     
     @property
-    def read_type(self) -> ReadTypeEnum:
+    def read_type(self) -> ReadType:
         return ReadType.get(self.read_type_id)
     
     @read_type.setter
-    def read_type(self, value: ReadTypeEnum):
+    def read_type(self, value: ReadType):
         self.read_type_id = value.id
 
     @property

@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class SampleStatusEnum(DBEnum):
+    label: str
     icon: str
     description: str
 
@@ -14,10 +15,13 @@ class SampleStatusEnum(DBEnum):
     
     @property
     def display_name(self) -> str:
-        return f"{self.name} {self.icon}"
+        return f"{self.label} {self.icon}"
 
 
-class SampleStatus(ExtendedEnum[SampleStatusEnum], enum_type=SampleStatusEnum):
+class SampleStatus(ExtendedEnum):
+    label: str
+    icon: str
+    description: str
     DRAFT = SampleStatusEnum(0, "Draft", "✍🏼", "Draft plan of the sample")
     WAITING_DELIVERY = SampleStatusEnum(1, "Waiting Delivery", "📭", "Waiting for delivery")
     STORED = SampleStatusEnum(2, "Stored", "📦", "Sample specimen was received from customer and stored")

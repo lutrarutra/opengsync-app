@@ -8,8 +8,8 @@ from sqlalchemy.orm import aliased
 
 from ... import models, PAGE_LIMIT
 from ...categories import (
-    LibraryTypeEnum, LibraryStatus, LibraryStatusEnum, GenomeRefEnum, PoolStatus,
-    AccessType, AccessTypeEnum, ServiceTypeEnum, IndexTypeEnum, MUXTypeEnum, BarcodeOrientationEnum,
+    LibraryType, LibraryStatus, LibraryStatus, GenomeRef, PoolStatus,
+    AccessType, AccessType, ServiceType, IndexType, MUXType, BarcodeOrientation,
     UserRole
 )
 from .. import exceptions
@@ -23,13 +23,13 @@ class LibraryBP(DBBlueprint):
         query: Query,
         user_id: int | None = None, sample_id: int | None = None,
         experiment_id: int | None = None, seq_request_id: int | None = None,
-        service_type: Optional[ServiceTypeEnum] = None,
+        service_type: Optional[ServiceType] = None,
         pool_id: int | None = None, lab_prep_id: int | None = None,
         in_lab_prep: bool | None = None,
         project_id: int | None = None,
-        type_in: Optional[list[LibraryTypeEnum]] = None,
-        status_in: Optional[list[LibraryStatusEnum]] = None,
-        pooled: bool | None = None, status: Optional[LibraryStatusEnum] = None,
+        type_in: Optional[list[LibraryType]] = None,
+        status_in: Optional[list[LibraryStatus]] = None,
+        pooled: bool | None = None, status: Optional[LibraryStatus] = None,
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
         if user_id is not None:
@@ -98,20 +98,20 @@ class LibraryBP(DBBlueprint):
         self,
         name: str,
         sample_name: str,
-        library_type: LibraryTypeEnum,
+        library_type: LibraryType,
         owner_id: int,
         seq_request_id: int,
-        genome_ref: GenomeRefEnum,
-        service_type: ServiceTypeEnum,
+        genome_ref: GenomeRef,
+        service_type: ServiceType,
         original_library_id: int | None = None,
         properties: Optional[dict | None] = None,
-        index_type: IndexTypeEnum | None = None,
+        index_type: IndexType | None = None,
         nuclei_isolation: bool = False,
-        mux_type: MUXTypeEnum | None = None,
+        mux_type: MUXType | None = None,
         pool_id: int | None = None,
         lab_prep_id: int | None = None,
         seq_depth_requested: float | None = None,
-        status: Optional[LibraryStatusEnum] = None,
+        status: Optional[LibraryStatus] = None,
         flush: bool = True
     ) -> models.Library:
         if self.db.session.get(models.User, owner_id) is None:
@@ -180,15 +180,15 @@ class LibraryBP(DBBlueprint):
         sample_id: int | None = None,
         experiment_id: int | None = None,
         seq_request_id: int | None = None,
-        service_type: ServiceTypeEnum | None = None,
+        service_type: ServiceType | None = None,
         pool_id: int | None = None,
         lab_prep_id: int | None = None,
         in_lab_prep: bool | None = None,
         project_id: int | None = None,
-        type_in: list[LibraryTypeEnum] | None = None,
-        status_in: list[LibraryStatusEnum] | None = None,
+        type_in: list[LibraryType] | None = None,
+        status_in: list[LibraryStatus] | None = None,
         pooled: bool | None = None,
-        status: LibraryStatusEnum | None = None,
+        status: LibraryStatus | None = None,
         name: str | None = None,
         id: int | None = None,
         pool_name: str | None = None,
@@ -300,14 +300,14 @@ class LibraryBP(DBBlueprint):
         sample_id: int | None = None,
         experiment_id: int | None = None,
         seq_request_id: int | None = None,
-        service_type: Optional[ServiceTypeEnum] = None,
+        service_type: Optional[ServiceType] = None,
         pool_id: int | None = None,
         lab_prep_id: int | None = None,
         in_lab_prep: bool | None = None,
-        type_in: Optional[list[LibraryTypeEnum]] = None,
-        status_in: Optional[list[LibraryStatusEnum]] = None,
+        type_in: Optional[list[LibraryType]] = None,
+        status_in: Optional[list[LibraryStatus]] = None,
         pooled: bool | None = None,
-        status: Optional[LibraryStatusEnum] = None,
+        status: Optional[LibraryStatus] = None,
         custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT,
     ) -> list[models.Library]:
@@ -416,7 +416,7 @@ class LibraryBP(DBBlueprint):
         self, library_id: int,
         index_kit_i7_id: Optional[int], name_i7: Optional[str], sequence_i7: Optional[str],
         index_kit_i5_id: Optional[int], name_i5: Optional[str], sequence_i5: Optional[str],
-        orientation: Optional[BarcodeOrientationEnum],
+        orientation: Optional[BarcodeOrientation],
         flush: bool = True
     ) -> models.Library:
 
@@ -467,7 +467,7 @@ class LibraryBP(DBBlueprint):
         return library
 
     @DBBlueprint.transaction
-    def get_access_type(self, library: models.Library, user: models.User) -> AccessTypeEnum:
+    def get_access_type(self, library: models.Library, user: models.User) -> AccessType:
         if user.role == UserRole.DEACTIVATED:
             return AccessType.NONE
         if user.is_admin():
@@ -491,7 +491,7 @@ class LibraryBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def clone(
-        self, library_id: int, seq_request_id: int, indexed: bool, status: LibraryStatusEnum
+        self, library_id: int, seq_request_id: int, indexed: bool, status: LibraryStatus
     ) -> models.Library:
 
         if (library := self.db.session.get(models.Library, library_id)) is None:
@@ -554,15 +554,15 @@ class LibraryBP(DBBlueprint):
         sample_id: int | None = None,
         experiment_id: int | None = None,
         seq_request_id: int | None = None,
-        service_type: Optional[ServiceTypeEnum] = None,
+        service_type: Optional[ServiceType] = None,
         pool_id: int | None = None,
         lab_prep_id: int | None = None,
         in_lab_prep: bool | None = None,
         project_id: int | None = None,
-        type_in: Optional[list[LibraryTypeEnum]] = None,
-        status_in: Optional[list[LibraryStatusEnum]] = None,
+        type_in: Optional[list[LibraryType]] = None,
+        status_in: Optional[list[LibraryStatus]] = None,
         pooled: bool | None = None,
-        status: Optional[LibraryStatusEnum] = None,
+        status: Optional[LibraryStatus] = None,
         custom_query: Callable[[Query], Query] | None = None,
         order_by: str | None = "id",
         limit: int | None = None,

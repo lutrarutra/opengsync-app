@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import Query
     
-from ...categories import PoolStatus, PoolStatusEnum, PoolTypeEnum, AccessType, AccessTypeEnum, UserRole, LibraryTypeEnum
+from ...categories import PoolStatus, PoolStatus, PoolType, AccessType, AccessType, UserRole, LibraryType
 from ... import PAGE_LIMIT, models
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -23,10 +23,10 @@ class PoolBP(DBBlueprint):
         lab_prep_id: int | None = None,
         seq_request_id: int | None = None,
         associated_to_experiment: bool | None = None,
-        status: PoolStatusEnum | None = None,
-        status_in: list[PoolStatusEnum] | None = None,
-        library_types_in: list[LibraryTypeEnum] | None = None,
-        type_in: list[PoolTypeEnum] | None = None,
+        status: PoolStatus | None = None,
+        status_in: list[PoolStatus] | None = None,
+        library_types_in: list[LibraryType] | None = None,
+        type_in: list[PoolType] | None = None,
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
         if user_id is not None:
@@ -85,13 +85,13 @@ class PoolBP(DBBlueprint):
         owner_id: int,
         contact_name: str,
         contact_email: str,
-        pool_type: PoolTypeEnum,
+        pool_type: PoolType,
         experiment_id: int | None = None,
         original_pool_id: int | None = None,
         seq_request_id: int | None = None,
         lab_prep_id: int | None = None,
         num_m_reads_requested: float | None = None,
-        status: PoolStatusEnum = PoolStatus.DRAFT,
+        status: PoolStatus = PoolStatus.DRAFT,
         contact_phone: str | None = None,
         flush: bool = True
     ) -> models.Pool:
@@ -161,10 +161,10 @@ class PoolBP(DBBlueprint):
         owner: str | None = None,
         id: int | None = None,
         associated_to_experiment: bool | None = None,
-        status: PoolStatusEnum | None = None,
-        status_in: list[PoolStatusEnum] | None = None,
-        library_types_in: list[LibraryTypeEnum] | None = None,
-        type_in: list[PoolTypeEnum] | None = None,
+        status: PoolStatus | None = None,
+        status_in: list[PoolStatus] | None = None,
+        library_types_in: list[LibraryType] | None = None,
+        type_in: list[PoolType] | None = None,
         custom_query: Callable[[Query], Query] | None = None,
         sort_by: str | None = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
@@ -288,7 +288,7 @@ class PoolBP(DBBlueprint):
     def query(
         self, name: str, experiment_id: int | None = None,
         seq_request_id: int | None = None,
-        status_in: Optional[list[PoolStatusEnum]] = None,
+        status_in: Optional[list[PoolStatus]] = None,
         limit: int | None = PAGE_LIMIT
     ) -> list[models.Pool]:
 
@@ -389,7 +389,7 @@ class PoolBP(DBBlueprint):
         return count
 
     @DBBlueprint.transaction
-    def get_access_type(self, pool: models.Pool, user: models.User) -> AccessTypeEnum:
+    def get_access_type(self, pool: models.Pool, user: models.User) -> AccessType:
         if user.role == UserRole.DEACTIVATED:
             return AccessType.NONE
         if user.is_admin():
@@ -412,7 +412,7 @@ class PoolBP(DBBlueprint):
         return AccessType.NONE
 
     @DBBlueprint.transaction
-    def clone(self, pool_id: int, status: PoolStatusEnum, seq_request_id: int | None = None) -> models.Pool:
+    def clone(self, pool_id: int, status: PoolStatus, seq_request_id: int | None = None) -> models.Pool:
 
         if (pool := self.db.session.get(models.Pool, pool_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")

@@ -4,7 +4,7 @@ from typing import Optional
 import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
-from ...categories import SequencerModelEnum
+from ...categories import SequencerModel
 from ..DBBlueprint import DBBlueprint
 from .. import exceptions
 
@@ -13,7 +13,7 @@ class SequencerBP(DBBlueprint):
     @DBBlueprint.transaction
     def create(
         self, name: str,
-        model: SequencerModelEnum,
+        model: SequencerModel,
         ip: str | None = None,
         flush: bool = True
     ) -> models.Sequencer:
@@ -44,7 +44,7 @@ class SequencerBP(DBBlueprint):
         self,
         name: str | None = None,
         id: int | None = None,
-        model_in: list[SequencerModelEnum] | None = None,
+        model_in: list[SequencerModel] | None = None,
         sort_by: str | None = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         page: int | None = None,

@@ -5,7 +5,7 @@ import sqlalchemy as sa
 
 from ..DBBlueprint import DBBlueprint
 from ... import models, PAGE_LIMIT
-from ...categories import FeatureTypeEnum
+from ...categories import FeatureType
 from .. import exceptions
 
 
@@ -18,7 +18,7 @@ class FeatureBP(DBBlueprint):
         sequence: str,
         pattern: str,
         read: str,
-        type: FeatureTypeEnum,
+        type: FeatureType,
         feature_kit_id: int | None = None,
         target_name: str | None = None,
         target_id: str | None = None,

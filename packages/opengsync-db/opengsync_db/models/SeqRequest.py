@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from .Base import Base
-from ..categories import SeqRequestStatus, SeqRequestStatusEnum, ReadType, ReadTypeEnum, DataDeliveryMode, DataDeliveryModeEnum, SubmissionType, SubmissionTypeEnum, MediaFileType, LibraryType, LibraryTypeEnum, MUXType, MUXTypeEnum
+from ..categories import SeqRequestStatus, SeqRequestStatus, ReadType, ReadType, DataDeliveryMode, DataDeliveryMode, SubmissionType, SubmissionType, MediaFileType, LibraryType, LibraryType, MUXType, MUXType
 from . import links
 
 if TYPE_CHECKING:
@@ -302,7 +302,7 @@ class SeqRequest(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @property
-    def library_types(self) -> list[LibraryTypeEnum]:
+    def library_types(self) -> list[LibraryType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
@@ -317,7 +317,7 @@ class SeqRequest(Base):
         return [LibraryType.get(type_id) for (type_id,) in type_ids]
     
     @property
-    def mux_types(self) -> list[MUXTypeEnum]:
+    def mux_types(self) -> list[MUXType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             return list(set(library.mux_type for library in self.libraries if library.mux_type is not None))
         
@@ -333,8 +333,8 @@ class SeqRequest(Base):
         return [MUXType.get(mux_type_id) for (mux_type_id,) in mux_type_ids]
     
     @hybrid_property
-    def library_type_counts(self) -> dict[LibraryTypeEnum, int]:
-        counts: dict[LibraryTypeEnum, int] = {}
+    def library_type_counts(self) -> dict[LibraryType, int]:
+        counts: dict[LibraryType, int] = {}
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             for lib in self.libraries:
                 lib_type = LibraryType.get(lib.type_id)
@@ -369,35 +369,35 @@ class SeqRequest(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
-    def status(self) -> SeqRequestStatusEnum:
+    def status(self) -> SeqRequestStatus:
         return SeqRequestStatus.get(self.status_id)
     
     @status.setter
-    def status(self, value: SeqRequestStatusEnum):
+    def status(self, value: SeqRequestStatus):
         self.status_id = value.id
     
     @property
-    def submission_type(self) -> SubmissionTypeEnum:
+    def submission_type(self) -> SubmissionType:
         return SubmissionType.get(self.submission_type_id)
     
     @submission_type.setter
-    def submission_type(self, value: SubmissionTypeEnum):
+    def submission_type(self, value: SubmissionType):
         self.submission_type_id = value.id
     
     @property
-    def data_delivery_mode(self) -> DataDeliveryModeEnum:
+    def data_delivery_mode(self) -> DataDeliveryMode:
         return DataDeliveryMode.get(self.data_delivery_mode_id)
     
     @data_delivery_mode.setter
-    def data_delivery_mode(self, value: DataDeliveryModeEnum):
+    def data_delivery_mode(self, value: DataDeliveryMode):
         self.data_delivery_mode_id = value.id
     
     @property
-    def read_type(self) -> ReadTypeEnum:
+    def read_type(self) -> ReadType:
         return ReadType.get(self.read_type_id)
     
     @read_type.setter
-    def read_type(self, value: ReadTypeEnum):
+    def read_type(self, value: ReadType):
         self.read_type_id = value.id
     
     @property
