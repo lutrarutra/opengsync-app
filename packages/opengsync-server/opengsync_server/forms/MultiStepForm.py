@@ -19,6 +19,10 @@ class StepTracker:
     def add(self, step_name: str) -> None:
         if self.__steps is None:
             self.__steps = msf_cache.get_steps(self.key)
+        
+        if step_name in self.__steps:
+            return
+        
         self.__steps.append(step_name)
         msf_cache.set_steps(self.key, self.__steps)
 
@@ -27,6 +31,7 @@ class StepTracker:
             return None
         last = steps.pop()
         msf_cache.set_steps(self.key, steps)
+        self.__steps = steps
         return last
     
     def get_last(self) -> str | None:
@@ -49,9 +54,8 @@ class MultiStepForm(HTMXFlaskForm):
         self.workflow = workflow
 
         self.steps = StepTracker(key=f"{self.workflow}:{self.uuid}:steps")
+        self.step()
         steps = self.steps.steps
-        if self.step_name not in steps:
-            steps.append(self.step_name)
             
         self.header = CachedDictionary(template=f"{self.workflow}:{self.uuid}:{{step}}:header", msf_cache=msf_cache, steps=steps)
 
@@ -65,7 +69,15 @@ class MultiStepForm(HTMXFlaskForm):
     @staticmethod
     def PopLastStep(workflow: str, uuid: str) -> str | None:
         steps = StepTracker(key=f"{workflow}:{uuid}:steps")
-        return steps.pop_last()
+        if (current_step := steps.pop_last()) is not None:
+            msf_cache.delete_pattern(f"{workflow}:{uuid}:{current_step}:*")
+        return steps.get_last()
+    
+    def get_previous_step(self) -> str | None:
+        steps = self.steps.steps
+        if len(steps) < 2:
+            return None
+        return steps[-2]
 
     def fill_previous_form(self):
         logger.warning(f"Workflow '{self.workflow}', step '{self.step_name}', fill_previous_form() not implemented in subclass...")

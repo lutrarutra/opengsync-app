@@ -14,7 +14,7 @@ requires-python = ">=3.11"
 dependencies = [
     "numpy>= 2.2",
     "interop >= 1.5",
-    "pandas >= 2.3, < 3.0",
+    "pandas >= 3.0",
     "loguru >= 0.7",
     "psycopg[binary] >= 3.2",
     "SQLAlchemy >= 2.0",

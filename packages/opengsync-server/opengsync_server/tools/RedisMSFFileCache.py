@@ -5,6 +5,8 @@ from pyarrow import parquet as pq
 import pandas as pd
 import redis
 
+from .. import logger
+
 
 class RedisMSFFileCache():
     def __init__(self):

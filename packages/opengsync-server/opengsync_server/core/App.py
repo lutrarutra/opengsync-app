@@ -43,7 +43,6 @@ from ..tools.utils import WeekTimeWindow
 from .. import routes
 from .. import tools
 from ..core import runtime
-from ..monitor import PerformanceMonitor, RequestStat
 
 
 class App(Flask):
@@ -60,7 +59,6 @@ class App(Flask):
     external_base_url: str | None
     debug: bool
     personalization: dict
-    performance_monitor: PerformanceMonitor
 
     def __init__(self, config_path: str):
         opengsync_config = yaml.safe_load(open(config_path))
@@ -107,12 +105,6 @@ class App(Flask):
 
         self.debug = DEBUG
         self.timezone = TIMEZONE
-        self.performance_monitor = PerformanceMonitor(
-            user=os.environ["POSTGRES_USER"],
-            password=os.environ["POSTGRES_PASSWORD"],
-            host=os.environ["POSTGRES_HOST"],
-            port=os.environ["POSTGRES_PORT"],
-        )
 
         REDIS_PORT = int(os.environ["REDIS_PORT"])
 
@@ -208,22 +200,9 @@ class App(Flask):
             if request.endpoint == "static":
                 return response
 
-            path = request.path.removesuffix("/")
             try:
                 if (start_time := getattr(g, "start_time", None)) is not None:
                     duration_ms = int((time.time() - start_time) * 1000)
-                    self.performance_monitor.open_session()
-                    self.performance_monitor.session.add(
-                        RequestStat(
-                            endpoint=path,
-                            method=request.method,
-                            response_status=response.status_code,
-                            requestor_ip=request.remote_addr,
-                            response_time_ms=duration_ms,
-                            user_id=getattr(g, "user_id", None)
-                        )
-                    )
-                    self.performance_monitor.close_session(commit=True)
             except KeyError:
                 pass
             

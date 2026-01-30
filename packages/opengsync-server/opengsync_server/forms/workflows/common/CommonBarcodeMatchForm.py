@@ -7,7 +7,7 @@ from wtforms.validators import Optional as OptionalValidator
 from opengsync_db import models
 from opengsync_db.categories import IndexType, IndexTypeEnum, BarcodeOrientation, BarcodeType
 
-from .... import logger, db
+from .... import logger, db, tools
 from ...MultiStepForm import MultiStepForm
 
 
@@ -129,6 +129,8 @@ class CommonBarcodeMatchForm(MultiStepForm):
 
     def fill_previous_form(self):
         d = self.metadata.get("barcode_match_form", {})
+        if (input_barcode_table := self.tables.get("barcode_table", self.get_previous_step())) is not None:
+            self.tables["barcode_table"] = input_barcode_table
         self.i7_kit.data = d.get("i7_kit", 0)
         self.i5_kit.data = d.get("i5_kit", 0)
         self.i7_option.data = d.get("i7_option", None)
@@ -167,15 +169,12 @@ class CommonBarcodeMatchForm(MultiStepForm):
                 logger.error(f"No barcodes found for i7 kit ID: {kit_i7_id}")
                 raise Exception(f"No barcodes found for i7 kit ID: {kit_i7_id}")
             
-            mapping = dict(kit_i7_df[["sequence_i7", "name_i7"]].values.tolist())
             if rc_i7:
                 self.barcode_table["sequence_i7"] = self.barcode_table["sequence_i7"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
             
-            try:
-                self.barcode_table["name_i7"] = self.barcode_table["sequence_i7"].apply(lambda x: mapping[x])
-            except KeyError as e:
-                logger.error(f"Invalid i7 sequence in library table: {e}")
-                raise KeyError(f"Invalid i7 sequence in library table: {e}")
+            self.barcode_table["name_i7"] = tools.utils.map_columns(self.barcode_table, kit_i7_df, idx_columns="sequence_i7", col="name_i7")
+            self.barcode_table["kit_i7_id"] = kit_i7.id
+            self.barcode_table["kit_i7"] = kit_i7.identifier
             
             self.barcode_table["kit_i7_id"] = kit_i7_id
             self.barcode_table["orientation_i7_id"] = BarcodeOrientation.FORWARD.id
@@ -198,17 +197,13 @@ class CommonBarcodeMatchForm(MultiStepForm):
                 if len(kit_i5_df := db.pd.get_index_kit_barcodes(kit_i5.id, per_index=True)) == 0:
                     logger.error(f"No barcodes found for i5 kit ID: {kit_i5_id}")
                     raise Exception(f"No barcodes found for i5 kit ID: {kit_i5_id}")
-                
-            mapping = dict(kit_i5_df[["sequence_i5", "name_i5"]].values.tolist())
             
             if rc_i5:
                 self.barcode_table["sequence_i5"] = self.barcode_table["sequence_i5"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
             
-            try:
-                self.barcode_table["name_i5"] = self.barcode_table["sequence_i5"].apply(lambda x: mapping[x])
-            except KeyError as e:
-                logger.error(f"Invalid i5 sequence in library table: {e}")
-                raise KeyError(f"Invalid i5 sequence in library table: {e}")
+            self.barcode_table["name_i5"] = tools.utils.map_columns(self.barcode_table, kit_i5_df, idx_columns="sequence_i5", col="name_i5")
+            self.barcode_table["kit_i5_id"] = kit_i5.id
+            self.barcode_table["kit_i5"] = kit_i5.identifier
             
             self.barcode_table["kit_i5_id"] = kit_i5_id
             self.barcode_table["orientation_i5_id"] = BarcodeOrientation.FORWARD.id
