@@ -71,7 +71,7 @@ steps:
       PGID:
         from_secret: PGID
     commands:
-      - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod build --pull
+      - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod build --build-arg "VERSION=$(git describe --tags --always --dirty)"
       - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod up -d --remove-orphans --wait
       - docker image prune -f
 

@@ -20,9 +20,12 @@ RUN chmod 777 /app
 
 # --- BUILDER: Install dependencies ONLY ---
 FROM base AS builder
+ARG VERSION=0.0.0
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION
 COPY pyproject.toml uv.lock ./
 COPY packages/opengsync-db/pyproject.toml ./packages/opengsync-db/
 COPY packages/opengsync-server/pyproject.toml ./packages/opengsync-server/
+COPY packages/opengsync-api/pyproject.toml ./packages/opengsync-api/
 COPY packages/opengsync-worker/pyproject.toml ./packages/opengsync-worker/
 RUN uv sync --frozen --no-install-project
 
