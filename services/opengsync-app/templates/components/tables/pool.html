@@ -26,7 +26,7 @@
                     </a>
                 </td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(pool.library_types) }}</td>
-                <td>{{ pool.status.icon }} {{ pool.status.name }}</td>
+                <td>{{ pool.status.icon }} {{ pool.status.label }}</td>
                 <td>{{ pool.type.display_name }}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=pool.owner_id) }}">{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></a></td>
                 <td>{{ pool.num_libraries }}</td>

@@ -6,7 +6,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ group.name }} <span {{ tooltip(group.type.name, position="right") }}>{{ group.type.icon }}</span></h1>
+            <h1>{{ group.name }} <span {{ tooltip(group.type.label, position="right") }}>{{ group.type.icon }}</span></h1>
         </div>
         <div class="page-controls">
             {% if can_add_users %}

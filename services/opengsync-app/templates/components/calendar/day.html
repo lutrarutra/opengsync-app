@@ -8,7 +8,7 @@
         {% for event in events %}
             <li>
                 <div>
-                    <h5>{{ event.timestamp_str("%H:%M") }} - {{ event.type.name }}</h5>
+                    <h5>{{ event.timestamp_str("%H:%M") }} - {{ event.type.label }}</h5>
                 </div>
                 <div>
                     {% if event.type == EventType.SAMPLE_SUBMISSION %}

@@ -192,7 +192,7 @@
                         {% for library in lab_prep.libraries %}
                             <tr>
                                 <th scope="row">{{ library.name }}</th>
-                                <td>{{ library.type.name }}</td>
+                                <td>{{ library.type.label }}</td>
                                 <td>{% if library.protocol %}{{ library.protocol.name }}{% else %}<span class="text-muted">Not Selected</span>{% endif %}</td>
                             </tr>
                             {% endfor %}

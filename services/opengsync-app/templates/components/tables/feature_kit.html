@@ -28,7 +28,7 @@
                         {"type": "copy", "value": feature_kit.name, "label": "Copy Name"},
                     ])
                 }}><a href="{{ url_for('kits_page.feature_kit', feature_kit_id=feature_kit.id) }}">{{ feature_kit.name }}</a></td>
-                <td>{{ feature_kit.type.name }}</td>
+                <td>{{ feature_kit.type.label }}</td>
             </tr>
             {% endfor %}
         </tbody>

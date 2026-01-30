@@ -21,7 +21,7 @@
                 <th scope="row">{{ index_kit.id }}</th>
                 <td  class="cm-callback" {{ context_menu([{"type": "copy", "value": index_kit.identifier, "label": "Copy Identifier",}]) }}><a href="{{ url_for('kits_page.index_kit', index_kit_id=index_kit.id) }}">{{ index_kit.identifier }}</a></td>
                 <td  class="cm-callback" {{ context_menu([{"type": "copy", "value": index_kit.name, "label": "Copy Name",}]) }}><a href="{{ url_for('kits_page.index_kit', index_kit_id=index_kit.id) }}">{{ index_kit.name }}</a></td>
-                <td>{{ index_kit.type.name }}</td>
+                <td>{{ index_kit.type.label }}</td>
                 <td>
                     {% for protocol in index_kit.supported_protocols %}
                     <span class="badge" {{ tooltip(protocol.name) }}>{{ protocol.abbreviation }}</span>

@@ -158,18 +158,18 @@
             <div class="tab-pane fade" id="form-tab-form-assay" role="tabpanel" tabindex="2">
                 <ul>
                     {% for service_type in ServiceType.as_list() %}
-                    <li><b>{{ service_type.name }}</b> {% if service_type.platform %}<span class="desc">{{ service_type.platform }}</span>{% endif %}</li>
+                    <li><b>{{ service_type.label }}</b> {% if service_type.platform %}<span class="desc">{{ service_type.platform }}</span>{% endif %}</li>
                     Library Types:
                     <ul class="h-list" style="width: 60%; padding-left: 15px;">
                         {% for library_type in service_type.library_types %}
-                        <li><span {{ tooltip(library_type.name) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
+                        <li><span {{ tooltip(library_type.label) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
                         {% endfor %}
                     </ul>
                     {% if service_type.optional_library_types | length %}
                     Optional Assays:
                     <ul class="h-list" style="width: 60%; padding-left: 15px;">
                         {% for library_type in service_type.optional_library_types %}
-                        <li><span {{ tooltip(library_type.name) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
+                        <li><span {{ tooltip(library_type.label) }} style="cursor: help;" class="text-muted">{{ library_type.abbreviation }}</span></li>
                         {% endfor %}
                     </ul>
                     {% endif %}

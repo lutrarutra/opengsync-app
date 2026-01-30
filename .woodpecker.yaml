@@ -22,12 +22,6 @@ steps:
         from_secret: POSTGRES_PORT
       POSTGRES_HOST:
         from_secret: POSTGRES_HOST
-      GITEA_CLIENT_ID:
-        from_secret: GITEA_CLIENT_ID
-      GITEA_CLIENT_SECRET:
-        from_secret: GITEA_CLIENT_SECRET
-      WOODPECKER_AGENT_SECRET:
-        from_secret: WOODPECKER_AGENT_SECRET
       SECRET_KEY:
         from_secret: SECRET_KEY
       PGADMIN_EMAIL:

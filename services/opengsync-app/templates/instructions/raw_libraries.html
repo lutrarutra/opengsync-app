@@ -19,7 +19,7 @@
             <b>Library type:</b>
             <div>
                 {% for library_type in LibraryType.as_list() %}
-                <span {{ tooltip(library_type.name) }} style="cursor: help;" class="badge bg-cemm-blue">{{ library_type.abbreviation }}</span>
+                <span {{ tooltip(library_type.label) }} style="cursor: help;" class="badge bg-cemm-blue">{{ library_type.abbreviation }}</span>
                 {% endfor %}
             </div>
         </li>

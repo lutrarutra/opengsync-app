@@ -8,7 +8,7 @@
             <div class="comment-header">
                 <p class="text title">
                 {{ comment.author.role.icon | safe }} {{ comment.author.name }}
-                <span class="desc">{{ comment.author.role.name }}</span>
+                <span class="desc">{{ comment.author.role.label }}</span>
             </p>
                 <p class="text text-muted">{{ comment.timestamp_str() }}</p>
             </div>

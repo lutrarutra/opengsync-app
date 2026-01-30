@@ -8,7 +8,7 @@
             <button class="nav-link {% if loop.index0 == 0 %}active{% endif %}" data-bs-toggle="tab"
             data-bs-target="#file-{{ file.id }}-tab" type="button" role="tab"
             aria-controls="file-{{ file.id }}-tab" aria-selected="true">
-            {{ file.type.name if file.type.name != "Custom" else file.name }}</button>
+            {{ file.type.label if file.type.label != "Custom" else file.name }}</button>
         </li>
         {% endfor %}
     </ul>

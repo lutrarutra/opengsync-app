@@ -146,7 +146,7 @@
                         <tr onclick="remove_sample({{sample.id}});" id="selected-sample-row-{{ sample.id }}" class="sample-row selected">
                             <th scope="row">{{ sample.id }}</th>
                             <td>{{ sample.name }}</td>
-                            <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
+                            <td>{% if sample.status %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
                             <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
                             {% if workflow == "qubit_measure" %}
                             <td>
@@ -194,11 +194,11 @@
                             <th scope="row">{{ library.id }}</th>
                             <td>{{ library.name }}</td>
                             <td>
-                                <span {{ tooltip(library.type.name) }}>
+                                <span {{ tooltip(library.type.label) }}>
                                     {{ library.type.abbreviation }}
                                 </span>
                             </td>
-                            <td>{{ library.status.name }} {{ library.status.icon }}</td>
+                            <td>{{ library.status.label }} {{ library.status.icon }}</td>
                             <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
                             {% if workflow == "qubit_measure" %}
                             <td>
@@ -245,7 +245,7 @@
                         <tr onclick="remove_pool({{ pool.id }});" id="selected-pool-row-{{ pool.id }}" class="pool-row">
                             <th scope="row">{{ pool.id }}</th>
                             <td>{{ pool.name }}</td>
-                            <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
+                            <td>{{ pool.status.label }} {{ pool.status.icon }}</td>
                             <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                             {% if workflow == "qubit_measure" %}
                             <td>

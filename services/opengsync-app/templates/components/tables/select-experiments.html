@@ -44,7 +44,7 @@
             <tr id="experiment-row-{{ experiment.id }}" data-id="{{ experiment.id }}" class="experiment-row">
                 <th scope="row">{{ experiment.id }}</th>
                 <td>{{ experiment.name }}</td>
-                <td>{{ experiment.status.name }} {{ experiment.status.icon | safe }}</td>
+                <td>{{ experiment.status.label }} {{ experiment.status.icon | safe }}</td>
                 <td>{{ experiment.workflow.display_name }}</td>
             </tr>
             {% endfor %}

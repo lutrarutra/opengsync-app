@@ -24,7 +24,7 @@
                         {"type": "copy", "value": group.name, "label": "Copy Name"},
                     ])
                 }}><a href="{{ url_for('groups_page.group', group_id=group.id) }}">{{ group.name }}</a></td>
-                <td>{{ group.type.icon }} {{ group.type.name }}</td>
+                <td>{{ group.type.icon }} {{ group.type.label }}</td>
                 <td>{{ group.num_users }}</td>
                 <td>{{ group.num_seq_requests }}</td>
                 <td>{{ group.num_projects }}</td>

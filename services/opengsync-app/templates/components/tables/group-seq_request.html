@@ -24,7 +24,7 @@
                 <th scope="row">{{ seq_request.id }}</th>
                 <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, from='group@' + group.id | string) }}">{{ seq_request.name }}</a></td>
                 <td><a href="{{ url_for('users_page.user', user_id=seq_request.requestor_id, from='group@' + group.id | string) }}">{{ seq_request.requestor.name }} <span class="desc">{{ "me" if current_user.id == seq_request.requestor_id }}</span></a></td>
-                <td>{{ seq_request.status.name }} {{ seq_request.status.icon | safe }}</td>
+                <td>{{ seq_request.status.label }} {{ seq_request.status.icon | safe }}</td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(seq_request.library_types) }}</td>
                 <td>{{ seq_request.submission_type.abbreviation }}</td>
                 <td>{{ seq_request.timestamp_submitted_str() }}</td>

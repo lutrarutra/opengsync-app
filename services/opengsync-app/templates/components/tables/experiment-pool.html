@@ -15,7 +15,7 @@
         <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;"
         hx-get="{{ url_for('dist_reads_workflow.begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">
             <div class="progress-title">
-                <b>Flowcell</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; {{ m_reads_used | int }}/{{ experiment.flowcell_type.max_m_reads }} Million Reads)
+                <b>Flowcell</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.label }}</b> &mdash; {{ m_reads_used | int }}/{{ experiment.flowcell_type.max_m_reads }} Million Reads)
             </div>
             <div class="progress-bar progress-bar-striped text-dark {% if reads_used_pct <= 100 %}bg-cemm-blue{% else %}bg-cemm-red{% endif %}" style="width: {{ reads_used_pct }}%;">
             </div>  
@@ -27,7 +27,7 @@
         <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;"
         hx-get="{{ url_for('dist_reads_workflow.begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">
             <div class="progress-title">
-                <b>Lane {{ lane.number }}</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.name }}</b> &mdash; {{ m_reads_used | int }}/{{ experiment.flowcell_type.max_m_reads_per_lane }} Million Reads)
+                <b>Lane {{ lane.number }}</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.label }}</b> &mdash; {{ m_reads_used | int }}/{{ experiment.flowcell_type.max_m_reads_per_lane }} Million Reads)
             </div>
             <div class="progress-bar progress-bar-striped text-dark {% if reads_used_pct <= 100 %}bg-cemm-blue{% else %}bg-cemm-red{% endif %}" style="width: {{ reads_used_pct }}%;">
             </div>  
@@ -105,7 +105,7 @@
                     </span>
                 </td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(pool.library_types) }}</td>
-                <td>{{ pool.status.icon }} {{ pool.status.name }}</td>
+                <td>{{ pool.status.icon }} {{ pool.status.label }}</td>
                 <td>
                     <div class="quantity-container" {{ tooltip("Planned / Requested") }}>
                         <div class="value">{{ pool.reads_planned() | int }}/{{ pool.num_m_reads_requested | int if pool.num_m_reads_requested }}</div>

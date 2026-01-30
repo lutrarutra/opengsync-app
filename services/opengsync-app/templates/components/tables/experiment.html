@@ -27,7 +27,7 @@
                         {"type": "copy", "value": experiment.name, "label": "Copy Name"},
                     ])
                 }}><a href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}">{{ experiment.name }}</a></td>
-                <td>{{ experiment.status.icon | safe }} {{ experiment.status.name }}</td>
+                <td>{{ experiment.status.icon | safe }} {{ experiment.status.label }}</td>
                 <td class="x-scroll-cell">
                     <div class="scroll-container">
                     {% for pool in experiment.pools %}

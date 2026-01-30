@@ -7,7 +7,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %} <span class="desc">{{ pool.status.name }} {{ pool.status.icon }}</span></h1>
+            <h1>{{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %} <span class="desc">{{ pool.status.label }} {{ pool.status.icon }}</span></h1>
         </div>
         <div class="page-controls">
             <span {% if not is_editable %}
@@ -309,7 +309,7 @@
                                     {{ merged_pool.name }}{% if merged_pool.clone_number > 0 %}<sup class="clone-number">(re:{{ merged_pool.clone_number }})</sup>{% endif %}
                                 </a>
                             </td>
-                            <td>{{ merged_pool.status.icon }} {{ merged_pool.status.name }}</td>
+                            <td>{{ merged_pool.status.icon }} {{ merged_pool.status.label }}</td>
                             <td>{{ merged_pool.type.display_name }}</td>
                             <td>{{ merged_pool.owner.name }}</td>
                         </tr>
