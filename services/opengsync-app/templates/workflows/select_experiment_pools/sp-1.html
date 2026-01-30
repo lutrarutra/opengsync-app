@@ -48,7 +48,7 @@
                         <tr onclick="select_pool({{ pool.id }});" id="selected-pool-row-{{ pool.id }}" data-id="{{ pool.id }}" class="pool-row selected">
                             <th scope="row">{{ pool.id }}</th>
                             <td>{{ pool.name }}</td>
-                            <td>{{ pool.status.name }} {{ pool.status.icon }}</td>
+                            <td>{{ pool.status.label }} {{ pool.status.icon }}</td>
                             <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                             <td>
                                 <div class="quantity-container">

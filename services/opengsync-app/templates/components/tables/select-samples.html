@@ -53,7 +53,7 @@
             <tr id="sample-row-{{ sample.id }}" data-id="{{ sample.id }}" class="sample-row">
                 <th scope="row">{{ sample.id }}</th>
                 <td>{{ sample.name }}</td>
-                <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
+                <td>{% if sample.status %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
                 <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
                 {% if workflow == "qubit_measure" %}
                 <td>

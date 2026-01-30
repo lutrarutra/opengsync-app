@@ -29,7 +29,7 @@
                     </span>
                 </th>
                 <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, from='project@' + project.id | string) }}">{{ seq_request.name }}</a></td>
-                <td>{{ seq_request.status.icon }} {{ seq_request.status.name }}</td>
+                <td>{{ seq_request.status.icon }} {{ seq_request.status.label }}</td>
                 <td>{{ seq_request.timestamp_submitted_str() }}</td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(seq_request.library_types) }}</td>
                 <td>{{ seq_request.num_libraries }}</td>

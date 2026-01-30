@@ -7,7 +7,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ seq_run.experiment_name }} <span class="desc">{{ seq_run.status.name }} {{ seq_run.status.icon }}</span></h1>
+            <h1>{{ seq_run.experiment_name }} <span class="desc">{{ seq_run.status.label }} {{ seq_run.status.icon }}</span></h1>
         </div>
         <div class="page-controls">
         </div>
@@ -48,7 +48,7 @@
                 {{ metadata_group("Flow Cell ID", seq_run.flowcell_id, class="col-3") }}
             </div>
             <div class="row">
-                {{ metadata_group("Read Type", seq_run.read_type.name + " " + seq_run.read_type.icon, class="col-3") }}
+                {{ metadata_group("Read Type", seq_run.read_type.label + " " + seq_run.read_type.icon, class="col-3") }}
                 {{ metadata_group("RTA Version", seq_run.rta_version, class="col-3") }}
                 {{ metadata_group("Recipe Version", seq_run.recipe_version, class="col-3") }}
                 {{ metadata_group("Flow Cell Mode", seq_run.flowcell_mode, class="col-2") }}

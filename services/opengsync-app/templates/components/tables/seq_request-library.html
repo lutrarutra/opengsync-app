@@ -53,12 +53,12 @@
                 {% endif %}
                 </td>
                 <td>
-                    <span {{ tooltip(library.type.name) }}>
+                    <span {{ tooltip(library.type.label) }}>
                         {{ library.type.abbreviation }}{% if library.mux_type %}<sup class="mux-type">[{{ library.mux_type.abbreviation }}]</sup>{% endif %}{% if library.nuclei_isolation %}<sup class="cell-type">[ncl]</sup>{% endif %}
                     </span>
                 </td>
                 <td>
-                    {{ library.status.icon }} {{ library.status.name }}
+                    {{ library.status.icon }} {{ library.status.label }}
                 </td>
                 <td class="x-scroll-cell">
                     {{ library_index_cell(library) }}

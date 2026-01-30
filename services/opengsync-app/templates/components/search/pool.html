@@ -9,7 +9,7 @@
         aria-controls="{{ field_name }}">
             <span class="search-select-header"></span>
             <span class="search-select-name">{{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}</span>
-            <span class="search-select-desc">{{ pool.status.name }} {{ pool.status.icon }}</span>
+            <span class="search-select-desc">{{ pool.status.label }} {{ pool.status.icon }}</span>
         </a>
     </li>
     {% endfor %}

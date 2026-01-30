@@ -5,7 +5,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1><b>[{{ feature_kit.identifier }}]</b> {{ feature_kit.name }} <span class="desc">{{ feature_kit.type.name }}</span></h1>
+            <h1><b>[{{ feature_kit.identifier }}]</b> {{ feature_kit.name }} <span class="desc">{{ feature_kit.type.label }}</span></h1>
         </div>
         <div class="page-controls">
             <a type="button" class="btn btn-primary" href="{{ url_for('kits_page.export_features', feature_kit_id=feature_kit.id) }}">Export</a>

@@ -19,7 +19,7 @@
             <tr>
                 <th scope="row">{{ seq_request.id }}</th>
                 <td><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, from='user@' + user.id | string) }}">{{ seq_request.name }}</a></td>
-                <td>{{ seq_request.status.icon }} {{ seq_request.status.name }}</td>
+                <td>{{ seq_request.status.icon }} {{ seq_request.status.label }}</td>
                 <td>{{ seq_request.timestamp_submitted_str() }}</td>
                 <td>{{ seq_request.num_libraries }}</td>
             </tr>

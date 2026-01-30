@@ -21,7 +21,7 @@
                 <th scope="row">{{ project.id }}</th>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id, from='group@' + group.id | string) }}">{{ project.identifier or "" }}</a></td>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id, from='group@' + group.id | string) }}">{{ project.title }}</a></td>
-                <td>{{ project.status.name }} {{ project.status.icon | safe }}</td>
+                <td>{{ project.status.label }} {{ project.status.icon | safe }}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=project.owner_id, from='group@' + group.id | string) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></a></td>
                 <td>{{ project.num_samples }}</td>
             </tr>

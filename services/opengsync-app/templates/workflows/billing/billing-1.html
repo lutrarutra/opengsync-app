@@ -55,7 +55,7 @@
                         class="experiment-row selected">
                             <th scope="row">{{ experiment.id }}</th>
                             <td>{{ experiment.name }}</td>
-                            <td>{{ experiment.status.name }} {{ experiment.status.icon }}</td>
+                            <td>{{ experiment.status.label }} {{ experiment.status.icon }}</td>
                             <td>{{ experiment.workflow.display_name }}</td>
                         </tr>
                     {% endfor %}

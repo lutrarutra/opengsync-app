@@ -18,7 +18,7 @@ class ExtendedEnum(enum.IntEnum):
             field_name = field.name
             field_value = getattr(data, field_name)
             if field_name == 'name':
-                setattr(obj, 'label', field_value)
+                setattr(obj, 'label', field_value.replace("_", " ").title())
             else:
                 setattr(obj, field_name, field_value)
         return obj

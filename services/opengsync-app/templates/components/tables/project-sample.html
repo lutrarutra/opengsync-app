@@ -18,7 +18,7 @@
             <tr>
                 <th scope="row">{{ sample.id }}</th>
                 <td><a href="{{ url_for('samples_page.sample', sample_id=sample.id, from='project@' + project.id | string) }}">{{ sample.name }}</a></td>
-                <td>{% if sample.status %}{{ sample.status.name }} {{ sample.status.icon }}{% endif %}</td>
+                <td>{% if sample.status %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=sample.owner_id, from='project@' + project.id | string) }}">{{ sample.owner.name }}{% if current_user.id == sample.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
                 <td>{{ sample.num_libraries }}</td>
             </tr>

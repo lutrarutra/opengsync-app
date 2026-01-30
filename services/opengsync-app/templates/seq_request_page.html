@@ -11,7 +11,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ seq_request.name }} <span class="desc">{{ seq_request.submission_type.name }}</span></h1>
+            <h1>{{ seq_request.name }} <span class="desc">{{ seq_request.submission_type.label }}</span></h1>
         </div>
         <div class="page-controls">
             {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.ACCEPTED %}
@@ -420,7 +420,7 @@
                 <h4>Technical Requirements</h4>
                 <div class="row">
                     {{ metadata_group("Submitted Time", seq_request.timestamp_submitted_str(), class="col-3") }}
-                    {{ metadata_group("Sequencing Type (SE/PE)", seq_request.read_type.name, class="col-3") }}
+                    {{ metadata_group("Sequencing Type (SE/PE)", seq_request.read_type.label, class="col-3") }}
                     {{ metadata_group("Read Length", seq_request.read_length, class="col-3") }}
                     {{ metadata_group("# Lanes", seq_request.num_lanes, class="col-3") }}
                 </div>
@@ -543,7 +543,7 @@
                         {{ metadata_group_email_link("Recipient", link.email, class="col") }}
                     </div>
                     <div class="col-4">
-                        {{ metadata_group("Status", link.status.name + " " + link.status.icon, class="col") }}
+                        {{ metadata_group("Status", link.status.label + " " + link.status.icon, class="col") }}
                     </div>
                     <div class="col-1 remove-btn-container">
                         <span

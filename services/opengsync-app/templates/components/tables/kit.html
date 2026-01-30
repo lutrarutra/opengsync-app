@@ -43,7 +43,7 @@
                     href="{{ url_for('kits_page.kit', kit_id=kit.id) }}"
                     {% endif %}>{{ kit.name }}</a>
                 </td>
-                <td>{{ kit.kit_type.name }}</td>
+                <td>{{ kit.kit_type.label }}</td>
             </tr>
             {% endfor %}
         </tbody>
