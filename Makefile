@@ -1,7 +1,17 @@
 # Error: "*** missing separator." -> replace spaces with tabs
 
-VERSION := $(shell git describe --tags --always)
-COMPOSE_DEV := docker compose -p opengsync-dev -f compose.dev.yaml
+VERSION := $(shell git describe --tags --abbrev=0)
+OVERRIDE_FILE := $(wildcard compose.override.yaml)
+
+# If OVERRIDE_FILE is not empty, add the -f flag
+ifdef OVERRIDE_FILE
+    OVERRIDE_FLAG := -f $(OVERRIDE_FILE)
+else
+    OVERRIDE_FLAG :=
+endif
+
+COMPOSE_DEV := docker compose -p opengsync-dev -f compose.dev.yaml $(OVERRIDE_FLAG)
+COMPOSE_PROD := docker compose -p opengsync -f compose.prod.yaml $(OVERRIDE_FLAG)
 
 dev-build:
 	$(COMPOSE_DEV) build --build-arg VERSION=$(VERSION)
@@ -22,3 +32,24 @@ dev-stop:
 	$(COMPOSE_DEV) stop
 
 debug: dev-build dev-run dev-logs
+
+
+prod-build:
+	$(COMPOSE_PROD) build --build-arg VERSION=$(VERSION)
+
+prod-build-logs:
+	$(COMPOSE_PROD) build --progress=plain --build-arg VERSION=$(VERSION)
+
+prod-run:
+	$(COMPOSE_PROD) up -d
+
+prod-logs:
+	$(COMPOSE_PROD) logs -f opengsync-app
+
+prod-logs-all:
+	$(COMPOSE_PROD) logs -f
+
+prod-stop:
+	$(COMPOSE_PROD) stop
+
+deploy: prod-build prod-run
