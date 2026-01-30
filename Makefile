@@ -10,8 +10,8 @@ else
     OVERRIDE_FLAG :=
 endif
 
-COMPOSE_DEV := docker compose -p opengsync-dev -f compose.dev.yaml $(OVERRIDE_FLAG)
-COMPOSE_PROD := docker compose -p opengsync -f compose.prod.yaml $(OVERRIDE_FLAG)
+COMPOSE_DEV := docker compose -p opengsync-dev -f compose.dev.yaml $(OVERRIDE_FLAG) -p opengsync-dev
+COMPOSE_PROD := docker compose -p opengsync -f compose.yaml $(OVERRIDE_FLAG) -p opengsync-prod
 
 dev-build:
 	$(COMPOSE_DEV) build --build-arg VERSION=$(VERSION)
@@ -20,7 +20,8 @@ dev-build-logs:
 	$(COMPOSE_DEV) build --progress=plain --build-arg VERSION=$(VERSION)
 
 dev-run:
-	$(COMPOSE_DEV) up -d
+	source .env
+	$(COMPOSE_DEV) --env-file .env up -d --remove-orphans
 
 dev-logs:
 	$(COMPOSE_DEV) logs -f opengsync-app
@@ -41,7 +42,7 @@ prod-build-logs:
 	$(COMPOSE_PROD) build --progress=plain --build-arg VERSION=$(VERSION)
 
 prod-run:
-	$(COMPOSE_PROD) up -d
+	$(COMPOSE_PROD) --env-file .env up -d --remove-orphans --wait
 
 prod-logs:
 	$(COMPOSE_PROD) logs -f opengsync-app
