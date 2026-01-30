@@ -6,6 +6,29 @@
     }
 }
 
+.invalid-feedback-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 25px;
+    max-height: 100px;
+    overflow-y: auto;
+    padding-top: 1px;
+    width: 100%;
+    overflow-x: auto;
+
+    p {
+        margin: 0;
+        padding: 0;
+        height: 25px;
+        vertical-align: middle;
+        width: 100%;
+        white-space: nowrap;
+        text-wrap: nowrap;
+        color: var(--color-danger);
+        font-size: 14px;
+    }
+}
+
 input.disabled,
 textarea.disabled {
     background-color: var(--bs-secondary-bg);
