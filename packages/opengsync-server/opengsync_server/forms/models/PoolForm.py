@@ -153,6 +153,10 @@ class PoolForm(HTMXFlaskForm):
             original_pool_id=self.pool.original_pool_id if self.pool.original_pool_id is not None else self.pool.id,
         )
 
+        pool.ba_report_id = self.pool.ba_report_id
+        pool.avg_fragment_size = self.pool.avg_fragment_size
+        pool.qubit_concentration = self.pool.qubit_concentration
+
         for dilution in self.pool.dilutions:
             pool.dilutions.append(models.PoolDilution(
                 pool_id=pool.id,

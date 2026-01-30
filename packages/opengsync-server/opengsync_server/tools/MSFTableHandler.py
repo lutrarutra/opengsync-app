@@ -9,7 +9,7 @@ class MSFTableHandler:
         self.r = msf_cache
         self.steps = steps
         self.steps.reverse()
-        self.current_step = steps[0]
+        self.current_step = steps[-1]
 
     def key(self, step_name: str, table_name: str) -> str:
         return self.template.format(step=step_name, table=table_name)
@@ -29,7 +29,12 @@ class MSFTableHandler:
         self.__tables[key] = table
         self.r.set_table(self.key(self.current_step, key), table)
 
-    def get(self, key: str) -> pd.DataFrame | None:
+    def get(self, key: str, step: str | None = None) -> pd.DataFrame | None:
+        if step is not None:
+            try:
+                return self.r.get_table(self.key(step, key))
+            except KeyError:
+                return None
         try:
             return self[key]
         except KeyError:

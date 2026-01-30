@@ -104,7 +104,7 @@ class SpreadsheetInput(FlaskForm):
 
         for label, column in self.columns.items():
             if column.type == "text" or column.type == "dropdown":
-                self.__df[label] = self.__df[label].astype(pd.StringDtype())
+                self.__df[label] = self.__df[label].astype(str)
 
         if len(self.__df) == 0 and not self.can_be_empty:
             self._errors = ["Spreadsheet is empty.",]
@@ -114,7 +114,7 @@ class SpreadsheetInput(FlaskForm):
             if isinstance(column, CategoricalDropDown):
                 self.__df[label] = self.__df[label].astype(object)
             elif isinstance(column, TextColumn):
-                self.__df[label] = self.__df[label].astype(pd.StringDtype())
+                self.__df[label] = self.__df[label].astype(str)
             elif isinstance(column, DropdownColumn):
                 self.__df[label] = self.__df[label].astype(object)
         
@@ -156,7 +156,7 @@ class SpreadsheetInput(FlaskForm):
         
         for label, column in self.columns.items():
             if isinstance(column, TextColumn):
-                self.__df[label] = self.__df[label].astype(pd.StringDtype())
+                self.__df[label] = self.__df[label].astype(str)
             elif isinstance(column, IntegerColumn):
                 self.__df[label] = self.__df[label].astype(pd.Int64Dtype())
             elif isinstance(column, FloatColumn):

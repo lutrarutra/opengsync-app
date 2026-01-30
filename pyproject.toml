@@ -15,7 +15,7 @@ dependencies = [
     "opengsync-api",
 
     "numpy >= 2.2",
-    "pandas >= 2.3, < 3.0",
+    "pandas >= 3.0",
     "loguru >= 0.7",
     "psycopg[binary] >= 3.2",
     "SQLAlchemy >= 2.0",

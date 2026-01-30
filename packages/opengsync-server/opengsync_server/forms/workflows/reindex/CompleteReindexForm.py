@@ -1,8 +1,4 @@
-import os
-
 import pandas as pd
-import openpyxl
-from openpyxl.utils import get_column_letter
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
@@ -11,8 +7,7 @@ from opengsync_db import models
 from opengsync_db.categories import IndexType, BarcodeOrientation
 
 from .... import logger, tools, db
-from ....core import exceptions, runtime
-from ....tools import utils
+from ....core import exceptions
 from ...MultiStepForm import MultiStepForm
 
 
@@ -41,6 +36,7 @@ class CompleteReindexForm(MultiStepForm):
         self.barcode_table = self.tables["barcode_table"]
         self.barcode_table = self.barcode_table[self.barcode_table["index_well"] != "del"]
         self.barcode_table["orientation_id"] = self.barcode_table["orientation_i7_id"]
+        self.debug()
         self.barcode_table = tools.check_indices(self.barcode_table)
 
         if (tenx_atac_barcode_table := self.tables.get("tenx_atac_barcode_table")) is not None:
