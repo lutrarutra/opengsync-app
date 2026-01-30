@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
-from ..categories import FeatureType, FeatureTypeEnum
+from ..categories import FeatureType, FeatureType
 
 if TYPE_CHECKING:
     from .FeatureKit import FeatureKit
@@ -30,7 +30,7 @@ class Feature(Base):
     sortable_fields: ClassVar[list[str]] = ["id", "name", "target_name", "target_id", "feature_kit_id"]
 
     @property
-    def type(self) -> FeatureTypeEnum:
+    def type(self) -> FeatureType:
         return FeatureType.get(self.type_id)
     
     def search_name(self) -> str:

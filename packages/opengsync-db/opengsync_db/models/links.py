@@ -7,7 +7,7 @@ from sqlalchemy.ext.mutable import MutableDict
 
 from .Base import Base
 
-from opengsync_db.categories import AffiliationType, AffiliationTypeEnum, DeliveryStatus, DeliveryStatusEnum
+from opengsync_db.categories import AffiliationType, AffiliationType, DeliveryStatus, DeliveryStatus
 
 if TYPE_CHECKING:
     from .Sample import Sample
@@ -56,11 +56,11 @@ class UserAffiliation(Base):
     sortable_fields: ClassVar[list[str]] = ["affiliation_type_id"]
 
     @property
-    def affiliation_type(self) -> AffiliationTypeEnum:
+    def affiliation_type(self) -> AffiliationType:
         return AffiliationType.get(self.affiliation_type_id)
     
     @affiliation_type.setter
-    def affiliation_type(self, value: AffiliationTypeEnum) -> None:
+    def affiliation_type(self, value: AffiliationType) -> None:
         self.affiliation_type_id = value.id
     
     def __str__(self) -> str:
@@ -139,11 +139,11 @@ class SeqRequestDeliveryEmailLink(Base):
     seq_request: Mapped["SeqRequest"] = relationship("SeqRequest", back_populates="delivery_email_links")
 
     @property
-    def status(self) -> DeliveryStatusEnum:
+    def status(self) -> DeliveryStatus:
         return DeliveryStatus.get(self.status_id)
     
     @status.setter
-    def status(self, value: DeliveryStatusEnum) -> None:
+    def status(self, value: DeliveryStatus) -> None:
         self.status_id = value.id
 
     def __str__(self) -> str:

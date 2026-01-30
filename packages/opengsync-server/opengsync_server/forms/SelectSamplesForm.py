@@ -8,8 +8,8 @@ from wtforms import StringField
 
 from opengsync_db import models
 from opengsync_db.categories import (
-    SampleStatusEnum, LibraryStatusEnum, PoolStatusEnum, SampleStatus, LibraryStatus, PoolStatus,
-    LibraryTypeEnum
+    SampleStatus, LibraryStatus, PoolStatus, SampleStatus, LibraryStatus, PoolStatus,
+    LibraryType
 )
 
 from .. import db, logger
@@ -75,10 +75,10 @@ class SelectSamplesForm(MultiStepForm):
         select_libraries: bool = False,
         select_pools: bool = False,
         select_lanes: bool = False,
-        sample_status_filter: Optional[list[SampleStatusEnum]] = None,
-        library_status_filter: Optional[list[LibraryStatusEnum]] = None,
-        library_type_filter: Optional[list[LibraryTypeEnum]] = None,
-        pool_status_filter: Optional[list[PoolStatusEnum]] = None,
+        sample_status_filter: Optional[list[SampleStatus]] = None,
+        library_status_filter: Optional[list[LibraryStatus]] = None,
+        library_type_filter: Optional[list[LibraryType]] = None,
+        pool_status_filter: Optional[list[PoolStatus]] = None,
         selected_samples: list[models.Sample] = [],
         selected_libraries: list[models.Library] = [],
         selected_pools: list[models.Pool] = [],

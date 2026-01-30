@@ -12,7 +12,7 @@ from sqlalchemy.ext.mutable import MutableDict
 
 from .Base import Base
 from .. import localize
-from ..categories import ProjectStatus, ProjectStatusEnum, LibraryType, LibraryTypeEnum
+from ..categories import ProjectStatus, ProjectStatus, LibraryType, LibraryType
 from . import links
 
 if TYPE_CHECKING:
@@ -89,7 +89,7 @@ class Project(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
-    def library_types(self) -> list[LibraryTypeEnum]:
+    def library_types(self) -> list[LibraryType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
@@ -286,11 +286,11 @@ class Project(Base):
         return self.title
     
     @property
-    def status(self) -> ProjectStatusEnum:
+    def status(self) -> ProjectStatus:
         return ProjectStatus.get(self.status_id)
     
     @status.setter
-    def status(self, value: ProjectStatusEnum):
+    def status(self, value: ProjectStatus):
         self.status_id = value.id
 
     @property

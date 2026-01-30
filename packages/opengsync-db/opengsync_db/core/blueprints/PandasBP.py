@@ -1232,7 +1232,7 @@ class PandasBP(DBBlueprint):
         return stats
     
     @DBBlueprint.transaction
-    def match_barcodes_to_kit(self, sequences: list[str], barcode_type: categories.BarcodeTypeEnum, index_type: categories.IndexTypeEnum | None = None) -> pd.DataFrame:
+    def match_barcodes_to_kit(self, sequences: list[str], barcode_type: categories.BarcodeType, index_type: categories.IndexType | None = None) -> pd.DataFrame:
         unique_sequences = list(set(sequences))
         num_sequences = len(unique_sequences)
 

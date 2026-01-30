@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class RunStatusEnum(DBEnum):
+    label: str
     icon: str
 
     @property
@@ -12,7 +13,9 @@ class RunStatusEnum(DBEnum):
         return self.icon
 
 
-class RunStatus(ExtendedEnum[RunStatusEnum], enum_type=RunStatusEnum):
+class RunStatus(ExtendedEnum):
+    label: str
+    icon: str
     IDLE = RunStatusEnum(0, "Idle", "⌛")
     RUNNING = RunStatusEnum(1, "Running", "🟢")
     FINISHED = RunStatusEnum(2, "Finished", "✅")

@@ -15,11 +15,11 @@ def generate_reset_token(user: models.User, serializer: URLSafeTimedSerializer) 
     return str(serializer.dumps({"id": user.id, "email": user.email, "hash": user.password}))
 
 
-def generate_registration_token(email: str, serializer: URLSafeTimedSerializer, role: cats.UserRoleEnum = cats.UserRole.CLIENT) -> str:
+def generate_registration_token(email: str, serializer: URLSafeTimedSerializer, role: cats.UserRole = cats.UserRole.CLIENT) -> str:
     return str(serializer.dumps({"email": email, "role": role.id}))
 
 
-def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) -> tuple[str, cats.UserRoleEnum] | None:
+def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) -> tuple[str, cats.UserRole] | None:
     try:
         data = serializer.loads(token, max_age=24 * 3600)
         email = data["email"]

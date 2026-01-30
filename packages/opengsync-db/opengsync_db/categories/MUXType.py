@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class MUXTypeEnum(DBEnum):
+    label: str
     abbreviation: str
     mux_columns: list[str]
 
@@ -13,7 +14,10 @@ class MUXTypeEnum(DBEnum):
         return str(self.id)
 
 
-class MUXType(ExtendedEnum[MUXTypeEnum], enum_type=MUXTypeEnum):
+class MUXType(ExtendedEnum):
+    label: str
+    abbreviation: str
+    mux_columns: list[str]
     CUSTOM = MUXTypeEnum(0, "Custom", "Custom", ["barcode"])
     TENX_OLIGO = MUXTypeEnum(1, "10X Oligo-based Cell Tagging (CMO/HTO/LMO..) Multiplexing", "Oligo", ["barcode", "read", "pattern"])
     TENX_ON_CHIP = MUXTypeEnum(2, "10X On-Chip Multiplexing", "OCM", ["barcode"])

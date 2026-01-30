@@ -6,7 +6,7 @@ from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import Query
 
 from ... import models, PAGE_LIMIT
-from ...categories import ProjectStatus, ProjectStatusEnum, AccessType, AccessTypeEnum, UserRole, LibraryTypeEnum
+from ...categories import ProjectStatus, ProjectStatus, AccessType, AccessType, UserRole, LibraryType
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 
@@ -19,9 +19,9 @@ class ProjectBP(DBBlueprint):
         seq_request_id: int | None = None,
         experiment_id: int | None = None,
         group_id: int | None = None,
-        status: Optional[ProjectStatusEnum] = None,
-        status_in: Optional[list[ProjectStatusEnum]] = None,
-        library_types_in: list[LibraryTypeEnum] | None = None,
+        status: Optional[ProjectStatus] = None,
+        status_in: Optional[list[ProjectStatus]] = None,
+        library_types_in: list[LibraryType] | None = None,
         user_id: int | None = None,
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
@@ -88,7 +88,7 @@ class ProjectBP(DBBlueprint):
         title: str, description: str, owner_id: int,
         identifier: str | None = None,
         group_id: int | None = None,
-        status: ProjectStatusEnum = ProjectStatus.DRAFT,
+        status: ProjectStatus = ProjectStatus.DRAFT,
         flush: bool = True
     ) -> models.Project:
         if group_id is not None:
@@ -134,9 +134,9 @@ class ProjectBP(DBBlueprint):
         seq_request_id: int | None = None,
         experiment_id: int | None = None,
         group_id: int | None = None,
-        status: Optional[ProjectStatusEnum] = None,
-        status_in: Optional[list[ProjectStatusEnum]] = None,
-        library_types_in: list[LibraryTypeEnum] | None = None,
+        status: Optional[ProjectStatus] = None,
+        status_in: Optional[list[ProjectStatus]] = None,
+        library_types_in: list[LibraryType] | None = None,
         user_id: int | None = None,
         title: str | None = None,
         id: int | None = None,
@@ -219,7 +219,7 @@ class ProjectBP(DBBlueprint):
         self.db.session.add(project)
     
     @DBBlueprint.transaction
-    def get_access_type(self, project: models.Project, user: models.User) -> AccessTypeEnum:
+    def get_access_type(self, project: models.Project, user: models.User) -> AccessType:
         if user.role == UserRole.DEACTIVATED:
             return AccessType.NONE
         if user.is_admin():

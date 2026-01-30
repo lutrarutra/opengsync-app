@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .links import ProtocolKitLink
-from ..categories import KitType, KitTypeEnum
+from ..categories import KitType, KitType
 from .Base import Base
 
 class Kit(Base):
@@ -29,11 +29,11 @@ class Kit(Base):
     }
 
     @property
-    def kit_type(self) -> KitTypeEnum:
+    def kit_type(self) -> KitType:
         return KitType.get(self.kit_type_id)
     
     @kit_type.setter
-    def kit_type(self, value: KitTypeEnum):
+    def kit_type(self, value: KitType):
         self.kit_type_id = value.id
 
     def search_value(self) -> int:

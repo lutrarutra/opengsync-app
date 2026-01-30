@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Kit import Kit
-from ..categories import IndexType, IndexTypeEnum, LabChecklistType, LabChecklistTypeEnum, KitType
+from ..categories import IndexType, IndexType, LabChecklistType, LabChecklistType, KitType
 
 
 if TYPE_CHECKING:
@@ -28,15 +28,15 @@ class IndexKit(Kit):
     }
 
     @property
-    def type(self) -> IndexTypeEnum:
+    def type(self) -> IndexType:
         return IndexType.get(self.type_id)
     
     @type.setter
-    def type(self, value: IndexTypeEnum):
+    def type(self, value: IndexType):
         self.type_id = value.id
     
     @property
-    def supported_protocols(self) -> list[LabChecklistTypeEnum]:
+    def supported_protocols(self) -> list[LabChecklistType]:
         return [LabChecklistType.get(protocol_id) for protocol_id in self.supported_protocol_ids]
     
     def supported_protocols_str(self, sep: str = ", ") -> str:

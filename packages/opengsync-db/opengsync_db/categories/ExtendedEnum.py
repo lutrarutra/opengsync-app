@@ -1,87 +1,115 @@
-from dataclasses import dataclass
-from typing import TypeVar, Generic, Type
-from collections import OrderedDict
-
-
-@dataclass(eq=False)
-class DBEnum():
+import enum
+import pandas as pd
+from dataclasses import dataclass, fields
+from typing import Any, TypeVar
+T = TypeVar("T", bound="ExtendedEnum")
+    
+class ExtendedEnum(enum.IntEnum):
     id: int
-    name: str
+    
+    def __new__(cls, data: Any):
+        dataclass_fields = fields(data)
+        if not dataclass_fields:
+            raise TypeError("ExtendedEnum value must be a dataclass instance")
+        value = getattr(data, dataclass_fields[0].name)
+        obj = int.__new__(cls, value)
+        obj._value_ = value
+        for field in dataclass_fields:
+            field_name = field.name
+            field_value = getattr(data, field_name)
+            if field_name == 'name':
+                setattr(obj, 'label', field_value)
+            else:
+                setattr(obj, field_name, field_value)
+        return obj
+    
+    def __arrow_value__(self):
+        return self.id
 
-    def __post_init__(self) -> None:
-        self.__class__.__hash__ = DBEnum.__hash__  # type: ignore
+    @classmethod
+    def _missing_(cls, value):
+        return cls.as_dict().get(value)  # type: ignore
+    
+    def __reduce_ex__(self, protocol):
+        return int, (self._value_,)
+
+    @classmethod
+    def to_categorical(cls, series: pd.Series) -> pd.Series:
+        return pd.Categorical(series, categories=list(cls), ordered=True)  # type: ignore
 
     def __str__(self) -> str:
-        return f"{self.display_name} [{self.id}]"
-    
+        return f"{self.__class__.__name__}[{self.name}]"
+    __repr__ = __str__
+
     @property
     def display_name(self) -> str:
-        return self.name
+        return getattr(self, 'label', self.name.replace("_", " ").title())
     
     @property
     def select_name(self) -> str:
-        return str(self.id)
+        return f"{self.id}"
     
-    def __lt__(self, other) -> bool:
-        return self.id < other.id
+    def check_type(self, other: Any) -> None:
+        if not isinstance(other, ExtendedEnum) and not isinstance(other, int):
+            raise TypeError(f"Cannot compare {self.__class__.__name__} with {type(other).__name__}")
+        if self.__class__ is not other.__class__ and not isinstance(other, int):
+            raise TypeError(f"Cannot compare {self.__class__.__name__} with {other.__class__.__name__}")
     
-    def __gt__(self, other) -> bool:
-        return self.id > other.id
-    
-    def __ge__(self, other) -> bool:
-        return self.id >= other.id
-    
-    def __le__(self, other) -> bool:
-        return self.id <= other.id
-
-    def __eq__(self, other) -> bool:
-        if not isinstance(other, DBEnum):
+    def __eq__(self, other: Any) -> bool:
+        if pd.isna(other):
             return False
-        return self.id == other.id and self.name == other.name
-    
-    def __hash__(self) -> int:
-        return hash(self.id)
-    
-    
-T = TypeVar("T")
-    
-    
-class ExtendedEnum(Generic[T]):
-    __enums__: dict[str, dict[int, T]] = {}
+        self.check_type(other)
+        return self.id == other.id if isinstance(other, ExtendedEnum) else self.id == other
 
-    def __init_subclass__(cls, enum_type: Type[DBEnum]) -> None:
-        for var in dir(cls):
-            if isinstance(getattr(cls, var), enum_type):
-                if cls.__name__ not in cls.__enums__:  # type: ignore
-                    cls.__enums__[cls.__name__] = {}  # type: ignore
-                cls.__enums__[cls.__name__][getattr(cls, var).id] = getattr(cls, var)  # type: ignore
+    def __lt__(self, other: Any) -> bool:
+        self.check_type(other)
+        return self.id < other.id if isinstance(other, ExtendedEnum) else self.id < other
 
-        cls.__enums__[cls.__name__] = OrderedDict(sorted(cls.__enums__[cls.__name__].items()))  # type: ignore
-        return super().__init_subclass__()
+    def __le__(self, other: Any) -> bool:
+        self.check_type(other)
+        return self.id <= other.id if isinstance(other, ExtendedEnum) else self.id <= other
+
+    def __gt__(self, other: Any) -> bool:
+        self.check_type(other)
+        return self.id > other.id if isinstance(other, ExtendedEnum) else self.id > other
+
+    def __ge__(self, other: Any) -> bool:
+        self.check_type(other)
+        return self.id >= other.id if isinstance(other, ExtendedEnum) else self.id >= other
+
+    @classmethod
+    def as_list(cls: type[T]) -> list[T]:
+        return list(cls)
+
+    @classmethod
+    def as_dict(cls: type[T]) -> dict[int, T]:
+        return {item.id: item for item in cls}
+
+    @classmethod
+    def as_tuples(cls: type[T]) -> list[tuple[int, T]]:
+        return [(item.id, item) for item in cls]
     
     @classmethod
-    def get(cls, id: int) -> T:
-        try:
-            return cls.__enums__[cls.__name__][id]  # type: ignore
-        except KeyError:
-            raise ValueError(f"Invalid {cls.__name__} id: {id}")
+    def names(cls: type[T]) -> list[str]:
+        return [item.display_name for item in cls]
     
-    @classmethod
-    def as_dict(cls) -> dict[int, T]:
-        return cls.__enums__[cls.__name__]  # type: ignore
-    
-    @classmethod
-    def as_list(cls) -> list[T]:
-        return list(cls.__enums__[cls.__name__].values())  # type: ignore
-    
-    @classmethod
-    def as_tuples(cls) -> list[tuple[int, T]]:
-        return [(e.id, e) for e in cls.as_list()]  # type: ignore
-        
     @classmethod
     def as_selectable(cls) -> list[tuple[int, str]]:
-        return [(e.id, e.display_name) for e in cls.as_list()]  # type: ignore
-
+        return [(item.id, item.display_name) for item in cls]
+    
     @classmethod
-    def names(cls) -> list[str]:
-        return [e.display_name for e in cls.as_list()]  # type: ignore
+    def get(cls: type[T], value: Any) -> T:
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, int):
+            member = cls._missing_(value)
+            if member is not None:
+                return member
+        raise ValueError(f"{value} is not a valid {cls.__name__}")
+    
+    def __hash__(self):
+        return hash(self.id)
+
+@dataclass(frozen=True)
+class DBEnum:
+    id: int

@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .Base import Base
-from ..categories import SequencerModel, SequencerModelEnum
+from ..categories import SequencerModel, SequencerModel
 
 
 class Sequencer(Base):
@@ -18,11 +18,11 @@ class Sequencer(Base):
     sortable_fields: ClassVar[list[str]] = ["id", "name", "model_id"]
 
     @property
-    def model(self) -> SequencerModelEnum:
+    def model(self) -> SequencerModel:
         return SequencerModel.get(self.model_id)
     
     @model.setter
-    def model(self, value: SequencerModelEnum):
+    def model(self, value: SequencerModel):
         self.model_id = value.id
     
     def search_name(self) -> str:

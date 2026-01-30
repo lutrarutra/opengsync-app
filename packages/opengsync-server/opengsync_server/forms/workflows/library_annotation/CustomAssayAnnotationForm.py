@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response, url_for
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, MUXType, LibraryTypeEnum
+from opengsync_db.categories import LibraryType, MUXType, LibraryType
 
 from .... import logger, db
 from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, DropdownColumn, CategoricalDropDown
@@ -70,7 +70,7 @@ class CustomAssayAnnotationFrom(MultiStepForm):
         duplicated = df.duplicated(subset=["sample_pool", "library_type_id"], keep=False)
         df["library_type"] = df["library_type_id"].map(LibraryType.get)
         for idx, row in df.iterrows():
-            library_type: LibraryTypeEnum = row["library_type"]
+            library_type: LibraryType = row["library_type"]
             if duplicated.at[idx]:
                 self.spreadsheet.add_error(idx, "library_type_id", DuplicateCellValue(f"Library type '{library_type.name}' is duplicated for sample pool '{row['sample_pool']}'"))
 
@@ -97,7 +97,7 @@ class CustomAssayAnnotationFrom(MultiStepForm):
             "sample_pool": [],
         }
 
-        def add_library(sample_pool: str, library_type: LibraryTypeEnum):
+        def add_library(sample_pool: str, library_type: LibraryType):
             library_name = f"{sample_pool}_{library_type.identifier}"
             
             library_table_data["library_name"].append(library_name)

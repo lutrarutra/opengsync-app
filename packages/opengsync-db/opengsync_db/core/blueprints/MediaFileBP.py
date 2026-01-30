@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.sql.base import ExecutableOption
 
-from ...categories import MediaFileTypeEnum
+from ...categories import MediaFileType
 from ... import models
 from ..DBBlueprint import DBBlueprint
 from .. import exceptions
@@ -12,7 +12,7 @@ from .. import exceptions
 class MediaFileBP(DBBlueprint):
     @DBBlueprint.transaction
     def create(
-        self, name: str, type: MediaFileTypeEnum,
+        self, name: str, type: MediaFileType,
         uploader_id: int, extension: str, size_bytes: int,
         uuid: str | None = None,
         seq_request_id: int | None = None,

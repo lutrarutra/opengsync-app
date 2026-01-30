@@ -1,10 +1,9 @@
 from dataclasses import dataclass
-
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
-
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class AccessTypeEnum(DBEnum):
+    label: str
     icon: str
     
     @property
@@ -12,7 +11,10 @@ class AccessTypeEnum(DBEnum):
         return self.icon
 
 
-class AccessType(ExtendedEnum[AccessTypeEnum], enum_type=AccessTypeEnum):
+class AccessType(ExtendedEnum):
+    label: str
+    icon: str
+    
     ADMIN = AccessTypeEnum(100, "Admin", "🤓")
     INSIDER = AccessTypeEnum(90, "Insider", "👥")
     OWNER = AccessTypeEnum(50, "Owner", "👑")

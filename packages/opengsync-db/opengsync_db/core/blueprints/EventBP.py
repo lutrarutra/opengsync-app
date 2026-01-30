@@ -3,7 +3,7 @@ import math
 from typing import Optional
 
 from ... import models, PAGE_LIMIT
-from ...categories import EventTypeEnum
+from ...categories import EventType
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 
@@ -11,7 +11,7 @@ from ..DBBlueprint import DBBlueprint
 class EventBP(DBBlueprint):
     @DBBlueprint.transaction
     def create(
-        self, title: str, timestamp_utc: datetime, type: EventTypeEnum,
+        self, title: str, timestamp_utc: datetime, type: EventType,
         user_id: int, note: str | None = None, flush: bool = True
     ) -> models.Event:
         event = models.Event(
@@ -34,8 +34,8 @@ class EventBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def find(
-        self, type: Optional[EventTypeEnum] = None,
-        type_in: Optional[list[EventTypeEnum]] = None,
+        self, type: Optional[EventType] = None,
+        type_in: Optional[list[EventType]] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,

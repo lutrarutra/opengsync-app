@@ -4,7 +4,7 @@ import smtplib
 
 from flask import Blueprint, jsonify, render_template
 
-from opengsync_db.categories import DataPathType, DataPathTypeEnum, LibraryType, ProjectStatus, DeliveryStatus
+from opengsync_db.categories import DataPathType, DataPathType, LibraryType, ProjectStatus, DeliveryStatus
 from opengsync_db import models
 
 from ...tools import utils
@@ -41,7 +41,7 @@ def get_real_path(share_path: str) -> str | None:
     return None
 
 
-def resolve_share_path(path: str, path_type: DataPathTypeEnum) -> tuple[str, DataPathTypeEnum]:
+def resolve_share_path(path: str, path_type: DataPathType) -> tuple[str, DataPathType]:
     path = Path(path).resolve().as_posix()
     
     if not Path(path).is_absolute():

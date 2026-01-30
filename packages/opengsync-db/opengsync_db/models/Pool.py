@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
 from . import links
-from ..categories import PoolStatus, PoolStatusEnum, PoolType, PoolTypeEnum, LibraryType, LibraryTypeEnum, MUXType, MUXTypeEnum
+from ..categories import PoolStatus, PoolStatus, PoolType, PoolType, LibraryType, LibraryType, MUXType, MUXType
 from .Experiment import Experiment
 
 if TYPE_CHECKING:
@@ -83,7 +83,7 @@ class Pool(Base):
     error_max_molarity: ClassVar[float] = 10.0
 
     @property
-    def mux_types(self) -> list[MUXTypeEnum]:
+    def mux_types(self) -> list[MUXType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             return list(set(library.mux_type for library in self.libraries if library.mux_type is not None))
         
@@ -118,7 +118,7 @@ class Pool(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
-    def library_types(self) -> list[LibraryTypeEnum]:
+    def library_types(self) -> list[LibraryType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
@@ -132,19 +132,19 @@ class Pool(Base):
         return [LibraryType.get(type_id) for (type_id,) in type_ids]
 
     @property
-    def status(self) -> PoolStatusEnum:
+    def status(self) -> PoolStatus:
         return PoolStatus.get(self.status_id)
     
     @status.setter
-    def status(self, value: PoolStatusEnum):
+    def status(self, value: PoolStatus):
         self.status_id = value.id
     
     @property
-    def type(self) -> PoolTypeEnum:
+    def type(self) -> PoolType:
         return PoolType.get(self.type_id)
     
     @type.setter
-    def type(self, value: PoolTypeEnum):
+    def type(self, value: PoolType):
         self.type_id = value.id
     
     @property

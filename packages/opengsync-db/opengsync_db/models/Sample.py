@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 
-from ..categories import SampleStatus, SampleStatusEnum, AttributeType, AttributeTypeEnum
+from ..categories import SampleStatus, SampleStatus, AttributeType, AttributeType
 from .Base import Base
 from . import links
 
@@ -29,7 +29,7 @@ class SampleAttribute:
     MAX_NAME_LENGTH: ClassVar[int] = 64
 
     @property
-    def type(self) -> AttributeTypeEnum:
+    def type(self) -> AttributeType:
         return AttributeType.get(self.type_id)
     
     @staticmethod
@@ -113,13 +113,13 @@ class Sample(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
-    def status(self) -> SampleStatusEnum | None:
+    def status(self) -> SampleStatus | None:
         if self.status_id is None:
             return None
         return SampleStatus.get(self.status_id)
     
     @status.setter
-    def status(self, value: SampleStatusEnum | None):
+    def status(self, value: SampleStatus | None):
         if value is None:
             self.status_id = None
         else:
@@ -155,7 +155,7 @@ class Sample(Base):
             return []
         return SampleAttribute.from_dict(self._attributes)
     
-    def set_attribute(self, key: str, value: Any, type: AttributeTypeEnum):
+    def set_attribute(self, key: str, value: Any, type: AttributeType):
         if self._attributes is None:
             self._attributes = {}
         self._attributes[key] = {"type_id": type.id, "value": value}

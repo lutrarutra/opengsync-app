@@ -11,7 +11,7 @@ from opengsync_db import models
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 from ... import PAGE_LIMIT
-from ...categories import UserRole, UserRoleEnum, AffiliationTypeEnum
+from ...categories import UserRole, UserRole, AffiliationType
 
 
 class UserBP(DBBlueprint):
@@ -19,7 +19,7 @@ class UserBP(DBBlueprint):
     def where(
         cls,
         query: Query,
-        role_in: Optional[list[UserRoleEnum]] = None,
+        role_in: Optional[list[UserRole]] = None,
         group_id: int | None = None,
         insider: bool | None = None,
         exclude_group_id: int | None = None,
@@ -64,7 +64,7 @@ class UserBP(DBBlueprint):
         first_name: str,
         last_name: str,
         hashed_password: str,
-        role: UserRoleEnum,
+        role: UserRole,
         flush: bool = True
     ) -> models.User:
         """Create a new user.
@@ -74,7 +74,7 @@ class UserBP(DBBlueprint):
             first_name (str): first name
             last_name (str): last name
             hashed_password (str): hashed password
-            role (UserRoleEnum): UserRoleEnum
+            role (UserRole): UserRole
             flush (bool, optional): flushes object to session. Defaults to True.
 
         Raises:
@@ -136,7 +136,7 @@ class UserBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        role_in: Optional[list[UserRoleEnum]] = None,
+        role_in: Optional[list[UserRole]] = None,
         group_id: int | None = None,
         exclude_group_id: int | None = None,
         name: str | None = None,
@@ -150,7 +150,7 @@ class UserBP(DBBlueprint):
         """Query users
 
         Args:
-            role_in (Optional[list[UserRoleEnum]], optional): filter users by role. Defaults to None.
+            role_in (Optional[list[UserRole]], optional): filter users by role. Defaults to None.
             group_id (int | None, optional): filter users by group. Defaults to None.
             exclude_group_id (int | None, optional): exclude users from group. Defaults to None.
             offset (int | None, optional): offset for paging. Defaults to None.
@@ -230,14 +230,14 @@ class UserBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query(
-        self, word: str, role_in: Optional[list[UserRoleEnum]] = None,
+        self, word: str, role_in: Optional[list[UserRole]] = None,
         only_insiders: bool = False, limit: int | None = PAGE_LIMIT
     ) -> list[models.User]:
         """Natural language search for users by first name and last name.
 
         Args:
             word (str): search word
-            role_in (Optional[list[UserRoleEnum]], optional): filter users by id. Defaults to None.
+            role_in (Optional[list[UserRole]], optional): filter users by id. Defaults to None.
             only_insiders (bool, optional): _description_. Defaults to False.
             limit (int | None, optional): _description_. Defaults to PAGE_LIMIT.
 
@@ -268,7 +268,7 @@ class UserBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query_with_email(
-        self, word: str, role_in: Optional[list[UserRoleEnum]] = None, limit: int | None = PAGE_LIMIT
+        self, word: str, role_in: Optional[list[UserRole]] = None, limit: int | None = PAGE_LIMIT
     ) -> list[models.User]:
         query = self.db.session.query(models.User)
 
@@ -290,7 +290,7 @@ class UserBP(DBBlueprint):
     @DBBlueprint.transaction
     def get_affiliations(
         self, user_id: int, limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        sort_by: str | None = None, descending: bool = False, affiliation_type: Optional[AffiliationTypeEnum] = None,
+        sort_by: str | None = None, descending: bool = False, affiliation_type: Optional[AffiliationType] = None,
         group_name: str | None = None,
         page: int | None = None
     ) -> tuple[list[models.links.UserAffiliation], int | None]:

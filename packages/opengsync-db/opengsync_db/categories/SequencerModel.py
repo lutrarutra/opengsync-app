@@ -3,16 +3,20 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class SequencerModelEnum(DBEnum):
+    label: str
     manufacturer: str
+    
 
     @property
     def display_name(self) -> str:
-        return f"{self.name} ({self.manufacturer})"
+        return f"{self.label} ({self.manufacturer})"
 
 
-class SequencerModel(ExtendedEnum[SequencerModelEnum], enum_type=SequencerModelEnum):
+class SequencerModel(ExtendedEnum):
+    label: str
+    manufacturer: str
     I_SEQ_100 = SequencerModelEnum(1, "iSeq 100", "Illumina")
     MINI_SEQ = SequencerModelEnum(2, "MiniSeq", "Illumina")
     MI_SEQ = SequencerModelEnum(3, "MiSeq", "Illumina")

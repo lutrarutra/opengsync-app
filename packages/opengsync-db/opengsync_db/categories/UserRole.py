@@ -3,13 +3,11 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class UserRoleEnum(DBEnum):
+    label: str
     icon: str
     insider: bool = False
-
-    def is_insider(self) -> bool:
-        return self.insider
     
     @property
     def select_name(self) -> str:
@@ -17,10 +15,13 @@ class UserRoleEnum(DBEnum):
     
     @property
     def display_name(self) -> str:
-        return f"{self.name} {self.icon}"
+        return f"{self.label} {self.icon}"
 
 
-class UserRole(ExtendedEnum[UserRoleEnum], enum_type=UserRoleEnum):
+class UserRole(ExtendedEnum):
+    label: str
+    icon: str
+    insider: bool
     DEACTIVATED = UserRoleEnum(0, "Deactivated", "🔒", False)
     ADMIN = UserRoleEnum(1, "Admin", "🤓", True)
     BIOINFORMATICIAN = UserRoleEnum(2, "Bioinformatician", "👨🏾‍💻", True)
@@ -28,7 +29,7 @@ class UserRole(ExtendedEnum[UserRoleEnum], enum_type=UserRoleEnum):
     CLIENT = UserRoleEnum(4, "Client", "👶🏻", False)
 
     @classmethod
-    def insiders(cls) -> list[UserRoleEnum]:
+    def insiders(cls) -> list["UserRole"]:
         return [
             cls.ADMIN,
             cls.BIOINFORMATICIAN,

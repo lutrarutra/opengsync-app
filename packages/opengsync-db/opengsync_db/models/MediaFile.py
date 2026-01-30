@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from .Base import Base
-from ..categories import MediaFileType, MediaFileTypeEnum
+from ..categories import MediaFileType, MediaFileType
 from .User import User
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ class MediaFile(Base):
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
 
     @property
-    def type(self) -> MediaFileTypeEnum:
+    def type(self) -> MediaFileType:
         return MediaFileType.get(self.type_id)
     
     @property

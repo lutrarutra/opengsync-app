@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from flask import url_for, Response
+from flask import url_for, Response, flash
 
 from opengsync_db import models
 
@@ -42,13 +42,17 @@ class LibraryPoolingForm(MultiStepForm):
 
         if self.library_table["pool"].isna().any():
             if self.lab_prep.prep_file is not None:
-                prep_table = pd.read_excel(os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
-                prep_table = prep_table.dropna(subset=["library_id", "library_name"])
-                order = prep_table["library_id"].tolist()
-                self.library_table["library_id"] = pd.Categorical(self.library_table["library_id"], categories=order, ordered=True)
-                self.library_table = self.library_table.sort_values("library_id").reset_index(drop=True)
-                # self.library_table["library_id"] = self.library_table["library_id"].astype(pd.Int64Dtype())
-                self.library_table["pool"] = utils.map_columns(self.library_table, prep_table, idx_columns="library_id", col="pool")
+                if not os.path.exists(path := os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path)):
+                    logger.warning(f"Lab prep file not found at {path}")
+                    flash("Lab prep file not found..", "warning")
+                else:
+                    prep_table = pd.read_excel(path, "prep_table")  # type: ignore
+                    prep_table = prep_table.dropna(subset=["library_id", "library_name"])
+                    order = prep_table["library_id"].tolist()
+                    self.library_table["library_id"] = pd.Categorical(self.library_table["library_id"], categories=order, ordered=True)
+                    self.library_table = self.library_table.sort_values("library_id").reset_index(drop=True)
+                    # self.library_table["library_id"] = self.library_table["library_id"].astype(pd.Int64Dtype())
+                    self.library_table["pool"] = utils.map_columns(self.library_table, prep_table, idx_columns="library_id", col="pool")
 
         self.post_url = url_for("library_pooling_workflow.upload_pooling_form", uuid=self.uuid, lab_prep_id=self.lab_prep.id)
         def clean_pool_value(value) -> str:

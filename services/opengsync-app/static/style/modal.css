@@ -1,5 +1,30 @@
 @import "./colors.css";
 
+.nav-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid #dee2e6;
+}
+.nav-tabs .nav-item {
+    flex: 0 0 auto;
+}
+
+.nav-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.nav-tabs {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.nav-tabs .nav-item:last-child {
+    padding-right: 20px;
+}
 
 .modal-content {
     display: flex;

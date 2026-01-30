@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
-from ..categories import BarcodeOrientation, BarcodeOrientationEnum, IndexType, IndexTypeEnum
+from ..categories import BarcodeOrientation, BarcodeOrientation, IndexType, IndexType
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
@@ -47,19 +47,19 @@ class LibraryIndex(Base):
         return self.index_kit_i5_id is not None and bool(self.name_i5)
     
     @property
-    def type(self) -> IndexTypeEnum:
+    def type(self) -> IndexType:
         if self.sequence_i5 is None:
             return IndexType.SINGLE_INDEX_I7
         return IndexType.DUAL_INDEX
             
     @property
-    def orientation(self) -> BarcodeOrientationEnum | None:
+    def orientation(self) -> BarcodeOrientation | None:
         if self._orientation is None:
             return None
         return BarcodeOrientation.get(self._orientation)
     
     @orientation.setter
-    def orientation(self, value: BarcodeOrientationEnum | None) -> None:
+    def orientation(self, value: BarcodeOrientation | None) -> None:
         if value is None:
             self._orientation = None
         else:

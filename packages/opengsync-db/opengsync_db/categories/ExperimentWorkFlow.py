@@ -2,17 +2,23 @@ from dataclasses import dataclass
 
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
-from .FlowCellType import FlowCellType, FlowCellTypeEnum
+from .FlowCellType import FlowCellType
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class ExperimentWorkFlowEnum(DBEnum):
+    label: str
     volume_target_ul: float
-    flow_cell_type: FlowCellTypeEnum
+    flow_cell_type: FlowCellType
     combined_lanes: bool = False
 
 
-class ExperimentWorkFlow(ExtendedEnum[ExperimentWorkFlowEnum], enum_type=ExperimentWorkFlowEnum):
+class ExperimentWorkFlow(ExtendedEnum):
+    label: str
+    volume_target_ul: float
+    flow_cell_type: FlowCellType
+    combined_lanes: bool
+
     NOVASEQ_6K_SP_STD = ExperimentWorkFlowEnum(1, "NovaSeq SP Standard", 120, FlowCellType.NOVASEQ_6K_SP, True)
     NOVASEQ_6K_SP_XP = ExperimentWorkFlowEnum(2, "NovaSeq SP XP", 30, FlowCellType.NOVASEQ_6K_SP)
     
@@ -40,7 +46,7 @@ class ExperimentWorkFlow(ExtendedEnum[ExperimentWorkFlowEnum], enum_type=Experim
 
 
     @classmethod
-    def novaseq_6k_workflows(cls) -> list["ExperimentWorkFlowEnum"]:
+    def novaseq_6k_workflows(cls) -> list["ExperimentWorkFlow"]:
         return [
             cls.NOVASEQ_6K_SP_STD,
             cls.NOVASEQ_6K_SP_XP,
@@ -53,7 +59,7 @@ class ExperimentWorkFlow(ExtendedEnum[ExperimentWorkFlowEnum], enum_type=Experim
         ]
     
     @classmethod
-    def miseq_workflows(cls) -> list["ExperimentWorkFlowEnum"]:
+    def miseq_workflows(cls) -> list["ExperimentWorkFlow"]:
         return [
             cls.MISEQ_v3,
             cls.MISEQ_v2,
@@ -62,7 +68,7 @@ class ExperimentWorkFlow(ExtendedEnum[ExperimentWorkFlowEnum], enum_type=Experim
         ]
     
     @classmethod
-    def novaseq_x_workflows(cls) -> list["ExperimentWorkFlowEnum"]:
+    def novaseq_x_workflows(cls) -> list["ExperimentWorkFlow"]:
         return [
             cls.NOVASEQ_X_1B,
             cls.NOVASEQ_X_10B,

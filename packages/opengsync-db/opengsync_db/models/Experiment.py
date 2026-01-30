@@ -7,7 +7,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
-from ..categories import ExperimentStatus, ExperimentStatusEnum, FlowCellTypeEnum, ExperimentWorkFlow, ExperimentWorkFlowEnum, LibraryType, LibraryTypeEnum, MediaFileType
+from ..categories import ExperimentStatus, ExperimentStatus, FlowCellType, ExperimentWorkFlow, ExperimentWorkFlow, LibraryType, LibraryType, MediaFileType
 from .Base import Base
 from . import links
 
@@ -176,7 +176,7 @@ class Experiment(Base):
         return lanes
 
     @hybrid_property
-    def library_types(self) -> list[LibraryTypeEnum]:
+    def library_types(self) -> list[LibraryType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = {library.type_id for library in self.libraries}
             return [LibraryType.get(type_id) for type_id in sorted(types)]
@@ -338,27 +338,27 @@ class Experiment(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
-    def status(self) -> ExperimentStatusEnum:
+    def status(self) -> ExperimentStatus:
         return ExperimentStatus.get(self.status_id)
     
     @status.setter
-    def status(self, value: ExperimentStatusEnum):
+    def status(self, value: ExperimentStatus):
         self.status_id = value.id
     
     @property
-    def flowcell_type(self) -> FlowCellTypeEnum:
+    def flowcell_type(self) -> FlowCellType:
         return self.workflow.flow_cell_type
     
     @flowcell_type.setter
-    def flowcell_type(self, value: FlowCellTypeEnum):
+    def flowcell_type(self, value: FlowCellType):
         self.workflow_id = value.id
     
     @property
-    def workflow(self) -> ExperimentWorkFlowEnum:
+    def workflow(self) -> ExperimentWorkFlow:
         return ExperimentWorkFlow.get(self.workflow_id)
     
     @workflow.setter
-    def workflow(self, value: ExperimentWorkFlowEnum):
+    def workflow(self, value: ExperimentWorkFlow):
         self.workflow_id = value.id
     
     @property

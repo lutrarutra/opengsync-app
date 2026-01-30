@@ -3,14 +3,19 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class LabChecklistTypeEnum(DBEnum):
+    label: str
     abbreviation: str
     identifier: str
     prep_file_name: str
 
 
-class LabChecklistType(ExtendedEnum[LabChecklistTypeEnum], enum_type=LabChecklistTypeEnum):
+class LabChecklistType(ExtendedEnum):
+    label: str
+    abbreviation: str
+    identifier: str
+    prep_file_name: str
     CUSTOM = LabChecklistTypeEnum(0, "Custom", "Custom", "X", "template.xlsx")
     RNA_SEQ = LabChecklistTypeEnum(1, "RNA-seq", "RNA", "R", "RNA.xlsx")
     QUANT_SEQ = LabChecklistTypeEnum(2, "Quant-seq", "QUANT", "Q", "QUANTSEQ.xlsx")

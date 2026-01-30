@@ -4,7 +4,7 @@ from typing import Optional
 import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
-from ...categories import BarcodeTypeEnum
+from ...categories import BarcodeType
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 
@@ -13,7 +13,7 @@ class BarcodeBP(DBBlueprint):
     @DBBlueprint.transaction
     def create(
         self, name: str, sequence: str, well: str | None,
-        type: BarcodeTypeEnum, adapter_id: int, flush: bool = True
+        type: BarcodeType, adapter_id: int, flush: bool = True
     ) -> models.Barcode:
         if (adapter := self.db.session.get(models.Adapter, adapter_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Adapter with id '{adapter_id}', not found.")
@@ -43,7 +43,7 @@ class BarcodeBP(DBBlueprint):
     def find(
         self, index_kit_id: int | None = None,
         adapter_id: int | None = None,
-        type: Optional[BarcodeTypeEnum] = None,
+        type: Optional[BarcodeType] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
         count_pages: bool = False
@@ -76,7 +76,7 @@ class BarcodeBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def get_from_kit(
-        self, index_kit_id: int, name: str, type: BarcodeTypeEnum
+        self, index_kit_id: int, name: str, type: BarcodeType
     ) -> models.Barcode | None:
         barcode = self.db.session.query(models.Barcode).where(
             models.Barcode.index_kit_id == index_kit_id,

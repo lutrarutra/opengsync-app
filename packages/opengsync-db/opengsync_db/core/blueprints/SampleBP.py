@@ -6,7 +6,7 @@ from sqlalchemy.orm import Query
 from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
-from ...categories import SampleStatusEnum, AttributeType, AttributeTypeEnum, AccessType, AccessTypeEnum, UserRole
+from ...categories import SampleStatus, AttributeType, AttributeType, AccessType, AccessType, UserRole
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 
@@ -21,8 +21,8 @@ class SampleBP(DBBlueprint):
         pool_id: int | None = None,
         seq_request_id: int | None = None,
         lab_prep_id: int | None = None,
-        status: Optional[SampleStatusEnum] = None,
-        status_in: Optional[list[SampleStatusEnum]] = None,
+        status: Optional[SampleStatus] = None,
+        status_in: Optional[list[SampleStatus]] = None,
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
         if seq_request_id is not None:
@@ -81,7 +81,7 @@ class SampleBP(DBBlueprint):
     @DBBlueprint.transaction
     def create(
         self, name: str, owner_id: int, project_id: int,
-        status: SampleStatusEnum | None, flush: bool = True
+        status: SampleStatus | None, flush: bool = True
     ) -> models.Sample:
 
         sample = models.Sample(
@@ -114,8 +114,8 @@ class SampleBP(DBBlueprint):
         pool_id: int | None = None,
         lab_prep_id: int | None = None,
         seq_request_id: int | None = None,
-        status: SampleStatusEnum | None = None,
-        status_in: list[SampleStatusEnum] | None = None,
+        status: SampleStatus | None = None,
+        status_in: list[SampleStatus] | None = None,
         custom_query: Callable[[Query], Query] | None = None,
         name: str | None = None,
         id: int | None = None,
@@ -201,8 +201,8 @@ class SampleBP(DBBlueprint):
         pool_id: int | None = None,
         seq_request_id: int | None = None,
         lab_prep_id: int | None = None,
-        status: Optional[SampleStatusEnum] = None,
-        status_in: Optional[list[SampleStatusEnum]] = None,
+        status: Optional[SampleStatus] = None,
+        status_in: Optional[list[SampleStatus]] = None,
         limit: int | None = PAGE_LIMIT
     ) -> list[models.Sample]:
         query = self.db.session.query(models.Sample)
@@ -223,7 +223,7 @@ class SampleBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def set_attribute(
-        self, sample_id: int, value: str, type: AttributeTypeEnum, name: Optional[str]
+        self, sample_id: int, value: str, type: AttributeType, name: Optional[str]
     ) -> models.Sample:
 
         if type == AttributeType.CUSTOM:
@@ -269,7 +269,7 @@ class SampleBP(DBBlueprint):
         return sample
 
     @DBBlueprint.transaction
-    def get_access_type(self, sample: models.Sample, user: models.User) -> AccessTypeEnum:
+    def get_access_type(self, sample: models.Sample, user: models.User) -> AccessType:
         if user.role == UserRole.DEACTIVATED:
             return AccessType.NONE
         if user.is_admin():

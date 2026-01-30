@@ -9,10 +9,10 @@ from sqlalchemy.sql.base import ExecutableOption
 from ... import to_utc
 from ... import models, PAGE_LIMIT
 from ...categories import (
-    SeqRequestStatus, LibraryStatus, DataDeliveryModeEnum, SeqRequestStatusEnum,
-    PoolStatus, DeliveryStatus, ReadTypeEnum, SampleStatus, PoolType,
-    SubmissionTypeEnum, AccessType, AccessTypeEnum, SubmissionType,
-    ProjectStatus, UserRole, LibraryTypeEnum
+    SeqRequestStatus, LibraryStatus, DataDeliveryMode, SeqRequestStatus,
+    PoolStatus, DeliveryStatus, ReadType, SampleStatus, PoolType,
+    SubmissionType, AccessType, AccessType, SubmissionType,
+    ProjectStatus, UserRole, LibraryType
 )
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
@@ -23,11 +23,11 @@ class SeqRequestBP(DBBlueprint):
     def where(
         cls,
         query: Query,
-        status: SeqRequestStatusEnum | None = None,
-        status_in: list[SeqRequestStatusEnum] | None = None,
-        submission_type: SubmissionTypeEnum | None = None,
-        submission_type_in: list[SubmissionTypeEnum] | None = None,
-        library_types_in: list[LibraryTypeEnum] | None = None,
+        status: SeqRequestStatus | None = None,
+        status_in: list[SeqRequestStatus] | None = None,
+        submission_type: SubmissionType | None = None,
+        submission_type_in: list[SubmissionType] | None = None,
+        library_types_in: list[LibraryType] | None = None,
         show_drafts: bool = True, user_id: int | None = None,
         project_id: int | None = None,
         group_id: int | None = None,
@@ -109,9 +109,9 @@ class SeqRequestBP(DBBlueprint):
         requestor_id: int,
         group_id: int | None,
         billing_contact_id: int,
-        data_delivery_mode: DataDeliveryModeEnum,
-        read_type: ReadTypeEnum,
-        submission_type: SubmissionTypeEnum,
+        data_delivery_mode: DataDeliveryMode,
+        read_type: ReadType,
+        submission_type: SubmissionType,
         contact_person_id: int,
         organization_contact_id: int,
         bioinformatician_contact_id: int | None = None,
@@ -182,11 +182,11 @@ class SeqRequestBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        status: SeqRequestStatusEnum | None = None,
-        status_in: list[SeqRequestStatusEnum] | None = None,
-        submission_type: SubmissionTypeEnum | None = None,
-        submission_type_in: list[SubmissionTypeEnum] | None = None,
-        library_types_in: list[LibraryTypeEnum] | None = None,
+        status: SeqRequestStatus | None = None,
+        status_in: list[SeqRequestStatus] | None = None,
+        submission_type: SubmissionType | None = None,
+        submission_type_in: list[SubmissionType] | None = None,
+        library_types_in: list[LibraryType] | None = None,
         show_drafts: bool = True,
         user_id: int | None = None,
         project_id: int | None = None,
@@ -301,8 +301,8 @@ class SeqRequestBP(DBBlueprint):
         name: str | None = None,
         requestor: str | None = None,
         group: str | None = None,
-        status: Optional[SeqRequestStatusEnum] = None,
-        status_in: Optional[list[SeqRequestStatusEnum]] = None,
+        status: Optional[SeqRequestStatus] = None,
+        status_in: Optional[list[SeqRequestStatus]] = None,
         show_drafts: bool = True,
         user_id: int | None = None,
         group_id: int | None = None,
@@ -376,7 +376,7 @@ class SeqRequestBP(DBBlueprint):
         return seq_request
 
     @DBBlueprint.transaction
-    def process(self, seq_request_id: int, status: SeqRequestStatusEnum) -> models.SeqRequest:
+    def process(self, seq_request_id: int, status: SeqRequestStatus) -> models.SeqRequest:
         if (seq_request := self.db.session.get(models.SeqRequest, seq_request_id)) is None:
             raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
 
@@ -437,7 +437,7 @@ class SeqRequestBP(DBBlueprint):
         return seq_request
 
     @DBBlueprint.transaction
-    def get_access_type(self, seq_request: models.SeqRequest, user: models.User) -> AccessTypeEnum:
+    def get_access_type(self, seq_request: models.SeqRequest, user: models.User) -> AccessType:
         if user.role == UserRole.DEACTIVATED:
             return AccessType.NONE
         if user.is_admin():
@@ -520,10 +520,10 @@ class SeqRequestBP(DBBlueprint):
     @DBBlueprint.transaction
     def iter(
         self,
-        status: Optional[SeqRequestStatusEnum] = None,
-        status_in: Optional[list[SeqRequestStatusEnum]] = None,
-        submission_type: Optional[SubmissionTypeEnum] = None,
-        submission_type_in: Optional[list[SubmissionTypeEnum]] = None,
+        status: Optional[SeqRequestStatus] = None,
+        status_in: Optional[list[SeqRequestStatus]] = None,
+        submission_type: Optional[SubmissionType] = None,
+        submission_type_in: Optional[list[SubmissionType]] = None,
         show_drafts: bool = True, user_id: int | None = None,
         project_id: int | None = None,
         group_id: int | None = None,

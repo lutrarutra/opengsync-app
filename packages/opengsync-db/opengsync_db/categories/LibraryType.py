@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 
 from .ExtendedEnum import DBEnum, ExtendedEnum
-from .LabChecklistType import LabChecklistType, LabChecklistTypeEnum
+from .LabChecklistType import LabChecklistType, LabChecklistType
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class LibraryTypeEnum(DBEnum):
+    label: str
     abbreviation: str
     identifier: str
     modality: str
@@ -15,7 +16,11 @@ class LibraryTypeEnum(DBEnum):
         return str(self.id)
 
 
-class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
+class LibraryType(ExtendedEnum):
+    label: str
+    abbreviation: str
+    identifier: str
+    modality: str
     CUSTOM = LibraryTypeEnum(0, "Custom", "Custom", "CUSTOM", "Custom")
 
     # 10X Base Technologies
@@ -68,7 +73,7 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
     CUT_AND_RUN = LibraryTypeEnum(116, "Cut & Run", "Cut&Run", "CUTNRUN", "Binding Site Quantification")
 
     @classmethod
-    def get_check_list_library_types(cls, checklist_type: LabChecklistTypeEnum) -> list[LibraryTypeEnum]:
+    def get_check_list_library_types(cls, checklist_type: LabChecklistType) -> list["LibraryType"]:
         if checklist_type == LabChecklistType.CUSTOM:
             return LibraryType.as_list()
         return {
@@ -88,7 +93,7 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
         }.get(checklist_type, [])
     
     @classmethod
-    def get_visium_library_types(cls) -> list[LibraryTypeEnum]:
+    def get_visium_library_types(cls) -> list["LibraryType"]:
         return [
             LibraryType.TENX_VISIUM_HD,
             LibraryType.TENX_VISIUM_FFPE,
@@ -96,11 +101,11 @@ class LibraryType(ExtendedEnum[LibraryTypeEnum], enum_type=LibraryTypeEnum):
         ]
     
     @classmethod
-    def get_spatial_library_types(cls) -> list[LibraryTypeEnum]:
+    def get_spatial_library_types(cls) -> list["LibraryType"]:
         return cls.get_visium_library_types() + [LibraryType.OPENST]
     
     @classmethod
-    def get_tenx_library_types(cls) -> list[LibraryTypeEnum]:
+    def get_tenx_library_types(cls) -> list["LibraryType"]:
         return [
             LibraryType.TENX_SC_GEX_FLEX,
             LibraryType.TENX_SC_ATAC,

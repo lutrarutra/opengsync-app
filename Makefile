@@ -20,7 +20,6 @@ dev-build-logs:
 	$(COMPOSE_DEV) build --progress=plain --build-arg VERSION=$(VERSION)
 
 dev-run:
-	source .env
 	$(COMPOSE_DEV) --env-file .env up -d --remove-orphans
 
 dev-logs:

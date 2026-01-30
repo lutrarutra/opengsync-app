@@ -6,7 +6,7 @@ from wtforms import SelectField, TextAreaField, BooleanField, FormField, StringF
 from wtforms.validators import Optional as OptionalValidator, Length
 
 from opengsync_db import models
-from opengsync_db.categories import ServiceType, MUXType, LibraryTypeEnum, LibraryType, SubmissionType
+from opengsync_db.categories import ServiceType, MUXType, LibraryType, LibraryType, SubmissionType
 
 from .... import logger, db
 from ...MultiStepForm import MultiStepForm
@@ -242,7 +242,7 @@ class SelectServiceForm(MultiStepForm):
             "sample_pool": [],
         }
 
-        def add_library(sample_name: str, library_type: LibraryTypeEnum):
+        def add_library(sample_name: str, library_type: LibraryType):
             library_name = f"{sample_name}_{library_type.identifier}"
 
             sample_pooling_table["sample_name"].append(sample_name)

@@ -8,14 +8,14 @@ from ... import models
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 from ... import PAGE_LIMIT
-from ...categories import AffiliationType, AffiliationTypeEnum, GroupTypeEnum
+from ...categories import AffiliationType, AffiliationType, AttributeType
 
 
 class GroupBP(DBBlueprint):
     @classmethod
     def where(
-        cls, query: Query, user_id: Optional[int], type: Optional[GroupTypeEnum] = None,
-        type_in: Optional[list[GroupTypeEnum]] = None
+        cls, query: Query, user_id: Optional[int], type: Optional[AttributeType] = None,
+        type_in: Optional[list[AttributeType]] = None
     ) -> Query:
         if type is not None:
             query = query.where(models.Group.type_id == type.id)
@@ -33,7 +33,7 @@ class GroupBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def create(
-        self, name: str, user_id: int, type: GroupTypeEnum, flush: bool = True
+        self, name: str, user_id: int, type: AttributeType, flush: bool = True
     ) -> models.Group:
 
         if self.db.session.query(models.Group).where(
@@ -71,11 +71,11 @@ class GroupBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        user_id: int | None = None, type: Optional[GroupTypeEnum] = None,
+        user_id: int | None = None, type: Optional[AttributeType] = None,
         name: str | None = None,
         id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        type_in: Optional[list[GroupTypeEnum]] = None,
+        type_in: Optional[list[AttributeType]] = None,
         sort_by: str | None = None, descending: bool = False,
         page: int | None = None,
     ) -> tuple[list[models.Group], int | None]:
@@ -115,9 +115,9 @@ class GroupBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query(
-        self, name: str, user_id: int | None = None, type: Optional[GroupTypeEnum] = None,
+        self, name: str, user_id: int | None = None, type: Optional[AttributeType] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        type_in: Optional[list[GroupTypeEnum]] = None,
+        type_in: Optional[list[AttributeType]] = None,
     ) -> list[models.Group]:
         query = self.db.session.query(models.Group)
         query = GroupBP.where(query, user_id=user_id, type=type, type_in=type_in)
@@ -144,9 +144,9 @@ class GroupBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def get_affiliations(
-        self, group_id: int, type: Optional[GroupTypeEnum] = None,
+        self, group_id: int, type: Optional[AttributeType] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        type_in: Optional[list[GroupTypeEnum]] = None,
+        type_in: Optional[list[AttributeType]] = None,
         sort_by: str | None = None, descending: bool = False,
         user_name: str | None = None,
         page: int | None = None,
@@ -199,7 +199,7 @@ class GroupBP(DBBlueprint):
         self.db.session.add(group)
 
     @DBBlueprint.transaction
-    def add_user(self, user_id: int, group_id: int, affiliation_type: AffiliationTypeEnum) -> models.Group:
+    def add_user(self, user_id: int, group_id: int, affiliation_type: AffiliationType) -> models.Group:
 
         if (group := self.db.session.get(models.Group, group_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
@@ -220,7 +220,7 @@ class GroupBP(DBBlueprint):
         return group
     
     @DBBlueprint.transaction
-    def change_user_affiliation(self, user_id: int, group_id: int, new_affiliation_type: AffiliationTypeEnum) -> models.Group:
+    def change_user_affiliation(self, user_id: int, group_id: int, new_affiliation_type: AffiliationType) -> models.Group:
         if (group := self.db.session.get(models.Group, group_id)) is None:
             raise exceptions.ElementDoesNotExist(f"Group with id {group_id} not found")
         

@@ -3,13 +3,17 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class FeatureTypeEnum(DBEnum):
+    label: str
     abbreviation: str
     modality: str
 
 
-class FeatureType(ExtendedEnum[FeatureTypeEnum], enum_type=FeatureTypeEnum):
+class FeatureType(ExtendedEnum):
+    label: str
+    abbreviation: str
+    modality: str
     CUSTOM = FeatureTypeEnum(0, "Custom", "Custom", "Custom")
     CMO = FeatureTypeEnum(1, "Cell Multiplexing Oligo", "CMO", "Multiplexing Capture")
     ANTIBODY = FeatureTypeEnum(2, "Cell Surface Protein Capture", "ABC", "Antibody Capture")

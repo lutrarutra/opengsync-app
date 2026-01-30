@@ -4,14 +4,20 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class MediaFileTypeEnum(DBEnum):
+    label: str
     dir: str
     extensions: Optional[list[str]] = None
     render_url: str | None = None
 
 
-class MediaFileType(ExtendedEnum[MediaFileTypeEnum], enum_type=MediaFileTypeEnum):
+class MediaFileType(ExtendedEnum):
+    label: str
+    dir: str
+    extensions: Optional[list[str]]
+    render_url: str | None
+    
     CUSTOM = MediaFileTypeEnum(0, "Custom", "etc")
     SEQ_AUTH_FORM = MediaFileTypeEnum(1, "Sequencing Authorization Form", "seq_auth_forms", ["pdf"])
     BIOANALYZER_REPORT = MediaFileTypeEnum(2, "Bioanalyzer Report", "bioanalyzer_reports", ["pdf"])

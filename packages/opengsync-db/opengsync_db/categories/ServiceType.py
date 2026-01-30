@@ -5,21 +5,29 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 from .LibraryType import LibraryType, LibraryTypeEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class ServiceTypeEnum(DBEnum):
+    label: str
     abbreviation: str
     platform: str | None = None
     oligo_multiplexing: bool = False
     ocm_multiplexing: bool = False
-    library_types: list[LibraryTypeEnum] = field(default_factory=list)
-    optional_library_types: list[LibraryTypeEnum] = field(default_factory=list)
+    library_types: list[LibraryType] = field(default_factory=list)
+    optional_library_types: list[LibraryType] = field(default_factory=list)
 
     @property
     def display_name(self) -> str:
-        return f"{self.name} ({self.abbreviation})"
+        return f"{self.label} ({self.abbreviation})"
 
 
-class ServiceType(ExtendedEnum[ServiceTypeEnum], enum_type=ServiceTypeEnum):
+class ServiceType(ExtendedEnum):
+    label: str
+    abbreviation: str
+    platform: str | None
+    oligo_multiplexing: bool
+    ocm_multiplexing: bool
+    library_types: list[LibraryType]
+    optional_library_types: list[LibraryType]
     CUSTOM = ServiceTypeEnum(0, "Custom", "Custom")
 
     # 10x Genomics: https://www.10xgenomics.com/products

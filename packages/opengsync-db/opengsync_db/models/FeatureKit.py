@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Kit import Kit
-from ..categories import FeatureType, FeatureTypeEnum, KitType
+from ..categories import FeatureType, FeatureType, KitType
 
 if TYPE_CHECKING:
     from .Feature import Feature
@@ -24,11 +24,11 @@ class FeatureKit(Kit):
     sortable_fields: ClassVar[list[str]] = ["id", "name", "identifier", "kit_type_id", "type_id"]
 
     @property
-    def type(self) -> FeatureTypeEnum:
+    def type(self) -> FeatureType:
         return FeatureType.get(self.type_id)
     
     @type.setter
-    def type(self, value: FeatureTypeEnum):
+    def type(self, value: FeatureType):
         self.type_id = value.id
 
     def __str__(self):

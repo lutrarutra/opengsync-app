@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from .ExtendedEnum import DBEnum, ExtendedEnum
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class SeqRequestStatusEnum(DBEnum):
+    label: str
     icon: str
     description: str
 
@@ -14,10 +15,13 @@ class SeqRequestStatusEnum(DBEnum):
     
     @property
     def display_name(self) -> str:
-        return f"{self.name} {self.icon}"
+        return f"{self.label} {self.icon}"
 
 
-class SeqRequestStatus(ExtendedEnum[SeqRequestStatusEnum], enum_type=SeqRequestStatusEnum):
+class SeqRequestStatus(ExtendedEnum):
+    label: str
+    icon: str
+    description: str
     DRAFT = SeqRequestStatusEnum(0, "Draft", "✍🏼", "Request is in its planning stage")
     SUBMITTED = SeqRequestStatusEnum(1, "Submitted", "🚀", "Request is submitted for validation")
     ACCEPTED = SeqRequestStatusEnum(2, "Accepted", "👍", "Request is accepted and waiting for samples to be delivered")

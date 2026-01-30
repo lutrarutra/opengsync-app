@@ -5,7 +5,7 @@ import sqlalchemy as sa
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import FeatureTypeEnum, KitType
+from ...categories import FeatureType, KitType
 
 from ..DBBlueprint import DBBlueprint
 
@@ -14,7 +14,7 @@ class FeatureKitBP(DBBlueprint):
     @DBBlueprint.transaction
     def create(
         self, identifier: str, name: str,
-        type: FeatureTypeEnum, flush: bool = True
+        type: FeatureType, flush: bool = True
     ) -> models.FeatureKit:
         if self.db.session.query(models.FeatureKit).where(models.FeatureKit.name == name).first():
             raise exceptions.NotUniqueValue(f"Feature kit with name '{name}', already exists.")
@@ -49,8 +49,8 @@ class FeatureKitBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        type: FeatureTypeEnum | None = None,
-        type_in: list[FeatureTypeEnum] | None = None,
+        type: FeatureType | None = None,
+        type_in: list[FeatureType] | None = None,
         name: str | None = None,
         identifier: str | None = None,
         id: int | None = None,
