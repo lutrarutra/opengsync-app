@@ -429,9 +429,10 @@ class SeqRequestBP(DBBlueprint):
         for pool in seq_request.pools:
             pool.status = pool_status
 
-        for project in self.db.projects.find(seq_request_id=seq_request_id)[0]:
-            project.status = ProjectStatus.PROCESSING
-            self.db.session.add(project)
+        if status == SeqRequestStatus.ACCEPTED:
+            for project in seq_request.projects:
+                project.status = ProjectStatus.PROCESSING
+                self.db.session.add(project)
 
         self.db.session.add(seq_request)
         return seq_request

@@ -93,6 +93,10 @@ class Lane(Base):
         
         return self.pool_links[0].pool.avg_fragment_size
     
+    @avg_fragment_size.setter
+    def avg_fragment_size(self, value: int | None) -> None:  # type: ignore[override]
+        self._avg_fragment_size = value
+    
     @avg_fragment_size.expression
     def avg_fragment_size(cls) -> sa.ScalarSelect[int | None]:
         from .Pool import Pool
@@ -139,6 +143,10 @@ class Lane(Base):
             return None
         
         return self.pool_links[0].pool.qubit_concentration
+    
+    @original_qubit_concentration.setter
+    def original_qubit_concentration(self, value: float | None) -> None:  # type: ignore[override]
+        self._original_qubit_concentration = value
 
     @original_qubit_concentration.expression
     def original_qubit_concentration(cls) -> sa.ScalarSelect[float | None]:
@@ -164,6 +172,7 @@ class Lane(Base):
         if self.original_qubit_concentration is None or self.avg_fragment_size is None:
             return None
         return self.original_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
+
     
     @property
     def sequencing_molarity(self) -> float | None:
