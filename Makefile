@@ -10,8 +10,8 @@ else
     OVERRIDE_FLAG :=
 endif
 
-COMPOSE_DEV := docker compose -p opengsync-dev -f compose.dev.yaml $(OVERRIDE_FLAG) -p opengsync-dev
-COMPOSE_PROD := docker compose -p opengsync -f compose.yaml $(OVERRIDE_FLAG) -p opengsync-prod
+COMPOSE_DEV := docker compose -f compose.dev.yaml $(OVERRIDE_FLAG) -p opengsync-dev
+COMPOSE_PROD := docker compose -f compose.yaml $(OVERRIDE_FLAG) -p opengsync-prod
 
 dev-build:
 	$(COMPOSE_DEV) build --build-arg VERSION=$(VERSION)
