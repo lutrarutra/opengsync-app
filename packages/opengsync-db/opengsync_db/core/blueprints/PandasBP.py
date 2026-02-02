@@ -2,8 +2,7 @@ import pandas as pd
 
 import sqlalchemy as sa
 
-from ... import models
-from ... import categories
+from ... import models, categories as cats
 from ..DBBlueprint import DBBlueprint
 
 
@@ -90,9 +89,9 @@ class PandasBP(DBBlueprint):
         query = query.order_by(models.Lane.number, models.Pool.id, models.Library.id)
         df = pd.read_sql(query, self.db._engine)
 
-        df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
-        df["reference"] = df["reference_id"].map(categories.GenomeRef.get)  # type: ignore
-        df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
+        df["library_type"] = cats.LibraryType.map_series(df["library_type_id"], na_action="ignore")
+        df["reference"] = cats.GenomeRef.map_series(df["reference_id"], na_action="ignore")
+        df["mux_type"] = cats.MUXType.map_series(df["mux_type_id"], na_action="ignore")
 
         order = [
             "lane", "library_id", "sample_name", "library_name", "library_type", "reference", "pool_name",
@@ -164,9 +163,9 @@ class PandasBP(DBBlueprint):
 
         query = query.order_by(models.Lane.number, models.Pool.id, models.Library.id)
         df = pd.read_sql(query, self.db._engine)
-        df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
-        df["reference"] = df["reference_id"].map(categories.GenomeRef.get)  # type: ignore
-        df["orientation"] = df["orientation_id"].apply(lambda x: categories.BarcodeOrientation.get(x) if pd.notna(x) else None)  # type: ignore
+        df["library_type"] = cats.LibraryType.map_series(df["library_type_id"], na_action="ignore")
+        df["reference"] = cats.GenomeRef.map_series(df["reference_id"], na_action="ignore")
+        df["orientation"] = cats.BarcodeOrientation.map_series(df["orientation_id"], na_action="ignore")
 
         df = df[["lane", "sample_name", "library_name", "library_type", "reference", "seq_request_id", "sequence_i7", "sequence_i5", "orientation", "read_structure", "protocol_name", "pool_name", "library_id"]]
 
@@ -200,7 +199,7 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-        df["orientation"] = df["orientation_id"].apply(lambda x: categories.BarcodeOrientation.get(x) if pd.notna(x) else None)  # type: ignore
+        df["orientation"] = cats.BarcodeOrientation.map_series(df["orientation_id"], na_action="ignore")
 
         return df
 
@@ -215,7 +214,7 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-        df["status"] = df["status_id"].map(categories.PoolStatus.get)  # type: ignore
+        df["status"] = cats.PoolStatus.map_series(df["status_id"], na_action="ignore")
 
         return df
 
@@ -281,7 +280,6 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-
         return df
 
     @DBBlueprint.transaction
@@ -299,7 +297,6 @@ class PandasBP(DBBlueprint):
         )
 
         query = query.order_by(models.Library.id)
-
         df = pd.read_sql(query, self.db._engine)
         return df
 
@@ -325,9 +322,7 @@ class PandasBP(DBBlueprint):
         )
 
         query = query.order_by(models.Library.id)
-
         df = pd.read_sql(query, self.db._engine)
-    
         return df
 
     @DBBlueprint.transaction
@@ -345,8 +340,7 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-        df["role"] = df["role_id"].map(categories.UserRole.get)  # type: ignore
-
+        df["role"] = cats.UserRole.map_series(df["role_id"], na_action="ignore")
         return df
 
     @DBBlueprint.transaction
@@ -368,8 +362,7 @@ class PandasBP(DBBlueprint):
         ).distinct()
 
         df = pd.read_sql(query, self.db._engine)
-        df["feature_type"] = df["feature_type_id"].map(categories.FeatureType.get)  # type: ignore
-
+        df["feature_type"] = cats.FeatureType.map_series(df["feature_type_id"], na_action="ignore")
         return df
 
     @DBBlueprint.transaction
@@ -390,7 +383,6 @@ class PandasBP(DBBlueprint):
                 expanded[col] = expanded[col].apply(lambda x: x.get("value") if isinstance(x, dict) else x)
 
             df = pd.concat([df.drop(columns=["attributes"]), expanded], axis=1)
-
         return df
 
     @DBBlueprint.transaction
@@ -426,7 +418,7 @@ class PandasBP(DBBlueprint):
                 (models.Library.id == models.links.SampleLibraryLink.library_id) &
                 (models.Sample.project_id == project_id)
             ),
-            models.Library.type_id == categories.LibraryType.PARSE_SC_CRISPR.id
+            models.Library.type_id == cats.LibraryType.PARSE_SC_CRISPR.id
         )
 
         df = pd.read_sql(query, self.db._engine)
@@ -480,8 +472,8 @@ class PandasBP(DBBlueprint):
                 }
             )
 
-        df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
-        df["genome_ref"] = df["genome_ref_id"].apply(lambda x: categories.LibraryType.get(x) if pd.notna(x) else None)  # type: ignore
+        df["library_type"] = cats.LibraryType.map_series(df["library_type_id"], na_action="ignore")
+        df["genome_ref"] = cats.GenomeRef.map_series(df["genome_ref_id"], na_action="ignore")
 
         return df
 
@@ -518,9 +510,9 @@ class PandasBP(DBBlueprint):
 
         df = pd.read_sql(query, self.db._engine)
 
-        df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
-        df["genome_ref"] = df["genome_ref_id"].apply(lambda x: categories.LibraryType.get(x) if pd.notna(x) else None)  # type: ignore
-        df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
+        df["library_type"] = cats.LibraryType.map_series(df["library_type_id"], na_action="ignore")
+        df["genome_ref"] = cats.GenomeRef.map_series(df["genome_ref_id"], na_action="ignore")
+        df["mux_type"] = cats.MUXType.map_series(df["mux_type_id"], na_action="ignore")
 
         return df
 
@@ -537,7 +529,6 @@ class PandasBP(DBBlueprint):
             isouter=True
         )
 
-        # query = query.order_by(models.SeqQuality.lane, models.Library.id)
         df = pd.read_sql(query, self.db._engine)
 
         df.loc[df["library_id"].isna(), "library_name"] = "Undetermined"
@@ -561,7 +552,7 @@ class PandasBP(DBBlueprint):
         df = pd.read_sql(query, self.db._engine)
         df["name"] = df["name"].astype(str)
         df["well"] = df["well"].astype(str)
-        df["type"] = df["type_id"].map(categories.BarcodeType.get)  # type: ignore
+        df["type"] = cats.BarcodeType.map_series(df["type_id"], na_action="ignore")
 
         if per_adapter or per_index:
             df = df.groupby(
@@ -576,7 +567,7 @@ class PandasBP(DBBlueprint):
             if (index_kit := self.db.index_kits.get(index_kit_id)) is None:
                 raise ValueError(f"Index kit with ID {index_kit_id} not found.")
             
-            if index_kit.type == categories.IndexType.TENX_ATAC_INDEX:
+            if index_kit.type == cats.IndexType.TENX_ATAC_INDEX:
                 barcode_data = {
                     "well": [],
                     "adapter_id": [],
@@ -592,7 +583,7 @@ class PandasBP(DBBlueprint):
                     barcode_data["adapter_id"].append(row["adapter_id"])
                     for i in range(4):
                         barcode_data[f"sequence_{i + 1}"].append(row["sequences"][i])
-            elif index_kit.type == categories.IndexType.DUAL_INDEX:
+            elif index_kit.type == cats.IndexType.DUAL_INDEX:
                 barcode_data = {
                     "well": [],
                     "adapter_id": [],
@@ -605,13 +596,13 @@ class PandasBP(DBBlueprint):
                     barcode_data["well"].append(row["well"])
                     barcode_data["adapter_id"].append(row["adapter_id"])
                     for i in range(2):
-                        if row["types"][i] == categories.BarcodeType.INDEX_I7:
+                        if row["types"][i] == cats.BarcodeType.INDEX_I7:
                             barcode_data["name_i7"].append(row["names"][i])
                             barcode_data["sequence_i7"].append(row["sequences"][i])
                         else:
                             barcode_data["name_i5"].append(row["names"][i])
                             barcode_data["sequence_i5"].append(row["sequences"][i])
-            elif index_kit.type == categories.IndexType.COMBINATORIAL_DUAL_INDEX:
+            elif index_kit.type == cats.IndexType.COMBINATORIAL_DUAL_INDEX:
                 barcode_data = {
                     "adapter_id": [],
                     "name_i7": [],
@@ -622,7 +613,7 @@ class PandasBP(DBBlueprint):
                 for _, row in df.iterrows():
                     barcode_data["adapter_id"].append(row["adapter_id"])
 
-                    if row["types"][0] == categories.BarcodeType.INDEX_I7:
+                    if row["types"][0] == cats.BarcodeType.INDEX_I7:
                         barcode_data["name_i7"].append(row["names"][0])
                         barcode_data["sequence_i7"].append(row["sequences"][0])
                         barcode_data["name_i5"].append(None)
@@ -633,7 +624,7 @@ class PandasBP(DBBlueprint):
                         barcode_data["name_i5"].append(row["names"][0])
                         barcode_data["sequence_i5"].append(row["sequences"][0])
 
-            elif index_kit.type == categories.IndexType.SINGLE_INDEX_I7:
+            elif index_kit.type == cats.IndexType.SINGLE_INDEX_I7:
                 barcode_data = {
                     "well": [],
                     "adapter_id": [],
@@ -663,7 +654,7 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-        df["type"] = df["type_id"].map(categories.FeatureType.get)  # type: ignore
+        df["type"] = cats.FeatureType.map_series(df["type_id"], na_action="ignore")
 
         return df
 
@@ -688,7 +679,7 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-        df["type"] = df["type_id"].map(categories.FeatureType.get)  # type: ignore
+        df["type"] = cats.FeatureType.map_series(df["type_id"], na_action="ignore")
 
         return df
 
@@ -706,8 +697,8 @@ class PandasBP(DBBlueprint):
                 (models.Library.id == models.links.SampleLibraryLink.library_id) &
                 (models.Sample.project_id == project_id) &
                 (models.Library.type_id.in_([
-                    categories.LibraryType.TENX_SC_ABC_FLEX.id,
-                    categories.LibraryType.TENX_ANTIBODY_CAPTURE.id
+                    cats.LibraryType.TENX_SC_ABC_FLEX.id,
+                    cats.LibraryType.TENX_ANTIBODY_CAPTURE.id
                 ]))
             )
         ).join(
@@ -722,7 +713,7 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-        df["type"] = df["type_id"].map(categories.FeatureType.get)  # type: ignore
+        df["type"] = cats.FeatureType.map_series(df["type_id"], na_action="ignore")
 
         return df
 
@@ -790,7 +781,7 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-        df["status"] = df["status_id"].map(categories.SeqRequestStatus.get)  # type: ignore
+        df["status"] = cats.SeqRequestStatus.map_series(df["status_id"], na_action="ignore")
         return df
 
     @DBBlueprint.transaction
@@ -823,9 +814,9 @@ class PandasBP(DBBlueprint):
         experiment_ids = libraries["experiment_id"].unique().tolist()
         libraries_ids = libraries["library_id"].unique().tolist()
 
-        libraries["mux_type"] = libraries["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
-        libraries["genome_ref"] = libraries["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
-        libraries["library_type"] = libraries["library_type_id"].map(categories.LibraryType.get)  # type: ignore
+        libraries["mux_type"] = cats.MUXType.map_series(libraries["mux_type_id"], na_action="ignore")
+        libraries["genome_ref"] = cats.GenomeRef.map_series(libraries["genome_ref_id"], na_action="ignore")
+        libraries["library_type"] = cats.LibraryType.map_series(libraries["library_type_id"], na_action="ignore")
 
         query = sa.select(
             models.Experiment.id.label("experiment_id"), models.Experiment.name.label("experiment_name"),
@@ -885,10 +876,10 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-        df["status"] = df["status_id"].map(categories.LibraryStatus.get)  # type: ignore
-        df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
-        df["genome_ref"] = df["genome_ref_id"].map(categories.GenomeRef.get)  # type: ignore
-        df["index_type"] = df["index_type_id"].apply(lambda x: categories.IndexType.get(x) if pd.notna(x) else None)  # type: ignore
+        df["status"] = cats.LibraryStatus.map_series(df["status_id"], na_action="ignore")
+        df["library_type"] = cats.LibraryType.map_series(df["library_type_id"], na_action="ignore")
+        df["genome_ref"] = cats.GenomeRef.map_series(df["genome_ref_id"], na_action="ignore")
+        df["index_type"] = cats.IndexType.map_series(df["index_type_id"], na_action="ignore")
 
         return df
     
@@ -918,7 +909,7 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-        df["index_type"] = df["index_type_id"].apply(lambda x: categories.IndexType.get(x) if pd.notna(x) else None)  # type: ignore
+        df["index_type"] = cats.IndexType.map_series(df["index_type_id"], na_action="ignore")
 
         return df
 
@@ -941,8 +932,8 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine).sort_values(["library_id", "sample_id"])
-        df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
-        df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
+        df["library_type"] = cats.LibraryType.map_series(df["library_type_id"], na_action="ignore")
+        df["mux_type"] = cats.MUXType.map_series(df["mux_type_id"], na_action="ignore")
 
         if expand_mux and not df.empty:
             expanded = df["mux"].apply(pd.Series)
@@ -979,7 +970,7 @@ class PandasBP(DBBlueprint):
             return distance
 
         df["hamming"] = df["sequence"].apply(lambda x: hamming_distance(x, sequence))
-        df["type"] = df["type_id"].map(categories.BarcodeType.get)  # type: ignore
+        df["type"] = cats.BarcodeType.map_series(df["type_id"], na_action="ignore")
 
         return df
     
@@ -1009,8 +1000,8 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-        df["library_type"] = df["library_type_id"].map(categories.LibraryType.get)  # type: ignore
-        df["mux_type"] = df["mux_type_id"].apply(lambda x: categories.MUXType.get(x) if pd.notna(x) else None)  # type: ignore
+        df["library_type"] = cats.LibraryType.map_series(df["library_type_id"], na_action="ignore")
+        df["mux_type"] = cats.MUXType.map_series(df["mux_type_id"], na_action="ignore")
 
         if expand_mux and not df.empty:
             expanded = df["mux"].apply(pd.Series)
@@ -1143,7 +1134,7 @@ class PandasBP(DBBlueprint):
         )
 
         df = pd.read_sql(query, self.db._engine)
-        df["status"] = df["status_id"].map(categories.DeliveryStatus.get)  # type: ignore
+        df["status"] = cats.DeliveryStatus.map_series(df["status_id"], na_action="ignore")
 
         return df
     
@@ -1166,7 +1157,7 @@ class PandasBP(DBBlueprint):
             ).scalar_subquery()
         )
         df = pd.read_sql(query, self.db._engine)
-        df["status"] = df["status_id"].map(categories.DeliveryStatus.get)
+        df["status"] = cats.DeliveryStatus.map_series(df["status_id"], na_action="ignore")
         return df
     
     @DBBlueprint.transaction
@@ -1232,7 +1223,7 @@ class PandasBP(DBBlueprint):
         return stats
     
     @DBBlueprint.transaction
-    def match_barcodes_to_kit(self, sequences: list[str], barcode_type: categories.BarcodeType, index_type: categories.IndexType | None = None) -> pd.DataFrame:
+    def match_barcodes_to_kit(self, sequences: list[str], barcode_type: cats.BarcodeType, index_type: cats.IndexType | None = None) -> pd.DataFrame:
         unique_sequences = list(set(sequences))
         num_sequences = len(unique_sequences)
 
