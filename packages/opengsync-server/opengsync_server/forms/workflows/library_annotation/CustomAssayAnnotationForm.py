@@ -108,7 +108,7 @@ class CustomAssayAnnotationFrom(MultiStepForm):
 
         for (sample_pool, sample_name), _df in self.sample_pooling_table.groupby(["sample_pool", "sample_name"], sort=False):
             for _, row in self.df.loc[self.df["sample_pool"] == sample_pool].iterrows():
-                library_name = add_library(sample_pool, row["library_type"])
+                library_name = add_library(sample_pool, LibraryType(row["library_type"]))
 
                 sample_pooling_table["sample_name"].append(sample_name)
                 sample_pooling_table["library_name"].append(library_name)

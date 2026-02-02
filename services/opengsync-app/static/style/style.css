@@ -160,7 +160,7 @@ input[type=number] {
     }
 
     .toast-body {
-        font-size: 8;
+        font-size: 1em;
     }
 }
 
