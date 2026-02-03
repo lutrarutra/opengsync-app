@@ -248,13 +248,12 @@ class PandasBP(DBBlueprint):
             models.Lane.id, models.Lane.number.label("lane"),
             models.Lane.phi_x, models.Lane.original_qubit_concentration, models.Lane.total_volume_ul,
             models.Lane.library_volume_ul, models.Lane.avg_fragment_size, models.Lane.sequencing_qubit_concentration,
-            models.Lane.target_molarity
+            models.Lane.target_molarity, models.Lane.lane_molarity, models.Lane.sequencing_molarity,
         ).where(
             models.Lane.experiment_id == experiment_id
         ).order_by(models.Lane.number)
 
         df = pd.read_sql(query, self.db._engine)
-
         return df
 
     @DBBlueprint.transaction

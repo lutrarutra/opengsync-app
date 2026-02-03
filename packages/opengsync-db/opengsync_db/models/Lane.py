@@ -101,12 +101,10 @@ class Lane(Base):
     def avg_fragment_size(cls) -> sa.ScalarSelect[int | None]:
         from .Pool import Pool
         
-        # Subquery to count related pools
         count_subquery = sa.select(sa.func.count(links.LanePoolLink.pool_id)).where(
             links.LanePoolLink.lane_id == cls.id
         ).scalar_subquery()
 
-        # Expression to get pool fragment size
         value_subquery = sa.select(Pool.avg_fragment_size).where(
             links.LanePoolLink.lane_id == cls.id,
             links.LanePoolLink.pool_id == Pool.id
@@ -117,19 +115,6 @@ class Lane(Base):
             (count_subquery == 1, value_subquery),
             else_=None
         )   # type: ignore[arg-type]
-    
-    @property
-    def ba_report(self) -> "MediaFile | None":
-        if self._ba_report is not None:
-            return self._ba_report
-        
-        if orm.object_session(self) is None:
-            raise orm.exc.DetachedInstanceError("Session must be open to load ba_report")
-        
-        if len(self.pool_links) != 1:
-            return None
-        
-        return self.pool_links[0].pool.ba_report
     
     @hybrid_property
     def original_qubit_concentration(self) -> float | None:  # type: ignore[override]
@@ -172,13 +157,6 @@ class Lane(Base):
         if self.original_qubit_concentration is None or self.avg_fragment_size is None:
             return None
         return self.original_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
-
-    
-    @property
-    def sequencing_molarity(self) -> float | None:
-        if self.sequencing_qubit_concentration is None or self.avg_fragment_size is None:
-            return None
-        return self.sequencing_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
     
     @property
     def qubit_concentration(self) -> float | None:
@@ -186,11 +164,56 @@ class Lane(Base):
             return self.sequencing_qubit_concentration
         return self.original_qubit_concentration
     
-    @property
-    def molarity(self) -> float | None:
+    @hybrid_property
+    def lane_molarity(self) -> float | None:  # type: ignore[override]
+        if self.original_qubit_concentration is None or self.avg_fragment_size is None:
+            return None
+        return self.original_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
+    
+    @lane_molarity.expression
+    def lane_molarity(self) -> sa.ColumnElement[float | None]:
+        return sa.case(
+            (
+                sa.and_(
+                    Lane.original_qubit_concentration.is_not(None),
+                    Lane.avg_fragment_size.is_not(None)
+                ),
+                sa.cast(Lane.original_qubit_concentration, sa.Float) / (sa.cast(Lane.avg_fragment_size, sa.Float) * 660) * 1_000_000
+            ),
+            else_=None
+        )
+
+    @hybrid_property
+    def sequencing_molarity(self) -> float | None:  # type: ignore[override]
+        if self.sequencing_qubit_concentration is None or self.avg_fragment_size is None:
+            return None
+        return self.sequencing_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
+
+    @sequencing_molarity.expression
+    def sequencing_molarity(self) -> sa.ColumnElement[float | None]:
+        return sa.case(
+            (
+                sa.and_(
+                    Lane.sequencing_qubit_concentration.is_not(None),
+                    Lane._avg_fragment_size.is_not(None)
+                ),
+                sa.cast(Lane.sequencing_qubit_concentration, sa.Float) / (sa.cast(Lane.avg_fragment_size, sa.Float) * 660) * 1_000_000
+            ),
+            else_=None
+        )
+
+    @hybrid_property
+    def molarity(self) -> float | None: # type: ignore[override]
         if self.sequencing_qubit_concentration is not None:
             return self.sequencing_molarity
         return self.original_molarity
+    
+    @molarity.expression
+    def molarity(self) -> sa.ScalarSelect[float | None]:
+        return sa.case(
+            (Lane.sequencing_qubit_concentration.is_not(None), Lane.sequencing_molarity),
+            else_=Lane.original_molarity
+        ) # type: ignore[arg-type]
     
     @property
     def molarity_color_class(self) -> str:
@@ -210,6 +233,19 @@ class Lane(Base):
         if (q := self.qubit_concentration) is None:
             return ""
         return f"{q:.2f}"
+    
+    @property
+    def ba_report(self) -> "MediaFile | None":
+        if self._ba_report is not None:
+            return self._ba_report
+        
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open to load ba_report")
+        
+        if len(self.pool_links) != 1:
+            return None
+        
+        return self.pool_links[0].pool.ba_report
     
     @property
     def molarity_str(self) -> str:

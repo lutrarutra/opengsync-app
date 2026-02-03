@@ -4,7 +4,7 @@ from typing import Optional
 from opengsync_db import DBHandler, models
 
 from opengsync_db.categories import (
-    LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlowEnum, SequencerModel,
+    LibraryType, DataDeliveryMode, UserRole, FeatureType, ExperimentWorkFlow, SequencerModel,
     ReadType, ExperimentStatus, PoolType, SubmissionType, MediaFileType, GenomeRef, ServiceType,
     GroupType
 )
@@ -121,7 +121,7 @@ def create_sequencer(db: DBHandler) -> models.Sequencer:
     )
 
 
-def create_experiment(db: DBHandler, user: models.User, workflow: ExperimentWorkFlowEnum) -> models.Experiment:
+def create_experiment(db: DBHandler, user: models.User, workflow: ExperimentWorkFlow) -> models.Experiment:
     _uuid = str(uuid.uuid1())
     return db.experiments.create(
         name=_uuid[:5],
