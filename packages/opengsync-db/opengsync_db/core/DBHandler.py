@@ -94,10 +94,16 @@ class DBHandler():
         self.pool_designs = PoolDesignBP("pool_designs", self)
         self.pd = PandasBP("pd", self)
 
+    @staticmethod
+    def AdminURL(user: str, password: str, host: str, db: str, port: str | int) -> str:
+        return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
+
     def connect(
         self, user: str, password: str, host: str, db: str = "opengsync_db", port: Union[str, int] = 5432
     ) -> None:
-        self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
+        self._url = DBHandler.AdminURL(
+            user=user, password=password, host=host, db=db, port=port
+        )
         self.public_url = f"{self._url.split(':')[0]}://{host}:{port}/{db}"
         self._engine = sa.create_engine(self._url)
         try:

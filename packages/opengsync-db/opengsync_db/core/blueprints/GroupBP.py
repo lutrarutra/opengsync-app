@@ -8,14 +8,14 @@ from ... import models
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 from ... import PAGE_LIMIT
-from ...categories import AffiliationType, AffiliationType, AttributeType
+from ...categories import AffiliationType, AffiliationType, GroupType
 
 
 class GroupBP(DBBlueprint):
     @classmethod
     def where(
-        cls, query: Query, user_id: Optional[int], type: Optional[AttributeType] = None,
-        type_in: Optional[list[AttributeType]] = None
+        cls, query: Query, user_id: Optional[int], type: Optional[GroupType] = None,
+        type_in: Optional[list[GroupType]] = None
     ) -> Query:
         if type is not None:
             query = query.where(models.Group.type_id == type.id)
@@ -33,7 +33,7 @@ class GroupBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def create(
-        self, name: str, user_id: int, type: AttributeType, flush: bool = True
+        self, name: str, user_id: int, type: GroupType, flush: bool = True
     ) -> models.Group:
 
         if self.db.session.query(models.Group).where(
@@ -71,11 +71,11 @@ class GroupBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self,
-        user_id: int | None = None, type: Optional[AttributeType] = None,
+        user_id: int | None = None, type: Optional[GroupType] = None,
         name: str | None = None,
         id: int | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        type_in: Optional[list[AttributeType]] = None,
+        type_in: Optional[list[GroupType]] = None,
         sort_by: str | None = None, descending: bool = False,
         page: int | None = None,
     ) -> tuple[list[models.Group], int | None]:
@@ -115,9 +115,9 @@ class GroupBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query(
-        self, name: str, user_id: int | None = None, type: Optional[AttributeType] = None,
+        self, name: str, user_id: int | None = None, type: Optional[GroupType] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        type_in: Optional[list[AttributeType]] = None,
+        type_in: Optional[list[GroupType]] = None,
     ) -> list[models.Group]:
         query = self.db.session.query(models.Group)
         query = GroupBP.where(query, user_id=user_id, type=type, type_in=type_in)
@@ -144,9 +144,9 @@ class GroupBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def get_affiliations(
-        self, group_id: int, type: Optional[AttributeType] = None,
+        self, group_id: int, type: Optional[GroupType] = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        type_in: Optional[list[AttributeType]] = None,
+        type_in: Optional[list[GroupType]] = None,
         sort_by: str | None = None, descending: bool = False,
         user_name: str | None = None,
         page: int | None = None,
