@@ -112,7 +112,7 @@ class ExtendedEnum(enum.IntEnum):
     
     @classmethod
     def map_series(cls: type[T], series: pd.Series, na_action: str | None = "ignore") -> pd.Series:
-        return pd.Series([cls.get(val) if pd.notna(val) else None for val in series], dtype="object") if na_action == "ignore" else pd.Series([cls.get(val) for val in series], dtype="object")
+        return pd.Series([cls.get(int(val)) if pd.notna(val) else None for val in series], dtype="object") if na_action == "ignore" else pd.Series([cls.get(val) for val in series], dtype="object")
         
 
 @dataclass(frozen=True)
