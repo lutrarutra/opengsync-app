@@ -86,16 +86,10 @@ class MultiStepForm(HTMXFlaskForm):
         msf_cache.delete_pattern(f"{self.workflow}:{self.uuid}:*")
     
     def add_comment(self, context: str, text: str):
-        self.metadata["comment"] = {
-            "context": context,
-            "text": text,
-        }
+        self.metadata["comment"] = self.metadata.get("comment", {}) | {context: text}
 
-    def get_comments(self) -> list[dict]:
-        comments = self.metadata.get("comments", [])
-        if "comment" in self.metadata:
-            comments.append(self.metadata["comment"])
-        return comments
+    def get_comments(self) -> dict[str, str]:
+        return self.metadata.get("comment", {})
 
     def step(self):
         self.steps.add(self.step_name)

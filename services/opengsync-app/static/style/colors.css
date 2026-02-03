@@ -66,8 +66,8 @@
     --color-cemm-green-darker: #89af36;
     --color-cemm-green-dark: #75952f;
 
-  --color-navbar: var(--color-cemm-blue);
-  --color-navbar-active: var(--color-cemm-blue-darker);
+    --color-navbar: var(--color-cemm-blue);
+    --color-navbar-active: var(--color-cemm-blue-darker);
 }
 
 /* Custom CSS Rules using those variables */

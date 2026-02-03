@@ -441,46 +441,45 @@ class CompleteSASForm(MultiStepForm):
                 if len(ids := self.feature_table[mask]["feature_id"].values.tolist()) > 0:
                     db.links.link_features_library(feature_ids=ids, library_id=int(library_row["library_id"]))
             
-        for comment_data in self.get_comments():
-            if comment_data["context"] == "visium_instructions":
+        for context, text in self.get_comments().items():
+            if context == "visium_instructions":
                 db.comments.create(
-                    text=f"Visium data instructions: {comment_data['text']}",
+                    text=f"Visium data instructions: {text}",
                     author_id=user.id, seq_request_id=self.seq_request.id
                 )
-            elif comment_data["context"] == "custom_genome_reference":
+            elif context == "custom_genome_reference":
                 db.comments.create(
-                    text=f"Custom genome reference: {comment_data['text']}",
+                    text=f"Custom genome reference: {text}",
                     author_id=user.id, seq_request_id=self.seq_request.id
                 )
-            elif comment_data["context"] == "assay_tech_selection":
+            elif context == "assay_tech_selection":
                 db.comments.create(
-                    text=f"Additional info from assay selection: {comment_data['text']}",
+                    text=f"Additional info from assay selection: {text}",
                     author_id=user.id, seq_request_id=self.seq_request.id
                 )
-            elif comment_data["context"] == "i7_option":
+            elif context == "i7_option":
                 db.comments.create(
-                    text=comment_data['text'],
+                    text=text,
                     author_id=user.id, seq_request_id=self.seq_request.id
                 )
-            elif comment_data["context"] == "i5_option":
+            elif context == "i5_option":
                 db.comments.create(
-                    text=comment_data['text'],
+                    text=text,
                     author_id=user.id, seq_request_id=self.seq_request.id
                 )
-            elif comment_data["context"] == "parse_chemistry":
+            elif context == "parse_chemistry":
                 db.comments.create(
-                    text=f"Parse Chemistry: {comment_data['text']}",
+                    text=f"Parse Chemistry: {text}",
                     author_id=user.id, seq_request_id=self.seq_request.id
                 )
-            elif comment_data["context"] == "parse_kit":
+            elif context == "parse_kit":
                 db.comments.create(
-                    text=f"Parse Kit: {comment_data['text']}",
+                    text=f"Parse Kit: {text}",
                     author_id=user.id, seq_request_id=self.seq_request.id
                 )
             else:
-                logger.warning(f"Unknown comment context: {comment_data['context']}")
                 db.comments.create(
-                    text=comment_data["context"].replace("_", " ").capitalize() + ": " + comment_data["text"],
+                    text=context.replace("_", " ").capitalize() + ": " + text,
                     author_id=user.id, seq_request_id=self.seq_request.id
                 )
 

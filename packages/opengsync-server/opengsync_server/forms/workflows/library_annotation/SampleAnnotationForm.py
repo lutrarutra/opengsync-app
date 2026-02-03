@@ -17,7 +17,7 @@ class SampleAnnotationForm(MultiStepForm):
     _template_path = "workflows/library_annotation/sas-sample_annotation.html"
 
     columns = [
-        TextColumn("sample_name", "Sample Name", 300, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=[".", "_"]), validation_fnc=lambda x: utils.check_string(x, allowed_special_characters=[".", "_"]), unique=True),
+        TextColumn("sample_name", "Sample Name", 300, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: utils.make_alpha_numeric(x, keep=["_", "."]), validation_fnc=lambda x: utils.check_string(x, allowed_special_characters=["_"]), unique=True),
         CategoricalDropDown("genome_id", "Genome", 300, categories=dict(GenomeRef.as_selectable()), required=True),
     ]
 
