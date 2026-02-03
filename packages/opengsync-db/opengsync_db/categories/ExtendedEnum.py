@@ -105,6 +105,14 @@ class ExtendedEnum(enum.IntEnum):
             member = cls._missing_(value)
             if member is not None:
                 return member
+        if isinstance(value, float):
+            try:
+                int_value = int(value)
+                member = cls._missing_(int_value)
+                if member is not None:
+                    return member
+            except ValueError:
+                pass
         raise ValueError(f"{value} is not a valid {cls.__name__}")
     
     def __hash__(self):
