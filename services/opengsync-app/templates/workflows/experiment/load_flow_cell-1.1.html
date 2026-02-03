@@ -47,7 +47,7 @@
                         <td>{{ form_cell(sub_form.measured_qubit, input_class="measured_qubit-col", unit="ng/μL") }}</td>
                         <td class="sequencing_molarity-col bg-light">
                             <div class="quantity-container">
-                                <div class="value fw-bold">{% if row["sequencing_molarity"]  == row["sequencing_molarity"] %}{{ "%.2f" % row["sequencing_molarity"] }}{% endif %}</div>
+                                <div class="value fw-bold">{% if notna(row["sequencing_molarity"]) %}{{ "%.2f" % row["sequencing_molarity"] }}{% endif %}</div>
                                 <div class="unit">nM</div>
                             </div>
                         </td>
