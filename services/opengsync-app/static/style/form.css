@@ -6,6 +6,10 @@
     }
 }
 
+.accordion-button:focus {
+    box-shadow: none;
+}
+
 .invalid-feedback-container {
     display: flex;
     flex-direction: column;

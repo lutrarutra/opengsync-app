@@ -128,7 +128,7 @@ class SelectServiceForm(MultiStepForm):
 
         if self.optional_assays.antibody_multiplexing.data and self.additional_services.oligo_multiplexing.data:
             self.optional_assays.antibody_multiplexing.errors = ("Please select only one multiplexing method.",)
-            self.additional_services.oligo_multiplexing_kit.errors = ("Please select only one multiplexing method.",)
+            self.additional_services.oligo_multiplexing.errors = ("Please select only one multiplexing method.",)
 
         if self.optional_assays.antibody_multiplexing.data and self.additional_services.ocm_multiplexing.data:
             self.optional_assays.antibody_multiplexing.errors = ("Please select only one multiplexing method.",)
@@ -208,8 +208,6 @@ class SelectServiceForm(MultiStepForm):
 
         if (parse_kit := dict(OptionalAssaysForm.Parse_kits).get(self.optional_assays.parse_kit.data)) is not None:
             self.add_comment(context="parse_kit", text=parse_kit)
-
-        self.step()
 
         if DefineMultiplexedSamplesForm.is_applicable(self):
             next_form = DefineMultiplexedSamplesForm(seq_request=self.seq_request, uuid=self.uuid)

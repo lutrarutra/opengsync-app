@@ -1,5 +1,4 @@
 from typing import Optional, Union, TypeVar, Sequence, Literal
-from pathlib import Path
 import itertools
 import json
 import difflib

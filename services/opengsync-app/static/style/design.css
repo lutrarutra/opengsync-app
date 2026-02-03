@@ -1,6 +1,7 @@
 @import "./colors.css";
 
 .flow-cell-design-container {
+
     i {
         color: var(--color-cemm-blue);
     }
@@ -29,6 +30,16 @@
             color: var(--color-cemm-blue);
         }
     }
+
+    .accordion {
+        .accordion-item {
+            background-color: #eff7ff;
+        }
+        :has(.show) {
+            border: 1px solid var(--color-cemm-blue);
+        }
+    }
+
 
     hr {
         margin: 5px 0;

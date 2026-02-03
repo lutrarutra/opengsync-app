@@ -8,6 +8,11 @@
     border: none;
 }
 
+.btn-group.disabled .btn-outline-primary {
+    color: var(--color-cemm-blue);
+    border-color: var(--color-cemm-blue);
+}
+
 .btn-primary:hover {
     background-color: var(--color-cemm-blue-darker);
 }
