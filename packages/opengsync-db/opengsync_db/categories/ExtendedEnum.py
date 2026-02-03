@@ -105,6 +105,14 @@ class ExtendedEnum(enum.IntEnum):
             member = cls._missing_(value)
             if member is not None:
                 return member
+        if isinstance(value, float):
+            try:
+                int_value = int(value)
+                member = cls._missing_(int_value)
+                if member is not None:
+                    return member
+            except ValueError:
+                pass
         raise ValueError(f"{value} is not a valid {cls.__name__}")
     
     def __hash__(self):
@@ -112,7 +120,7 @@ class ExtendedEnum(enum.IntEnum):
     
     @classmethod
     def map_series(cls: type[T], series: pd.Series, na_action: str | None = "ignore") -> pd.Series:
-        return pd.Series([cls.get(int(val)) if pd.notna(val) else None for val in series], dtype="object") if na_action == "ignore" else pd.Series([cls.get(val) for val in series], dtype="object")
+        return pd.Series([cls.get(val) if pd.notna(val) else None for val in series], dtype="object") if na_action == "ignore" else pd.Series([cls.get(val) for val in series], dtype="object")
         
 
 @dataclass(frozen=True)
