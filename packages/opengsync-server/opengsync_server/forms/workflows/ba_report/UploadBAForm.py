@@ -1,6 +1,5 @@
 import io
 import re
-import tempfile
 from typing import Literal
 
 import pandas as pd
@@ -60,8 +59,8 @@ class UploadBAForm(MultiStepForm):
             self.sample_fields[i].obj_id.data = int(row["id"])
             self.sample_fields[i].sample_type.data = row["sample_type"]
 
-            if pd.notna(fragment_size := self.sample_table.at[idx, "avg_fragment_size"]):
-                self.sample_fields[i].avg_fragment_size.data = int(fragment_size)
+            if pd.notna(fragment_size := self.sample_table.at[idx, "avg_fragment_size"]):  # type: ignore
+                self.sample_fields[i].avg_fragment_size.data = int(fragment_size)  # type: ignore
     
     def validate(self) -> bool:
         if not super().validate():
@@ -102,19 +101,30 @@ class UploadBAForm(MultiStepForm):
                 "avg_fragment_size": [],
             }
             
-            with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
-                self.excel.data.save(f)
-                excel_content = open(f.name, "r", encoding="latin-1").read()
-            
-            for it in re.finditer(r"Sample Name,([^\r\n]+)(?:\s*Peak Table\n([\s\S]*?))(?:\s*Region Table\n([\s\S]*?))(?=\nSample Name,|\s*$)", excel_content):
+            excel_content = self.excel.data.read().decode("latin-1")
+            logger.debug(f"Excel content:\n{excel_content}")
+
+            pattern = r"Sample Name,([^\r\n]+).*?Region Table\s+([\s\S]+?)(?=\n\s*\n\s*Sample Name|\Z)"
+
+            for it in re.finditer(pattern, excel_content, re.MULTILINE | re.DOTALL):
                 sample_name = it.group(1).strip()
-                logger.debug(sample_name)
-                _ = it.group(2).strip()
-                region_table = it.group(3).strip()
+                region_table_raw = it.group(2).strip()
+                
                 data["sample_name"].append(sample_name)
+                
                 try:
-                    data["avg_fragment_size"].append(int(pd.read_csv(io.StringIO(region_table), encoding="latin-1")["Average Size [bp]"].values[0]))
-                except ValueError:
+                    # 2. Read the region table block
+                    # We use StringIO to let pandas parse the CSV structure of that specific block
+                    temp_df = pd.read_csv(io.StringIO(region_table_raw))
+                    
+                    if not temp_df.empty and "Average Size [bp]" in temp_df.columns:
+                        val = temp_df["Average Size [bp]"].values[0]
+                        # Convert to float first in case there are decimals, then int
+                        data["avg_fragment_size"].append(int(float(val)))
+                    else:
+                        data["avg_fragment_size"].append(None)
+                except Exception as e:
+                    logger.error(f"Error parsing region for {sample_name}: {e}")
                     data["avg_fragment_size"].append(None)
 
             df = pd.DataFrame(data)
