@@ -9,14 +9,6 @@ class ExperimentStatusEnum(DBEnum):
     icon: str
     description: str
 
-    @property
-    def select_name(self) -> str:
-        return self.icon
-    
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} {self.icon}"
-
 
 class ExperimentStatus(ExtendedEnum):
     label: str
@@ -29,4 +21,13 @@ class ExperimentStatus(ExtendedEnum):
     SEQUENCED = ExperimentStatusEnum(3, "Sequenced", "✅", "Sequencing is finished")
     DEMULTIPLEXED = ExperimentStatusEnum(4, "Demultiplexed", "📊", "Data is demultiplexed and ready for analysis")
     ARCHIVED = ExperimentStatusEnum(10, "Archived", "🗃️", "Data is archived")
-    FAILED = ExperimentStatusEnum(11, "Failed", "❌", "Sequencing failed")
+    FAILED = ExperimentStatusEnum(11, "Failed", "❌", "Experiment failed")
+    CANCELED = ExperimentStatusEnum(12, "Canceled", "🚫", "Experiment was canceled")
+
+    @property
+    def select_name(self) -> str:
+        return self.icon
+    
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} {self.icon}"

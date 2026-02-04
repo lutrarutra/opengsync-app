@@ -47,7 +47,7 @@ class ExtendedEnum(enum.IntEnum):
     
     @property
     def select_name(self) -> str:
-        return f"{self.id}"
+        return self.id.__str__()
     
     def check_type(self, other: Any) -> None:
         if not isinstance(other, ExtendedEnum) and not isinstance(other, int):
