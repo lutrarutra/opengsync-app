@@ -1,7 +1,6 @@
 FROM nginx:1.25.4
 
 RUN rm /etc/nginx/conf.d/default.conf
-COPY services/nginx/config/* /etc/nginx/conf.d/
 COPY services/nginx/50x.html /usr/share/nginx/html/custom_50x.html
 
 COPY services/opengsync-app/static/js /static/js

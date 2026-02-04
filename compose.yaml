@@ -163,6 +163,7 @@ services:
             - compiled_css:/static/style/compiled:ro
             - ${MEDIA_DIR}:/media:ro
             - ${UPLOADS_DIR}:/uploads:ro
+            - ${NGINX_CONFIG_DIR}:/etc/nginx/conf.d:ro
         depends_on:
             opengsync-app:
                 condition: service_started
