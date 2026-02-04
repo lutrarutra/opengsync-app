@@ -37,7 +37,6 @@ COPY packages /app/packages
 COPY ./services/opengsync-app/scripts /app/scripts
 RUN uv sync --frozen --no-editable
 
-COPY opengsync.yaml /app/opengsync.yaml
 COPY services/opengsync-app/templates /templates
 COPY services/opengsync-app/static/js /static/js
 COPY services/opengsync-app/static/images /static/images

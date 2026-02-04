@@ -56,3 +56,6 @@ deploy: prod-build prod-run
 
 test:
 	$(COMPOSE_TEST) up --build --abort-on-container-exit --exit-code-from opengsync-pytest --remove-orphans && $(COMPOSE_TEST) down
+
+woodpecker:
+	docker compose -f compose.woodpecker.yaml -p opengsync-ci up --build -d
