@@ -2,6 +2,12 @@ when:
     - event: push
       branch: main
 
+clone:
+  - name: git
+    image: woodpeckerci/plugin-git
+    settings:
+      tags: true
+
 steps:
   - name: debug
     image: alpine
