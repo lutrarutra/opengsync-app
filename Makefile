@@ -12,7 +12,7 @@ endif
 
 COMPOSE_DEV := docker compose -f compose.dev.yaml $(OVERRIDE_FLAG) -p opengsync-dev
 COMPOSE_PROD := docker compose -f compose.yaml $(OVERRIDE_FLAG) -p opengsync-prod
-COMPOSE_PROD := docker compose -f compose.test.yaml $(OVERRIDE_FLAG) -p opengsync-test
+COMPOSE_TEST := docker compose -f compose.test.yaml -p opengsync-test
 
 dev-build:
 	$(COMPOSE_DEV) build --build-arg VERSION=$(VERSION)
@@ -54,7 +54,5 @@ prod-stop:
 
 deploy: prod-build prod-run
 
-
 test:
-	$(COMPOSE_PROD) up --build --abort-on-container-exit --exit-code-from opengsync-pytest --remove-orphans
-	$(COMPOSE_PROD) down
+	$(COMPOSE_TEST) up --build --abort-on-container-exit --exit-code-from opengsync-pytest --remove-orphans && $(COMPOSE_TEST) down
