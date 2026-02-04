@@ -71,6 +71,8 @@ steps:
         from_secret: PUID
       PGID:
         from_secret: PGID
+      OPENGSYNC_CONFIG_FILE:
+        from_secret: OPENGSYNC_CONFIG_FILE
     commands:
       - pwd
       - ls -al
