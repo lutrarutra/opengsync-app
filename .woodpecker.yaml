@@ -5,6 +5,7 @@ when:
 steps:
   - name: debug
     image: alpine
+    volumes:
       - /etc/opengsync.yaml:/app/opengsync.yaml:ro
       - /etc/compose.override.yaml:/app/compose.override.yaml:ro
     commands:
