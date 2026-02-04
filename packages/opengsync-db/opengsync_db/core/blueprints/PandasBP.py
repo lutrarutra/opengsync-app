@@ -793,6 +793,7 @@ class PandasBP(DBBlueprint):
             models.Library.type_id.label("library_type_id"),
             models.Library.genome_ref_id.label("genome_ref_id"),
             models.Library.seq_request_id.label("seq_request_id"),
+            models.Library.properties.label("properties"),
 
             models.Sample.id.label("sample_id"),
             models.Sample.name.label("sample_name"),
@@ -842,7 +843,7 @@ class PandasBP(DBBlueprint):
             order = [
                 "sample_name", "library_name", "sample_pool",
                 "library_type", "genome_ref", "experiment_name", "lanes",
-                "mux", "mux_type", "library_id", "sample_id", "seq_request_id"
+                "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id"
             ]
             lanes = lanes.sort_values("lane").groupby(
                 lanes.columns.difference(["lane"]).tolist(), as_index=False, dropna=False,
@@ -851,7 +852,7 @@ class PandasBP(DBBlueprint):
             order = [
                 "sample_name", "library_name", "sample_pool",
                 "library_type", "genome_ref", "experiment_name", "lane",
-                "mux", "mux_type", "library_id", "sample_id", "seq_request_id"
+                "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id"
             ]
 
         merged = pd.merge(libraries, lanes, on=["library_id", "experiment_id"], how="left")
