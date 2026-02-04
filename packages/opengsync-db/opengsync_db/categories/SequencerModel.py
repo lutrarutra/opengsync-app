@@ -7,11 +7,6 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class SequencerModelEnum(DBEnum):
     label: str
     manufacturer: str
-    
-
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} ({self.manufacturer})"
 
 
 class SequencerModel(ExtendedEnum):
@@ -25,3 +20,7 @@ class SequencerModel(ExtendedEnum):
     NEXT_SEQ_2000 = SequencerModelEnum(6, "NextSeq 2000", "Illumina")
     NOVA_SEQ_6000 = SequencerModelEnum(7, "NovaSeq 6000", "Illumina")
     NOVA_SEQ_X = SequencerModelEnum(8, "NovaSeq X", "Illumina")
+
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} ({self.manufacturer})"

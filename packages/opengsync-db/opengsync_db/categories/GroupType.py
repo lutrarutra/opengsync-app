@@ -7,15 +7,6 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class GroupTypeEnum(DBEnum):
     label: str
     icon: str
-    
-    @property
-    def select_name(self) -> str:
-        return self.icon
-    
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} {self.icon}"
-
 
 class GroupType(ExtendedEnum):
     label: str
@@ -24,3 +15,12 @@ class GroupType(ExtendedEnum):
     INSTITUTION = GroupTypeEnum(1, "Institution", "🏛️")
     RESEARCH_GROUP = GroupTypeEnum(2, "Research Group/Lab", "👥")
     COLLABORATION = GroupTypeEnum(3, "Collaboration", "🌍")
+
+    @property
+    def select_name(self) -> str:
+        return self.icon
+    
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} {self.icon}"
+

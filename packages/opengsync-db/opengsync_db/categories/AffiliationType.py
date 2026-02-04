@@ -7,14 +7,6 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class AffiliationTypeEnum(DBEnum):
     label: str
     icon: str
-
-    @property
-    def select_name(self) -> str:
-        return self.icon
-
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} {self.icon}"
     
 
 class AffiliationType(ExtendedEnum):
@@ -28,3 +20,11 @@ class AffiliationType(ExtendedEnum):
     @classmethod
     def as_selectable_no_owner(cls) -> list[tuple[int, str]]:
         return [(e.id, e.display_name) for e in AffiliationType.as_list() if e != AffiliationType.OWNER]  # type: ignore
+
+    @property
+    def select_name(self) -> str:
+        return self.icon
+
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} {self.icon}"

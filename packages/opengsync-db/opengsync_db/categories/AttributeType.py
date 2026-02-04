@@ -12,7 +12,6 @@ class AttributeType(ExtendedEnum):
     
     CUSTOM = AttributeTypeEnum(0, "custom")
     SEX = AttributeTypeEnum(1, "sex")
-    # PHENOTYPE = AttributeTypeEnum(2, "Phenotype", "phenotype")
     GENOTYPE = AttributeTypeEnum(2, "genotype")
     CELL_TYPE = AttributeTypeEnum(3, "cell_type")
     CONDITION = AttributeTypeEnum(4, "condition")

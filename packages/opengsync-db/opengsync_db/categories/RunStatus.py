@@ -8,10 +8,6 @@ class RunStatusEnum(DBEnum):
     label: str
     icon: str
 
-    @property
-    def select_name(self) -> str:
-        return self.icon
-
 
 class RunStatus(ExtendedEnum):
     label: str
@@ -21,3 +17,7 @@ class RunStatus(ExtendedEnum):
     FINISHED = RunStatusEnum(2, "Finished", "✅")
     ARCHIVED = RunStatusEnum(10, "Archived", "🗃️")
     FAILED = RunStatusEnum(11, "Failed", "❌")
+
+    @property
+    def select_name(self) -> str:
+        return self.icon

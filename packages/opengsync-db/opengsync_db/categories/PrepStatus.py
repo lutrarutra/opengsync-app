@@ -8,10 +8,6 @@ class PrepStatusEnum(DBEnum):
     label: str
     icon: str
 
-    @property
-    def select_name(self) -> str:
-        return self.icon
-
 
 class PrepStatus(ExtendedEnum):
     label: str
@@ -20,3 +16,8 @@ class PrepStatus(ExtendedEnum):
     PREPARING = PrepStatusEnum(0, "Preparing", "🧪")
     COMPLETED = PrepStatusEnum(1, "Completed", "✅")
     ARCHIVED = PrepStatusEnum(10, "Archived", "🗃️")
+
+    
+    @property
+    def select_name(self) -> str:
+        return self.icon

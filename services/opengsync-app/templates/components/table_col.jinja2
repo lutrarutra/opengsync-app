@@ -82,7 +82,7 @@ field="{{ table_col.label }}"
 data-sort_by="{{ table_col.sort_by }}"
 data-sort_order="{% if table.active_sort_descending %}desc{% else %}asc{% endif %}"
 {% endif %}>
-{{ table_col.title }}
+    {{ table_col.title }}
     {% if table.url and table_col.sortable %}
     <a class="sort-btn" type="button" role="button" id="{{ table_container_id }}:{{ table_col.sort_by }}-sort-btn"
     onclick="table_sort('{{ table.url }}', '{{ table_container_id }}', '{{ table_col.sort_by }}')">

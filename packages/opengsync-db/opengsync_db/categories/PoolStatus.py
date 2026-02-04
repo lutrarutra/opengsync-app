@@ -9,14 +9,6 @@ class PoolStatusEnum(DBEnum):
     icon: str
     description: str
 
-    @property
-    def select_name(self) -> str:
-        return self.icon
-    
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} {self.icon}"
-
 
 class PoolStatus(ExtendedEnum):
     label: str
@@ -31,3 +23,11 @@ class PoolStatus(ExtendedEnum):
     REJECTED = PoolStatusEnum(10, "Rejected", "⛔", "Pool was not accepted to be sequenced by staff")
     ARCHIVED = PoolStatusEnum(11, "Archived", "🗃️", "Pool is sequenced and the data is archived")
     REPOOLED = PoolStatusEnum(12, "Re-Pooled", "🪣", "Pool is combined with other pool(s)")
+
+    @property
+    def select_name(self) -> str:
+        return self.icon
+    
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} {self.icon}"

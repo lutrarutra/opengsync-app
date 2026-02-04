@@ -9,14 +9,6 @@ class ProjectStatusEnum(DBEnum):
     description: str
     icon: str
 
-    @property
-    def select_name(self) -> str:
-        return self.icon
-    
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} {self.icon}"
-
 
 class ProjectStatus(ExtendedEnum):
     label: str
@@ -28,3 +20,11 @@ class ProjectStatus(ExtendedEnum):
     SEQUENCED = ProjectStatusEnum(2, "Sequenced", "All libraries are sequenced. We are working on data processing.", "🧬")
     DELIVERED = ProjectStatusEnum(3, "Delivered", "Project is completed and data is delivered.", "✅")
     ARCHIVED = ProjectStatusEnum(11, "Archived", "Data is archived.", "🗃️")
+
+    @property
+    def select_name(self) -> str:
+        return self.icon
+    
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} {self.icon}"

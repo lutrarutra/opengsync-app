@@ -9,11 +9,6 @@ class MUXTypeEnum(DBEnum):
     abbreviation: str
     mux_columns: list[str]
 
-    @property
-    def select_name(self) -> str:
-        return str(self.id)
-
-
 class MUXType(ExtendedEnum):
     label: str
     abbreviation: str
@@ -24,3 +19,7 @@ class MUXType(ExtendedEnum):
     TENX_FLEX_PROBE = MUXTypeEnum(3, "10X Flex Probe Multiplexing", "Flex", ["barcode"])
     TENX_ABC_HASH = MUXTypeEnum(4, "10X Antibody-based Cell Hashing Multiplexing", "ABC", ["barcode", "read", "pattern"])
     PARSE_WELLS = MUXTypeEnum(5, "Parse Biosciences Well-based Multiplexing", "Parse", ["barcode"])
+
+    @property
+    def select_name(self) -> str:
+        return str(self.id)

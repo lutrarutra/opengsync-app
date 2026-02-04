@@ -1,4 +1,3 @@
-from typing import Optional
 from dataclasses import dataclass
 
 from .ExtendedEnum import DBEnum, ExtendedEnum
@@ -8,14 +7,14 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class MediaFileTypeEnum(DBEnum):
     label: str
     dir: str
-    extensions: Optional[list[str]] = None
+    extensions: list[str] | None = None
     render_url: str | None = None
 
 
 class MediaFileType(ExtendedEnum):
     label: str
     dir: str
-    extensions: Optional[list[str]]
+    extensions: list[str] | None
     render_url: str | None
     
     CUSTOM = MediaFileTypeEnum(0, "Custom", "etc")

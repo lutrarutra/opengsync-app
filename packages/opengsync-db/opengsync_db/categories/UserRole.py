@@ -8,14 +8,6 @@ class UserRoleEnum(DBEnum):
     label: str
     icon: str
     insider: bool = False
-    
-    @property
-    def select_name(self) -> str:
-        return self.icon
-    
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} {self.icon}"
 
 
 class UserRole(ExtendedEnum):
@@ -35,3 +27,11 @@ class UserRole(ExtendedEnum):
             cls.BIOINFORMATICIAN,
             cls.TECHNICIAN
         ]
+    
+    @property
+    def select_name(self) -> str:
+        return self.icon
+    
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} {self.icon}"
