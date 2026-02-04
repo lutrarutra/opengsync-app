@@ -8,14 +8,6 @@ class LibraryStatusEnum(DBEnum):
     label: str
     icon: str
     description: str
-
-    @property
-    def select_name(self) -> str:
-        return self.icon
-
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} {self.icon}"
     
 
 class LibraryStatus(ExtendedEnum):
@@ -34,3 +26,11 @@ class LibraryStatus(ExtendedEnum):
     REJECTED = LibraryStatusEnum(11, "Rejected", "⛔", "Library was not accepted to be sequenced by staff")
     ARCHIVED = LibraryStatusEnum(12, "Archived", "🗃️", "Library is sequenced and the data is archived")
     REMOVED = LibraryStatusEnum(13, "Removed", "🗑️", "Library was removed")
+
+    @property
+    def select_name(self) -> str:
+        return self.icon
+
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} {self.icon}"

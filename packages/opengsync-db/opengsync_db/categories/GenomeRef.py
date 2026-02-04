@@ -10,11 +10,6 @@ class GenomeRefEnum(DBEnum):
     organism_latin_name: str | None = None
     organism_tax_id: int | None = None
 
-    @property
-    def display_name(self) -> str:
-        return f"{self.label}" + (f" ({self.organism_latin_name})" if self.organism_latin_name is not None else "")
-
-
 class GenomeRef(ExtendedEnum):
     label: str
     organism_latin_name: str | None
@@ -26,3 +21,7 @@ class GenomeRef(ExtendedEnum):
     ECOLI = GenomeRefEnum(4, "E. Coli", "Escherichia coli", 562)
     PIG = GenomeRefEnum(5, "Pig", "Sus scrofa", 9823)
     COVID = GenomeRefEnum(6, "Covid", "SARS-CoV-2", 2697049)
+
+    @property
+    def display_name(self) -> str:
+        return f"{self.label}" + (f" ({self.organism_latin_name})" if self.organism_latin_name is not None else "")

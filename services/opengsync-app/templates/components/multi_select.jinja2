@@ -10,9 +10,9 @@
 <div class="dropdown multi-select" field="{{ field_name }}" {% if selected %}{{ tooltip('<br>'.join(ns.names), position="left") }}{% endif %}>
     <button class="dropdown-toggle multi-select-toggle-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" placeholder="{{ placeholder }}">
         {% if selected %}
-            {% for choice in selected %}
-                {{ choice.select_name }}
-            {% endfor %}
+        {% for choice in selected %}
+        {{ choice.select_name }}
+        {% endfor %}
         {% else %}
             {{ placeholder }}
         {% endif %}
@@ -24,7 +24,7 @@
             autocomplete="off" icon="{{ status.select_name }}" value="{{ status.id }}" field="{{ field_name }}"
             onclick="table_filter('{{ url }}', '{{ table_container_id }}');"
             {% if selected and status in selected %}checked{% endif %}>
-            <label class="btn" for="{{table_container_id}}-{{ field_name }}-select-{{ status.id }}">{{ status.name }} <span class="desc">{{ status.select_name }}</span></label>
+            <label class="btn" for="{{table_container_id}}-{{ field_name }}-select-{{ status.id }}">{{ status.label }} <span class="desc">{{ status.select_name }}</span></label>
         </li>
         {% endfor %}
     </ul>

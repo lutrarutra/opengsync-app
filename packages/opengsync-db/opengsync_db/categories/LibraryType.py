@@ -11,10 +11,6 @@ class LibraryTypeEnum(DBEnum):
     identifier: str
     modality: str
 
-    @property
-    def select_name(self) -> str:
-        return str(self.id)
-
 
 class LibraryType(ExtendedEnum):
     label: str
@@ -122,6 +118,10 @@ class LibraryType(ExtendedEnum):
             LibraryType.TENX_VDJ_T_GD,
             LibraryType.TENX_SC_ABC_FLEX
         ]
+    
+    @property
+    def select_name(self) -> str:
+        return str(self.id)
 
 
 identifiers = []

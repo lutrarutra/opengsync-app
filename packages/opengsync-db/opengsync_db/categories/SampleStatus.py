@@ -9,14 +9,6 @@ class SampleStatusEnum(DBEnum):
     icon: str
     description: str
 
-    @property
-    def select_name(self) -> str:
-        return self.icon
-    
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} {self.icon}"
-
 
 class SampleStatus(ExtendedEnum):
     label: str
@@ -27,3 +19,11 @@ class SampleStatus(ExtendedEnum):
     STORED = SampleStatusEnum(2, "Stored", "📦", "Sample specimen was received from customer and stored")
     DEPLETED = SampleStatusEnum(10, "Depleted", "🪫", "Sample specimen was depleted")
     REJECTED = SampleStatusEnum(11, "Rejected", "⛔", "Request was rejected")
+
+    @property
+    def select_name(self) -> str:
+        return self.icon
+    
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} {self.icon}"

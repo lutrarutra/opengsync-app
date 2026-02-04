@@ -9,14 +9,6 @@ class SeqRequestStatusEnum(DBEnum):
     icon: str
     description: str
 
-    @property
-    def select_name(self) -> str:
-        return self.icon
-    
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} {self.icon}"
-
 
 class SeqRequestStatus(ExtendedEnum):
     label: str
@@ -32,3 +24,11 @@ class SeqRequestStatus(ExtendedEnum):
     FAILED = SeqRequestStatusEnum(10, "Failed", "❌", "Request failed")
     REJECTED = SeqRequestStatusEnum(11, "Rejected", "⛔", "Request was rejected")
     ARCHIVED = SeqRequestStatusEnum(12, "Archived", "🗃️", "Request was archived")
+
+    @property
+    def select_name(self) -> str:
+        return self.icon
+    
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} {self.icon}"

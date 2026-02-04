@@ -5,10 +5,6 @@ from .ExtendedEnum import DBEnum, ExtendedEnum
 class AccessTypeEnum(DBEnum):
     label: str
     icon: str
-    
-    @property
-    def select_name(self) -> str:
-        return self.icon
 
 
 class AccessType(ExtendedEnum):
@@ -21,3 +17,7 @@ class AccessType(ExtendedEnum):
     EDIT = AccessTypeEnum(20, "Edit", "📝")
     VIEW = AccessTypeEnum(10, "View", "👀")
     NONE = AccessTypeEnum(0, "None", "🚫")
+
+    @property
+    def select_name(self) -> str:
+        return self.icon

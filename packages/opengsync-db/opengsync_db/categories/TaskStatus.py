@@ -9,14 +9,6 @@ class TaskStatusEnum(DBEnum):
     description: str
     icon: str
 
-    @property
-    def select_name(self) -> str:
-        return self.icon
-    
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} {self.icon}"
-
 
 class TaskStatus(ExtendedEnum):
     label: str
@@ -29,3 +21,11 @@ class TaskStatus(ExtendedEnum):
     FAILED = TaskStatusEnum(11, "Failed", "Task has failed.", "❌")
     ARCHIVED = TaskStatusEnum(12, "Archived", "Task is archived.", "🗃️")
     CANCELLED = TaskStatusEnum(13, "Cancelled", "Task has been cancelled.", "🚫")
+
+    @property
+    def select_name(self) -> str:
+        return self.icon
+    
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} {self.icon}"

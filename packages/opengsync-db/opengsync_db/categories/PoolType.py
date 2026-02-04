@@ -8,10 +8,6 @@ class PoolTypeEnum(DBEnum):
     label: str
     identifier: str
 
-    @property
-    def select_name(self) -> str:
-        return self.identifier
-
 
 class PoolType(ExtendedEnum):
     label: str
@@ -19,3 +15,7 @@ class PoolType(ExtendedEnum):
     CUSTOM = PoolTypeEnum(0, "Custom", "C")
     EXTERNAL = PoolTypeEnum(1, "External", "E")
     INTERNAL = PoolTypeEnum(2, "Internal", "I")
+
+    @property
+    def select_name(self) -> str:
+        return self.identifier

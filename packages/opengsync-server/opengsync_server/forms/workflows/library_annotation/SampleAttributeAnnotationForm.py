@@ -24,7 +24,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
     predefined_columns = [
         TextColumn("sample_name", "Sample Name", 200, required=True, read_only=True),
         TextColumn("sample_id", "Sample ID", 170, required=True, read_only=True),
-    ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for t in AttributeType.as_list()[1:]]
+    ] + [TextColumn(t.label, t.label.replace("_", " ").title(), 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for t in AttributeType.as_list()[1:]]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
         MultiStepForm.__init__(

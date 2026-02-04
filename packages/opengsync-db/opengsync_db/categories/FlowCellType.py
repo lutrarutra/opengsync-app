@@ -10,14 +10,6 @@ class FlowCellTypeEnum(DBEnum):
     num_lanes: int
     max_m_reads_per_lane: int
 
-    @property
-    def max_m_reads(self) -> int:
-        return self.num_lanes * self.max_m_reads_per_lane
-    
-    @property
-    def display_name_with_max_m_reads(self) -> str:
-        return f"{self.label} ({self.max_m_reads} M.)"
-
 
 # https://emea.illumina.com/systems/sequencing-platforms/novaseq/specifications.html
 class FlowCellType(ExtendedEnum):

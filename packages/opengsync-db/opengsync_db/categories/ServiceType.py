@@ -15,10 +15,6 @@ class ServiceTypeEnum(DBEnum):
     library_types: list[LibraryType] = field(default_factory=list)
     optional_library_types: list[LibraryType] = field(default_factory=list)
 
-    @property
-    def display_name(self) -> str:
-        return f"{self.label} ({self.abbreviation})"
-
 
 class ServiceType(ExtendedEnum):
     label: str
@@ -58,3 +54,7 @@ class ServiceType(ExtendedEnum):
     ATAC_SEQ = ServiceTypeEnum(111, "ATAC-Seq", "ATAC-Seq", library_types=[LibraryType.ATAC_SEQ])
     ARTIC_SARS_COV_2 = ServiceTypeEnum(112, "ARTIC SARS-CoV-2", "ARTIC SARS-CoV-2", library_types=[LibraryType.ARTIC_SARS_COV_2])
     IMMUNE_SEQ = ServiceTypeEnum(113, "NEBNext Immune sequencing", "Immune-Seq", library_types=[LibraryType.IMMUNE_SEQ])
+
+    @property
+    def display_name(self) -> str:
+        return f"{self.label} ({self.abbreviation})"
