@@ -52,6 +52,12 @@
         {{ ExperimentStatus.FAILED.label }} {{ ExperimentStatus.FAILED.icon | safe }}
     </div>
 </div>
+{% elif experiment.status == ExperimentStatus.CANCELED %}
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(ExperimentStatus.CANCELED.description, position='top', category='warning') }}>
+    <div class="progress-bar progress-bar-striped bg-danger" style="width: 100%">
+        {{ ExperimentStatus.CANCELED.label }} {{ ExperimentStatus.CANCELED.icon | safe }}
+    </div>
+</div>
 {% else %}
 <div class="progress-stacked">
     {% set fill_pct = (100 / ExperimentStatus.DEMULTIPLEXED.id + 1) %}
