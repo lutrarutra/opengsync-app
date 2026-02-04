@@ -80,6 +80,8 @@ steps:
         from_secret: PGID
       OPENGSYNC_CONFIG_FILE:
         from_secret: OPENGSYNC_CONFIG_FILE
+      NGINX_CONFIG_DIR:
+        from_secret: NGINX_CONFIG_DIR
     commands:
       - git describe --tags
       - docker compose -f compose.yaml -f /app/compose.override.yaml -p opengsync-prod build --build-arg "VERSION=$(git describe --tags --abbrev=0)"
