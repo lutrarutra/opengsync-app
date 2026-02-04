@@ -5,6 +5,8 @@ when:
 steps:
   - name: debug
     image: alpine
+      - /etc/opengsync.yaml:/app/opengsync.yaml:ro
+      - /etc/compose.override.yaml:/app/compose.override.yaml:ro
     commands:
       - pwd
       - ls -al
@@ -14,7 +16,7 @@ steps:
     image: docker:27-cli
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /etc/opengsync.yaml:/app/opengsync.yaml:ro
+        - /etc/opengsync.yaml:/app/opengsync.yaml:ro
       - /etc/compose.override.yaml:/app/compose.override.yaml:ro
     environment:
       OPENGSYNC_PORT:
