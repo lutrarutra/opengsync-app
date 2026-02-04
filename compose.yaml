@@ -208,7 +208,7 @@ services:
         ports:
             - ${POSTGRES_PORT}:${POSTGRES_PORT}
         volumes:
-            - ./templates/postgres/postgresql.conf:/etc/postgresql.conf
+            - ${POSTGRES_CONFIG}:/etc/postgresql.conf
             - postgres_data:/var/lib/postgresql/data
             - postgres_archive:/var/lib/postgresql/archive
         healthcheck:
