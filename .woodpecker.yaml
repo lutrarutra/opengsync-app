@@ -3,6 +3,12 @@ when:
       branch: main
 
 steps:
+  - name: debug
+    image: alpine
+    commands:
+      - pwd
+      - ls -R
+      
   - name: deploy
     image: docker:27-cli
     volumes:
@@ -54,8 +60,6 @@ steps:
         from_secret: MEDIA_DIR
       LOG_DIR:
         from_secret: LOG_DIR
-      CACHE_DIR:
-        from_secret: CACHE_DIR
       UPLOADS_DIR:
         from_secret: UPLOADS_DIR
       DB_DIR:
@@ -65,7 +69,7 @@ steps:
       PGID:
         from_secret: PGID
     commands:
-      - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod build --build-arg "VERSION=$(git describe --tags --always --dirty)"
+      - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod build --build-arg "VERSION=$(git describe --tags --abbrev=0)"
       - docker compose -f compose.yaml -f compose.override.yaml -p opengsync-prod up -d --remove-orphans --wait
       - docker image prune -f
 
