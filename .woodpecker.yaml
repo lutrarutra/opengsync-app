@@ -12,12 +12,14 @@ steps:
       - pwd
       - ls -al
       - ls -al /app
+      - cat /app/opengsync.yaml
+      - cat /app/compose.override.yaml
 
   - name: deploy
     image: docker:27-cli
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-        - /etc/opengsync.yaml:/app/opengsync.yaml:ro
+      - /etc/opengsync.yaml:/app/opengsync.yaml:ro
       - /etc/compose.override.yaml:/app/compose.override.yaml:ro
     environment:
       OPENGSYNC_PORT:
@@ -75,6 +77,8 @@ steps:
       PGID:
         from_secret: PGID
     commands:
+      - pwd
+      - ls -al
       - docker compose -f compose.yaml -f /app/compose.override.yaml -p opengsync-prod build --build-arg "VERSION=$(git describe --tags --abbrev=0)"
       - docker compose -f compose.yaml -f /app/compose.override.yaml -p opengsync-prod up -d --remove-orphans --wait
       - docker image prune -f

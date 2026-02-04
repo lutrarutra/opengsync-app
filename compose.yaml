@@ -16,6 +16,7 @@ services:
             gunicorn -w 4 --bind 0.0.0.0:5000 'scripts.wsgi:create_app(config_path="/app/opengsync.yaml")'
         volumes:
             - compiled_css:/static/style/compiled:ro
+            - ${OPENGSYNC_CONFIG_FILE}:/app/opengsync.yaml:ro
             - ${UPLOADS_DIR}:/uploads
             - ${MEDIA_DIR}:/media
             - ${LOG_DIR}/opengsync:/logs
@@ -69,7 +70,7 @@ services:
             POSTGRES_HOST: ${POSTGRES_HOST}
             POSTGRES_PORT: ${POSTGRES_PORT}
         volumes:
-            - ./opengsync.yaml:/app/opengsync.yaml:ro
+            - ${OPENGSYNC_CONFIG_FILE}:/app/opengsync.yaml:ro
             - ${ILLUMINA_RUN_FOLDER}:/illumina_run_folder
             - ${LOG_DIR}/celery-worker:/logs
             - ${UPLOADS_DIR}:/uploads
@@ -101,7 +102,7 @@ services:
             POSTGRES_HOST: ${POSTGRES_HOST}
             POSTGRES_PORT: ${POSTGRES_PORT}
         volumes:
-            - ./opengsync.yaml:/app/opengsync.yaml:ro
+            - ${OPENGSYNC_CONFIG_FILE}:/app/opengsync.yaml:ro
             - ${LOG_DIR}/celery-beat:/logs
         depends_on:
             postgres:
