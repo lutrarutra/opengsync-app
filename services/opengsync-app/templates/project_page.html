@@ -9,7 +9,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ project.identifier or project.title }}</h1>
+            <h1>{% if project.identifier %}{{ project.identifier }}{% else %}<span class="text-secondary">#{{ project.id }}</span>{% endif %}</h1>
         </div>
         <div class="page-controls">
             {% if current_user.is_insider() and project.status == ProjectStatus.PROCESSING %}

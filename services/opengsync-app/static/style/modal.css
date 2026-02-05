@@ -9,6 +9,7 @@
     -webkit-overflow-scrolling: touch;
     border-bottom: 1px solid #dee2e6;
 }
+
 .nav-tabs .nav-item {
     flex: 0 0 auto;
 }

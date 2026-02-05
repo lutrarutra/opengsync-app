@@ -1,5 +1,6 @@
 {% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="project-sample-table" class="table-container">
@@ -17,7 +18,11 @@
             {% for sample in samples %}
             <tr>
                 <th scope="row">{{ sample.id }}</th>
-                <td><a href="{{ url_for('samples_page.sample', sample_id=sample.id, from='project@' + project.id | string) }}">{{ sample.name }}</a></td>
+                <td class="cm-callback" {{
+                    context_menu([
+                        {"type": "copy", "value": sample.name, "label": "Copy Name"},
+                    ])
+                }}><a href="{{ url_for('samples_page.sample', sample_id=sample.id, from='project@' + project.id | string) }}">{{ sample.name }}</a></td>
                 <td>{% if sample.status %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
                 <td><a href="{{ url_for('users_page.user', user_id=sample.owner_id, from='project@' + project.id | string) }}">{{ sample.owner.name }}{% if current_user.id == sample.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
                 <td>{{ sample.num_libraries }}</td>
