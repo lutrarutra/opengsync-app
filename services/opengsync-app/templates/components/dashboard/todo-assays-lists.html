@@ -1,9 +1,10 @@
 {% from "components/spinner.jinja2" import spinner %}
 
-{% for service_type, _df in df.groupby("service_type") %}
+{% for service_type_id, _df in df.groupby("service_type") %}
+{% set service_type = ServiceType(service_type_id) %}
 <div class="element-banner">
     <div class="title-row row">
-        <div class="title col-4"><a type="button" hx-get="{{ url_for('libraries_htmx.get_service_type_todo_libraries', service_type_id=service_type.id) }}"
+        <div class="title col-4"><a type="button" hx-get="{{ url_for('libraries_htmx.get_service_type_todo_libraries', service_type_id=service_type_id) }}"
         hx-target="#assay-type-todo-modal-content" hx-swap="innerHTML" data-bs-target="#assay-type-todo-modal" data-bs-toggle="modal">{{ service_type.abbreviation }}</a></div>
         <div class="col-8">
             <span class="badge">Waiting: {{ (_df["status"] == LibraryStatus.ACCEPTED).sum() }} 📭</span>

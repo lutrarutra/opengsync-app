@@ -84,7 +84,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
 
         selected_library_types = [t.abbreviation for t in self.service_type.library_types]
         if self.antibody_capture:
-            if self.service_type in [ServiceType.TENX_SC_SINGLE_PLEX_FLEX, ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX]:
+            if self.service_type in ServiceType.get_flex_services():
                 selected_library_types.append(LibraryType.TENX_SC_ABC_FLEX.abbreviation)
             else:
                 selected_library_types.append(LibraryType.TENX_ANTIBODY_CAPTURE.abbreviation)
@@ -105,6 +105,8 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                     df.at[idx, "pool"] = f"flex_pool_{i // 4 + 1}"  # type: ignore
                 elif self.service_type == ServiceType.TENX_SC_16_PLEX_FLEX:
                     df.at[idx, "pool"] = f"flex_pool_{i // 16 + 1}"  # type: ignore
+                elif self.service_type == ServiceType.TENX_SC_FLEX_V2:
+                    df.at[idx, "pool"] = f"flex_pool_{i // 96 + 1}"  # type: ignore
                 else:
                     df.at[idx, "pool"] = f"hto_pool_{i + 1}"  # type: ignore
 
@@ -183,7 +185,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 add_library(sample_pool, library_type)
             
             if self.antibody_capture:
-                if self.service_type in [ServiceType.TENX_SC_SINGLE_PLEX_FLEX, ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX]:
+                if self.service_type in ServiceType.get_flex_services():
                     add_library(sample_pool, LibraryType.TENX_SC_ABC_FLEX)
                 else:
                     add_library(sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE)
@@ -213,7 +215,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 if self.mux_type == MUXType.TENX_OLIGO:
                     link_sample(sample_name, sample_pool, LibraryType.TENX_MUX_OLIGO)
                 if self.antibody_capture:
-                    if self.service_type in [ServiceType.TENX_SC_SINGLE_PLEX_FLEX, ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX]:
+                    if self.service_type in ServiceType.get_flex_services():
                         link_sample(sample_name, sample_pool, LibraryType.TENX_SC_ABC_FLEX)
                     else:
                         link_sample(sample_name, sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE)

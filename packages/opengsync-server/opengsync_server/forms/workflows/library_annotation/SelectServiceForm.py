@@ -144,7 +144,7 @@ class SelectServiceForm(MultiStepForm):
         if self.optional_assays.parse_mux.data and (self.additional_services.oligo_multiplexing.data or self.additional_services.ocm_multiplexing.data or self.optional_assays.antibody_multiplexing.data):
             self.optional_assays.parse_mux.errors = ("Please select only one multiplexing method.",)
 
-        if self.optional_assays.antibody_multiplexing.data and self.service_type_enum in [ServiceType.TENX_SC_SINGLE_PLEX_FLEX, ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX]:
+        if self.optional_assays.antibody_multiplexing.data and self.service_type_enum in ServiceType.get_flex_services():
             self.optional_assays.antibody_multiplexing.errors = ("Antibody-based cell hashing multiplexing is not available with 10X Flex assays.",)
 
         if self.errors:
@@ -159,7 +159,7 @@ class SelectServiceForm(MultiStepForm):
         oligo_multiplexing = self.additional_services.oligo_multiplexing.data
         ocm_multiplexing = self.additional_services.ocm_multiplexing.data
         antibody_multiplexing = self.optional_assays.antibody_multiplexing.data
-        flex_barcode_multiplexing = self.service_type_enum in [ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX]
+        flex_barcode_multiplexing = self.service_type_enum in [ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX, ServiceType.TENX_SC_FLEX_V2]
         parse_multiplexing = self.optional_assays.parse_mux.data
         
         self.metadata["service_type_id"] = self.service_type_enum.id
@@ -259,7 +259,7 @@ class SelectServiceForm(MultiStepForm):
                 add_library(sample_name, library_type)
 
             if self.optional_assays.antibody_capture.data:
-                if self.service_type_enum in [ServiceType.TENX_SC_SINGLE_PLEX_FLEX, ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX]:
+                if self.service_type_enum in ServiceType.get_flex_services():
                     add_library(sample_name, LibraryType.TENX_SC_ABC_FLEX)
                 else:
                     add_library(sample_name, LibraryType.TENX_ANTIBODY_CAPTURE)

@@ -22,21 +22,12 @@
                 aria-controls="help-tab" aria-selected="false">
                 Help</button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link example-tab-btn" data-bs-toggle="tab"
-                data-bs-target="#flex-1-example-tab" type="button" role="tab"
-                aria-controls="flex-1-example-tab" aria-selected="true">
-                Example 1.</button>
-            </li>
         </ul>
         <div class="tab-content" id="flex-reference-form">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                 {{ spreadsheet_input(element=form.spreadsheet, target_element_id="flex-reference-form-container", submit_btn_id="parse-spreadsheet-btn") }}
             </div>
-            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
-                {% include "instructions/flex_annotation.html" %}
-            </div>
-            <div class="tab-pane fade" id="flex-1-example-tab" role="tabpanel" tabindex="3">
+            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="3">
                 {% include "examples/flex.html" %}
             </div>
         </div>

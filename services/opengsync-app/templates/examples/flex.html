@@ -1,32 +1,53 @@
-<div class="example-table" id="flex-1-example">
+<div class="example-table">
     <div class="input-help">
+        <h5>Columns</h5>
         <ul>
-            <li>Sample (Pool) Name <span class="desc">the sample pool name.</span></li>
-            <li>Barcode ID <span class="desc">e.g. 'BC001'</span></li>
-            <li>Demultiplexed Sample Name <span class="desc">name of the demultiplexed sample</span></li>
+            <li>
+                <b>Sample Name</b>:
+                <ul>
+                    <li>Name of the previously specified Flex sample.</li>
+                </ul>
+            </li>
+            <li>
+                <b>Multiplexing Pool</b>:
+                <ul>
+                    <li>Which pool the sample belongs to for multiplexing.</li>
+                    <li>1 Multiplexing Pool = 1 Gem Reaction = 1 Flex Library</li>
+                </ul>
+            </li>
+            <li>
+                <b>Barcode ID</b>:
+                <ul>
+                    <li>E.g. 'BC001'</li>
+                    <li>If sample is multiplexed with two or more barcodes, separate them with a semicolon (e.g., 'BC001;BC002').</li>
+                </ul>
+            </li>
         </ul>
     </div>
+    <div id="flex-1-example"></div>
 </div>
 <script>
     $(document).ready(function() {
         jspreadsheet(document.getElementById('flex-1-example'), {
-            data: [
-                ["FLEX_SAMPLE_POOL_A", "sample_A_lung", "BC001"],
-                ["FLEX_SAMPLE_POOL_A", "sample_A_heart", "BC002"],
-                ["FLEX_SAMPLE_POOL_A", "sample_A_brain", "BC003"],
-                ["FLEX_SAMPLE_POOL_B", "sample_B_lung", "BC001"],
-                ["FLEX_SAMPLE_POOL_B", "sample_B_heart", "BC002"],
-                ["FLEX_SAMPLE_POOL_B", "sample_B_brain", "BC003"],
-            ],
-            columns: [
-                {% for col in form.spreadsheet.columns.values() %}
-                {%- if col.type == "text" or col.type == "numeric" -%}
-                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
-                {%- elif col["type"] == "dropdown" -%}
-                { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
-                {%- endif -%}
-                {% endfor %}
-            ],
+            worksheets: [{
+                data: [
+                    ["FLEX_SAMPLE_POOL_A", "sample_A_lung", "BC001"],
+                    ["FLEX_SAMPLE_POOL_A", "sample_A_heart", "BC002"],
+                    ["FLEX_SAMPLE_POOL_A", "sample_A_brain", "BC003"],
+                    ["FLEX_SAMPLE_POOL_B", "sample_B_lung", "BC001;BC002"],
+                    ["FLEX_SAMPLE_POOL_B", "sample_B_heart", "BC003"],
+                    ["FLEX_SAMPLE_POOL_B", "sample_B_brain", "BC004;BC005;BC006"],
+                ],
+                columns: [
+                    {% for col in form.spreadsheet.columns.values() %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+            }]
         });
     });
 </script>

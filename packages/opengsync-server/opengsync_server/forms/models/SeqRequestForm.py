@@ -273,29 +273,31 @@ class SeqRequestForm(HTMXFlaskForm):
 
     def __init__(
         self,
+        current_user: models.User,
         form_type: Literal["create", "edit"],
         formdata: dict | None = None,
-        current_user: Optional[models.User] = None,
         seq_request: Optional[models.SeqRequest] = None,
     ):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.form_type = form_type
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
+        self.current_user = current_user
 
-        if form_type == "create" and current_user is not None and not formdata:
-            self.disclaimer_form.disclaimer.data = True if current_user is not None and current_user.is_insider() else False
-            self.contact_form.contact_person_name.data = current_user.name
-            self.contact_form.contact_person_email.data = current_user.email
+    def prepare(self):
+        if self.form_type == "create":
+            self.disclaimer_form.disclaimer.data = self.current_user.is_insider()
+            self.contact_form.contact_person_name.data = self.current_user.name
+            self.contact_form.contact_person_email.data = self.current_user.email
             self.contact_form.current_user_is_contact.data = True
 
-        elif form_type == "edit" and formdata is None:
+        elif self.form_type == "edit":
             self.__fill_form()
 
-    def validate(self, user: models.User, seq_request: Optional[models.SeqRequest] = None) -> bool:
+    def validate(self, seq_request: Optional[models.SeqRequest] = None) -> bool:
         super().validate()
         
-        if user.is_insider():
+        if self.current_user.is_insider():
             assigned_user_id = self.user_select_form.user.selected.data
             assigned_user_email = self.user_select_form.email.data
             assigned_user_first_name = self.user_select_form.first_name.data
@@ -332,14 +334,14 @@ class SeqRequestForm(HTMXFlaskForm):
             self.technical_info_form.submission_type.errors = ("Submission type is required",)
         else:
             try:
-                if SubmissionType.get(self.technical_info_form.submission_type.data) == SubmissionType.UNPOOLED_LIBRARIES and not user.is_insider():
+                if SubmissionType.get(self.technical_info_form.submission_type.data) == SubmissionType.UNPOOLED_LIBRARIES and not self.current_user.is_insider():
                     self.technical_info_form.submission_type.errors = ("You can only submit raw samples or pooled libraries by default.",)
                     self.technical_info_form._validated = False
             except ValueError:
                 logger.error(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
                 raise ValueError(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
 
-        user_requests, _ = db.seq_requests.find(user_id=user.id, limit=None)
+        user_requests, _ = db.seq_requests.find(user_id=self.current_user.id, limit=None)
         for request in user_requests:
             if seq_request is not None and seq_request.id == request.id:
                 continue
@@ -435,7 +437,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),)
     
-    def __create_new_request(self, user: models.User) -> Response:
+    def __create_new_request(self) -> Response:
         contact_person = db.contacts.create_contact(
             name=self.contact_form.contact_person_name.data,  # type: ignore
             email=self.contact_form.contact_person_email.data,
@@ -464,7 +466,8 @@ class SeqRequestForm(HTMXFlaskForm):
         else:
             bioinformatician_contact_id = None
 
-        if user.is_insider():
+        user = self.current_user
+        if self.current_user.is_insider():
             if (assigned_user_id := self.user_select_form.user.selected.data) is not None:
                 user = db.users[assigned_user_id]
             elif (assigned_user_email := self.user_select_form.email.data):
@@ -514,12 +517,12 @@ class SeqRequestForm(HTMXFlaskForm):
 
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
     
-    def process_request(self, user: models.User) -> Response:
-        if not self.validate(user=user):
+    def process_request(self) -> Response:
+        if not self.validate():
             logger.debug(self.errors)
             return self.make_response()
         
         if self.form_type == "edit":
             return self.__edit_existing_request()
         
-        return self.__create_new_request(user=user)
+        return self.__create_new_request()

@@ -4,52 +4,42 @@
     <h5>Columns</h5>
     <ul>
         <li>
-            <b>Sample Name</b>:
+            <b>Library Name</b>:
             <ul>
-                <li>Biological Sample, e.g. sample_KO, sample_WT, ... <b>if no multiplexed samples</b></li>
-                <li>Sample Pool Names, e.g. sample_pool_1, sample_pool_2, ... <b>if multiplexed samples</b></li>
-            </ul>
-        </li>
-        <li>
-            <b>Library type:</b>
-            <ul>
-                <li>Specifies the reference genome used in downstream</li>
-                <li>
-                    {% for library_type in LibraryType.as_list() %}
-                    <span {{ tooltip(library_type.label) }} style="cursor: help;" class="badge bg-cemm-blue">
-                        {{ library_type.abbreviation }}
-                    </span>
-                    {% endfor %}
-                </li>
+                <li>Name of the the previosuly specified libraries.</li>
             </ul>
         </li>
         <li>
             <b>Pool</b>:
             <ul>
-                <li>Indicates how libraries were pooled.</li>
-                <li>E.g. rows '1,1,1,2,2,2' means 2 pools are created with 3 samples in each.</li>
-            </ul>
-        </li>
-        <li>
-            <b>Pool</b>:
-            <ul>
-                <li>Indicates how libraries were pooled.</li>
-                <li>E.g. rows '1,1,1,2,2,2' means 2 pools are created with 3 samples in each.</li>
-            </ul>
-        </li>
-        <li><b>Index 1</b> or <b>Adapter</b> + <b>Index Kit</b></li>
-        <li>
-            <b>Genome</b>:
-            <ul>
-                <li>Specifies the reference genome used in downstream</li>
-                <li>
-                    {% for genome_ref in GenomeRef.as_list() %}
-                    <span {{ tooltip(genome_ref.organism_latin_name) }} style="cursor: help;" class="badge bg-cemm-blue">
-                        {{ genome_ref.display_name }}
-                    </span>
-                    {% endfor %}
-                </li>
+                <li>Which pool the library belongs to.</li>
             </ul>
         </li>
     </ul>
+    <div id="pooling-example"></div>
 </div>
+<script>
+    $(document).ready(function() {
+        jspreadsheet(document.getElementById('pooling-example'), {
+            worksheets: [{
+                data: [
+                    ["brain_sample_1_BULKRNA", "bulk_rna_pool_1"],
+                    ["brain_sample_2_BULKRNA", "bulk_rna_pool_1"],
+                    ["lung_sample_1_BULKRNA", "bulk_rna_pool_1"],
+                    ["lung_sample_2_BULKRNA", "bulk_rna_pool_2"],
+                    ["heart_sample_1_BULKRNA", "bulk_rna_pool_2"],
+                    ["heart_sample_2_BULKRNA", "bulk_rna_pool_2"],
+                ],
+                columns: [
+                    {% for col in form.spreadsheet.columns.values() %}
+                    {%- if col.type == "text" or col.type == "numeric" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }} },
+                    {%- elif col["type"] == "dropdown" -%}
+                    { type: "{{col.type}}", title: "{{col.name}}", width: {{ col.width }}, source: {{ col.source | tojson }}, autocomplete: true, options: { newOptions: true } },
+                    {%- endif -%}
+                    {% endfor %}
+                ],
+            }]
+        });
+    });
+</script>
