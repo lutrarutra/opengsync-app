@@ -13,6 +13,7 @@ endif
 COMPOSE_DEV := docker compose -f compose.dev.yaml $(OVERRIDE_FLAG) -p opengsync-dev
 COMPOSE_PROD := docker compose -f compose.yaml $(OVERRIDE_FLAG) -p opengsync-prod
 COMPOSE_TEST := docker compose -f compose.test.yaml -p opengsync-test
+LOGS = opengsync-app
 
 dev-build:
 	$(COMPOSE_DEV) build --build-arg VERSION=$(VERSION)
@@ -24,7 +25,7 @@ dev-run:
 	$(COMPOSE_DEV) --env-file .env up -d --remove-orphans
 
 dev-logs:
-	$(COMPOSE_DEV) logs -f opengsync-app
+	$(COMPOSE_DEV) logs -f $(LOGS)
 
 dev-logs-all:
 	$(COMPOSE_DEV) logs -f
@@ -44,7 +45,7 @@ prod-run:
 	$(COMPOSE_PROD) --env-file .env up -d --remove-orphans --wait
 
 prod-logs:
-	$(COMPOSE_PROD) logs -f opengsync-app
+	$(COMPOSE_PROD) logs -f $(LOGS)
 
 prod-logs-all:
 	$(COMPOSE_PROD) logs -f
@@ -59,3 +60,6 @@ test:
 
 woodpecker:
 	docker compose -f compose.woodpecker.yaml -p opengsync-ci up --build -d
+
+woodpecker-stop:
+	docker compose -f compose.woodpecker.yaml -p opengsync-ci down
