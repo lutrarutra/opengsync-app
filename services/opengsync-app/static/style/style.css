@@ -256,57 +256,7 @@ body {
 
 
 #main {
-    padding: 0;
-    display: flex;
-    width: 100vw;
-    height: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
-
-    #left-margin, #right-margin {
-        position: sticky;
-        top: 0;
-        padding: 5px;
-        width: 120px;
-        margin: 0;
-        background-color: var(--color-gray-200);
-    }
-
     #middle-container {
-        margin: 0;
-        width: calc(100vw - 240px);
-        height: 100%;
-        padding: 0 10px 0 10px;
-        background-color: var(--color-gray-100);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-
-        .page-header-container {
-            background-color: var(--color-gray-100);
-            z-index: 10;
-        }
-
-        .page-content {
-            margin: 0;
-            flex: 1;
-            width: 100%;
-            height: 100%;
-            overflow-y: auto;
-        }
-        
-        .page-content:has(>.tab-content) {
-            overflow: hidden;
-            >.tab-content {
-                height: 100%;
-                overflow: hidden;
-                >.tab-pane {
-                    height: 100%;
-                    overflow-y: auto;
-                }
-            }
-        }
-
         .status_bar {
             padding-bottom: 5px;
         }
@@ -348,7 +298,7 @@ body {
     }
     #breadcrumb {
         ol {
-            padding: 5px 0 0 5px;
+            padding: 0;
             li.active {
                 color: var(--color-cemm-blue-dark);
             }
@@ -357,19 +307,35 @@ body {
                 color: var(--color-cemm-blue);
             }
             list-style: none;
-            li:not(:last-child):after {
-                content: "/";
-                padding: 0 5px 0 5px;
+            li {
+                display: inline-block;
+                white-space: nowrap;
+                color: var(--color-cemm-blue-dark) !important;
+                cursor: default;
             }
+            
+            li:not(:last-child):after {
+                display: inline-block;
+                margin-bottom: 2px;
+                content: "";
+                opacity: .4;
+                background-color: #0000;
+                border-top: 1px solid;
+                border-right: 1px solid;
+                width: .375rem;
+                height: .375rem;
+                margin-left: .25rem;
+                /* margin-right: .75rem; */
+                rotate: 45deg;
+            }
+            overflow: hidden;
         }
-        word-wrap: break-word;
     }
 
     h1 {
         font-size: 2rem;
         font-weight: 500;
         line-height: 1.2;
-    
     }
 }
 

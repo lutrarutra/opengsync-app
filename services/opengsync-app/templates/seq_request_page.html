@@ -11,7 +11,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ seq_request.name }} <span class="desc">{{ seq_request.submission_type.label }}</span></h1>
+            <h1>{{ seq_request.identifier }} <span class="desc">{{ seq_request.submission_type.label }}</span></h1>
         </div>
         <div class="page-controls">
             {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.ACCEPTED %}
@@ -176,6 +176,10 @@
                 </ul>
             </div>
         </div>
+    </div>
+
+    <div style="margin: 0; padding: 0;">
+        <p style="margin: 0; padding: 0;"><b>{{ seq_request.requestor.name }}</b>{% if seq_request.group %} <span class="text-secondary">({{ seq_request.group.name }})</span>{% endif %}: <i class="text-secondary">{{ seq_request.name }}</i></p>
     </div>
 
     <div class="status_bar">

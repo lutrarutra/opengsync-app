@@ -202,8 +202,8 @@
                         class="col-3"
                     )
                 }}
-                {{ metadata_group("Flow Cell", experiment.flowcell_type, class="col-2") }}
-                {{ metadata_group("Workflow", experiment.workflow, class="col-2") }}
+                {{ metadata_group("Flow Cell", experiment.flowcell_type.display_name, class="col-2") }}
+                {{ metadata_group("Workflow", experiment.workflow.display_name, class="col-2") }}
                 {{ metadata_group("Lanes", experiment.num_lanes, class="col-2") }}
             </div>
             <div class="row">
