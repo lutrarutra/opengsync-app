@@ -83,7 +83,7 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
                 add_library(sample_pool, library_type)
 
             if self.metadata["antibody_capture"]:
-                if service_type_enum in [ServiceType.TENX_SC_SINGLE_PLEX_FLEX, ServiceType.TENX_SC_4_PLEX_FLEX, ServiceType.TENX_SC_16_PLEX_FLEX]:
+                if service_type_enum in ServiceType.get_flex_services():
                     add_library(sample_pool, LibraryType.TENX_SC_ABC_FLEX)
                 else:
                     add_library(sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE)

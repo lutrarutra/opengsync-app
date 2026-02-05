@@ -114,11 +114,10 @@ def edit(current_user: models.User, seq_request_id: int):
         raise exceptions.NoPermissionsException()
 
     if request.method == "GET":
-        form = forms.models.SeqRequestForm(form_type="edit", seq_request=seq_request)
+        form = forms.models.SeqRequestForm(current_user=current_user, form_type="edit", seq_request=seq_request)
         return form.make_response()
 
-    return forms.models.SeqRequestForm(form_type="edit", seq_request=seq_request, formdata=request.form).process_request(user=current_user)
-
+    return forms.models.SeqRequestForm(current_user=current_user, form_type="edit", seq_request=seq_request, formdata=request.form).process_request()
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, seq_request_id: int):
@@ -207,10 +206,10 @@ def submit_request(current_user: models.User, seq_request_id: int):
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
     if request.method == "GET":
-        form = forms.models.SeqRequestForm(form_type="create")
+        form = forms.models.SeqRequestForm(form_type="create", current_user=current_user)
         return form.make_response()
     
-    return forms.models.SeqRequestForm(form_type="create", formdata=request.form).process_request(user=current_user)
+    return forms.models.SeqRequestForm(form_type="create", formdata=request.form, current_user=current_user).process_request()
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])

@@ -39,7 +39,7 @@ class CommonFlexMuxForm(MultiStepForm):
                 return False
         return True
 
-    allowed_barcodes = [f"BC{i:03}" for i in range(1, 17)]
+    allowed_barcodes = [f"BC{i:03}" for i in range(1, 96)]
     mux_type = MUXType.TENX_FLEX_PROBE
 
     def __init__(
@@ -125,7 +125,6 @@ class CommonFlexMuxForm(MultiStepForm):
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=self.columns, csrf_token=self._csrf_token,
             post_url=self.post_url, formdata=formdata,
-            allow_new_rows=workflow == "library_annotation",
             df=self.flex_table
         )
 

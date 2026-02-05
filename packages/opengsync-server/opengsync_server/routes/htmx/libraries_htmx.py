@@ -585,20 +585,6 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
         data["num_waiting_libraries"].append(sum([l.status == LibraryStatus.ACCEPTED for l in seq_request.libraries]))
         data["num_waiting_pools"].append(sum([p.status == PoolStatus.ACCEPTED for p in seq_request.pools]))
 
-    # data = {
-    #     "library_name": [],
-    #     "library_type": [],
-    #     "status": [],
-    #     "seq_request": [],
-    #     "sample_name": []
-    # }
-
-    # for library in libraries:
-    #     data["library_name"].append(library.name)
-    #     data["library_type"].append(library.type)
-    #     data["seq_request"].append(library.seq_request)
-    #     data["status"].append(library.status)
-    #     data["sample_name"].append(library.sample_name)
 
     df = pd.DataFrame(data)
 

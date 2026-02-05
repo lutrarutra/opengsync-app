@@ -21,4 +21,4 @@ class SubmissionType(ExtendedEnum):
 
     @classmethod
     def as_selectable(cls, inlcude_unpooled_libraries: bool = True) -> list[tuple[int, str]]:
-        return [(item.id, item.name) for item in cls.as_list() if item != cls.UNPOOLED_LIBRARIES and not inlcude_unpooled_libraries]
+        return [(item.id, item.label) for item in cls.as_list() if item != cls.UNPOOLED_LIBRARIES and not inlcude_unpooled_libraries]
