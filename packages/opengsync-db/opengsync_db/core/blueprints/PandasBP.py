@@ -1226,6 +1226,9 @@ class PandasBP(DBBlueprint):
     def match_barcodes_to_kit(self, sequences: list[str], barcode_type: cats.BarcodeType, index_type: cats.IndexType | None = None) -> pd.DataFrame:
         unique_sequences = list(set(sequences))
         num_sequences = len(unique_sequences)
+        
+        if num_sequences == 0:
+            return pd.DataFrame()
 
         # Subquery to find IDs of kits that contain all requested sequences
         matched_kits_query = (
