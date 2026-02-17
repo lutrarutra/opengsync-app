@@ -150,6 +150,8 @@ class SpreadsheetInput(FlaskForm):
             return False
         
         for label, column in self.columns.items():
+            if label not in self.__df.columns:
+                continue
             if isinstance(column, TextColumn):
                 self.__df[label] = self.__df[label].astype(str)
             elif isinstance(column, IntegerColumn):

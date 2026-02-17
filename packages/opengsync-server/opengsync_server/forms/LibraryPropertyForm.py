@@ -6,6 +6,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 
 from .. import logger, db
+from ..core import exceptions
 from ..tools.spread_sheet_components import InvalidCellValue, TextColumn, IntegerColumn
 from .HTMXFlaskForm import HTMXFlaskForm
 from .SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
@@ -92,7 +93,17 @@ class LibraryPropertyForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-
+        for label in self.spreadsheet.columns.keys():
+            if label in self.df.columns:
+                continue
+            for library_id in self.df["library_id"]:
+                if (library := db.libraries.get(int(library_id))) is None:
+                    raise exceptions.InternalServerErrorException(f"Library with ID {library_id} does not exist")
+                if library.properties is None:
+                    continue
+                if label in library.properties:
+                    library.properties.pop(label) 
+        
         for idx, row in self.df.iterrows():
             if (library := db.libraries.get(row["library_id"])) is None:
                 self.spreadsheet.add_error(idx, "library_id", InvalidCellValue(f"Library with ID {row['library_id']} does not exist"))
