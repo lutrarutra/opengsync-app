@@ -8,7 +8,7 @@ from flask_wtf import FlaskForm
 from wtforms import FileField
 
 from .. import logger
-from ..tools.spread_sheet_components import SpreadSheetColumn, SpreadSheetException
+from ..tools.spread_sheet_components import TextColumn, FloatColumn, IntegerColumn, SpreadSheetColumn, SpreadSheetException, DropdownColumn, CategoricalDropDown
 
 
 class SpreadsheetFile(FlaskForm):
@@ -87,12 +87,12 @@ class SpreadsheetFile(FlaskForm):
             return False
         
         if ext == "xlsx":
-            self.__df: pd.DataFrame = pd.read_excel(self.file.data, sheet_name=self.sheet_name)  # type: ignore
+            self.__df: pd.DataFrame = pd.read_excel(self.file.data, sheet_name=self.sheet_name, dtype=None)  # type: ignore
             if isinstance(self.__df, dict):
                 self.file.errors = [f"Multiple sheets with '{self.sheet_name}' name found in the file."]
                 return False
         else:
-            self.__df = pd.read_csv(self.file.data, sep="\t" if ext == "tsv" else ",")
+            self.__df = pd.read_csv(self.file.data, sep="\t" if ext == "tsv" else ",", dtype=None)
         
         self.file.data.seek(0)
 
@@ -100,18 +100,26 @@ class SpreadsheetFile(FlaskForm):
             self.file.errors = ["Spreadsheet is empty."]
             return False
         
-        for idx, row in self.__df.iterrows():
-            for label, column in self.columns.items():
-                if column.label not in row:
-                    if not column.optional_col:
-                        self.add_general_error(f"Column '{label}' is missing in the spreadsheet.")
-                    continue
+        for label, column in self.columns.items():
+            if column.label not in self.__df.columns:
+                if not column.optional_col:
+                    self.add_general_error(f"Column '{label}' is missing in the spreadsheet.")
+                continue
+            
+            if isinstance(column, CategoricalDropDown):
+                self.__df[label] = self.__df[label].astype(object)
+            elif isinstance(column, TextColumn):
+                self.__df[label] = self.__df[label].astype(str)
+            elif isinstance(column, DropdownColumn):
+                self.__df[label] = self.__df[label].astype(object)
+            
+            for idx, value in enumerate(self.__df[label].tolist()):
                 try:
-                    column.validate(row[label], column_values=self.__df[label].tolist())
+                    column.validate(value, column_values=self.__df[label].tolist())
                 except SpreadSheetException as e:
-                    if column.required and pd.isna(row[label]):
+                    if column.required and pd.isna(value):
                         self.add_error(idx, label, e)
-                    elif column.type == "dropdown" and row[label] not in column.source:
+                    elif column.type == "dropdown" and value not in column.source:
                         if column.source is None:
                             logger.error(f"Column '{label}' has no choices defined.")
                             raise ValueError(f"Column '{label}' has no choices defined.")
@@ -120,10 +128,20 @@ class SpreadsheetFile(FlaskForm):
                         self.add_error(idx, label, e)
                     continue
                     
-                self.__df.at[idx, label] = column.clean_up(row[label])
+                self.__df.at[idx, label] = column.clean_up(value)
 
         if len(self.errors) > 0:
             return False
+        
+        for label, column in self.columns.items():
+            if label not in self.__df.columns:
+                continue
+            if isinstance(column, TextColumn):
+                self.__df[label] = self.__df[label].astype(str)
+            elif isinstance(column, IntegerColumn):
+                self.__df[label] = self.__df[label].astype(pd.Int64Dtype())
+            elif isinstance(column, FloatColumn):
+                self.__df[label] = self.__df[label].astype(pd.Float64Dtype())
 
         return True
     

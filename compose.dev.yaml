@@ -184,4 +184,8 @@ volumes:
     pgadmin_data:
     redis_data:
     postgres_data:
+        external: true
+        name: opengsync-dev_postgres_data
     postgres_archive:
+        external: true
+        name: opengsync-dev_postgres_archive

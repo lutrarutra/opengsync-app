@@ -24,6 +24,9 @@ dev-build-logs:
 dev-run:
 	$(COMPOSE_DEV) --env-file .env up -d --remove-orphans
 
+dev-attach:
+	$(COMPOSE_DEV) --env-file .env up --remove-orphans
+
 dev-logs:
 	$(COMPOSE_DEV) logs -f $(LOGS)
 
