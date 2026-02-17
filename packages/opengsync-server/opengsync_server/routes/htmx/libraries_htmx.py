@@ -613,3 +613,11 @@ def edit(current_user: models.User, library_id: int):
     return forms.models.LibraryForm(
         library=library, formdata=request.form,
     ).process_request()
+
+
+@wrappers.htmx_route(libraries_htmx, db=db, methods=["GET", "POST"])
+def properties(current_user: models.User):
+    form = logic.library.get_properties_form(current_user, request)
+    if request.method == "GET":
+        return form.make_response()
+    return form.process_request()

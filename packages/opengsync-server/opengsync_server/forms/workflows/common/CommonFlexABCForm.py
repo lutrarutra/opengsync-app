@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import url_for
@@ -7,7 +5,7 @@ from flask import url_for
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, MUXType
 
-from .... import logger, tools, db
+from .... import logger
 from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn

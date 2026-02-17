@@ -11,6 +11,7 @@ from .EditKitFeaturesForm import EditKitFeaturesForm
 from .QueryBarcodeSequencesForm import QueryBarcodeSequencesForm
 from .AddProjectAssigneeForm import AddProjectAssigneeForm
 from .AddSeqRequestAssigneeForm import AddSeqRequestAssigneeForm
+from .LibraryPropertyForm import LibraryPropertyForm
 
 
 from . import models, comment, file, workflows, auth

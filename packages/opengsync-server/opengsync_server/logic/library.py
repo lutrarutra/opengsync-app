@@ -5,10 +5,14 @@ from flask import Request
 from opengsync_db import models, categories as cats
 
 from ..import db, logger
+from .. import forms
 from .HTMXTable import HTMXTable
 from .TableCol import TableCol
 from ..core import exceptions
 from .context import parse_context
+from ..tools.spread_sheet_components import TextColumn
+from ..tools import StaticSpreadSheet
+from ..forms.HTMXFlaskForm import HTMXFlaskForm
 
 class LibraryTable(HTMXTable):
     columns = [
@@ -150,3 +154,24 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
         "num_pages": num_pages,
     })
     return context
+
+
+def get_properties_form(current_user: models.User, request: Request, **kwargs) -> HTMXFlaskForm:
+    context = parse_context(current_user, request) | kwargs
+    fnc_context = {}
+
+    if (seq_request := context.get("seq_request")) is not None:
+        fnc_context["seq_request_id"] = seq_request.id
+    elif (project := context.get("project")) is not None:
+        fnc_context["project_id"] = project.id
+    else:
+        raise exceptions.BadRequestException("No sequence request context provided.")
+    
+    form = forms.LibraryPropertyForm(
+        editable=current_user.is_insider(),
+        seq_request=context.get("seq_request"),
+        project=context.get("project"),
+        formdata=request.form if request.method == "POST" else None,
+    )
+    return form
+
