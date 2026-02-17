@@ -99,11 +99,15 @@ class CommonBarcodeMatchForm(MultiStepForm):
         df = self.barcode_table.copy()
         df["rc_sequence_i7"] = df["sequence_i7"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
         df["rc_sequence_i5"] = df["sequence_i5"].apply(lambda x: models.Barcode.reverse_complement(x) if pd.notna(x) else None)
-        
-        kits_i7 = db.pd.match_barcodes_to_kit(df["sequence_i7"].tolist(), BarcodeType.INDEX_I7)
-        kits_i5 = db.pd.match_barcodes_to_kit(df["sequence_i5"].tolist(), BarcodeType.INDEX_I5)
-        kits_rc_i7 = db.pd.match_barcodes_to_kit(df["rc_sequence_i7"].tolist(), BarcodeType.INDEX_I7)
-        kits_rc_i5 = db.pd.match_barcodes_to_kit(df["rc_sequence_i5"].tolist(), BarcodeType.INDEX_I5)
+
+        sequences_i7 = [s for s in df["sequence_i7"].tolist() if pd.notna(s)]
+        sequences_i5 = [s for s in df["sequence_i5"].tolist() if pd.notna(s)]
+        rc_sequences_i7 = [s for s in df["rc_sequence_i7"].tolist() if pd.notna(s)]
+        rc_sequences_i5 = [s for s in df["rc_sequence_i5"].tolist() if pd.notna(s)]
+        kits_i7 = db.pd.match_barcodes_to_kit(sequences_i7, BarcodeType.INDEX_I7)
+        kits_i5 = db.pd.match_barcodes_to_kit(sequences_i5, BarcodeType.INDEX_I5)
+        kits_rc_i7 = db.pd.match_barcodes_to_kit(rc_sequences_i7, BarcodeType.INDEX_I7)
+        kits_rc_i5 = db.pd.match_barcodes_to_kit(rc_sequences_i5, BarcodeType.INDEX_I5)
 
         kit_i7s = []
         for _, row in kits_i7.iterrows():
