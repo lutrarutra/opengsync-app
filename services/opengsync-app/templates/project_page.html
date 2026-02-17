@@ -53,8 +53,8 @@
         </div>
     </div>
 
-    <div style="margin: 0; padding: 0;" class="text-secondary">
-        <p style="margin: 0; padding: 0;"><i>{{ project.title }}</i></p>
+    <div style="margin: 0; padding: 0;">
+        <p style="margin: 0; padding: 0;"><b>{{ project.owner.name }}</b>{% if project.group %} <span class="text-secondary">({{ project.group.name }})</span>{% endif %}: <i class="text-secondary">{{ project.title }}</i></p>
     </div>
 
     <div class="status_bar">

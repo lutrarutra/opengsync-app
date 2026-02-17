@@ -34,9 +34,8 @@ class SampleAttributeTableForm(HTMXFlaskForm):
             if col not in [c.label for c in columns]:
                 SpreadSheetColumn(col, col.replace("_", " ").title(), "text", 100, str)
 
-        csrf_token = self.csrf_token._value()  # type: ignore
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
-            columns=columns, csrf_token=csrf_token,
+            columns=columns, csrf_token=self._csrf_token,
             post_url=url_for('projects_htmx.edit_sample_attributes', project_id=project.id),
             formdata=formdata, allow_new_cols=True, df=df, allow_col_rename=True
         )
@@ -105,5 +104,5 @@ class SampleAttributeTableForm(HTMXFlaskForm):
                 else:
                     db.samples.set_attribute(sample_id=sample_id, name=attribute_name, value=val, type=attribute_type)
 
-        flash("Sample attributes updated", "success")
+        flash("Changes Saved!", "success")
         return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-attributes-tab"))

@@ -1256,3 +1256,38 @@ class PandasBP(DBBlueprint):
 
         df = pd.read_sql(query, self.db._engine)
         return df
+    
+    @DBBlueprint.transaction
+    def get_library_properties(self, project_id: int | None = None, seq_request_id: int | None = None, expand_properties: bool = True) -> pd.DataFrame:
+        if project_id is None and seq_request_id is None:
+            raise ValueError("At least one of project_id or seq_request_id must be provided.")
+        
+        query = sa.select(
+            models.Library.id.label("library_id"),
+            models.Library.name.label("library_name"),
+            models.Library.properties.label("properties"),
+        )
+        
+        if seq_request_id is not None:
+            query = query.where(
+                models.Library.seq_request_id == seq_request_id
+            )
+        else:
+            query = query.join(
+                models.links.SampleLibraryLink,
+                models.links.SampleLibraryLink.library_id == models.Library.id
+            ).join(
+                models.Sample,
+                models.Sample.id == models.links.SampleLibraryLink.sample_id
+            ).where(
+                models.Sample.project_id == project_id
+            )
+
+        df = pd.read_sql(query, self.db._engine)
+        if expand_properties and not df.empty:
+            expanded = df["properties"].apply(pd.Series)
+            for col in expanded.columns:
+                expanded[col] = expanded[col].apply(lambda x: x.get("value") if isinstance(x, dict) else x)
+
+            df = pd.concat([df.drop(columns=["properties"]), expanded], axis=1)
+        return df

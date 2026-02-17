@@ -1,0 +1,25 @@
+{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
+
+<div class="modal-content" id="library-properties-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Library Properties</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="library-properties-form">
+            {{ form.csrf_token() }}
+            {{ spreadsheet_input(form.spreadsheet, target_element_id="library-properties-container", submit_btn_id="submit-library-properties-btn") }}
+        </div>
+    </div>
+    {% if form.editable %}
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-library-properties-btn" class="btn btn-success" id="submit-library-properties-form-button">Submit</button>
+        </div>
+    </div>
+    {% endif %}
+</div>

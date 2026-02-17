@@ -1,12 +1,8 @@
-from typing import Optional
-
-import pandas as pd
-
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import MUXType, LibraryType
+from opengsync_db.categories import LibraryType
 
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, IntegerColumn
@@ -18,17 +14,9 @@ class FlexReMuxForm(CommonFlexMuxForm):
     _workflow_name = "library_remux"
     library: models.Library
 
-    allowed_barcodes = [f"BC{i:03}" for i in range(1, 17)]
-    abc_allowed_barcodes = [f"AB{i:03}" for i in range(1, 17)]
-
     def __init__(self, library: models.Library, formdata: dict | None = None, uuid: str | None = None):
-        match library.type:
-            case LibraryType.TENX_SC_GEX_FLEX:
-                allowed_barcodes = FlexReMuxForm.allowed_barcodes
-            case LibraryType.TENX_SC_ABC_FLEX:
-                allowed_barcodes = FlexReMuxForm.abc_allowed_barcodes
-            case _:
-                raise ValueError(f"Library type {library.type} is not supported for FlexReMuxForm")
+        if library.type not in [LibraryType.TENX_SC_GEX_FLEX, LibraryType.TENX_SC_ABC_FLEX]:
+            raise ValueError(f"Library type {library.type} is not supported for FlexReMuxForm")
 
         CommonFlexMuxForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=FlexReMuxForm._workflow_name,

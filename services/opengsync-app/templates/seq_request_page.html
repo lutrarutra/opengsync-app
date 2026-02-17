@@ -391,6 +391,8 @@
                     <h2>Libraries <img {{ tooltip('Right click on a library name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
                 <div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
+                    hx-get="{{ url_for('libraries_htmx.properties', seq_request_id=seq_request.id) }}">Properties</button>
                 </div>
             </div>
             <div hx-get="{{ url_for('libraries_htmx.get', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
