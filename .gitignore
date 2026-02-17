@@ -9,6 +9,7 @@ cert/
 mnt/
 app_data/
 backup/
+/share/
 opengsync.yaml
 .vscode/
 local/
@@ -38,8 +39,6 @@ compose.woodpecker.yaml
 .hintrc
 .DS_Store
 
-
-share/
 !services/**/share/
 
 
