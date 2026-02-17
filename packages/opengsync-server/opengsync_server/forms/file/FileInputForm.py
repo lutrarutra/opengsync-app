@@ -31,6 +31,13 @@ class FileInputForm(HTMXFlaskForm):
         self.max_size_mbytes = max_size_mbytes
 
     def validate(self) -> bool:
+        if self.file_type.data == MediaFileType.SEQ_AUTH_FORM:
+            if self.file.data is None:
+                self.file.errors = ("File is required.",)
+                return False
+            if self.file.data.filename.split(".")[-1].lower() != "pdf":
+                self.file.errors = ("Sequencing authorization form must be a PDF file.",)
+                return False
         if not super().validate():
             return False
         
