@@ -73,11 +73,11 @@ class SpreadSheetColumn:
         return value
     
     def validate(self, value: Any, column_values: Sequence[Any]):
-        if self.required and value is None:
+        if self.required and pd.isna(value):
             raise MissingCellValue(f"Missing value for '{self.label}'")
         
-        if self.unique and value is not None:
-            if column_values.count(self.clean_up(value)) > 1:
+        if self.unique and pd.notna(value):
+            if column_values.count(self.clean_up(value, ignore_missing=True)) > 1:
                 raise DuplicateCellValue(f"Value '{value}' for '{self.label}' is not unique. It appears multiple times in the column.")
 
 class TextColumn(SpreadSheetColumn):

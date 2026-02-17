@@ -102,23 +102,23 @@ class SpreadsheetInput(FlaskForm):
         self.__df.columns = [self.col_title_map[col_name] if col_name in self.col_title_map else col_name.lower().replace(" ", "_") for col_name in self.col_names]
         self.__df = self.__df.dropna(how="all")
 
-        for label, column in self.columns.items():
-            if column.type == "text" or column.type == "dropdown":
-                self.__df[label] = self.__df[label].astype(str)
-
         if len(self.__df) == 0 and not self.can_be_empty:
             self._errors = ["Spreadsheet is empty.",]
             return False
         
         for label, column in self.columns.items():
+            if label not in self.__df.columns:
+                if column.required:
+                    self.add_general_error(f"Missing required column: '{label}'")
+                continue
+            
             if isinstance(column, CategoricalDropDown):
                 self.__df[label] = self.__df[label].astype(object)
             elif isinstance(column, TextColumn):
                 self.__df[label] = self.__df[label].astype(str)
             elif isinstance(column, DropdownColumn):
                 self.__df[label] = self.__df[label].astype(object)
-        
-        for label, column in self.columns.items():
+
             if isinstance(column, DropdownColumn):
                 if column.all_options_required:
                     if column.source is None:
@@ -127,20 +127,15 @@ class SpreadsheetInput(FlaskForm):
                         if opt not in self.__df[label].unique():
                             self.add_general_error(f"Column '{label}' has missing option '{opt}'. You must use all options atleast once.")
 
-        for idx, row in self.__df.iterrows():
-            for label, column in self.columns.items():
-                if label not in self.__df.columns:
-                    if column.required:
-                        self.add_general_error(f"Missing required column: '{label}'")
-                    continue
+            for idx, value in enumerate(self.__df[label].tolist()):
                 try:
                     if column.type == "text":
                         self.__df[label] = self.__df[label].apply(lambda x: column.clean_up(x, ignore_missing=True))
-                    column.validate(row[label], column_values=self.__df[label].tolist())
+                    column.validate(value, column_values=self.__df[label].tolist())
                 except SpreadSheetException as e:
-                    if column.required and pd.isna(row[label]):
+                    if column.required and pd.isna(value):
                         self.add_error(idx, label, e)
-                    elif column.type == "dropdown" and row[label] not in column.source:
+                    elif column.type == "dropdown" and value not in column.source:
                         if column.source is None:
                             logger.error(f"Column '{label}' has no choices defined.")
                             raise ValueError(f"Column '{label}' has no choices defined.")
@@ -149,7 +144,7 @@ class SpreadsheetInput(FlaskForm):
                         self.add_error(idx, label, e)
                     continue
                 
-                self.__df.at[idx, label] = column.clean_up(row[label])  # type: ignore
+                self.__df.at[idx, label] = column.clean_up(value)
 
         if len(self._errors) > 0:
             return False
