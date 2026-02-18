@@ -86,7 +86,7 @@ steps:
         from_secret: POSTGRES_CONFIG
     commands:
       - git describe --tags
-      - docker compose -f compose.yaml -f /app/compose.override.yaml -p opengsync-prod build --build-arg "VERSION=$(git describe --tags --abbrev=0)"
+      - docker compose -f compose.yaml -f /app/compose.override.yaml -p opengsync-prod build  --progress=plain --build-arg "VERSION=$(git describe --tags --abbrev=0)"
       - docker compose -f compose.yaml -f /app/compose.override.yaml -p opengsync-prod up -d --remove-orphans --wait
       - docker image prune -f
 
