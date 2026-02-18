@@ -11,11 +11,21 @@ clone:
 steps:
   - name: debug
     image: alpine
+    environment:
+      OPENGSYNC_CONFIG_FILE:
+        from_secret: OPENGSYNC_CONFIG_FILE
+      NGINX_CONFIG_DIR:
+        from_secret: NGINX_CONFIG_DIR
+      POSTGRES_CONFIG:
+        from_secret: POSTGRES_CONFIG
     commands:
       - pwd
       - ls -al
       - ls -al /app
-      - cat /app/postgresql.conf
+      - cat $POSTGRES_CONFIG
+      - echo $POSTGRES_CONFIG
+      - echo $NGINX_CONFIG_DIR
+      - echo $OPENGSYNC_CONFIG_FILE
 
   - name: deploy
     image: docker:27-cli
