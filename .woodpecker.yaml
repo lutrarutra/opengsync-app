@@ -22,7 +22,6 @@ steps:
       - pwd
       - ls -al
       - ls -al /app
-      - cat $POSTGRES_CONFIG
       - echo $POSTGRES_CONFIG
       - echo $NGINX_CONFIG_DIR
       - echo $OPENGSYNC_CONFIG_FILE
