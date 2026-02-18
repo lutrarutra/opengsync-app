@@ -19,6 +19,7 @@ class SampleTable(HTMXTable):
         TableCol(title="Status", label="status", col_size=2, sortable=True, sort_by="status_id", choices=cats.SampleStatus.as_list()),
         TableCol(title="Owner", label="owner", col_size=1),
         TableCol(title="# Libraries", label="num_libraries", col_size=1),
+        TableCol(title="Library Types", label="library_types", col_size=4),
     ]
 
 
