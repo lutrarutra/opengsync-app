@@ -6,18 +6,16 @@ from opengsync_db import models
 from opengsync_db.categories import FeatureType
 
 from ..common.CommonFeatureAnnotationForm import CommonFeatureAnnotationForm
-from .VisiumAnnotationForm import VisiumAnnotationForm
-from .CompleteSASForm import CompleteSASForm
-from .OpenSTAnnotationForm import OpenSTAnnotationForm
-from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
 
-class FeatureAnnotationForm(CommonFeatureAnnotationForm):
+class FeatureAnnotationForm(LibraryAnnotationWorkflow, CommonFeatureAnnotationForm):
     _template_path = "workflows/library_annotation/sas-feature_annotation.html"
     _workflow_name = "library_annotation"
     seq_request: models.SeqRequest
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=FeatureAnnotationForm._step_name, formdata=formdata, uuid=uuid)
         CommonFeatureAnnotationForm.__init__(
             self, workflow=FeatureAnnotationForm._workflow_name,
             seq_request=seq_request, lab_prep=None, uuid=uuid,
@@ -41,16 +39,5 @@ class FeatureAnnotationForm(CommonFeatureAnnotationForm):
             self.tables["kit_table"] = kit_table
 
         self.tables["feature_table"] = self.feature_table
-        self.step()
-
-        if OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        else:
-            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-        
-        return next_form.make_response()
+        return self.get_next_step().make_response()
         

@@ -10,13 +10,10 @@ from opengsync_db.categories import LibraryType
 from .... import logger # noqa
 from ....tools.spread_sheet_components import TextColumn, DropdownColumn, DuplicateCellValue
 from ...SpreadsheetInput import SpreadsheetInput
-from ...MultiStepForm import MultiStepForm
-from .CompleteSASForm import CompleteSASForm
-from .VisiumAnnotationForm import VisiumAnnotationForm
-from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
 
-class OpenSTAnnotationForm(MultiStepForm):
+class OpenSTAnnotationForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-openst_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "openst_annotation"
@@ -29,16 +26,12 @@ class OpenSTAnnotationForm(MultiStepForm):
     instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=4096)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
 
     @staticmethod
-    def is_applicable(current_step: MultiStepForm) -> bool:
+    def is_applicable(current_step: LibraryAnnotationWorkflow) -> bool:
         return bool(current_step.tables["library_table"]["library_type_id"].isin([LibraryType.OPENST.id]).any())
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
-        MultiStepForm.__init__(
-            self, workflow=OpenSTAnnotationForm._workflow_name, step_name=OpenSTAnnotationForm._step_name,
-            uuid=uuid, formdata=formdata, step_args={}
-        )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=OpenSTAnnotationForm._step_name, formdata=formdata, uuid=uuid)
+
         self.library_table = self.tables["library_table"]
         self.openst_libraries = self.library_table[self.library_table["library_type_id"].isin([LibraryType.OPENST.id])]
         self.openst_samples = self.openst_libraries["sample_name"].unique().tolist()
@@ -105,14 +98,5 @@ class OpenSTAnnotationForm(MultiStepForm):
             library_properties_table.loc[library_properties_table["library_name"] == row["library_name"], "image"] = row["image"]
         
         self.tables["library_properties_table"] = library_properties_table
-        self.step()
-
-        if VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        else:
-            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-        
-        return next_form.make_response()
+        return self.get_next_step().make_response()
  

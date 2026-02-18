@@ -109,7 +109,7 @@ def parse_custom_assay_annotation_form(current_user: models.User, seq_request_id
     if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
         raise exceptions.NoPermissionsException()
     
-    return forms.CustomAssayAnnotationFrom(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
+    return forms.CustomAssayAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_mux_definition_form(current_user: models.User, seq_request_id: int, uuid: str):

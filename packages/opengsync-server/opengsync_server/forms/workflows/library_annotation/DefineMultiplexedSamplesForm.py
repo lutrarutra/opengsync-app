@@ -8,38 +8,22 @@ from opengsync_db.categories import ServiceType, LibraryType, LibraryType, MUXTy
 from .... import logger, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, DuplicateCellValue, DropdownColumn
-from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
-from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
-from .FlexAnnotationForm import FlexAnnotationForm
-from .OCMAnnotationForm import OCMAnnotationForm
-from .CustomAssayAnnotationForm import CustomAssayAnnotationFrom
-from .ParseMuxAnnotationForm import ParseMuxAnnotationForm
-from .FeatureAnnotationForm import FeatureAnnotationForm
-from .VisiumAnnotationForm import VisiumAnnotationForm
-from .OpenSTAnnotationForm import OpenSTAnnotationForm
-from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
-from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
-from .CompleteSASForm import CompleteSASForm
+from .CustomAssayAnnotationForm import CustomAssayAnnotationForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
 
-class DefineMultiplexedSamplesForm(MultiStepForm):
+class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-define_mux_samples.html"
     _workflow_name = "library_annotation"
     _step_name = "define_mux_samples"
 
     @staticmethod
-    def is_applicable(current_step: MultiStepForm) -> bool:
+    def is_applicable(current_step: LibraryAnnotationWorkflow) -> bool:
         return current_step.metadata["mux_type_id"] is not None
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
-        MultiStepForm.__init__(
-            self, uuid=uuid, formdata=formdata, workflow=DefineMultiplexedSamplesForm._workflow_name,
-            step_name=DefineMultiplexedSamplesForm._step_name,
-            step_args={}
-        )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=DefineMultiplexedSamplesForm._step_name, formdata=formdata, uuid=uuid)
 
         self.sample_table = self.tables["sample_table"]
         self.columns: list = [
@@ -150,8 +134,7 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
                 
             sample_pooling_table = pd.DataFrame(sample_pooling_table)
             self.tables["sample_pooling_table"] = sample_pooling_table
-            self.step()
-            next_form = CustomAssayAnnotationFrom(seq_request=self.seq_request, uuid=self.uuid)
+            next_form = CustomAssayAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
             return next_form.make_response()
 
         library_table_data = {
@@ -244,24 +227,4 @@ class DefineMultiplexedSamplesForm(MultiStepForm):
 
         self.tables["library_table"] = library_table
         self.tables["sample_pooling_table"] = sample_pooling_table
-        self.step()
-
-        if OligoMuxAnnotationForm.is_applicable(self):
-            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OCMAnnotationForm.is_applicable(self):
-            next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseMuxAnnotationForm.is_applicable(self):
-            next_form = ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        else:
-            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-        return next_form.make_response()
+        return self.get_next_step().make_response()

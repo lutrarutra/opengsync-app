@@ -8,19 +8,11 @@ from opengsync_db.categories import MUXType, ServiceType, LibraryType, LibraryTy
 from .... import logger, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, DuplicateCellValue
-from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
-from .FeatureAnnotationForm import FeatureAnnotationForm
-from .VisiumAnnotationForm import VisiumAnnotationForm
-from .CompleteSASForm import CompleteSASForm
-from .OpenSTAnnotationForm import OpenSTAnnotationForm
-from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
-from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
-from .ParseMuxAnnotationForm import ParseMuxAnnotationForm
-from .FlexAnnotationForm import FlexAnnotationForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
 
-class OCMAnnotationForm(MultiStepForm):
+class OCMAnnotationForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-ocm_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "ocm_annotation"
@@ -33,21 +25,16 @@ class OCMAnnotationForm(MultiStepForm):
     allowed_barcodes = [f"OB{i}" for i in range(1, 5)]
 
     @staticmethod
-    def is_applicable(current_step: MultiStepForm) -> bool:
+    def is_applicable(current_step: LibraryAnnotationWorkflow) -> bool:
         return (
             current_step.seq_request.submission_type_id in [SubmissionType.POOLED_LIBRARIES.id, SubmissionType.UNPOOLED_LIBRARIES.id] and
             (current_step.metadata["mux_type_id"] == MUXType.TENX_ON_CHIP.id)
         )
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
-        MultiStepForm.__init__(
-            self, workflow=OCMAnnotationForm._workflow_name, step_name=OCMAnnotationForm._step_name,
-            uuid=uuid, formdata=formdata, step_args={}
-        )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
-        self.sample_pooling_table = self.tables["sample_pooling_table"]
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=OCMAnnotationForm._step_name, formdata=formdata, uuid=uuid)
 
+        self.sample_pooling_table = self.tables["sample_pooling_table"]
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=OCMAnnotationForm.columns, csrf_token=self._csrf_token,
             post_url=url_for('library_annotation_workflow.parse_ocm_reference', seq_request_id=seq_request.id, uuid=self.uuid),
@@ -137,22 +124,4 @@ class OCMAnnotationForm(MultiStepForm):
             if self.metadata["crispr_screening"]:
                 add_library(sample_pool, LibraryType.TENX_CRISPR_SCREENING)
 
-        self.step()
-        if FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseMuxAnnotationForm.is_applicable(self):
-            next_form = ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif self.seq_request.submission_type.id == SubmissionType.POOLED_LIBRARIES.id:
-            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        else:
-            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-
-        return next_form.make_response()
+        return self.get_next_step().make_response()

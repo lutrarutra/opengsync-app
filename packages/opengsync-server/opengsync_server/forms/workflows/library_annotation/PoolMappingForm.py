@@ -9,10 +9,8 @@ from wtforms.validators import Length, Optional as OptionalValidator, DataRequir
 
 from opengsync_db import models
 
-from .... import logger, db
 from ....tools import utils
-from ...MultiStepForm import MultiStepForm
-from .BarcodeInputForm import BarcodeInputForm, TENXATACBarcodeInputForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
 
 class PoolMappingSubForm(FlaskForm):
@@ -21,7 +19,7 @@ class PoolMappingSubForm(FlaskForm):
     num_m_reads_requested = FloatField("Number of M Reads Requested", validators=[OptionalValidator()])
 
 
-class PoolMappingForm(MultiStepForm):
+class PoolMappingForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-pool_mapping.html"
     _workflow_name = "library_annotation"
     _step_name = "pool_mapping"
@@ -32,13 +30,7 @@ class PoolMappingForm(MultiStepForm):
     contact_phone = StringField("Contact Phone", validators=[DataRequired(), Length(max=models.Contact.phone.type.length)])
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
-        MultiStepForm.__init__(
-            self, uuid=uuid, workflow=PoolMappingForm._workflow_name,
-            step_name=PoolMappingForm._step_name,
-            formdata=formdata, step_args={}
-        )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=PoolMappingForm._step_name, formdata=formdata, uuid=uuid)
         self.library_table = self.tables["library_table"]
         self.raw_pool_labels = self.library_table["pool"].unique().tolist()
 
@@ -144,18 +136,4 @@ class PoolMappingForm(MultiStepForm):
         self.metadata["pool_contact_email"] = self.contact_email.data
         self.metadata["pool_contact_phone"] = self.contact_phone.data
         self.tables["pool_table"] = self.pool_table
-        self.step()
-
-        if BarcodeInputForm.is_applicable(self):
-            next_form = BarcodeInputForm(
-                seq_request=self.seq_request,
-                uuid=self.uuid,
-            )
-        elif TENXATACBarcodeInputForm.is_applicable(self):
-            next_form = TENXATACBarcodeInputForm(
-                seq_request=self.seq_request,
-                uuid=self.uuid,
-            )
-        else:
-            raise Exception("No applicable barcode input form found.")
-        return next_form.make_response()
+        return self.get_next_step().make_response()

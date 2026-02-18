@@ -5,14 +5,12 @@ from wtforms.validators import Optional as OptionalValidator, Length
 from opengsync_db import models
 
 from .... import db, logger
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 from ...SearchBar import OptionalSearchBar
-from ...MultiStepForm import MultiStepForm
-from .SampleAnnotationForm import SampleAnnotationForm
 
 
-class ProjectSelectForm(MultiStepForm):
+class ProjectSelectForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-project_select.html"
-    _workflow_name = "library_annotation"
     _step_name = "project_select"
 
     existing_project = FormField(OptionalSearchBar, label="Select Existing Project")
@@ -21,12 +19,7 @@ class ProjectSelectForm(MultiStepForm):
     set_requestor_as_owner = BooleanField(default=True)
 
     def __init__(self, seq_request: models.SeqRequest, formdata: dict | None = None, uuid: str | None = None):
-        MultiStepForm.__init__(
-            self, uuid=uuid, formdata=formdata, step_name=ProjectSelectForm._step_name,
-            workflow=ProjectSelectForm._workflow_name, step_args={}
-        )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=ProjectSelectForm._step_name, formdata=formdata, uuid=uuid)
 
     def fill_previous_form(self):
         if (project_id := self.metadata.get("project_id")) is not None:
@@ -103,7 +96,4 @@ class ProjectSelectForm(MultiStepForm):
         self.metadata["user_id"] = user.id
         self.metadata["project_description"] = self.project_description.data
         self.metadata["project_owner_id"] = self.seq_request.requestor.id if self.set_requestor_as_owner.data and user.is_insider() else user.id
-        self.step()
-
-        next_form = SampleAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)        
-        return next_form.make_response()
+        return self.get_next_step().make_response()

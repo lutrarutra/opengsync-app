@@ -9,15 +9,9 @@ from opengsync_db import models
 from opengsync_db.categories import ServiceType, MUXType, LibraryType, LibraryType, SubmissionType
 
 from .... import logger, db
-from ...MultiStepForm import MultiStepForm
 from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm
-from .VisiumAnnotationForm import VisiumAnnotationForm
-from .FeatureAnnotationForm import FeatureAnnotationForm
-from .CompleteSASForm import CompleteSASForm
-from .OpenSTAnnotationForm import OpenSTAnnotationForm
-from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
-from .CustomAssayAnnotationForm import CustomAssayAnnotationFrom
-from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
+from .CustomAssayAnnotationForm import CustomAssayAnnotationForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
 
 class OptionalAssaysForm(FlaskForm):
@@ -48,7 +42,7 @@ class AdditionalSerevicesForm(FlaskForm):
     nuclei_isolation = BooleanField("Nuclei Isolation", default=False)
 
 
-class SelectServiceForm(MultiStepForm):
+class SelectServiceForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-select_service.html"
     _workflow_name = "library_annotation"
     _step_name = "select_service"
@@ -59,13 +53,8 @@ class SelectServiceForm(MultiStepForm):
     additional_services = FormField(AdditionalSerevicesForm)
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
-        MultiStepForm.__init__(
-            self, uuid=uuid, formdata=formdata, workflow=SelectServiceForm._workflow_name,
-            step_name=SelectServiceForm._step_name,
-            step_args={}
-        )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=SelectServiceForm._step_name, formdata=formdata, uuid=uuid)
+
         self.sample_table = self.tables["sample_table"]
         if seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
             self.service_type.label.text = "Assay Type"
@@ -223,8 +212,7 @@ class SelectServiceForm(MultiStepForm):
                 
             sample_pooling_table = pd.DataFrame(sample_pooling_table)
             self.tables["sample_pooling_table"] = sample_pooling_table
-            self.step()
-            next_form = CustomAssayAnnotationFrom(seq_request=self.seq_request, uuid=self.uuid)
+            next_form = CustomAssayAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
             return next_form.make_response()
         
         library_table_data = {
@@ -293,20 +281,8 @@ class SelectServiceForm(MultiStepForm):
 
         self.tables["sample_pooling_table"] = sample_pooling_table
         self.tables["library_table"] = library_table
-        self.step()
 
-        if self.seq_request.submission_type.id == SubmissionType.POOLED_LIBRARIES.id:
-            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        else:
-            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
+        next_form = self.get_next_step()
         return next_form.make_response()
 
         
