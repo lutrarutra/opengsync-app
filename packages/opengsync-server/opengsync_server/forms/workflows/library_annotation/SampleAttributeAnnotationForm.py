@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 
 import pandas as pd
 
@@ -11,12 +10,11 @@ from opengsync_db.categories import AttributeType
 from .... import logger, db
 from ....core import runtime
 from ....tools.spread_sheet_components import TextColumn, MissingCellValue, SpreadSheetColumn
-from ...MultiStepForm import MultiStepForm
-from .SelectServiceForm import SelectServiceForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 from ...SpreadsheetInput import SpreadsheetInput
 
 
-class SampleAttributeAnnotationForm(MultiStepForm):
+class SampleAttributeAnnotationForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-sample_attribute_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "sample_attribute_annotation"
@@ -27,13 +25,7 @@ class SampleAttributeAnnotationForm(MultiStepForm):
     ] + [TextColumn(t.label, t.label.replace("_", " ").title(), 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for t in AttributeType.as_list()[1:]]
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
-        MultiStepForm.__init__(
-            self, uuid=uuid, formdata=formdata, workflow=SampleAttributeAnnotationForm._workflow_name,
-            step_name=SampleAttributeAnnotationForm._step_name, step_args={}
-        )
-
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=SampleAttributeAnnotationForm._step_name, formdata=formdata, uuid=uuid)
         self.upload_path = os.path.join(runtime.app.uploads_folder.as_posix(), "seq_request")
         self.columns: list[SpreadSheetColumn] = SampleAttributeAnnotationForm.predefined_columns.copy()  # type: ignore
 
@@ -138,6 +130,4 @@ class SampleAttributeAnnotationForm(MultiStepForm):
                 self.sample_table.loc[self.sample_table["sample_name"] == sample_name, f"_attr_{col}"] = row[col]
 
         self.tables["sample_table"] = self.sample_table
-        
-        next_form = SelectServiceForm(seq_request=self.seq_request, uuid=self.uuid)
-        return next_form.make_response()
+        return self.get_next_step().make_response()

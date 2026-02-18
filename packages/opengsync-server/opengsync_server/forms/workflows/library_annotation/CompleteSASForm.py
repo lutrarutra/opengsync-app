@@ -13,24 +13,17 @@ from opengsync_db.categories import (
 
 from .... import db, logger, tools
 from ....core import exceptions
-from ...MultiStepForm import MultiStepForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 from ....core.RunTime import runtime
 
 
-class CompleteSASForm(MultiStepForm):
+class CompleteSASForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-complete.html"
     _workflow_name = "library_annotation"
     _step_name = "complete_sas"
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
-        MultiStepForm.__init__(
-            self, workflow=CompleteSASForm._workflow_name, step_name=CompleteSASForm._step_name,
-            uuid=uuid, formdata=formdata, step_args={}
-        )
-        
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
-
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=CompleteSASForm._step_name, formdata=formdata, uuid=uuid)
         self.library_table = self.tables["library_table"]
         self.sample_table = self.tables["sample_table"]
         self.sample_pooling_table = self.tables["sample_pooling_table"]
@@ -192,8 +185,6 @@ class CompleteSASForm(MultiStepForm):
             self.tables["library_properties_table"] = self.library_properties_table
         if self.sample_pooling_table is not None:
             self.tables["sample_pooling_table"] = self.sample_pooling_table
-
-        self.step()
 
     def process_request(self, user: models.User) -> Response:  # type: ignore
         if not self.validate():

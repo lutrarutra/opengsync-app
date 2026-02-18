@@ -7,18 +7,10 @@ from opengsync_db.categories import FeatureType, MUXType, LibraryType, ServiceTy
 
 from .... import logger, db
 from ..common.CommonOligoMuxForm import CommonOligoMuxForm
-from .FeatureAnnotationForm import FeatureAnnotationForm
-from .VisiumAnnotationForm import VisiumAnnotationForm
-from .FlexAnnotationForm import FlexAnnotationForm
-from .OpenSTAnnotationForm import OpenSTAnnotationForm
-from .CompleteSASForm import CompleteSASForm
-from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
-from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
-from .ParseMuxAnnotationForm import ParseMuxAnnotationForm
-from .OCMAnnotationForm import OCMAnnotationForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
 
-class OligoMuxAnnotationForm(CommonOligoMuxForm):
+class OligoMuxAnnotationForm(LibraryAnnotationWorkflow, CommonOligoMuxForm):
     _template_path = "workflows/library_annotation/sas-oligo_mux_annotation.html"
     _workflow_name = "library_annotation"
     seq_request: models.SeqRequest
@@ -115,25 +107,4 @@ class OligoMuxAnnotationForm(CommonOligoMuxForm):
                 self.tables["kit_table"] = kit_table
         
         self.tables["sample_pooling_table"] = sample_pooling_table
-        self.step()
-
-        if self.seq_request.submission_type.id == SubmissionType.POOLED_LIBRARIES.id:
-            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OCMAnnotationForm.is_applicable(self):
-            next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseMuxAnnotationForm.is_applicable(self):
-            next_form = ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        else:
-            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-
-        return next_form.make_response()
+        return self.get_next_step().make_response()

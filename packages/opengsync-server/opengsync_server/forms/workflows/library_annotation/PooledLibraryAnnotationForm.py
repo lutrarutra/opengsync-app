@@ -5,12 +5,11 @@ from opengsync_db.categories import SubmissionType
 
 from .... import logger, db
 from ....tools.spread_sheet_components import TextColumn
-from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
-from .PoolMappingForm import PoolMappingForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
 
-class PooledLibraryAnnotationForm(MultiStepForm):
+class PooledLibraryAnnotationForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-pooled_library_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "pooled_library_annotation"
@@ -21,20 +20,14 @@ class PooledLibraryAnnotationForm(MultiStepForm):
     ]
 
     @staticmethod
-    def is_applicable(current_step: MultiStepForm) -> bool:
+    def is_applicable(current_step: LibraryAnnotationWorkflow) -> bool:
         return current_step.seq_request.submission_type_id == SubmissionType.POOLED_LIBRARIES.id
 
     def __init__(
         self, seq_request: models.SeqRequest, uuid: str,
         formdata: dict | None = None
     ):
-        MultiStepForm.__init__(
-            self, uuid=uuid, workflow=PooledLibraryAnnotationForm._workflow_name,
-            step_name=PooledLibraryAnnotationForm._step_name,
-            formdata=formdata, step_args={}
-        )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=PooledLibraryAnnotationForm._step_name, formdata=formdata, uuid=uuid)
         self.library_table = self.tables["library_table"]
         
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
@@ -69,8 +62,6 @@ class PooledLibraryAnnotationForm(MultiStepForm):
             self.library_table.loc[(self.library_table["library_name"] == row["library_name"]), "pool"] = row["pool"]
         
         self.tables["library_table"] = self.library_table
-        self.step()
-        next_form = PoolMappingForm(seq_request=self.seq_request, uuid=self.uuid)
-        return next_form.make_response()
+        return self.get_next_step().make_response()
 
         

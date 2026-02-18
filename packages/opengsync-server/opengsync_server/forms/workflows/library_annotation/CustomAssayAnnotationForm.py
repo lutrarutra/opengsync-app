@@ -7,33 +7,17 @@ from opengsync_db.categories import LibraryType, MUXType, LibraryType
 
 from .... import logger, db
 from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue, DropdownColumn, CategoricalDropDown
-from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
-from .OligoMuxAnnotationForm import OligoMuxAnnotationForm
-from .VisiumAnnotationForm import VisiumAnnotationForm
-from .FlexAnnotationForm import FlexAnnotationForm
-from .CompleteSASForm import CompleteSASForm
-from .FeatureAnnotationForm import FeatureAnnotationForm
-from .OCMAnnotationForm import OCMAnnotationForm
-from .OpenSTAnnotationForm import OpenSTAnnotationForm
-from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
-from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
-from .ParseMuxAnnotationForm import ParseMuxAnnotationForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
 
-class CustomAssayAnnotationFrom(MultiStepForm):
+class CustomAssayAnnotationForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-custom_assay_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "custom_assay_annotation"
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
-        MultiStepForm.__init__(
-            self, uuid=uuid, workflow=CustomAssayAnnotationFrom._workflow_name,
-            step_name=CustomAssayAnnotationFrom._step_name,
-            formdata=formdata, step_args={}
-        )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=CustomAssayAnnotationForm._step_name, formdata=formdata, uuid=uuid)
         self.sample_pooling_table = self.tables["sample_pooling_table"]
         self.sample_pools = self.sample_pooling_table["sample_pool"].unique().tolist()
 
@@ -121,28 +105,6 @@ class CustomAssayAnnotationFrom(MultiStepForm):
 
         self.tables["library_table"] = library_table
         self.tables["sample_pooling_table"] = self.sample_pooling_table
-        self.step()
-
-        if OCMAnnotationForm.is_applicable(self):
-            next_form = OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OligoMuxAnnotationForm.is_applicable(self):
-            next_form = OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FlexAnnotationForm.is_applicable(self, seq_request=self.seq_request):
-            next_form = FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseMuxAnnotationForm.is_applicable(self):
-            next_form = ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif PooledLibraryAnnotationForm.is_applicable(self):
-            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        else:
-            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-        return next_form.make_response()
+        return self.get_next_step().make_response()
 
         

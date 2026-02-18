@@ -5,17 +5,11 @@ from opengsync_db.categories import MUXType, ServiceType, LibraryType, LibraryTy
 
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, DuplicateCellValue
-from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput
-from .FeatureAnnotationForm import FeatureAnnotationForm
-from .VisiumAnnotationForm import VisiumAnnotationForm
-from .CompleteSASForm import CompleteSASForm
-from .OpenSTAnnotationForm import OpenSTAnnotationForm
-from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
-from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
 
-class ParseMuxAnnotationForm(MultiStepForm):
+class ParseMuxAnnotationForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-parse_mux_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "parse_mux_annotation"
@@ -27,19 +21,14 @@ class ParseMuxAnnotationForm(MultiStepForm):
     ]
 
     @staticmethod
-    def is_applicable(current_step: MultiStepForm) -> bool:
+    def is_applicable(current_step: LibraryAnnotationWorkflow) -> bool:
         return (
             current_step.seq_request.submission_type_id in [SubmissionType.POOLED_LIBRARIES.id, SubmissionType.UNPOOLED_LIBRARIES.id] and
             (current_step.metadata["mux_type_id"] == MUXType.PARSE_WELLS.id)
         )
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
-        MultiStepForm.__init__(
-            self, workflow=ParseMuxAnnotationForm._workflow_name, step_name=ParseMuxAnnotationForm._step_name,
-            uuid=uuid, formdata=formdata, step_args={}
-        )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=ParseMuxAnnotationForm._step_name, formdata=formdata, uuid=uuid)
         self.sample_pooling_table = self.tables["sample_pooling_table"]
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
@@ -132,19 +121,4 @@ class ParseMuxAnnotationForm(MultiStepForm):
             if self.metadata.get("parse_bcr", False):
                 add_library(sample_pool, LibraryType.PARSE_EVERCODE_BCR)
             
-        self.step()
-
-        if self.seq_request.submission_type.id == SubmissionType.POOLED_LIBRARIES.id:
-            next_form = PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif FeatureAnnotationForm.is_applicable(self):
-            next_form = FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif OpenSTAnnotationForm.is_applicable(self):
-            next_form = OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif VisiumAnnotationForm.is_applicable(self):
-            next_form = VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        elif ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            next_form = ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-        else:
-            next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-
-        return next_form.make_response()
+        return self.get_next_step().make_response()

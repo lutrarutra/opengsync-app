@@ -4,7 +4,7 @@ from .ProjectSelectForm import ProjectSelectForm
 from .SelectServiceForm import SelectServiceForm
 from .SampleAnnotationForm import SampleAnnotationForm
 from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm
-from .CustomAssayAnnotationForm import CustomAssayAnnotationFrom
+from .CustomAssayAnnotationForm import CustomAssayAnnotationForm
 from .PooledLibraryAnnotationForm import PooledLibraryAnnotationForm
 from .PoolMappingForm import PoolMappingForm  
 from .BarcodeInputForm import BarcodeInputForm
@@ -21,7 +21,6 @@ from .OpenSTAnnotationForm import OpenSTAnnotationForm
 from .ParseCRISPRGuideAnnotationForm import ParseCRISPRGuideAnnotationForm
 from .ParseMuxAnnotationForm import ParseMuxAnnotationForm
 
-
 if TYPE_CHECKING:
     from ... import MultiStepForm
 
@@ -34,7 +33,7 @@ _steps: list[type["MultiStepForm"]] = [
 
     # if multiplexed ->
     DefineMultiplexedSamplesForm,
-    CustomAssayAnnotationFrom,
+    CustomAssayAnnotationForm,
     OligoMuxAnnotationForm,
     OCMAnnotationForm,
     FlexAnnotationForm,

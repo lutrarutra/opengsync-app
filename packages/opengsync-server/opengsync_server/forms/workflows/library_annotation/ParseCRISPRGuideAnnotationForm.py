@@ -6,11 +6,10 @@ from opengsync_db.categories import LibraryType
 from .... import logger # noqa
 from ....tools.spread_sheet_components import TextColumn
 from ...SpreadsheetInput import SpreadsheetInput
-from ...MultiStepForm import MultiStepForm
-from .CompleteSASForm import CompleteSASForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
 
-class ParseCRISPRGuideAnnotationForm(MultiStepForm):
+class ParseCRISPRGuideAnnotationForm(LibraryAnnotationWorkflow):
     _template_path = "workflows/library_annotation/sas-parse_crispr_guide_annotation.html"
     _workflow_name = "library_annotation"
     _step_name = "parse_crispr_guide_annotation"
@@ -24,18 +23,13 @@ class ParseCRISPRGuideAnnotationForm(MultiStepForm):
     ]
 
     @staticmethod
-    def is_applicable(current_step: MultiStepForm) -> bool:
+    def is_applicable(current_step: LibraryAnnotationWorkflow) -> bool:
         return bool(current_step.tables["library_table"]["library_type_id"].isin([LibraryType.PARSE_SC_CRISPR.id]).any())
 
     def __init__(self, seq_request: models.SeqRequest, uuid: str, formdata: dict | None = None):
-        MultiStepForm.__init__(
-            self, workflow=ParseCRISPRGuideAnnotationForm._workflow_name, step_name=ParseCRISPRGuideAnnotationForm._step_name,
-            uuid=uuid, formdata=formdata, step_args={}
-        )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
-        self.library_table = self.tables["library_table"]
-        
+        LibraryAnnotationWorkflow.__init__(self, seq_request=seq_request, step_name=ParseCRISPRGuideAnnotationForm._step_name, formdata=formdata, uuid=uuid)
+
+        self.library_table = self.tables["library_table"]        
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=ParseCRISPRGuideAnnotationForm.columns, csrf_token=self._csrf_token,
             post_url=url_for('library_annotation_workflow.parse_parse_crispr_guide_annotation', seq_request_id=seq_request.id, uuid=self.uuid),
@@ -66,8 +60,5 @@ class ParseCRISPRGuideAnnotationForm(MultiStepForm):
             return self.make_response()
 
         self.tables["crispr_guide_table"] = self.df
-        self.step()
-
-        next_form = CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-        return next_form.make_response()
+        return self.get_next_step().make_response()
  
