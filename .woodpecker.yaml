@@ -18,6 +18,7 @@ steps:
       - cat /app/opengsync.yaml
       - cat /app/compose.override.yaml
       - ls -al /app/nginx_conf
+      - ls -al /app/postgresql.conf
 
   - name: deploy
     image: docker:27-cli
