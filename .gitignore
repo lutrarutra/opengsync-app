@@ -36,6 +36,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 compose.woodpecker.yaml
+.woodpecker.yaml
 .hintrc
 .DS_Store
 
