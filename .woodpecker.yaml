@@ -11,13 +11,20 @@ clone:
 steps:
   - name: debug
     image: alpine
+    environment:
+      OPENGSYNC_CONFIG_FILE:
+        from_secret: OPENGSYNC_CONFIG_FILE
+      NGINX_CONFIG_DIR:
+        from_secret: NGINX_CONFIG_DIR
+      POSTGRES_CONFIG:
+        from_secret: POSTGRES_CONFIG
     commands:
       - pwd
       - ls -al
       - ls -al /app
-      - cat /app/opengsync.yaml
-      - cat /app/compose.override.yaml
-      - ls -al /app/nginx_conf
+      - echo $POSTGRES_CONFIG
+      - echo $NGINX_CONFIG_DIR
+      - echo $OPENGSYNC_CONFIG_FILE
 
   - name: deploy
     image: docker:27-cli
@@ -86,7 +93,7 @@ steps:
         from_secret: POSTGRES_CONFIG
     commands:
       - git describe --tags
-      - docker compose -f compose.yaml -f /app/compose.override.yaml -p opengsync-prod build --build-arg "VERSION=$(git describe --tags --abbrev=0)"
+      - docker compose -f compose.yaml -f /app/compose.override.yaml -p opengsync-prod build  --progress=plain --build-arg "VERSION=$(git describe --tags --abbrev=0)"
       - docker compose -f compose.yaml -f /app/compose.override.yaml -p opengsync-prod up -d --remove-orphans --wait
       - docker image prune -f
 
