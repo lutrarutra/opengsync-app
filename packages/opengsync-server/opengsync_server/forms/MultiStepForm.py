@@ -1,4 +1,4 @@
-from uuid_extensions import uuid7str
+from uuid6 import uuid7
 
 from .. import msf_cache, logger
 from .HTMXFlaskForm import HTMXFlaskForm
@@ -46,7 +46,7 @@ class MultiStepForm(HTMXFlaskForm):
     def __init__(self, workflow: str, uuid: str | None, formdata: dict | None, step_name: str, step_args: dict):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         if uuid is None:
-            uuid = uuid7str()
+            uuid = uuid7().__str__()
 
         self.step_name = step_name
         self.step_args = step_args

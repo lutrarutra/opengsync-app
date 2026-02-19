@@ -202,7 +202,7 @@ def make_filenameable(val, keep: list[str] = ['-', '.', '_']) -> str:
 
 
 def make_alpha_numeric(val: str | None, keep: list[str] = [".", "-", "_"], replace_white_spaces_with: str | None = "_") -> str | None:
-    if pd.isna(val) or val is None or val == "":
+    if pd.isna(val) or not val:
         return None
     
     if replace_white_spaces_with is not None:

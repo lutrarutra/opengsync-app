@@ -1,5 +1,5 @@
 import os
-from uuid_extensions import uuid7str
+from uuid6 import uuid7
 
 import pandas as pd
 
@@ -157,7 +157,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             db.media_files.delete(file_id=old_file.id)
             logger.info(f"Old file '{old_file.path}' removed.")
 
-        _uuid = uuid7str()
+        _uuid = uuid7().__str__()
         filepath = os.path.join(runtime.app.media_folder, MediaFileType.LANE_POOLING_TABLE.dir, f"{_uuid}.tsv")
         df.to_csv(filepath, sep="\t", index=False)
         size_bytes = os.stat(filepath).st_size

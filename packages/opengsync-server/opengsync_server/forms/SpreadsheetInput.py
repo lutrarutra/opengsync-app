@@ -1,5 +1,5 @@
 import json
-from uuid_extensions import uuid7str
+from uuid6 import uuid7
 import string
 from typing import Optional, Hashable
 
@@ -35,7 +35,7 @@ class SpreadsheetInput(FlaskForm):
         self._errors: list[str] = []
         self.post_url = post_url
         self.csrf_token = csrf_token
-        self.id = uuid7str()
+        self.id = uuid7().__str__()
         self.allow_new_rows = "true" if allow_new_rows else "false"
         self.allow_new_cols = "true" if allow_new_cols else "false"
         self.allow_col_rename = "true" if allow_col_rename else "false"

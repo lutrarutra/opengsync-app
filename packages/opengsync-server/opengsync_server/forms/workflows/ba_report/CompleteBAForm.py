@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from uuid_extensions import uuid7str
+from uuid6 import uuid7
 
 from flask import Response, flash, url_for
 from flask_wtf.file import FileField, FileAllowed
@@ -63,7 +63,7 @@ class CompleteBAForm(MultiStepForm):
         metadata = metadata.copy()
         filename, extension = os.path.splitext(report.data.filename)
         
-        file_uuid = uuid7str()
+        file_uuid = uuid7().__str__()
         new_path = os.path.join(runtime.app.media_folder, MediaFileType.BIOANALYZER_REPORT.dir, f"{file_uuid}{extension}")
         report.data.save(new_path)
         size_bytes = os.stat(new_path).st_size

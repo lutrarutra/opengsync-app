@@ -26,10 +26,8 @@ class CommonBarcodeInputForm(MultiStepForm):
     def barcode_sequence_clean_up(sequence: str | None) -> str | None:
         if pd.isna(sequence) or sequence is None:
             return None
-        
         sequence = tools.make_alpha_numeric(sequence, keep=[], replace_white_spaces_with="")
-        sequence = sequence.upper()  # type: ignore
-        return sequence
+        return sequence.upper() if sequence else None
     
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:

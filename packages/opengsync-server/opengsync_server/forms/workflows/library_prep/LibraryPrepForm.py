@@ -1,5 +1,5 @@
 import os
-from uuid_extensions import uuid7str
+from uuid6 import uuid7
 
 import numpy as np
 import pandas as pd
@@ -109,7 +109,7 @@ class LibraryPrepForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        hash = uuid7str()
+        hash = uuid7().__str__()
         path = os.path.join(runtime.app.media_folder, MediaFileType.LIBRARY_PREP_FILE.dir, f"{hash}.xlsx")
         self.table.file.data.save(path)
         size_bytes = os.path.getsize(path)
