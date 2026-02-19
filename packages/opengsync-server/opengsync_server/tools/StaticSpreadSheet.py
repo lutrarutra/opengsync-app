@@ -1,4 +1,4 @@
-from uuid_extensions import uuid7str
+from uuid6 import uuid7
 
 import pandas as pd
 
@@ -14,7 +14,7 @@ class StaticSpreadSheet():
         self, df: pd.DataFrame,
         columns: list[SpreadSheetColumn],
         style: dict[str, str] = {},
-        id: str = uuid7str(),
+        id: str = uuid7().__str__(),
         format_big_numbers: bool = True,
     ):
         self.__df = df.copy().round(3)

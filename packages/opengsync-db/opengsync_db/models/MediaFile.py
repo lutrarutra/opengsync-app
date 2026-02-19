@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING
 from datetime import datetime
 from datetime import timezone
 
-from uuid_extensions import uuid7str
+from uuid6 import uuid7
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -23,7 +23,7 @@ class MediaFile(Base):
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     extension: Mapped[str] = mapped_column(sa.String(16), nullable=False)
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
-    uuid: Mapped[str] = mapped_column(sa.CHAR(36), nullable=False, default=lambda: uuid7str(), unique=True)
+    uuid: Mapped[str] = mapped_column(sa.CHAR(36), nullable=False, default=lambda: uuid7().__str__(), unique=True)
     size_bytes: Mapped[int] = mapped_column(sa.BigInteger, nullable=False)
     timestamp_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     

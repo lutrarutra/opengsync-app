@@ -21,7 +21,7 @@ dependencies = [
     "SQLAlchemy >= 2.0",
     "pytz >= 2023.3.post1",
     "tzlocal >= 5.2",
-    "uuid7 >= 0.1.0",
+    "uuid6",
     "redis",
 ]
 

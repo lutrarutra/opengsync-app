@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING
-from uuid_extensions import uuid7str
+from uuid6 import uuid7
 from datetime import datetime
 from datetime import timezone, timedelta
 
@@ -17,7 +17,7 @@ class APIToken(Base):
     __tablename__ = "api_token"
 
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    uuid: Mapped[str] = mapped_column(sa.CHAR(36), default=lambda: uuid7str(), nullable=False, unique=True)
+    uuid: Mapped[str] = mapped_column(sa.CHAR(36), default=lambda: uuid7().__str__(), nullable=False, unique=True)
     time_valid_min: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     created_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     _expired: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False, name="expired")

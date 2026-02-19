@@ -1,5 +1,5 @@
 import os
-from uuid_extensions import uuid7str
+from uuid6 import uuid7
 from typing import Optional
 
 from flask import Response, flash, url_for
@@ -40,7 +40,7 @@ class ExperimentAttachmentForm(FileInputForm):
 
         filename, extension = os.path.splitext(self.file.data.filename)
 
-        _uuid = uuid7str()
+        _uuid = uuid7().__str__()
         filepath = os.path.join(runtime.app.media_folder, file_type.dir, f"{_uuid}{extension}")
         self.file.data.save(filepath)
         size_bytes = os.stat(filepath).st_size

@@ -1,5 +1,4 @@
-from uuid_extensions import uuid7str
-from typing import Optional
+from uuid6 import uuid7
 
 from sqlalchemy.sql.base import ExecutableOption
 
@@ -39,7 +38,7 @@ class MediaFileBP(DBBlueprint):
                 raise exceptions.ElementDoesNotExist(f"LabPrep with id '{lab_prep_id}', not found.")
         
         if uuid is None:
-            uuid = uuid7str()
+            uuid = uuid7().__str__()
 
         name = name[:models.MediaFile.name.type.length]
 
