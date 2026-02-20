@@ -37,7 +37,7 @@
                 </td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(experiment.library_types) }}</td>
                 <td>{{ experiment.timestamp_created_str("%Y-%m-%d") }}</td>
-                <td>{{ experiment.workflow.name }}</td>
+                <td>{{ experiment.workflow.display_name }}</td>
             </tr>
             {% endfor %}
         </tbody>

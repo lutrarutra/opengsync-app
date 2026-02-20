@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 from .ExtendedEnum import DBEnum, ExtendedEnum
-
 from .FlowCellType import FlowCellType
 
 
@@ -44,6 +43,9 @@ class ExperimentWorkFlow(ExtendedEnum):
     NOVASEQ_X_10B_XP = ExperimentWorkFlowEnum(104, "NovaSeq X 10B XP", -1, FlowCellType.NOVASEQ_X_10B_ILLUMINA)
     NOVASEQ_X_25B_XP = ExperimentWorkFlowEnum(105, "NovaSeq X 25B XP", -1, FlowCellType.NOVASEQ_X_25B_ILLUMINA)
 
+    @property
+    def display_name(self) -> str:
+        return self.label
 
     @classmethod
     def novaseq_6k_workflows(cls) -> list["ExperimentWorkFlow"]:
