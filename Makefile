@@ -1,5 +1,7 @@
 # Error: "*** missing separator." -> replace spaces with tabs
 
+.PHONY: dev-build dev-build-logs dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-run prod-logs prod-logs-all prod-stop deploy test gitlab-runner gitlab-runner-stop
+
 VERSION := $(shell git describe --tags --abbrev=0)
 OVERRIDE_FILE := $(wildcard compose.override.yaml)
 
