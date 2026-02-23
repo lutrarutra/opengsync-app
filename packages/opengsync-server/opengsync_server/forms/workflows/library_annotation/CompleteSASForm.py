@@ -8,7 +8,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import (
     GenomeRef, LibraryType, FeatureType, MediaFileType, SampleStatus, PoolType, AttributeType,
-    ServiceType, SubmissionType, MUXType, IndexType, BarcodeOrientation, SubmissionType
+    ServiceType, SubmissionType, MUXType, IndexType, BarcodeOrientation
 )
 
 from .... import db, logger, tools

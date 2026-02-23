@@ -430,9 +430,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
         db.seq_requests.update(self.seq_request)
 
-        logger.debug(self.basic_info_form.request_name.data)
-
-        flash(f"Sequencing Request Updated!", "success")
+        flash("Changes Saved!", "success")
         logger.info(f"Updated sequencing request '{self.seq_request.name}'")
 
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),)
@@ -512,7 +510,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
         db.seq_requests.update(seq_request)
 
-        flash(f"Request Created!", "success")
+        flash("Request Created!", "success")
         logger.info(f"Created new sequencing request '{seq_request.name}'")
 
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
