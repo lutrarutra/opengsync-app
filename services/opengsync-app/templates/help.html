@@ -2,8 +2,18 @@
 {% set active_page = "help-page" %}
 {% block content %}
 <div class="page-content">
+    <h2 class="pt-1"><i class="bi bi-info-circle"></i> OpeNGSync</h2>
+    <ul>
+        <li>
+            <a href="https://github.com/lutrarutra/opengsync-app" target="_blank">https://github.com/lutrarutra/opengsync-app</a>
+        </li>
+        <li>Version: {{ app_version }}</li>
+        <li>API Version: {{ api_version }}</li>
+        <li>DB Version: {{ db_version }}</li>
+    </ul>
+
     {% include 'sops.html' %}
-    <h2 class="pt-3"><i class="bi bi-info-circle"></i> Privacy Notice</h2>
+    <h2><i class="bi bi-info-circle"></i> Privacy Notice</h2>
     <p>
         This website uses only essential cookies to ensure the proper functionality of the website.
         We do not use any tracking or marketing cookies.
