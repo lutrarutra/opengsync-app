@@ -17,8 +17,10 @@ from jinja2 import StrictUndefined
 from flask_session import Session
 from flask_session.base import ServerSideSession
 
-from opengsync_db import categories, models, TIMEZONE
+from opengsync_db import categories, models, TIMEZONE, __version__ as db_version
 from opengsync_db.core import units
+from opengsync_api import __version__ as api_version
+
 
 from .. import (
     logger,
@@ -36,6 +38,7 @@ from .. import (
     db,
     file_handler,
     limiter,
+    __version__ as app_version,
 )
 from ..tools import spread_sheet_components as ssc
 from ..tools.utils import WeekTimeWindow
@@ -236,6 +239,9 @@ class App(Flask):
         @self.context_processor
         def add_context():
             return dict(
+                app_version=app_version,
+                api_version=api_version,
+                db_version=db_version,
                 current_query=None,
                 path_list=[],
                 context={},
