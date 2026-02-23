@@ -1,35 +1,33 @@
 from datetime import datetime
 from typing import Optional, Union, TypeVar
-
+import threading
 import loguru
-
 import sqlalchemy as sa
 from sqlalchemy import orm
-
 from ..models.Base import Base
 from .. import models
 
 T = TypeVar("T", bound=Base)
 
-
 class DBHandler():
     Session: orm.scoped_session
     lab_protocol_start_number: int
-
+    
     def __init__(
         self, logger: Optional["loguru.Logger"] = None,
         expire_on_commit: bool = False, auto_open: bool = False,
         lab_protocol_start_number: int = 1, auto_commit: bool = False
     ):
         self._logger = logger
-        self._session: orm.Session | None = None
         self._connection: sa.engine.Connection | None = None
         self.expire_on_commit = expire_on_commit
         self.lab_protocol_start_number = lab_protocol_start_number
-        self.__needs_commit = False
         self.auto_open = auto_open
         self.auto_commit = auto_commit
-
+        
+        self._local = threading.local()
+        
+        # Import blueprints...
         from .blueprints.SeqRequestBP import SeqRequestBP
         from .blueprints.LibraryBP import LibraryBP
         from .blueprints.ProjectBP import ProjectBP
@@ -61,7 +59,7 @@ class DBHandler():
         from .blueprints.APITokenBP import APITokenBP
         from .blueprints.FlowCellDesignBP import FlowCellDesignBP
         from .blueprints.PoolDesignBP import PoolDesignBP
-
+        
         self.seq_requests = SeqRequestBP("seq_requests", self)
         self.libraries = LibraryBP("libraries", self)
         self.projects = ProjectBP("projects", self)
@@ -94,10 +92,28 @@ class DBHandler():
         self.pool_designs = PoolDesignBP("pool_designs", self)
         self.pd = PandasBP("pd", self)
 
+    @property
+    def _session(self) -> orm.Session | None:
+        """Thread-local session storage"""
+        return getattr(self._local, 'session', None)
+    
+    @_session.setter
+    def _session(self, value: orm.Session | None):
+        self._local.session = value
+
+    @property
+    def _needs_commit_flag(self) -> bool:
+        """Thread-local flag to track if explicit commit is needed"""
+        return getattr(self._local, 'needs_commit', False)
+    
+    @_needs_commit_flag.setter
+    def _needs_commit_flag(self, value: bool):
+        self._local.needs_commit = value
+
     @staticmethod
     def AdminURL(user: str, password: str, host: str, db: str, port: str | int) -> str:
         return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
-
+    
     def connect(
         self, user: str, password: str, host: str, db: str = "opengsync_db", port: Union[str, int] = 5432
     ) -> None:
@@ -112,10 +128,12 @@ class DBHandler():
             raise Exception(f"Could not connect to DB '{self.public_url}':\n{e}")
         
         self.info(f"Connected to DB '{self.public_url}'")
-
         self.session_factory = orm.sessionmaker(bind=self._engine, expire_on_commit=self.expire_on_commit)
         DBHandler.Session = orm.scoped_session(self.session_factory)
         from . import listeners
+        
+        if self.auto_open:
+            self.open_session()
 
     def info(self, *values: object) -> None:
         message = " ".join([str(value) for value in values])
@@ -130,14 +148,14 @@ class DBHandler():
             self._logger.opt(depth=1).error(message)
         else:
             print(f"ERROR: {message}")
-
+            
     def warn(self, *values: object) -> None:
         message = " ".join([str(value) for value in values])
         if self._logger is not None:
             self._logger.opt(depth=1).warning(message)
         else:
             print(f"WARNING: {message}")
-
+            
     def debug(self, *values: object) -> None:
         message = " ".join([str(value) for value in values])
         if self._logger is not None:
@@ -149,36 +167,36 @@ class DBHandler():
         if self._session is None:
             raise Exception("Session is not open, cannot merge instance.")
         return self._session.merge(instance, load=load)
-
+    
     @property
     def session(self) -> orm.Session:
         if self._session is None:
             raise Exception("Session is not open.")
         return self._session
-
+    
     @property
     def connection(self) -> sa.engine.Connection:
         if self._connection is None:
             raise Exception("Connection is not open.")
         return self._connection
-
+        
     def timestamp(self) -> datetime:
         return datetime.now()
     
     def commit(self) -> None:
         if self._session is not None:
             self._session.commit()
-            self.__needs_commit = False
+            self._needs_commit_flag = False
         else:
             raise Exception("Session is not open, cannot commit changes.")
-
+            
     def flush(self) -> None:
         if self._session is not None:
-            self.__needs_commit = True
+            self._needs_commit_flag = True
             self._session.flush()
         else:
             raise Exception("Session is not open, cannot flush changes.")
-
+            
     def refresh(self, obj: object) -> None:
         if self._session is not None:
             self._session.refresh(obj)
@@ -210,6 +228,7 @@ class DBHandler():
             self.warn("Session is already open")
             return
         self._session = DBHandler.Session(autoflush=autoflush)
+        self._needs_commit_flag = False  # Reset for this thread
 
     def close_session(self, commit: bool | None = None, rollback: bool = False) -> bool:
         """ returns True if db was modified """
@@ -220,47 +239,52 @@ class DBHandler():
         
         if commit is None:
             commit = self.auto_commit
-
-        if commit and not rollback:
-            if self.needs_commit:
-                try:
-                    self._session.commit()
-                except Exception:
-                    self.error("Commit failed: - rolling back transaction.")
-                    self._session.rollback()
-                    raise
-                self.__needs_commit = False
-                modified = True
-        elif rollback:
-            self.info("Rolling back transaction...")
-            self._session.rollback()
-        else:
-            if not commit and self.needs_commit:
-                self.warn("Session was not committed, but changes were made. This may lead to data loss. Use 'db.commit()', if you want changes to be written to the database.")
-        self._session = DBHandler.Session.remove()
+            
+        try:
+            if commit and not rollback:
+                if self.needs_commit:
+                    try:
+                        self._session.commit()
+                        modified = True
+                    except Exception:
+                        self.error("Commit failed: - rolling back transaction.")
+                        self._session.rollback()
+                        raise
+                    self._needs_commit_flag = False
+            elif rollback:
+                self.info("Rolling back transaction...")
+                self._session.rollback()
+            else:
+                if not commit and self.needs_commit:
+                    self.warn("Session was not committed, but changes were made. This may lead to data loss. Use 'db.commit()', if you want changes to be written to the database.")
+        finally:
+            DBHandler.Session.remove()
+            self._session = None
+            self._needs_commit_flag = False
+            
         return modified
-
+        
     def rollback(self) -> None:
         if self._session is None:
             self.error("Session is not open, cannot rollback.")
             raise Exception("Session is not open, cannot rollback.")
         self.info("Rolling back transaction...")
         self._session.rollback()
-
+        
     def close_connection(self) -> None:
         if self._connection is not None:
             self._connection = self._connection.close()
             self.info("Connection closed.")
-
+            
     def __del__(self):
         if self._session is not None:
             self.close_session()
         self.close_connection()
-        self._engine.dispose()
-
+        if hasattr(self, '_engine'):
+            self._engine.dispose()
+            
     @property
     def needs_commit(self) -> bool:
         if self._session is None:
             return False
-        
-        return self.__needs_commit or bool(self._session.dirty) or bool(self._session.new) or bool(self._session.deleted)
+        return self._needs_commit_flag or bool(self._session.dirty) or bool(self._session.new) or bool(self._session.deleted)
