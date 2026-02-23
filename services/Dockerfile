@@ -27,7 +27,7 @@ COPY packages/opengsync-db/pyproject.toml ./packages/opengsync-db/
 COPY packages/opengsync-server/pyproject.toml ./packages/opengsync-server/
 COPY packages/opengsync-api/pyproject.toml ./packages/opengsync-api/
 COPY packages/opengsync-worker/pyproject.toml ./packages/opengsync-worker/
-RUN uv sync --frozen --no-install-project
+RUN uv sync --frozen --no-install-project --no-dev
 
 # --- SERVER ---
 FROM builder AS opengsync-app
@@ -35,7 +35,7 @@ FROM builder AS opengsync-app
 
 COPY packages /app/packages
 COPY ./services/opengsync-app/scripts /app/scripts
-RUN uv sync --frozen --no-editable
+RUN uv sync --frozen --no-editable --no-dev
 
 COPY services/opengsync-app/templates /templates
 COPY services/opengsync-app/static/js /static/js
@@ -50,7 +50,7 @@ RUN uv pip install celery[redis]
 # --- CELERY WORKER ---
 FROM celery-base AS celery-worker
 COPY packages /app/packages
-RUN uv sync --frozen --no-editable
+RUN uv sync --frozen --no-editable --no-dev
 
 # --- PYTEST ---
 FROM builder AS pytest
@@ -58,6 +58,6 @@ FROM builder AS pytest
 COPY packages /app/packages
 COPY services/pytest/tests /app/tests
 COPY services/opengsync-app/static/resources/templates/library_prep/ /app/prep_tables
-RUN uv sync --frozen --no-editable
+RUN uv sync --frozen --no-editable --no-dev
 RUN uv pip install pytest
 CMD ["pytest"]
