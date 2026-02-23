@@ -3,6 +3,7 @@
 .PHONY: dev-build dev-build-logs dev-run dev-attach dev-logs dev-logs-all dev-stop debug prod-build prod-build-logs prod-run prod-logs prod-logs-all prod-stop deploy test gitlab-runner gitlab-runner-stop
 
 VERSION := $(shell git describe --tags --abbrev=0)
+CLEAN_VERSION := $(shell echo $(VERSION) | sed 's/^v//')
 OVERRIDE_FILE := $(wildcard compose.override.yaml)
 
 # If OVERRIDE_FILE is not empty, add the -f flag
@@ -57,6 +58,9 @@ prod-logs-all:
 
 prod-stop:
 	$(COMPOSE_PROD) stop
+
+prod-tag:
+	docker tag opengsync-app:latest opengsync-app:$(CLEAN_VERSION)
 
 deploy: prod-build prod-run
 

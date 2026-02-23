@@ -36,7 +36,6 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 1. `logs` - Log files
 1. `backup` - Backup of database
 1. `cert` - SSL certificates
-1. `cache` - Cache for Flask app
 1. `db` - Database files
 
 # Production Server service
