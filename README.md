@@ -11,11 +11,10 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 * Generate reports and plotting/visualizing statistics
 
 ## Tech Stack
-1. `opengsync-app` - Flask web server @ `https://localhost:80`
+1. `opengsync-app` - Flask web server
 1. `opengsync-db` - PostgreSQL database
 1. `celery-beat` - Periodic task scheduler
 1. `celery-worker` - Asynchronous task worker to scan illumina run folder, update statuses, clean old files etc.
-1. `celery-flower` - Celery monitoring web interface @ `https://localhost:5555`
 1. `nginx` - Reverse proxy for static files (only prod)
 1. `pgadmin` - PostgreSQL admin interface @ `https://localhost:5050`
 1. `tailwind-compiler` - Compiles tailwind css
@@ -95,45 +94,38 @@ pg_basebackup \
   -P
 ```
 
-#### Logs
-- View
-    - `sudo journalctl -u opengsync -e`
-- Stream
-    - `sudo journalctl -u opengsync -e -f`
-#### Check service status
-- `sudo systemctl status opengsync`
-#### Restart service (e.g. update)
-- `sudo systemctl restart opengsync`
+### 4. Production Deploy
+- `make deploy` - builds and starts the containers in detached mode.
+- `make prod-logs` - streams logs from `opengsync-app` container.
+- `make prod-logs-all` - streams logs from all containers.
+- `make prod-stop` - stops the containers
 
-### Update
-- `update.sh`
-    1. Creates temporary testing environment
-    1. Runs unit tests
-    1. If tests pass, pulls from git
-    1. Rebuilds containers
-    1. Restarts service (`systemctl`)
-
+### 5. Notes
+- Services are defined with `restart: unless-stopped` policy, so they will automatically restart if the server reboots or if the container crashes as long as docker service is enabled and running (`systemctl status docker`, `systemctl enable docker`).
 
 # Setup for Development (virtual/conda environment recommended)
 
 * ✅ Hot reload python files on change.
 * ✅ Compilation of scss files on change.
 
-```bash
-pip install -e services/opengsync-app/opengsync-db
-pip install -e services/opengsync-app/opengsync-server
-pip install -e services/opengsync-app/opengsync-api
-mkdir -p db
-mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
-```
+- using uv:
+    - `uv sync`
 
-## Run with flask debug server
-- `chmod +x debug.sh`
-- `./debug.sh --build`
-## Unit tests
-- `chmod +x test.sh`
-- `./test.sh`
+- or using pip:
+    ```bash
+        pip install -e services/opengsync-app/opengsync-db
+        pip install -e services/opengsync-app/opengsync-server
+        pip install -e services/opengsync-app/opengsync-api
+        mkdir -p db
+        mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
+    ```
 
+## Run Debug
+- `make debug` - starts the app in debug mode with hot reload and streams logs from `opengsync-app` container.
+- `make dev-stop` - stops the containers
+
+
+# pgAdmin
 ## pgAdmin Interface
 - `http://localhost:${PGADMIN_PORT}`
 - username: `$(PGADMIN_EMAIL)`
@@ -147,15 +139,9 @@ mkdir -p db/pgadmin && sudo chown -R 5050:5050 db/pgadmin
 - username: `$(POSTGRES_USER)`
 - password: `$(POSTGRES_PASSWORD)`
 
-
-# Unit Tests
-- `chmod +x test.sh`
-- `./test.sh --build`
-
-## Tests
+# Tests
 - SQL Database models, links
 - Common library prep table requirements
-
 
 # Share
 
