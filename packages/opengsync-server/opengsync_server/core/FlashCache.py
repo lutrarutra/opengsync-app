@@ -3,8 +3,9 @@ import redis
 class FlashCache:
     PRIORITY = ["error", "warning", "info", "success"]
 
-    def __init__(self):
+    def __init__(self, time_to_live_hours: int = 1):
         self.r: redis.StrictRedis = None  # type: ignore
+        self.time_to_live_hours = time_to_live_hours
 
     def connect(self, host: str, port: int, db: int):
         self.r = redis.StrictRedis(host=host, port=port, db=db, decode_responses=True)
@@ -17,7 +18,8 @@ class FlashCache:
         for cat, msg in flashes:
             cat = self._normalize_category(cat)
             self.r.rpush(self._redis_key(sid, cat), msg)
-
+            self.r.expire(self._redis_key(sid, cat), self.time_to_live_hours * 3600)
+            
     def get(self, sid: str, category: str | list[str] | None = None) -> list[tuple[str, str]]:
         categories = self._categories(category)
         result = []
