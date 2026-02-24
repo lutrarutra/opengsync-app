@@ -9,8 +9,9 @@ from .. import logger
 
 
 class RedisMSFFileCache():
-    def __init__(self):
+    def __init__(self, time_to_live_hours: int = 24 * 7):
         self.r: redis.StrictRedis | None = None
+        self.time_to_live_hours = time_to_live_hours
 
     def connect(self, host: str, port: int, db: int):
         self.r = redis.StrictRedis(host=host, port=port, db=db, decode_responses=False)
@@ -61,13 +62,13 @@ class RedisMSFFileCache():
         
         buffer = io.BytesIO()
         pq.write_table(pa.Table.from_pandas(table), buffer)
-        self.r.set(key, buffer.getvalue())
+        self.r.set(key, buffer.getvalue(), ex=self.time_to_live_hours * 3600)
 
     def set_dict(self, key: str, data: dict) -> None:
         if self.r is None:
             raise RuntimeError("You need to call connect() before using the cache.")
         
-        self.r.set(key, json.dumps(data).encode('utf-8'))
+        self.r.set(key, json.dumps(data).encode('utf-8'), ex=self.time_to_live_hours * 3600)
 
     def delete(self, key: str) -> None:
         if self.r is None:
@@ -94,5 +95,5 @@ class RedisMSFFileCache():
         if self.r is None:
             raise RuntimeError("You need to call connect() before using the cache.")
         
-        self.r.set(key, json.dumps(steps).encode('utf-8'))
+        self.r.set(key, json.dumps(steps).encode('utf-8'), ex=self.time_to_live_hours * 3600)
 
