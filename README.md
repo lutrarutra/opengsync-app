@@ -18,7 +18,6 @@ Modern web app for NGS sample/library/project tracking and NGS service request m
 1. `celery-flower` - Celery monitoring web interface @ `https://localhost:5555`
 1. `nginx` - Reverse proxy for static files (only prod)
 1. `pgadmin` - PostgreSQL admin interface @ `https://localhost:5050`
-1. `yacht` - Web interface for overview of running docker containers @ `https://localhost:8000`
 1. `tailwind-compiler` - Compiles tailwind css
 1. `redis` - Redis server for celery broker and caching
 
@@ -83,19 +82,7 @@ services:
             - /mnt/raw_data:/share/RAW_DATA:ro
 ```
 
-
-### 3. Start production server as systemd service
-```sh
-sudo cp templates/opengsync.service /lib/systemd/system/opengsync.service
-# Populate templates/start.sh
-sudo systemctl daemon-reload
-sudo systemctl enable opengsync
-sudo systemctl start opengsync
-```
-
-- Wait for startup: `sudo journalctl -u opengsync -e -f`
-
-### 4. Create Base Backup
+### 3. Create Base Backup
 ```sh
 # host
 docker exec -it postgres sh
@@ -125,12 +112,6 @@ pg_basebackup \
     1. If tests pass, pulls from git
     1. Rebuilds containers
     1. Restarts service (`systemctl`)
-
-## After first boot
-- Change yacht login and password
-    - `http://localhost:${YACHT_PORT}`
-    - default username: `admin@yacht.local`
-    - default password: `pass`
 
 
 # Setup for Development (virtual/conda environment recommended)
