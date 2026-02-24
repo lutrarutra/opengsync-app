@@ -146,8 +146,30 @@ pg_basebackup \
 # Share
 
 ## Download shared file:
+- Rclone sync (WebDAV):
 ```sh
-rclone copy --http-url http://<ip>/api/files/browse/<token> :http: . -v --stats-log-level NOTICE --stats 500ms --progress
+rclone sync \
+    ":webdav,url='https://<url>/api/webdav/share/<token>':/" \
+    <outdir> \
+    --progress \
+    --transfers=8 \
+    --checkers=16 \
+    --use-server-modtime \
+    --verbose
+```
+- Rclone copy:
+```sh
+rclone copy --http-url https://<url>/files/share/rclone/<token> \
+    :http: <outdir> -v --stats-log-level NOTICE \
+    --stats 500ms --progress
+```
+
+- Wget:
+```sh
+wget -P <outdir> \
+    --reject="index.html*" --recursive --level=99 --no-parent \
+    --no-check-certificate -k -e robots=off -nH --cut-dirs=3 \
+    https://<url>/files/share/rclone/<token>
 ```
 
 # ORM Database
