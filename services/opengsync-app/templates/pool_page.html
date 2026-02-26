@@ -1,5 +1,6 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/tooltip.jinja2' import tooltip %}
+{% from 'components/status_bar.jinja2' import pool_status_bar with context %}
 
 {% extends "base.html" %}
 {% set active_page = "pools-page" %}
@@ -7,7 +8,7 @@
 <div class="page-header-container">
     <div class="page-header">
         <div class="page-title">
-            <h1>{{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %} <span class="desc">{{ pool.status.label }} {{ pool.status.icon }}</span></h1>
+            <h1>{{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}</h1>
         </div>
         <div class="page-controls">
             <span {% if not is_editable %}
@@ -56,6 +57,10 @@
                 {% if pool.libraries | length > 0 %}disabled{% endif %}>Delete Pool</button>
             </span>
         </div>
+    </div>
+
+    <div class="status_bar">
+        {{ pool_status_bar(pool) }}
     </div>
 
     <ul class="nav nav-tabs page-tabs" role="tablist">
@@ -231,8 +236,8 @@
         </div>
         <div class="tab-pane fade" id="metadata-tab" role="tabpanel" tabindex="4">
             <div class="row">
-                {{ metadata_group("Name", pool.name, class="col-3") }}
-                {{ metadata_group("Type", pool.type, class="col-3") }}
+                {{ metadata_group("Name", pool.name, class="col-2") }}
+                {{ metadata_group("Type", pool.type, class="col-2") }}
                 {% if pool.seq_request_id %}
                 {{                     
                     metadata_group_link(
@@ -254,6 +259,17 @@
                 }}
                 {% else %}
                 {{ metadata_group("Lab Prep", "", class="col-3") }}
+                {% endif %}
+                {% if pool.experiment_id %}
+                {{                     
+                    metadata_group_link(
+                        "Experiment", pool.experiment.name,
+                        url_for("experiments_page.experiment", experiment_id=pool.experiment_id, from='pool@' + pool.id | string),
+                        class="col-2"
+                    )
+                }}
+                {% else %}
+                {{ metadata_group("Experiment", "", class="col-2") }}
                 {% endif %}
             </div>
             <div class="row">

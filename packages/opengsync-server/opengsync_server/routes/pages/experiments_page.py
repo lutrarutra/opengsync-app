@@ -3,7 +3,6 @@ from flask import Blueprint, render_template, url_for, request
 from sqlalchemy import orm
 
 from opengsync_db import models
-from opengsync_db.categories import MediaFileType
 
 from ... import db, logger
 from ...core import wrappers, exceptions

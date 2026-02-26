@@ -71,11 +71,11 @@ def render_data_file(current_user: models.User, data_path_id: int):
 
 
 @wrappers.htmx_route(files_htmx, db=db, login_required=True, methods=["GET", "POST"])
-def share_path(current_user: models.User):
-    from ...forms.workflows.share.AssociatePathForm import AssociatePathForm
-
+def associate_path(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
+    
+    from ...forms.workflows.share.AssociatePathForm import AssociatePathForm
     
     if (path := request.args.get("path")) is None:
         raise exceptions.BadRequestException("No path specified")
@@ -87,6 +87,25 @@ def share_path(current_user: models.User):
         return form.make_response()
     
     return form.process_request()
+
+
+@wrappers.htmx_route(files_htmx, db=db, login_required=True, methods=["GET", "POST"])
+def share_directory(current_user: models.User):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    from ...forms.DirectoryShareForm import DirectoryShareForm
+
+    if request.method == "GET":
+        path = request.args.get("path")
+        if path is None:
+            raise exceptions.BadRequestException("No path specified")
+        form = DirectoryShareForm(path=path)
+        return form.make_response()
+    
+    form = DirectoryShareForm(formdata=request.form)
+    return form.process_request(current_user)
+
 
 @wrappers.htmx_route(files_htmx, db=db, login_required=True)
 def files(current_user: models.User, subpath: Path = Path(), page: int = 0):

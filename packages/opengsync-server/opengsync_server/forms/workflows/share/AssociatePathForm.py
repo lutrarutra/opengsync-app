@@ -23,7 +23,7 @@ class AssociatePathForm(HTMXFlaskForm):
 
     def __init__(self, path: Path, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
-        self.post_url = url_for("files_htmx.share_path", path=path.as_posix())
+        self.post_url = url_for("files_htmx.associate_path", path=path.as_posix())
         self.path = path
         self._project = None
         self._experiment = None

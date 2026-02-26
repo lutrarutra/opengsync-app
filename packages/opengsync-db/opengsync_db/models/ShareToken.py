@@ -18,7 +18,6 @@ if TYPE_CHECKING:
 class ShareToken(Base):
     __tablename__ = "share_token"
 
-    # id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     uuid: Mapped[str] = mapped_column(sa.CHAR(36), primary_key=True, default=lambda: uuid7().__str__(), unique=True)
     time_valid_min: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     created_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
