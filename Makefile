@@ -9,6 +9,7 @@ help:
 
 VERSION := $(shell git describe --tags --abbrev=0)
 CLEAN_VERSION := $(shell echo $(VERSION) | sed 's/^v//')
+OVERRIDE_FILE := $(wildcard compose.override.yaml)
 
 OVERRIDE_FILE ?= compose.override.yaml
 ifneq ($(wildcard $(OVERRIDE_FILE)),)
