@@ -61,6 +61,7 @@ class App(Flask):
     external_base_url: str | None
     debug: bool
     personalization: dict
+    port: int
 
     def __init__(self, config_path: str):
         opengsync_config = yaml.safe_load(open(config_path))
@@ -69,6 +70,7 @@ class App(Flask):
             static_folder=opengsync_config["static_folder"],
             template_folder=opengsync_config["template_folder"],
         )
+        self.port = int(os.environ.get("OPENGSYNC_PORT", 5000))
 
         if DEBUG:
             self.jinja_env.undefined = StrictUndefined
@@ -79,10 +81,9 @@ class App(Flask):
 
         from ..core import runtime
 
-        if external_base_url := opengsync_config.get("external_base_url"):
-            self.jinja_env.globals["url_for"] = runtime.url_for
-
-        self.external_base_url = external_base_url
+        self.jinja_env.globals["url_for"] = runtime.url_for
+        self.external_base_url = opengsync_config.get("external_base_url") or f"localhost:{self.port}"
+        logger.debug(self.external_base_url)
 
         self.root_folder = Path(opengsync_config["app_root"])
         self.share_root = Path(opengsync_config["share_root"])

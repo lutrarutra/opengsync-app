@@ -21,6 +21,7 @@ services:
             - ${MEDIA_DIR}:/media
             - ${LOG_DIR}/opengsync:/logs
         environment:
+            OPENGSYNC_PORT: ${OPENGSYNC_PORT}
             TZ: ${TIMEZONE}
             REDIS_PORT: ${REDIS_PORT}
             POSTGRES_USER: ${POSTGRES_USER}
