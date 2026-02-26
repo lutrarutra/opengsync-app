@@ -1,0 +1,12 @@
+analyzer.svg:
+    analyzer by Candy Design from <a href="https://thenounproject.com/browse/icons/term/analyzer/" target="_blank" title="analyzer Icons">Noun Project</a> (CC BY 3.0)
+fluorometer.svg:
+    by A H D U Y from <a href="https://thenounproject.com/browse/icons/term/power-meter/" target="_blank" title="Power meter Icons">Noun Project</a> (CC BY 3.0)
+select-tech.svg:
+    by DinosoftLabs from Noun Project https://thenounproject.com/icon/web-page-1679848/
+store.svg:
+    by SAM Designsfrom the Noun Project https://thenounproject.com/icon/vault-6440852/
+plate.svg:
+    by Julie Ko from the Noun Project https://thenounproject.com/icon/tissue-culture-plate-1702278/
+barcode.svg:
+    by Ardiansyahfrom Noun Project https://thenounproject.com/icon/barcode-6943801/

@@ -4,37 +4,19 @@
     </style>
     <div class="header">
         <h2>Dear {% if recipient is defined %}{{ recipient.name }}{% else %}{{ organization_name }} Client{% endif %},</h2>
+
     </div>
     <div class="body">
+        {% if email_header is defined %}
+        {{ email_header | safe }}
+        {% endif %}
         {% block content %}
         {% endblock %}
+        {% if email_footer is defined %}
+        {{ email_footer | safe }}
+        {% endif %}
     </div>
     <div class="footer">
-        <h4>Best regards,</h4>
-        <pre>
-{%- if author is defined and author and not author.is_admin() and author.is_insider() -%}
-{{ author.name }}
-<a href="mailto:{{ author.email }}">{{ author.email }}</a>
-
-{% else %}
-{% endif -%}
-Biomedical Sequencing Facility
-
-CeMM Research Center for Molecular Medicine
-of the Austrian Academy of Sciences
-
-Lazarettgasse 14, AKH BT 25.3
-1090 Vienna, Austria
-Phone +43-1/40160-70 051
-Fax +43-1/40160-970 000
-
-<a href="mailto:{{ contact_email }}">{{ contact_email }}</a>
-<a href="cemm.at">www.cemm.at</a>
-<a href="biomedical-sequencing.at">biomedical-sequencing.at</a>
-
-Follow us on Twitter <a href="https://x.com/CeMM_News">@CeMM_News</a>
-Like us on Facebook <a href="https://www.facebook.com/CeMMVienna">@CeMMVienna</a>
-Follow us on LinkedIn <a href="https://www.linkedin.com/company/cemm/">@CeMM</a>
-        </pre>
+        {% include "custom/email-signature.html" %}
     </div>
 </html>
