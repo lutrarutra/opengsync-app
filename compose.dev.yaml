@@ -19,6 +19,7 @@ services:
             - ./share:/share:ro
             - compiled_css:/static/style/compiled:ro
         environment:
+            OPENGSYNC_PORT: ${OPENGSYNC_PORT}
             TZ: ${TIMEZONE}
             REDIS_PORT: ${REDIS_PORT}
             POSTGRES_USER: ${POSTGRES_USER}

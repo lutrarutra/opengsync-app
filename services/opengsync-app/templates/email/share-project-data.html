@@ -29,7 +29,7 @@
     This project consists of samples defined in following sequencing requests:
     <ol>
         {% for seq_request in seq_requests %}
-        <li><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, _external=True) }}">{{ seq_request.name }}</a> {% if seq_request.timestamp_submitted %}<span class="desc">(Submitted {{ seq_request.timestamp_submitted | format_datetime("%Y-%m-%d") }}){% endif %}</span></li>
+        <li><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, _external=True) }}"><b>{{ seq_request.identifier }}: </b></a><i>{{ seq_request.name }}</i> {% if seq_request.timestamp_submitted %}<span class="desc">(Submitted {{ seq_request.timestamp_submitted | format_datetime("%Y-%m-%d") }}){% endif %}</span></li>
         {% endfor %}
     </ol>
 </p>
