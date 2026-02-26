@@ -5,10 +5,14 @@ import difflib
 import string
 import unicodedata
 import re
+import os
+import premailer
+
+from flask import render_template
 
 import pandas as pd
 
-from opengsync_db import models, exceptions, DBHandler, categories
+from opengsync_db import models, exceptions, DBHandler
 from opengsync_db.categories.ExtendedEnum import DBEnum
 
 from .. import logger
@@ -540,3 +544,62 @@ def is_valid_email(email: str | None) -> bool:
         return False
     # basic check for email validity
     return "@" in email and "." in email.split("@")[-1]
+
+
+def render_share_project_data_email(
+    share_token: models.ShareToken, current_user: models.User, project: models.Project, internal_share: bool,
+    outdir: str = "output", anonymous: bool = False
+) -> str:
+    from ..core import runtime
+
+    http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
+    sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)
+    wget_command = render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
+    style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
+
+    browse_link = runtime.url_for("file_share.browse", token=share_token.uuid, _external=True)
+
+    internal_share_content = ""
+    if internal_share and (template := runtime.app.personalization.get("internal_share_template")):
+        if os.path.exists(os.path.join(runtime.app.template_folder, template)):
+            internal_paths = project.data_paths
+            internal_paths = filter_subpaths([data_path.path for data_path in internal_paths])
+            internal_paths = [replace_substrings(path, runtime.app.share_path_mapping) for path in internal_paths]
+            internal_share_content = render_template(
+                template, paths=internal_paths, project=project
+            )
+        else:
+            logger.info(f"Internal share template '{template}' not found.")
+
+    library_types = project.library_types
+
+    email_header = ""
+    if os.path.exists(os.path.join(runtime.app.template_folder, "custom/share-project-data-email-header.html")):
+        email_header = render_template(
+            "custom/share-project-data-email-header.html", project=project,
+            internal_share_content=internal_share_content,
+            library_types=library_types
+        )
+
+    email_footer = ""
+    if os.path.exists(os.path.join(runtime.app.template_folder, "custom/share-project-data-email-footer.html")):
+        email_footer = render_template(
+            "custom/share-project-data-email-footer.html", project=project,
+            library_types=library_types
+        )
+
+    content = render_template(
+        "email/share-project-data.html", style=style, browse_link=browse_link,
+        project=project, library_types=library_types,
+        author=None if anonymous else current_user if current_user.is_insider() else None,
+        experiments=project.experiments, seq_requests=project.seq_requests,
+        share_token=share_token,
+        sync_command=sync_command,
+        http_command=http_command,
+        wget_command=wget_command,
+        outdir=outdir,
+        email_header=email_header,
+        email_footer=email_footer,
+    )
+
+    return premailer.transform(content)

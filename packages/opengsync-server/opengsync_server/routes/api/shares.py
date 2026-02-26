@@ -286,6 +286,12 @@ def release_project_data(current_user: models.User, recipients: list[str] | None
         wget_command=wget_command,
         outdir=outdir
     )
+
+    content = utils.render_share_project_data_email(
+        share_token=share_token, current_user=current_user, project=project, internal_share=internal_access,
+        anonymous=anonymous_send,
+        outdir=project.identifier or "outdir",
+    )
     try:
         mail_handler.send_email(
             recipients=recipients,

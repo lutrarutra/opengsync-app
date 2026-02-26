@@ -1,14 +1,13 @@
 import json
 import smtplib
-import os
 
-from flask import Response, flash, render_template, url_for
+from flask import Response, flash, url_for
 from flask_htmx import make_response
 from wtforms import StringField, BooleanField, SelectField, EmailField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 from opengsync_db import models
-from opengsync_db.categories import LibraryType, ProjectStatus, DeliveryStatus
+from opengsync_db.categories import ProjectStatus, DeliveryStatus
 
 from .... import db, logger, mail_handler
 from ....tools import utils
@@ -97,43 +96,10 @@ class ShareProjectDataForm(HTMXFlaskForm):
         self.project.share_token = share_token
         db.projects.update(self.project)
         
-        outdir = self.project.identifier or "output"
-        http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
-        sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)
-        wget_command = render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
-        style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
-
-        browse_link = runtime.url_for("file_share.browse", token=share_token.uuid, _external=True)
-
-        library_types = {library.type for library in self.project.libraries}
-        tenx_contents = any(set(LibraryType.get_tenx_library_types()).intersection(library_types))
-
-        seq_requests = db.seq_requests.find(project_id=self.project.id, limit=None, sort_by="id")[0]
-        experiments = db.experiments.find(project_id=self.project.id, limit=None, sort_by="id")[0]
-
-        internal_share_content = ""
-        if (template := runtime.app.personalization.get("internal_share_template")):
-            if os.path.exists(os.path.join(runtime.app.template_folder, template)):
-                internal_paths = self.project.data_paths
-                internal_paths = utils.filter_subpaths([data_path.path for data_path in internal_paths])
-                internal_paths = [utils.replace_substrings(path, runtime.app.share_path_mapping) for path in internal_paths]
-                internal_share_content = render_template(
-                    template, paths=internal_paths, project=self.project
-                )
-            else:
-                logger.info(f"Internal share template '{template}' not found.")
-
-        content = render_template(
-            "email/share-project-data.html", style=style, browse_link=browse_link,
-            project=self.project, tenx_contents=tenx_contents, library_types=library_types,
-            author=None if self.anonymous_send.data else current_user if current_user.is_insider() else None,
-            seq_requests=seq_requests, experiments=experiments, share_token=share_token,
-            internal_access_share=self.internal_share.data,
-            internal_share_content=internal_share_content,
-            sync_command=sync_command,
-            http_command=http_command,
-            wget_command=wget_command,
-            outdir=outdir
+        content = utils.render_share_project_data_email(
+            share_token=share_token, current_user=current_user, project=self.project, internal_share=self.internal_share.data,
+            anonymous=self.anonymous_send.data,
+            outdir=self.project.identifier or "outdir",
         )
         if not runtime.app.debug:
             try:

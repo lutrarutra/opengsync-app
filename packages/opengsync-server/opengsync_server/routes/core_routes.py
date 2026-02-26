@@ -1,4 +1,5 @@
 import os
+import datetime as dt
 
 from flask import (
     jsonify,
@@ -27,49 +28,13 @@ if runtime.app.debug:
 
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def mail_template(current_user: models.User):
-        import premailer
-
-        project = db.projects["BSA_1059"]
-        outdir = "outdir"
-        token = project.share_token.uuid  # type: ignore
-        http_command = render_template("snippets/rclone-http.sh.j2", token=token, outdir=outdir)
-        sync_command = render_template("snippets/rclone-sync.sh.j2", token=token, outdir=outdir)
-        wget_command = render_template("snippets/wget.sh.j2", token=token, outdir=outdir)
-        style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
-
-        browse_link = runtime.url_for("file_share.browse", token=token, _external=True)
-        seq_requests = db.seq_requests.find(project_id=project.id, limit=None, sort_by="id")[0]
-        experiments = db.experiments.find(project_id=project.id, limit=None, sort_by="id")[0]
-
-        internal_share_content = ""
-        if (template := runtime.app.personalization.get("internal_share_template")):
-            if os.path.exists(os.path.join(runtime.app.template_folder, template)):
-                internal_paths = project.data_paths
-                internal_paths = utils.filter_subpaths([data_path.path for data_path in internal_paths])
-                internal_paths = [utils.replace_substrings(path, runtime.app.share_path_mapping) for path in internal_paths]
-                internal_share_content = render_template(
-                    template, paths=internal_paths, project=project
-                )
-            else:
-                logger.info(f"Internal share template '{template}' not found.")
-            
-        content = render_template(
-            "email/share-project-data.html", style=style, browse_link=browse_link,
-            tenx_contents=True,
-            internal_share_content=internal_share_content,
-            author=current_user,
-            project=project,
-            seq_requests=seq_requests,
-            experiments=experiments,
-            internal_access_share=True,
-            share_token=project.share_token,
-            http_command=http_command,
-            sync_command=sync_command,
-            wget_command=wget_command,
-            outdir=outdir
+        project = db.projects["BSA_1080"]
+        content = utils.render_share_project_data_email(
+            share_token=models.ShareToken(uuid="test", time_valid_min=90, created_utc=dt.datetime.now()), current_user=current_user,
+            project=project, internal_share=False,
+            anonymous=False,
+            outdir=project.identifier or "outdir"
         )
-
-        content = premailer.transform(content)
         return content
 
 @wrappers.api_route(runtime.app, db=db, methods=["GET"], json_params=["api_token"], limit="3/second", limit_override=True, api_token_required=False)
