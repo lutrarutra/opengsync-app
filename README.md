@@ -288,3 +288,12 @@ db.users["user@email.com"]
 1. `tar -xzf <date>.tar.gz`
 2. `cp backups/base/<date> db/postgres/`
 5. `docker compose -f compose.yaml -p opengsync run --rm postgres` # should start the postgres successfully
+
+
+# Customization
+- Customization of the app can be done by modifying the `opengsync.yaml` configuration.
+- Mail templates can be mounted to `/templates/custom/` for `opengsync-app`-container:
+    - `email-signature.html` - Email signature template for all emails.
+    - `share-internal-access.html` - Template for share access email sent to users with internal share access.
+    - `share-project-data-email-footer.html` - Footer template for share project data email sent to clients.
+    - `share-project-data-email-header.html` - Header template for share project data email sent to clients.
