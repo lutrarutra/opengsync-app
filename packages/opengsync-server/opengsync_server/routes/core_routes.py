@@ -54,7 +54,7 @@ if runtime.app.debug:
                 logger.info(f"Internal share template '{template}' not found.")
             
         content = render_template(
-            "email/share-data.html", style=style, browse_link=browse_link,
+            "email/share-project-data.html", style=style, browse_link=browse_link,
             tenx_contents=True,
             internal_share_content=internal_share_content,
             author=current_user,

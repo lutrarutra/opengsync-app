@@ -533,3 +533,10 @@ def to_json(df: pd.DataFrame) -> str:
 
     df = df.replace({pd.NA: None, float('nan'): None})
     return json.dumps(df.to_dict(orient="list"))
+
+
+def is_valid_email(email: str | None) -> bool:
+    if pd.isna(email) or not email:
+        return False
+    # basic check for email validity
+    return "@" in email and "." in email.split("@")[-1]

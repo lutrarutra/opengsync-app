@@ -1,0 +1,31 @@
+{% from "components/search_select.jinja2" import search_select_field2 %}
+{% from 'components/form_group.jinja2' import form_group, switch_input, select_input %}
+
+<div id="share-directory-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Associate Path</h1>
+        <button type="button" class="btn-close" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+    </div>
+    <div class="modal-body">
+        <div id="share-directory-form">
+            {{ form.csrf_token() }}
+            <div class="row">
+                {{ form_group(form.directory_path, class="col-6", readonly=True) }}
+                {{ select_input(form.time_valid_min, class="col-6") }}
+            </div>
+            {{ form_group(form.recipients)}}
+            {{ switch_input(form.anonymous_send) }}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+                hx-target="#share-directory-form-container" hx-swap="outerHTML" hx-include="#share-directory-form"
+                hx-post="{{ form.post_url | safe }}">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>

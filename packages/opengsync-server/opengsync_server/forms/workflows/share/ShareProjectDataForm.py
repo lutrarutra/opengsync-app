@@ -12,12 +12,12 @@ from opengsync_db.categories import LibraryType, ProjectStatus, DeliveryStatus
 
 from .... import db, logger, mail_handler
 from ....tools import utils
-from ....core import exceptions, runtime
+from ....core import runtime
 from ...HTMXFlaskForm import HTMXFlaskForm
 
 
 class ShareProjectDataForm(HTMXFlaskForm):
-    _template_path = "workflows/share_project_data/share-1.html"
+    _template_path = "workflows/share/share-project-data.html"
     
     anonymous_send = BooleanField("Anonymous Send")
     internal_share = BooleanField("Internal Access Share", default=False)
@@ -124,7 +124,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
                 logger.info(f"Internal share template '{template}' not found.")
 
         content = render_template(
-            "email/share-data.html", style=style, browse_link=browse_link,
+            "email/share-project-data.html", style=style, browse_link=browse_link,
             project=self.project, tenx_contents=tenx_contents, library_types=library_types,
             author=None if self.anonymous_send.data else current_user if current_user.is_insider() else None,
             seq_requests=seq_requests, experiments=experiments, share_token=share_token,

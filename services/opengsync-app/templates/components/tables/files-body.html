@@ -6,12 +6,18 @@
 <tr class="path-row">
     <td class="col-6 cm-callback x-scroll-cell"{{
         context_menu([
-            {"type": "hxget", "show_modal": "#xl-modal", "label": "Share", "config": {
-                "url": url_for('files_htmx.share_path', path=browser_path.rel_path.as_posix()),
+            {"type": "hxget", "show_modal": "#xl-modal", "label": "Assign", "config": {
+                "url": url_for('files_htmx.associate_path', path=browser_path.rel_path.as_posix()),
                 "target": "#xl-modal-content",
                 "swap": "innerHTML",
                 "confirm": false
-            }, }
+            }, },
+            {"type": "hxget", "show_modal": "#xl-modal", "label": "Share Directory", "config": {
+                "url": url_for('files_htmx.share_directory', path=browser_path.rel_path.as_posix()),
+                "target": "#xl-modal-content",
+                "swap": "innerHTML",
+                "confirm": false
+            }, } if browser_path.path.is_dir() else None
         ])
     }}>
         <span class="scroll-container">

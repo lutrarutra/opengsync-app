@@ -15,6 +15,7 @@ from ... import db, logger, mail_handler
 shares_api_bp = Blueprint("shares_api", __name__, url_prefix="/api/shares/")
 
 def get_share_path(real_path: str) -> Path | None:
+    # real_path is the absolute path on the cluster
     # sort by length of prefix descending to match longest prefix first
     key_value = list(runtime.app.share_path_mapping.items())
     key_value.sort(key=lambda x: len(x[1]), reverse=True)
@@ -274,7 +275,7 @@ def release_project_data(current_user: models.User, recipients: list[str] | None
             logger.info(f"Internal share template '{template}' not found.")
 
     content = render_template(
-        "email/share-data.html", style=style, browse_link=browse_link,
+        "email/share-project-data.html", style=style, browse_link=browse_link,
         project=project, tenx_contents=tenx_contents, library_types=library_types,
         author=None if anonymous_send else current_user if current_user.is_insider() else None,
         seq_requests=seq_requests, experiments=experiments, share_token=share_token,
