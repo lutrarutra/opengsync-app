@@ -206,7 +206,7 @@ def download(current_user: models.User) -> Response:
         experiment_loaded_reads = sum(pools_df.loc[
             (pools_df["experiment_name"] == experiment.name) & (pools_df["num_m_reads_loaded"] != ""), "num_m_reads_loaded"
         ])
-        experiments_df.loc[experiments_df["experiment_name"] == experiment.name, "loaded_m_reads"] = experiment_loaded_reads
+        experiments_df.loc[experiments_df["experiment_name"] == experiment.name, "loaded_m_reads"] = str(experiment_loaded_reads)
         if experiment_loaded_reads > experiment.workflow.flow_cell_type.max_m_reads:
             pools_df.loc[pools_df["experiment_name"] == experiment.name, "info"] += "⚠️ Total loaded reads for experiment exceeds flow cell capacity "  # type: ignore
         elif experiment_loaded_reads < experiment.workflow.flow_cell_type.max_m_reads:
