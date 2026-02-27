@@ -39,7 +39,7 @@ class SeqRun(Base):
 
     _quantities: Mapped[Optional[dict[str, dict[str, Any]]]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="quantities")
 
-    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="joined", primaryjoin="SeqRun.experiment_name == Experiment.name", foreign_keys=experiment_name, cascade="save-update")
+    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="joined", primaryjoin="SeqRun.experiment_name == Experiment.name", foreign_keys=experiment_name)
 
     sortable_fields: ClassVar[list[str]] = ["id", "experiment_name", "status_id", "read_type_id"]
 

@@ -214,9 +214,9 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                     logger.info("Skipping update due to lower status.")
                     continue
                 
-            if run.status == status:
-                logger.info(f"Status: {run.status.display_name} - Up to date!")
-                continue
+            # if run.status == status:
+            #     logger.info(f"Status: {run.status.display_name} - Up to date!")
+            #     continue
             
             if completed is not None:
                 run.set_timestamp("completed", completed)
