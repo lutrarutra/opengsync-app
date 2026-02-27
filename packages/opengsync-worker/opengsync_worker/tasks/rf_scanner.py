@@ -202,7 +202,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
         experiment_name = parsed_data["experiment_name"]
         logger.info(f"Processing {experiment_name} ({run_name}):")
 
-        if (run := active_runs.get(experiment_name)) is not None:
+        if (run := db.seq_runs.get(experiment_name)) is not None:
             if run.run_folder != run_name:
                 logger.info(f"WARNING: Run folder name mismatch: {run.run_folder} != {run_name}.")
                 if status > run.status:
@@ -215,7 +215,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                     continue
                 
             if run.status == status:
-                logger.info("Up to date!")
+                logger.info(f"Status: {run.status.display_name} - Up to date!")
                 continue
             
             if completed is not None:
@@ -264,12 +264,6 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
             logger.info("Updated!")
         else:
             metrics = parse_metrics(run_folder)
-
-            # If for some reason the run is Archived while the data is still in the run folder
-            if (seq_run := db.seq_runs.get(experiment_name)) is not None:
-                seq_run.status = status
-                db.seq_runs.update(seq_run)
-                continue
                     
             run = db.seq_runs.create(
                 experiment_name=experiment_name,
