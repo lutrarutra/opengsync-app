@@ -18,9 +18,9 @@ def begin(current_user: models.User, experiment_id: int) -> Response:
         raise exceptions.NotFoundException()
     
     if experiment.workflow.combined_lanes:
-        form = forms.DistributeReadsCombinedForm(experiment=experiment)
+        form = forms.DistributeReadsCombinedForm(experiment=experiment, current_user=current_user)
     else:
-        form = forms.DistributeReadsSeparateForm(experiment=experiment)
+        form = forms.DistributeReadsSeparateForm(experiment=experiment, current_user=current_user)
     
     return form.make_response()
 
@@ -34,8 +34,8 @@ def submit(current_user: models.User, experiment_id: int) -> Response:
         raise exceptions.NotFoundException()
     
     if experiment.workflow.combined_lanes:
-        form = forms.DistributeReadsCombinedForm(experiment=experiment, formdata=request.form)
+        form = forms.DistributeReadsCombinedForm(experiment=experiment, current_user=current_user, formdata=request.form)
     else:
-        form = forms.DistributeReadsSeparateForm(experiment=experiment, formdata=request.form)
+        form = forms.DistributeReadsSeparateForm(experiment=experiment, current_user=current_user, formdata=request.form)
     
     return form.process_request()

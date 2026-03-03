@@ -5,6 +5,7 @@ from wtforms import FloatField, IntegerField, FieldList, FormField, StringField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
 from opengsync_db import models
+from opengsync_db.categories import ExperimentStatus
 
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -34,9 +35,10 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
     experiment_id = IntegerField(validators=[DataRequired()])
     pool_fields = FieldList(FormField(PoolSubForm), min_entries=1)
 
-    def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
+    def __init__(self, experiment: models.Experiment, current_user: models.User, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
+        self.current_user = current_user
         self.experiment_id.data = self.experiment.id
         self._context["experiment"] = experiment
 
@@ -62,11 +64,15 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
+        if self.experiment.status != ExperimentStatus.DRAFT:
+            if not self.current_user.is_admin():
+                flash("Only admin can edit non-draft experiments", "danger")
+                return False
+        
         return True
 
     def process_request(self) -> Response:
         if not self.validate():
-            logger.debug(self.errors)
             return self.make_response()
 
         links: dict[tuple[int, int], models.links.LanePoolLink] = {}
@@ -108,11 +114,12 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
     experiment_id = IntegerField(validators=[DataRequired()])
     pool_reads_fields = FieldList(FormField(PoolReadsSubForm), min_entries=1)
 
-    def __init__(self, experiment: models.Experiment, formdata: dict | None = None):
+    def __init__(self, experiment: models.Experiment, current_user: models.User, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)
         self.experiment = experiment
         self.experiment_id.data = self.experiment.id
         self._context["experiment"] = experiment
+        self.current_user = current_user
 
     def prepare(self):
         for i, pool in enumerate(self.experiment.pools):
@@ -127,6 +134,11 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
     def validate(self) -> bool:
         if not super().validate():
             return False
+        
+        if self.experiment.status != ExperimentStatus.DRAFT:
+            if not self.current_user.is_admin():
+                flash("Only admin can edit non-draft experiments", "danger")
+                return False
         
         return True
 
