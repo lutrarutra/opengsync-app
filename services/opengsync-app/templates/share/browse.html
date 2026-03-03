@@ -1,9 +1,11 @@
+{% from "components/contextmenu.jinja2" import context_menu %}
+
 <!DOCTYPE html>
 <html>
     <head>
         <title>Index of {{ current_path.as_posix() if current_path else '/' }}</title>
         <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
             table { width: 100%; border-collapse: collapse; }
             th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
             th { background-color: #f2f2f2; }
@@ -11,10 +13,26 @@
             a:hover { text-decoration: underline; }
             .breadcrumb { margin-bottom: 20px; }
             a:visited { color: #551a8b; }
+            .download-header { color: #0066cc; font-weight: bold; display: flex; gap: 20px; list-style-type: none; padding: 0 0 10px 0; margin: 0; }
         </style>
+
+        <!-- Bootstrap -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"/>
     </head>
     <body>
+        <ul class="download-header">
+            Download:
+            <li>
+                <a href="{{ url_for('file_share.rclone_script', token=token) }}" type="button" target="_blank">
+                    <i class="bi bi-filetype-sh"></i> Rclone WebDav Script (Recommended)
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('file_share.download_zip', token=token) }}" type="button">
+                    <i class="bi bi-download"></i> ZIP Archive
+                </a>
+            </li>
+        </ul>
         <table>
             <thead>
                 <tr>
@@ -49,41 +67,5 @@
                 {% endfor %}
             </tbody>
         </table>
-        <script>
-            function render_flash_messages() {
-                $.ajax({
-                    url: "{{ url_for('retrieve_flash_messages') }}",
-                    type: "GET"
-                }).done(function(data) {
-                    let messages = Array.isArray(data) ? data : (data && data.messages ? data.messages : []);
-                    if (!messages.length) {
-                        return;
-                    }
-                    showOneFlashFromList(messages, 0);
-                });
-            }
-
-            function showOneFlashFromList(messages, index) {
-                if (index >= messages.length) {
-                    return;
-                }
-                const msg = messages[index];
-                Swal.fire({
-                    position: 'top',
-                    icon: msg.category || 'success',
-                    html: `<div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 0; font-weight: 600;">${msg.message}</div>`,
-                    showConfirmButton: false,
-                    timer: msg.category === 'error' ? null : 1000,
-                    toast: true,
-                    showCloseButton: true,
-                    willClose: function() {
-                        showOneFlashFromList(messages, index + 1);
-                    }
-                });
-            }
-            document.addEventListener('DOMContentLoaded', function() {
-                render_flash_messages();
-            });
-        </script>
     </body>
 </html>

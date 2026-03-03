@@ -1,9 +1,10 @@
 from pathlib import Path
 import mimetypes
+import zipstream.ng as zipstream
 
 from sqlalchemy import orm
 
-from flask import Blueprint, render_template, Response, send_from_directory
+from flask import Blueprint, render_template, Response, send_from_directory, stream_with_context
 
 from opengsync_db import models
 
@@ -100,3 +101,58 @@ def browse(token: str, subpath: Path = Path()):
         parent_dir=subpath.parent if subpath != Path() else None,
         paths=paths, token=token
     )
+
+@wrappers.resource_route(file_share_bp, db=db, login_required=False, strict_slashes=False, limit="3/minute")
+def download_zip(token: str, subpath: Path = Path()):
+    if isinstance(subpath, str):
+        subpath = Path(subpath)
+    
+    if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
+        raise exceptions.NotFoundException("Token Not Found")
+    
+    if share_token.is_expired:
+        raise exceptions.NoPermissionsException("Token expired")
+    
+    SHARE_ROOT = runtime.app.share_root
+    browser = SharedFileBrowser(root_dir=SHARE_ROOT, db=db, share_token=share_token)
+
+    if not browser._is_safe(subpath):
+        raise exceptions.NoPermissionsException("Invalid path")
+
+    def generate_zip():
+        zs = zipstream.ZipStream(compress_type=zipstream.ZIP_STORED)
+
+        for rel_path, is_dir in browser.walk_contents(subpath):
+            if is_dir:
+                continue
+            
+            abs_path = SHARE_ROOT / rel_path
+            
+            try:
+                arcname = rel_path.relative_to(subpath.parent)
+            except ValueError:
+                arcname = rel_path
+
+            zs.add_path(str(abs_path), arcname.as_posix())
+
+        yield from zs
+
+    filename = f"{subpath.name or 'download'}.zip"
+    
+    return Response(
+        stream_with_context(generate_zip()),
+        mimetype="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@wrappers.htmx_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute")
+def rclone_script(token: str):
+    if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
+        raise exceptions.NotFoundException("Token Not Found")
+    
+    if share_token.is_expired:
+        raise exceptions.NoPermissionsException("Token expired")
+    
+    sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir="outdir")
+    return sync_command, 200, {"Content-Type": "text/plain"}

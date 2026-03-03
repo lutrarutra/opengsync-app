@@ -173,3 +173,40 @@ class SharedFileBrowser:
                 return None
 
         return None
+
+    def walk_contents(self, subpath: Path = Path()):
+        """
+        Recursively yield (relative_path, is_dir) for all safe items.
+        """
+        if not self._is_safe(subpath):
+            return
+
+        full_start_path = (self.root_dir / subpath).resolve()
+        
+        if full_start_path.is_file():
+            yield subpath, False
+            return
+
+        if not full_start_path.is_dir():
+            return
+
+        for root, dirs, files in os.walk(full_start_path):
+            root_path = Path(root)
+            
+            for d in dirs:
+                dir_abs = root_path / d
+                try:
+                    dir_rel = dir_abs.relative_to(self.root_dir)
+                    if self._is_safe(dir_rel):
+                        yield dir_rel, True
+                except ValueError:
+                    continue
+
+            for f in files:
+                file_abs = root_path / f
+                try:
+                    file_rel = file_abs.relative_to(self.root_dir)
+                    if self._is_safe(file_rel):
+                        yield file_rel, False
+                except ValueError:
+                    continue

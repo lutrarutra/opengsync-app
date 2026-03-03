@@ -15,6 +15,7 @@ dependencies = [
     "pandas >= 3.0",
     "bcrypt >= 4.0.1",
     "blinker >= 1.6.2",
+    "zipstream-ng",
     "click >= 8.1.7",
     "dnspython >= 2.4.2",
     "email-validator >= 2.0.0.post2",
