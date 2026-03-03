@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import datetime
+import shlex
 
 import pandas as pd
 
@@ -107,3 +108,7 @@ def inject_jinja_format_filters(app: App):
             users,
             key=lambda user: 0 if user == current_user else 1
         )
+    
+    @app.template_filter('shell_quote')
+    def shell_quote(s):
+        return shlex.quote(str(s))

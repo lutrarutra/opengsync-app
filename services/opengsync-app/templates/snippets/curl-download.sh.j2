@@ -1,0 +1,27 @@
+#!/bin/bash
+# OpenGSync Recursive Download Script
+# Target: {{ base_folder }}
+
+# Create base directory and enter it
+mkdir -p {{ base_folder | shell_quote }}
+cd {{ base_folder | shell_quote }}
+
+echo "Starting download into: $(pwd)"
+echo "Checking files..."
+
+{% for item in items %}
+{%- if item.is_dir -%}
+mkdir -p {{ item.rel_path | shell_quote }}
+{%- else -%}
+# -L: follow redirect, -C -: resume, -z: time-check, -f: fail on error
+echo " -> {{ item.rel_path }}"
+curl -L -C - -z {{ item.rel_path | shell_quote }} \
+     --create-dirs \
+     -f -sS \
+     -o {{ item.rel_path | shell_quote }} \
+     {{ item.url | shell_quote }}
+{%- endif -%}
+{% endfor %}
+
+echo "------------------------------------------------"
+echo "Sync complete."
