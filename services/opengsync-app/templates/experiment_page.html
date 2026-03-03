@@ -44,9 +44,15 @@
             </span>
         </div>
     </div>
+
+    <div style="margin: 0; padding: 0;">
+        <p style="margin: 0; padding: 0;"><b>Config: </b>{{ experiment.read_config }} <b>Lanes: </b>{{ experiment.num_lanes }} {% if experiment.workflow.combined_lanes %}<span class="desc">shared</span>{% endif %}</p>
+    </div>
+
     <div class="status_bar">
         {{ experiment_status_bar(experiment) }}
     </div>
+
     <ul class="nav nav-tabs page-tabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="pools-tab-btn" data-bs-toggle="tab" data-bs-target="#pools-tab"

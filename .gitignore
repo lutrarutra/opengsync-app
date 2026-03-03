@@ -24,6 +24,7 @@ compose.gitlab-runner.yaml
 .ssh/
 test*.ipynb
 licensed/
+.config/
 ~*.xlsx
 
 services/opengsync-app/templates/custom/

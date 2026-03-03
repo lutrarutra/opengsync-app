@@ -124,7 +124,7 @@ services:
         command: --port ${REDIS_PORT}
 
     tailwind-compiler:
-        container_name: tailwind-compiler
+        container_name: tailwind-compiler-dev
         tty: true
         build:
           context: .
