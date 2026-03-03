@@ -61,7 +61,7 @@ def _default_logger(exc: Exception, exc_type: str, level: Literal["error", "warn
 def _route_decorator(
     blueprint: Blueprint | Flask,
     route: str | None,
-    methods: Sequence[Literal["GET", "POST", "PUT", "DELETE", "PROPFIND", "OPTIONS", "HEAD"]],
+    methods: Sequence[Literal["GET", "POST", "PUT", "DELETE", "PROPFIND", "OPTIONS", "HEAD", "LOCK", "UNLOCK"]],
     db: DBHandler | None,
     login_required: bool,
     debug: bool,
@@ -413,7 +413,7 @@ def htmx_route(
 def api_route(
     blueprint: Blueprint | Flask,
     route: str | None = None,
-    methods: Sequence[Literal["GET", "POST", "PUT", "DELETE", "PROPFIND", "OPTIONS", "HEAD"]] = ["GET"],
+    methods: Sequence[Literal["GET", "POST", "PUT", "DELETE", "PROPFIND", "OPTIONS", "HEAD", "LOCK", "UNLOCK"]] = ["GET"],
     db: DBHandler | None = None,
     login_required: bool = False,
     debug: bool = False,

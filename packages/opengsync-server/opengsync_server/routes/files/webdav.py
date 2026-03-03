@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, Response, send_from_directory, req
 
 from opengsync_db import models
 
-from ... import db, DEBUG, limiter
+from ... import db, DEBUG, limiter, logger
 from ...core import wrappers, exceptions
 from ...tools import SharedFileBrowser
 from ...core.RunTime import runtime
@@ -14,10 +14,13 @@ from ...core.RunTime import runtime
 webdav_bp = Blueprint("webdav", __name__, url_prefix="/files/webdav/")
 
 
-@wrappers.api_route(webdav_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=300, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="200/minute;5000/hour", methods=["GET", "PROPFIND", "OPTIONS", "HEAD"], api_token_required=False)
+@wrappers.api_route(webdav_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=300, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="200/minute;5000/hour", methods=["GET", "PROPFIND", "OPTIONS", "HEAD", "LOCK", "UNLOCK"], api_token_required=False)
 def share(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
+
+    if SharedFileBrowser.OS_JUNK_REGEX.search(subpath.as_posix()):
+        return Response(status=404)
 
     if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
         raise exceptions.NotFoundException("Invalid Token")
@@ -32,9 +35,10 @@ def share(token: str, subpath: Path = Path()):
 
     if request.method == "OPTIONS":
         response = Response()
-        response.headers["Allow"] = "OPTIONS, GET, PROPFIND"
+        response.headers["Allow"] = "OPTIONS, GET, HEAD, PROPFIND"
         response.headers["DAV"] = "1, 2"
         response.headers["Accept-Ranges"] = "bytes"
+        response.headers["MS-Author-Via"] = "DAV"
         return response
     elif request.method == "HEAD":
         if (path := browser.get_file(subpath)) is None:
@@ -48,15 +52,23 @@ def share(token: str, subpath: Path = Path()):
         response.headers["Content-Type"] = mimetype or "application/octet-stream"
         response.headers["Content-Length"] = str(stat.st_size)
         response.headers["Last-Modified"] = browser._format_date(stat.st_mtime)
+        response.headers["ETag"] = f'"{stat.st_ino}-{stat.st_mtime}-{stat.st_size}"'
         return response
+    if request.method in ["LOCK", "UNLOCK"]:
+        # We don't actually support locking (read-only), 
+        # but returning 204 No Content prevents Windows from showing an error.
+        return Response(status=204)
     elif request.method == "PROPFIND":
         depth = request.headers.get("Depth", "1")
-        if depth not in ("0", "1", "infinity"):
-            raise exceptions.BadRequestException("Invalid Depth header")
-
         depth = 0 if depth == "0" else 1
+        
         resources = browser.propfind(subpath, depth=depth)
-        xml = render_template("share/webdav.xml", resources=resources)
+        
+        request_path = request.path
+        if not request_path.endswith("/"):
+            request_path += "/"
+        xml = render_template("share/webdav.xml", resources=resources, token=token, base_url=request_path)
+        
         response = Response(xml, status=207)
         response.headers["Content-Type"] = "application/xml; charset=utf-8"
         return response

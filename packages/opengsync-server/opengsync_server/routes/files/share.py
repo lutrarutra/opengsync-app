@@ -1,5 +1,6 @@
 from pathlib import Path
 import mimetypes
+from typing import Literal
 import zipstream.ng as zipstream
 
 from sqlalchemy import orm
@@ -103,7 +104,7 @@ def browse(token: str, subpath: Path = Path()):
     )
 
 @wrappers.resource_route(file_share_bp, db=db, login_required=False, strict_slashes=False, limit="3/minute")
-def download_zip(token: str, subpath: Path = Path()):
+def download_archive(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
     
@@ -116,7 +117,7 @@ def download_zip(token: str, subpath: Path = Path()):
     SHARE_ROOT = runtime.app.share_root
     browser = SharedFileBrowser(root_dir=SHARE_ROOT, db=db, share_token=share_token)
 
-    if not browser._is_safe(subpath):
+    if not browser.is_safe(subpath):
         raise exceptions.NoPermissionsException("Invalid path")
 
     def generate_zip():
@@ -137,7 +138,7 @@ def download_zip(token: str, subpath: Path = Path()):
 
         yield from zs
 
-    filename = f"{subpath.name or 'download'}.zip"
+    filename = f"{subpath.name or 'archive'}.zip"
     
     return Response(
         stream_with_context(generate_zip()),
@@ -156,3 +157,48 @@ def rclone_script(token: str):
     
     sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir="outdir")
     return sync_command, 200, {"Content-Type": "text/plain"}
+
+
+@wrappers.resource_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute")
+def curl_script(token: str, platform: Literal["windows", "unix"]):
+    if platform == "unix":
+        template = "snippets/curl-download.sh.j2"
+    elif platform == "windows":
+        template = "snippets/curl-download.ps1.j2"
+    else:
+        raise exceptions.BadRequestException("Invalid platform")
+    
+    if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
+        raise exceptions.NotFoundException("Token Not Found")
+    
+    if share_token.is_expired:
+        raise exceptions.NoPermissionsException("Token expired")
+    
+    
+    SHARE_ROOT = runtime.app.share_root
+    browser = SharedFileBrowser(root_dir=SHARE_ROOT, db=db, share_token=share_token)
+    subpath = Path()
+    items = []
+    for rel_path, is_dir in browser.walk_contents(subpath):
+        try:
+            display_path = rel_path.relative_to(subpath) if subpath != Path() else rel_path
+        except ValueError:
+            display_path = rel_path
+            
+        url = runtime.url_for('file_share.rclone', token=token, subpath=rel_path.as_posix(), _external=True)
+        
+        items.append({
+            'rel_path': display_path.as_posix(),
+            'is_dir': is_dir,
+            'url': url
+        })
+
+    rendered_script = render_template(
+        template, base_folder=subpath.name if subpath.name else "download", items=items
+    )
+
+    return Response(
+        rendered_script,
+        mimetype="text/x-shellscript",
+        headers={"Content-Disposition": f"attachment; filename=sync_{subpath.name or 'all'}.sh"}
+    )
