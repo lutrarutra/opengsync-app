@@ -63,6 +63,7 @@ $(document).on("click", ".clear-search-btn", function() {
     $(`#${$(this).data("field")}`).val("");
     $(`#${$(this).data("field")}-selected_bar`).css("display", "none");
     $(`#${$(this).data("field")}-search`).css("display", "block");
+    $(this).parent().parent().find(".selected").removeClass("selected");
 })
 
 $(document).on("click", ".selected-bar", function() {

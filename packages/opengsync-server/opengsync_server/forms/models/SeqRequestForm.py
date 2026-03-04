@@ -454,15 +454,13 @@ class SeqRequestForm(HTMXFlaskForm):
             address=self.organization_form.organization_address.data,
         )
 
+        bioinformatician_contact = None
         if self.bioinformatician_form.bioinformatician_name.data:
-            bioinformatician = db.contacts.create_contact(
+            bioinformatician_contact = db.contacts.create_contact(
                 name=self.bioinformatician_form.bioinformatician_name.data,
                 email=self.bioinformatician_form.bioinformatician_email.data,
                 phone=self.bioinformatician_form.bioinformatician_phone.data.replace(" ", "") if self.bioinformatician_form.bioinformatician_phone.data else None
             )
-            bioinformatician_contact_id = bioinformatician.id
-        else:
-            bioinformatician_contact_id = None
 
         user = self.current_user
         if self.current_user.is_insider():
@@ -479,22 +477,19 @@ class SeqRequestForm(HTMXFlaskForm):
 
         seq_request = db.seq_requests.create(
             name=self.basic_info_form.request_name.data,  # type: ignore
-            group_id=self.basic_info_form.group.selected.data,
+            group=db.groups[self.basic_info_form.group.selected.data] if self.basic_info_form.group.selected.data else None,
             description=self.basic_info_form.request_description.data,
-    
             data_delivery_mode=DataDeliveryMode.get(self.data_processing_form.data_delivery_mode_id.data),
-            
             num_lanes=self.technical_info_form.num_lanes.data,
             read_type=ReadType.get(self.technical_info_form.read_type.data),
             submission_type=SubmissionType.get(self.technical_info_form.submission_type.data),
             read_length=self.technical_info_form.read_length.data,
             special_requirements=self.technical_info_form.special_requirements.data,
-            
-            requestor_id=user.id,
-            contact_person_id=contact_person.id,
-            billing_contact_id=billing_contact.id,
-            bioinformatician_contact_id=bioinformatician_contact_id,
-            organization_contact_id=organization_contact.id,
+            requestor=user,
+            contact_person=contact_person,
+            billing_contact=billing_contact,
+            bioinformatician_contact=bioinformatician_contact,
+            organization_contact=organization_contact,
         )
 
         seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
@@ -517,7 +512,6 @@ class SeqRequestForm(HTMXFlaskForm):
     
     def process_request(self) -> Response:
         if not self.validate():
-            logger.debug(self.errors)
             return self.make_response()
         
         if self.form_type == "edit":
