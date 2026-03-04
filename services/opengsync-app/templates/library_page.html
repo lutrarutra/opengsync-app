@@ -95,7 +95,7 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#reads-tab" type="button" role="tab"
             aria-controls="reads-tab" aria-selected="true"
-            {% if library.status != LibraryStatus.SEQUENCED %}disabled{% endif %}>
+            {% if not library.read_qualities %}disabled{% endif %}>
             Read Quality</button>
         </li>
         <li class="nav-item" role="presentation">

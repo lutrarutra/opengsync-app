@@ -153,6 +153,9 @@ def reads_tab(current_user: models.User, library_id: int):
     access_type = db.libraries.get_access_type(user=current_user, library=library)
     if access_type < AccessType.VIEW:
         raise exceptions.NoPermissionsException()
+
+    if not library.read_qualities:
+        raise exceptions.BadRequestException("No read quality data available for this library.")
     
     library_stats_per_lane = db.pd.get_library_stats(library_id, per_lane=True)
     library_stats_average = db.pd.get_library_stats(library_id, per_lane=False)
