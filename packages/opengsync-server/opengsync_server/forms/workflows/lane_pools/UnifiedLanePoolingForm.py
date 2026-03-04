@@ -149,14 +149,6 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         filename = f"lane_pooling_{self.experiment.id}"
         extension = ".tsv"
 
-        old_file = self.experiment.lane_pooling_table
-            
-        if old_file:
-            if os.path.exists(os.path.join(runtime.app.media_folder, old_file.path)):
-                os.remove(os.path.join(runtime.app.media_folder, old_file.path))
-            db.media_files.delete(file_id=old_file.id)
-            logger.info(f"Old file '{old_file.path}' removed.")
-
         _uuid = uuid7().__str__()
         filepath = os.path.join(runtime.app.media_folder, MediaFileType.LANE_POOLING_TABLE.dir, f"{_uuid}.tsv")
         df.to_csv(filepath, sep="\t", index=False)

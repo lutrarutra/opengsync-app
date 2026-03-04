@@ -1,11 +1,9 @@
-from typing import Any
-
 from flask import Blueprint, request, Request
 
 from opengsync_db import models
 from opengsync_db.categories import PoolStatus, LibraryStatus, SampleStatus
 
-from ... import db
+from ... import db, logger
 from ...core import wrappers, exceptions
 from ...forms.workflows import qubit_measure as wff
 from ...forms import SelectSamplesForm
@@ -77,23 +75,19 @@ def select(current_user: models.User):
     form = SelectSamplesForm(workflow="qubit_measure", formdata=request.form, context=context)
     if not form.validate():
         return form.make_response()
-    
+
     next_form = wff.CompleteQubitMeasureForm(uuid=None)
-    metadata: dict[str, Any] = {"workflow": "qubit_measure"}
-
     if (experiment := context.get("experiment")) is not None:
-        metadata["experiment_id"] = experiment.id
+        next_form.metadata["experiment_id"] = experiment.id
     if (seq_request := context.get("seq_request")) is not None:
-        metadata["seq_request_id"] = seq_request.id
+        next_form.metadata["seq_request_id"] = seq_request.id
     if (pool := context.get("pool")) is not None:
-        metadata["pool_id"] = pool.id
+        next_form.metadata["pool_id"] = pool.id
 
-    next_form.metadata.update(metadata)
     next_form.tables["sample_table"] = form.sample_table
     next_form.tables["library_table"] = form.library_table
     next_form.tables["pool_table"] = form.pool_table
     next_form.tables["lane_table"] = form.lane_table
-    next_form.step()
     return next_form.make_response()
 
 
@@ -101,5 +95,4 @@ def select(current_user: models.User):
 def complete(current_user: models.User, uuid: str):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
-        
     return wff.CompleteQubitMeasureForm(uuid=uuid, formdata=request.form).process_request()
