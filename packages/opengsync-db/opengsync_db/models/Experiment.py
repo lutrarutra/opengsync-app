@@ -47,15 +47,16 @@ class Experiment(Base):
     sequencer: Mapped["Sequencer"] = relationship("Sequencer", lazy="select")
 
     seq_run: Mapped[Optional["SeqRun"]] = relationship("SeqRun", lazy="joined", primaryjoin="Experiment.name == SeqRun.experiment_name", foreign_keys=name, post_update=True)
-    lane_pooling_table: Mapped[Optional["MediaFile"]] = relationship(
-        "MediaFile", lazy="select", viewonly=True, uselist=False,
-        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type_id ==  {MediaFileType.LANE_POOLING_TABLE.id})",
+    lane_pooling_tables: Mapped[list["MediaFile"]] = relationship(
+        "MediaFile", lazy="select", viewonly=True, uselist=True,
+        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type_id == {MediaFileType.LANE_POOLING_TABLE.id})",
+        order_by="desc(MediaFile.id)",
     )
 
     pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select", back_populates="experiment")
     libraries: Mapped[list["Library"]] = relationship("Library", lazy="select", back_populates="experiment")
     lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="merge, save-update, delete, delete-orphan")
-    media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan")
+    media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan", order_by="MediaFile.id.desc()")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
     laned_pool_links: Mapped[list[links.LanePoolLink]] = relationship("LanePoolLink", lazy="select", cascade="merge, save-update, delete, delete-orphan")
@@ -86,7 +87,7 @@ class Experiment(Base):
         laning_completed = all(len(lane.pool_links) == 1 for lane in self.lanes) if pools_added else None
 
         if not laning_completed:
-            if self.lane_pooling_table is not None:
+            if len(self.lane_pooling_tables) > 0:
                 laning_completed = True if pools_added else None
                 
         for pool in self.pools:
@@ -336,6 +337,19 @@ class Experiment(Base):
         ).where(
             DataPath.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    @hybrid_property
+    def lane_pooling_table(self) -> Optional["MediaFile"]:
+        if "lane_pooling_tables" not in orm.attributes.instance_state(self).unloaded:
+            return self.lane_pooling_tables[0] if len(self.lane_pooling_tables) > 0 else None
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'lane_pooling_table' attribute.")
+        from .MediaFile import MediaFile
+        return session.query(MediaFile).filter(
+            MediaFile.experiment_id == self.id,
+            MediaFile.type_id == MediaFileType.LANE_POOLING_TABLE.id
+        ).order_by(MediaFile.id.desc()).first()
 
     @property
     def status(self) -> ExperimentStatus:
