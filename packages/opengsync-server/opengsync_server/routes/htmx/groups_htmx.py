@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import AffiliationType, UserRole, ProjectStatus
+from opengsync_db.categories import AffiliationType
 
 from ... import db, forms, logic
 from ...core import wrappers, exceptions

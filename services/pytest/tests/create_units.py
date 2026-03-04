@@ -45,12 +45,12 @@ def create_seq_request(db: DBHandler, user: models.User) -> models.SeqRequest:
         name=_uuid,
         data_delivery_mode=DataDeliveryMode.ALIGNMENT,
         description=_uuid,
-        requestor_id=user.id,
+        requestor=user,
         read_type=ReadType.PAIRED_END,
-        organization_contact_id=organization.id,
-        contact_person_id=contact.id,
-        billing_contact_id=contact.id,
-        group_id=None,
+        organization_contact=organization,
+        contact_person=contact,
+        billing_contact=contact,
+        group=None,
         submission_type=SubmissionType.POOLED_LIBRARIES,
     )
 
