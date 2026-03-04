@@ -236,7 +236,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                 logger.info(f"Run folder '{run.run_folder}' was unarchived!")
                 run.status = RunStatus.FINISHED
                 if run.experiment is not None:
-                    run.experiment.status = ExperimentStatus.SEQUENCED
+                    run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
                     for pool in run.experiment.pools:
                         pool.status = PoolStatus.SEQUENCED
                         for library in pool.libraries:

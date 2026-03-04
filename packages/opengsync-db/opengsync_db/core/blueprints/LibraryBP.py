@@ -573,9 +573,6 @@ class LibraryBP(DBBlueprint):
         Uses chunking to handle large datasets efficiently.
         """
         query = self.db.session.query(models.Library)
-        if order_by is not None:
-            attr = getattr(models.Library, order_by)
-            query = query.order_by(sa.nulls_last(attr))
         query = LibraryBP.where(
             query,
             user_id=user_id, sample_id=sample_id, experiment_id=experiment_id,
@@ -584,19 +581,16 @@ class LibraryBP(DBBlueprint):
             type_in=type_in, status_in=status_in, pooled=pooled, status=status,
             custom_query=custom_query, project_id=project_id
         )
-        offset = 0
-        while True:
-            chunk = query.limit(chunk_size).offset(offset).all()
-            if not chunk:
-                break
-            
-            for library in chunk:
-                yield library
-            
-            if limit and offset + chunk_size >= limit:
-                break
-                
-            offset += chunk_size
+        if order_by is not None:
+            attr = getattr(models.Library, order_by)
+            query = query.order_by(sa.nulls_last(attr))
+
+        if limit:
+            query = query.limit(limit)
+
+        query = query.execution_options(stream_results=True, max_row_buffer=chunk_size)
+        for library in query.yield_per(chunk_size):
+            yield library
 
     @DBBlueprint.transaction
     def __iter__(self) -> Iterator[models.Library]:

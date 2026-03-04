@@ -1,5 +1,5 @@
 import math
-from typing import Optional, Callable
+from typing import Optional, Callable, Iterator
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
@@ -244,7 +244,48 @@ class ExperimentBP(DBBlueprint):
         return experiments
     
     @DBBlueprint.transaction
+    def iter(
+        self,
+        project_id: int | None = None,
+        status: Optional[ExperimentStatus] = None,
+        status_in: Optional[list[ExperimentStatus]] = None,
+        workflow_in: Optional[list[ExperimentWorkFlow]] = None,
+        custom_query: Callable[[Query], Query] | None = None,
+        order_by: str | None = "id",
+        limit: int | None = None,
+        chunk_size: int = 1000
+    ) -> Iterator[models.Experiment]:
+
+        query = self.db.session.query(models.Experiment)
+        query = ExperimentBP.where(
+            query,
+            project_id=project_id,
+            status=status,
+            status_in=status_in,
+            workflow_in=workflow_in,
+            custom_query=custom_query,
+        )
+        if order_by is not None:
+            attr = getattr(models.Experiment, order_by)
+            query = query.order_by(sa.nulls_last(attr))
+
+        if limit:
+            query = query.limit(limit)
+
+        query = query.execution_options(stream_results=True, max_row_buffer=chunk_size)
+        for experiment in query.yield_per(chunk_size):
+            yield experiment
+
+    @DBBlueprint.transaction
+    def __iter__(self) -> Iterator[models.Experiment]:
+        return self.iter()
+    
+    @DBBlueprint.transaction
     def __getitem__(self, key: int | str) -> models.Experiment:
         if (experiment := self.get(key)) is None:
             raise exceptions.ElementDoesNotExist(f"Experiment with name '{key}' does not exist")
         return experiment
+
+    @DBBlueprint.transaction
+    def __len__(self) -> int:
+        return self.db.session.query(models.Experiment).count()

@@ -246,18 +246,18 @@ def update_statuses(db: DBHandler):
 
     db.flush()
 
-    for project in db.projects.find(
-        status=categories.ProjectStatus.PROCESSING, custom_query=__find_sequenced_projects, limit=None
-    )[0]:
+    for project in db.projects.iter(
+        status=categories.ProjectStatus.PROCESSING, custom_query=__find_sequenced_projects
+    ):
         project.status = categories.ProjectStatus.SEQUENCED
         db.projects.update(project)
         logs.append(f"Updating project {project.id} status to {project.status}")
 
     db.flush()
 
-    for seq_request in db.seq_requests.find(
-        status=categories.SeqRequestStatus.DATA_PROCESSING, custom_query=__find_finished_seq_requests, limit=None
-    )[0]:
+    for seq_request in db.seq_requests.iter(
+        status=categories.SeqRequestStatus.DATA_PROCESSING, custom_query=__find_finished_seq_requests
+    ):
         seq_request.status = categories.SeqRequestStatus.FINISHED
         db.seq_requests.update(seq_request)
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")

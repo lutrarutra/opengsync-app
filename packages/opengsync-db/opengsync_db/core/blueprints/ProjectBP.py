@@ -1,5 +1,5 @@
 import math
-from typing import Optional, Callable
+from typing import Optional, Callable, Iterator
 
 import sqlalchemy as sa
 from sqlalchemy.sql.base import ExecutableOption
@@ -240,6 +240,48 @@ class ProjectBP(DBBlueprint):
             return AccessType.EDIT
 
         return AccessType.NONE
+
+    @DBBlueprint.transaction
+    def iter(
+        self,
+        seq_request_id: int | None = None,
+        experiment_id: int | None = None,
+        group_id: int | None = None,
+        status: Optional[ProjectStatus] = None,
+        status_in: Optional[list[ProjectStatus]] = None,
+        library_types_in: list[LibraryType] | None = None,
+        user_id: int | None = None,
+        custom_query: Callable[[Query], Query] | None = None,
+        order_by: str | None = "id",
+        limit: int | None = None,
+        chunk_size: int = 1000
+    ) -> Iterator[models.Project]:
+
+        query = self.db.session.query(models.Project)
+        query = ProjectBP.where(
+            query, seq_request_id=seq_request_id,
+            group_id=group_id, status=status,
+            status_in=status_in, user_id=user_id, experiment_id=experiment_id,
+            custom_query=custom_query, library_types_in=library_types_in
+        )
+        if order_by is not None:
+            attr = getattr(models.Project, order_by)
+            query = query.order_by(sa.nulls_last(attr))
+
+        if limit:
+            query = query.limit(limit)
+
+        query = query.execution_options(stream_results=True, max_row_buffer=chunk_size)
+        for project in query.yield_per(chunk_size):
+            yield project
+            
+    @DBBlueprint.transaction
+    def __iter__(self) -> Iterator[models.Project]:
+        return self.iter()
+    
+    @DBBlueprint.transaction
+    def __len__(self) -> int:
+        return self.db.session.query(models.Project).count()
 
     @DBBlueprint.transaction
     def __getitem__(self, id: int | str) -> models.Project:

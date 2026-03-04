@@ -101,6 +101,7 @@ def test_library_feature_link(db: DBHandler):
 
     assert len(db.features.find(limit=None)[0]) == num_prev_features + NUM_FEATURES
     assert len(db.libraries.find(limit=None)[0]) == num_prev_libraries + NUM_LIBRARIES
+    assert len(db.libraries.find(limit=None)[0]) == len(list(db.libraries)) == len(db.libraries)
 
     db.libraries.delete(libraries[0])
 
