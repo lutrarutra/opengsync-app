@@ -667,3 +667,27 @@ span.id-desc::after {
         transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
     }
 }
+
+span.p5 {
+    color: #08519c;
+}
+
+span.s5 {
+    color: #6baed6;
+}
+
+span.s7 {
+    color: #fc9272;
+}
+
+span.p7 {
+    color: #a50f15;
+}
+
+span.t7 {
+    color: blue;
+}
+
+span.me {
+    color: #969696;
+}
