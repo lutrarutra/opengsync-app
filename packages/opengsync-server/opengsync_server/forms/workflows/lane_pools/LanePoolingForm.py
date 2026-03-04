@@ -62,7 +62,7 @@ class LanePoolingForm(HTMXFlaskForm):
                 self.lane_sub_forms.append_entry()
             
             lane_sub_form: LaneSubForm = self.lane_sub_forms[i]  # type: ignore
-            lane_sub_form.lane.data = lane
+            lane_sub_form.lane.data = lane  # type: ignore
 
             for idx, row in _df.iterrows():
                 if counter > len(self.sample_sub_forms) - 1:
@@ -171,13 +171,6 @@ class LanePoolingForm(HTMXFlaskForm):
 
         filename = f"lane_pooling_{self.experiment.id}"
         extension = ".tsv"
-
-        old_file = self.experiment.lane_pooling_table
-            
-        if old_file:
-            db.media_files.delete(file_id=old_file.id)
-            os.remove(os.path.join(runtime.app.media_folder, old_file.path))
-            logger.info(f"Old file '{old_file.path}' removed.")
 
         _uuid = uuid7().__str__()
         filepath = os.path.join(runtime.app.media_folder, MediaFileType.LANE_POOLING_TABLE.dir, f"{_uuid}.tsv")

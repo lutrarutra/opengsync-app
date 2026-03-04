@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pandas as pd
 
 from flask import Response, flash, url_for
@@ -38,6 +36,7 @@ class CompleteQubitMeasureForm(MultiStepForm):
         self._context["enumerate"] = enumerate
         
     def prepare(self):
+        logger.debug(self.metadata)
         sample_table = self.tables["sample_table"]
         pool_table = self.tables["pool_table"]
         library_table = self.tables["library_table"]
@@ -135,9 +134,9 @@ class CompleteQubitMeasureForm(MultiStepForm):
 
             lane_table.loc[lane_table["id"] == lane.id, "qubit_concentration"] = lane.original_qubit_concentration
 
-        self.complete()
         flash("Qubit Measurements saved!", "success")
-        if (experiment_id := self.metadata.get("experiment_id")) is not None:
+        experiment_id = self.metadata.get("experiment_id")
+        self.complete()
+        if experiment_id is not None:
             return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment_id))
-        
         return make_response(redirect=url_for("dashboard"))

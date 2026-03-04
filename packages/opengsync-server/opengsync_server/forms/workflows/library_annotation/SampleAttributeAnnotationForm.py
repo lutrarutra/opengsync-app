@@ -93,7 +93,7 @@ class SampleAttributeAnnotationForm(LibraryAnnotationWorkflow):
 
         missing_samples = self.sample_table.loc[~self.sample_table["sample_name"].isin(df["sample_name"]), "sample_name"].values.tolist()
         if len(missing_samples) > 0:
-            self.spreadsheet.add_general_error(f"Sample(s) not found in the sample table: {', '.join(missing_samples)}")
+            self.spreadsheet.add_general_error(f"Sample(s) not found in the sample table: {', '.join(missing_samples)}")  # type: ignore
             validated = False
 
         for col in df.columns:

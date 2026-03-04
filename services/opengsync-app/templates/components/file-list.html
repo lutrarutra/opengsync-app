@@ -2,7 +2,7 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 <div class="file-list-container">
-    <ul class="nav nav-tabs" role="tablist">
+    <ul class="nav nav-tabs" role="tablist" style="min-height: 42px;">
         {% for file in files %}
         <li class="nav-item" role="presentation">
             <button class="nav-link {% if loop.index0 == 0 %}active{% endif %}" data-bs-toggle="tab"

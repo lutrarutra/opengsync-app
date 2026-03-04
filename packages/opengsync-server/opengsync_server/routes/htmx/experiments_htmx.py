@@ -1,6 +1,5 @@
 import os
 import json
-from typing import Literal
 
 import pandas as pd
 
@@ -9,7 +8,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.core import units
-from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow, DataPathType
+from opengsync_db.categories import ExperimentStatus, ExperimentWorkFlow
 
 from ... import db, forms, logger, logic
 from ...core.RunTime import runtime
@@ -90,7 +89,9 @@ def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: 
     if (file := db.media_files.get(file_id)) is None:
         raise exceptions.NotFoundException()
 
-    filepath = os.path.join(runtime.app.media_folder, file.path)
+    if not os.path.exists(filepath := os.path.join(runtime.app.media_folder, file.path)):
+        raise exceptions.NotFoundException()
+
     df = pd.read_csv(filepath, sep="\t")
 
     if "lane" not in df.columns:
