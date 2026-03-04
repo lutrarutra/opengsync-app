@@ -533,30 +533,23 @@ class SeqRequestBP(DBBlueprint):
         limit: int | None = None,
         chunk_size: int = 1000
     ) -> Iterator[models.SeqRequest]:
-        offset = 0
+
         query = self.db.session.query(models.SeqRequest)
-        if order_by is not None:
-            attr = getattr(models.SeqRequest, order_by)
-            query = query.order_by(sa.nulls_last(attr))
         query = SeqRequestBP.where(
             query, status_in=status_in, submission_type_in=submission_type_in, submission_type=submission_type,
             show_drafts=show_drafts, user_id=user_id, group_id=group_id, status=status, project_id=project_id,
             custom_query=custom_query
         )
-        offset = 0
-        while True:
-            chunk = query.limit(chunk_size).offset(offset).all()
+        if order_by is not None:
+            attr = getattr(models.SeqRequest, order_by)
+            query = query.order_by(sa.nulls_last(attr))
 
-            if not chunk:
-                break
-            
-            for seq_request in chunk:
-                yield seq_request
+        if limit:
+            query = query.limit(limit)
 
-            if limit and offset + chunk_size >= limit:
-                break
-            
-            offset += chunk_size
+        query = query.execution_options(stream_results=True, max_row_buffer=chunk_size)
+        for seq_request in query.yield_per(chunk_size):
+            yield seq_request
             
     @DBBlueprint.transaction
     def __iter__(self) -> Iterator[models.SeqRequest]:

@@ -26,6 +26,8 @@ def test_mux_links(db: DBHandler):
     assert user is not None
     assert len(user.samples) == NUM_SAMPLES
     assert user.num_samples == NUM_SAMPLES
+    assert len(db.seq_requests.find(limit=None)[0]) == len(list(db.seq_requests)) == len(db.seq_requests)
+    assert len(db.projects.find(limit=None)[0]) == len(list(db.projects)) == len(db.projects)
 
     project = db.projects.get(project.id)
     db.refresh(project)

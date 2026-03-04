@@ -1,13 +1,58 @@
 import math
-from typing import Optional
+from typing import Callable, Optional, Iterator
 
 import sqlalchemy as sa
+from sqlalchemy.orm import Query
+
 from ...categories import KitType, KitType
 from ... import PAGE_LIMIT, models
 from ..DBBlueprint import DBBlueprint
 
 
 class KitBP(DBBlueprint):
+    @classmethod
+    def where(
+        cls,
+        query: Query,
+        type: KitType | None = None,
+        type_in: list[KitType] | None = None,
+        protocol: models.Protocol | None = None,
+        protocol_id: int | None = None,
+        not_in_protocol: models.Protocol | None = None,
+        custom_query: Callable[[Query], Query] | None = None,
+    ) -> Query:
+        if type is not None:
+            query = query.where(models.Kit.kit_type_id == type.id)
+
+        if type_in is not None:
+            query = query.where(models.Kit.kit_type_id.in_([t.id for t in type_in]))
+
+        if protocol is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.links.ProtocolKitLink.protocol_id == protocol.id) &
+                    (models.links.ProtocolKitLink.kit_id == models.Kit.id)
+                )
+            )
+        elif protocol_id is not None:
+            query = query.where(
+                sa.exists().where(
+                    (models.links.ProtocolKitLink.protocol_id == protocol_id) &
+                    (models.links.ProtocolKitLink.kit_id == models.Kit.id)
+                )
+            )
+
+        if not_in_protocol is not None:
+            query = query.where(
+                ~sa.exists().where(
+                    (models.links.ProtocolKitLink.protocol_id == not_in_protocol.id) &
+                    (models.links.ProtocolKitLink.kit_id == models.Kit.id)
+                )
+            )
+        if custom_query is not None:
+            query = custom_query(query)
+        return query
+        
     @DBBlueprint.transaction
     def create(
         self,
@@ -62,41 +107,17 @@ class KitBP(DBBlueprint):
         name: str | None = None,
         identifier: str | None = None,
         id: int | None = None,
+        custom_query: Callable[[Query], Query] | None = None,
         limit: int | None = PAGE_LIMIT, offset: int | None = 0,
         sort_by: str | None = None, descending: bool = False,
         page: int | None = None
     ) -> tuple[list[models.Kit], int | None]:
 
         query = self.db.session.query(models.Kit)
-
-        if type is not None:
-            query = query.where(models.Kit.kit_type_id == type.id)
-
-        if type_in is not None:
-            query = query.where(models.Kit.kit_type_id.in_([t.id for t in type_in]))
-
-        if protocol is not None:
-            query = query.where(
-                sa.exists().where(
-                    (models.links.ProtocolKitLink.protocol_id == protocol.id) &
-                    (models.links.ProtocolKitLink.kit_id == models.Kit.id)
-                )
-            )
-        elif protocol_id is not None:
-            query = query.where(
-                sa.exists().where(
-                    (models.links.ProtocolKitLink.protocol_id == protocol_id) &
-                    (models.links.ProtocolKitLink.kit_id == models.Kit.id)
-                )
-            )
-
-        if not_in_protocol is not None:
-            query = query.where(
-                ~sa.exists().where(
-                    (models.links.ProtocolKitLink.protocol_id == not_in_protocol.id) &
-                    (models.links.ProtocolKitLink.kit_id == models.Kit.id)
-                )
-            )
+        query = KitBP.where(
+            query, type=type, type_in=type_in, protocol=protocol, protocol_id=protocol_id,
+            not_in_protocol=not_in_protocol, custom_query=custom_query
+        )
 
         if sort_by is not None:
             if sort_by not in models.Kit.sortable_fields:
@@ -169,6 +190,40 @@ class KitBP(DBBlueprint):
             self.db.flush()
 
     @DBBlueprint.transaction
+    def iter(
+        self,
+        type: KitType | None = None,
+        type_in: list[KitType] | None = None,
+        protocol: models.Protocol | None = None,
+        protocol_id: int | None = None,
+        not_in_protocol: models.Protocol | None = None,
+        custom_query: Callable[[Query], Query] | None = None,
+        order_by: str | None = "id",
+        limit: int | None = None,
+        chunk_size: int = 1000
+    ) -> Iterator[models.Kit]:
+
+        query = self.db.session.query(models.Kit)
+        query = KitBP.where(
+            query, type=type, type_in=type_in, protocol=protocol, protocol_id=protocol_id,
+            not_in_protocol=not_in_protocol, custom_query=custom_query
+        )
+        if order_by is not None:
+            attr = getattr(models.Kit, order_by)
+            query = query.order_by(sa.nulls_last(attr))
+
+        if limit:
+            query = query.limit(limit)
+
+        query = query.execution_options(stream_results=True, max_row_buffer=chunk_size)
+        for kit in query.yield_per(chunk_size):
+            yield kit
+
+    @DBBlueprint.transaction
+    def __iter__(self) -> Iterator[models.Kit]:
+        return self.iter()
+
+    @DBBlueprint.transaction
     def __getitem__(self, id: int | str) -> models.Kit:
         if isinstance(id, str):
             if (kit := self.get(identifier=id)) is None:
@@ -177,3 +232,7 @@ class KitBP(DBBlueprint):
             if (kit := self.db.session.get(models.Kit, id)) is None:
                 raise KeyError(f"Kit with id {id} does not exist")
         return kit
+
+    @DBBlueprint.transaction
+    def __len__(self) -> int:
+        return self.db.session.query(models.Kit).count()

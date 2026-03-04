@@ -28,7 +28,7 @@ class AddKitCombinationsFrom(HTMXFlaskForm):
         self._context["workflow"] = AddKitCombinationsFrom._workflow_name
         self.post_url = url_for("add_kits_to_protocol_workflow.add_kit_combinations", protocol_id=protocol.id)
 
-        self.kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.kits.find(limit=None, sort_by="name")[0]}
+        self.kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.kits.iter(order_by="name")}
         columns: list = [
             CategoricalDropDown("kit_identifier", "Kit", 600, categories=self.kit_mapping, required=True),
             IntegerColumn("combination_num", "Combination", 200, required=False),

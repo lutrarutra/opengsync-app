@@ -47,6 +47,7 @@ def test_experiment_lanes(db: DBHandler):
         db.links.link_pool_experiment(experiment.id, pool.id)
 
     experiment = db.experiments.get(experiment.id)
+    assert len(db.experiments.find(limit=None)[0]) == len(list(db.experiments)) == len(db.experiments)
     assert experiment is not None
     assert len(experiment.lanes) == experiment.num_lanes
     assert experiment.num_lanes == experiment.flowcell_type.num_lanes
