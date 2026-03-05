@@ -18,7 +18,6 @@ def get(current_user: models.User):
 def search(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
-    
     return make_response(render_template(**logic.user.get_search_context(current_user=current_user, request=request)))
 
 @wrappers.htmx_route(users_htmx, db=db)

@@ -4,7 +4,7 @@ from flask_htmx import make_response
 from opengsync_db import models, PAGE_LIMIT
 from opengsync_db.categories import AffiliationType
 
-from ... import db, forms, logic
+from ... import db, forms, logic, logger
 from ...core import wrappers, exceptions
 
 groups_htmx = Blueprint("groups_htmx", __name__, url_prefix="/htmx/groups/")

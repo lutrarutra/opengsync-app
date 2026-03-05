@@ -17,7 +17,7 @@
                 {{
                     confirm_action_button(
                         text="Complete Project",
-                        title='Complete project \'{{ project.title }}\'',
+                        title='Complete project ' + project.title,
                         url=url_for('projects_htmx.complete', project_id=project.id),
                         container="button",
                         method="hx-post",
@@ -41,7 +41,7 @@
                 {{
                     confirm_action_button(
                         text="Delete Project",
-                        title='Delete project \'{{ project.title }}\'',
+                        title='Delete project ' + project.title,
                         url=url_for('projects_htmx.delete', project_id=project.id),
                         container="button",
                         class="btn btn-danger",
