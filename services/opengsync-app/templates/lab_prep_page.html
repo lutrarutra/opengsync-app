@@ -41,6 +41,9 @@
                                 url=url_for('lab_preps_htmx.delete', lab_prep_id=lab_prep.id),
                                 class="dropdown-item",
                                 disabled=lab_prep.status >= PrepStatus.COMPLETED,
+                                disabled_tooltip="Only preps that have not been completed can be deleted.",
+                                color="warning",
+                                tooltip_position="left"
                             )
                         }}
                     </li>
@@ -53,7 +56,10 @@
                                 method="hx-post",
                                 url=url_for('lab_preps_htmx.uncomplete', lab_prep_id=lab_prep.id),
                                 class="dropdown-item",
-                                disabled=lab_prep.status < PrepStatus.COMPLETED or not current_user.is_admin()
+                                disabled=lab_prep.status < PrepStatus.COMPLETED or not current_user.is_admin(),
+                                disabled_tooltip="Only preps that have not been completed can be deleted.",
+                                color="warning",
+                                tooltip_position="left"
                             )
                         }}
                     </li>

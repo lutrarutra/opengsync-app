@@ -348,9 +348,10 @@
                             confirm_action_button(
                                 text="Complete Prep",
                                 title="Complete Library Prep?",
-                                class="btn btn-success",
                                 url=url_for('lab_preps_htmx.complete', lab_prep_id=lab_prep.id),
                                 disabled=lab_prep_completed is not false,
+                                color="success",
+                                disabled_tooltip="Lab prep can only be completed once all required steps have been completed.",
                                 method="hx-post",
                             )
                         }}

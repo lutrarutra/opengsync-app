@@ -880,7 +880,6 @@ class PandasBP(DBBlueprint):
         df["library_type"] = cats.LibraryType.map_series(df["library_type_id"], na_action="ignore")
         df["genome_ref"] = cats.GenomeRef.map_series(df["genome_ref_id"], na_action="ignore")
         df["index_type"] = cats.IndexType.map_series(df["index_type_id"], na_action="ignore")
-
         return df
     
     @DBBlueprint.transaction

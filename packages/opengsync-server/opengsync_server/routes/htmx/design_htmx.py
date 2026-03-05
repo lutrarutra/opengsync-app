@@ -213,6 +213,19 @@ def archive_flow_cell_design(current_user: models.User, flow_cell_design_id: int
 
     return make_response(redirect=url_for("design_page.design"))
 
+@wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["flow_cell_design_id"])
+def unarchive_flow_cell_design(current_user: models.User, flow_cell_design_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (flow_cell_design := db.flow_cell_designs.get(flow_cell_design_id)) is None:
+        raise exceptions.NotFoundException("Flow Cell Design not found")
+    
+    flow_cell_design.task_status = cats.TaskStatus.DRAFT
+    db.flow_cell_designs.update(flow_cell_design)
+
+    return make_response(redirect=url_for("design_page.design"))
+
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["GET", "POST"])
 def edit_flow_cell_design(current_user: models.User, flow_cell_design_id: int):

@@ -1,7 +1,10 @@
 {% from "components/tooltip.jinja2" import tooltip as tooltip_func %}
 
-{% macro confirm_action_button(text, title, url, class="btn btn-primary", container="button", method="hx-get", body="Do you want to proceed?", icon="warning", disabled=false, tooltip=none, tooltip_category="primary", tooltip_position="top") %}
-<{{ container }} type="button" class="{{ class }}"
+{% macro confirm_action_button(text, title, url, class="btn", color="primary", container="button", method="hx-get", body="Do you want to proceed?", icon="warning", disabled=false, tooltip=none, disabled_tooltip=none, tooltip_position="top") %}
+{% if disabled and disabled_tooltip %}
+<span {{ tooltip_func(disabled_tooltip, tooltip_position, color) }}>
+{% endif %}
+<{{ container }} type="button" class="{{ class }} {% if class == "btn" %}btn-{{ color }}{% endif %}"
     {% if not disabled %}
     {{ method }}="{{ url }}"
     _='on htmx:confirm(issueRequest)
@@ -15,7 +18,10 @@
             denyButtonText: "No"
         })
         if result.isConfirmed issueRequest()'
-    {% else %}disabled{%endif%} {% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>{{ text }}</{{ container }}>
+    {% else %}disabled{%endif%} {% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, color) }}{% endif %}>{{ text }}</{{ container }}>
+{% if disabled and disabled_tooltip %}
+</span>
+{% endif %}
 {% endmacro %}
 
 {% macro sm_modal_button(text, container="button", class="btn btn-primary", disabled=false, hx_get=none, hx_post=none, hx_delete=none, tooltip=none, tooltip_category="primary", tooltip_position="top") %}

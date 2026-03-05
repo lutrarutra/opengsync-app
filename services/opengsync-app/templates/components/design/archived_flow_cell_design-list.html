@@ -1,7 +1,7 @@
 {% from 'components/spinner.jinja2' import spinner %}
 {% from 'components/tooltip.jinja2' import tooltip %}
-{% from 'components/button.jinja2' import confirm_action_button %}
 {% from "components/design/flow_cell_type_cm.jinja2" import flow_cell_type_cm with context %}
+{% from 'components/button.jinja2' import confirm_action_button %}
 {% from 'components/design/comment-list.jinja2' import comment_list with context %}
 
 <div class="flow-cell-design-container" id="archived-flow-cell-design-list">
@@ -35,8 +35,26 @@
             <div id="archived-design-{{ design.id }}" class="accordion-collapse collapse collapsed">
                 <div class="accordion-body pool-designs-accordion-body">
                     <div class="flow-cell-comment-container">
-                        <a href="#" hx-trigger="click once" hx-get="{{ url_for('design_htmx.comment_form', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
-                        <em class="text-muted">Flow Cell Notes:</em>
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <a href="#" hx-trigger="click once" hx-get="{{ url_for('design_htmx.comment_form', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
+                                <em class="text-muted">Flow Cell Notes:</em>
+                            </div>
+                            <div>
+                                {{
+                                    confirm_action_button(
+                                        text='<i class="bi bi-arrow-counterclockwise"></i>',
+                                        title='Unarchive Flow Cell Design',
+                                        url=url_for('design_htmx.unarchive_flow_cell_design', flow_cell_design_id=design.id),
+                                        container="a",
+                                        class="",
+                                        method="hx-post",
+                                        tooltip='Unarchive Design',
+                                        tooltip_position="left"
+                                    )
+                                }}
+                            </div>
+                        </div>
                         <hr>
                         {{ comment_list(design.comments) }}
                     </div>

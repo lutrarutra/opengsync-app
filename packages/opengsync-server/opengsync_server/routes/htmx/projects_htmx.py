@@ -465,8 +465,14 @@ def export(current_user: models.User, project_id: int):
     }).T
 
     samples_df = db.pd.get_project_samples(project_id=project.id)
-    libraries_df = db.pd.get_project_libraries(project_id=project.id)
+    libraries_df = db.pd.get_project_libraries(project_id=project.id).astype(str)
     seq_requests_df = db.pd.get_project_seq_requests(project_id=project.id)
+    
+    software = pd.DataFrame.from_records(
+        {name: [data] for name, data in (project.software or {}).items()}
+    ).T
+
+    library_properties_df = db.pd.get_library_properties(project_id=project.id)
 
     bytes_io = BytesIO()
 
@@ -475,12 +481,14 @@ def export(current_user: models.User, project_id: int):
         samples_df.to_excel(writer, sheet_name="Samples", index=False)
         libraries_df.to_excel(writer, sheet_name="Libraries", index=False)
         seq_requests_df.to_excel(writer, sheet_name="Seq Requests", index=False)
+        software.to_excel(writer, sheet_name="Software")
+        library_properties_df.to_excel(writer, sheet_name="Library Properties", index=False)
 
     bytes_io.seek(0)
 
     return Response(
         bytes_io, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
-            "Content-Disposition": f"attachment; filename=project_{project.identifier or f'P_{project.id}'}_export.xlsx"
+            "Content-Disposition": f"attachment; filename=project_{project.identifier or f'P_{project.id}'}.xlsx"
         }
     )
