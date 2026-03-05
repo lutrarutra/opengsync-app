@@ -30,3 +30,30 @@
     </ul>
 </div>
 {% endmacro %}
+
+{% macro multi_select2(choices, field_name, placeholder="Select...", class="") %}
+<div class="multiple-select {{ class }}" id="{{ field_name }}-multiselect-container">
+    <div class="input-group">
+        <span class="form-select dropdown-toggle text-muted selected-container minimal-scrollbar">{{ placeholder }}</span>
+    </div>
+    <ul class="options-container minimal-scrollbar">
+        <li>
+            <input class="form-control option-search" autocomplete="off" type="text" value="" placeholder="Filter...">
+            <div class="form-group form-check select-all-container">
+                <input type="checkbox" class="form-check-input select-all" id="{{ field_name }}-select-all">
+                <label class="btn" for="{{ field_name }}-select-all">Select All</label>
+            </div>
+        </li>
+        {% for (id, label) in choices %}
+        <li class="option">
+            <input type="checkbox" class="form-check-input" id="{{ field_name }}-select-{{ id }}">
+            <label class="btn" for="{{ field_name }}-select-{{ id }}"><span class="label-name">{{ label }}</span><span class="label-id text-muted">{{ id }}</span></label>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endmacro %}
+
+{% macro multi_select_field(field, class="") %}
+{{ multi_select2(field.choices, field.name, placeholder=field.label.text, class=class)}}
+{% endmacro %}
