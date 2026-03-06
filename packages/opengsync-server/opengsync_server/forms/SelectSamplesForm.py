@@ -130,9 +130,6 @@ class SelectSamplesForm(MultiStepForm):
             self._context["context"] = f"{context['seq_request'].name} ({context['seq_request'].id})"
         if "experiment" in context.keys():
             self._context["context"] = f"{context['experiment'].name} ({context['experiment'].id})"
-            if workflow in ["qubit_measure", "ba_report"]:
-                self._context["select_samples"] = False
-                self._context["select_libraries"] = False
         if "lab_prep" in context.keys():
             self._context["context"] = f"{context['lab_prep'].name} ({context['lab_prep'].id})"
 
@@ -144,13 +141,13 @@ class SelectSamplesForm(MultiStepForm):
         self._context["lane_url_context"] = url_context.copy()
 
         if sample_status_filter is not None:
-            self._context["sample_url_context"]["status_id_in"] = json.dumps([status.id for status in sample_status_filter])
+            self._context["sample_url_context"]["status_in"] = json.dumps([status.id for status in sample_status_filter])
         if library_status_filter is not None:
-            self._context["library_url_context"]["status_id_in"] = json.dumps([status.id for status in library_status_filter])
+            self._context["library_url_context"]["status_in"] = json.dumps([status.id for status in library_status_filter])
         if library_type_filter is not None:
-            self._context["library_url_context"]["type_id_in"] = json.dumps([library_type.id for library_type in library_type_filter])
+            self._context["library_url_context"]["type_in"] = json.dumps([library_type.id for library_type in library_type_filter])
         if pool_status_filter is not None:
-            self._context["pool_url_context"]["status_id_in"] = json.dumps([status.id for status in pool_status_filter])
+            self._context["pool_url_context"]["status_in"] = json.dumps([status.id for status in pool_status_filter])
 
         self.__sample_table: pd.DataFrame | None = None
         self.__library_table: pd.DataFrame | None = None

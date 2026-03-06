@@ -1,26 +1,12 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
-{% from 'components/spinner.jinja2' import spinner %}
-
 <div id="select-lanes-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='select-lanes-table', column_name='Experiment', column_var='experiment_id',
-                        sort_url='lanes_htmx.browse', context=context,
-                        sort_by=sort_by, sort_order=sort_order, col_size=4,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='select-lanes-table', column_name='Lane', column_var='number',
-                        sort_url='lanes_htmx.browse', context=context,
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                    )
-                }}
+                {{ table_col("select-lanes-table", table, "experiment") }}
+                {{ table_col("select-lanes-table", table, "lane") }}
                 {% if workflow == "qubit_measure" %}
                 <th class="col-2" scope="col">Qubit Conc.</th>
                 {% elif workflow == "ba_report" %}
@@ -52,11 +38,12 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("select-lanes-table-spinner") }}
-    {{ pagination("select-lanes-table", "lanes_htmx.browse", n_pages, active_page, context=context) }}
+    {{ pagination2("select-lanes-table", table) }}
 
     <script>
         $(document).ready(function() {
+            const table = new HTMXTable("#select-lanes-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+
             function add_lane(lane_id) {
                 selected_lanes.push(lane_id);
                 $(`#lane-row-${lane_id}`).addClass("selected");

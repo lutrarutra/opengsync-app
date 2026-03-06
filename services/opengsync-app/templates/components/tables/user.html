@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
 
@@ -7,12 +7,12 @@
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("user-table", table, "id") }}
-                {{ table_col2("user-table", table, "name") }}
-                {{ table_col2("user-table", table, "email") }}
-                {{ table_col2("user-table", table, "role") }}
-                {{ table_col2("user-table", table, "num_seq_requests") }}
-                {{ table_col2("user-table", table, "num_projects") }}
+                {{ table_col("user-table", table, "id") }}
+                {{ table_col("user-table", table, "name") }}
+                {{ table_col("user-table", table, "email") }}
+                {{ table_col("user-table", table, "role") }}
+                {{ table_col("user-table", table, "num_seq_requests") }}
+                {{ table_col("user-table", table, "num_projects") }}
             </tr>
         </thead>
         <tbody>

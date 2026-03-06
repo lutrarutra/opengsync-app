@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -9,11 +9,11 @@
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("seq_request-library-table", table, "id") }}
-                {{ table_col2("seq_request-library-table", table, "name") }}
-                {{ table_col2("seq_request-library-table", table, "pool_name") }}
-                {{ table_col2("seq_request-library-table", table, "type") }}
-                {{ table_col2("seq_request-library-table", table, "status") }}
+                {{ table_col("seq_request-library-table", table, "id") }}
+                {{ table_col("seq_request-library-table", table, "name") }}
+                {{ table_col("seq_request-library-table", table, "pool_name") }}
+                {{ table_col("seq_request-library-table", table, "type") }}
+                {{ table_col("seq_request-library-table", table, "status") }}
                 <th scope="col" class="col-3">
                     Index
                     <span>

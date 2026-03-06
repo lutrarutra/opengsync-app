@@ -60,7 +60,7 @@ def get_context(request: Request) -> dict:
 
 
 @wrappers.htmx_route(ba_report_workflow, db=db)
-def begin(current_user: models.User):
+def begin(current_user: models.User, entity: str | None = None):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
@@ -69,9 +69,9 @@ def begin(current_user: models.User):
         workflow="ba_report", context=context,
         library_status_filter=[LibraryStatus.PREPARING],
         pool_status_filter=[PoolStatus.STORED],
-        select_libraries=True,
-        select_pools=True if not context.get("lab_prep") else False,
-        select_lanes=True if not context.get("lab_prep") else False,
+        select_libraries=True if entity is None or entity == "library" else False,
+        select_pools=True if not context.get("lab_prep") and (entity is None or entity == "pool") else False,
+        select_lanes=True if not context.get("lab_prep") and (entity is None or entity == "lane") else False,
     )
     return form.make_response()
 

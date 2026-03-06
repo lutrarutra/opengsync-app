@@ -1,3 +1,4 @@
+from typing import Literal
 from flask import Blueprint, request, Request
 
 from opengsync_db import models
@@ -48,7 +49,7 @@ def get_context(request: Request) -> dict:
 
 
 @wrappers.htmx_route(qubit_measure_workflow, db=db)
-def begin(current_user: models.User):
+def begin(current_user: models.User, entity: str | None = None):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
@@ -58,10 +59,10 @@ def begin(current_user: models.User):
         sample_status_filter=[SampleStatus.STORED],
         library_status_filter=[LibraryStatus.PREPARING],
         pool_status_filter=[PoolStatus.STORED],
-        select_lanes=True,
-        select_pools=True,
-        select_libraries=True,
-        select_samples=True,
+        select_lanes=True if entity is None or entity == "lane" else False,
+        select_pools=True if entity is None or entity == "pool" else False,
+        select_libraries=True if entity is None or entity == "library" else False,
+        select_samples=True if entity is None or entity == "sample" else False,
     )
     return form.make_response()
 

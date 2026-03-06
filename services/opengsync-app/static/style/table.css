@@ -79,6 +79,7 @@ table input.table-query-input{
 
         tbody td, tbody th {
             font-family: monospace;
+            overflow-x: hidden;
         }
 
         .table-select-buttons {

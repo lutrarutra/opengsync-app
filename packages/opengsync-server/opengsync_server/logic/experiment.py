@@ -3,6 +3,7 @@ import json
 from flask import Request
 
 from opengsync_db import models, categories as cats
+from opengsync_server.routes.pages.groups_page import group
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -138,5 +139,76 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
         "experiments": experiments,
         "template_name_or_list": "components/search/experiment.html",
         "num_pages": num_pages,
+    })
+    return context
+
+
+def get_browse_context(current_user: models.User, request: Request, **kwargs) -> dict:
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    fnc_context = {}
+    table = ExperimentTable(route="experiments_htmx.browse", page=request.args.get("page", 0, type=int))
+    table.url_params["workflow"] = kwargs["workflow"]
+    
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "desc")
+    descending = sort_order == "desc"
+
+    context = parse_context(current_user, request) | kwargs
+
+    if (status_in := request.args.get("status_in")):
+        status_in = json.loads(status_in)
+        try:
+            status_in = [cats.ExperimentStatus.get(int(status)) for status in status_in]
+            if status_in:
+                fnc_context["status_in"] = status_in
+                table.filter_values["status"] = status_in
+        except ValueError:
+            raise exceptions.BadRequestException()  
+    
+    if (workflow_in := request.args.get("workflow_in")):
+        workflow_in = json.loads(workflow_in)
+        try:
+            workflow_in = [cats.ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
+            if workflow_in:
+                fnc_context["workflow_in"] = workflow_in
+                table.filter_values["workflow"] = workflow_in
+        except ValueError:
+            raise exceptions.BadRequestException()
+
+    if (id_ := request.args.get("id")):
+        try:
+            id_ = int(id_)
+            fnc_context["id"] = id_
+            table.active_search_var = "id"
+            table.active_query_value = str(id_)
+        except ValueError:
+            raise exceptions.BadRequestException()
+    elif (name := request.args.get("name")) is not None:
+        if (name := name.strip()):
+            fnc_context["name"] = name
+        else:
+            fnc_context["sort_by"] = "name"
+    elif (group := context.get("group")) is not None:
+        fnc_context["group_id"] = group.id        
+    else:
+        sort_by = request.args.get("sort_by", "id")
+        sort_order = request.args.get("sort_order", "desc")
+        descending = sort_order == "desc"
+        if sort_by not in models.Lane.sortable_fields:
+            raise exceptions.BadRequestException()
+        
+        fnc_context["sort_by"] = sort_by
+        fnc_context["descending"] = descending
+        table.active_sort_var = sort_by
+        table.active_sort_descending = descending
+
+    experiments, table.num_pages = db.experiments.find(page=table.active_page, **fnc_context)
+
+    context.update({
+        "experiments": experiments,
+        "template_name_or_list": "components/tables/select-experiments.html",
+        "table": table,
     })
     return context

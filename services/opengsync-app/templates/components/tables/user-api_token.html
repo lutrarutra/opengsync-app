@@ -1,31 +1,14 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col %}
-{% from "components/spinner.jinja2" import spinner %}
 {% from "components/contextmenu.jinja2" import context_menu %}
-
 <div id="user-api_token-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
                 <th scope="col" class="col-1">UUID</th>
-                {{
-                    table_col(
-                        table_container_id='user-api_token-table', column_name='Expiration', column_var='expiration',
-                        sort_url='users_htmx.get_api_tokens', sort_by=sort_by, sort_order=sort_order, col_size=3, context={"user_id": user.id}
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='user-api_token-table', column_name='Owner', column_var='owner_id',
-                        sort_url='users_htmx.get_api_tokens', sort_by=sort_by, sort_order=sort_order, col_size=3, context={"user_id": user.id}
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='user-api_token-table', column_name='Valid Min', column_var='time_valid_min',
-                        sort_url='users_htmx.get_api_tokens', sort_by=sort_by, sort_order=sort_order, col_size=1, context={"user_id": user.id}
-                    )
-                }}
+                {{ table_col("user-api_token-table", table, "expiration") }}
+                {{ table_col("user-api_token-table", table, "owner_id") }}
+                {{ table_col("user-api_token-table", table, "time_valid_min") }}
             </tr>
         </thead>
         <tbody>
@@ -50,6 +33,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("user-api_token-table-spinner") }}
-    {{ pagination("user-api_token-table", "users_htmx.get_api_tokens", n_pages, active_page, context={"user_id": user.id}) }}
+    {{ pagination2("user-api_token-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#user-api_token-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

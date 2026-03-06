@@ -63,6 +63,7 @@ class APITokenBP(DBBlueprint):
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
         count_pages: bool = False,
+        page: int | None = None,
         options: ExecutableOption | None = None,
     ) -> tuple[list[models.APIToken], int | None]:
         query = self.db.session.query(models.APIToken)
@@ -78,6 +79,16 @@ class APITokenBP(DBBlueprint):
             if descending:
                 attr = attr.desc()
             query = query.order_by(attr)
+
+        if page is not None:
+            if limit is None:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
+        else:
+            n_pages = None
         
         if offset is not None:
             query = query.offset(offset)

@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -8,11 +8,11 @@
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("index_kit-table", table, "id") }}
-                {{ table_col2("index_kit-table", table, "identifier") }}
-                {{ table_col2("index_kit-table", table, "name") }}
-                {{ table_col2("index_kit-table", table, "type") }}
-                {{ table_col2("index_kit-table", table, "protocols") }}
+                {{ table_col("index_kit-table", table, "id") }}
+                {{ table_col("index_kit-table", table, "identifier") }}
+                {{ table_col("index_kit-table", table, "name") }}
+                {{ table_col("index_kit-table", table, "type") }}
+                {{ table_col("index_kit-table", table, "protocols") }}
             </tr>
         </thead>
         <tbody>

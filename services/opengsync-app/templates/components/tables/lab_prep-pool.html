@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
@@ -9,12 +9,12 @@
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("lab_prep-pool-table", table, "id") }}
-                {{ table_col2("lab_prep-pool-table", table, "name") }}
-                {{ table_col2("lab_prep-pool-table", table, "library_types") }}
-                {{ table_col2("lab_prep-pool-table", table, "status") }}
-                {{ table_col2("lab_prep-pool-table", table, "owner") }}
-                {{ table_col2("lab_prep-pool-table", table, "num_libraries") }}
+                {{ table_col("lab_prep-pool-table", table, "id") }}
+                {{ table_col("lab_prep-pool-table", table, "name") }}
+                {{ table_col("lab_prep-pool-table", table, "library_types") }}
+                {{ table_col("lab_prep-pool-table", table, "status") }}
+                {{ table_col("lab_prep-pool-table", table, "owner") }}
+                {{ table_col("lab_prep-pool-table", table, "num_libraries") }}
             </tr>
         </thead>
         <tbody>

@@ -104,10 +104,12 @@ class HTMXTable {
     }
 
     _handleSearch(field_name, search_value) {
-        this._ajax({ [field_name]: search_value });
+        let state = this._getState(false);
+        state[field_name] = search_value;
+        this._ajax(state);
     }
 
-    _getState() {
+    _getState(include_sort=true) {
         let state = {};
         this.multiselects.forEach(select => {
             let field_name = select.$container.data("field_name");
@@ -115,13 +117,15 @@ class HTMXTable {
                 state[field_name + "_in"] = JSON.stringify(select.options.selected);
             }
         });
-        this.$table.find("th.sortable-col").each((index, th) => {
-            let $th = $(th);
-            if ($th.data("current_sort")) {
-                state.sort_by = $th.data("sort_by");
-                state.sort_order = $th.data("current_sort");
-            }
-        });
+        if (include_sort) {
+            this.$table.find("th.sortable-col").each((index, th) => {
+                let $th = $(th);
+                if ($th.data("current_sort")) {
+                    state.sort_by = $th.data("sort_by");
+                    state.sort_order = $th.data("current_sort");
+                }
+            });
+        }
         return state;
     }
 

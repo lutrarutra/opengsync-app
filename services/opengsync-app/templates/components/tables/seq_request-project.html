@@ -1,18 +1,18 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="seq_request-project-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("seq_request-project-table", table, "id") }}
-                {{ table_col2("seq_request-project-table", table, "identifier") }}
-                {{ table_col2("seq_request-project-table", table, "title") }}
-                {{ table_col2("seq_request-project-table", table, "status") }}
-                {{ table_col2("seq_request-project-table", table, "group") }}
-                {{ table_col2("seq_request-project-table", table, "owner_name") }}
-                {{ table_col2("seq_request-project-table", table, "num_samples") }}
+                {{ table_col("seq_request-project-table", table, "id") }}
+                {{ table_col("seq_request-project-table", table, "identifier") }}
+                {{ table_col("seq_request-project-table", table, "title") }}
+                {{ table_col("seq_request-project-table", table, "status") }}
+                {{ table_col("seq_request-project-table", table, "group") }}
+                {{ table_col("seq_request-project-table", table, "owner_name") }}
+                {{ table_col("seq_request-project-table", table, "num_samples") }}
             </tr>
         </thead>
         <tbody>

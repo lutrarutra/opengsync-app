@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -38,14 +38,14 @@
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("experiment-pool-table", table, "id") }}
-                {{ table_col2("experiment-pool-table", table, "name") }}
+                {{ table_col("experiment-pool-table", table, "id") }}
+                {{ table_col("experiment-pool-table", table, "name") }}
                 <th scope="col" class="col-3">Lanes</th>
-                {{ table_col2("experiment-pool-table", table, "library_types") }}
-                {{ table_col2("experiment-pool-table", table, "status") }}
+                {{ table_col("experiment-pool-table", table, "library_types") }}
+                {{ table_col("experiment-pool-table", table, "status") }}
                 <th class="col-1" scope="col"># Reads</th>
                 <th class="col-1" scope="col" {{ tooltip("Sample molarity of the pool") }}>Molarity</th>
-                {{ table_col2("experiment-pool-table", table, "num_libraries") }}
+                {{ table_col("experiment-pool-table", table, "num_libraries") }}
             </tr>
         </thead>
         <tbody>

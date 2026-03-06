@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 
@@ -7,11 +7,11 @@
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("protocol-kit-table", table, "id") }}
-                {{ table_col2("protocol-kit-table", table, "identifier") }}
-                {{ table_col2("protocol-kit-table", table, "name") }}
+                {{ table_col("protocol-kit-table", table, "id") }}
+                {{ table_col("protocol-kit-table", table, "identifier") }}
+                {{ table_col("protocol-kit-table", table, "name") }}
                 <th scope="col" class="col-2">Combinations</th>
-                {{ table_col2("protocol-kit-table", table, "type") }}
+                {{ table_col("protocol-kit-table", table, "type") }}
             </tr>
         </thead>
         <tbody>
