@@ -154,7 +154,7 @@ def rclone_script(token: str):
     if share_token.is_expired:
         raise exceptions.NoPermissionsException("Token expired")
     
-    sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir="outdir")
+    sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir="BSF_DATA")
     return sync_command, 200, {"Content-Type": "text/plain"}
 
 

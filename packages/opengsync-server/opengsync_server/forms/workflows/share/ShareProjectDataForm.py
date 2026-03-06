@@ -93,13 +93,13 @@ class ShareProjectDataForm(HTMXFlaskForm):
 
         if self.mark_project_delivered.data:
             self.project.status = ProjectStatus.DELIVERED
+            
         self.project.share_token = share_token
         db.projects.update(self.project)
         
         content = utils.render_share_project_data_email(
             share_token=share_token, current_user=current_user, project=self.project, internal_share=self.internal_share.data,
-            anonymous=self.anonymous_send.data,
-            outdir=self.project.identifier or "outdir",
+            anonymous=self.anonymous_send.data, outdir="BSF_DATA",
         )
         if not runtime.app.debug:
             try:
