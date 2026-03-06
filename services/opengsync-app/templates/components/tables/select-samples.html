@@ -25,14 +25,14 @@
                 {% if workflow == "qubit_measure" %}
                 <td>
                     <div class="quantity-container">
-                        <div class="value">{{ sample.qubit_concentration if sample.original_qubit_concentration }}</div>
+                        <div class="value">{{ sample.qubit_concentration or "" }}</div>
                         <div class="unit">ng/μL</div>
                     </div>
                 </td>
                 {% elif workflow == "ba_report" %}
                 <td>
                     <div class="quantity-container">
-                        <div class="value">{{ sample.avg_fragment_size if sample.avg_fragment_size }}</div>
+                        <div class="value">{{ sample.avg_fragment_size or "" }}</div>
                         <div class="unit">bp</div>
                     </div>
                 </td>
