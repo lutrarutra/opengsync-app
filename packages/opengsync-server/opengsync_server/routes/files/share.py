@@ -84,7 +84,6 @@ def browse(token: str, subpath: Path = Path()):
     if len(paths := browser.list_contents(subpath)) == 0:
         if (file := browser.get_file(subpath)) is not None:
             mimetype = mimetypes.guess_type(file)[0] or "application/octet-stream"
-
             if DEBUG:
                 return send_from_directory(file.parent, file.name, as_attachment=not utils.is_browser_friendly(mimetype), mimetype=mimetype)
             
