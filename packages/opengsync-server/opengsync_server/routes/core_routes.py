@@ -37,9 +37,7 @@ if runtime.app.debug:
         project = db.projects["BSA_1080"]
         content = utils.render_share_project_data_email(
             share_token=models.ShareToken(uuid="test-uuid-1234-5678", time_valid_min=90, created_utc=dt.datetime.now()), current_user=current_user,
-            project=project, internal_share=False,
-            anonymous=False,
-            outdir=project.identifier or "outdir"
+            project=project, internal_share=False, anonymous=False, outdir="BSF_DATA"
         )
         return content
 

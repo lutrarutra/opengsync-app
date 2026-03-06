@@ -87,7 +87,7 @@ class DirectoryShareForm(HTMXFlaskForm):
             paths=[self.p.as_posix()],
         )
 
-        outdir = self.p.name
+        outdir = "BSF_DATA"
 
         http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
         sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)

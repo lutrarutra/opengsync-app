@@ -548,7 +548,7 @@ def is_valid_email(email: str | None) -> bool:
 
 def render_share_project_data_email(
     share_token: models.ShareToken, current_user: models.User, project: models.Project, internal_share: bool,
-    outdir: str = "output", anonymous: bool = False
+    outdir: str = "BSF_DATA", anonymous: bool = False
 ) -> str:
     from ..core import runtime
 

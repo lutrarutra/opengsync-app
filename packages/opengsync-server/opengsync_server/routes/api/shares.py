@@ -249,7 +249,7 @@ def release_project_data(current_user: models.User, recipients: list[str] | None
     project.share_token = share_token
     db.projects.update(project)
 
-    outdir = project.identifier
+    outdir = "BSF_DATA"
 
     http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
     sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)
@@ -289,8 +289,7 @@ def release_project_data(current_user: models.User, recipients: list[str] | None
 
     content = utils.render_share_project_data_email(
         share_token=share_token, current_user=current_user, project=project, internal_share=internal_access,
-        anonymous=anonymous_send,
-        outdir=project.identifier or "outdir",
+        anonymous=anonymous_send, outdir="BSF_DATA"
     )
     try:
         mail_handler.send_email(
