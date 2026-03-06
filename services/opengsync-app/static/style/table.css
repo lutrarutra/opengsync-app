@@ -122,6 +122,10 @@ table input.table-query-input{
                 .table-col-header:not(.active) {
                     display: none;
                 }
+
+                .table-col-header-container:not(:has(.multiple-select.active)) {
+                    overflow-x: hidden !important;
+                }
                 
                 .search-btn {
                     background-color: transparent;

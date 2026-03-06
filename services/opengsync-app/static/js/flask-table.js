@@ -177,3 +177,9 @@ class HTMXTable {
         });
     }
 }
+
+function toggle_index_display() {
+    $(".index-badge").each(function() {
+        $(this).toggle();
+    });
+}
