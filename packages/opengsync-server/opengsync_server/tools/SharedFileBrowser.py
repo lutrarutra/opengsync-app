@@ -6,6 +6,7 @@ from datetime import datetime
 
 from opengsync_db import models, DBHandler
 
+from .. import logger
 from ..core import exceptions
 
 @dataclass
@@ -40,11 +41,13 @@ class SharedFileBrowser:
         re.IGNORECASE
     )
 
-    def __init__(self, root_dir: Path, db: DBHandler, share_token: models.ShareToken):
+    def __init__(self, root_dir: Path, db: DBHandler, share_token: models.ShareToken, allow_symlink_traversal: bool = True):
         self.root_dir = root_dir.resolve()
         self.db = db
         self.share_token = share_token
         self.shared_paths = [(self.root_dir / share_path.path).resolve() for share_path in share_token.paths]
+        # allows relative symlink traversal upstream of shared paths, but not outside of root_dir
+        self.allow_symlink_traversal = allow_symlink_traversal
 
     def list_contents(self, subpath: Path = Path()) -> list[Path]:
         if not self.is_safe(subpath):
@@ -55,7 +58,7 @@ class SharedFileBrowser:
         if full_path.exists() and full_path.is_dir():
             paths: list[Path] = []
             for path in full_path.iterdir():
-                if not self.__is_safe(path):
+                if not self._is_safe(path):
                     continue
                 paths.append(path)
             return paths
@@ -65,33 +68,20 @@ class SharedFileBrowser:
     def get_file(self, subpath: Path = Path()) -> Path | None:
         if not self.is_safe(subpath):
             return None
-        
         full_path = self.root_dir / subpath
-        
         if full_path.exists() and full_path.is_file():
             return full_path
-
         return None
-
-    # def _is_safe(self, subpath: Path) -> bool:
-    #     """Check if the subpath is safe and doesn't escape root_dir"""
-    #     try:
-    #         full_path = (self.root_dir / subpath).resolve()
-
-    #         if not full_path.is_relative_to(self.root_dir):
-    #             return False
-    #         for shared_path in self.shared_paths:
-    #             if full_path.is_relative_to(shared_path) or shared_path.is_relative_to(full_path):
-    #                 return True
-    #         return False
-    #     except (ValueError, RuntimeError):
-    #         return False
         
-    def __is_safe(self, full_path: Path) -> bool:
+    def _is_safe(self, full_path: Path) -> bool:
         """Check if the full path is safe and doesn't escape root_dir"""
         try:
             if not full_path.is_relative_to(self.root_dir):
                 return False
+            if self.allow_symlink_traversal and full_path.is_symlink():
+                abs_path = full_path.resolve()
+                if not abs_path.is_relative_to(self.root_dir):
+                    return False
             for shared_path in self.shared_paths:
                 if full_path.is_relative_to(shared_path) or shared_path.is_relative_to(full_path):
                     return True
@@ -102,8 +92,10 @@ class SharedFileBrowser:
     def is_safe(self, subpath: Path) -> bool:
         """Public method to check if a subpath is safe"""
         try:
-            full_path = (self.root_dir / subpath).resolve()
-            return self.__is_safe(full_path)
+            full_path = self.root_dir / subpath
+            if not full_path.is_symlink() or not self.allow_symlink_traversal:
+                full_path = full_path.resolve()
+            return self._is_safe(full_path)
         except (ValueError, RuntimeError, OSError):
             return False
 
@@ -120,21 +112,17 @@ class SharedFileBrowser:
         if not full_path.exists():
             raise exceptions.NotFoundException(f"File or directory not found: {subpath}")
 
-        # Prepare list of resources to include based on Depth
         resources: list[DAVResponse] = []
 
-        # Always include the requested resource
-        target_resource = self._build_resource_props(full_path, subpath)  # ← requested_subpath = subpath
+        target_resource = self._build_resource_props(full_path, subpath)
         if target_resource:
             resources.append(target_resource)
 
-        # If Depth: 1 and it's a directory, include children
         if depth == 1 and full_path.is_dir():
             for child_path in full_path.iterdir():
-                child_subpath = child_path.relative_to(self.root_dir)
-                if not self.__is_safe(child_path):
+                if not self._is_safe(child_path):
                     continue
-                child_resource = self._build_resource_props(child_path, subpath)  # ← requested_subpath = original subpath
+                child_resource = self._build_resource_props(child_path, subpath)
                 if child_resource:
                     resources.append(child_resource)
 
@@ -145,20 +133,15 @@ class SharedFileBrowser:
         try:
             stat = fs_path.stat()
 
-            # ✅ FIX: Compute href relative to requested_subpath
             try:
                 if requested_subpath in (Path(), Path("/")):
-                    # Client requested root
                     rel = fs_path.relative_to(self.root_dir)
                 else:
-                    # Compute path relative to requested directory
                     rel = fs_path.relative_to(self.root_dir / requested_subpath)
                 href = rel.as_posix()
             except ValueError:
-                # Fallback (shouldn't happen with _is_safe)
                 href = fs_path.relative_to(self.root_dir).as_posix()
 
-            # Add trailing slash for directories
             if fs_path.is_dir() and not href.endswith('/'):
                 href += '/'
 
@@ -227,7 +210,7 @@ class SharedFileBrowser:
                 dir_abs = root_path / d
                 try:
                     dir_rel = dir_abs.relative_to(self.root_dir)
-                    if self.__is_safe(dir_abs):
+                    if self._is_safe(dir_abs):
                         yield dir_rel, True
                 except ValueError:
                     continue
@@ -236,7 +219,7 @@ class SharedFileBrowser:
                 file_abs = root_path / f
                 try:
                     file_rel = file_abs.relative_to(self.root_dir)
-                    if self.__is_safe(file_abs):
+                    if self._is_safe(file_abs):
                         yield file_rel, False
                 except ValueError:
                     continue
