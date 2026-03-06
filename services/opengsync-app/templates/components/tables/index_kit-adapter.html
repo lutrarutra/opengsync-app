@@ -58,6 +58,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("index_kit-adapter-table-spinner") }}
     {{ pagination2("index_kit-adapter-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#index_kit-adapter-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

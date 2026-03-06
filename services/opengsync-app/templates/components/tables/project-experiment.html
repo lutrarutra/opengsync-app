@@ -41,6 +41,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("project-experiment-table-spinner") }}
     {{ pagination2("project-experiment-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#project-experiment-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

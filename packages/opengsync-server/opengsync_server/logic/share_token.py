@@ -16,7 +16,7 @@ class ShareTokenTable(HTMXTable):
         TableCol(title="UUID", label="uuid", col_size=1, search_type="number", sortable=True),
         TableCol(title="Expiration", label="expiration", col_size=4),
         TableCol(title="Time Valid", label="time_valid_min", col_size=4),
-        TableCol(title="Owner", label="owner", col_size=4, choices=cats.DataPathType.as_list(), sortable=True, sort_by="owner_id"),
+        TableCol(title="Owner", label="owner", col_size=4, choices=cats.DataPathType.as_selectable(), sortable=True, sort_by="owner_id"),
         TableCol(title="# Paths", label="num_paths", col_size=3, sortable=True),
     ]
 

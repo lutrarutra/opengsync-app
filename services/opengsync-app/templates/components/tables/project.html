@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col, table_col2 %}
+{% from "components/table_col.jinja2" import table_col2 %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -49,6 +49,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("project-table-spinner") }}
     {{ pagination2("project-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#project-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

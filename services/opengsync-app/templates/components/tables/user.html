@@ -40,6 +40,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("user-table-spinner") }}
     {{ pagination2("user-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#user-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

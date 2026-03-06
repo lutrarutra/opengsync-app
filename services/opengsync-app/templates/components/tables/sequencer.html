@@ -21,6 +21,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("sequencer-table-spinner") }}
     {{ pagination2("sequencer-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#sequencer-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

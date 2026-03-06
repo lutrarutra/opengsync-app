@@ -42,6 +42,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("lab_prep-table-spinner") }}
     {{ pagination2("lab_prep-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#lab_prep-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

@@ -21,6 +21,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("user-affiliation-table-spinner") }}
     {{ pagination2("user-affiliation-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#user-affiliation-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

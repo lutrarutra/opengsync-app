@@ -16,10 +16,12 @@
                 {{ table_col2("seq_request-library-table", table, "status") }}
                 <th scope="col" class="col-3">
                     Index
-                    <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
-                        <i class="bi bi-upc-scan"></i>
-                    </a>
-                    <span class="badge bg-cemm-green">Kit</span> <span class="badge bg-cemm-blue">Checked</span> <span class="badge bg-cemm-yellow">Forward (maybe)</span> <span class="badge bg-cemm-red">Unknown</span>
+                    <span>
+                        <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
+                            <i class="bi bi-upc-scan"></i>
+                        </a>
+                        <span class="badge bg-cemm-green">Kit</span> <span class="badge bg-cemm-blue">Checked</span> <span class="badge bg-cemm-yellow">Forward (maybe)</span> <span class="badge bg-cemm-red">Unknown</span>
+                    </span>
                 </th>
             </tr>
         </thead>
@@ -67,6 +69,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("seq_request-library-table-spinner") }}
     {{ pagination2("seq_request-library-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#seq_request-library-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

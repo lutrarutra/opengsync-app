@@ -53,6 +53,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("seq_request-sample-table-spinner") }}
     {{ pagination2("seq_request-sample-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#seq_request-sample-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

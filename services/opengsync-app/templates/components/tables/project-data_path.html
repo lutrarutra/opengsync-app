@@ -26,11 +26,13 @@
         </tbody>
     </table>
 
-    {{ spinner("project-data_path-table-spinner") }}
     {{ pagination2("project-data_path-table", table) }}
-
-    {% if current_user.is_insider() %}
     <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#project-data_path-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+
+        {% if current_user.is_insider() %}
         let selected_path_id = null;
 
         function remove_path() {
@@ -68,6 +70,6 @@
                 });
             });
         });
+        {% endif %}
     </script>
-    {% endif %}
 </div>

@@ -32,6 +32,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("group-table-spinner") }}
     {{ pagination2("group-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#group-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

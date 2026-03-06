@@ -23,8 +23,12 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("library-sample-table-spinner") }}
     {{ pagination2("library-sample-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#library-sample-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
     <script>
         let selected_sample_id = null;
         let selected_sample_name = null;

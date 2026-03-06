@@ -15,7 +15,7 @@ class DataPathTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
         TableCol(title="Path", label="path", col_size=4, search_type="text", sortable=True),
-        TableCol(title="Type", label="type", col_size=2, choices=cats.DataPathType.as_list(), sortable=True, sort_by="type_id"),
+        TableCol(title="Type", label="type", col_size=2, choices=cats.DataPathType.as_selectable(), sortable=True, sort_by="type_id"),
     ]
 
 

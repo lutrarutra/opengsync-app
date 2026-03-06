@@ -30,6 +30,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("share_token-table-spinner") }}
     {{ pagination2("share_token-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#share_token-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

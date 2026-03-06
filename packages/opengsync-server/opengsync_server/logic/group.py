@@ -15,7 +15,7 @@ class GroupTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
         TableCol(title="Name", label="name", col_size=3, search_type="text"),
-        TableCol(title="Type", label="type", col_size=2, choices=cats.GroupType.as_list(), sortable=True, sort_by="type_id"),
+        TableCol(title="Type", label="type", col_size=2, choices=cats.GroupType.as_selectable(), sortable=True, sort_by="type_id"),
         TableCol(title="# Users", label="num_users", col_size=1, sortable=True),
         TableCol(title="# Projects", label="num_projects", col_size=1, sortable=True),
         TableCol(title="# Seq Requests", label="num_seq_requests", col_size=1, sortable=True),

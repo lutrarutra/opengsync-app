@@ -33,6 +33,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("feature_kit-table-spinner") }}
     {{ pagination2("feature_kit-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#feature_kit-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>
