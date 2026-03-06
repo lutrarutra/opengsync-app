@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
@@ -8,11 +8,11 @@
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("sample-library-table", table, "id") }}
-                {{ table_col2("sample-library-table", table, "name") }}
-                {{ table_col2("sample-library-table", table, "type") }}
-                {{ table_col2("sample-library-table", table, "status") }}
-                {{ table_col2("sample-library-table", table, "seq_request") }}
+                {{ table_col("sample-library-table", table, "id") }}
+                {{ table_col("sample-library-table", table, "name") }}
+                {{ table_col("sample-library-table", table, "type") }}
+                {{ table_col("sample-library-table", table, "status") }}
+                {{ table_col("sample-library-table", table, "seq_request") }}
                 <th scope="col" class="col-2">
                     Index
                     <a type="button" role="button" class="sort-btn" onclick="toggle_index_display()">
@@ -44,7 +44,11 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("sample-library-table-spinner") }}
     {{ pagination2("sample-library-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#sample-library-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>
 

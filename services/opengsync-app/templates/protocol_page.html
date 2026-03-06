@@ -41,6 +41,9 @@
                                     method="hx-delete",
                                     class="dropdown-item",
                                     disabled=not current_user.is_admin(),
+                                    disabled_tooltip="Only admin can delete protocol.",
+                                    color="warning",
+                                    tooltip_position="left"
                                 )
                             }}
                         </span>

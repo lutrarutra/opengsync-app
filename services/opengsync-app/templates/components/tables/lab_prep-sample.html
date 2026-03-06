@@ -1,16 +1,16 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="lab_prep-sample-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("lab_prep-sample-table", table, "id") }}
-                {{ table_col2("lab_prep-sample-table", table, "name") }}
-                {{ table_col2("lab_prep-sample-table", table, "status") }}
-                {{ table_col2("lab_prep-sample-table", table, "owner") }}
-                {{ table_col2("lab_prep-sample-table", table, "num_libraries") }}
+                {{ table_col("lab_prep-sample-table", table, "id") }}
+                {{ table_col("lab_prep-sample-table", table, "name") }}
+                {{ table_col("lab_prep-sample-table", table, "status") }}
+                {{ table_col("lab_prep-sample-table", table, "owner") }}
+                {{ table_col("lab_prep-sample-table", table, "num_libraries") }}
             </tr>
         </thead>
         <tbody>
@@ -25,6 +25,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("lab_prep-sample-table-spinner") }}
     {{ pagination2("lab_prep-sample-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#lab_prep-sample-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

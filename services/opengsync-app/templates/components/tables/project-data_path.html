@@ -1,14 +1,14 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="project-data_path-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("project-data_path-table", table, "id") }}
-                {{ table_col2("project-data_path-table", table, "path") }}
-                {{ table_col2("project-data_path-table", table, "type") }}
+                {{ table_col("project-data_path-table", table, "id") }}
+                {{ table_col("project-data_path-table", table, "path") }}
+                {{ table_col("project-data_path-table", table, "type") }}
             </tr>
         </thead>
         <tbody>
@@ -26,11 +26,13 @@
         </tbody>
     </table>
 
-    {{ spinner("project-data_path-table-spinner") }}
     {{ pagination2("project-data_path-table", table) }}
-
-    {% if current_user.is_insider() %}
     <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#project-data_path-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+
+        {% if current_user.is_insider() %}
         let selected_path_id = null;
 
         function remove_path() {
@@ -68,6 +70,6 @@
                 });
             });
         });
+        {% endif %}
     </script>
-    {% endif %}
 </div>

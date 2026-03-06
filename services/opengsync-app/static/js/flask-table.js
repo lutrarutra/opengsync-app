@@ -1,130 +1,179 @@
-function show_query_col(column_id) {
-    column_id = column_id.replace(":", "\\:");
+class HTMXTable {
+    constructor(selector, url=null, options = {}) {
+        this.selector = selector;
+        this.$container = $(selector);
+        this.$table = this.$container.find("table").first();
+        this.url = url;
+        this.sort_by = null;
+        this.sort_order = null;
+        this.filters = {};
+        this.options = {
+            searchDelay: 300, // Default delay in ms
+            state: {}, // Initial state for filters and sorting
+            ...options
+        };
+        
+        this.multiselects = [];
+        this._init(this.options.state);
+        this._bindEvents();
+    }
 
-    $(`#${column_id}`).hide();
-    $(`#${column_id}-query`).show().on("focusout", function(){
-        $(this).hide();
-        $(`#${column_id}`).show();
-    }).children("input").focus();
-}
+    _show_filter_menu(th) {
+        $(th).find(".table-col-header.active").removeClass("active");
+        $(th).find(".table-col-header.col-header-multiselect").addClass("active");
+    }
 
-function show_filter_col(column_id) {
-    column_id = column_id.replace(":", "\\:");
-    $(`#${column_id}`).hide();
-    $(`#${column_id}-filter`).show();
-}
+    _hide_filter_menu(th) {
+        $(th).find(".table-col-header.active").removeClass("active");
+        $(th).find(".table-col-header.col-header-default").addClass("active");
+    }
 
-function get_table_filters(table_container_id) {
-    var filters = [];
-    $(`#${table_container_id} .multi-select`).each(function() {
-        var selected = [];
-        $(this).find("input.multi-select-check:checked").each(function() {
-            selected.push($(this).val());
+    _show_search_menu(th) {
+        $(th).find(".table-col-header.active").removeClass("active");
+        $(th).find(".table-col-header.col-header-search").addClass("active");
+        
+        const $input = $(th).find(".table-col-header.col-header-search input").first();
+        $input.focus();
+        
+        // Set cursor at end of input
+        const value = $input.val();
+        $input[0].setSelectionRange(value.length, value.length);
+    }
+
+    _hide_search_menu(th) {
+        $(th).find(".table-col-header.active").removeClass("active");
+        $(th).find(".table-col-header.col-header-default").addClass("active");
+    }
+
+    _ajax(state) {
+        const $tbody = this.$table.find("tbody");
+        const height = $tbody.outerHeight(); // Capture height before emptying
+        
+        htmx.ajax("GET", this.url, {
+            target: this.selector,
+            swap: "outerHTML",
+            values: state
         });
-        if (selected.length > 0) {
-            filters[$(this).attr("field") + "_in"] = JSON.stringify(selected);
-        }
-    });
-    return filters;
-}
-
-function get_table_sort(table_container_id) {
-    var sort = {};
-    
-    const sorting_col = $(`#${table_container_id} .sortable-col.current-sort-col`).first();
-
-    if (sorting_col.length === 0) {
-        return sort;
-    }
-    sort["sort_by"] = sorting_col.data("sort_by");
-    sort["sort_order"] = sorting_col.data("sort_order");
-    return sort;
-}
-
-
-function get_table_state(table_container_id) {
-    var state = Object.assign({}, get_table_sort(table_container_id), get_table_filters(table_container_id));
-    return state;
-}
-
-function table_page(url, table_container_id) {
-    var state = get_table_state(table_container_id);
-
-    $(`#${table_container_id} tbody`).children().remove();
-    $(`#${table_container_id} ul.pagination`).children().remove();
-    $(`#${table_container_id} .sort-btn`).prop("onclick", null).off("click");
-
-    htmx.ajax("GET", url, {
-        target: `#${table_container_id}`,
-        swap: "outerHTML",
-        values: state
-    })
-}
-
-function table_sort(url, table_container_id, field) {
-    var state = get_table_state(table_container_id);
-
-    if (state["sort_by"] === field) {
-        if (state["sort_order"] === "asc") {
-            state["sort_order"] = "desc";
-        } else {
-            state["sort_order"] = "asc";
-        }
-    } else {
-        state["sort_by"] = field;
-        state["sort_order"] = "asc";
+        
+        $tbody.empty();
+        $tbody.append(`
+            <tr class="loading-row">
+                <td colspan="100%" style="height: ${height}px; text-align: center; vertical-align: middle;">
+                    <div class="spinner-border cemm-blue" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </td>
+            </tr>
+        `);
     }
 
-    $(`#${table_container_id} tbody`).children().remove();
-    $(`#${table_container_id} ul.pagination`).children().remove();
-    $(`#${table_container_id} .sort-btn`).prop("onclick", null).off("click");
+    _init(state) {
+        this.$table.find(".multiple-select").each((index, element) => {
+            let field_name = $(element).data("field_name");
+            let select = new MultipleSelect(
+                $(element), {
+                    onApply: (state) => {
+                        let table_state = this._getState();
+                        table_state[$(element).data("field_name") + "_in"] = JSON.stringify(state);
+                        if (this.url) {
+                            this._ajax(table_state);
+                        } else {
+                            console.log("Warning: No URL provided for HTMXTable. Changes in multiple select will not trigger an update.");
+                        }
+                    },
+                    selected: JSON.parse(state[field_name + "_in"] || "[]")
+                }
+            );
+            if (state[field_name + "_in"]) {
+                this._show_filter_menu($(element).closest("th"));
+            }
+            this.multiselects.push(select);
+        });
 
-    htmx.ajax("GET", url, {
-        target: `#${table_container_id}`,
-        swap: "outerHTML",
-        indicator: `#${table_container_id}-spinner`,
-        values: state
-    })
-}
+        this.$table.find(".table-query-input").each((index, element) => {
+            let th = $(element).closest("th");
+            let field_name = th.data("field_name");
+            if (state[field_name]) {
+                this._show_search_menu(th);
+            }
+        });
 
-function table_filter(url, table_container_id) {
-    var state = get_table_state(table_container_id);
+        this.$table.find("th:not(:has(.table-col-header-container))").each((index, th) => {
+            $(th).wrapInner('<div class="table-col-header-container"></div>');
+        });
+    }
 
-    $(`#${table_container_id} tbody`).children().remove();
-    $(`#${table_container_id} ul.pagination`).children().remove();
-    $(`#${table_container_id} .sort-btn`).prop("onclick", null).off("click");
+    _handleSearch(field_name, search_value) {
+        let state = this._getState(false);
+        state[field_name] = search_value;
+        this._ajax(state);
+    }
 
-    htmx.ajax("GET", url, {
-        target: `#${table_container_id}`,
-        swap: "outerHTML",
-        indicator: `#${table_container_id}-spinner`,
-        values: state
-    })
-}
-
-function table_query(url, table_container_id, field_name, word) {
-    var state = get_table_filters(table_container_id);
-
-    state[field_name] = word;
-
-    $(`#${table_container_id} tbody`).children().remove();
-    $(`#${table_container_id} ul.pagination`).children().remove();
-    $(`#${table_container_id} .sort-btn`).prop("onclick", null).off("click");
-
-    htmx.ajax("GET", url, {
-        target: `#${table_container_id}`,
-        swap: "outerHTML",
-        indicator: `#${table_container_id}-spinner`,
-        values: state
-    })
-}
-
-function toggle_index_display() {
-    $(".index-badge").each(function() {
-        if ($(this).css("display") === "none") {
-            $(this).css("display", "inline-block");
-        } else {
-            $(this).css("display", "none");
+    _getState(include_sort=true) {
+        let state = {};
+        this.multiselects.forEach(select => {
+            let field_name = select.$container.data("field_name");
+            if (select.options.selected.length > 0) {
+                state[field_name + "_in"] = JSON.stringify(select.options.selected);
+            }
+        });
+        if (include_sort) {
+            this.$table.find("th.sortable-col").each((index, th) => {
+                let $th = $(th);
+                if ($th.data("current_sort")) {
+                    state.sort_by = $th.data("sort_by");
+                    state.sort_order = $th.data("current_sort");
+                }
+            });
         }
-    });
+        return state;
+    }
+
+    _bindEvents() {
+        // Show multiselect filter
+        this.$table.on("click", ".table-multiselect-filter-btn", (e) => {
+            e.stopPropagation();
+            this._show_filter_menu($(e.currentTarget).closest("th"));
+        });
+        
+        // Show search query field
+        this.$table.on("click", ".table-multiselect-search-btn", (e) => {
+            e.stopPropagation();
+            this._show_search_menu($(e.currentTarget).closest("th"));
+        });
+        
+        // Search query input
+        this.$table.on("input", ".table-col-header.col-header-search input", (e) => {
+            const $input = $(e.currentTarget);
+            const searchValue = $input.val();
+            
+            clearTimeout(this.searchTimer);
+            
+            this.searchTimer = setTimeout(() => {
+                if (searchValue) {
+                    this._handleSearch($input.closest("th").data("field_name"), searchValue);
+                }
+            }, this.options.searchDelay);
+        });
+        
+        // Sort btn
+        this.$table.on("click", ".sort-btn", (e) => {
+            e.stopPropagation();
+            let state = this._getState();
+            state.sort_by = $(e.currentTarget).closest("th").data("sort_by");
+            let current_sort = $(e.currentTarget).closest("th").data("current_sort");
+            state.sort_order = current_sort === "asc" ? "desc" : "asc";
+            this._ajax(state);
+        });
+
+        // Pagination
+        this.$container.on("click", ".pagination .page-item", (e) => {
+            e.preventDefault();
+            let page = $(e.currentTarget).data("page");
+            console.log("Page clicked:", page);
+            let state = this._getState();
+            state.page = page;
+            this._ajax(state);
+        });
+    }
 }

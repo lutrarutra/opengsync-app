@@ -42,7 +42,6 @@
                 </button>
             </li>
             {% endif %}
-
             {% if select_samples %}
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="selected-samples-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-samples-tab"
@@ -118,7 +117,7 @@
             {% endif %}
 
             {% if select_lanes %}
-            <div class="tab-pane fade" id="available-lanes-tab" role="tabpanel" tabindex="3">
+            <div class="tab-pane fade {% if not select_samples and not select_libraries and not select_pools %}show active{% endif %}" id="available-lanes-tab" role="tabpanel" tabindex="3">
                 <div hx-get="{{ url_for('lanes_htmx.browse', **lane_url_context) }}" hx-trigger="intersect once">
                     {{ spinner() }}
                 </div>

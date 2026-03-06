@@ -106,57 +106,35 @@ class SeqRequestBP(DBBlueprint):
         self,
         name: str,
         description: str | None,
-        requestor_id: int,
-        group_id: int | None,
-        billing_contact_id: int,
+        requestor: models.User,
+        group: models.Group | None,
+        billing_contact: models.Contact,
         data_delivery_mode: DataDeliveryMode,
         read_type: ReadType,
         submission_type: SubmissionType,
-        contact_person_id: int,
-        organization_contact_id: int,
-        bioinformatician_contact_id: int | None = None,
+        contact_person: models.Contact,
+        organization_contact: models.Contact,
+        bioinformatician_contact: models.Contact | None = None,
         read_length: int | None = None,
         num_lanes: int | None = None,
         special_requirements: str | None = None,
         billing_code: str | None = None,
         flush: bool = True
-    ) -> models.SeqRequest:
-        if (requestor := self.db.session.get(models.User, requestor_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"User with id '{requestor_id}', not found.")
-        
-        if group_id is not None:
-            if self.db.session.get(models.Group, group_id) is None:
-                raise exceptions.ElementDoesNotExist(f"Group with id '{group_id}', not found.")
-
-        if self.db.session.get(models.Contact, billing_contact_id) is None:
-            raise exceptions.ElementDoesNotExist(f"Contact with id '{billing_contact_id}', not found.")
-
-        if (contact_person := self.db.session.get(models.Contact, contact_person_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Contact with id '{contact_person_id}', not found.")
-        
-        if self.db.session.get(models.Contact, organization_contact_id) is None:
-            raise exceptions.ElementDoesNotExist(f"Contact with id '{organization_contact_id}', not found.")
-
-        if bioinformatician_contact_id is not None:
-            if (bioinformatician_contact := self.db.session.get(models.Contact, bioinformatician_contact_id)) is None:
-                raise exceptions.ElementDoesNotExist(f"Contact with id '{bioinformatician_contact_id}', not found.")
-        else:
-            bioinformatician_contact = None
-            
+    ) -> models.SeqRequest:            
         seq_request = models.SeqRequest(
             name=name.strip(),
-            group_id=group_id,
+            group=group,
             description=description.strip() if description else None,
-            requestor_id=requestor.id,
+            requestor=requestor,
             read_length=read_length,
             num_lanes=num_lanes,
             read_type_id=read_type.id,
             special_requirements=special_requirements,
-            billing_contact_id=billing_contact_id,
+            billing_contact=billing_contact,
             submission_type_id=submission_type.id,
-            contact_person_id=contact_person.id,
-            organization_contact_id=organization_contact_id,
-            bioinformatician_contact_id=bioinformatician_contact.id if bioinformatician_contact else None,
+            contact_person=contact_person,
+            organization_contact=organization_contact,
+            bioinformatician_contact=bioinformatician_contact,
             status_id=SeqRequestStatus.DRAFT.id,
             data_delivery_mode_id=data_delivery_mode.id,
             billing_code=billing_code.strip() if billing_code else None,
@@ -477,16 +455,16 @@ class SeqRequestBP(DBBlueprint):
 
         cloned_request = self.create(
             name=f"RE: {seq_request.name}"[:models.SeqRequest.name.type.length],
-            requestor_id=seq_request.requestor_id,
-            group_id=seq_request.group_id,
+            requestor=seq_request.requestor,
+            group=seq_request.group,
             description=seq_request.description,
-            billing_contact_id=seq_request.billing_contact_id,
+            billing_contact=seq_request.billing_contact,
             data_delivery_mode=seq_request.data_delivery_mode,
             read_type=seq_request.read_type,
             submission_type=submission_type,
-            contact_person_id=seq_request.contact_person_id,
-            organization_contact_id=seq_request.organization_contact_id,
-            bioinformatician_contact_id=seq_request.bioinformatician_contact_id,
+            contact_person=seq_request.contact_person,
+            organization_contact=seq_request.organization_contact,
+            bioinformatician_contact=seq_request.bioinformatician_contact,
             read_length=seq_request.read_length,
             num_lanes=seq_request.num_lanes,
             special_requirements=seq_request.special_requirements,

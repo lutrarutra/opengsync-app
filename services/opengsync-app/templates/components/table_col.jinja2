@@ -1,143 +1,65 @@
-{% from "components/multi_select.jinja2" import multi_select %}
+{% from "components/multi_select.jinja2" import multi_select, multi_select2 %}
 
-{% macro table_col(table_container_id, column_name, column_var, sort_url=none, sort_by=none, sort_order=none, query_url=none, current_query=none, active_query_field=none, multiselect_choices=none, multiselect_selected=none, query_type="text", col_size=1, context={}, active_page=0) -%}
-{% set multiselect_selected = multiselect_selected | default(None) %}
-<th scope="col" class="col-{{ col_size }} sortable-col {{ sort_order }} {{ 'query-col' if query_url else '' }}"
-id="{{ table_container_id }}:{{ column_var }}"
-{% if current_query and column_var == active_query_field %}style="display: none;"{% endif %}
-{% if multiselect_selected %}style="display: none;"{% endif %}
-field="{{ column_var }}"
-is-current-sort={% if column_var == sort_by %}true{% else %}false{% endif %}
-sort-order="{{ sort_order }}">
-{{ column_name }}
-{% if sort_url %}
-    <a class="sort-btn" type="button" role="button" id="{{ table_container_id }}:{{ column_var }}-sort-btn"
-    onclick="table_sort('{{ url_for(sort_url, page=active_page, **context) }}', '{{ table_container_id }}', '{{ column_var }}')">
-        {% if column_var == sort_by %}
-            {% if sort_order == 'desc' %}
-            <i class="bi bi-sort-down"></i>
-            {% else %}
-            <i class="bi bi-sort-down-alt"></i>
-            {% endif %}
-        {% else %}
-        <i class="bi bi-filter"></i>
-        {% endif %}
-    </a>
-    {% endif %}
-
-    {% if query_url %}
-    <a type="button" role="button" class="search-btn" onclick="show_query_col('{{ table_container_id }}:{{ column_var }}')">
-        <i class="bi bi-search"></i>
-    </a>
-    {% endif %}
-    {% if multiselect_choices %}
-    <a type="button" role="button" class="search-btn" onclick="show_filter_col('{{ table_container_id }}:{{ column_var }}')">
-        <i class="bi bi-funnel"></i>
-    </a>
-    {% endif %}
-</th>
-
-{% if query_url %}
-<th scopy='col' class='col-{{ col_size}} temp-query-input' id='{{ table_container_id }}:{{ column_var }}-query'
-    {% if not (current_query and column_var == active_query_field) %}
-    style="display: none;"{% endif %}>
-    <input type='{{ query_type }}' class='form-control table-query-input' placeholder='{{ column_name }}'
-    id='{{ table_container_id }}-{{ column_var }}-query-input' role='presentation' autocomplete='off' type='search'
-    {% if current_query and column_var == active_query_field %}value="{{ current_query }}"{% endif %}>
-</th>
-<script>
-    $("#{{ table_container_id }}-{{ column_var }}-query-input").on("keyup", function(e) {
-        if (e.which == 13) {
-            table_query('{{ url_for(query_url, **context) }}', '{{ table_container_id }}', '{{ column_var }}', e.target.value);
-        }
-    });
-</script>
-{% endif %}
-
-{% if multiselect_choices %}
-<th scope='col' class='col-{{ col_size}} temp-query-input' id='{{ table_container_id }}:{{ column_var }}-filter'
-    {% if not multiselect_selected %}style="display: none;"{% endif %}>
-    {{
-        multi_select(
-            choices=multiselect_choices,
-            field_name=column_var,
-            url=url_for(sort_url, page=active_page | float | int, **context),
-            table_container_id=table_container_id,
-            selected=multiselect_selected
-        )
-    }}
-</th>
-{% endif %}
-{%- endmacro %}
-
-{% macro table_col2(table_container_id, table, var) -%}
+{% macro table_col(table_container_id, table, var) -%}
 {% set table_col = table[var] %}
 {% set filter_values = table.filter_values.get(var, []) %}
 <th scope="col" class="col-{{ table_col.col_size }} sortable-col {{ 'query-col' if table_col.search_type else '' }} {% if table_col.sort_by and table_col.sort_by == table.active_sort_var %}current-sort-col{% endif %}"
 id="{{ table_container_id }}:{{ table_col.label }}"
-{% if table_col.label == table.active_search_var %}style="display: none;"{% endif %}
-{% if filter_values %}style="display: none;"{% endif %}
-field="{{ table_col.label }}"
-{% if table_col.sortable %}
+data-field_name="{{ table_col.label }}"
+{% if table_col.sort_by %}
 data-sort_by="{{ table_col.sort_by }}"
-data-sort_order="{% if table.active_sort_descending %}desc{% else %}asc{% endif %}"
+{% if table_col.sort_by == table.active_sort_var %}data-current_sort="{% if table.active_sort_descending %}desc{% else %}asc{% endif %}"{% endif %}
 {% endif %}>
-    {{ table_col.title }}
-    {% if table.url and table_col.sortable %}
-    <a class="sort-btn" type="button" role="button" id="{{ table_container_id }}:{{ table_col.sort_by }}-sort-btn"
-    onclick="table_sort('{{ table.url }}', '{{ table_container_id }}', '{{ table_col.sort_by }}')">
-        {% if table_col.sort_by == table.active_sort_var %}
-            {% if not table.active_sort_descending %}
-            <i class="bi bi-sort-down"></i>
-            {% else %}
-            <i class="bi bi-sort-down-alt"></i>
+    <div class="table-col-header-container">
+        <div class="table-col-header col-header-default active">
+            <span>
+                {{ table_col.title }}
+            </span>
+            <span>
+                {% if table.url and table_col.sortable %}
+                <a class="sort-btn" type="button" role="button">
+                    {% if table_col.sort_by == table.active_sort_var %}
+                        {% if not table.active_sort_descending %}
+                        <i class="bi bi-sort-down"></i>
+                        {% else %}
+                        <i class="bi bi-sort-down-alt"></i>
+                        {% endif %}
+                    {% else %}
+                    <i class="bi bi-filter"></i>
+                    {% endif %}
+                </a>
+                {% endif %}
+                {% if table_col.search_type %}
+                <a type="button" role="button" class="search-btn table-multiselect-search-btn">
+                    <i class="bi bi-search"></i>
+                </a>
+                {% endif %}
+                {% if table_col.choices %}
+                <a type="button" role="button" class="search-btn table-multiselect-filter-btn">
+                    <i class="bi bi-funnel"></i>
+                </a>
+                {% endif %}
+            </span>
+        </div>
+        <div class="table-col-header col-header-multiselect minimal-scrollbar">
+            {% if table_col.choices %}
+            {{
+                multi_select2(
+                    choices=table_col.choices,
+                    field_name=table_col.label,
+                    placeholder=table_col.title,
+                )
+            }}
             {% endif %}
-        {% else %}
-        <i class="bi bi-filter"></i>
-        {% endif %}
-    </a>
-    {% endif %}
-
-    {% if table_col.search_type %}
-    <a type="button" role="button" class="search-btn" onclick="show_query_col('{{ table_container_id }}:{{ table_col.label }}')">
-        <i class="bi bi-search"></i>
-    </a>
-    {% endif %}
-    {% if table_col.choices %}
-    <a type="button" role="button" class="search-btn" onclick="show_filter_col('{{ table_container_id }}:{{ table_col.label }}')">
-        <i class="bi bi-funnel"></i>
-    </a>
-    {% endif %}
+        </div>
+        <div class="table-col-header col-header-search">
+            {% if table_col.search_type %}
+            <input type='{{ table_col.search_type }}' class='form-control table-query-input' placeholder='{{ table_col.title }}'
+            autocomplete='off' type='search' value="{% if table_col.label == table.active_search_var %}{{ table.active_query_value or '' }}{% endif %}">
+            {% endif %}
+        </div>
+    </div>
 </th>
-
-{% if table_col.search_type %}
-<th scopy='col' class='col-{{ table_col.col_size }} temp-query-input' id='{{ table_container_id }}:{{ table_col.label }}-query' {% if table_col.label != table.active_search_var %}style="display: none;"{% endif %}>
-    <input type='{{ table_col.search_type }}' class='form-control table-query-input' placeholder='{{ table_col.title }}'
-    id='{{ table_container_id }}-{{ table_col.label }}-query-input' role='presentation' autocomplete='off' type='search' value="{% if table_col.label == table.active_search_var %}{{ table.active_query_value or '' }}{% endif %}">
-</th>
-<script>
-    $("#{{ table_container_id }}-{{ table_col.label }}-query-input").on("keyup", function(e) {
-        if (e.which == 13) {
-            table_query('{{ table.url }}', '{{ table_container_id }}', '{{ table_col.label }}', e.target.value);
-        }
-    });
-</script>
-{% endif %}
-
-{% if table_col.choices %}
-<th scope='col' class='col-{{ table_col.col_size }} temp-query-input' id='{{ table_container_id }}:{{ table_col.label }}-filter'
-    {% if not filter_values %}style="display: none;"{% endif %}>
-    {{
-        multi_select(
-            choices=table_col.choices,
-            field_name=table_col.label,
-            url=table.url,
-            table_container_id=table_container_id,
-            selected=filter_values,
-        )
-    }}
-</th>
-{% endif %}
 {%- endmacro %}
 
 {% macro browser_col(column_name, column_var, sort_by, sort_order, sort_url, url_context={}, col_size=1) %}

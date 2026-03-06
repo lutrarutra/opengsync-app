@@ -16,7 +16,7 @@ class AffiliationTable(HTMXTable):
         TableCol(title="User", label="user_name", col_size=3, search_type="text"),
         TableCol(title="Group", label="group_name", col_size=3, search_type="text"),
         TableCol(title="Email", label="email", col_size=3),
-        TableCol(title="Affiliation", label="affiliation", col_size=2, choices=cats.UserRole.as_list(), sortable=True, sort_by="role_id"),
+        TableCol(title="Affiliation", label="affiliation", col_size=2, choices=cats.UserRole.as_selectable(), sortable=True, sort_by="role_id"),
     ]
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:

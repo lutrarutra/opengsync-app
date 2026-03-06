@@ -1,15 +1,15 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="library-sample-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("library-sample-table", table, "id") }}
-                {{ table_col2("library-sample-table", table, "name") }}
-                {{ table_col2("library-sample-table", table, "status") }}
-                {{ table_col2("library-sample-table", table, "owner") }}
+                {{ table_col("library-sample-table", table, "id") }}
+                {{ table_col("library-sample-table", table, "name") }}
+                {{ table_col("library-sample-table", table, "status") }}
+                {{ table_col("library-sample-table", table, "owner") }}
             </tr>
         </thead>
         <tbody>
@@ -23,8 +23,12 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("library-sample-table-spinner") }}
     {{ pagination2("library-sample-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#library-sample-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
     <script>
         let selected_sample_id = null;
         let selected_sample_name = null;

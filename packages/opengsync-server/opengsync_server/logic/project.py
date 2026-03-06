@@ -15,8 +15,8 @@ class ProjectTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
         TableCol(title="Identifier", label="identifier", col_size=1, search_type="text", sortable=True),
         TableCol(title="Title", label="title", col_size=3, search_type="text", sortable=True),
-        TableCol(title="Library Types", label="library_types", col_size=2, choices=cats.LibraryType.as_list()),
-        TableCol(title="Status", label="status", col_size=1, search_type="text", sort_by="status_id", sortable=True, choices=cats.ProjectStatus.as_list()),
+        TableCol(title="Library Types", label="library_types", col_size=2, choices=cats.LibraryType.as_selectable()),
+        TableCol(title="Status", label="status", col_size=1, sort_by="status_id", sortable=True, choices=cats.ProjectStatus.as_selectable()),
         TableCol(title="Group", label="group", col_size=2),
         TableCol(title="Owner", label="owner_name", col_size=2, search_type="text"),
         TableCol(title="# Samples", label="num_samples", col_size=1, sortable=True),
@@ -108,7 +108,6 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         "template_name_or_list": template,
         "table": table,
     })
-
     return context
 
 def get_search_context(current_user: models.User, request: Request, **kwargs) -> dict:

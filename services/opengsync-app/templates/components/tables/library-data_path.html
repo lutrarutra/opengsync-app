@@ -1,14 +1,14 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="library-data_path-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("library-data_path-table", table, "id") }}
-                {{ table_col2("library-data_path-table", table, "path") }}
-                {{ table_col2("library-data_path-table", table, "type") }}
+                {{ table_col("library-data_path-table", table, "id") }}
+                {{ table_col("library-data_path-table", table, "path") }}
+                {{ table_col("library-data_path-table", table, "type") }}
             </tr>
         </thead>
         <tbody>
@@ -25,6 +25,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("library-data_path-table-spinner") }}
     {{ pagination2("library-data_path-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#library-data_path-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

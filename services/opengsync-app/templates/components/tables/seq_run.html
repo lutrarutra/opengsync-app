@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
@@ -8,14 +8,14 @@
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("seq_run-table", table, "id") }}
-                {{ table_col2("seq_run-table", table, "experiment") }}
-                {{ table_col2("seq_run-table", table, "status") }}
-                {{ table_col2("seq_run-table", table, "cycles") }}
-                {{ table_col2("seq_run-table", table, "flow_cell_id") }}
-                {{ table_col2("seq_run-table", table, "run_folder") }}
-                {{ table_col2("seq_run-table", table, "started") }}
-                {{ table_col2("seq_run-table", table, "completed") }}
+                {{ table_col("seq_run-table", table, "id") }}
+                {{ table_col("seq_run-table", table, "experiment") }}
+                {{ table_col("seq_run-table", table, "status") }}
+                {{ table_col("seq_run-table", table, "cycles") }}
+                {{ table_col("seq_run-table", table, "flow_cell_id") }}
+                {{ table_col("seq_run-table", table, "run_folder") }}
+                {{ table_col("seq_run-table", table, "started") }}
+                {{ table_col("seq_run-table", table, "completed") }}
             </tr>
         </thead>
         <tbody>
@@ -48,7 +48,11 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("seq_run-table-spinner") }}
     {{ pagination2("seq_run-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#seq_run-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>
 

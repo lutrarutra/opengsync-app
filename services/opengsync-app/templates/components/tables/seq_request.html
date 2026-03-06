@@ -1,6 +1,6 @@
 {% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/contextmenu.jinja2" import context_menu %}
@@ -10,13 +10,13 @@
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("seq_request-table", table, "id") }}
-                {{ table_col2("seq_request-table", table, "name") }}
-                {{ table_col2("seq_request-table", table, "library_types") }}
-                {{ table_col2("seq_request-table", table, "status") }}
-                {{ table_col2("seq_request-table", table, "submission_type") }}
-                {{ table_col2("seq_request-table", table, "group") }}
-                {{ table_col2("seq_request-table", table, "requestor") }}
+                {{ table_col("seq_request-table", table, "id") }}
+                {{ table_col("seq_request-table", table, "name") }}
+                {{ table_col("seq_request-table", table, "library_types") }}
+                {{ table_col("seq_request-table", table, "status") }}
+                {{ table_col("seq_request-table", table, "submission_type") }}
+                {{ table_col("seq_request-table", table, "group") }}
+                {{ table_col("seq_request-table", table, "requestor") }}
             </tr>
         </thead>
         <tbody>
@@ -44,6 +44,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("seq_request-table-spinner") }}
     {{ pagination2("seq_request-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#seq_request-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

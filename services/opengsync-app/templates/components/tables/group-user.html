@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/spinner.jinja2" import spinner %}
 
@@ -7,9 +7,9 @@
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("group-user-table", table, "id") }}
-                {{ table_col2("group-user-table", table, "user_name") }}
-                {{ table_col2("group-user-table", table, "email") }}
+                {{ table_col("group-user-table", table, "id") }}
+                {{ table_col("group-user-table", table, "user_name") }}
+                {{ table_col("group-user-table", table, "email") }}
                 <th scope="col" class="col-2">Affiliation</th>
             </tr>
         </thead>
@@ -40,6 +40,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("group-user-table-spinner") }}
     {{ pagination2("group-user-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#group-user-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

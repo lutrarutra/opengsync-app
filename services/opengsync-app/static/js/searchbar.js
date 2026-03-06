@@ -1,30 +1,34 @@
-function select_option(parent, value, field) {
-    let data_field = $(`#${field}`);
-    let selected_bar = $(`#${field}-selected_bar`);
+function select_option(option) {
+    let field = option.data("field").replace("-search", "");
+
+    set_selected_bar(field, option.prop('outerHTML'));
+    let value = option.data("value");
     let search_bar = $(`#${field}-search`);
-
-    $(selected_bar).css("display", "flex");
-    $(search_bar).css("display", "none");
-
-    $(parent).parent().find("li").removeClass("selected");
-    $(parent).addClass("selected");
-
-    // Set search field value
-    var empty = $(selected_bar).empty();
-    $(parent).find("a.search-select-option span").each(function() {
-        empty.append($(this).clone());
-    });
-
-    $(data_field).val(value);
-
-    // Hide invalid feedback
+    let data_field = $(`#${field}`);
+    
+    data_field.val(value);
+    
     $(`#${field}-invalid-container`).empty();
-    if ($(search_bar).hasClass("is-invalid")){
-        $(search_bar).removeClass("is-invalid");
+    if (search_bar.hasClass("is-invalid")){
+        search_bar.removeClass("is-invalid");
     }
-
     htmx.trigger(`#${field}`, "change");
+    
+    // Store as HTML string instead of jQuery object
+    window.domm[field] = option.prop('outerHTML');
 }
+
+function set_selected_bar(field_name, html_string) {
+    let selected_bar = $(`#${field_name}-selected_bar`);
+    selected_bar.css("display", "flex");
+    selected_bar.empty();
+    selected_bar.append(html_string);
+    $(`#${field_name}-search`).css("display", "none");
+}
+
+$(document).on("mousedown", ".search-select-option", function() {
+    select_option($(this));
+});
 
 $(document).on("focus", ".searchbar-input:not(.disabled)", function() {
     $(`#${$(this).data("field")}-results`).css("display", "block");
@@ -34,14 +38,14 @@ $(document).on("focus", ".searchbar-input:not(.disabled)", function() {
 
 $(document).on("blur", ".searchbar-input:not(.disabled)", function() {
     $(this).parent().removeClass("active");
-    $(".search-select-results").css("display", "none");
+    $(".search-select-results").hide();
     
     let field_name = $(this).data("field");
     if (!$(`#${field_name}`).val()) {
         $(this).val("");
     } else {
-        $(`#${field_name}-selected_bar`).css("display", "flex");
-        $(this).css("display", "none");
+        $(`#${field_name}-selected_bar`).show();
+        $(this).hide();
     }
 });
 
@@ -51,21 +55,15 @@ $(document).on("change", ".searchbar-input:not(.disabled)", function() {
     }
 });
 
-$(document).on("mousedown", ".search-select-option", function() {
-    let field = $(this).data("field");
-    let value = $(this).data("value");
-
-    select_option($(this).parent(), value, field.replace("-search", ""));
-});
-
 $(document).on("click", ".clear-search-btn", function() {
     $(`#${$(this).data("field")}-search`).val("");
     $(`#${$(this).data("field")}`).val("");
-    $(`#${$(this).data("field")}-selected_bar`).css("display", "none");
-    $(`#${$(this).data("field")}-search`).css("display", "block");
+    $(`#${$(this).data("field")}-selected_bar`).hide();
+    $(`#${$(this).data("field")}-search`).show();
+    $(this).parent().parent().find(".selected").removeClass("selected");
 })
 
 $(document).on("click", ".selected-bar", function() {
-    $(this).css("display", "none");
-    $(`#${$(this).data("field")}-search`).css("display", "block").focus();
+    $(this).hide();
+    $(`#${$(this).data("field")}-search`).show().focus();
 });

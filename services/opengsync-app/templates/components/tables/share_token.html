@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="share_token-table" class="table-container">
@@ -7,11 +7,11 @@
         <thead>
             <tr>
                 <th scope="col" class="col-1">UUID</th>
-                {{ table_col2("share_token-table", table, "uuid") }}
-                {{ table_col2("share_token-table", table, "expiration") }}
-                {{ table_col2("share_token-table", table, "owner") }}
-                {{ table_col2("share_token-table", table, "time_valid_min") }}
-                {{ table_col2("share_token-table", table, "num_paths") }}
+                {{ table_col("share_token-table", table, "uuid") }}
+                {{ table_col("share_token-table", table, "expiration") }}
+                {{ table_col("share_token-table", table, "owner") }}
+                {{ table_col("share_token-table", table, "time_valid_min") }}
+                {{ table_col("share_token-table", table, "num_paths") }}
                 
             </tr>
         </thead>
@@ -30,6 +30,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("share_token-table-spinner") }}
     {{ pagination2("share_token-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#share_token-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

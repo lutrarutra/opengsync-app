@@ -1,55 +1,15 @@
-{% from "components/pagination.jinja2" import pagination %}
+{% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
-{% from 'components/spinner.jinja2' import spinner %}
-
 <div id="select-libraries-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{
-                    table_col(
-                        table_container_id='select-libraries-table', column_name='ID', column_var='id',
-                        sort_url="libraries_htmx.browse", context=context,
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url="libraries_htmx.browse_query", current_query=current_query,
-                        active_query_field=active_query_field, query_type="number", col_size=1,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='select-libraries-table', column_name='Name', column_var='name',
-                        sort_url="libraries_htmx.browse", context=context,
-                        sort_by=sort_by, sort_order=sort_order,
-                        query_url="libraries_htmx.browse_query", current_query=current_query,
-                        active_query_field=active_query_field, query_type="text", col_size=3,
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='select-libraries-table', column_name='Type', column_var='type_id',
-                        sort_url="libraries_htmx.browse", context=context,
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=LibraryType.as_list(), multiselect_selected=type_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='select-libraries-table', column_name='Status', column_var='status_id',
-                        sort_url="libraries_htmx.browse", context=context,
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        multiselect_choices=LibraryStatus.as_list(), multiselect_selected=status_in
-                    )
-                }}
-                {{
-                    table_col(
-                        table_container_id='select-libraries-table', column_name='Owner', column_var='owner_id',
-                        sort_url="libraries_htmx.browse", context=context,
-                        sort_by=sort_by, sort_order=sort_order, col_size=2,
-                        query_url='libraries_htmx.browse_query', current_query=current_query,
-                        active_query_field=active_query_field, query_type="text"
-                    )
-                }}
+                {{ table_col("select-libraries-table", table, "id") }}
+                {{ table_col("select-libraries-table", table, "name") }}
+                {{ table_col("select-libraries-table", table, "type") }}
+                {{ table_col("select-libraries-table", table, "status") }}
+                {{ table_col("select-libraries-table", table, "owner") }}
                 {% if workflow == "qubit_measure" %}
                 <th class="col-2" scope="col" {{ tooltip("Diluted concentration of the pool") }}>Qubit Conc.</th>
                 {% elif workflow == "ba_report" %}
@@ -90,10 +50,11 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("select-libraries-table-spinner") }}
-    {{ pagination("select-libraries-table", "libraries_htmx.browse", n_pages, active_page, context=context) }}
+    {{ pagination2("select-libraries-table", table) }}
     <script>
         $(document).ready(function() {
+            const table = new HTMXTable("#select-libraries-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+
             let is_mouse_down = false;
             let start_row = null;
             let dragging = false;

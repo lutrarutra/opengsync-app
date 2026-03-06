@@ -17,6 +17,7 @@
 @import "./browser.css";
 @import "./components.css";
 @import "./design.css";
+@import "./multiple-select.css";
 
 body.waiting,
 body.waiting * {

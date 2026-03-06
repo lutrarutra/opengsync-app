@@ -1,8 +1,6 @@
 import json
 from flask import url_for
 
-from opengsync_db import categories as cats
-
 from .TableCol import TableCol
 
 class HTMXTable:
@@ -27,8 +25,6 @@ class HTMXTable:
     @property
     def url(self) -> str:
         state = self.url_params.copy()
-        if self.num_pages is not None:
-            state["page"] = self.active_page
         return url_for(self.route, **state)
     
     def get_state(self) -> dict:

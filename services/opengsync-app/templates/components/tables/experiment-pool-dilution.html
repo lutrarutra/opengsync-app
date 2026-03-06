@@ -1,18 +1,18 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="pool-dilution-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("pool-dilution-table", table, "identifier") }}
-                {{ table_col2("pool-dilution-table", table, "pool_id") }}
-                {{ table_col2("pool-dilution-table", table, "operator_id") }}
-                {{ table_col2("pool-dilution-table", table, "timestamp_utc") }}
-                {{ table_col2("pool-dilution-table", table, "qubit_concentration") }}
-                {{ table_col2("pool-dilution-table", table, "molarity") }}
-                {{ table_col2("pool-dilution-table", table, "volume_ul") }}
+                {{ table_col("pool-dilution-table", table, "identifier") }}
+                {{ table_col("pool-dilution-table", table, "pool_id") }}
+                {{ table_col("pool-dilution-table", table, "operator_id") }}
+                {{ table_col("pool-dilution-table", table, "timestamp_utc") }}
+                {{ table_col("pool-dilution-table", table, "qubit_concentration") }}
+                {{ table_col("pool-dilution-table", table, "molarity") }}
+                {{ table_col("pool-dilution-table", table, "volume_ul") }}
             </tr>
         </thead>
         <tbody>
@@ -47,6 +47,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("pool-dilution-table-spinner") }}
     {{ pagination2("pool-dilution-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#pool-dilution-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

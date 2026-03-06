@@ -226,6 +226,8 @@
     </div>
 
     <script type="text/javascript">
+        window.domm = {};
+        
         function show_frontend_notification(text, category='info') {
             Swal.fire({
                 position: 'top',
@@ -333,6 +335,7 @@
     </script>
     
     <script src="{{ url_for('static', filename='js/tooltips.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/multiple_select.js') }}"></script>
     <script src="{{ url_for('static', filename='js/libs.js') }}"></script>
     <script src="{{ url_for('static', filename='js/searchbar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/contextmenu.js') }}"></script>

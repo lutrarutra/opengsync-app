@@ -14,7 +14,7 @@ class SequencerTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
         TableCol(title="Name", label="name", col_size=3, search_type="text", sortable=True),
-        TableCol(title="Model", label="model", col_size=2, choices=cats.SequencerModel.as_list(), sortable=True, sort_by="model_id"),
+        TableCol(title="Model", label="model", col_size=2, choices=cats.SequencerModel.as_selectable(), sortable=True, sort_by="model_id"),
     ]
     
 

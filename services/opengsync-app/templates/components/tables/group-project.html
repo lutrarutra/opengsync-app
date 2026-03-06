@@ -1,18 +1,18 @@
 {% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/tooltip.jinja2" import tooltip %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="group-project-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("group-project-table", table, "id") }}
-                {{ table_col2("group-project-table", table, "identifier") }}
-                {{ table_col2("group-project-table", table, "title") }}
-                {{ table_col2("group-project-table", table, "status") }}
-                {{ table_col2("group-project-table", table, "owner_name") }}
-                {{ table_col2("group-project-table", table, "num_samples") }}
+                {{ table_col("group-project-table", table, "id") }}
+                {{ table_col("group-project-table", table, "identifier") }}
+                {{ table_col("group-project-table", table, "title") }}
+                {{ table_col("group-project-table", table, "status") }}
+                {{ table_col("group-project-table", table, "owner_name") }}
+                {{ table_col("group-project-table", table, "num_samples") }}
             </tr>
         </thead>
         <tbody>
@@ -28,6 +28,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("group-project-table-spinner") }}
     {{ pagination2("group-project-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#group-project-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

@@ -9,6 +9,7 @@ from flask import (
 )
 
 from opengsync_db import models
+from opengsync_db.categories import LibraryType
 
 from ..core import exceptions, wrappers
 from ..tools import utils, univer
@@ -19,8 +20,13 @@ from .. import db, logger, flash_cache
 if runtime.app.debug:
     @wrappers.page_route(runtime.app, db=db, login_required=True)
     def test():
-        logger.debug("HELLLOO")
-        return render_template("test.html")
+        from wtforms import SelectField
+        from flask_wtf import FlaskForm
+        class TestForm(FlaskForm):
+            field = SelectField("Test Field", choices=LibraryType.as_selectable())
+        form = TestForm()
+        logger.debug(form.field.choices)
+        return render_template("test.html", field=form.field)
     
     @wrappers.htmx_route(runtime.app, db=db, login_required=True)
     def htmx_test():

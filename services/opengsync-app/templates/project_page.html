@@ -13,17 +13,16 @@
         </div>
         <div class="page-controls">
             {% if current_user.is_insider() and project.status == ProjectStatus.PROCESSING %}
-            <span {{ tooltip('Mark project and all samples in it completed.', category='success') }}>
-                {{
-                    confirm_action_button(
-                        text="Complete Project",
-                        title='Complete project \'{{ project.title }}\'',
-                        url=url_for('projects_htmx.complete', project_id=project.id),
-                        container="button",
-                        method="hx-post",
-                    )
-                }}
-            </span>
+            {{
+                confirm_action_button(
+                    text="Complete Project",
+                    title='Complete project ' + project.title,
+                    url=url_for('projects_htmx.complete', project_id=project.id),
+                    method="hx-post",
+                    tooltip="Mark project and all samples in it completed.",
+                    color="success",
+                )
+            }}
             {% endif %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" 
                 hx-get="{{ url_for('projects_htmx.edit', project_id=project.id) }}"
@@ -34,22 +33,18 @@
             <a type="button" class="btn btn-primary" href="{{ url_for('projects_htmx.export', project_id=project.id) }}">
                 Export Project
             </a>
-            <span
-            {% if project.num_samples > 0 %}
-            {{ tooltip('Project containing samples cannot be deleted.', category='danger') }}
-            {% endif %}>
-                {{
-                    confirm_action_button(
-                        text="Delete Project",
-                        title='Delete project \'{{ project.title }}\'',
-                        url=url_for('projects_htmx.delete', project_id=project.id),
-                        container="button",
-                        class="btn btn-danger",
-                        method="hx-delete",
-                        disabled=project.num_samples > 0
-                    )
-                }}
-            </span>
+            {{
+                confirm_action_button(
+                    text="Delete Project",
+                    title='Delete project ' + project.title,
+                    url=url_for('projects_htmx.delete', project_id=project.id),
+                    color="danger",
+                    method="hx-delete",
+                    disabled_tooltip="Non-empty project cannot be deleted.",
+                    tooltip="Delete project. This action cannot be undone.",
+                    disabled=project.num_samples > 0
+                )
+            }}
         </div>
     </div>
 

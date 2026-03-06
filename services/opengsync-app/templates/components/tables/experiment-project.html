@@ -1,5 +1,5 @@
 {% from "components/pagination.jinja2" import pagination2 %}
-{% from "components/table_col.jinja2" import table_col2 %}
+{% from "components/table_col.jinja2" import table_col %}
 {% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/contextmenu.jinja2" import context_menu %}
 {% from "components/tooltip.jinja2" import tooltip %}
@@ -10,14 +10,14 @@
     <table class="table">
         <thead>
             <tr>
-                {{ table_col2("experiment-project-table", table, "id") }}
-                {{ table_col2("experiment-project-table", table, "identifier") }}
-                {{ table_col2("experiment-project-table", table, "title") }}
-                {{ table_col2("experiment-project-table", table, "library_types") }}
-                {{ table_col2("experiment-project-table", table, "status") }}
-                {{ table_col2("experiment-project-table", table, "group") }}
-                {{ table_col2("experiment-project-table", table, "owner_name") }}
-                {{ table_col2("experiment-project-table", table, "num_samples") }}
+                {{ table_col("experiment-project-table", table, "id") }}
+                {{ table_col("experiment-project-table", table, "identifier") }}
+                {{ table_col("experiment-project-table", table, "title") }}
+                {{ table_col("experiment-project-table", table, "library_types") }}
+                {{ table_col("experiment-project-table", table, "status") }}
+                {{ table_col("experiment-project-table", table, "group") }}
+                {{ table_col("experiment-project-table", table, "owner_name") }}
+                {{ table_col("experiment-project-table", table, "num_samples") }}
             </tr>
         </thead>
         <tbody>
@@ -45,6 +45,10 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("experiment-project-table-spinner") }}
     {{ pagination2("experiment-project-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#experiment-project-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>
