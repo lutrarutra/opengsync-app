@@ -100,7 +100,19 @@
     .input-group {
         width: 100%;
         .searchbar-data {
-            width: 70px;
+            width: 100px;
+        }
+    }
+
+    &.read-only .input-group {
+        background-color: var(--color-gray-100) !important;
+
+        input {
+            background-color: var(--color-gray-100) !important;
+        }
+        
+        &:hover, &:hover input {
+            cursor: not-allowed !important;
         }
     }
 }

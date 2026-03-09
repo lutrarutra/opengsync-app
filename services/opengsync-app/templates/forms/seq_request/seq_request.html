@@ -8,7 +8,7 @@
     </div>
 
     <div class="modal-body">
-        <div id="seq_request-form" class="accordion">
+        <form id="seq_request-form" class="accordion" autocomplete="off">
             {{ seq_request_form.csrf_token() }}
             {% if current_user.is_insider() and seq_request_form.form_type == 'create' %}
             {% set sub_form = seq_request_form.user_select_form %}
@@ -247,7 +247,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </f>
     </div>
     
     <div class="modal-footer">

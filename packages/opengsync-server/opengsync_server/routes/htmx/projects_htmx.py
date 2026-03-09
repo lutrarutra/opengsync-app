@@ -29,10 +29,13 @@ def search(current_user: models.User):
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
     if request.method == "GET":
-        return forms.models.ProjectForm(
+        form = forms.models.ProjectForm(
             project=None,
             form_type="create",
-        ).make_response()
+        )
+        form.owner.search_bar.data = current_user.name
+        form.owner.selected.data = current_user.id
+        return form.make_response()
     
     return forms.models.ProjectForm(
         project=None,

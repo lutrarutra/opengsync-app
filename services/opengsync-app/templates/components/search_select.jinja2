@@ -41,30 +41,32 @@
 </div>
 {%- endmacro %}
 
-{% macro search_select_field2(field, query_url, search_param, class="") -%}
+{% macro search_select_field2(field, query_url, search_param, class="", readonly=False) -%}
 <div class="form-group {{ class }}">
-    <div class="search-select" id="{{ field.name }}-container">
+    <div class="search-select{% if readonly %} read-only{% endif %}" id="{{ field.name }}-container">
         <label {% if field.description %}{{ tooltip(field.description, "top") }}{% endif %}>
             {{ field.label.text }}
         </label>
         <div class="input-group">
-            <input class="input-group-text searchbar-data" type="number" value="{{ field.selected.data or '' }}" autocomplete="off" name="{{ field.name }}-selected" readonly {% if field.optional %} placeholder="Optional" {% endif %}>
+            <input class="input-group-text searchbar-data" type="number" value="{{ field.selected.data or '' }}" autocomplete="off" name="{{ field.name }}-selected" readonly {% if field.optional %} placeholder="Optional" {% endif %} {% if readonly %} readonly {% endif %}>
             <input
-                type="text" autocomplete="off" placeholder="Search"
+                type="search" autocomplete="off" placeholder="Search"
                 class="form-control searchbar-input {% if field.selected.errors %} is-invalid{% endif %}"
-                value="{{ field.search_bar.data or '' }}" name="{{ search_param }}">
+                value="{{ field.search_bar.data or '' }}" name="{{ search_param }}" {% if readonly %} readonly {% endif %}>
             <span class="form-control selected-bar" data-field="{{ field.name }}"></span>
-            <button class="btn btn-outline-secondary clear-btn" type="button" data-field="{{ field.name }}">Clear</button>
+            <button class="btn btn-outline-secondary clear-btn" type="button" data-field="{{ field.name }}" {% if readonly %} disabled {% endif %}>Clear</button>
         </div>
         <ul class="options-container minimal-scrollbar">
         </ul>
     </div>
     {{ field.csrf_token() }}
+    {% if not readonly %}
     <script>
         $(document).ready(function() {
             let search_select = new SearchSelect($(`#{{ field.name }}-container`), "{{ query_url }}", "{{ field.name }}");
         });
     </script>
+    {% endif %}
     <div class="invalid-feedback-container">
         {% if field.errors %}
             {% for error in field.selected.errors %}
