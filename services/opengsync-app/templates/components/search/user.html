@@ -1,21 +1,12 @@
-<ul class="list-group search-component">
-    {% if users is defined and users %}
-    {% for user in users %}
-    <li class="{% if loop.last %}last{% endif %} {% if selected_id is defined and user.id == selected_id %}selected{% endif %}" data-email="{{ user.email }}" data-name="{{ user.name }}" data-role="{{ user.role.id }}">
-        <a id="option-{{ field_name }}-{{ loop.index }}"
-        class="list-group-item search-component search-select-option"
-        data-field="{{ field_name }}"
-        data-value="{{ user.id }}"
-        aria-controls="{{ field_name }}">
-            <span class="search-select-header">{{ user.name }}</span>
-            <span class="search-select-name">{{ user.role.icon }} {{ user.role.label }}</span>
-            <span class="search-select-desc">{{ user.email }}</span>
-        </a>
-    </li>
-    {% endfor %}
-    {% else %}
-    <li class="last">
-        <a class="list-group-item disabled">No results...</a>
-    </li>
-    {% endif %}
-</ul>
+{% if users is defined and users %}
+{% for user in users %}
+<li class="option" data-value="{{ user.id }}">
+    <span class="search-select-name">{{ user.role.icon }} {{ user.name }}</span>
+    <span class="search-select-desc">{{ user.email }}</span>
+</li>
+{% endfor %}
+{% else %}
+<li>
+    <span class="disabled">No results...</span>
+</li>
+{% endif %}

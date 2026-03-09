@@ -1,21 +1,13 @@
-<ul class="list-group search-component">
-    {% if index_kits %}
-    {% for index_kit in index_kits %}
-    <li {% if loop.last %} class="last" {% endif %}>
-        <a id="option-{{ field_name }}-{{ loop.index }}"
-        class="list-group-item search-component search-select-option"
-        data-field="{{ field_name }}"
-        data-value="{{ index_kit.id }}"
-        aria-controls="{{ field_name }}">
-            <span class="search-select-header">{{ index_kit.identifier }}</span>
-            <span class="search-select-name">{{ index_kit.name }}</span>
-            <span class="search-select-desc">{{ index_kit.type.label }}</span>
-        </a>
-    </li>
-    {% endfor %}
-    {% else %}
-    <li class="last">
-        <a class="list-group-item disabled">No results...</a>
-    </li>
-    {% endif %}
-</ul>
+{% if index_kits %}
+{% for index_kit in index_kits %}
+<li class="option" data-value="{{ index_kit.id }}">>
+    <span class="search-select-header">{{ index_kit.identifier }}</span>
+    <span class="search-select-name">{{ index_kit.name }}</span>
+    <span class="search-select-desc">{{ index_kit.type.label }}</span>
+</li>
+{% endfor %}
+{% else %}
+<li>
+    <span class="disabled">No results...</span>
+</li>
+{% endif %}

@@ -1,0 +1,106 @@
+.search-select {
+    position: relative;
+    overflow: visible;
+
+    &.active {
+        .input-group > :first-child {
+            border-bottom-left-radius: 0;
+        }
+        .input-group > :last-child {
+            border-bottom-right-radius: 0;
+        }
+    }
+
+    ul.options-container {
+        display: none;
+        position: absolute;
+        width: 100%;
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+        background-color: var(--color-white);
+        border-bottom: var(--bs-border-width) solid var(--bs-border-color);
+        border-left: var(--bs-border-width) solid var(--bs-border-color);
+        border-right: var(--bs-border-width) solid var(--bs-border-color);
+
+        border-bottom-left-radius: var(--bs-border-radius) !important;
+        border-bottom-right-radius: var(--bs-border-radius) !important;
+
+        li {
+            width: 100%;
+            padding: 0 10px;
+            height: 42px;
+            border-bottom: var(--bs-border-width) solid var(--bs-border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            &:hover {
+                background-color: var(--color-gray-100);
+                cursor: pointer;
+            }
+        }
+        li:last-child {
+            border-bottom: none;
+        }
+        li.selected {
+            background-color: #edffeb;
+        }
+    }
+    &.active {
+        ul.options-container {
+            display: block;
+        }
+    }
+    .invalid-feedback-container {
+        position: relative;
+    }
+
+    .selected-bar {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+
+        &:hover {
+            cursor: pointer;
+        }
+    }
+
+    .searchbar-data {
+        &:hover {
+            cursor: default;
+        }
+    }
+
+    li, .selected-bar {
+        gap: 5px;
+        .search-select-header {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .search-select-name {
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding-right: 10px;
+        }
+        .search-select-desc {
+            color: var(--color-gray-500);
+            white-space: nowrap;
+            overflow: hidden;
+        }
+    }
+
+    .input-group {
+        width: 100%;
+        .searchbar-data {
+            width: 70px;
+        }
+    }
+}

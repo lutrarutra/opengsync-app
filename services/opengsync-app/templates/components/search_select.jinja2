@@ -42,71 +42,35 @@
 {%- endmacro %}
 
 {% macro search_select_field2(field, query_url, search_param, class="") -%}
-<div class="form-group search-select {{ class }}" id="{{ field.name }}-container">
-    <a {% if field.description %}{{ tooltip(field.description, "top") }}{% endif %}>
-        {{ field.label.text }}
-    </a>
-    <div class="input-group">
-        <input class="input-group-text searchbar-data"
-        type="number" value="{{ field.selected.data or '' }}" autocomplete="off"
-        id="{{ field.name }}" name="{{ field.name }}-selected" readonly {% if field.optional %} placeholder="Optional" {% endif %}>
-        <input type="hidden" name="field_name" id="{{ field.name }}-field_name" value="{{ field.name }}">
-        <input
-            type="text"
-            autocomplete="new-password"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-            aria-autocomplete="none"
-            class="form-control searchbar-input search-component {% if field.selected.errors %} is-invalid {% endif %}"
-            value="{{ field.search_bar.data if field.search_bar.data else '' }}"
-            name="{{ search_param }}"
-            id="{{ field.name }}-search"
-            data-field="{{ field.name }}"
-            hx-target="#{{ field.name }}-results"
-            hx-trigger="keyup changed delay:500ms, {{ field.name }}, change{% if not field.selected.data %}, load{% endif %}"
-            hx-get="{{ query_url }}"
-            hx-include="#{{ field.name }}, #{{ field.name }}-search, #{{ field.name }}-field_name"
-            hx-swap="innerHTML"
-            placeholder="Search">
-        <span id="{{ field.name }}-selected_bar" class="form-control selected-bar" style="display: none;" data-field="{{ field.name }}"></span>
-        <button class="btn btn-outline-secondary clear-search-btn" type="button" data-field="{{ field.name }}">Clear</button>
+<div class="form-group {{ class }}">
+    <div class="search-select" id="{{ field.name }}-container">
+        <label {% if field.description %}{{ tooltip(field.description, "top") }}{% endif %}>
+            {{ field.label.text }}
+        </label>
+        <div class="input-group">
+            <input class="input-group-text searchbar-data" type="number" value="{{ field.selected.data or '' }}" autocomplete="off" name="{{ field.name }}-selected" readonly {% if field.optional %} placeholder="Optional" {% endif %}>
+            <input
+                type="text" autocomplete="off" placeholder="Search"
+                class="form-control searchbar-input {% if field.selected.errors %} is-invalid{% endif %}"
+                value="{{ field.search_bar.data or '' }}" name="{{ search_param }}">
+            <span class="form-control selected-bar" data-field="{{ field.name }}"></span>
+            <button class="btn btn-outline-secondary clear-btn" type="button" data-field="{{ field.name }}">Clear</button>
+        </div>
+        <ul class="options-container minimal-scrollbar">
+        </ul>
     </div>
-    <div class="search-select-results-container">
-        <div id="{{ field.name }}-results" class="search-select-results" style="display: none; width: 100%; z-index: 100;"></div>
-    </div>
-    <div class="invalid-feedback-container" id="{{ field.name }}-invalid-container">
+    {{ field.csrf_token() }}
+    <script>
+        $(document).ready(function() {
+            let search_select = new SearchSelect($(`#{{ field.name }}-container`), "{{ query_url }}", "{{ field.name }}");
+        });
+    </script>
+    <div class="invalid-feedback-container">
         {% if field.errors %}
             {% for error in field.selected.errors %}
-                <p>{{ error }}</p>
+            <p>{{ error }}</p>
             {% endfor %}
         {% endif %}
     </div>
-    {{ field.csrf_token() }}
 </div>
-{% if field.selected.data %}
-<script>
-    (function() {
-        function initSelectedBar() {
-            if (window.domm && window.domm["{{ field.name }}"]) {
-                let selected_bar = document.getElementById("{{ field.name }}-selected_bar");
-                let search_bar = document.getElementById("{{ field.name }}-search");
-                
-                if (selected_bar && search_bar) {
-                    selected_bar.style.display = "flex";
-                    selected_bar.innerHTML = window.domm["{{ field.name }}"];
-                    search_bar.style.display = "none";
-                }
-            }
-        }
-        
-        if (document.readyState === "complete") {
-            initSelectedBar();
-        } else {
-            document.addEventListener("DOMContentLoaded", initSelectedBar);
-        }
-        setTimeout(initSelectedBar, 100);
-    })();
-</script>
-{% endif %}
 {%- endmacro %}

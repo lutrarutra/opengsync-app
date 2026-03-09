@@ -81,18 +81,6 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
 def get_search_context(current_user: models.User, request: Request, **kwargs) -> dict:
     context = parse_context(current_user, request) | kwargs
     fnc_context = {}
-    
-    if not (field_name := request.args.get("field_name")):
-        raise exceptions.BadRequestException("No search field provided.")
-    
-    if (selected_id := request.args.get(f"{field_name}-selected")) is not None:
-        try:
-            selected_id = int(selected_id)
-            context["selected_id"] = selected_id
-        except ValueError:
-            pass
-        
-    context["field_name"] = field_name
     page = request.args.get("page", 0, type=int)
     
     if (name := request.args.get("name")) is not None:
