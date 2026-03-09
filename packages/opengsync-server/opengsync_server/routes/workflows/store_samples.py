@@ -106,7 +106,6 @@ def select(current_user: models.User):
                     logger.info(f"Pool {pool.id} status: {pool.status} not stored")
                     break
             if all_pools_stored:
-                logger.info(f"All pools for SeqRequest {seq_request.id} are stored")
                 seq_request.status = SeqRequestStatus.PREPARED
                 db.seq_requests.update(seq_request)
 

@@ -1,21 +1,13 @@
-<ul class="list-group search-component">
-    {% if projects is defined and projects %}
-    {% for project in projects %}
-    <li class="{% if loop.last %}last{% endif %} {% if selected_id is defined and project.id == selected_id %}selected{% endif %}">
-        <a id="option-{{ field_name }}-{{ loop.index }}"
-        class="list-group-item search-component search-select-option"
-        data-field="{{ field_name }}"
-        data-value="{{ project.id }}"
-        aria-controls="{{ field_name }}">
-            <span class="search-select-header">{{ project.identifier or "" }}</span>
-            <span class="search-select-name">{{ project.title }}</span>
-            <span class="search-select-desc">{{ project.status.label }} {{ project.status.icon }}</span>
-        </a>
-    </li>
-    {% endfor %}
-    {% else %}
-    <li class="last">
-        <a class="list-group-item disabled">No results...</a>
-    </li>
-    {% endif %}
-</ul>
+{% if projects is defined and projects %}
+{% for project in projects %}
+<li class="option" data-value="{{ project.id }}">
+    <span class="search-select-header">{{ project.identifier or "" }}</span>
+    <span class="search-select-name">{{ project.title }}</span>
+    <span class="search-select-desc">{{ project.status.label }} {{ project.status.icon }}</span>
+</li>
+{% endfor %}
+{% else %}
+<li>
+    <span class="disabled">No results...</span>
+</li>
+{% endif %}

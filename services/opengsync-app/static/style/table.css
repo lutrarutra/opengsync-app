@@ -22,8 +22,13 @@ table tbody tr td {
     a.visitable:visited { color: #551a8b !important; }
 }
 
-table input.table-query-input{
+table input.table-query-input {
     height: 28px;
+
+    &:focus {
+        box-shadow: none;
+        border: 1px solid var(--color-cemm-blue);
+    }
 }
 
 .table-container {
