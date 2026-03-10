@@ -1,7 +1,7 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from 'components/spinner.jinja2' import spinner %}
 {% from 'components/design/comment-list.jinja2' import comment_list with context %}
-{% from 'components/button.jinja2' import confirm_action_button, xl_modal_button %}
+{% from 'components/button.jinja2' import confirm_action_button, modal_button %}
 
 {% for pool_design in pool_designs %}
 <div class="pool-design" data-pool-design-id="{{ pool_design.id }}" {% if flow_cell_design %}data-original-flow-cell-design-id="{{ flow_cell_design.id }}"{% endif %}>

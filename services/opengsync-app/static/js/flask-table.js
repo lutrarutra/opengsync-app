@@ -20,7 +20,10 @@ class HTMXTable {
 
     _show_filter_menu(th) {
         $(th).find(".table-col-header.active").removeClass("active");
-        $(th).find(".table-col-header.col-header-multiselect").addClass("active");
+        this.$table.find(".multiple-select.active").removeClass("active");
+        $(th).find(".table-col-header.col-header-multiselect").addClass("active")
+            .find(".multiple-select").first().addClass("active")
+            .find("input.option-search").focus();
     }
 
     _hide_filter_menu(th) {
@@ -130,10 +133,11 @@ class HTMXTable {
         this.$table.on("click", ".table-multiselect-filter-btn", (e) => {
             e.stopPropagation();
             this._show_filter_menu($(e.currentTarget).closest("th"));
+
         });
         
         // Show search query field
-        this.$table.on("click", ".table-multiselect-search-btn", (e) => {
+        this.$table.on("click", ".table-column-search-btn", (e) => {
             e.stopPropagation();
             this._show_search_menu($(e.currentTarget).closest("th"));
         });

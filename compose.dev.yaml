@@ -102,7 +102,7 @@ services:
             redis-cache:
                 condition: service_healthy
                 restart: true
-        restart: unless-stopped
+        restart: on-failure
         command: >
             celery -A opengsync_worker.celery beat --loglevel=info
 
@@ -113,7 +113,7 @@ services:
             TZ: ${TIMEZONE}
         ports:
             - ${REDIS_PORT}:${REDIS_PORT}
-        restart: unless-stopped
+        restart: on-failure
         volumes:
             - redis_data:/data
         healthcheck:
@@ -171,7 +171,7 @@ services:
     #         TZ: ${TIMEZONE}
     #     ports:
     #         - ${PGADMIN_PORT}:80
-    #     restart: unless-stopped
+    #     restart: on-failure
     #     volumes:
     #         - pgadmin_data:/var/lib/pgadmin
     #     depends_on:
