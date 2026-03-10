@@ -22,9 +22,13 @@
             <tr>
                 <th scope="row">{{ pool.id }}</th>
                 <td class="pool-name-cell" id="pool-name-cell-{{ pool.id }}">
+                    {% if current_user.is_insider() or pool.type == PoolType.EXTERNAL %}
                     <a href="{{ url_for('pools_page.pool', pool_id=pool.id, from='seq_request@' + seq_request.id | string) }}">
                         {{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}
                     </a>
+                    {% else %}
+                    {{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}
+                    {% endif %}
                 </td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(pool.library_types) }}</td>
                 <td>{{ pool.status.icon }} {{ pool.status.label }}</td>

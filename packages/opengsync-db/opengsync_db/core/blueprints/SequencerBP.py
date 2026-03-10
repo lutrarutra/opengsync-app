@@ -66,7 +66,7 @@ class SequencerBP(DBBlueprint):
             query = query.where(models.Sequencer.id == id)
 
         if page is not None:
-            if limit is None:
+            if not limit:
                 raise ValueError("Limit must be provided when page is provided")
             
             count = query.count()

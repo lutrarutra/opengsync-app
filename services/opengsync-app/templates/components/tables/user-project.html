@@ -1,5 +1,6 @@
 {% from "components/pagination.jinja2" import pagination2 %}
 {% from "components/table_col.jinja2" import table_col %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 {% from "components/spinner.jinja2" import spinner %}
 
 <div id="user-project-table" class="table-container">
@@ -9,6 +10,7 @@
                 {{ table_col("user-project-table", table, "id") }}
                 {{ table_col("user-project-table", table, "identifier") }}
                 {{ table_col("user-project-table", table, "title") }}
+                {{ table_col("user-project-table", table, "library_types") }}
                 {{ table_col("user-project-table", table, "status") }}
                 {{ table_col("user-project-table", table, "num_samples") }}
             </tr>
@@ -19,6 +21,7 @@
                 <th scope="row">{{ project.id }}</th>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id, from='user@' + user.id | string) }}">{{ project.identifier or "" }}</a></td>
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id, from='user@' + user.id | string) }}">{{ project.title }}</a></td>
+                <td class="x-scroll-cell">{{ library_type_badge_list(project.library_types) }}</td>
                 <td>{{ project.status.icon }} {{ project.status.label }}</td>
                 <td>{{ project.num_samples }}</td>
             </tr>

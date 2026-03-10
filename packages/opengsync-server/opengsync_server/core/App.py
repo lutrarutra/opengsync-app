@@ -74,7 +74,7 @@ class App(Flask):
 
         if DEBUG:
             self.jinja_env.undefined = StrictUndefined
-            self.config["TEMPLATES_AUTO_RELOAD"] = True
+            # self.config["TEMPLATES_AUTO_RELOAD"] = True
 
         self.jinja_env.globals["uuid"] = lambda: str(uuid4())
         log_buffer.set_log_dir(Path(opengsync_config["log_folder"]), debug=DEBUG)

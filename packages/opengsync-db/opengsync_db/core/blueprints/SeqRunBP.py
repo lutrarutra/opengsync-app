@@ -148,7 +148,7 @@ class SeqRunBP(DBBlueprint):
             query = query.where(models.SeqRun.flowcell_id == flow_cell_id)
 
         if page is not None:
-            if limit is None:
+            if not limit:
                 raise ValueError("Limit must be provided when page is provided")
             
             count = query.count()

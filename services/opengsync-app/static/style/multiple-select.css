@@ -35,6 +35,8 @@
         list-style: none;
 
         li {
+            width: 100%;
+            overflow: hidden;
             padding: 0 10px;
             display: flex;
             align-items: center;
@@ -42,15 +44,41 @@
                 margin: 0;
             }
 
+            input[type="checkbox"] {
+                flex-shrink: 0;
+            }
+
             label {
                 border: none !important;
                 display: flex;
-                align-items: flex-start;
+                align-items: center;
                 justify-content: space-between;
-                width: 100%;
+                flex: 1;
                 border-radius: 0;
+                gap: 8px;
+                min-width: 0; /* KEY: allows flex children to shrink below content size */
+                overflow: hidden;
+
+
+                /* Label name: truncates with ellipsis */
+                .label-name {
+                    flex: 1 1 auto;
+                    text-align: left;
+                    min-width: 0; /* KEY: allows truncation */
+                    overflow: hidden;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                }
+                
+                /* Label ID: never shrinks, stays visible */
+                .label-id {
+                    flex: 0 0 auto; /* Don't grow, don't shrink */
+                    white-space: nowrap;
+                    margin-left: auto;
+                }
             }
         }
+        
         li:hover {
             background-color: var(--color-gray-100);
             cursor: pointer;
@@ -97,7 +125,7 @@
     }
 
     &.active {
-        min-width: 500px;
+        min-width: 400px;
 
         .dropdown-toggle {
             border-bottom-left-radius: 0;

@@ -182,7 +182,7 @@ class UserBP(DBBlueprint):
             query = query.where(models.User.id == id)
 
         if page is not None:
-            if limit is None:
+            if not limit:
                 raise ValueError("Limit must be provided when page is provided")
             
             count = query.count()
@@ -318,7 +318,7 @@ class UserBP(DBBlueprint):
             )
 
         if page is not None:
-            if limit is None:
+            if not limit:
                 raise ValueError("Limit must be provided when page is provided")
             
             count = query.count()

@@ -3,7 +3,8 @@
 {% from "components/form_group.jinja2" import form_group %}
 {% from "components/status_bar.jinja2" import seq_request_status_bar with context %}
 {% from "components/spinner.jinja2" import spinner %}
-{% from "components/button.jinja2" import xl_modal_button, fs_modal_button %}
+{% from "components/button.jinja2" import modal_button %}
+{% from "components/button.jinja2" import confirm_action_button %}
 
 {% extends "base.html" %}
 {% set active_page = "seq_requests-page" %}
@@ -51,128 +52,91 @@
                 </button>
                 <ul class="dropdown-menu">
                     <li>
-                        <span {% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
-                            <button class="dropdown-item"
-                            {% if seq_request.is_editable() or current_user.is_insider() %}
-                            data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                            hx-get="{{ url_for('seq_requests_htmx.edit', seq_request_id=seq_request.id) }}"
-                            hx-target="#xl-modal-content" data-bs-toggle="modal"
-                            hx-swap="innerHTML" hx-trigger="click"
-                            {% else %}disabled{% endif %}>Edit</button>
-                        </span>
+                        {{
+                            modal_button(
+                                "Edit", class="dropdown-item", disabled=not (seq_request.is_editable() or current_user.is_insider()),
+                                url=url_for('seq_requests_htmx.edit', seq_request_id=seq_request.id),
+                                disabled_tooltip="Request cannot be edited after submission.",
+                                tooltip_position="left"
+                            )
+                        }}
                     </li>
                     <li>
-                        <span {% if seq_request.status != SeqRequestStatus.DRAFT %} {{ tooltip("You cannot edit request that is already submitted.", "left", "warning") }} {% endif %}>
-                            <button class="dropdown-item"
-                            hx-delete="{{ url_for('seq_requests_htmx.delete', seq_request_id=seq_request.id) }}"
-                            _="on htmx:confirm(issueRequest)
-                            halt the event
-                            call Swal.fire({
-                                title: 'Delete request \'{{ seq_request.name }}\'',
-                                icon: 'warning',
-                                showDenyButton: true,
-                                text: 'Proceed?',
-                                confirmButtonText: 'Yes',
-                                denyButtonText: 'No'
-                            })
-                            if result.isConfirmed issueRequest()"
-                            {% if seq_request.status != SeqRequestStatus.DRAFT %}disabled{% endif %}>Delete</button>
-                        </span>
+                        {{
+                            confirm_action_button(
+                                "Delete", class="dropdown-item", title="Delete request {name}".format(name=seq_request.identifier),
+                                disabled=not seq_request.is_editable(),
+                                disabled_tooltip="Request cannot be deleted after submission.",
+                                tooltip_position="left", method="hx-delete",
+                                url=url_for('seq_requests_htmx.delete', seq_request_id=seq_request.id),
+                            )
+                        }}
                     </li>
                     <li>
-                        <button class="dropdown-item"
-                        hx-post="{{ url_for('seq_requests_htmx.archive', seq_request_id=seq_request.id) }}"
-                        _="on htmx:confirm(issueRequest)
-                        halt the event
-                        call Swal.fire({
-                            title: 'Archive request \'{{ seq_request.name }}\'',
-                            icon: 'question',
-                            showDenyButton: true,
-                            text: 'You will not be able to use this request anymore. Do you want to proceed?',
-                            confirmButtonText: 'Yes',
-                            denyButtonText: 'No'
-                    })
-                        if result.isConfirmed issueRequest()"
-                        {% if seq_request.status == SeqRequestStatus.ARCHIVED %}disabled{% endif %}>Archive</button>
+                        {{
+                            confirm_action_button(
+                                "Archive", class="dropdown-item", title="Archive request {name}".format(name=seq_request.identifier),
+                                disabled=not (current_user.is_insider() or seq_request.status == SeqRequestStatus.DRAFT),
+                                disabled_tooltip="Submitted request can only be archived by insiders.",
+                                tooltip_position="left", method="hx-post",
+                                url=url_for('seq_requests_htmx.archive', seq_request_id=seq_request.id),
+                            )
+                        }}
                     </li>
                     {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.ARCHIVED %}
                     <li>
-                        <button class="dropdown-item"
-                        hx-post="{{ url_for('seq_requests_htmx.unarchive', seq_request_id=seq_request.id) }}"
-                        _="on htmx:confirm(issueRequest)
-                        halt the event
-                        call Swal.fire({
-                            title: 'Unarchive request \'{{ seq_request.name }}\'',
-                            icon: 'question',
-                            showDenyButton: true,
-                            text: 'Do you want to proceed?',
-                            confirmButtonText: 'Yes',
-                            denyButtonText: 'No'
-                        })
-                        if result.isConfirmed issueRequest()">Unarchive</button>
+                        {{
+                            confirm_action_button(
+                                "Unarchive", class="dropdown-item", title="Unarchive request {name}".format(name=seq_request.identifier),
+                                method="hx-post", url=url_for('seq_requests_htmx.unarchive', seq_request_id=seq_request.id),
+                            )
+                        }}
                     </li>
                     {% endif %}
                     {% if current_user.is_insider() %}
                     <li>
-                        <button class="dropdown-item" hx-post="{{ url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='pooled') }}"
-                        _="on htmx:confirm(issueRequest)
-                        halt the event
-                        call Swal.fire({
-                            title: 'Clone request \'{{ seq_request.name }}\'',
-                            icon: 'question',
-                            showDenyButton: true,
-                            text: 'This will make copy of the request with all libraries and pools in it. Do you want to proceed?',
-                            confirmButtonText: 'Yes',
-                            denyButtonText: 'No'
-                        })
-                        if result.isConfirmed issueRequest()">Clone (Pooled)</button>
+                        {{
+                            confirm_action_button(
+                                "Clone (Pooled)", title="Clone request {name} (Pooled Libraries)".format(name=seq_request.identifier),
+                                body="This will make copy of the request with all libraries and pools in it. Do you want to proceed?",
+                                method="hx-post", url=url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='pooled'),
+                                class="dropdown-item"
+                            )
+                        }}
                     </li>
                     <li>
-                        <button class="dropdown-item" hx-post="{{ url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='indexed') }}"
-                        _="on htmx:confirm(issueRequest)
-                        halt the event
-                        call Swal.fire({
-                            title: 'Clone request \'{{ seq_request.name }}\'',
-                            icon: 'question',
-                            showDenyButton: true,
-                            text: 'This will make copy of the request with all libraries in it. Do you want to proceed?',
-                            confirmButtonText: 'Yes',
-                            denyButtonText: 'No'
-                        })
-                        if result.isConfirmed issueRequest()">Clone (Indexed)</button>
+                        {{
+                            confirm_action_button(
+                                "Clone (Indexed)", title="Clone request {name} (Indexed Libraries)".format(name=seq_request.identifier),
+                                body="This will make copy of the request with all libraries in it (un-pooled). Do you want to proceed?",
+                                method="hx-post", url=url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='indexed'),
+                                class="dropdown-item"
+                            )
+                        }}
                     </li>
                     <li>
-                        <button class="dropdown-item" hx-post="{{ url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='raw') }}"
-                        _="on htmx:confirm(issueRequest)
-                        halt the event
-                        call Swal.fire({
-                            title: 'Clone request \'{{ seq_request.name }}\'',
-                            icon: 'question',
-                            showDenyButton: true,
-                            text: 'This will make copy of the request with unindexed libraries in it. Do you want to proceed?',
-                            confirmButtonText: 'Yes',
-                            denyButtonText: 'No'
-                        })
-                        if result.isConfirmed issueRequest()">Clone (Raw)</button>
+                        {{
+                            confirm_action_button(
+                                "Clone (Raw)", title="Clone request {name} (Raw Libraries)".format(name=seq_request.identifier),
+                                body="This will make copy of the request with unindexed libraries in it (prep required). Do you want to proceed?",
+                                method="hx-post", url=url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='raw'),
+                                class="dropdown-item"
+                            )
+                        }}
                     </li>
                     {% endif %}
-                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
                     <li>
-                        <button class="dropdown-item"
-                        hx-delete="{{ url_for('seq_requests_htmx.remove_all_libraries', seq_request_id=seq_request.id) }}"
-                        _="on htmx:confirm(issueRequest)
-                        halt the event
-                        call Swal.fire({
-                            title: 'Remove All Libraries from \'{{ seq_request.name }}\'',
-                            icon: 'question',
-                            showDenyButton: true,
-                            text: 'Do you want to proceed?',
-                            confirmButtonText: 'Yes',
-                            denyButtonText: 'No'
-                        })
-                        if result.isConfirmed issueRequest()">Remove All Libraries</button>
+                        {{
+                            confirm_action_button(
+                                "Remove All Libraries", class="dropdown-item",
+                                title="Remove All Libraries from {name}".format(name=seq_request.identifier),
+                                url=url_for('seq_requests_htmx.remove_all_libraries', seq_request_id=seq_request.id),
+                                tooltip_position="left", method="hx-delete",
+                                tooltip="This will remove all libraries from the request. This action cannot be un-done.",
+                                disabled=not(seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() )
+                            )
+                        }}
                     </li>
-                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -538,7 +502,7 @@
                     <h2>The data will be shared with following emails:</h2>
                 </div>
                 <div>
-                    {{ xl_modal_button("Add Email", hx_get=url_for('seq_requests_htmx.add_share_email', seq_request_id=seq_request.id), disabled=not current_user.is_insider() and seq_request.status >= SeqRequestStatus.FINISHED) }}
+                    {{ modal_button("Add Email", url=url_for('seq_requests_htmx.add_share_email', seq_request_id=seq_request.id), disabled=not current_user.is_insider() and seq_request.status >= SeqRequestStatus.FINISHED) }}
                 </div>
             </div>     
             {% set only_one = seq_request.delivery_email_links | length == 1 %}

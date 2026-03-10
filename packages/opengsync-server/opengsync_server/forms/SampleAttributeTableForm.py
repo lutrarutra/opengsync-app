@@ -26,7 +26,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         self.project = project
 
         self._context["project"] = project
-        df = db.pd.get_project_samples(self.project.id)
+        df = db.pd.get_project_samples(self.project.id).sort_values("sample_id").reset_index(drop=True)
 
         columns = SampleAttributeTableForm.predefined_columns.copy()
 

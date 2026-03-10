@@ -96,7 +96,6 @@ class ProjectForm(HTMXFlaskForm):
                 if (db.projects.get(self.identifier.data) is not None):
                     self.identifier.errors = ("Project with this identifier already exists.",)
                     return False
-
         # Editing existing project
         else:
             for project in user_projects:
@@ -110,6 +109,14 @@ class ProjectForm(HTMXFlaskForm):
                     if prj.id != self.project.id:
                         self.identifier.errors = ("Project with this identifier already exists.",)
                         return False
+                    
+            if self.project.identifier and self.identifier.data and self.project.identifier != self.identifier.data and not current_user.is_insider():
+                self.identifier.errors = ("You don't have permissions to change the identifier.",)
+                return False
+                    
+            if self.project.status != status and not current_user.is_insider():
+                self.status.errors = ("You don't have permissions to change the status.",)
+                return False
                     
         if (user := db.users.get(self.owner.selected.data)) is None:
             self.owner.selected.errors = ("Selected user does not exist.",)

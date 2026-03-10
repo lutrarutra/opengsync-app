@@ -108,7 +108,7 @@ class KitBP(DBBlueprint):
         identifier: str | None = None,
         id: int | None = None,
         custom_query: Callable[[Query], Query] | None = None,
-        limit: int | None = PAGE_LIMIT, offset: int | None = 0,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
         page: int | None = None
     ) -> tuple[list[models.Kit], int | None]:
@@ -135,7 +135,7 @@ class KitBP(DBBlueprint):
             query = query.order_by(sa.nulls_last(sa.func.similarity(models.Kit.identifier, identifier).desc()))
 
         if page is not None:
-            if limit is None:
+            if not limit:
                 raise ValueError("Limit must be provided when page is provided")
             
             count = query.count()

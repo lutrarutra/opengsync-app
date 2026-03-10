@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db.categories import PoolStatus
+from opengsync_db.categories import PoolStatus, AccessType
 from opengsync_db import models
 
 from ... import db
@@ -18,8 +18,8 @@ def pool(current_user: models.User, pool_id: int):
     if (pool := db.pools.get(pool_id)) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider() and pool.owner_id != current_user.id:
-        raise exceptions.NoPermissionsException()
+    if db.pools.get_access_type(pool, current_user) < AccessType.VIEW:
+         raise exceptions.NoPermissionsException()
 
     path_list = [
         ("Pools", url_for("pools_page.pools")),

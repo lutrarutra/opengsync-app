@@ -109,8 +109,6 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
                 current_user.is_admin() and not experiment.workflow.combined_lanes
             )
         )
-            
-
     elif (lab_prep := context.get("lab_prep")) is not None:
         template = "components/tables/lab_prep-pool.html"
         fnc_context["lab_prep_id"] = lab_prep.id

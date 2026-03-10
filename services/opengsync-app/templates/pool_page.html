@@ -261,6 +261,7 @@
                 {{ metadata_group("Lab Prep", "", class="col-3") }}
                 {% endif %}
                 {% if pool.experiment_id %}
+                {% if current_user.is_insider() %}
                 {{                     
                     metadata_group_link(
                         "Experiment", pool.experiment.name,
@@ -268,6 +269,9 @@
                         class="col-2"
                     )
                 }}
+                {% else %}
+                {{ metadata_group("Experiment", pool.experiment.name, class="col-2") }}
+                {% endif %}
                 {% else %}
                 {{ metadata_group("Experiment", "", class="col-2") }}
                 {% endif %}
@@ -290,13 +294,11 @@
         </div>
         <div class="tab-pane fade" id="ba_report-tab" role="tabpanel" tabindex="5">
             {% if pool.ba_report_id %}
-            <div class="d-flex justify-content-between align-items-center pt-3 pb-1">
-                <div class="row">
-                    {{ metadata_group_link("File 💾", pool.ba_report.name + pool.ba_report.extension, url_for('download_file', file_id=pool.ba_report_id), class="col-3") }}
-                    {{ metadata_group_link("Uploader", pool.ba_report.uploader.name, url_for('users_page.user', user_id=pool.ba_report.uploader_id), class="col-3") }}
-                    {{ metadata_group("Size", pool.ba_report.size_str(), class="col-3") }}
-                    {{ metadata_group("Time", pool.ba_report.timestamp_str(), class="col-3") }}
-                </div>
+            <div class="row">
+                {{ metadata_group_link("File 💾", pool.ba_report.name + pool.ba_report.extension, url_for('download_file', file_id=pool.ba_report_id), class="col-6") }}
+                {{ metadata_group_link("Uploader", pool.ba_report.uploader.name, url_for('users_page.user', user_id=pool.ba_report.uploader_id), class="col-2") }}
+                {{ metadata_group("Size", pool.ba_report.size_str(), class="col-2") }}
+                {{ metadata_group("Time", pool.ba_report.timestamp_str(), class="col-2") }}
             </div>
             <div class="d-flex justify-content-center" style="width: 100%; overflow-y: hidden;" id="ba_report-spinner">
                 <div class="spinner-border cemm-blue" role="status">

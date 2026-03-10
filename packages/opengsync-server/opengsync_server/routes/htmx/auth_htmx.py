@@ -1,7 +1,7 @@
 from pathlib import Path
 from flask import Blueprint, url_for, flash, request, render_template
 from flask_htmx import make_response
-from flask_login import logout_user
+from flask_login import logout_user, login_user
 
 from opengsync_db import models
 from opengsync_db.categories import UserRole
@@ -27,6 +27,9 @@ def login(current_user: models.User | None):
 @wrappers.htmx_route(auth_htmx, db=db)
 def logout(current_user: models.User):
     user_id = current_user.id
+    if current_user.role == UserRole.TEMPORARY:
+        current_user.role = UserRole.DEACTIVATED
+        db.users.update(current_user)
     logout_user()
     num_deleted = runtime.app.delete_user_sessions(user_id)
     logger.info(f"Closed {num_deleted} sessions for user ID: {user_id}")
@@ -158,3 +161,24 @@ def delete_user_sessions(current_user: models.User, user_id: int):
     flash(f"Deleted all sessions for user '{user.email}'", "info")
     logger.info(f"Deleted all sessions for user '{user.id}'")
     return make_response(redirect=url_for("users_page.user", user_id=user_id))
+
+# Admin tool to start a session as another user without needing their password. This is useful for troubleshooting user issues.
+@wrappers.htmx_route(auth_htmx, methods=["POST"], db=db, login_required=True)
+def start_user_session(current_user: models.User, user_id: int):
+    if not current_user.is_admin():
+        raise exceptions.NoPermissionsException()
+    
+    if (user := db.users.get(user_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    logout_user()
+    runtime.session.clear()
+    login_user(user)
+    if user.role == UserRole.DEACTIVATED:
+        user.role = UserRole.TEMPORARY
+        db.users.update(user)
+    runtime.app.session_interface.regenerate(runtime.session)  # type: ignore
+
+    flash("User Session Started!", "success")
+    logger.info(f"Admin {current_user.email} started session for user '{user.email}'")
+    return make_response(redirect=url_for("dashboard"))

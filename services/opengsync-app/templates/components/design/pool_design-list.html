@@ -15,12 +15,10 @@
                 <b>{{ pool_design.name }}</b>
                 {% endif %}
                 {{
-                    xl_modal_button(
+                    modal_button(
                         text='<i class="bi bi-pencil-square"></i>',
-                        hx_get=url_for('design_htmx.edit_pool_design', pool_design_id=pool_design.id),
-                        container="a",
-                        class="",
-                        tooltip='Edit Design'
+                        url=url_for('design_htmx.edit_pool_design', pool_design_id=pool_design.id),
+                        container="a", class="", tooltip='Edit Design'
                     )
                 }}
                 {% if flow_cell_design %}
