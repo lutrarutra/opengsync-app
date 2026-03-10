@@ -51,7 +51,11 @@
                 </td>
                 <td>
                 {% if library.pool_id %}
+                    {% if current_user.is_insider() or library.pool.type == PoolType.EXTERNAL %}
                     <a href="{{ url_for('pools_page.pool', pool_id=library.pool_id, from='seq_request@' + seq_request.id | string)}}">{{ library.pool.name }}</a>
+                    {% else %}
+                    <span>{{ library.pool.name }}</span>
+                    {% endif %}
                 {% endif %}
                 </td>
                 <td>

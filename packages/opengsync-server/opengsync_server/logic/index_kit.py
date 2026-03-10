@@ -21,9 +21,6 @@ class IndexKitTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
-    
     fnc_context = {}
     table = IndexKitTable(route="index_kits_htmx.get", page=request.args.get("page", 0, type=int))
 

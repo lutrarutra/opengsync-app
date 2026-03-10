@@ -1,7 +1,7 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from "components/status_bar.jinja2" import project_status_bar with context %}
-{% from 'components/button.jinja2' import confirm_action_button %}
+{% from 'components/button.jinja2' import confirm_action_button, modal_button %}
 
 {% extends "base.html" %}
 {% set active_page = "projects-page" %}
@@ -133,11 +133,13 @@
                     <h2>Attributes</h2>
                 </div>
                 <div>
-                    <a type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                        hx-get="{{ url_for('projects_htmx.edit_sample_attributes', project_id=project.id) }}"
-                        hx-swap="innerHTML" hx-target="#xl-modal-content">
-                        Edit
-                    </a>
+                    {{
+                        modal_button(
+                            "Edit Attributes", url=url_for('projects_htmx.edit_sample_attributes', project_id=project.id),
+                            disabled=not (current_user.is_insider() or project.status <= ProjectStatus.SEQUENCED),
+                            disabled_tooltip="Only insiders can edit attributes of a completed project.",
+                        )
+                    }}
                 </div>
             </div>
             <div hx-get="{{ url_for('projects_htmx.get_sample_attributes', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">

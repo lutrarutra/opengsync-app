@@ -25,10 +25,7 @@ class ExperimentTable(HTMXTable):
     ]
 
 
-def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    if not current_user.is_insider():
-        raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
-    
+def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:    
     fnc_context = {}
     table = ExperimentTable(route="experiments_htmx.get", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
@@ -90,6 +87,8 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         fnc_context["seq_request_id"] = seq_request.id
         table.url_params["seq_request_id"] = seq_request.id
     else:
+        if not current_user.is_insider():
+            raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
         template = "components/tables/experiment.html"
         if not current_user.is_insider():
             fnc_context["user_id"] = current_user.id   

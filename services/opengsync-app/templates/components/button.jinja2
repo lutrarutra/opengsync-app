@@ -2,7 +2,7 @@
 
 {% macro confirm_action_button(text, title, url, class="btn", color="primary", container="button", method="hx-get", body="Do you want to proceed?", icon="warning", disabled=false, tooltip=none, disabled_tooltip=none, tooltip_position="top") %}
 {% if disabled and disabled_tooltip %}
-<span {{ tooltip_func(disabled_tooltip, tooltip_position, color) }}>
+<span {{ tooltip_func(disabled_tooltip, tooltip_position, "warning") }}>
 {% endif %}
 <{{ container }} type="button" class="{{ class }} {% if class == "btn" %}btn-{{ color }}{% endif %}"
     {% if not disabled %}
@@ -24,47 +24,16 @@
 {% endif %}
 {% endmacro %}
 
-{% macro sm_modal_button(text, container="button", class="btn btn-primary", disabled=false, hx_get=none, hx_post=none, hx_delete=none, tooltip=none, tooltip_category="primary", tooltip_position="top") %}
-<{{ container }} type="button" class="{{ class }}"
-data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content" hx-swap="innerHTML"
-{% if hx_get %}
-hx-get="{{ hx_get }}"
-{% elif hx_post %}
-hx-post="{{ hx_post }}"
-{% elif hx_delete %}
-hx-delete="{{ hx_delete }}"
+{% macro modal_button(text, url, container="button", class="btn", size="xl", disabled=false, method="hx-get", tooltip=none, color="primary", tooltip_position="top", disabled_tooltip=none) %}
+{% if disabled and disabled_tooltip %}
+<span {{ tooltip_func(disabled_tooltip, tooltip_position, "warning") }}>
 {% endif %}
+<{{ container }} type="button" class="{{ class }} {% if class == "btn" %}btn-{{ color }}{% endif %}" {{ method }}="{{ url }}"
+data-bs-toggle="modal" data-bs-target="#{{ size }}-modal" hx-target="#{{ size }}-modal-content" hx-swap="innerHTML"
 {% if disabled %}disabled{% endif %}>
-    <span {% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>{{ text }}</span>
+    <span {% if tooltip and not disabled %}{{ tooltip_func(tooltip, tooltip_position, color) }}{% endif %}>{{ text }}</span>
 </{{ container }}>
-{% endmacro %}
-
-{% macro xl_modal_button(text, container="button", class="btn btn-primary", disabled=false, hx_get=none, hx_post=none, hx_delete=none, tooltip=none, tooltip_category="primary", tooltip_position="top") %}
-<{{ container }} type="button" class="{{ class }}"
-data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-{% if hx_get %}
-hx-get="{{ hx_get }}"
-{% elif hx_post %}
-hx-post="{{ hx_post }}"
-{% elif hx_delete %}
-hx-delete="{{ hx_delete }}"
+{% if disabled and disabled_tooltip %}
+</span>
 {% endif %}
-{% if disabled %}disabled{% endif %}>
-    <span {% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>{{ text }}</span>
-</{{ container }}>
-{% endmacro %}
-
-{% macro fs_modal_button(text, container="button", class="btn btn-primary", disabled=false, hx_get=none, hx_post=none, hx_delete=none, tooltip=none, tooltip_category="primary", tooltip_position="top") %}
-<{{ container }} type="button" class="{{ class }}"
-data-bs-toggle="modal" data-bs-target="#fullscreen-modal" hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
-{% if hx_get %}
-hx-get="{{ hx_get }}"
-{% elif hx_post %}
-hx-post="{{ hx_post }}"
-{% elif hx_delete %}
-hx-delete="{{ hx_delete }}"
-{% endif %}
-{% if disabled %}disabled{% endif %}>
-    <span {% if tooltip %}{{ tooltip_func(tooltip, tooltip_position, tooltip_category) }}{% endif %}>{{ text }}</span>
-</{{ container }}>
 {% endmacro %}

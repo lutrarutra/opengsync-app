@@ -2,7 +2,7 @@ from uuid6 import uuid7
 
 from sqlalchemy.sql.base import ExecutableOption
 
-from ...categories import MediaFileType
+from ...categories import MediaFileType, AccessType, UserRole
 from ... import models
 from ..DBBlueprint import DBBlueprint
 from .. import exceptions
@@ -112,13 +112,22 @@ class MediaFileBP(DBBlueprint):
         self.db.session.add(file)
 
     @DBBlueprint.transaction
-    def permissions_check(self, user_id: int, file_id: int) -> bool:
-        if (file := self.db.session.get(models.MediaFile, file_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
+    def get_access_type(self, file: models.MediaFile, user: models.User) -> AccessType:
+        if user.role == UserRole.DEACTIVATED:
+            return AccessType.NONE
+        if user.is_admin():
+            return AccessType.ADMIN
+        if user.is_insider():
+            return AccessType.INSIDER
+        if user == file.uploader:
+            return AccessType.OWNER
         
-        # FIXME: proper permission check
-        res = file.uploader_id == user_id
-        return res
+        if file.seq_request is not None:
+            access_type = self.db.seq_requests.get_access_type(file.seq_request, user)
+            if access_type != AccessType.NONE:
+                return access_type
+        
+        return AccessType.NONE
     
     @DBBlueprint.transaction
     def __getitem__(self, file_id: int) -> models.MediaFile:

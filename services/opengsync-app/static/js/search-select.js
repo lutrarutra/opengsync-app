@@ -24,10 +24,12 @@ class SearchSelect {
 
     _init() {
         if (this.$selected_input.val() && this.$search_input.val()) {
-            this.$selected_bar.empty().append(this.$search_input.val()).css("display", "flex");
+            let $span = $("<span class='search-select-name'>").text(this.$search_input.val());
+            this.$selected_bar.empty().append($span).css("display", "flex");
             this.$search_input.val("").hide();
+            window.domm[this.field_name] = $span;
         }
-        else if (window.domm[this.field_name]) {
+        else if (this.$selected_input.val() && window.domm[this.field_name]) {
             this.$selected_bar.empty().append(window.domm[this.field_name]).css("display", "flex");
             this.$search_input.hide();
         }

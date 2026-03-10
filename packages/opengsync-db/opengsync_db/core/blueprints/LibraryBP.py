@@ -233,7 +233,7 @@ class LibraryBP(DBBlueprint):
             )
 
         if page is not None:
-            if limit is None:
+            if not limit:
                 raise ValueError("Limit must be provided when page is provided")
             
             count = query.count()
@@ -477,15 +477,8 @@ class LibraryBP(DBBlueprint):
         if library.owner_id == user.id:
             return AccessType.OWNER
         
-        has_access: bool = self.db.session.query(
-            sa.exists().where(
-                (models.links.UserAffiliation.user_id == user.id) &
-                (models.links.UserAffiliation.group_id == library.seq_request.group_id)
-            )
-        ).scalar()
-
-        if has_access:
-            return AccessType.EDIT
+        if (access_type := self.db.seq_requests.get_access_type(library.seq_request, user)) != AccessType.NONE:
+            return access_type
 
         return AccessType.NONE
 

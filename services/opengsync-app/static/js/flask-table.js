@@ -97,10 +97,6 @@ class HTMXTable {
                 this._show_search_menu(th);
             }
         });
-
-        this.$table.find("th:not(:has(.table-col-header-container))").each((index, th) => {
-            $(th).wrapInner('<div class="table-col-header-container"></div>');
-        });
     }
 
     _handleSearch(field_name, search_value) {

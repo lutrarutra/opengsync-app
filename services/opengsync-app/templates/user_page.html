@@ -1,5 +1,5 @@
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_email_link %}
-{% from "components/button.jinja2" import confirm_action_button %}
+{% from "components/button.jinja2" import confirm_action_button, modal_button %}
 
 {% extends "base.html" %}
 {% set active_page = "users-page" %}
@@ -31,6 +31,7 @@
                             Change Password
                         </button>
                     </li>
+                    {% if current_user.is_insider() %}
                     <li>
                         {{
                             confirm_action_button(
@@ -70,6 +71,21 @@
                             )
                         }}
                     </li>
+                    <li>
+                        {{
+                            confirm_action_button(
+                                text="Start Session",
+                                title="Start Session?",
+                                body="You will be logged in as the user. Do you want to continue?",
+                                method="hx-post",
+                                url=url_for('auth_htmx.start_user_session', user_id=user.id),
+                                class="dropdown-item",
+                                disabled=not current_user.is_admin(),
+                                disabled_tooltip="Only admins can start sessions as other users."
+                            )
+                        }}
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
             {% if current_user.id == user.id %}
@@ -155,13 +171,13 @@
                     <h2>API Tokens</h2>
                 </div>
                 <div>
-                    {% if current_user.is_admin() or current_user.id == user.id %}
-                    <button class="btn btn-primary"
-                    hx-get="{{ url_for('api_tokens_htmx.create', user_id=user.id) }}"
-                    data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content">
-                        New Token
-                    </button>
-                    {% endif %}
+                    {{
+                        modal_button(
+                            "New Token", url=url_for('api_tokens_htmx.create', user_id=user.id), size="sm",
+                            disabled=not (current_user.is_admin() or (current_user.id == user.id and current_user.is_insider())),
+                            disabled_tooltip="Only insiders can create API tokens.", tooltip_position="left"
+                        )
+                    }}
                 </div>
             </div>
             <div hx-get="{{ url_for('users_htmx.get_api_tokens', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">

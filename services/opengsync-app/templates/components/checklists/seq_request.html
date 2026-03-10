@@ -1,5 +1,5 @@
 {% from "components/spinner.jinja2" import spinner %}
-{% from "components/button.jinja2" import fs_modal_button, xl_modal_button %}
+{% from "components/button.jinja2" import modal_button %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
 <div class="accordion p-1" id="sops-accordion">
@@ -15,9 +15,9 @@
                 <ol>
                     <li>
                         {{
-                            fs_modal_button(
-                                text="Begin",
-                                hx_get=url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id),
+                            modal_button(
+                                text="Begin", size="fullscreen",
+                                url=url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id),
                                 disabled=not current_user.is_insider() and seq_request.status != SeqRequestStatus.DRAFT
                             )
                         }} - Sample Annotation Workflow
@@ -49,9 +49,10 @@
                     </li>
                     <li>
                         {{
-                            xl_modal_button(
-                                text="Upload",
-                                hx_get=url_for('seq_requests_htmx.file_form', seq_request_id=seq_request.id),
+                            modal_button(
+                                text="Upload", size="xl",
+                                url=url_for('seq_requests_htmx.file_form', seq_request_id=seq_request.id),
+                                disabled=not (current_user.is_insider() or (seq_request.status == SeqRequestStatus.DRAFT) or seq_request.seq_auth_form_file is none)
                             )
                         }} - Signed Sequencing Authorization Form
                     </li>
@@ -82,9 +83,9 @@
                     <li>If times for sample submission (listed below) are not suitable, please contact us <a href="mailto:{{ contact_email }}">{{ contact_email }}</a> to arrange an alternative submission time.</li>
                     <li>
                         {{
-                            xl_modal_button(
-                                text="Submit",
-                                hx_get=url_for('seq_requests_htmx.submit_request', seq_request_id=seq_request.id),
+                            modal_button(
+                                text="Submit", size="xl",
+                                url=url_for('seq_requests_htmx.submit_request', seq_request_id=seq_request.id),
                                 disabled=not is_submittable and not current_user.is_insider(),
                             )
                         }} - Sequencing Request for Review

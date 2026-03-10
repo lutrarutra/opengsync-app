@@ -151,10 +151,13 @@
                     <i class="bi bi-cpu"></i>
                     {% elif user_role == UserRole.TECHNICIAN %}
                     <i class="bi bi-virus2"></i>
-                    {% elif user_role == UserRole.CLIENT %}
-                    <i class="bi bi-person-fill"></i>
                     {% endif %}
+                    {% if current_user.is_insider() %}
                     {{ current_user.last_name }}
+                    {% else %}
+                    <i class="bi bi-person-fill"></i>
+                    User
+                    {% endif %}
                 </p>
             </a>
             {% else %}

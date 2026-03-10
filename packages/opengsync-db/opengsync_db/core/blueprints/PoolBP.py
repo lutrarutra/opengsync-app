@@ -213,7 +213,7 @@ class PoolBP(DBBlueprint):
             query = query.offset(offset)
 
         if page is not None:
-            if limit is None:
+            if not limit:
                 raise ValueError("Limit must be provided when page is provided")
             
             count = query.count()
@@ -363,7 +363,7 @@ class PoolBP(DBBlueprint):
             query = query.order_by(attr)
 
         if page is not None:
-            if limit is None:
+            if not limit:
                 raise ValueError("Limit must be provided when page is provided")
             
             count = query.count()
@@ -400,15 +400,10 @@ class PoolBP(DBBlueprint):
             return AccessType.OWNER
 
         if pool.seq_request is not None:
-            has_access: bool = self.db.session.query(
-                sa.exists().where(
-                    (models.links.UserAffiliation.user_id == user.id) &
-                    (models.links.UserAffiliation.group_id == pool.seq_request.group_id)
-                )
-            ).scalar()
-            if has_access:
-                return AccessType.EDIT
-
+            access_type = self.db.seq_requests.get_access_type(pool.seq_request, user)
+            if access_type != AccessType.NONE:
+                return access_type
+            
         return AccessType.NONE
 
     @DBBlueprint.transaction

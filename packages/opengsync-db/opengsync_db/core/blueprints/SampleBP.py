@@ -146,7 +146,7 @@ class SampleBP(DBBlueprint):
             query = query.where(models.Sample.id == id)
 
         if page is not None:
-            if limit is None:
+            if not limit:
                 raise ValueError("Limit must be provided when page is provided")
             
             count = query.count()
@@ -279,39 +279,10 @@ class SampleBP(DBBlueprint):
         if user == sample.owner:
             return AccessType.OWNER
         
-        affiliation_exists: bool = self.db.session.query(
-            sa.exists().where(
-                (models.links.UserAffiliation.user_id == user.id) &
-                (models.SeqRequest.group_id == models.links.UserAffiliation.group_id) &
-                (models.Library.seq_request_id == models.SeqRequest.id) &
-                (models.links.SampleLibraryLink.sample_id == sample.id) &
-                (models.links.SampleLibraryLink.library_id == models.Library.id)
-            )
-        ).scalar()
-
-        if affiliation_exists:
-            return AccessType.EDIT
-
-        return AccessType.NONE
-
-    @DBBlueprint.transaction
-    def is_in_seq_request(
-        self, sample_id: int, seq_request_id: int
-    ) -> bool:
+        if (access_type := self.db.projects.get_access_type(sample.project, user)) != AccessType.NONE:
+            return access_type
         
-        query = self.db.session.query(models.Sample)
-
-        query = query.join(
-            models.links.SampleLibraryLink,
-            models.links.SampleLibraryLink.sample_id == sample_id,
-        ).join(
-            models.Library,
-            models.Library.id == models.links.SampleLibraryLink.library_id,
-        ).where(
-            models.Library.seq_request_id == seq_request_id,
-        )
-        res = query.first() is not None
-        return res
+        return AccessType.NONE
     
     @DBBlueprint.transaction
     def __getitem__(self, sample_id: int) -> models.Sample:

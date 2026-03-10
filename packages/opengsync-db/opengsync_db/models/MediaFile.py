@@ -15,6 +15,9 @@ from .User import User
 
 if TYPE_CHECKING:
     from .Comment import Comment
+    from .SeqRequest import SeqRequest
+    from .Experiment import Experiment
+    from .LabPrep import LabPrep
 
 
 class MediaFile(Base):
@@ -34,6 +37,10 @@ class MediaFile(Base):
     seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
     experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
+
+    seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest", back_populates="media_files", lazy="select")
+    experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", back_populates="media_files", lazy="select")
+    lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", back_populates="media_files", lazy="select")
 
     @property
     def type(self) -> MediaFileType:

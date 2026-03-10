@@ -87,6 +87,10 @@ table input.table-query-input {
             overflow-x: hidden;
         }
 
+        thead th:not(:has(.table-col-header-container)) {
+            vertical-align: middle;
+        }
+
         .table-select-buttons {
             display: flex;
             align-items: flex-start;

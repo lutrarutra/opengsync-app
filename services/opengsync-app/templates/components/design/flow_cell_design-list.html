@@ -1,6 +1,6 @@
 {% from 'components/spinner.jinja2' import spinner %}
 {% from 'components/tooltip.jinja2' import tooltip %}
-{% from 'components/button.jinja2' import confirm_action_button, sm_modal_button %}
+{% from 'components/button.jinja2' import confirm_action_button, modal_button %}
 {% from "components/design/flow_cell_type_cm.jinja2" import flow_cell_type_cm with context %}
 {% from 'components/design/comment-list.jinja2' import comment_list with context %}
 
@@ -60,12 +60,10 @@
                             </div>
                             <div>
                                 {{
-                                    sm_modal_button(
+                                    modal_button(
                                         text='<i class="bi bi-pencil-square"></i>',
-                                        hx_get=url_for('design_htmx.edit_flow_cell_design', flow_cell_design_id=design.id),
-                                        container="a",
-                                        class="",
-                                        tooltip='Edit Design'
+                                        url=url_for('design_htmx.edit_flow_cell_design', flow_cell_design_id=design.id),
+                                        container="a", class="", tooltip='Edit Design', size="sm"
                                     )
                                 }}
                                 {{

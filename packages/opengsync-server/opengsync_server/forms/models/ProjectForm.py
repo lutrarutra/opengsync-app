@@ -11,7 +11,7 @@ from opengsync_db.categories import ProjectStatus
 from ... import logger, db
 from ...core import exceptions
 from ..HTMXFlaskForm import HTMXFlaskForm
-from ..SearchBar import OptionalSearchBar
+from ..SearchBar import OptionalSearchBar, SearchBar
 
 
 class ProjectForm(HTMXFlaskForm):
@@ -21,6 +21,7 @@ class ProjectForm(HTMXFlaskForm):
     title = StringField("Title", validators=[DataRequired(), Length(min=6, max=models.Project.title.type.length)], description="Title of the project")
     description = TextAreaField("Description", validators=[DataRequired(), Length(max=2048)])
     status = SelectField("Status", choices=ProjectStatus.as_selectable(), coerce=int, default=ProjectStatus.DRAFT.id, description="Status of the project")
+    owner = FormField(SearchBar, label="Owner", description="Creator of the project.")
     group = FormField(OptionalSearchBar, label="Group", description="Group to which the project belongs. All users of that group will be able to see this project.")
 
     def __init__(
@@ -47,6 +48,8 @@ class ProjectForm(HTMXFlaskForm):
         if self.project is None:
             return
         
+        self.owner.search_bar.data = self.project.owner.name
+        self.owner.selected.data = self.project.owner.id
         self.identifier.data = self.project.identifier or ""
         self.title.data = self.project.title
         self.description.data = self.project.description
@@ -58,7 +61,7 @@ class ProjectForm(HTMXFlaskForm):
             self.group.search_bar.data = self.project.group.name
             self.group.selected.data = self.project.group.id
     
-    def validate(self, user: models.User) -> bool:
+    def validate(self, current_user: models.User) -> bool:
         if not super().validate():
             return False
 
@@ -73,7 +76,7 @@ class ProjectForm(HTMXFlaskForm):
                 self.status.errors = (f"You can only create a project with status {ProjectStatus.DRAFT.name}.",)
                 return False
         else:
-            if not user.is_insider():
+            if not current_user.is_insider():
                 if status != self.project.status:
                     self.status.errors = ("You don't have permissions to edit the status.",)
                     return False
@@ -81,7 +84,7 @@ class ProjectForm(HTMXFlaskForm):
         if self.project is not None:
             user_projects = self.project.owner.projects
         else:
-            user_projects = user.projects
+            user_projects = current_user.projects
 
         # Creating new project
         if self.project is None:
@@ -93,12 +96,11 @@ class ProjectForm(HTMXFlaskForm):
                 if (db.projects.get(self.identifier.data) is not None):
                     self.identifier.errors = ("Project with this identifier already exists.",)
                     return False
-
         # Editing existing project
         else:
             for project in user_projects:
                 if project.title == self.title.data:
-                    if project.id != self.project.id and project.owner_id == user.id:
+                    if project.id != self.project.id and project.owner_id == current_user.id:
                         self.title.errors = ("Owner of the project already has a project with this title.",)
                         return False
                     
@@ -108,22 +110,43 @@ class ProjectForm(HTMXFlaskForm):
                         self.identifier.errors = ("Project with this identifier already exists.",)
                         return False
                     
+            if self.project.identifier and self.identifier.data and self.project.identifier != self.identifier.data and not current_user.is_insider():
+                self.identifier.errors = ("You don't have permissions to change the identifier.",)
+                return False
+                    
+            if self.project.status != status and not current_user.is_insider():
+                self.status.errors = ("You don't have permissions to change the status.",)
+                return False
+                    
+        if (user := db.users.get(self.owner.selected.data)) is None:
+            self.owner.selected.errors = ("Selected user does not exist.",)
+            return False
+        
+        if not current_user.is_insider() and user.id != current_user.id:
+            self.owner.selected.errors = ("You don't have permissions to set this user as owner.",)
+            return False
+                    
         if self.group.selected.data is not None:
             if (group := db.groups.get(self.group.selected.data)) is None:
                 logger.error(f"Group with id {self.group.selected.data} does not exist.")
                 raise ValueError(f"Group with id {self.group.selected.data} does not exist.")
+            
+            if not user.is_insider():
+                if db.groups.get_user_affiliation(user_id=user.id, group_id=group.id) is None:
+                    self.owner.selected.errors = ("Selected user must be part of the selected group.",)
+                    return False
             
             if self.project is not None:
                 if not self.project.owner.is_insider() and db.groups.get_user_affiliation(user_id=self.project.owner_id, group_id=group.id) is None:
                     self.group.selected.errors = ("Project owner must be part of the group.",)
                     return False
             else:
-                if not user.is_insider() and db.groups.get_user_affiliation(user_id=user.id, group_id=group.id) is None:
+                if not current_user.is_insider() and db.groups.get_user_affiliation(user_id=current_user.id, group_id=group.id) is None:
                     self.group.selected.errors = ("You must be part of the group.",)
                     return False
                 
         if self.title.data:
-            if user.is_insider():
+            if current_user.is_insider():
                 import sqlalchemy as sa
                 if db.session.query(models.Project.title).join(
                     models.User,
@@ -174,7 +197,7 @@ class ProjectForm(HTMXFlaskForm):
         )
     
     def process_request(self, user: models.User) -> Response:
-        if not self.validate(user=user):
+        if not self.validate(current_user=user):
             return self.make_response()
         
         if self.project is None:

@@ -44,6 +44,12 @@ class LoginForm(HTMXFlaskForm):
             self.email.errors = ("Account is deactivated. Please contact us.",)
             return self.make_response()
         
+        if user.role == UserRole.TEMPORARY:
+            self.email.errors = ("Account is deactivated. Please contact us.",)
+            user.role = UserRole.DEACTIVATED
+            db.users.update(user)
+            return self.make_response()
+        
         runtime.session.clear()
         login_user(user)
         runtime.app.session_interface.regenerate(runtime.session)  # type: ignore

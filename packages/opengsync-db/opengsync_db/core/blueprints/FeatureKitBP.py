@@ -80,7 +80,7 @@ class FeatureKitBP(DBBlueprint):
             query = query.order_by(sa.nulls_last(sa.func.similarity(models.FeatureKit.identifier, identifier).desc()))
 
         if page is not None:
-            if limit is None:
+            if not limit:
                 raise ValueError("Limit must be provided when page is provided")
             
             count = query.count()

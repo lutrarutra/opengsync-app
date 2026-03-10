@@ -14,12 +14,20 @@
             <div class="row">
                 {% if current_user.is_insider() %}
                 {{ form_group(form.identifier, class="col-6", placeholder="BSA_XXXX") }}
+                {{ select_input(form.status, class="col-6") }}
                 {% else %}
                 {{ form_group(form.identifier, class="col-6", placeholder="BSA_XXXX", disabled=true) }}
+                {{ select_input(form.status, class="col-6", disabled=true) }}
                 {% endif %}
-                {{ select_input(form.status, class="col-6") }}
             </div>
-            {{ search_select_field2(form.group, url_for('groups_htmx.search'), "name") }}
+            <div class="row">
+                {% if current_user.is_insider() %}
+                {{ search_select_field2(form.owner, url_for('users_htmx.search'), "name", class="col-6") }}
+                {% else %}
+                {{ search_select_field2(form.owner, url_for('users_htmx.search'), "name", class="col-6", readonly=True) }}
+                {% endif %}
+                {{ search_select_field2(form.group, url_for('groups_htmx.search'), "name", class="col-6") }}
+            </div>
             {{ form_group(form.description) }}
         </div>
     </div>

@@ -6,7 +6,7 @@ from flask import Blueprint, url_for, render_template, flash, request, Response
 from flask_htmx import make_response
 
 from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import ProjectStatus, LibraryStatus, SeqRequestStatus, AccessType
+from opengsync_db.categories import ProjectStatus, LibraryStatus, AccessType
 
 from ... import db, forms, logger, logic
 from ...core import wrappers, exceptions
@@ -29,10 +29,13 @@ def search(current_user: models.User):
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
     if request.method == "GET":
-        return forms.models.ProjectForm(
+        form = forms.models.ProjectForm(
             project=None,
             form_type="create",
-        ).make_response()
+        )
+        form.owner.search_bar.data = current_user.name
+        form.owner.selected.data = current_user.id
+        return form.make_response()
     
     return forms.models.ProjectForm(
         project=None,
@@ -51,11 +54,11 @@ def edit(current_user: models.User, project_id: int):
     if access_type < AccessType.EDIT:
         raise exceptions.NoPermissionsException()
     
-    if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
-        raise exceptions.NoPermissionsException()
-    
     if request.method == "GET":
         return forms.models.ProjectForm(project=project, form_type="edit").make_response()
+    
+    if project.status != ProjectStatus.DRAFT and access_type < AccessType.INSIDER:
+        raise exceptions.NoPermissionsException()
     
     return forms.models.ProjectForm(
         project=project, form_type="edit", formdata=request.form,
@@ -72,7 +75,7 @@ def delete(current_user: models.User, project_id: int):
     if access_type < AccessType.EDIT:
         raise exceptions.NoPermissionsException()
     
-    if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+    if project.status != ProjectStatus.DRAFT and access_type < AccessType.INSIDER:
         raise exceptions.NoPermissionsException()
 
     if project.num_samples > 0:
@@ -110,7 +113,7 @@ def get_sample_attributes(current_user: models.User, project_id: int):
     if access_type < AccessType.VIEW:
         raise exceptions.NoPermissionsException()
     
-    df = db.pd.get_project_samples(project_id=project_id).rename(columns={"sample_id": "id", "sample_name": "name"})
+    df = db.pd.get_project_samples(project_id=project_id).sort_values("sample_id").reset_index(drop=True).rename(columns={"sample_id": "id", "sample_name": "name"})
 
     columns = []
     for col in df.columns:
@@ -134,7 +137,7 @@ def render_sample_table(current_user: models.User, project_id: int):
     access_type = db.projects.get_access_type(project, current_user)
     if access_type < AccessType.EDIT:
         raise exceptions.NoPermissionsException()
-    if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+    if project.status != ProjectStatus.DRAFT and access_type < AccessType.INSIDER:
         raise exceptions.NoPermissionsException()
     
     df = db.pd.get_project_samples(project_id=project_id)
@@ -156,7 +159,7 @@ def edit_sample_attributes(current_user: models.User, project_id: int):
     access_type = db.projects.get_access_type(project, current_user)
     if access_type < AccessType.EDIT:
         raise exceptions.NoPermissionsException()
-    if project.status != SeqRequestStatus.DRAFT and access_type < AccessType.INSIDER:
+    if project.status > ProjectStatus.SEQUENCED and access_type < AccessType.INSIDER:
         raise exceptions.NoPermissionsException()
 
     if request.method == "GET":
