@@ -126,6 +126,7 @@
 
     &.active {
         min-width: 400px;
+        z-index: 1010;
 
         .dropdown-toggle {
             border-bottom-left-radius: 0;

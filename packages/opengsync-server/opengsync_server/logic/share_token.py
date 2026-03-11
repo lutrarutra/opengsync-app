@@ -38,8 +38,8 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         except ValueError:
             raise exceptions.BadRequestException()
     else:
-        sort_by = request.args.get("sort_by", "id")
-        sort_order = request.args.get("sort_order", "desc")
+        sort_by = request.args.get("sort_by", "uuid")
+        sort_order = request.args.get("sort_order", "asc")
         descending = sort_order == "desc"
         if sort_by not in models.ShareToken.sortable_fields:
             raise exceptions.BadRequestException()

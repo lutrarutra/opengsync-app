@@ -171,6 +171,7 @@ def start_user_session(current_user: models.User, user_id: int):
     if (user := db.users.get(user_id)) is None:
         raise exceptions.NotFoundException()
     
+    logger.info(f"Admin {current_user.email} started session for user '{user.email}'")
     logout_user()
     runtime.session.clear()
     login_user(user)
@@ -178,7 +179,5 @@ def start_user_session(current_user: models.User, user_id: int):
         user.role = UserRole.TEMPORARY
         db.users.update(user)
     runtime.app.session_interface.regenerate(runtime.session)  # type: ignore
-
     flash("User Session Started!", "success")
-    logger.info(f"Admin {current_user.email} started session for user '{user.email}'")
     return make_response(redirect=url_for("dashboard"))
