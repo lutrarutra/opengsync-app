@@ -5,10 +5,10 @@ import pandas as pd
 from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
-from opengsync_db import models, PAGE_LIMIT
-from opengsync_db.categories import LibraryType, LibraryStatus, ServiceType, MUXType, AccessType, DataPathType, SampleStatus, PoolStatus
+from opengsync_db import models
+from opengsync_db.categories import LibraryType, LibraryStatus, ServiceType, MUXType, AccessType, SampleStatus, PoolStatus
 
-from ... import db, forms, logger, logic
+from ... import db, forms, logic
 from ...core import wrappers, exceptions
 from ...tools.spread_sheet_components import TextColumn
 from ...tools import StaticSpreadSheet
@@ -42,30 +42,6 @@ def query(current_user: models.User):
         render_template(
             "components/search/library.html",
             results=results, field_name=field_name,
-        )
-    )
-
-
-@wrappers.htmx_route(libraries_htmx, db=db)
-def get_features(current_user: models.User, library_id: int, page: int = 0):
-    if (library := db.libraries.get(library_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    if not current_user.is_insider() and library.owner_id != current_user.id:
-        raise exceptions.NoPermissionsException()
-    
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
-
-    features, n_pages = db.features.find(offset=offset, library_id=library_id, sort_by=sort_by, descending=descending, count_pages=True)
-    
-    return make_response(
-        render_template(
-            "components/tables/library-feature.html",
-            features=features, n_pages=n_pages, active_page=page,
-            sort_by=sort_by, sort_order=sort_order, library=library
         )
     )
 
@@ -397,10 +373,10 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
     for seq_request in seq_requests:
         data["seq_request"].append(seq_request)
         data["num_waiting_samples"].append(sum([s.status == SampleStatus.WAITING_DELIVERY for s in seq_request.samples]))
-        data["num_preparing_libraries"].append(sum([l.status == LibraryStatus.PREPARING for l in seq_request.libraries]))
-        data["num_pooled_libraries"].append(sum([l.status in [LibraryStatus.POOLED, LibraryStatus.SEQUENCED, LibraryStatus.SHARED, LibraryStatus.ARCHIVED] for l in seq_request.libraries]))
+        data["num_preparing_libraries"].append(sum([ls.status == LibraryStatus.PREPARING for ls in seq_request.libraries]))
+        data["num_pooled_libraries"].append(sum([ls.status in [LibraryStatus.POOLED, LibraryStatus.SEQUENCED, LibraryStatus.SHARED, LibraryStatus.ARCHIVED] for ls in seq_request.libraries]))
         data["library_type_counts"].append(seq_request.library_type_counts)
-        data["num_waiting_libraries"].append(sum([l.status == LibraryStatus.ACCEPTED for l in seq_request.libraries]))
+        data["num_waiting_libraries"].append(sum([ls.status == LibraryStatus.ACCEPTED for ls in seq_request.libraries]))
         data["num_waiting_pools"].append(sum([p.status == PoolStatus.ACCEPTED for p in seq_request.pools]))
 
 

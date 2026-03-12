@@ -5,6 +5,14 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["packages"]
 
+[tool.pyright]
+extraPaths = [
+    "packages/opengsync-db",
+    "packages/opengsync-server",
+    "packages/opengsync-api",
+]
+reportIncompatibleMethodOverride = false
+
 [project]
 name = "opengsync-app"
 dynamic = ["version"]

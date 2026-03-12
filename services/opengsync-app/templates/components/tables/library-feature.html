@@ -1,19 +1,19 @@
 {% from "components/pagination.jinja2" import pagination %}
-{% from "components/spinner.jinja2" import spinner %}
+{% from "components/table_col.jinja2" import table_col %}
 
 <div id="library-feature-table" class="table-container">
     <table class="table">
         <thead>
             <tr>
-                <th scope="col" class="col-1">ID</th>
-                <th scope="col" class="col-2">Name</th>
-                <th scope="col" class="col-1">Identifier</th>
-                <th scope="col" class="col-2">Sequence</th>
-                <th scope="col" class="col-1">Pattern</th>
-                <th scope="col" class="col-1">Read</th>
-                <th scope="col" class="col-1">Type</th>
-                <th scope="col" class="col-1">Target Name</th>
-                <th scope="col" class="col-1">Target ID</th>
+                {{ table_col("library-feature-table", table, "id") }}
+                {{ table_col("library-feature-table", table, "name") }}
+                {{ table_col("library-feature-table", table, "identifier") }}
+                {{ table_col("library-feature-table", table, "target_name") }}
+                {{ table_col("library-feature-table", table, "target_id") }}
+                {{ table_col("library-feature-table", table, "sequence") }}
+                {{ table_col("library-feature-table", table, "pattern") }}
+                {{ table_col("library-feature-table", table, "read") }}
+                {{ table_col("library-feature-table", table, "type") }}
             </tr>
         </thead>
         <tbody>
@@ -21,17 +21,21 @@
             <tr>
                 <th scope="row">{{ feature.id }}</th>
                 <td>{{ feature.name }}</td>
-                <td>{{ feature.identifier }}</td>
+                <td>{{ feature.identifier or '' }}</td>
+                <td>{{ feature.target_name or '' }}</td>
+                <td>{{ feature.target_id or '' }}</td>
                 <td>{{ feature.sequence }}</td>
                 <td>{{ feature.pattern }}</td>
                 <td>{{ feature.read }}</td>
                 <td>{{ feature.type.label }}</td>
-                <td>{{ feature.target_name if feature.target_name }}</td>
-                <td>{{ feature.target_id if feature.target_id }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {{ spinner("library-feature-table") }}
-    {{ pagination("library-feature-table", "libraries_htmx.get_features", n_pages, active_page, context={"library_id": library.id}) }}
+    {{ pagination("library-feature-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#library-feature-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

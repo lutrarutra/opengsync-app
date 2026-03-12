@@ -204,11 +204,11 @@ class App(Flask):
             if request.endpoint == "static":
                 return response
 
-            try:
-                if (start_time := getattr(g, "start_time", None)) is not None:
-                    duration_ms = int((time.time() - start_time) * 1000)
-            except KeyError:
-                pass
+            # try:
+            #     if (start_time := getattr(g, "start_time", None)) is not None:
+            #         duration_ms = int((time.time() - start_time) * 1000)
+            # except KeyError:
+            #     pass
             
             return response
 
@@ -296,7 +296,7 @@ class App(Flask):
             )
 
         with self.app_context():
-            from ..routes import core_routes
+            from ..routes import core_routes  # noqa: F401
 
         self.register_blueprint(routes.htmx.samples_htmx)
         self.register_blueprint(routes.htmx.projects_htmx)

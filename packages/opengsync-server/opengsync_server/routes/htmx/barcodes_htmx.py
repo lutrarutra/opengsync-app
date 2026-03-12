@@ -1,11 +1,7 @@
-from flask import Blueprint, render_template, request
-from flask_htmx import make_response
-
-from opengsync_db import PAGE_LIMIT
-from opengsync_db.categories import IndexType
+from flask import Blueprint, request
 
 from ... import db, forms
-from ...core import wrappers, exceptions
+from ...core import wrappers
 barcodes_htmx = Blueprint("barcodes_htmx", __name__, url_prefix="/htmx/barcodes/")
 
 

@@ -22,3 +22,33 @@ from . import share_token
 from . import dilution
 from . import lane
 from . import tokens
+from . import feature
+
+
+__all__ = [
+    "context",
+    "adapter",
+    "affiliation",
+    "experiment",
+    "feature_kit",
+    "group",
+    "index_kit",
+    "kit",
+    "lab_prep",
+    "library",
+    "pool",
+    "project",
+    "protocol",
+    "sample",
+    "seq_request",
+    "seq_run",
+    "sequencer",
+    "user",
+    "design",
+    "data_path",
+    "share_token",
+    "dilution",
+    "lane",
+    "tokens",
+    "feature",
+]

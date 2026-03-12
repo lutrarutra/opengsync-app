@@ -1,5 +1,4 @@
 import math
-from typing import Optional
 
 import sqlalchemy as sa
 
@@ -49,10 +48,9 @@ class FeatureBP(DBBlueprint):
     @DBBlueprint.transaction
     def find(
         self, feature_kit_id: int | None = None,
-        library_id: int | None = None,
+        library_id: int | None = None, page: int | None = None,
         sort_by: str | None = None, descending: bool = False,
         limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        count_pages: bool = False
     ) -> tuple[list[models.Feature], int | None]:
         query = self.db.session.query(models.Feature)
 
@@ -69,14 +67,22 @@ class FeatureBP(DBBlueprint):
                 models.links.LibraryFeatureLink.library_id == library_id
             )
 
-        n_pages = None if not count_pages else math.ceil(query.count() / limit) if limit is not None else None
-
         if sort_by is not None:
             attr = getattr(models.Feature, sort_by)
             if descending:
                 attr = attr.desc()
 
             query = query.order_by(attr)
+
+        if page is not None:
+            if not limit:
+                raise ValueError("Limit must be provided when page is provided")
+            
+            count = query.count()
+            n_pages = math.ceil(count / limit)
+            query = query.offset(min(page, max(0, n_pages - 1)) * limit)
+        else:
+            n_pages = None
 
         if offset is not None:
             query = query.offset(offset)
