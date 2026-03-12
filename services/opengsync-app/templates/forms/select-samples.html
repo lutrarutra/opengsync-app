@@ -150,14 +150,14 @@
                             {% if workflow == "qubit_measure" %}
                             <td>
                                 <div class="quantity-container">
-                                    <div class="value">{{ sample.qubit_concentration if sample.original_qubit_concentration }}</div>
+                                    <div class="value">{{ sample.qubit_concentration or '' }}</div>
                                     <div class="unit">ng/μL</div>
                                 </div>
                             </td>
                             {% elif workflow == "ba_report" %}
                             <td>
                                 <div class="quantity-container">
-                                    <div class="value">{{ sample.avg_fragment_size if sample.avg_fragment_size }}</div>
+                                    <div class="value">{{ sample.avg_fragment_size or '' }}</div>
                                     <div class="unit">bp</div>
                                 </div>
                             </td>
@@ -209,7 +209,7 @@
                             {% elif workflow == "ba_report" %}
                             <td>
                                 <div class="quantity-container">
-                                    <div class="value">{{ library.avg_fragment_size if library.avg_fragment_size }}</div>
+                                    <div class="value">{{ library.avg_fragment_size or '' }}</div>
                                     <div class="unit">bp</div>
                                 </div>
                             </td>
@@ -256,14 +256,14 @@
                             {% elif workflow == "ba_report" %}
                             <td>
                                 <div class="quantity-container">
-                                    <div class="value">{{ pool.avg_fragment_size if pool.avg_fragment_size }}</div>
+                                    <div class="value">{{ pool.avg_fragment_size or '' }}</div>
                                     <div class="unit">bp</div>
                                 </div>
                             </td>
                             {% elif workflow == "select_experiment_pools" %}
                             <td>
                                 <div class="quantity-container">
-                                    <div class="value">{{ pool.num_m_reads_requested if pool.num_m_reads_requested }}</div>
+                                    <div class="value">{{ pool.num_m_reads_requested or '' }}</div>
                                     <div class="unit">M</div>
                                 </div>
                             </td>

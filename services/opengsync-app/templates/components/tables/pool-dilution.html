@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 
@@ -34,7 +34,7 @@
                 </td>
                 <td>
                     <div class="quantity-container">
-                        <div class="value">{{ dilution.volume_ul if dilution.volume_ul }}</div>
+                        <div class="value">{{ dilution.volume_ul or '' }}</div>
                         <div class="unit">μL</div>
                     </div>
                 </td>
@@ -42,7 +42,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination2("pool-dilution-table", table) }}
+    {{ pagination("pool-dilution-table", table) }}
     <script>
         $(document).ready(function() {
             const table = new HTMXTable("#pool-dilution-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });

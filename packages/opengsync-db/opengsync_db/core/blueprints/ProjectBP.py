@@ -6,7 +6,7 @@ from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import Query
 
 from ... import models, PAGE_LIMIT
-from ...categories import ProjectStatus, ProjectStatus, AccessType, AccessType, UserRole, LibraryType
+from ...categories import ProjectStatus, AccessType, UserRole, LibraryType
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint
 

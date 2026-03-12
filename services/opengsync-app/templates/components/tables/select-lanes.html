@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 <div id="select-lanes-table" class="table-container">
@@ -22,14 +22,14 @@
                 {% if workflow == "qubit_measure" %}
                 <td>
                     <div class="quantity-container">
-                        <div class="value">{{ lane.original_qubit_concentration if lane.original_qubit_concentration }}</div>
+                        <div class="value">{{ lane.original_qubit_concentration or '' }}</div>
                         <div class="unit">ng/μL</div>
                     </div>
                 </td>
                 {% elif workflow == "ba_report" %}
                 <td>
                     <div class="quantity-container">
-                        <div class="value">{{ lane.avg_fragment_size if lane.avg_fragment_size }}</div>
+                        <div class="value">{{ lane.avg_fragment_size or '' }}</div>
                         <div class="unit">bp</div>
                     </div>
                 </td>
@@ -38,7 +38,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination2("select-lanes-table", table) }}
+    {{ pagination("select-lanes-table", table) }}
 
     <script>
         $(document).ready(function() {

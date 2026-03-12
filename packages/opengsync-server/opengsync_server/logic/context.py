@@ -148,6 +148,17 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         
         context["index_kit"] = index_kit
 
+    if (feature_kit_id := request.args.get("feature_kit_id", None)) is not None:
+        try:
+            feature_kit_id = int(feature_kit_id)
+        except ValueError:
+            raise exceptions.BadRequestException()
+        
+        if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
+            raise exceptions.NotFoundException()
+        
+        context["feature_kit"] = feature_kit
+
     if (protocol_id := request.args.get("protocol_id", None)) is not None:
         try:
             protocol_id = int(protocol_id)

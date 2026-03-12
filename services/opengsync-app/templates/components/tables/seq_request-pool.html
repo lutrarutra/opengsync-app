@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
@@ -36,7 +36,7 @@
                 <td>{{ pool.num_libraries }}</td>
                 <td>
                     <div class="quantity-container">
-                        <div class="value">{{ pool.num_m_reads_requested | int if pool.num_m_reads_requested }}</div>
+                        <div class="value">{{ pool.num_m_reads_requested | int if pool.num_m_reads_requested else '' }}</div>
                         <div class="unit">M</div>
                     </div>
                 </td>
@@ -44,7 +44,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination2("seq_request-pool-table", table) }}
+    {{ pagination("seq_request-pool-table", table) }}
     <script>
         $(document).ready(function() {
             const table = new HTMXTable("#seq_request-pool-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });

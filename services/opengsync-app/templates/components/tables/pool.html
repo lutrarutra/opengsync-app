@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
@@ -34,7 +34,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination2("pool-table", table) }}
+    {{ pagination("pool-table", table) }}
     <script>
         $(document).ready(function() {
             const table = new HTMXTable("#pool-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });

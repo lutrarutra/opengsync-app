@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
-from ..categories import FeatureType, FeatureType
+from ..categories import FeatureType
 
 if TYPE_CHECKING:
     from .FeatureKit import FeatureKit

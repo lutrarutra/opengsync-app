@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/pagination.jinja2" import pagination %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/tooltip.jinja2" import tooltip %}
 <div id="select-experiments-table" class="table-container">
@@ -22,7 +22,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination2("select-experiments-table", table) }}
+    {{ pagination("select-experiments-table", table) }}
     <script>
         $(document).ready(function() {
             const table = new HTMXTable("#select-experiments-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });

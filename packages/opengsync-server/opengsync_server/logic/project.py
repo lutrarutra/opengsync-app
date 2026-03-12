@@ -4,7 +4,7 @@ from flask import Request
 
 from opengsync_db import models, categories as cats
 
-from ..import db, logger
+from ..import db
 from .HTMXTable import HTMXTable
 from .TableCol import TableCol
 from ..core import exceptions

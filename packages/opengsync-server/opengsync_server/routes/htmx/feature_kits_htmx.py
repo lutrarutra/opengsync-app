@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
-from opengsync_db import models, PAGE_LIMIT
+from opengsync_db import models
 from opengsync_db.categories import KitType
 
 from ... import db, logic, forms
@@ -39,28 +39,9 @@ def query():
 
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, cache_timeout_seconds=60, cache_type="global")
-def get_features(feature_kit_id: int, page: int = 0):
-    sort_by = request.args.get("sort_by", "id")
-    sort_order = request.args.get("sort_order", "desc")
-    descending = sort_order == "desc"
-    offset = PAGE_LIMIT * page
-
-    if sort_by not in models.Feature.sortable_fields:
-        raise exceptions.BadRequestException()
-        
-    feature_kit = db.feature_kits.get(feature_kit_id)
-    features, n_pages = db.features.find(feature_kit_id=feature_kit_id, offset=offset, sort_by=sort_by, descending=descending, count_pages=True)
-    
-    return make_response(
-        render_template(
-            "components/tables/feature_kit-feature.html",
-            features=features, feature_kit=feature_kit,
-            sort_by=sort_by,
-            sort_order=sort_order,
-            n_pages=n_pages,
-            active_page=page,
-        )
-    )
+def get_features(current_user: models.User):
+    context = logic.feature.get_table_context(current_user=current_user, request=request)
+    return make_response(render_template(**context))
 
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])

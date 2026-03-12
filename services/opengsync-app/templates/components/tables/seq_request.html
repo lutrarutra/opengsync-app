@@ -1,4 +1,4 @@
-{% from "components/pagination.jinja2" import pagination2 %}
+{% from "components/pagination.jinja2" import pagination %}
 {% from "components/tooltip.jinja2" import tooltip %}
 {% from "components/table_col.jinja2" import table_col %}
 {% from "components/spinner.jinja2" import spinner %}
@@ -44,7 +44,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {{ pagination2("seq_request-table", table) }}
+    {{ pagination("seq_request-table", table) }}
     <script>
         $(document).ready(function() {
             const table = new HTMXTable("#seq_request-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });

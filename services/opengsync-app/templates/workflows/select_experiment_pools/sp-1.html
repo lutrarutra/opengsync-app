@@ -52,7 +52,7 @@
                             <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
                             <td>
                                 <div class="quantity-container">
-                                    <div class="value">{{ pool.num_m_reads_requested if pool.num_m_reads_requested }}</div>
+                                    <div class="value">{{ pool.num_m_reads_requested or '' }}</div>
                                     <div class="unit">M</div>
                                 </div>
                             </td>

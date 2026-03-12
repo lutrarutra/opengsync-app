@@ -9,12 +9,12 @@
     </a>
     <div class="input-group">
         <input class="input-group-text searchbar-data" autocomplete="off"
-        type="number" value="{{ field.selected.data if field.selected.data }}"
+        type="number" value="{{ field.selected.data or '' }}"
         id="{{ field.name }}" name="{{ field.name }}-selected" readonly
         {% if field.optional %} placeholder="Optional" {% endif %}>
         <input type="text" autocomplete="off"
         class="form-control searchbar-input search-component {% if field.selected.errors %} is-invalid {% endif %}"
-        value="{{ field.search_bar.data if field.search_bar.data else '' }}"
+        value="{{ field.search_bar.data or '' }}"
         name="{{ field.name }}-search" id="{{ field.name }}-search"
         data-field="{{ field.name }}"
         hx-include="#{{ field.name }}-search" hx-target="#{{ field.name }}-results"

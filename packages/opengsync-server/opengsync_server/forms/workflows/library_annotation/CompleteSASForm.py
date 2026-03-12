@@ -93,12 +93,12 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
         if self.barcode_table is not None:
             self.barcode_table["pool"] = None
             for (library_name, pool_name), _ in self.library_table.groupby(["library_name", "pool"]):
-                self.barcode_table.loc[self.barcode_table["library_name"] == library_name, "pool"] = pool_name
+                self.barcode_table.loc[self.barcode_table["library_name"] == library_name, "pool"] = pool_name  # type: ignore
             self.barcode_table = tools.check_indices(self.barcode_table, groupby="pool")
         
         self.library_table["mux_type_id"] = None
         for (library_name, mux_type_id), _df in self.sample_pooling_table.groupby(["library_name", "mux_type_id"]):
-            self.library_table.loc[self.library_table["library_name"] == library_name, "mux_type_id"] = mux_type_id
+            self.library_table.loc[self.library_table["library_name"] == library_name, "mux_type_id"] = mux_type_id  # type: ignore
         
         if not formdata:
             self.__prepare()
@@ -413,11 +413,11 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
             custom_features = self.feature_table[self.feature_table["feature_id"].isna()]
             for (identifier, feature, pattern, read, sequence), _df in custom_features.groupby(["identifier", "feature", "pattern", "read", "sequence"], dropna=False):
                 feature = db.features.create(
-                    identifier=identifier if pd.notna(identifier) else None,
-                    name=feature,
-                    sequence=sequence,
-                    pattern=pattern,
-                    read=read,
+                    identifier=identifier if pd.notna(identifier) else None,  # type: ignore
+                    name=feature,  # type: ignore
+                    sequence=sequence,  # type: ignore
+                    pattern=pattern,  # type: ignore
+                    read=read,  # type: ignore
                     type=FeatureType.ANTIBODY
                 )
                 self.feature_table.loc[_df.index, "feature_id"] = feature.id

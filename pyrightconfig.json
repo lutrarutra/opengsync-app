@@ -1,8 +1,0 @@
-{
-  "extraPaths": [
-    "./packages/opengsync-db",
-    "./packages/opengsync-server",
-    "./packages/opengsync-api",
-  ],
-  "reportIncompatibleMethodOverride": false
-}
