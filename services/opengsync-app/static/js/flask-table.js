@@ -18,12 +18,15 @@ class HTMXTable {
         this._bindEvents();
     }
 
-    _show_filter_menu(th) {
+    _show_filter_menu(th, focus=true) {
         $(th).find(".table-col-header.active").removeClass("active");
         this.$table.find(".multiple-select.active").removeClass("active");
-        $(th).find(".table-col-header.col-header-multiselect").addClass("active")
+        $(th).find(".table-col-header.col-header-multiselect").addClass("active");
+        if (focus) {
+            $(th).find(".table-col-header.col-header-multiselect")
             .find(".multiple-select").first().addClass("active")
             .find("input.option-search").focus();
+        }
     }
 
     _hide_filter_menu(th) {
@@ -88,7 +91,7 @@ class HTMXTable {
                 }
             );
             if (state[field_name + "_in"]) {
-                this._show_filter_menu($(element).closest("th"));
+                this._show_filter_menu($(element).closest("th"), focus=false);
             }
             this.multiselects.push(select);
         });
