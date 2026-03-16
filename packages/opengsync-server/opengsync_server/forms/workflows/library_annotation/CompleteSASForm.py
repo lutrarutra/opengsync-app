@@ -62,7 +62,7 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                 (self.barcode_table["orientation_i7_id"] != self.barcode_table["orientation_i5_id"]),
                 "orientation_id"
             ] = None
-        
+
         spatial_library_type_ids = [t.id for t in LibraryType.get_visium_library_types()] + [LibraryType.OPENST.id]
         self.contains_spatial_samples = self.library_table["library_type_id"].isin(spatial_library_type_ids).any()
 
