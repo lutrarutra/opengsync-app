@@ -70,7 +70,7 @@ class SpreadsheetInput(FlaskForm):
             else:
                 df[col.label] = self.__df[col.label]
 
-        return df.replace(np.nan, "").values.tolist()
+        return df.astype(str).replace(np.nan, "").values.tolist()
 
     def add_column(self, label: str, column: SpreadSheetColumn):
         if label in self.columns.keys():
@@ -144,6 +144,12 @@ class SpreadsheetInput(FlaskForm):
                         self.add_error(idx, label, e)
                     continue
                 
+            if isinstance(column, IntegerColumn):
+                self.__df[label] = pd.to_numeric(self.__df[label], errors="coerce").astype(pd.Int64Dtype())
+            elif isinstance(column, FloatColumn):
+                self.__df[label] = pd.to_numeric(self.__df[label], errors="coerce").astype(pd.Float64Dtype())
+
+            for idx, value in enumerate(self.__df[label].tolist()):
                 self.__df.at[idx, label] = column.clean_up(value)
 
         if len(self._errors) > 0:

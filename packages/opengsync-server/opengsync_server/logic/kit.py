@@ -68,10 +68,8 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.url_params["protocol_id"] = protocol.id
     else:
         template = "components/tables/kit.html"
-    
-    logger.debug(table.active_page)
-    kits, table.num_pages = db.kits.find(page=table.active_page, **fnc_context)
-        
+
+    kits, table.num_pages = db.kits.find(page=table.active_page, **fnc_context)        
     context.update({
         "kits": kits,
         "template_name_or_list": template,

@@ -3,7 +3,6 @@ from flask import Blueprint, request
 from opengsync_db import models
 
 from ... import db, logger, forms
-from ...forms.workflows import lane_pools as wff
 from ...core import wrappers, exceptions
 
 add_kits_to_protocol_workflow = Blueprint("add_kits_to_protocol_workflow", __name__, url_prefix="/workflows/add_kits_to_protocol/")
