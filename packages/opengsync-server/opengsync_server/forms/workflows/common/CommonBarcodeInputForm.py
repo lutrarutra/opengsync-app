@@ -32,6 +32,20 @@ class CommonBarcodeInputForm(MultiStepForm):
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:
         return bool((current_step.tables["library_table"]["library_type_id"] != LibraryType.TENX_SC_ATAC.id).any())
+    
+    @staticmethod
+    def kit_identifier_clean_up(identifier: str | None) -> str | None:
+        if pd.isna(identifier) or identifier is None:
+            return None
+
+        identifier = str(identifier).strip().removeprefix("#")
+        try:
+            float(identifier)
+            identifier = identifier.replace(",", ".")  # regional excel might use comma as decimal separator
+        except ValueError:
+            pass
+
+        return identifier
 
     def __init__(
         self,
@@ -86,11 +100,12 @@ class CommonBarcodeInputForm(MultiStepForm):
                 self.library_table = prep_table[[col.label for col in self.columns if col.label in prep_table.columns]]
                 self.library_table["library_id"] = self.library_table["library_id"].astype(int)
                 self.library_table["library_type_id"] = utils.map_columns(library_table, library_table, "library_id", "library_type_id").astype(int)
-                self.library_table["kit_i7"] = self.library_table["kit_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
-                self.library_table["kit_i5"] = self.library_table["kit_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip().removeprefix("#"))
+                self.library_table["kit_i7"] = self.library_table["kit_i7"].apply(CommonBarcodeInputForm.kit_identifier_clean_up)
+                self.library_table["kit_i5"] = self.library_table["kit_i5"].apply(CommonBarcodeInputForm.kit_identifier_clean_up)
                 self.library_table["index_well"] = self.library_table["index_well"].apply(lambda x: x if pd.isna(x) else str(x).strip())
                 self.library_table["name_i7"] = self.library_table["name_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip())
                 self.library_table["name_i5"] = self.library_table["name_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip())
+                logger.debug(self.library_table)
             else:
                 self.library_table = library_table
         elif workflow == "reindex":
@@ -104,20 +119,9 @@ class CommonBarcodeInputForm(MultiStepForm):
                     prep_table = pd.read_excel(os.path.join(runtime.app.media_folder, self.lab_prep.prep_file.path), "prep_table")  # type: ignore
                     prep_table = prep_table.dropna(subset=["library_id", "library_name"])
                     prep_table["library_id"] = prep_table["library_id"].astype(pd.Int64Dtype())
-
-                    def clean_value(value) -> str:
-                        if pd.isna(value):
-                            return ""
-                        try:
-                            value = int(value)
-                            return str(value)
-                        except ValueError:
-                            pass
-                        value = str(value).strip().removeprefix("#")
-                        return value
                     
-                    prep_table["kit_i7"] = prep_table["kit_i7"].apply(clean_value).astype(str)
-                    prep_table["kit_i5"] = prep_table["kit_i5"].apply(clean_value).astype(str)
+                    prep_table["kit_i7"] = prep_table["kit_i7"].apply(CommonBarcodeInputForm.kit_identifier_clean_up)
+                    prep_table["kit_i5"] = prep_table["kit_i5"].apply(CommonBarcodeInputForm.kit_identifier_clean_up)
                     prep_table["index_well"] = prep_table["index_well"].apply(lambda x: x if pd.isna(x) else str(x).strip())
                     prep_table["name_i7"] = prep_table["name_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip())
                     prep_table["name_i5"] = prep_table["name_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip())
