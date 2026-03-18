@@ -19,7 +19,7 @@
                 <div class="col-3">{{ form_group(form.i2_cycles) }}</div>
                 <div class="col-3">{{ form_group(form.r2_cycles) }}</div>
             </div>
-            {{ search_select_field2(form.pool_id, url_for('pools_htmx.search'), "name") }}
+            {{ search_select_field(form.pool_id, url_for('pools_htmx.search'), "name") }}
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">

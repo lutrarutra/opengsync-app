@@ -84,11 +84,15 @@ class SearchSelect {
         // Handle option selection
         this.$options_container.on("click", "li.option", (e) => {
             e.stopPropagation();
-            window.domm[this.field_name] = $(e.currentTarget).children().clone();
+            window.domm[this.field_name] = $(e.currentTarget).clone().removeClass("option").addClass("selected-option");
             this.$selected_bar.empty().append(window.domm[this.field_name]).css("display", "flex");
             this.$search_input.hide();
             this.$selected_input.val($(e.currentTarget).data("value"));
             $(e.currentTarget).addClass("selected").siblings().removeClass("selected");
+            if (typeof this.options.onChange === "function") {
+                this.options.onChange();
+            }
+            this.$selected_input.trigger("change");
             this.close();
         });
 
@@ -104,6 +108,8 @@ class SearchSelect {
             this.$selected_input.val("");
             this.$search_input.val("");
             this.$options_container.find("li.option").removeClass("selected");
+            this.$selected_bar.empty();
+            this.$selected_input.trigger("change");
             this.close();
         });
 

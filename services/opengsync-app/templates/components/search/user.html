@@ -1,6 +1,6 @@
 {% if users is defined and users %}
 {% for user in users %}
-<li class="option" data-value="{{ user.id }}">
+<li class="option" data-value="{{ user.id }}" data-name="{{ user.name }}" data-email="{{ user.email }}">
     <span class="search-select-name">{{ user.role.icon }} {{ user.name }}</span>
     <span class="search-select-desc">{{ user.email }}</span>
 </li>

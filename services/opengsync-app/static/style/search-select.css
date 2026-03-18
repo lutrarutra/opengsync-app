@@ -67,6 +67,9 @@
         &:hover {
             cursor: pointer;
         }
+        li.selected-option {
+            list-style: none;
+        }
     }
 
     .searchbar-data {

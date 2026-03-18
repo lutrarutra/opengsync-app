@@ -21,7 +21,7 @@
         <div id="project-select-form">
             <div class="row">
                 {{ 
-                    search_select_field2(form.existing_project, url_for('projects_htmx.search', group_id=seq_request.group_id), "identifier_title", class="col-5")
+                    search_select_field(form.existing_project, url_for('projects_htmx.search', group_id=seq_request.group_id), "identifier_title", class="col-5")
                 }}
                 <div class="col-2 mapping-or">
                     or

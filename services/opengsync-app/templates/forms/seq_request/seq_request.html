@@ -23,7 +23,7 @@
                 <div id="request-user-section" class="accordion-collapse collapse {% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
                     <div class="accordion-body">
                         <h5>Existing User</h5>
-                        {{ search_select_field2(sub_form.user, url_for('users_htmx.search'), "name") }}
+                        {{ search_select_field(sub_form.user, url_for('users_htmx.search'), "name") }}
                         <h5 class="pt-3">New User</h5>
                         <ul><li>New user will be created with {{ UserRole.DEACTIVATED.display_name }}-role. Deactivated users cannot log in. No registration email is sent out. User can be then activated later.</li></ul>
                         {{ form_group(sub_form.email) }}
@@ -87,7 +87,7 @@
                         <div class="row">
                             {{ form_group(sub_form.request_name, class="col-6") }}
                             {{ 
-                                search_select_field2(sub_form.group, url_for('groups_htmx.search'), "name", class="col-6") 
+                                search_select_field(sub_form.group, url_for('groups_htmx.search'), "name", class="col-6") 
                             }}
                         </div>
                         {{ form_group(sub_form.request_description) }}
@@ -273,19 +273,12 @@
             if (checked){
                 $("#contact_form-contact_person_name").addClass("disabled");
                 $("#contact_form-contact_person_name").prop("readonly", true);
-                $("#contact_form-contact_person_name").val("{{ current_user.first_name }} {{ current_user.last_name }}");
+                $("#contact_form-contact_person_name").val("{{ current_user.name }}");
 
                 $("#contact_form-contact_person_email").addClass("disabled");
                 $("#contact_form-contact_person_email").prop("readonly", true);
                 $("#contact_form-contact_person_email").val("{{ current_user.email }}");
-
-                if ($("#user_select_form-email").length > 0){
-                    $("#contact_form-contact_person_email").val($("#user_select_form-email").val());
-                    $("#contact_form-contact_person_name").val($("#user_select_form-first_name").val() + " " + $("#user_select_form-last_name").val());
-                } else {
-                    $("#contact_form-contact_person_email").val("{{ current_user.email }}");
-                    $("#contact_form-contact_person_name").val("{{ current_user.first_name }} {{ current_user.last_name }}");
-                }
+                update_contact_person();
             } else {
                 $("#contact_form-contact_person_name").removeClass("disabled");
                 $("#contact_form-contact_person_name").prop("readonly", false);
@@ -316,9 +309,14 @@
                 $("#contact_form-current_user_is_contact").prop("checked", true);
             }
             if ($("#contact_form-current_user_is_contact").is(":checked") || force) {
-                var container = $("#user_select_form-user-search").parent().parent();
-                $("#contact_form-contact_person_email").val(container.find("li.selected").first().data("email"));
-                $("#contact_form-contact_person_name").val(container.find("li.selected").first().data("name"));
+                var selected = $("#user_select_form-user-container").find("li.selected-option").first();
+                if (selected.length > 0) {
+                    $("#contact_form-contact_person_email").val(selected.data("email"));
+                    $("#contact_form-contact_person_name").val(selected.data("name"));
+                } else {
+                    $("#contact_form-contact_person_email").val("{{ current_user.email }}");
+                    $("#contact_form-contact_person_name").val("{{ current_user.name }}");
+                }
             }
         }
 

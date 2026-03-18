@@ -18,7 +18,7 @@
             <div class="row">
                 {% if (form_type == "create" or form_type == "clone") and current_user.is_insider() %}
                 {{
-                    search_select_field2(
+                    search_select_field(
                         pool_form.contact, url_for('users_htmx.search', insider=True), "name", class="col-4"
                     )
                 }}
