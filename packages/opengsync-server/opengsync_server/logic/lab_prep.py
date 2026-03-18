@@ -12,14 +12,14 @@ from .context import parse_context
 
 class LabPrepTable(HTMXTable):
     columns = [
-        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
-        TableCol(title="Name", label="name", col_size=2, search_type="text", sortable=True),
+        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
+        TableCol(title="Name", label="name", col_size=2, searchable=True, sortable=True),
         TableCol(title="Checklist", label="checklist", col_size=2, choices=cats.LabChecklistType.as_selectable(), sortable=True, sort_by="checklist_type_id"),
         TableCol(title="Service", label="service", col_size=2, choices=cats.ServiceType.as_selectable(), sortable=True, sort_by="service_type_id"),
         TableCol(title="Status", label="status", col_size=2, choices=cats.PrepStatus.as_selectable(), sortable=True, sort_by="status_id"),
         TableCol(title="# Samples", label="num_samples", col_size=1, sortable=True),
         TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
-        TableCol(title="Creator", label="creator", col_size=2, search_type="text"),
+        TableCol(title="Creator", label="creator", col_size=2, searchable=True),
         TableCol(title="Library Types", label="library_types", col_size=2),
     ]
 
@@ -67,13 +67,13 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     elif (creator := request.args.get("creator")):
         fnc_context["creator"] = creator
         table.active_search_var = "creator"

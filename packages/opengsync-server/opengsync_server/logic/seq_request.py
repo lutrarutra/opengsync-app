@@ -12,13 +12,13 @@ from .context import parse_context
 
 class SeqRequestTable(HTMXTable):
     columns = [
-        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
-        TableCol(title="Name", label="name", col_size=4, search_type="text", sortable=True),
+        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
+        TableCol(title="Name", label="name", col_size=4, searchable=True, sortable=True),
         TableCol(title="Library Types", label="library_types", col_size=3, choices=cats.LibraryType.as_selectable()),
         TableCol(title="Status", label="status", col_size=1, sortable=True, sort_by="status_id", choices=cats.SeqRequestStatus.as_selectable()),
         TableCol(title="Submission Type", label="submission_type", col_size=1, choices=cats.SubmissionType.as_selectable()),
-        TableCol(title="Group", label="group", col_size=2, search_type="text"),
-        TableCol(title="Requestor", label="requestor", col_size=2, search_type="text"),
+        TableCol(title="Group", label="group", col_size=2, searchable=True),
+        TableCol(title="Requestor", label="requestor", col_size=2, searchable=True),
         TableCol(title="# Samples", label="num_samples", col_size=1, sortable=True),
         TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
         TableCol(title="Submitted", label="timestamp_submitted", col_size=2, sortable=True, sort_by="timestamp_submitted_utc"),
@@ -93,13 +93,13 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_search_var = "group"
         table.active_query_value = group
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")

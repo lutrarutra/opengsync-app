@@ -12,12 +12,12 @@ from .context import parse_context
 
 class SeqRunTable(HTMXTable):
     columns = [
-        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
-        TableCol(title="Experiment", label="experiment", col_size=2, search_type="text", sortable=True, sort_by="experiment_name"),
+        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
+        TableCol(title="Experiment", label="experiment", col_size=2, searchable=True, sortable=True, sort_by="experiment_name"),
         TableCol(title="Status", label="status", col_size=1, choices=cats.RunStatus.as_selectable(), sortable=True, sort_by="status_id"),
         TableCol(title="Cycles", label="cycles", col_size=1),
-        TableCol(title="Flow Cell ID", label="flow_cell_id", search_type="text", col_size=1),
-        TableCol(title="Run Folder", label="run_folder", col_size=4, search_type="text"),
+        TableCol(title="Flow Cell ID", label="flow_cell_id", searchable=True, col_size=1),
+        TableCol(title="Run Folder", label="run_folder", col_size=4, searchable=True),
         TableCol(title="Started", label="started", col_size=2),
         TableCol(title="Completed", label="completed", col_size=2),
     ]
@@ -50,13 +50,13 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_search_var = "flow_cell_id"
         table.active_query_value = flow_cell_id
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")

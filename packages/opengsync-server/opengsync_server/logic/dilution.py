@@ -33,13 +33,13 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_search_var = "path"
         table.active_query_value = path
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     else:
         sort_by = request.args.get("sort_by", "pool_id")
         sort_order = request.args.get("sort_order", "desc")

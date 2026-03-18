@@ -12,13 +12,13 @@ from .context import parse_context
 
 class ProjectTable(HTMXTable):
     columns = [
-        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
-        TableCol(title="Identifier", label="identifier", col_size=1, search_type="text", sortable=True),
-        TableCol(title="Title", label="title", col_size=3, search_type="text", sortable=True),
+        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
+        TableCol(title="Identifier", label="identifier", col_size=1, searchable=True, sortable=True),
+        TableCol(title="Title", label="title", col_size=3, searchable=True, sortable=True),
         TableCol(title="Library Types", label="library_types", col_size=2, choices=cats.LibraryType.as_selectable()),
         TableCol(title="Status", label="status", col_size=1, sort_by="status_id", sortable=True, choices=cats.ProjectStatus.as_selectable()),
         TableCol(title="Group", label="group", col_size=2),
-        TableCol(title="Owner", label="owner_name", col_size=2, search_type="text"),
+        TableCol(title="Owner", label="owner_name", col_size=2, searchable=True),
         TableCol(title="# Samples", label="num_samples", col_size=1, sortable=True),
     ]
 
@@ -35,13 +35,13 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_search_var = "title"
         table.active_query_value = title
     elif (project_id := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(project_id)
         try:
-            project_id = int(project_id)
+            project_id = int("".join(filter(str.isdigit, project_id)))
             fnc_context["id"] = project_id
-            table.active_search_var = "id"
-            table.active_query_value = str(project_id)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     elif (owner_name := request.args.get("owner_name")):
         fnc_context["owner_name"] = owner_name
         table.active_search_var = "owner_name"
@@ -127,10 +127,10 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
             fnc_context["sort_by"] = "title"
     elif (project_id := request.args.get("id")) is not None:
         try:
-            project_id = int(project_id)
+            project_id = int("".join(filter(str.isdigit, project_id)))
             fnc_context["id"] = project_id
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     elif (owner_name := request.args.get("owner_name")) is not None:
         if (owner_name := owner_name.strip()):
             fnc_context["owner_name"] = owner_name

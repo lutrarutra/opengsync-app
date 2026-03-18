@@ -3,7 +3,7 @@
 {% macro table_col(table_container_id, table, var) -%}
 {% set table_col = table[var] %}
 {% set filter_values = table.filter_values.get(var, []) %}
-<th scope="col" class="col-{{ table_col.col_size }} sortable-col {{ 'query-col' if table_col.search_type else '' }} {% if table_col.sort_by and table_col.sort_by == table.active_sort_var %}current-sort-col{% endif %}"
+<th scope="col" class="col-{{ table_col.col_size }} sortable-col {{ 'query-col' if table_col.searchable else '' }} {% if table_col.sort_by and table_col.sort_by == table.active_sort_var %}current-sort-col{% endif %}"
 id="{{ table_container_id }}:{{ table_col.label }}"
 data-field_name="{{ table_col.label }}"
 {% if table_col.sort_by %}
@@ -29,7 +29,7 @@ data-sort_by="{{ table_col.sort_by }}"
                     {% endif %}
                 </a>
                 {% endif %}
-                {% if table_col.search_type %}
+                {% if table_col.searchable %}
                 <a type="button" role="button" class="search-btn table-column-search-btn">
                     <i class="bi bi-search"></i>
                 </a>
@@ -53,8 +53,8 @@ data-sort_by="{{ table_col.sort_by }}"
             {% endif %}
         </div>
         <div class="table-col-header col-header-search">
-            {% if table_col.search_type %}
-            <input type='{{ table_col.search_type }}' class='form-control table-query-input' placeholder='{{ table_col.title }}'
+            {% if table_col.searchable %}
+            <input class='form-control table-query-input' placeholder='{{ table_col.title }}'
             autocomplete='off' type='search' value="{% if table_col.label == table.active_search_var %}{{ table.active_query_value or '' }}{% endif %}">
             {% endif %}
         </div>

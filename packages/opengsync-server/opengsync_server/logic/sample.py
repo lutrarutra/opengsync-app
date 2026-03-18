@@ -13,8 +13,8 @@ from .context import parse_context
 
 class SampleTable(HTMXTable):
     columns = [
-        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
-        TableCol(title="Name", label="name", col_size=3, search_type="text", sortable=True),
+        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
+        TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
         TableCol(title="Project", label="project", col_size=2),
         TableCol(title="Status", label="status", col_size=2, sortable=True, sort_by="status_id", choices=cats.SampleStatus.as_selectable()),
         TableCol(title="Owner", label="owner", col_size=1),
@@ -43,13 +43,13 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
@@ -122,13 +122,13 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
