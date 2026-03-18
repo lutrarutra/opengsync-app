@@ -32,7 +32,7 @@
         <div class="tab-content">
             <div class="tab-pane fade {% if form.active_tab == 'form-tab-form' %}show active{% endif %}" id="form-tab-form" role="tabpanel" tabindex="0">
                 {{ 
-                    search_select_field2(form.kit, url_for('index_kits_htmx.search'), "identifier_name")
+                    search_select_field(form.kit, url_for('index_kits_htmx.search'), "identifier_name")
                 }}
                 {{ form_group(form.min_samples) }}
                 {{ spreadsheet_input(element=form.spreadsheet) }}
