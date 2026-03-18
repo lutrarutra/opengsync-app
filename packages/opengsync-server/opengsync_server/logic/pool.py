@@ -13,12 +13,12 @@ from .context import parse_context
 
 class PoolTable(HTMXTable):
     columns = [
-        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
-        TableCol(title="Name", label="name", col_size=3, search_type="text", sortable=True),
+        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
+        TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
         TableCol(title="Library Types", label="library_types", col_size=2, choices=cats.LibraryType.as_selectable()),
         TableCol(title="Status", label="status", col_size=2, sortable=True, sort_by="status_id", choices=cats.PoolStatus.as_selectable()),
         TableCol(title="Type", label="type", col_size=1, sortable=True, sort_by="type_id", choices=cats.PoolType.as_selectable()),
-        TableCol(title="Owner", label="owner", col_size=2, search_type="text"),
+        TableCol(title="Owner", label="owner", col_size=2, searchable=True),
         TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
     ]
 
@@ -63,13 +63,13 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     elif (owner := request.args.get("owner")):
         fnc_context["owner"] = owner
         table.active_search_var = "owner"
@@ -209,13 +209,13 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     elif (owner := request.args.get("owner")):
         fnc_context["owner"] = owner
         table.active_search_var = "owner"

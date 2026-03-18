@@ -153,9 +153,7 @@ class HTMXTable {
             clearTimeout(this.searchTimer);
             
             this.searchTimer = setTimeout(() => {
-                if (searchValue) {
-                    this._handleSearch($input.closest("th").data("field_name"), searchValue);
-                }
+                this._handleSearch($input.closest("th").data("field_name"), searchValue);
             }, this.options.searchDelay);
         });
         
@@ -173,7 +171,6 @@ class HTMXTable {
         this.$container.on("click", ".pagination .page-item", (e) => {
             e.preventDefault();
             let page = $(e.currentTarget).data("page");
-            console.log("Page clicked:", page);
             let state = this._getState();
             state.page = page;
             this._ajax(state);

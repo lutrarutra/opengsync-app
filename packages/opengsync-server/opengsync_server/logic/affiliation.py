@@ -13,8 +13,8 @@ from .context import parse_context
 class AffiliationTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1),
-        TableCol(title="User", label="user_name", col_size=3, search_type="text"),
-        TableCol(title="Group", label="group_name", col_size=3, search_type="text"),
+        TableCol(title="User", label="user_name", col_size=3, searchable=True),
+        TableCol(title="Group", label="group_name", col_size=3, searchable=True),
         TableCol(title="Email", label="email", col_size=3),
         TableCol(title="Affiliation", label="affiliation", col_size=2, choices=cats.UserRole.as_selectable(), sortable=True, sort_by="role_id"),
     ]
@@ -33,13 +33,13 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_search_var = "group_name"
         table.active_query_value = group_name
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     else:
         sort_by = request.args.get("sort_by", "affiliation_type_id")
         sort_order = request.args.get("sort_order", "desc")

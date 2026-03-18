@@ -143,11 +143,16 @@ class SpreadsheetInput(FlaskForm):
                     else:
                         self.add_error(idx, label, e)
                     continue
-                
+
             if isinstance(column, IntegerColumn):
                 self.__df[label] = pd.to_numeric(self.__df[label], errors="coerce").astype(pd.Int64Dtype())
             elif isinstance(column, FloatColumn):
                 self.__df[label] = pd.to_numeric(self.__df[label], errors="coerce").astype(pd.Float64Dtype())
+                
+        if len(self._errors) > 0:
+            return False
+        
+        for label, column in self.columns.items():
 
             for idx, value in enumerate(self.__df[label].tolist()):
                 self.__df.at[idx, label] = column.clean_up(value)

@@ -11,7 +11,7 @@ from .context import parse_context
 class APITokenTable(HTMXTable):
     columns = [
         TableCol(title="Expiration", label="expiration", col_size=3, sortable=True),
-        TableCol(title="Owner", label="owner_id", col_size=3, search_type="text", sortable=True),
+        TableCol(title="Owner", label="owner_id", col_size=3, searchable=True, sortable=True),
         TableCol(title="Valid Min.", label="time_valid_min", col_size=3, sortable=True),
     ]    
 

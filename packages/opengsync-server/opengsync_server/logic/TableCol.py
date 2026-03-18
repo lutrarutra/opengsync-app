@@ -11,7 +11,7 @@ class TableCol:
     sort_by: str | None = None
 
     col_size: int = 1
-    search_type: Literal["text", "number", None] = None
+    searchable: bool = False
     sortable: bool = False
     choices: list | None = None
 

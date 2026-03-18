@@ -14,9 +14,9 @@ from ..forms.HTMXFlaskForm import HTMXFlaskForm
 
 class LibraryTable(HTMXTable):
     columns = [
-        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
-        TableCol(title="Name", label="name", col_size=3, search_type="text", sortable=True),
-        TableCol(title="Pool", label="pool_name", col_size=1, search_type="text", sortable=True, sort_by="pool_id"),
+        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
+        TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
+        TableCol(title="Pool", label="pool_name", col_size=1, searchable=True, sortable=True, sort_by="pool_id"),
         TableCol(title="Library Type", label="type", col_size=1, choices=cats.LibraryType.as_selectable()),
         TableCol(title="Status", label="status", col_size=1, sortable=True, sort_by="status_id", choices=cats.LibraryStatus.as_selectable()),
         TableCol(title="Request", label="seq_request", col_size=2),
@@ -56,13 +56,13 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_search_var = "pool_name"
         table.active_query_value = pool_name
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
@@ -213,13 +213,13 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         table.active_search_var = "pool_name"
         table.active_query_value = pool_name
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")

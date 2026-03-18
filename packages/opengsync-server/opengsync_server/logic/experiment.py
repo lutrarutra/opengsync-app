@@ -13,13 +13,13 @@ from .context import parse_context
 
 class ExperimentTable(HTMXTable):
     columns = [
-        TableCol(title="ID", label="id", col_size=1, search_type="number", sortable=True),
-        TableCol(title="Name", label="name", col_size=2, search_type="text", sortable=True),
+        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
+        TableCol(title="Name", label="name", col_size=2, searchable=True, sortable=True),
         TableCol(title="Workflow", label="workflow", col_size=2, choices=cats.ExperimentWorkFlow.as_selectable(), sortable=True, sort_by="workflow_id"),
         TableCol(title="Status", label="status", col_size=2, choices=cats.ExperimentStatus.as_selectable(), sortable=True, sort_by="status_id"),
         TableCol(title="# Seq Requests", label="num_seq_requests", col_size=1, sortable=True),
         TableCol(title="Library Types", label="library_types", col_size=3, choices=cats.LibraryType.as_selectable()),
-        TableCol(title="Operator", label="operator", col_size=2, search_type="text"),
+        TableCol(title="Operator", label="operator", col_size=2, searchable=True),
         TableCol(title="Created", label="timestamp_created", col_size=2, sortable=True, sort_by="timestamp_created_utc"),
         TableCol(title="Completed", label="timestamp_completed", col_size=2, sortable=True, sort_by="timestamp_finished_utc"),
     ]
@@ -59,13 +59,13 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_search_var = "operator"
         table.active_query_value = operator
     elif (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
@@ -165,13 +165,13 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
             raise exceptions.BadRequestException()
 
     if (id_ := request.args.get("id")):
+        table.active_search_var = "id"
+        table.active_query_value = str(id_)
         try:
-            id_ = int(id_)
+            id_ = int("".join(filter(str.isdigit, id_)))
             fnc_context["id"] = id_
-            table.active_search_var = "id"
-            table.active_query_value = str(id_)
         except ValueError:
-            raise exceptions.BadRequestException()
+            pass
     elif (name := request.args.get("name")) is not None:
         if (name := name.strip()):
             fnc_context["name"] = name
