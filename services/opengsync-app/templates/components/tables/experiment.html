@@ -20,13 +20,17 @@
         </thead>
         <tbody>
             {% for experiment in experiments %}
+            {% set cycle_mismatch = experiment.match_seq_run_config() is false %}
             <tr>
                 <th scope="row"><span class="x-scroll">{{ experiment.id }} <span class="badge assignee-badge {% if experiment.operator == current_user %}badge-success{% endif %}" {{ tooltip(experiment.operator.name, category="success" if experiment.operator == current_user else "primary") }}>{{ experiment.operator.initials }}</span></span></th>
                 <td class="cm-callback" {{
                     context_menu([
                         {"type": "copy", "value": experiment.name, "label": "Copy Name"},
                     ])
-                }}><a href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}">{{ experiment.name }}</a></td>
+                }}>
+                    <a href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}" {% if cycle_mismatch %}{{ tooltip("Experiment config (num. cycles) does not match the associated run config. Please update the experiment or run config to match.", category="danger") }}{% endif %}>
+                        {% if cycle_mismatch %}❗{% endif %}{{ experiment.name }}
+                    </a></td>
                 <td>{{ experiment.status.icon | safe }} {{ experiment.status.label }}</td>
                 <td class="x-scroll-cell">
                     <div class="scroll-container">

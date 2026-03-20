@@ -47,6 +47,20 @@ def edit(current_user: models.User, experiment_id: int):
     return forms.models.ExperimentForm(current_user=current_user, experiment=experiment, formdata=request.form).process_request()
 
 
+@wrappers.htmx_route(experiments_htmx, methods=["GET", "POST"], db=db)
+def set_cycles(current_user: models.User, experiment_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (experiment := db.experiments.get(experiment_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if request.method == "GET":
+        return forms.workflows.EditExperimentCyclesForm(current_user=current_user, experiment=experiment).make_response()
+    
+    return forms.workflows.EditExperimentCyclesForm(current_user=current_user, experiment=experiment, formdata=request.form).process_request()
+        
+
 @wrappers.htmx_route(experiments_htmx, methods=["DELETE"], db=db)
 def delete(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():

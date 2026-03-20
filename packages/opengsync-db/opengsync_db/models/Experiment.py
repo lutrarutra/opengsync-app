@@ -32,10 +32,10 @@ class Experiment(Base):
     timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
     
-    r1_cycles: Mapped[int] = mapped_column(nullable=False)
-    r2_cycles: Mapped[Optional[int]] = mapped_column(nullable=True)
-    i1_cycles: Mapped[int] = mapped_column(nullable=False)
-    i2_cycles: Mapped[Optional[int]] = mapped_column(nullable=True)
+    r1_cycles: Mapped[int | None] = mapped_column(nullable=True)
+    r2_cycles: Mapped[int | None] = mapped_column(nullable=True)
+    i1_cycles: Mapped[int | None] = mapped_column(nullable=True)
+    i2_cycles: Mapped[int | None] = mapped_column(nullable=True)
 
     workflow_id: Mapped[int] = mapped_column(sa.SmallInteger)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
@@ -126,6 +126,13 @@ class Experiment(Base):
             if not lane_qubit_measured or not lane_fragment_size_measured:
                 flowcell_loaded = None
 
+        num_cycles_set = (
+            self.r1_cycles is not None and
+            self.r2_cycles is not None and
+            self.i1_cycles is not None and
+            self.i2_cycles is not None
+        )
+
         return {
             "pools_added": pools_added,
             "lanes_assigned": lanes_assigned,
@@ -139,6 +146,7 @@ class Experiment(Base):
             "missing_lane_fragment_sizes": missing_lane_fragment_sizes,
             "laning_completed": laning_completed,
             "flowcell_loaded": flowcell_loaded,
+            "num_cycles_set": num_cycles_set,
         }
     
     def get_loaded_reads(self) -> float:
@@ -387,7 +395,7 @@ class Experiment(Base):
     
     @property
     def read_config(self) -> str:
-        return f"{self.r1_cycles}-{self.i1_cycles}-{self.i2_cycles or 0}-{self.r2_cycles or 0}"
+        return f"{self.r1_cycles if self.r1_cycles is not None else 'X'}-{self.i1_cycles if self.i1_cycles is not None else 'X'}-{self.i2_cycles if self.i2_cycles is not None else 'X'}-{self.r2_cycles if self.r2_cycles is not None else 'X'}"
     
     def is_deleteable(self) -> bool:
         return self.status == ExperimentStatus.DRAFT
@@ -427,6 +435,16 @@ class Experiment(Base):
         for lane in self.lanes:
             reads += lane.m_reads_planned()
         return reads
+    
+    def match_seq_run_config(self) -> bool | None:
+        if self.seq_run is None:
+            return None
+        return (
+            self.r1_cycles == self.seq_run.r1_cycles and
+            self.r2_cycles == self.seq_run.r2_cycles and
+            self.i1_cycles == self.seq_run.i1_cycles and
+            self.i2_cycles == self.seq_run.i2_cycles
+        )
     
     __table_args__ = (
         sa.Index(
