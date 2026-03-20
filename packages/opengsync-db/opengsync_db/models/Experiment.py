@@ -436,6 +436,16 @@ class Experiment(Base):
             reads += lane.m_reads_planned()
         return reads
     
+    def match_seq_run_config(self) -> bool | None:
+        if self.seq_run is None:
+            return None
+        return (
+            self.r1_cycles == self.seq_run.r1_cycles and
+            self.r2_cycles == self.seq_run.r2_cycles and
+            self.i1_cycles == self.seq_run.i1_cycles and
+            self.i2_cycles == self.seq_run.i2_cycles
+        )
+    
     __table_args__ = (
         sa.Index(
             "trgm_experiment_name_idx",

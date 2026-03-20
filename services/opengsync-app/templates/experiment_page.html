@@ -46,7 +46,13 @@
     </div>
 
     <div style="margin: 0; padding: 0;">
-        <p style="margin: 0; padding: 0;"><b>Config: </b>{{ experiment.read_config }} <b>Lanes: </b>{{ experiment.num_lanes }} {% if experiment.workflow.combined_lanes %}<span class="desc">shared</span>{% endif %}</p>
+        <p style="margin: 0; padding: 0;">
+            <b>Config: </b>{{ experiment.read_config }} <b>Lanes: </b>{{ experiment.num_lanes }}
+            {% if experiment.workflow.combined_lanes %}<span class="desc">shared</span>{% endif %}
+            {% if experiment.match_seq_run_config() is false %}
+            <span class="text-danger">❗ Experiment config (num. cycles) does not match the associated run config. Please update the experiment or run config to match.</span>
+            {% endif %}
+        </p>
     </div>
 
     <div class="status_bar">
