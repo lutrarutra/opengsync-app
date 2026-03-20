@@ -439,12 +439,11 @@ class Experiment(Base):
     def match_seq_run_config(self) -> bool | None:
         if self.seq_run is None:
             return None
-        return (
-            self.r1_cycles == self.seq_run.r1_cycles and
-            self.r2_cycles == self.seq_run.r2_cycles and
-            self.i1_cycles == self.seq_run.i1_cycles and
-            self.i2_cycles == self.seq_run.i2_cycles
-        )
+        r1_ok = (self.r1_cycles == self.seq_run.r1_cycles) or (self.seq_run.r1_cycles is None and not self.r1_cycles)
+        r2_ok = (self.r2_cycles == self.seq_run.r2_cycles) or (self.seq_run.r2_cycles is None and not self.r2_cycles)
+        i1_ok = (self.i1_cycles == self.seq_run.i1_cycles) or (self.seq_run.i1_cycles is None and not self.i1_cycles)
+        i2_ok = (self.i2_cycles == self.seq_run.i2_cycles) or (self.seq_run.i2_cycles is None and not self.r2_cycles)
+        return r1_ok and r2_ok and i1_ok and i2_ok
     
     __table_args__ = (
         sa.Index(
