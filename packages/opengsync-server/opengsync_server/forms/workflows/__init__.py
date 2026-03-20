@@ -12,3 +12,4 @@ from . import remux
 from . import edit_kit_barcodes
 from . import add_protocol_kits
 from . import select_library_protocols
+from .EditExperimentCyclesForm import EditExperimentCyclesForm

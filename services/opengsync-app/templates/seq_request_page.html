@@ -262,7 +262,7 @@
             <div class="workflow-container">
                 {% if seq_request.submission_type == SubmissionType.POOLED_LIBRARIES %}
                 <div class="flip-card card {% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %}"
-                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() or True %}
+                    {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
                     hx-get="{{ url_for('merge_pools_workflow.begin', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" data-bs-toggle="modal"

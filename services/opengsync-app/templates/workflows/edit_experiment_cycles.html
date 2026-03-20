@@ -1,0 +1,15 @@
+{% from "components/form_group.jinja2" import form_group %}
+<div id="edit-experiment-cycles-form">
+    <div class="row">
+        {{ form_group(form.cycles_r1, class="col-3", placeholder="Required") }}
+        {{ form_group(form.cycles_i1, class="col-3", placeholder="Required") }}
+        {{ form_group(form.cycles_i2, class="col-3", placeholder="Required") }}
+        {{ form_group(form.cycles_r2, class="col-3", placeholder="Required") }}
+    </div>
+    {{ form.csrf_token() }}
+    <button type="button" class="btn btn-success"
+        hx-target="#edit-experiment-cycles-form" hx-swap="outerHTML" hx-include="#edit-experiment-cycles-form"
+        hx-post="{{ url_for('experiments_htmx.set_cycles', experiment_id=form.experiment.id)}}">
+        Save
+    </button>
+</div>

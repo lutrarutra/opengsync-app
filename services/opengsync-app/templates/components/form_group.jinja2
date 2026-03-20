@@ -16,7 +16,7 @@
         field(
             class="form-control" + (" disabled" if disabled else "") + (" is-invalid" if (field.errors and not disabled) else "") + (" readonly" if readonly else ""), 
             placeholder="" if placeholder == false else (((placeholder if placeholder else "") if disabled else (placeholder if placeholder else ("Required" if field.flags.required else "Optional")))),
-            readonly=readonly or disabled, value=field.data if field.data else "",
+            readonly=readonly or disabled, value=field.data if field.data is not none else "",
             onchange="htmx.trigger('#" + trigger_dest_id + "', 'change');" if trigger_dest_id else "",
             id=(id if id else field.name), autocomplete=autocomplete,
         ) 

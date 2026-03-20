@@ -29,9 +29,9 @@ class ExperimentForm(HTMXFlaskForm):
         coerce=int, default=ExperimentStatus.DRAFT.id
     )
     
-    r1_cycles = IntegerField("R1 Cycles", validators=[DataRequired()])
+    r1_cycles = IntegerField("R1 Cycles", validators=[OptionalValidator()])
     r2_cycles = IntegerField("R2 Cycles", validators=[OptionalValidator()])
-    i1_cycles = IntegerField("I1 Cycles", validators=[DataRequired()])
+    i1_cycles = IntegerField("I1 Cycles", validators=[OptionalValidator()])
     i2_cycles = IntegerField("I2 Cycles", validators=[OptionalValidator()])
 
     def __init__(self, current_user: models.User, experiment: models.Experiment | None = None, formdata: dict | None = None):
@@ -66,6 +66,7 @@ class ExperimentForm(HTMXFlaskForm):
             self.status.data =  self.experiment.status_id
 
     def validate(self) -> bool:
+        logger.debug(self.formdata)
         if (validated := super().validate()) is False:
             return False
         
@@ -100,9 +101,9 @@ class ExperimentForm(HTMXFlaskForm):
         self.experiment.name = self.name.data  # type: ignore
         self.experiment.workflow = workflow
         self.experiment.sequencer_id = self.sequencer.selected.data
-        self.experiment.r1_cycles = self.r1_cycles.data  # type: ignore
+        self.experiment.r1_cycles = self.r1_cycles.data
         self.experiment.r2_cycles = self.r2_cycles.data
-        self.experiment.i1_cycles = self.i1_cycles.data  # type: ignore
+        self.experiment.i1_cycles = self.i1_cycles.data
         self.experiment.i2_cycles = self.i2_cycles.data
         self.experiment.operator_id = self.operator.selected.data
         self.experiment.status = status
