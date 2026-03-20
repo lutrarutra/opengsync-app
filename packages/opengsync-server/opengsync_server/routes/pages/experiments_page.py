@@ -69,6 +69,7 @@ def experiment(current_user: models.User, experiment_id: int):
         checklist["lane_fragment_size_measured"],
         checklist["laning_completed"],
         checklist["flowcell_loaded"],
+        checklist["num_cycles_set"]
     ]
     steps_completed = sum(1 for item in steps if item)
 
