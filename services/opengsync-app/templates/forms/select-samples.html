@@ -46,7 +46,7 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="selected-samples-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-samples-tab"
                     type="button" role="tab" aria-controls="selected-samples-tab" aria-selected="false">
-                    Selected Samples ({{ selected_samples | length }})
+                    Selected Samples ({{ form.selected_samples | length }})
                 </button>
             </li>
             {% endif %}
@@ -54,7 +54,7 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="selected-libraries-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-libraries-tab"
                     type="button" role="tab" aria-controls="selected-libraries-tab" aria-selected="false">
-                    Selected Libraries ({{ selected_libraries | length }})
+                    Selected Libraries ({{ form.selected_libraries | length }})
                 </button>
             </li>
             {% endif %}
@@ -62,7 +62,7 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="selected-pools-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-pools-tab"
                     type="button" role="tab" aria-controls="selected-pools-tab" aria-selected="false">
-                    Selected Pools ({{ selected_pools | length }})
+                    Selected Pools ({{ form.selected_pools | length }})
                 </button>
             </li>
             {% endif %}
@@ -70,14 +70,14 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="selected-lanes-tab-btn" data-bs-toggle="tab" data-bs-target="#selected-lanes-tab"
                     type="button" role="tab" aria-controls="selected-lanes-tab" aria-selected="false">
-                    Selected Lanes ({{ selected_lanes | length }})
+                    Selected Lanes ({{ form.selected_lanes | length }})
                 </button>
             </li>
             {% endif %}
         </ul>
         <div class="tab-content ba">
             <div class="invalid-feedback-container">
-                {% for error in select_samples_form.error_dummy.errors %}
+                {% for error in form.error_dummy.errors %}
                     <p>{{ error }}</p>
                 {% endfor %}
             </div>
@@ -141,7 +141,7 @@
                         </tr>
                     </thead>
                     <tbody id="selected-samples-table-container">
-                        {% for sample in selected_samples %}
+                        {% for sample in form.selected_samples %}
                         <tr onclick="remove_sample({{sample.id}});" id="selected-sample-row-{{ sample.id }}" class="sample-row selected">
                             <th scope="row">{{ sample.id }}</th>
                             <td>{{ sample.name }}</td>
@@ -187,7 +187,7 @@
                         </tr>
                     </thead>
                     <tbody id="selected-libraries-table-container">
-                    {% for library in selected_libraries %}
+                    {% for library in form.selected_libraries %}
                         <tr onclick="remove_library({{ library.id }});" id="selected-library-row-{{ library.id }}"
                         class="library-row {% if library.pool_id is not none %}pooled{% endif %} selected">
                             <th scope="row">{{ library.id }}</th>
@@ -240,7 +240,7 @@
                         </tr>
                     </thead>
                     <tbody id="selected-pools-table-container">
-                        {% for pool in selected_pools %}
+                        {% for pool in form.selected_pools %}
                         <tr onclick="remove_pool({{ pool.id }});" id="selected-pool-row-{{ pool.id }}" class="pool-row">
                             <th scope="row">{{ pool.id }}</th>
                             <td>{{ pool.name }}</td>
@@ -290,6 +290,27 @@
                         </tr>
                     </thead>
                     <tbody id="selected-lanes-table-container">
+                        {% for lane in form.selected_lanes %}
+                        <tr onclick="remove_lane({{ lane.id }});" id="selected-lane-row-{{ lane.id }}" class="lane-row">
+                            <th scope="row"></th>
+                            <td>{{ lane.number }}</td>
+                            {% if workflow == "qubit_measure" %}
+                            <td>
+                                <div class="quantity-container">
+                                    <div class="value">{{ lane.qubit_concentration_str }}</div>
+                                    <div class="unit">ng/μL</div>
+                                </div>
+                            </td>
+                            {% elif workflow == "ba_report" %}
+                            <td>
+                                <div class="quantity-container">
+                                    <div class="value">{{ lane.avg_fragment_size or '' }}</div>
+                                    <div class="unit">bp</div>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -311,13 +332,13 @@
     <script>
         (function () {
 
-            window.selected_samples = window.selected_samples || {{ selected_samples_ids | tojson if selected_samples_ids else [] }};
+            window.selected_samples = window.selected_samples || {{ form.sample_ids | tojson if form.sample_ids else [] }};
             window.num_selected_samples = window.selected_samples.length;
-            window.selected_libraries = window.selected_libraries || {{ selected_libraries_ids | tojson if selected_libraries_ids else [] }};
+            window.selected_libraries = window.selected_libraries || {{ form.library_ids | tojson if form.library_ids else [] }};
             window.num_selected_libraries = window.selected_libraries.length;
-            window.selected_pools = window.selected_pools || {{ selected_pools_ids | tojson if selected_pools_ids else [] }};
+            window.selected_pools = window.selected_pools || {{ form.pool_ids | tojson if form.pool_ids else [] }};
             window.num_selected_pools = window.selected_pools.length;
-            window.selected_lanes = window.selected_lanes || {{ selected_lanes_ids | tojson if selected_lanes_ids else [] }};
+            window.selected_lanes = window.selected_lanes || {{ form.lane_ids | tojson if form.lane_ids else [] }};
             window.num_selected_lanes = window.selected_lanes.length;
 
             $("#submit-select_samples-form-btn").off("click").on("click", function() {
@@ -335,11 +356,11 @@
                     target: "#select_samples-form-container",
                     swap: "outerHTML",
                     values: {
-                        csrf_token: "{{ select_samples_form.csrf_token._value() }}",
+                        csrf_token: "{{ form.csrf_token._value() }}",
                         selected_sample_ids: JSON.stringify(window.selected_samples),
                         selected_library_ids: JSON.stringify(window.selected_libraries),
                         selected_pool_ids: JSON.stringify(window.selected_pools),
-                        selected_lanes_ids: JSON.stringify(window.selected_lanes),
+                        selected_lane_ids: JSON.stringify(window.selected_lanes),
                         workflow: "{{ workflow }}",
                         {% if seq_request is defined and seq_request %}seq_request_id: "{{ seq_request.id }}",{% endif %}
                         {% if pool is defined and pool %}pool_id: "{{ pool.id }}",{% endif %}

@@ -1,5 +1,3 @@
-import pandas as pd
-
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 from wtforms import StringField, FormField, SelectField, FloatField
@@ -33,6 +31,7 @@ class MergePoolsForm(MultiStepForm):
             self, uuid=uuid, formdata=formdata, step_name=MergePoolsForm._step_name,
             workflow=MergePoolsForm._workflow_name, step_args={}
         )
+        self.seq_request_id = self.metadata.get("seq_request_id")
         self.pool_table = self.tables["pool_table"]
         self.barcode_table = self.tables["barcode_table"]
         self.pool_table["num_m_reads_requested"] = 0
@@ -114,6 +113,7 @@ class MergePoolsForm(MultiStepForm):
             status=PoolStatus.get(self.status.data),
             num_m_reads_requested=self.num_m_reads_requested.data,
             owner_id=user.id,
+            seq_request_id=self.seq_request_id,
             pool_type=pool_type,
             contact_name=self.contact_name.data if contact is None else contact.name,  # type: ignore
             contact_email=self.contact_email.data if contact is None else contact.email,  # type: ignore

@@ -41,13 +41,12 @@ workflow_settings = {
 
 class SelectSamplesForm(MultiStepForm):
     _template_path = "forms/select-samples.html"
-    _form_label = "select_samples_form"
     _step_name = "select_samples"
 
     selected_sample_ids = StringField()
     selected_library_ids = StringField()
     selected_pool_ids = StringField()
-    selected_lanes_ids = StringField()
+    selected_lane_ids = StringField()
 
     error_dummy = StringField()
 
@@ -108,15 +107,15 @@ class SelectSamplesForm(MultiStepForm):
         self._context["select_pools"] = select_pools
         self._context["select_lanes"] = select_lanes
 
-        self._context["selected_samples_ids"] = [sample.id for sample in selected_samples]
-        self._context["selected_libraries_ids"] = [library.id for library in selected_libraries]
-        self._context["selected_pools_ids"] = [pool.id for pool in selected_pools]
-        self._context["selected_lanes_ids"] = [lane.id for lane in selected_lanes]
+        self.sample_ids = [sample.id for sample in selected_samples]
+        self.library_ids = [library.id for library in selected_libraries]
+        self.pool_ids = [pool.id for pool in selected_pools]
+        self.lane_ids = [lane.id for lane in selected_lanes]
 
-        self._context["selected_samples"] = selected_samples
-        self._context["selected_libraries"] = selected_libraries
-        self._context["selected_pools"] = selected_pools
-        self._context["selected_lanes"] = selected_lanes
+        self.selected_samples = selected_samples
+        self.selected_libraries = selected_libraries
+        self.selected_pools = selected_pools
+        self.selected_lanes = selected_lanes
 
         self._context["select_all_samples"] = select_all_samples
         self._context["select_all_libraries"] = select_all_libraries
@@ -160,9 +159,9 @@ class SelectSamplesForm(MultiStepForm):
         selected_sample_ids = self.selected_sample_ids.data
         selected_library_ids = self.selected_library_ids.data
         selected_pool_ids = self.selected_pool_ids.data
-        selected_lanes_ids = self.selected_lanes_ids.data
+        selected_lane_ids = self.selected_lane_ids.data
         
-        if not selected_pool_ids and not selected_library_ids and not selected_sample_ids and not selected_lanes_ids:
+        if not selected_pool_ids and not selected_library_ids and not selected_sample_ids and not selected_lane_ids:
             self.error_dummy.errors = ["Select at least one sample"]
             return False
 
@@ -181,8 +180,8 @@ class SelectSamplesForm(MultiStepForm):
         else:
             pool_ids = []
 
-        if selected_lanes_ids:
-            lane_ids = json.loads(selected_lanes_ids)
+        if selected_lane_ids:
+            lane_ids = json.loads(selected_lane_ids)
         else:
             lane_ids = []
 
@@ -193,7 +192,12 @@ class SelectSamplesForm(MultiStepForm):
         self.sample_ids = []
         try:
             for sample_id in sample_ids:
-                self.sample_ids.append(int(sample_id))
+                if (sample := db.samples.get(int(sample_id))) is None:
+                    logger.error(f"Sample {sample_id} not found")
+                    raise exceptions.NotFoundException(f"Sample with id {sample_id} not found")
+                self.sample_ids.append(sample.id)
+                self.selected_samples.append(sample)
+                
         except ValueError:
             self.selected_sample_ids.errors = ["Invalid sample id"]
             return False
@@ -201,31 +205,39 @@ class SelectSamplesForm(MultiStepForm):
         self.library_ids = []
         try:
             for library_id in library_ids:
-                self.library_ids.append(int(library_id))
+                if (library := db.libraries.get(int(library_id))) is None:
+                    logger.error(f"Library {library_id} not found")
+                    raise exceptions.NotFoundException(f"Library with id {library_id} not found")
+                self.library_ids.append(library.id)
+                self.selected_libraries.append(library)
         except ValueError:
             self.selected_library_ids.errors = ["Invalid library id"]
             return False
         
         self.pool_ids = []
         try:
-            for library_id in pool_ids:
-                self.pool_ids.append(int(library_id))
+            for pool_id in pool_ids:
+                if (pool := db.pools.get(int(pool_id))) is None:
+                    logger.error(f"Pool {pool_id} not found")
+                    raise exceptions.NotFoundException(f"Pool with id {pool_id} not found")
+                self.pool_ids.append(pool.id)
+                self.selected_pools.append(pool)
+
         except ValueError:
-            self.selected_pool_ids.errors = ["Invalid library id"]
+            self.selected_pool_ids.errors = ["Invalid pool id"]
             return False
         
         self.lane_ids = []
         try:
             for lane_id in lane_ids:
-                self.lane_ids.append(int(lane_id))
+                if (lane := db.lanes.get(int(lane_id))) is None:
+                    logger.error(f"Lane {lane_id} not found")
+                    raise exceptions.NotFoundException(f"Lane with id {lane_id} not found")
+                self.lane_ids.append(lane.id)
+                self.selected_lanes.append(lane)
         except ValueError:
-            self.selected_lanes_ids.errors = ["Invalid lane id"]
+            self.selected_lane_ids.errors = ["Invalid lane id"]
             return False
-        
-        self._context["selected_samples"] = self.sample_ids
-        self._context["selected_libraries"] = self.library_ids
-        self._context["selected_pools"] = self.pool_ids
-        self._context["selected_lanes"] = self.lane_ids
 
         if not validated:
             return False
@@ -303,7 +315,6 @@ class SelectSamplesForm(MultiStepForm):
         self.__library_table = pd.DataFrame(library_data).sort_values("id")
         self.__pool_table = pd.DataFrame(pool_data).sort_values("id")
         self.__lane_table = pd.DataFrame(lane_data).sort_values("id")
-        
         return True
     
     @property
@@ -335,41 +346,25 @@ class SelectSamplesForm(MultiStepForm):
         return self.__lane_table
     
     def get_libraries(self) -> list[models.Library]:
-        libraries = []
-        for _, row in self.library_table.iterrows():
-            if (library := db.libraries.get(int(row["id"]))) is None:
-                logger.error(f"Library {library} not found in database")
-                raise Exception("Library not found in database")
-            libraries.append(library)
-
-        return libraries
+        if self.__library_table is None:
+            logger.error("Form not validated, call .validate() first..")
+            raise exceptions.InternalServerErrorException("Form not validated, call .validate() first..")
+        return self.selected_libraries
     
     def get_samples(self) -> list[models.Sample]:
-        samples = []
-        for _, row in self.sample_table.iterrows():
-            if (sample := db.samples.get(int(row["id"]))) is None:
-                logger.error(f"Sample {sample} not found in database")
-                raise Exception("Sample not found in database")
-            samples.append(sample)
-
-        return samples
+        if self.__sample_table is None:
+            logger.error("Form not validated, call .validate() first..")
+            raise exceptions.InternalServerErrorException("Form not validated, call .validate() first..")
+        return self.selected_samples
     
     def get_pools(self) -> list[models.Pool]:
-        pools = []
-        for _, row in self.pool_table.iterrows():
-            if (pool := db.pools.get(int(row["id"]))) is None:
-                logger.error(f"Pool {pool} not found in database")
-                raise Exception("Pool not found in database")
-            pools.append(pool)
-
-        return pools
+        if self.__pool_table is None:
+            logger.error("Form not validated, call .validate() first..")
+            raise exceptions.InternalServerErrorException("Form not validated, call .validate() first..")
+        return self.selected_pools
     
     def get_lanes(self) -> list[models.Lane]:
-        lanes = []
-        for _, row in self.lane_table.iterrows():
-            if (lane := db.lanes.get(int(row["id"]))) is None:
-                logger.error(f"Lane {lane} not found in database")
-                raise Exception("Lane not found in database")
-            lanes.append(lane)
-
-        return lanes
+        if self.__lane_table is None:
+            logger.error("Form not validated, call .validate() first..")
+            raise exceptions.InternalServerErrorException("Form not validated, call .validate() first..")
+        return self.selected_lanes

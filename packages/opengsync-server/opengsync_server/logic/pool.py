@@ -98,7 +98,6 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.url_params["experiment_id"] = experiment.id
         table.active_page = None
         fnc_context["limit"] = None
-
         context["can_edit_pooling"] = (
             (
                 current_user.is_insider() and
@@ -237,8 +236,21 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         fnc_context["associated_to_experiment"] = False
         fnc_context["experiment_id"] = None
 
-    if not current_user.is_insider():
-        fnc_context["user_id"] = current_user.id
+    if (seq_request := context.get("seq_request")) is not None:
+        fnc_context["seq_request_id"] = seq_request.id
+        table.url_params["seq_request_id"] = seq_request.id
+    elif (experiment := context.get("experiment")) is not None:   
+        experiment = cast(models.Experiment, experiment)
+        fnc_context["experiment_id"] = experiment.id
+        table.url_params["experiment_id"] = experiment.id
+        table.active_page = None
+        fnc_context["limit"] = None
+    elif (lab_prep := context.get("lab_prep")) is not None:
+        fnc_context["lab_prep_id"] = lab_prep.id
+        table.url_params["lab_prep_id"] = lab_prep.id
+    else:
+        if not current_user.is_insider():
+            fnc_context["user_id"] = current_user.id
 
     pools, table.num_pages = db.pools.find(page=table.active_page, **fnc_context)
 
