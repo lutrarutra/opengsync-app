@@ -4,7 +4,7 @@ from flask import Blueprint, request, Response
 from opengsync_db import models
 from opengsync_db.categories import PoolStatus, PoolType, AccessType
 
-from ... import db
+from ... import db, logger
 from ...core import wrappers, exceptions
 from ...forms import SelectSamplesForm
 from ...forms.workflows.MergePoolsForm import MergePoolsForm
@@ -59,7 +59,9 @@ def select(current_user: models.User) -> Response:
     context = get_context(current_user, request.args)
 
     form: SelectSamplesForm = SelectSamplesForm(
-        "merge_pools", formdata=request.form, context=context,
+        "merge_pools",
+        formdata=request.form,
+        context=context,
         select_pools=True,
         pool_status_filter=[
             PoolStatus.DRAFT,
@@ -74,6 +76,10 @@ def select(current_user: models.User) -> Response:
         return form.make_response()
 
     form.tables["pool_table"] = form.pool_table
+    if len(form.tables["pool_table"]) < 2:
+        form.error_dummy.errors = ("You must select at least 2 pools to merge.",)
+        return form.make_response()
+    
     barcodes = []
     libraries = []
     for pool in form.get_pools():
@@ -84,7 +90,8 @@ def select(current_user: models.User) -> Response:
     library_table = pd.concat(libraries, ignore_index=True)
     form.tables["library_table"] = library_table
     form.tables["barcode_table"] = barcode_table
-    form.metadata.update(context)
+    if (seq_request := context.get("seq_request")) is not None:
+        form.metadata["seq_request_id"] = seq_request.id
     form.step()
     
     next_form = MergePoolsForm(uuid=form.uuid)

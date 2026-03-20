@@ -242,11 +242,14 @@ class SeqRequestBP(DBBlueprint):
         seq_request.status = SeqRequestStatus.SUBMITTED
         seq_request.timestamp_submitted_utc = to_utc(datetime.now())
         for library in seq_request.libraries:
-            if library.status == LibraryStatus.DRAFT:
-                library.status = LibraryStatus.SUBMITTED
-                self.db.session.add(library)
+            if library.status != LibraryStatus.DRAFT:
+                continue
+            library.status = LibraryStatus.SUBMITTED
+            self.db.session.add(library)
 
         for pool in seq_request.pools:
+            if pool.status != PoolStatus.DRAFT:
+                continue
             pool.status = PoolStatus.SUBMITTED
             self.db.session.add(pool)
 
@@ -379,7 +382,7 @@ class SeqRequestBP(DBBlueprint):
             raise TypeError(f"Cannot process request to '{status}'.")
 
         for sample in seq_request.samples:
-            if sample.status is None:
+            if sample.status != SampleStatus.DRAFT:
                 continue  # Sample was not prepared in-house -> no specimen stored
             if status == SeqRequestStatus.ACCEPTED:
                 sample.status = SampleStatus.WAITING_DELIVERY
@@ -392,7 +395,6 @@ class SeqRequestBP(DBBlueprint):
         for library in seq_request.libraries:
             if library.status == LibraryStatus.SUBMITTED:
                 library.status = library_status
-                
             if library_status != LibraryStatus.ACCEPTED:
                 continue
             
@@ -405,6 +407,8 @@ class SeqRequestBP(DBBlueprint):
             seq_request.status = SeqRequestStatus.ACCEPTED
 
         for pool in seq_request.pools:
+            if pool.status != PoolStatus.SUBMITTED:
+                continue
             pool.status = pool_status
 
         if status == SeqRequestStatus.ACCEPTED:
