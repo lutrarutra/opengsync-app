@@ -232,9 +232,6 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
-    if kwargs["workflow"] == "select_experiment_pools":
-        fnc_context["associated_to_experiment"] = False
-        fnc_context["experiment_id"] = None
 
     if (seq_request := context.get("seq_request")) is not None:
         fnc_context["seq_request_id"] = seq_request.id
@@ -252,8 +249,13 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         if not current_user.is_insider():
             fnc_context["user_id"] = current_user.id
 
-    pools, table.num_pages = db.pools.find(page=table.active_page, **fnc_context)
+    if kwargs["workflow"] == "select_experiment_pools":
+        fnc_context["associated_to_experiment"] = False
+        fnc_context["experiment_id"] = None
 
+    logger.debug(fnc_context)
+    pools, table.num_pages = db.pools.find(page=table.active_page, **fnc_context)
+    logger.debug(pools)
     context.update({
         "pools": pools,
         "template_name_or_list": "components/tables/select-pools.html",
