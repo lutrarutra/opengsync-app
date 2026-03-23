@@ -488,3 +488,17 @@ def checklist(current_user: models.User, experiment_id: int):
 @wrappers.htmx_route(experiments_htmx, db=db)
 def browse(current_user: models.User, workflow: str, page: int = 0):
     return make_response(render_template(**logic.experiment.get_browse_context(current_user=current_user, request=request, workflow=workflow, page=page)))
+
+
+@wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
+def sequencer_loading_checklist(current_user: models.User, experiment_id: int):
+    if not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
+    if (experiment := db.experiments.get(experiment_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if request.method == "GET":
+        return forms.SequencerLoadingChecklistForm(current_user=current_user, experiment=experiment).make_response()
+    
+    return forms.SequencerLoadingChecklistForm(current_user=current_user, experiment=experiment, formdata=request.form).process_request()

@@ -1,14 +1,13 @@
-import json
 from typing import Literal
 
 
 from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
-from opengsync_db import models, PAGE_LIMIT
+from opengsync_db import models
 from opengsync_db.categories import PoolStatus, LibraryStatus, AccessType
 
-from ... import db, forms, logic, logger
+from ... import db, forms, logic
 from ...core import wrappers, exceptions
 pools_htmx = Blueprint("pools_htmx", __name__, url_prefix="/htmx/pools/")
 

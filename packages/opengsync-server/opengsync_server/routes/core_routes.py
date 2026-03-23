@@ -75,7 +75,7 @@ def pdf_file(file_id: int, current_user: models.User):
         raise exceptions.NotFoundException()
 
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if (access_type := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
+        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
             raise exceptions.NoPermissionsException()
 
     if file.extension != ".pdf":
@@ -101,7 +101,7 @@ def img_file(current_user: models.User, file_id: int):
         raise exceptions.NotFoundException()
 
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if (access_type := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
+        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
             raise exceptions.NoPermissionsException()
 
     if file.extension not in [".png", ".jpg", ".jpeg"]:
@@ -117,7 +117,7 @@ def img_file(current_user: models.User, file_id: int):
 
     response = make_response(data)
     response.headers["Content-Type"] = f"image/{file.extension[1:]}"
-    response.headers["Content-Disposition"] = "inline; filename={file.name}"
+    response.headers["Content-Disposition"] = f"inline; filename={file.name}"
     return response
 
 
@@ -127,7 +127,7 @@ def download_file(file_id: int, current_user: models.User):
         raise exceptions.NotFoundException()
 
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if (access_type := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
+        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
             raise exceptions.NoPermissionsException()
 
     filepath = os.path.join(runtime.app.media_folder, file.path)
@@ -149,7 +149,7 @@ def xlsx_data(current_user: models.User, file_id: int):
         raise exceptions.NotFoundException()
     
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if (access_type := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
+        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
             raise exceptions.NoPermissionsException()
 
     filepath = os.path.join(runtime.app.media_folder, file.path)
