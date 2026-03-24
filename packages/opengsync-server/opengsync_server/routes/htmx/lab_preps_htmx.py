@@ -11,7 +11,7 @@ from openpyxl.utils import get_column_letter
 from flask import Blueprint, render_template, request, flash, url_for, Response
 from flask_htmx import make_response
 
-from opengsync_db import models, PAGE_LIMIT
+from opengsync_db import models
 from opengsync_db.categories import PoolStatus, LibraryStatus, PrepStatus, SeqRequestStatus, LibraryType, LabChecklistType
 
 from ... import db, forms, logger, logic

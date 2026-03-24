@@ -25,7 +25,6 @@ class EditExperimentCyclesForm(HTMXFlaskForm):
         self._context["experiment"] = experiment
 
     def prepare(self):
-        logger.debug(f"Preparing form with experiment: {self.experiment}")
         self.cycles_r1.data =  self.experiment.r1_cycles
         self.cycles_r2.data =  self.experiment.r2_cycles
         self.cycles_i1.data =  self.experiment.i1_cycles
@@ -48,6 +47,6 @@ class EditExperimentCyclesForm(HTMXFlaskForm):
 
         db.experiments.update(self.experiment)
 
-        flash(f"Changes Saved!.", "success")
+        flash("Changes Saved!.", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id, tab="checklist-tab"))
     

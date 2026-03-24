@@ -692,3 +692,15 @@ span.t7 {
 span.me {
     color: #969696;
 }
+
+code {
+    font-family: monospace, monospace;
+    color: var(--color-cemm-blue-dark);
+    font-weight: 700;
+}
+
+.accordion-button:disabled {
+    background-color: var(--color-gray-200) !important;
+    color: var(--color-gray-600) !important;
+    cursor: not-allowed !important;
+}

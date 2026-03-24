@@ -95,6 +95,10 @@ sup.mux-type {
     .print-window .cemm-green { 
         color: black !important; 
     }
+    table {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
 }
 
 .bg-rainbow-1 { background-color: var(--color-rainbow-1); }

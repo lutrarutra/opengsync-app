@@ -253,9 +253,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         fnc_context["associated_to_experiment"] = False
         fnc_context["experiment_id"] = None
 
-    logger.debug(fnc_context)
     pools, table.num_pages = db.pools.find(page=table.active_page, **fnc_context)
-    logger.debug(pools)
     context.update({
         "pools": pools,
         "template_name_or_list": "components/tables/select-pools.html",

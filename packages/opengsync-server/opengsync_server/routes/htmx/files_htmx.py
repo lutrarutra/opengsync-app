@@ -2,11 +2,11 @@ import os
 import mimetypes
 from pathlib import Path
 
-from flask import Blueprint, render_template, Response, send_from_directory, request, jsonify
+from flask import Blueprint, render_template, Response, send_from_directory, request
 from flask_htmx import make_response
 
 from opengsync_db import models
-from opengsync_db.categories import AccessType, MediaFileType
+from opengsync_db.categories import AccessType
 
 from ... import db, logger
 from ...tools import utils, FileBrowser
@@ -22,7 +22,7 @@ def render_xlsx(current_user: models.User, file_id: int):
         raise exceptions.NotFoundException()
     
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if not db.media_files.permissions_check(user_id=current_user.id, file_id=file_id):
+        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
             raise exceptions.NoPermissionsException()
 
     filepath = os.path.join(runtime.app.media_folder, file.path)
@@ -68,6 +68,41 @@ def render_data_file(current_user: models.User, data_path_id: int):
         response.headers["Content-Disposition"] = f"attachment; filename={path.name}"
     response.headers["X-Accel-Redirect"] = path.as_posix().replace(runtime.app.share_root.as_posix(), "/nginx-share/")
     return response
+
+
+@wrappers.resource_route(files_htmx, db=db, login_required=True)
+def render_markdown_file(current_user: models.User, file_id: int):
+    import markdown
+    if (file := db.media_files.get(file_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    if file.uploader_id != current_user.id and not current_user.is_insider():
+        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
+            raise exceptions.NoPermissionsException()
+
+    filepath = os.path.join(runtime.app.media_folder, file.path)
+    if not os.path.exists(filepath):
+        logger.error(f"File not found: {filepath}")
+        raise exceptions.NotFoundException()
+    
+    with open(filepath, "r") as f:
+        content = f.read()
+    
+    return make_response(
+        markdown.markdown(
+            content,
+            extensions=[
+                'tables',
+                'pymdownx.tasklist'
+            ],
+            extension_configs={
+                'pymdownx.tasklist': {
+                    'custom_checkbox': True,
+                    'clickable_checkbox': True
+                }
+            }
+        )
+    )
 
 
 @wrappers.htmx_route(files_htmx, db=db, login_required=True, methods=["GET", "POST"])

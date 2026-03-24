@@ -7,7 +7,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
-from ..categories import ExperimentStatus, ExperimentStatus, FlowCellType, ExperimentWorkFlow, ExperimentWorkFlow, LibraryType, LibraryType, MediaFileType
+from ..categories import ExperimentStatus, FlowCellType, ExperimentWorkFlow, LibraryType, MediaFileType
 from .Base import Base
 from . import links
 
@@ -50,6 +50,11 @@ class Experiment(Base):
     lane_pooling_tables: Mapped[list["MediaFile"]] = relationship(
         "MediaFile", lazy="select", viewonly=True, uselist=True,
         primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type_id == {MediaFileType.LANE_POOLING_TABLE.id})",
+        order_by="desc(MediaFile.id)",
+    )
+    sequencer_loading_checklists: Mapped[list["MediaFile"]] = relationship(
+        "MediaFile", lazy="select", viewonly=True, uselist=True,
+        primaryjoin=f"and_(Experiment.id == MediaFile.experiment_id, MediaFile.type_id == {MediaFileType.SEQUENCER_LOADING_CHECKLIST.id})",
         order_by="desc(MediaFile.id)",
     )
 
@@ -125,6 +130,8 @@ class Experiment(Base):
         if not flowcell_loaded:
             if not lane_qubit_measured or not lane_fragment_size_measured:
                 flowcell_loaded = None
+        
+        loading_checklist_generated = len(self.sequencer_loading_checklists) > 0
 
         num_cycles_set = (
             self.r1_cycles is not None and
@@ -147,6 +154,7 @@ class Experiment(Base):
             "laning_completed": laning_completed,
             "flowcell_loaded": flowcell_loaded,
             "num_cycles_set": num_cycles_set,
+            "loading_checklist_generated": loading_checklist_generated,
         }
     
     def get_loaded_reads(self) -> float:
@@ -171,7 +179,7 @@ class Experiment(Base):
     
     @property
     def lanes_map(self) -> dict[int, list[int]]:
-        if (session := orm.object_session(self)) is None:
+        if (_ := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
         
         lanes: dict[int, list[int]] = {}
@@ -357,6 +365,19 @@ class Experiment(Base):
         return session.query(MediaFile).filter(
             MediaFile.experiment_id == self.id,
             MediaFile.type_id == MediaFileType.LANE_POOLING_TABLE.id
+        ).order_by(MediaFile.id.desc()).first()
+    
+    @hybrid_property
+    def sequencer_loading_checklist(self) -> Optional["MediaFile"]:
+        if "sequencer_loading_checklist" not in orm.attributes.instance_state(self).unloaded:
+            return self.sequencer_loading_checklists[0] if len(self.sequencer_loading_checklists) > 0 else None
+        
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'sequencer_loading_checklist' attribute.")
+        from .MediaFile import MediaFile
+        return session.query(MediaFile).filter(
+            MediaFile.experiment_id == self.id,
+            MediaFile.type_id == MediaFileType.SEQUENCER_LOADING_CHECKLIST.id
         ).order_by(MediaFile.id.desc()).first()
 
     @property

@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.orm import Query
     
-from ...categories import PoolStatus, PoolStatus, PoolType, AccessType, AccessType, UserRole, LibraryType
+from ...categories import PoolStatus, PoolType, AccessType, UserRole, LibraryType
 from ... import PAGE_LIMIT, models
 from .. import exceptions
 from ..DBBlueprint import DBBlueprint

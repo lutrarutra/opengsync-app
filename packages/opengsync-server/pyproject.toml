@@ -62,7 +62,10 @@ dependencies = [
     "google-genai >= 1.28",
     "flask-limiter >= 3.12",
     "framehints",
-    "pyarrow"
+    "pyarrow",
+    "markdown",
+    "pymdown-extensions",
+    "tabulate"
 ]
 
 [tool.setuptools_scm]

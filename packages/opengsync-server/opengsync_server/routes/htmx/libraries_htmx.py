@@ -71,14 +71,9 @@ def render_feature_table(current_user: models.User, library_id: int):
                 width, max_length=1000
             )
         )
-    
-    return make_response(
-        render_template(
-            "components/itable.html", columns=columns,
-            spreadsheet_data=df.replace(pd.NA, "").values.tolist(),
-            table_id=f"library-feature-table-{library_id}"
-        )
-    )
+
+    spreadsheet = StaticSpreadSheet(df, columns=columns)
+    return make_response(render_template("components/itable.html", columns=columns, spreadsheet=spreadsheet))
 
 
 @wrappers.htmx_route(libraries_htmx, db=db)
@@ -307,7 +302,6 @@ def get_mux_table(current_user: models.User, library_id: int):
         )
 
     spreadsheet = StaticSpreadSheet(df, columns=columns)
-
     return make_response(render_template("components/itable.html", columns=columns, spreadsheet=spreadsheet))
 
 

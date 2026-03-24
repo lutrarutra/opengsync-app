@@ -103,7 +103,6 @@ class LoadFlowCellForm(HTMXFlaskForm):
                 lane.library_volume_ul = lane.total_volume_ul * lane.target_molarity / lane.original_molarity  # type: ignore
             db.lanes.update(lane)
             all_lanes_loaded = all_lanes_loaded and lane.is_loaded()
-            logger.debug(f"Lane {lane.id} loaded: {lane.is_loaded()}")
 
         if all_lanes_loaded:
             self.experiment.status = ExperimentStatus.LOADED

@@ -4,7 +4,7 @@ from sqlalchemy import orm
 
 from opengsync_db import models
 
-from ... import db, logger
+from ... import db
 from ...core import wrappers, exceptions
 experiments_page_bp = Blueprint("experiments_page", __name__)
 
@@ -71,6 +71,8 @@ def experiment(current_user: models.User, experiment_id: int):
         checklist["flowcell_loaded"],
         checklist["num_cycles_set"]
     ]
+    if experiment.workflow.load_sequencer_workflow_checklist is not None:
+        steps.append(checklist["loading_checklist_generated"])
     steps_completed = sum(1 for item in steps if item)
 
     return render_template(

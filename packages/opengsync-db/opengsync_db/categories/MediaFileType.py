@@ -25,3 +25,4 @@ class MediaFileType(ExtendedEnum):
     LIBRARY_ANNOTATION = MediaFileTypeEnum(5, "Library Annotation", "library_annotation", ["tsv"])
     POOL_INDEXING_TABLE = MediaFileTypeEnum(6, "Pool Indexing Table", "pool_indexing_tables", ["tsv"])
     LIBRARY_PREP_FILE = MediaFileTypeEnum(7, "Library Prep Table", "library_prep_files", ["xlsx"])
+    SEQUENCER_LOADING_CHECKLIST = MediaFileTypeEnum(8, "Sequencer Loading Checklist", "sequencer_loading_checklists", ["md"])
