@@ -1,6 +1,8 @@
 ## 0. Parameters
-- `NaOH`: number : {naoh} : 7.5
+- `NaOH`: number : {naoh} : 8.5
 - `Preload`: number : {preload} : 127.5
+- `Pool Volume`: number : {pool_volume} : 34
+- `Phi X`: list : {phi_x} : 
 
 ## 1. Prepare NovaSeq X
 1. [ ] Check storage space on the sequencer 
