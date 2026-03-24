@@ -472,7 +472,7 @@
                         {{ 
                             modal_button(
                                 "Begin", url_for('experiments_htmx.sequencer_loading_checklist', experiment_id=experiment.id),
-                                disabled=lane_qubit_measured is none or not can_be_edited and False,
+                                disabled=not can_be_edited,
                             )
                         }} Workflow
                     </li>
