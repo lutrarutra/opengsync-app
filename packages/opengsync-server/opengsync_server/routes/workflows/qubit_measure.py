@@ -1,5 +1,5 @@
-from typing import Literal
 from flask import Blueprint, request, Request
+from sqlalchemy import orm
 
 from opengsync_db import models
 from opengsync_db.categories import PoolStatus, LibraryStatus, SampleStatus
@@ -31,7 +31,7 @@ def get_context(request: Request) -> dict:
     if (experiment_id := args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
-            if (experiment := db.experiments.get(experiment_id)) is None:
+            if (experiment := db.experiments.get(experiment_id, options=orm.selectinload(models.Experiment.pools))) is None:
                 raise exceptions.NotFoundException()
             context["experiment"] = experiment
         except ValueError:

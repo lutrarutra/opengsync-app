@@ -1,5 +1,6 @@
 from flask import Blueprint, request, flash, url_for
 from flask_htmx import make_response
+from sqlalchemy import orm
 
 from opengsync_db import models
 
@@ -15,7 +16,7 @@ def begin(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.experiments.get(experiment_id, options=orm.selectinload(models.Experiment.pools))) is None:
         raise exceptions.NotFoundException()
     
     context = {"experiment": experiment}
@@ -33,7 +34,7 @@ def select(current_user: models.User):
         raise exceptions.BadRequestException()
     try:
         experiment_id = int(experiment_id)
-        if (experiment := db.experiments.get(experiment_id)) is None:
+        if (experiment := db.experiments.get(experiment_id, options=orm.selectinload(models.Experiment.pools))) is None:
             raise exceptions.NotFoundException()
         
         experiment.pools
