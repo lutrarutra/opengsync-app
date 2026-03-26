@@ -102,7 +102,6 @@ class UploadBAForm(MultiStepForm):
             }
             
             excel_content = self.excel.data.read().decode("latin-1")
-            logger.debug(f"Excel content:\n{excel_content}")
 
             pattern = r"Sample Name,([^\r\n]+).*?Region Table\s+([\s\S]+?)(?=\n\s*\n\s*Sample Name|\Z)"
 

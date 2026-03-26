@@ -39,27 +39,17 @@ class ParseBAExcelFile(MultiStepForm):
             logger.error("Right order is None")
             return False
         
-        try:
-            self.samples_order = [int(s) for s in json.loads(self.left_order.data)]
-        except ValueError:
-            self.left_order.errors = ("Invalid format. Please, provide a comma-separated list of integers.",)
-            return False
+        self.samples_order = [int(s) for s in json.loads(self.left_order.data)]
         
-        try:
-            data = json.loads(self.right_order.data)
-            self.excel_order = [
-                (str(s["name"]), int(s["value"]))
-                for s in data
-            ]
-        except ValueError:
-            self.right_order.errors = ("Invalid format. Please, provide a comma-separated list of integers.",)
-            return False
-        
+        data = json.loads(self.right_order.data)
+        self.excel_order = [
+            (str(s["name"]), (int(s["value"])) if s.get("value") else None)
+            for s in data
+        ]
         return True
 
     def process_request(self) -> Response:
         if not self.validate():
-            logger.debug(self.errors)
             return self.make_response()
         
         data = {

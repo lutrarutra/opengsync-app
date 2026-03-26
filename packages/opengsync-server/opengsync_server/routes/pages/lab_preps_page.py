@@ -39,16 +39,15 @@ def lab_prep(current_user: models.User, lab_prep_id: int):
     checklist = lab_prep.get_checklist()
     steps = [
         checklist["libraries_added"],
-        checklist["samples_pooled"],
         checklist["library_fragment_sizes_measured"],
         checklist["libraries_indexed"],
         checklist["libraries_pooled"],
+        checklist["protocols_selected"],
+        checklist["lab_prep_completed"],
         checklist["oligo_mux_annotated"],
         checklist["flex_mux_annotated"],
         checklist["on_chip_mux_annotated"],
-        checklist["protocols_selected"],
-        checklist["lab_prep_completed"],
-    ]
+    ] 
     steps_completed = sum(1 for item in steps if item)
         
     path_list = [

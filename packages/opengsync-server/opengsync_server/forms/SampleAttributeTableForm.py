@@ -19,7 +19,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
     predefined_columns: list[SpreadSheetColumn] = [
         IntegerColumn("sample_id", "ID", 50, required=True, read_only=True),
         DropdownColumn("sample_name", "Sample Name", 200, required=True, choices=[], all_options_required=True, unique=True, read_only=True)
-    ] + [TextColumn(t.label, t.name, 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for _, t in enumerate(AttributeType.as_list()[1:])]
+    ] + [TextColumn(t.label, t.display_name.replace("_", " ").title(), 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for _, t in enumerate(AttributeType.as_list()[1:])]
 
     def __init__(self, project: models.Project, formdata: dict | None = None):
         super().__init__(formdata=formdata)
@@ -29,10 +29,11 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         df = db.pd.get_project_samples(self.project.id).sort_values("sample_id").reset_index(drop=True)
 
         columns = SampleAttributeTableForm.predefined_columns.copy()
+        logger.debug(df.columns)
 
         for col in df.columns:
             if col not in [c.label for c in columns]:
-                SpreadSheetColumn(col, col.replace("_", " ").title(), "text", 100, str)
+                columns.append(SpreadSheetColumn(col, col.replace("_", " ").title(), "text", 100, str))
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=columns, csrf_token=self._csrf_token,
