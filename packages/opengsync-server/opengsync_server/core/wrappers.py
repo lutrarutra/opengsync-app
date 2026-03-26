@@ -65,9 +65,9 @@ def _route_decorator(
     login_required: bool,
     debug: bool,
     strict_slashes: bool,
-    arg_params: list[str],
-    form_params: list[str],
-    json_params: list[str],
+    arg_params: list[str] | None,
+    form_params: list[str] | None,
+    json_params: list[str] | None,
     response_handler: Callable[[Exception], Any],
     cache_timeout_seconds: int | None,
     api_token_required: bool,
@@ -83,7 +83,7 @@ def _route_decorator(
     from .. import route_cache, flash_cache, limiter
 
     def decorator(fnc: Callable[..., Any]) -> Response:
-        routes, current_user_required, params = rt.infer_route(fnc, base=route, arg_params=arg_params, form_params=form_params, json_params=json_params)
+        routes, current_user_required, params = rt.infer_route(fnc, base=route, arg_params=arg_params or [], form_params=form_params or [], json_params=json_params or [])
         original_fnc = fnc
         match current_user_required:
             case "required":
@@ -328,9 +328,9 @@ def page_route(
     db: DBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
-    arg_params: list[str] = [],
-    form_params: list[str] = [],
-    json_params: list[str] = [],
+    arg_params: list[str] | None = None,
+    form_params: list[str] | None = None,
+    json_params: list[str] | None = None,
     cache_timeout_seconds: int | None = None,
     cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
@@ -372,9 +372,9 @@ def htmx_route(
     db: DBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
-    arg_params: list[str] = [],
-    form_params: list[str] = [],
-    json_params: list[str] = [],
+    arg_params: list[str] | None = None,
+    form_params: list[str] | None = None,
+    json_params: list[str] | None = None,
     cache_timeout_seconds: int | None = None,
     cache_query_string: bool = True,
     cache_kwargs: dict[str, Any] | None = None,
@@ -416,9 +416,9 @@ def api_route(
     db: DBHandler | None = None,
     login_required: bool = False,
     debug: bool = False,
-    arg_params: list[str] = [],
-    form_params: list[str] = [],
-    json_params: list[str] = [],
+    arg_params: list[str] | None = None,
+    form_params: list[str] | None = None,
+    json_params: list[str] | None = None,
     api_token_required: bool = True,
     cache_timeout_seconds: int | None = None,
     cache_query_string: bool = True,
@@ -430,6 +430,8 @@ def api_route(
     limit_exempt: Literal["all", "insider", "user", None] = "insider",
     limit_override: bool = False,
 ) -> Callable[[Callable[..., Any]], Response]:
+    
+    json_params = json_params or []
     if api_token_required and "api_token" not in json_params:
         json_params.append("api_token")
     return _route_decorator(
@@ -463,9 +465,9 @@ def resource_route(
     db: DBHandler | None = None,
     login_required: bool = True,
     debug: bool = False,
-    arg_params: list[str] = [],
-    form_params: list[str] = [],
-    json_params: list[str] = [],
+    arg_params: list[str] | None = None,
+    form_params: list[str] | None = None,
+    json_params: list[str] | None = None,
     cache_timeout_seconds: int | None = None,
     cache_query_string: bool = True,
     track_usage: bool = True,

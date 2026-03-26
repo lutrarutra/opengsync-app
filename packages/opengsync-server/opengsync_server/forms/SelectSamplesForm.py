@@ -52,11 +52,11 @@ class SelectSamplesForm(MultiStepForm):
 
     @staticmethod
     def create_workflow_form(
-        workflow: str, formdata: dict | None = None, context: dict = {},
-        selected_samples: list[models.Sample] = [],
-        selected_libraries: list[models.Library] = [],
-        selected_pools: list[models.Pool] = [],
-        selected_lanes: list[models.Lane] = [],
+        workflow: str, formdata: dict | None = None, context: dict | None = None,
+        selected_samples: list[models.Sample] | None = None,
+        selected_libraries: list[models.Library] | None = None,
+        selected_pools: list[models.Pool] | None = None,
+        selected_lanes: list[models.Lane] | None = None,
 
     ) -> "SelectSamplesForm":
         return SelectSamplesForm(
@@ -69,7 +69,7 @@ class SelectSamplesForm(MultiStepForm):
         )
 
     def __init__(
-        self, workflow: str, formdata: dict | None = None, context: dict = {},
+        self, workflow: str, formdata: dict | None = None, context: dict | None = None,
         select_samples: bool = False,
         select_libraries: bool = False,
         select_pools: bool = False,
@@ -78,14 +78,15 @@ class SelectSamplesForm(MultiStepForm):
         library_status_filter: Optional[list[LibraryStatus]] = None,
         library_type_filter: Optional[list[LibraryType]] = None,
         pool_status_filter: Optional[list[PoolStatus]] = None,
-        selected_samples: list[models.Sample] = [],
-        selected_libraries: list[models.Library] = [],
-        selected_pools: list[models.Pool] = [],
-        selected_lanes: list[models.Lane] = [],
+        selected_samples: list[models.Sample] | None = None,
+        selected_libraries: list[models.Library] | None = None,
+        selected_pools: list[models.Pool] | None = None,
+        selected_lanes: list[models.Lane] | None = None,
         select_all_samples: bool = False,
         select_all_libraries: bool = False,
         uuid: str | None = None
     ):
+        context = context or {}
         url_context = {"workflow": workflow}
         if "pool" in context.keys():
             url_context["pool_id"] = context["pool"].id
@@ -107,15 +108,15 @@ class SelectSamplesForm(MultiStepForm):
         self._context["select_pools"] = select_pools
         self._context["select_lanes"] = select_lanes
 
-        self.sample_ids = [sample.id for sample in selected_samples]
-        self.library_ids = [library.id for library in selected_libraries]
-        self.pool_ids = [pool.id for pool in selected_pools]
-        self.lane_ids = [lane.id for lane in selected_lanes]
+        self.sample_ids = [sample.id for sample in selected_samples] if selected_samples is not None else []
+        self.library_ids = [library.id for library in selected_libraries] if selected_libraries is not None else []
+        self.pool_ids = [pool.id for pool in selected_pools] if selected_pools is not None else []
+        self.lane_ids = [lane.id for lane in selected_lanes] if selected_lanes is not None else []
 
-        self.selected_samples = selected_samples
-        self.selected_libraries = selected_libraries
-        self.selected_pools = selected_pools
-        self.selected_lanes = selected_lanes
+        self.selected_samples = selected_samples or []
+        self.selected_libraries = selected_libraries or []
+        self.selected_pools = selected_pools or []
+        self.selected_lanes = selected_lanes or []
 
         self._context["select_all_samples"] = select_all_samples
         self._context["select_all_libraries"] = select_all_libraries
