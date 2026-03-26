@@ -48,19 +48,19 @@ class CommonFlexMuxForm(MultiStepForm):
         library: models.Library | None,
         formdata: dict | None = None,
         uuid: str | None = None,
-        columns: list[SpreadSheetColumn] = []
+        columns: list[SpreadSheetColumn] | None = None
     ):
         MultiStepForm.__init__(
             self, uuid=uuid, formdata=formdata, workflow=workflow,
             step_name=CommonFlexMuxForm._step_name, step_args={}
         )
+        self.columns = columns or []
         self.lab_prep = lab_prep
         self._context["lab_prep"] = self.lab_prep
         self.seq_request = seq_request
         self._context["seq_request"] = seq_request
         self.library = library
         self._context["library"] = library
-        self.columns = columns
 
         if workflow == "mux_prep":
             self.index_col = "library_id"
