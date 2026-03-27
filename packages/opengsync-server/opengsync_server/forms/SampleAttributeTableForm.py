@@ -29,7 +29,6 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         df = db.pd.get_project_samples(self.project.id).sort_values("sample_id").reset_index(drop=True)
 
         columns = SampleAttributeTableForm.predefined_columns.copy()
-        logger.debug(df.columns)
 
         for col in df.columns:
             if col not in [c.label for c in columns]:

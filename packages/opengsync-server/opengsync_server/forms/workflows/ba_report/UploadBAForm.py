@@ -112,8 +112,6 @@ class UploadBAForm(MultiStepForm):
                 data["sample_name"].append(sample_name)
                 
                 try:
-                    # 2. Read the region table block
-                    # We use StringIO to let pandas parse the CSV structure of that specific block
                     temp_df = pd.read_csv(io.StringIO(region_table_raw))
                     
                     if not temp_df.empty and "Average Size [bp]" in temp_df.columns:
@@ -123,7 +121,7 @@ class UploadBAForm(MultiStepForm):
                     else:
                         data["avg_fragment_size"].append(None)
                 except Exception as e:
-                    logger.error(f"Error parsing region for {sample_name}: {e}")
+                    logger.warning(f"Error parsing region for {sample_name}: {e}")
                     data["avg_fragment_size"].append(None)
 
             df = pd.DataFrame(data)
