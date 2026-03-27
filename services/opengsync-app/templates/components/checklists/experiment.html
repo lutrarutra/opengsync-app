@@ -14,9 +14,14 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
-                        <button class="btn-primary btn" hx-get="{{ url_for('select_experiment_pools_workflow.begin', experiment_id=experiment.id) }}"
-                        hx-target="#xl-modal-content" data-bs-toggle="modal"
-                        data-bs-target="#xl-modal" {% if not can_be_edited %}disabled{% endif %}>Begin</button> 'Add Pools' - Workflow
+                        {{
+                            modal_button(
+                                "Begin", 
+                                url_for('select_experiment_pools_workflow.begin', experiment_id=experiment.id), 
+                                size="xl",
+                                disabled=not can_be_edited
+                            )
+                        }}
                     </li>
                     <li>Select pools</li>
                     <li>Complete workflow</li>
@@ -60,9 +65,14 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
-                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('check_barcode_clashes_workflow.check_experiment_barcode_clashes', experiment_id=experiment.id) }}"
-                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if lanes_assigned is none %}disabled{% endif %}>Check Clashes</button>
+                        {{
+                            modal_button(
+                                "Check Clashes", 
+                                url_for('check_barcode_clashes_workflow.check_experiment_barcode_clashes', experiment_id=experiment.id), 
+                                size="fullscreen",
+                                disabled=not can_be_edited or lanes_assigned is none
+                            )
+                        }}
                     </li>
                 </ol>
             </div>
@@ -79,9 +89,14 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
-                    <button class="btn-primary btn" 
-                        hx-get="{{ url_for('dist_reads_workflow.begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content"
-                        hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal" {% if reads_assigned is none %}disabled{% endif %} {% if not can_be_edited %}disabled{% endif %}>Assign</button> reads to each pool
+                        {{
+                            modal_button(
+                                "Assign", 
+                                url_for('dist_reads_workflow.begin', experiment_id=experiment.id), 
+                                size="xl",
+                                disabled=not can_be_edited or reads_assigned is none
+                            )
+                        }} reads to each pool
                     </li>
                 </ol>
                 <div class="table-container">

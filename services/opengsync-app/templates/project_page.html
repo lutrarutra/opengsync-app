@@ -137,6 +137,7 @@
                         modal_button(
                             "Edit Attributes", url=url_for('projects_htmx.edit_sample_attributes', project_id=project.id),
                             disabled=not (current_user.is_insider() or project.status <= ProjectStatus.SEQUENCED),
+                            size="fullscreen",
                             disabled_tooltip="Only insiders can edit attributes of a completed project.",
                         )
                     }}

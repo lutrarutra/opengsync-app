@@ -474,8 +474,7 @@ def checklist(current_user: models.User, experiment_id: int):
         raise exceptions.NotFoundException()
     
     checklist = experiment.get_checklist()
-
-    can_be_edited = experiment.status < ExperimentStatus.LOADED or current_user.is_admin()
+    can_be_edited = (experiment.status < ExperimentStatus.SEQUENCING) or current_user.is_admin()
     
     return make_response(
         render_template(
