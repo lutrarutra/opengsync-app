@@ -38,40 +38,33 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-wetlab-tab" type="button" role="tab"
-            aria-controls="library-wetlab-tab" aria-selected="true">
+            aria-controls="library-wetlab-tab" aria-selected="false">
             Wet-lab</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-samples-tab" type="button" role="tab"
-            aria-controls="library-samples-tab" aria-selected="true">
+            aria-controls="library-samples-tab" aria-selected="false">
             Samples ({{ library.num_samples }})</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
-            data-bs-target="#library-spatial-tab" type="button" role="tab"
-            aria-controls="library-spatial-tab" aria-selected="true"
-            {% if library.type not in LibraryType.get_spatial_library_types() %}disabled{% endif %}>
-            Spatial</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-crispr-tab" type="button" role="tab"
-            aria-controls="library-crispr-tab" aria-selected="true"
+            aria-controls="library-crispr-tab" aria-selected="false"
             {% if library.type != LibraryType.PARSE_SC_CRISPR %}disabled{% endif %}>
             CRISPR</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-multiplexing-tab" type="button" role="tab"
-            aria-controls="library-multiplexing-tab" aria-selected="true"
+            aria-controls="library-multiplexing-tab" aria-selected="false"
             {% if not library.is_multiplexed() %}disabled{% endif %}>
             Multiplexing</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-abc-tab" type="button" role="tab"
-            aria-controls="library-abc-tab" aria-selected="true"
+            aria-controls="library-abc-tab" aria-selected="false"
             {% if library.type not in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %}disabled{% endif %}>
             Feature Capture{% if library.type in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %} ({{ library.num_features }}){% endif %}
             </button>
@@ -79,7 +72,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-abc-table-tab" type="button" role="tab"
-            aria-controls="library-abc-table-tab" aria-selected="true"
+            aria-controls="library-abc-table-tab" aria-selected="false"
             {% if library.type not in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %}disabled{% endif %}>
             Feature Table
             </button>
@@ -88,14 +81,14 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#ba_report-tab" type="button" role="tab"
-            aria-controls="ba_report-tab" aria-selected="true">
+            aria-controls="ba_report-tab" aria-selected="false">
             BA Report</button>
         </li>
         {% endif %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#reads-tab" type="button" role="tab"
-            aria-controls="reads-tab" aria-selected="true"
+            aria-controls="reads-tab" aria-selected="false"
             {% if not library.read_qualities %}disabled{% endif %}>
             Read Quality</button>
         </li>
@@ -111,6 +104,7 @@
 <div class="page-content">
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="library-main-tab" role="tabpanel" tabindex="0">
+            <h4>Metadata</h4>
             <div class="row">
                 <div class="row">
                     {{ metadata_group("Type", library.type.abbreviation, class="col-3") }}
@@ -237,6 +231,28 @@
                 </div>
             </div>
             {% endfor %}
+            {% if library.properties %}
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h4>Properties</h4>
+                </div>
+                <div>
+                    {{
+                        modal_button(
+                            "Edit Properties", url=url_for('libraries_htmx.edit_properties', library_id=library.id),
+                            disabled=not (current_user.is_insider() or project.status <= ProjectStatus.SEQUENCED),
+                            size="fullscreen",
+                            disabled_tooltip="Only insiders can edit properties of a completed project.",
+                        )
+                    }}
+                </div>
+            </div>
+            <div class="row">
+                {% for name, value in library.properties.items() %}
+                {{ metadata_group(name.capitalize(), value or "", class="col-6") }}
+                {%endfor %}
+            </div>
+            {% endif %}
         </div>
         <div class="tab-pane fade" id="library-wetlab-tab" role="tabpanel" tabindex="1">
             <div class="row">
@@ -254,13 +270,6 @@
                 {{ spinner() }}
             </div>
         </div>
-        {% if library.type in LibraryType.get_spatial_library_types() %}
-        <div class="tab-pane fade" id="library-spatial-tab" role="tabpanel" tabindex="4">
-            <div hx-get="{{ url_for('libraries_htmx.get_spatial_annotation', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                {{ spinner() }}
-            </div>
-        </div>
-        {% endif %}
         {% if library.type == LibraryType.PARSE_SC_CRISPR %}
         <div class="tab-pane fade" id="library-crispr-tab" role="tabpanel" tabindex="5">
             <div hx-get="{{ url_for('libraries_htmx.get_crispr_guides', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">

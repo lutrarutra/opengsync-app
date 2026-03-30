@@ -32,7 +32,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
 
         for col in df.columns:
             if col not in [c.label for c in columns]:
-                columns.append(SpreadSheetColumn(col, col.replace("_", " ").title(), "text", 100, str))
+                columns.append(SpreadSheetColumn(col, col.replace("_", " ").title(), "text", 100, str, can_be_deleted=True))
 
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
             columns=columns, csrf_token=self._csrf_token,
@@ -103,6 +103,11 @@ class SampleAttributeTableForm(HTMXFlaskForm):
                         db.samples.delete_attribute(sample_id=sample_id, name=attribute_name)
                 else:
                     db.samples.set_attribute(sample_id=sample_id, name=attribute_name, value=val, type=attribute_type)
+
+        for label, col in self.spreadsheet.columns.items():
+            if label not in self.df.columns and col.can_be_deleted:
+                for sample in self.project.samples:
+                    db.samples.delete_attribute(sample_id=sample.id, name=label)
 
         flash("Changes Saved!", "success")
         return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-attributes-tab"))

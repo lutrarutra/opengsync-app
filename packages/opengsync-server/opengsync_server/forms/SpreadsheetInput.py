@@ -153,7 +153,8 @@ class SpreadsheetInput(FlaskForm):
             return False
         
         for label, column in self.columns.items():
-
+            if label not in self.__df.columns and column.can_be_deleted:
+                continue
             for idx, value in enumerate(self.__df[label].tolist()):
                 self.__df.at[idx, label] = column.clean_up(value)
 

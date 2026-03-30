@@ -13,6 +13,7 @@ from .AddProjectAssigneeForm import AddProjectAssigneeForm
 from .AddSeqRequestAssigneeForm import AddSeqRequestAssigneeForm
 from .LibraryPropertyForm import LibraryPropertyForm
 from .SequencerLoadingChecklistForm import SequencerLoadingChecklistForm
+from .LibraryPropertiesForm import LibraryPropertiesForm
 
 
 from . import models, comment, file, workflows, auth
@@ -33,6 +34,7 @@ __all__ = [
     "AddSeqRequestAssigneeForm",
     "LibraryPropertyForm",
     "SequencerLoadingChecklistForm",
+    "LibraryPropertiesForm",
 
     "models", 
     "comment", 

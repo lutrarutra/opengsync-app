@@ -49,6 +49,7 @@ class SpreadSheetColumn:
     unique: bool = False
     read_only: bool = False
     validation_fnc: Optional[Callable[[str], str | None]] = None
+    can_be_deleted: bool = False
 
     def clean_up(self, value: Any, ignore_missing: bool = False) -> Any:
         if pd.isna(value):
