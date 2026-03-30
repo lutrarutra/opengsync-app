@@ -8,7 +8,7 @@ class HTMXTable {
         this.sort_order = null;
         this.filters = {};
         this.options = {
-            searchDelay: 300, // Default delay in ms
+            searchDelay: 1500, // Default delay in ms
             state: {}, // Initial state for filters and sorting
             ...options
         };
@@ -155,6 +155,17 @@ class HTMXTable {
             this.searchTimer = setTimeout(() => {
                 this._handleSearch($input.closest("th").data("field_name"), searchValue);
             }, this.options.searchDelay);
+        });
+        
+        // enter key in search query input
+        this.$table.on("keydown", ".table-col-header.col-header-search input", (e) => {
+            if (e.key === "Enter") {
+                clearTimeout(this.searchTimer);
+                e.preventDefault();
+                const $input = $(e.currentTarget);
+                const searchValue = $input.val();
+                this._handleSearch($input.closest("th").data("field_name"), searchValue);
+            }
         });
         
         // Sort btn

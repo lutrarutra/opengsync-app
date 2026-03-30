@@ -28,7 +28,6 @@ class LibraryPropertyForm(HTMXFlaskForm):
         formdata: dict | None = None,
     ):
         super().__init__(formdata=formdata)
-        logger.debug(formdata)
         self.project = project
         self.editable = editable
         self.seq_request = seq_request

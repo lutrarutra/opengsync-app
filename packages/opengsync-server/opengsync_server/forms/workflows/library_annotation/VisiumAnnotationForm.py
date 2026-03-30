@@ -23,6 +23,7 @@ class VisiumAnnotationForm(LibraryAnnotationWorkflow):
         TextColumn("image", "Image", 170, max_length=512, required=True),
         TextColumn("slide", "Slide", 170, max_length=32, required=True),
         TextColumn("area", "Area", 170, max_length=32, required=True),
+        TextColumn("he_image", "H&E Image", 170, max_length=512, required=False),
     ]
 
     instructions = TextAreaField("Instructions where to download images?", validators=[DataRequired(), Length(max=4096)], description="Please provide instructions on where to download the images for the Visium libraries. Including link and password if required.")  # type: ignore
@@ -52,6 +53,7 @@ class VisiumAnnotationForm(LibraryAnnotationWorkflow):
             "image": [],
             "slide": [],
             "area": [],
+            "he_image": [],
         }
 
         for _, row in self.visium_libraries.iterrows():
@@ -59,6 +61,7 @@ class VisiumAnnotationForm(LibraryAnnotationWorkflow):
             data["image"].append(None)
             data["slide"].append(None)
             data["area"].append(None)
+            data["he_image"].append(None)
 
         return pd.DataFrame(data)
     
@@ -101,11 +104,13 @@ class VisiumAnnotationForm(LibraryAnnotationWorkflow):
         library_properties_table["image"] = None
         library_properties_table["slide"] = None
         library_properties_table["area"] = None
+        library_properties_table["he_image"] = None
 
         for _, row in self.df.iterrows():
             library_properties_table.loc[library_properties_table["library_name"] == row["library_name"], "image"] = row["image"]
             library_properties_table.loc[library_properties_table["library_name"] == row["library_name"], "slide"] = row["slide"]
             library_properties_table.loc[library_properties_table["library_name"] == row["library_name"], "area"] = row["area"]
+            library_properties_table.loc[library_properties_table["library_name"] == row["library_name"], "he_image"] = row["he_image"]
         
         self.tables["library_properties_table"] = library_properties_table
         return self.get_next_step().make_response()

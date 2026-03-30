@@ -7,6 +7,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, LibraryStatus, ServiceType, MUXType, AccessType, SampleStatus, PoolStatus
+from opengsync_server.routes.pages.libraries_page import library
 
 from ... import db, forms, logic
 from ...core import wrappers, exceptions
@@ -51,7 +52,7 @@ def render_feature_table(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider() and library.owner_id != current_user.id:
+    if db.libraries.get_access_type(library=library, user=current_user) < AccessType.VIEW:
         raise exceptions.NoPermissionsException()
     
     df = db.pd.get_library_features(library_id=library.id)
@@ -77,25 +78,11 @@ def render_feature_table(current_user: models.User, library_id: int):
 
 
 @wrappers.htmx_route(libraries_htmx, db=db)
-def get_spatial_annotation(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
-        raise exceptions.NotFoundException()
-    
-    if not current_user.is_insider() and library.owner_id != current_user.id:
-        raise exceptions.NoPermissionsException()
-    
-    if library.type not in LibraryType.get_spatial_library_types():
-        raise exceptions.BadRequestException()
-    
-    return make_response(render_template("components/library-spatial-annotation.html", library=library))
-
-
-@wrappers.htmx_route(libraries_htmx, db=db)
 def get_crispr_guides(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider() and library.owner_id != current_user.id:
+    if db.libraries.get_access_type(library=library, user=current_user) < AccessType.VIEW:
         raise exceptions.NoPermissionsException()
     
     if library.type != LibraryType.PARSE_SC_CRISPR:
@@ -121,7 +108,7 @@ def reads_tab(current_user: models.User, library_id: int):
     if (library := db.libraries.get(library_id)) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    access_type = db.libraries.get_access_type(library=library, user=current_user)
     if access_type < AccessType.VIEW:
         raise exceptions.NoPermissionsException()
 
@@ -146,7 +133,6 @@ def reads_tab(current_user: models.User, library_id: int):
         "components/library-reads.html", library=library,
         per_lane_stats_ss=per_lane_stats_ss, average_stats_ss=average_stats_ss
     ))
-
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def browse(current_user: models.User, workflow: str, page: int = 0):
@@ -409,3 +395,21 @@ def properties(current_user: models.User):
     if request.method == "GET":
         return form.make_response()
     return form.process_request()
+
+@wrappers.htmx_route(libraries_htmx, db=db, methods=["GET", "POST"])
+def edit_properties(current_user: models.User, library_id: int):
+    if (library := db.libraries.get(library_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    if access_type < AccessType.EDIT:
+        raise exceptions.NoPermissionsException()
+    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+        raise exceptions.NoPermissionsException()
+    
+    if request.method == "GET":
+        return forms.LibraryPropertiesForm(library=library).make_response()
+    
+    return forms.LibraryPropertiesForm(
+        library=library, formdata=request.form,
+    ).process_request()
