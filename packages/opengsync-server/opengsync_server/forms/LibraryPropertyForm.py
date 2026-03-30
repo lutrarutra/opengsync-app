@@ -55,7 +55,8 @@ class LibraryPropertyForm(HTMXFlaskForm):
                         col.replace("_", " ").title(),
                         200,
                         max_length=1000,
-                        read_only=not self.editable
+                        read_only=not self.editable,
+                        can_be_deleted=self.editable,
                     )
                 )
 
