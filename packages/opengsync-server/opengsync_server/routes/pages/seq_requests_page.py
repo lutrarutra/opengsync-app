@@ -10,7 +10,7 @@ seq_requests_page_bp = Blueprint("seq_requests_page", __name__)
 
 @wrappers.page_route(seq_requests_page_bp, db=db, cache_timeout_seconds=360)
 def seq_requests():
-    return render_template("seq_requests_page.html")
+    return render_template("seq_requests_page.html", title="Requests")
 
 
 @wrappers.page_route(seq_requests_page_bp, "seq_requests", db=db, cache_timeout_seconds=360)
@@ -78,4 +78,5 @@ def seq_request(current_user: models.User, seq_request_id: int):
         path_list=path_list,
         checklist_steps_completed=steps_completed,
         checklist_total_steps=len(steps),
+        title=seq_request.identifier
     )

@@ -19,4 +19,4 @@ def design(current_user: models.User):
     num_archived_flowcell_designs = db.session.query(models.FlowCellDesign).filter(
         models.FlowCellDesign.task_status_id >= cats.TaskStatus.COMPLETED.id
     ).count()
-    return render_template("design_page.html", num_flowcell_designs=num_flowcell_designs, num_archived_flowcell_designs=num_archived_flowcell_designs)
+    return render_template("design_page.html", num_flowcell_designs=num_flowcell_designs, num_archived_flowcell_designs=num_archived_flowcell_designs, title="Design")

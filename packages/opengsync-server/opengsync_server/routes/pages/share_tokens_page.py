@@ -9,7 +9,7 @@ share_tokens_page_bp = Blueprint("share_tokens_page", __name__)
 
 @wrappers.page_route(share_tokens_page_bp, db=db, cache_timeout_seconds=360)
 def share_tokens():
-    return render_template("share_tokens_page.html")
+    return render_template("share_tokens_page.html", title="Share Tokens")
 
 
 @wrappers.page_route(share_tokens_page_bp, "share_tokens", db=db, cache_timeout_seconds=360)
@@ -48,4 +48,5 @@ def share_token(current_user: models.User, share_token_id: str):
     return render_template(
         "share_token_page.html",
         path_list=path_list, share_token=share_token,
+        title=f"Token: {share_token_id}"
     )

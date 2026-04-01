@@ -37,4 +37,4 @@ def seq_run(current_user: models.User, seq_run_id: int):
                 (f"Run {seq_run.id}", ""),
             ]
 
-    return render_template("seq_run_page.html", seq_run=seq_run, experiment=experiment, path_list=path_list)
+    return render_template("seq_run_page.html", seq_run=seq_run, experiment=experiment, path_list=path_list, title=f"Run: {seq_run.experiment_name}")

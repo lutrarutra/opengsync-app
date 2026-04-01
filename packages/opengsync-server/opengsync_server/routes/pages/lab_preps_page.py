@@ -13,7 +13,7 @@ def lab_preps(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    return render_template("lab_preps_page.html")
+    return render_template("lab_preps_page.html", title="Preps")
 
 
 @wrappers.page_route(lab_preps_page_bp, "lab_preps", db=db, cache_timeout_seconds=360)
@@ -65,5 +65,6 @@ def lab_prep(current_user: models.User, lab_prep_id: int):
 
     return render_template(
         "lab_prep_page.html", lab_prep=lab_prep, can_be_completed=can_be_completed, path_list=path_list,
-        contains_mux_libraries=contains_mux_libraries, checklist_steps_completed=steps_completed, checklist_total_steps=len(steps)
+        contains_mux_libraries=contains_mux_libraries, checklist_steps_completed=steps_completed, checklist_total_steps=len(steps),
+        title=lab_prep.name
     )

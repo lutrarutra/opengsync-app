@@ -10,7 +10,7 @@ pools_page_bp = Blueprint("pools_page", __name__)
 
 @wrappers.page_route(pools_page_bp, db=db, cache_timeout_seconds=360)
 def pools():
-    return render_template("pools_page.html")
+    return render_template("pools_page.html", title="Pools")
 
 
 @wrappers.page_route(pools_page_bp, "pools", db=db, cache_timeout_seconds=360)
@@ -61,5 +61,5 @@ def pool(current_user: models.User, pool_id: int):
 
     return render_template(
         "pool_page.html", pool=pool, path_list=path_list, is_editable=is_editable,
-        is_plated=False, is_indexed=is_indexed
+        is_plated=False, is_indexed=is_indexed, title=f"Pool: {pool.name}"
     )
