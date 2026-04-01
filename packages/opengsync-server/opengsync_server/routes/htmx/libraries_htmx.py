@@ -4,6 +4,8 @@ import pandas as pd
 
 from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
+import sqlalchemy as sa
+from sqlalchemy import orm
 
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, LibraryStatus, ServiceType, MUXType, AccessType, SampleStatus, PoolStatus
@@ -296,23 +298,16 @@ def get_todo_libraries(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    libraries, _ = db.libraries.find(
-        status_in=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED],
-        limit=512
+    df = db.pd.query(
+        sa.select(
+            models.Library.id,
+            models.Library.service_type_id.label("service_type"),
+            models.Library.name.label("library_name"),
+            models.Library.status_id.label("status")
+        ).where(
+            models.Library.status_id.in_([LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED]),
+        )
     )
-
-    data = {
-        "service_type": [],
-        "library_name": [],
-        "status": [],
-    }
-
-    for library in libraries:
-        data["service_type"].append(library.service_type)
-        data["library_name"].append(library.name)
-        data["status"].append(library.status)
-
-    df = pd.DataFrame(data)
     
     return make_response(
         render_template(
@@ -330,15 +325,19 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
         service_type = ServiceType.get(service_type_id)
     except ValueError:
         raise exceptions.BadRequestException()
-
-    libraries, _ = db.libraries.find(
-        status_in=[LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED],
-        service_type=service_type, limit=512
+    
+    df = db.pd.query(
+        sa.select(
+            models.Library.id,
+            models.Library.seq_request_id,
+            models.Library.service_type_id.label("service_type"),
+            models.Library.name.label("library_name"),
+            models.Library.status_id.label("status")
+        ).where(
+            models.Library.status_id.in_([LibraryStatus.ACCEPTED, LibraryStatus.PREPARING, LibraryStatus.STORED]),
+            models.Library.service_type_id == service_type.id,
+        ).order_by(models.Library.seq_request_id, models.Library.id)
     )
-
-    seq_requests: set[models.SeqRequest] = set()
-    for library in libraries:
-        seq_requests.add(library.seq_request)
 
     data = {
         "seq_request": [],
@@ -350,7 +349,19 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
         "num_waiting_pools": [],
     }
 
-    for seq_request in seq_requests:
+    for (seq_request_id,), _df in df.groupby(["seq_request_id"]):
+        seq_request = db.seq_requests.get(
+            seq_request_id,  # type: ignore
+            options=[
+                orm.selectinload(models.SeqRequest.samples),
+                orm.selectinload(models.SeqRequest.libraries),
+                orm.selectinload(models.SeqRequest.pools),
+            ]  # type: ignore
+        )
+        if seq_request is None:
+            raise exceptions.NotFoundException()
+        
+
         data["seq_request"].append(seq_request)
         data["num_waiting_samples"].append(sum([s.status == SampleStatus.WAITING_DELIVERY for s in seq_request.samples]))
         data["num_preparing_libraries"].append(sum([ls.status == LibraryStatus.PREPARING for ls in seq_request.libraries]))
@@ -358,7 +369,6 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
         data["library_type_counts"].append(seq_request.library_type_counts)
         data["num_waiting_libraries"].append(sum([ls.status == LibraryStatus.ACCEPTED for ls in seq_request.libraries]))
         data["num_waiting_pools"].append(sum([p.status == PoolStatus.ACCEPTED for p in seq_request.pools]))
-
 
     df = pd.DataFrame(data)
 
