@@ -13,4 +13,4 @@ admin_pages_bp = Blueprint("admin_pages", __name__)
 def admin_page(current_user: models.User):
     if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
-    return render_template("admin_page.html")
+    return render_template("admin_page.html", title="Admin")

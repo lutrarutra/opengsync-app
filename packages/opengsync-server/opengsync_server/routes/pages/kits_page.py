@@ -7,7 +7,7 @@ kits_page_bp = Blueprint("kits_page", __name__)
 
 @wrappers.page_route(kits_page_bp, db=db, cache_timeout_seconds=360)
 def kits():
-    return render_template("kits_page.html")
+    return render_template("kits_page.html", title="Kits")
 
 
 @wrappers.page_route(kits_page_bp, "kits", db=db, cache_timeout_seconds=360)
@@ -21,7 +21,7 @@ def kit(kit_id: int):
     ]
 
     return render_template(
-        "kit_page.html", path_list=path_list, kit=kit,
+        "kit_page.html", path_list=path_list, kit=kit, title=f"Kit: {kit.identifier}"
     )
 
 
@@ -32,7 +32,8 @@ def index_kits():
 
 @wrappers.page_route(kits_page_bp, "index_kits", db=db, cache_timeout_seconds=360)
 def index_kit(index_kit_id: int):
-    index_kit = db.index_kits.get(index_kit_id)
+    if (kit := db.index_kits.get(index_kit_id)) is None:
+        raise exceptions.NotFoundException()
 
     path_list = [
         ("Index Kits", url_for("kits_page.index_kits")),
@@ -49,18 +50,20 @@ def index_kit(index_kit_id: int):
             ]
 
     return render_template(
-        "index_kit_page.html", path_list=path_list, index_kit=index_kit,
+        "index_kit_page.html", path_list=path_list, index_kit=kit,
+        title=f"Kit {kit.identifier}"
     )
 
 
 @wrappers.page_route(kits_page_bp, db=db, cache_timeout_seconds=360)
 def feature_kits():
-    return render_template("feature_kits_page.html")
+    return render_template("feature_kits_page.html", title="Feature Kits")
 
 
 @wrappers.page_route(kits_page_bp, "feature_kits", db=db, cache_timeout_seconds=360)
 def feature_kit(feature_kit_id: int):
-    feature_kit = db.feature_kits.get(feature_kit_id)
+    if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
+        raise exceptions.NotFoundException()
 
     path_list = [
         ("Feature Kits", url_for("kits_page.feature_kits")),
@@ -80,6 +83,7 @@ def feature_kit(feature_kit_id: int):
         "feature_kit_page.html",
         path_list=path_list,
         feature_kit=feature_kit,
+        title=f"Feature Kit: {feature_kit.identifier}"
     )
 
 

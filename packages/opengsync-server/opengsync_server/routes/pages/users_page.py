@@ -13,7 +13,7 @@ def users(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
 
-    return render_template("users_page.html")
+    return render_template("users_page.html", title="Users")
 
 
 @wrappers.page_route(users_page_bp, route="users", db=db, cache_timeout_seconds=360)
@@ -82,5 +82,6 @@ def user(current_user: models.User, user_id: int | None = None):
     seq_requests, _ = db.seq_requests.find(user_id=user_id, limit=None)
     return render_template(
         "user_page.html", user=user, path_list=path_list,
-        projects=projects, seq_requests=seq_requests
+        projects=projects, seq_requests=seq_requests,
+        title=f"User: {user.name}"
     )

@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="{{ url_for('static', filename='images/logo/opengsync_128.png') }}" sizes="any" type="image/png">
 
-    <title>OpeNGSync</title>
+    <title>{% if title is defined %}{{ title }}{% else %}OpeNGSync{% endif %}</title>
     <!-- htmx -->
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
     

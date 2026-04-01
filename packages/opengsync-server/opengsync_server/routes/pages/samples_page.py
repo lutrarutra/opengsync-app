@@ -10,7 +10,7 @@ samples_page_bp = Blueprint("samples_page", __name__)
 
 @wrappers.page_route(samples_page_bp, db=db, cache_timeout_seconds=360)
 def samples():
-    return render_template("samples_page.html")
+    return render_template("samples_page.html", title="Samples")
 
 
 @wrappers.page_route(samples_page_bp, "samples", db=db, cache_timeout_seconds=360)
@@ -46,4 +46,4 @@ def sample(current_user: models.User, sample_id: int):
                 (f"Sample {sample_id}", ""),
             ]
 
-    return render_template("sample_page.html", path_list=path_list, sample=sample)
+    return render_template("sample_page.html", path_list=path_list, sample=sample, title=f"Sample: {sample.name}")

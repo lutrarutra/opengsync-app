@@ -12,7 +12,7 @@ def protocols(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
         
-    return render_template("protocols_page.html")
+    return render_template("protocols_page.html", title="Protocols")
 
 
 @wrappers.page_route(protocols_page_bp, "protocols", db=db, cache_timeout_seconds=360)
@@ -29,5 +29,5 @@ def protocol(current_user: models.User, protocol_id: int):
     ]
 
     return render_template(
-        "protocol_page.html", path_list=path_list, protocol=protocol,
+        "protocol_page.html", path_list=path_list, protocol=protocol, title=f"Protocol: {protocol.name}"
     )

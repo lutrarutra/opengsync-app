@@ -25,6 +25,7 @@ def files(current_user: models.User, subpath: Path = Path()):
         current_path=subpath,
         parent_dir=subpath.parent if subpath != Path() else None,
         sort_by=sort_by, sort_order=sort_order,
+        title="OpeNGSync - Files"
     )
 
 

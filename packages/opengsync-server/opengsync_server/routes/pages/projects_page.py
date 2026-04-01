@@ -11,7 +11,7 @@ projects_page_bp = Blueprint("projects_page", __name__)
 
 @wrappers.page_route(projects_page_bp, db=db, cache_timeout_seconds=360)
 def projects():
-    return render_template("projects_page.html")
+    return render_template("projects_page.html", title="Projects")
 
 
 @wrappers.page_route(projects_page_bp, "projects", db=db, cache_timeout_seconds=360)
@@ -45,5 +45,5 @@ def project(current_user: models.User, project_id: int):
 
     return render_template(
         "project_page.html", project=project,
-        path_list=path_list,
+        path_list=path_list, title=f"{project.identifier or f'PRJ#{project.id:04d}'}"
     )

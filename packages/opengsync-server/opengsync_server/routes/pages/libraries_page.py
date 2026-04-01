@@ -10,7 +10,7 @@ libraries_page_bp = Blueprint("libraries_page", __name__)
 
 @wrappers.page_route(libraries_page_bp, db=db, cache_timeout_seconds=360)
 def libraries():
-    return render_template("libraries_page.html")
+    return render_template("libraries_page.html", title="Libraries")
 
 
 @wrappers.page_route(libraries_page_bp, "libraries", db=db, cache_timeout_seconds=360)
@@ -66,4 +66,5 @@ def library(current_user: models.User, library_id: int):
         library=library,
         path_list=path_list,
         library_form=library_form,
+        title=f"Library {f'#{library.id:04d}'}"
     )

@@ -1,19 +1,22 @@
 from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
+from sqlalchemy import orm
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base
-from ..categories import BarcodeOrientation, BarcodeOrientation, IndexType, IndexType
+from ..categories import BarcodeOrientation, BarcodeOrientation, IndexType
 
 if TYPE_CHECKING:
     from .IndexKit import IndexKit
+    from .Library import Library
 
 
 class LibraryIndex(Base):
     __tablename__ = "library_index"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, default=None)
     library_id: Mapped[int] = mapped_column(sa.ForeignKey("library.id"))
+    library: Mapped["Library"] = relationship("Library", back_populates="indices", lazy="select")
 
     index_kit_i7_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("index_kit.id"), nullable=True)
     index_kit_i7: Mapped[Optional["IndexKit"]] = relationship("IndexKit", lazy="select", foreign_keys=[index_kit_i7_id])
@@ -64,4 +67,3 @@ class LibraryIndex(Base):
             self._orientation = None
         else:
             self._orientation = value.id
-    

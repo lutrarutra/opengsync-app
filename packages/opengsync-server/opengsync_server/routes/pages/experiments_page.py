@@ -14,7 +14,7 @@ def experiments(current_user: models.User):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
 
-    return render_template("experiments_page.html")
+    return render_template("experiments_page.html", title="Experiments")
 
 
 @wrappers.page_route(experiments_page_bp, "experiments", db=db, cache_timeout_seconds=360)
@@ -84,5 +84,6 @@ def experiment(current_user: models.User, experiment_id: int):
         selected_sequencer=experiment.sequencer.name,
         selected_user=experiment.operator,
         checklist_steps_completed=steps_completed,
-        checklist_total_steps=len(steps)
+        checklist_total_steps=len(steps),
+        title=experiment.name
     )
