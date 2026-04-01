@@ -1012,11 +1012,6 @@ class PandasBP(DBBlueprint):
         return df
     
     @DBBlueprint.transaction
-    def query(self, query: sa.Select | str) -> pd.DataFrame:
-        df = pd.read_sql(query, self.db._engine)
-        return df
-    
-    @DBBlueprint.transaction
     def get_protocol_kits(self, protocol_id: int | None = None) -> pd.DataFrame:
         query = sa.select(
             models.links.ProtocolKitLink.protocol_id.label("protocol_id"),
@@ -1290,3 +1285,19 @@ class PandasBP(DBBlueprint):
 
             df = pd.concat([df.drop(columns=["properties"]), expanded], axis=1)
         return df
+    
+
+    # @DBBlueprint.transaction
+    # def get_libraries(
+    #     self,
+    #     status: cats.LibraryStatus | None = None,
+    #     status_in: list[cats.LibraryStatus] | None = None,
+    #     type: cats.LibraryType | None = None,
+    #     type_in: list[cats.LibraryType] | None = None,
+    # ) -> pd.DataFrame:
+
+    @DBBlueprint.transaction
+    def query(self, query: sa.Select | str) -> pd.DataFrame:
+        df = pd.read_sql(query, self.db._engine)
+        return df
+        
