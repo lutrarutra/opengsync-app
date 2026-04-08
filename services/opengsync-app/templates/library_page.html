@@ -302,7 +302,7 @@
                 {{
                     modal_button(
                         "Edit",
-                        "",
+                        url_for("libraries_htmx.edit_features", library_id=library.id),
                         size="fullscreen",
                         disabled=(not current_user.is_insider()) and library.status != LibraryStatus.DRAFT
                     )

@@ -423,3 +423,25 @@ def edit_properties(current_user: models.User, library_id: int):
     return forms.LibraryPropertiesForm(
         library=library, formdata=request.form,
     ).process_request()
+
+
+@wrappers.htmx_route(libraries_htmx, db=db, methods=["GET", "POST"])
+def edit_features(current_user: models.User, library_id: int):
+    if (library := db.libraries.get(library_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.libraries.get_access_type(user=current_user, library=library)
+    if access_type < AccessType.EDIT:
+        raise exceptions.NoPermissionsException()
+    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+        raise exceptions.NoPermissionsException()
+    
+    if library.type not in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX]:
+        raise exceptions.BadRequestException("Only 10x Antibody Capture and 10x SC ABC Flex libraries have features that can be edited.")
+    
+    if request.method == "GET":
+        return forms.LibraryFeaturesForm(library=library).make_response()
+    
+    return forms.LibraryFeaturesForm(
+        library=library, formdata=request.form,
+    ).process_request()
