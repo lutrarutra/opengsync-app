@@ -346,9 +346,10 @@ class PandasBP(DBBlueprint):
     def get_library_features(self, library_id: int) -> pd.DataFrame:
         query = sa.select(
             models.Feature.id.label("feature_id"), models.Feature.name.label("feature_name"), models.Feature.type_id.label("feature_type_id"),
+            models.Feature.identifier.label("identifier"),
             models.Feature.target_id.label("target_id"), models.Feature.target_name.label("target_name"),
             models.Feature.sequence.label("sequence"), models.Feature.pattern.label("pattern"), models.Feature.read.label("read"),
-            models.FeatureKit.id.label("feature_kit_id"), models.FeatureKit.name.label("feature_kit_name"),
+            models.FeatureKit.id.label("feature_kit_id"), models.FeatureKit.identifier.label("kit_identifier"), models.FeatureKit.name.label("feature_kit_name"),
         ).join(
             models.FeatureKit,
             models.FeatureKit.id == models.Feature.feature_kit_id,

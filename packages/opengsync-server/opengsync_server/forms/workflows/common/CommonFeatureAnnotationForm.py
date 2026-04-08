@@ -142,7 +142,7 @@ class CommonFeatureAnnotationForm(MultiStepForm):
                 self.spreadsheet.add_error(idx, "read", DuplicateCellValue("duplicate feature definition"))
 
             if pd.notna(row["sample_name"]) and row["sample_name"] not in self.abc_libraries["sample_name"].values:
-                self.spreadsheet.add_error(idx, "sample_name", InvalidCellValue(f"'Sample Name' must be one of: [{', '.join(set(self.abc_libraries['sample_name'].values.tolist()))}]"))
+                self.spreadsheet.add_error(idx, "sample_name", InvalidCellValue(f"'Sample Name' must be one of: [{', '.join(set(self.abc_libraries['sample_name'].values.tolist()))}]"))  # type: ignore
 
             if kit_feature.at[idx]:
                 identifier = row["kit"]
