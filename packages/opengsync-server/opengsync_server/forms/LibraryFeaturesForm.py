@@ -163,8 +163,6 @@ class LibraryFeaturesForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        logger.debug(self.df)
-    
         self.library.features = []
         for _, row in self.df.iterrows():
             if pd.notna(row["feature_id"]):

@@ -20,7 +20,7 @@ class LaneSubForm(FlaskForm):
 class PoolSubForm(FlaskForm):
     pool_id = IntegerField(validators=[DataRequired()])
     pool_name = StringField()
-    reads_fields = FieldList(FormField(LaneSubForm), min_entries=1)
+    reads_fields = FieldList(FormField(LaneSubForm), min_entries=0)
 
     def get_read_field(self, lane_num: int) -> LaneSubForm | None:
         for field in self.reads_fields:
@@ -112,7 +112,7 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
     _template_path = "workflows/dist_reads/combined.html"
 
     experiment_id = IntegerField(validators=[DataRequired()])
-    pool_reads_fields = FieldList(FormField(PoolReadsSubForm), min_entries=1)
+    pool_reads_fields = FieldList(FormField(PoolReadsSubForm), min_entries=0)
 
     def __init__(self, experiment: models.Experiment, current_user: models.User, formdata: dict | None = None):
         HTMXFlaskForm.__init__(self, formdata=formdata)

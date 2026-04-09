@@ -469,17 +469,31 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
-            {% if experiment.workflow.load_sequencer_workflow_checklist %}
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-12" aria-expanded="false" aria-controls="sops-accordiod-collapse-12">
-                <b>{% if loading_checklist_generated %}✅{% else %}⚠️{% endif %} Create Sequencer Loading Checklist</b>
+                <b>{% if num_cycles_set %}✅{% else %}⚠️{% endif %} Set Cycles</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-12" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <div hx-get="{{ url_for('experiments_htmx.set_cycles', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            {% if experiment.workflow.load_sequencer_workflow_checklist %}
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-13" aria-expanded="false" aria-controls="sops-accordiod-collapse-13">
+                <b>{% if loading_checklist_generated is none %}❗{% elif loading_checklist_generated %}✅{% else %}⚠️{% endif %} Create Sequencer Loading Checklist</b>
             </button>
             {% else %}
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-12" aria-expanded="false" aria-controls="sops-accordiod-collapse-12" disabled>
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-13" aria-expanded="false" aria-controls="sops-accordiod-collapse-13" disabled>
                 <b>🚫 Create Sequencer Loading Checklist</b>
             </button>
             {% endif %}
         </h2>
-        <div id="sops-accordiod-collapse-12" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+        <div id="sops-accordiod-collapse-13" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
             <div class="accordion-body">
                 <b>Steps:</b>
                 <ol>
@@ -506,20 +520,6 @@
                     {{ spinner() }}
                 </div>
                 {% endif %}
-            </div>
-        </div>
-    </div>
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-13" aria-expanded="false" aria-controls="sops-accordiod-collapse-13">
-                <b>{% if num_cycles_set %}✅{% else %}⚠️{% endif %} Set Cycles</b>
-            </button>
-        </h2>
-        <div id="sops-accordiod-collapse-13" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
-            <div class="accordion-body">
-                <div hx-get="{{ url_for('experiments_htmx.set_cycles', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
-                    {{ spinner() }}
-                </div>
             </div>
         </div>
     </div>
