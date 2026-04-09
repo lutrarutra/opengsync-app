@@ -130,8 +130,6 @@ class Experiment(Base):
         if not flowcell_loaded:
             if not lane_qubit_measured or not lane_fragment_size_measured:
                 flowcell_loaded = None
-        
-        loading_checklist_generated = len(self.sequencer_loading_checklists) > 0
 
         num_cycles_set = (
             self.r1_cycles is not None and
@@ -139,6 +137,8 @@ class Experiment(Base):
             self.i1_cycles is not None and
             self.i2_cycles is not None
         )
+
+        loading_checklist_generated = len(self.sequencer_loading_checklists) > 0 if num_cycles_set else None
 
         return {
             "pools_added": pools_added,
