@@ -18,7 +18,7 @@ class SeqRun(Base):
     __tablename__ = "seq_run"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
     
-    experiment_name: Mapped[str] = mapped_column(sa.String(16), nullable=False, unique=True, index=True)
+    experiment_name: Mapped[str] = mapped_column(sa.String(64), nullable=False, unique=True, index=True)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
     instrument_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)

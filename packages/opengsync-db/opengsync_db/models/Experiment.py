@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 class Experiment(Base):
     __tablename__ = "experiment"
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    name: Mapped[str] = mapped_column(sa.String(16), nullable=False, unique=True, index=True)
+    name: Mapped[str] = mapped_column(sa.String(64), nullable=False, unique=True, index=True)
     
     timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
