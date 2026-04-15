@@ -71,8 +71,8 @@ class SequencerLoadingChecklistForm(HTMXFlaskForm):
         
         template_context = {}
         for subform in self.parameters:
-            var_key = subform.var_name.data      # e.g., 'naoh'
-            var_value = subform.param_value.data # e.g., 7.5
+            var_key = subform.var_name.data
+            var_value = subform.param_value.data
             template_context[var_key] = var_value
             
         df = db.pd.get_experiment_laned_pools(self.experiment.id)[["lane", "pool_name"]]
@@ -81,14 +81,17 @@ class SequencerLoadingChecklistForm(HTMXFlaskForm):
         df = df.groupby("pool_name", sort=False).agg(lambda x: ",".join(sorted(x))).reset_index()
         df["PhiX [µL]"] = 0.0
         for idx, row in df.iterrows():
-            df.at[idx, "PhiX [µL]"] += template_context.get(f"phi_x_lane_{row['lane']}", 0.0)
+            for lane in row["lane"].split(","):
+                df.at[idx, "PhiX [µL]"] += template_context.get(f"phi_x_lane_{lane}", 0.0)
+
         df["count"] = df["lane"].apply(lambda x: len(x.split(",")))
         df["Pool [µL]"] = template_context.get("pool_volume", np.nan) * df["count"]
         df["NaOH [µL]"] = template_context.get("naoh", np.nan) * df["count"]
         df["Pre-load Buffer [µL]"] = template_context.get("preload", np.nan) * df["count"]
+        df["PhiX [µL]"] = df["PhiX [µL]"]
 
-        lane_table = df[["lane", "pool_name", "Pool [µL]", "NaOH [µL]", "PhiX [µL]"]].rename(columns={"lane": "Lane", "pool_name": "Pool"})
-        preload_table = df[["lane", "pool_name", "Pre-load Buffer [µL]"]].rename(columns={"lane": "Lane", "pool_name": "Pool"})
+        lane_table = df[["lane", "pool_name", "Pool [µL]", "NaOH [µL]", "PhiX [µL]"]].rename(columns={"lane": "Lane", "pool_name": "Pool"}).replace({0.0: ""})
+        preload_table = df[["lane", "pool_name", "Pre-load Buffer [µL]"]].rename(columns={"lane": "Lane", "pool_name": "Pool"}).replace({0.0: ""})
             
         template_context["lane_table"] = Markup(lane_table.to_html(index=False, classes="table", border=0, justify="left"))
         template_context["pre_load_buffer_table"] = Markup(preload_table.to_html(index=False, classes="table", border=0, justify="left"))
