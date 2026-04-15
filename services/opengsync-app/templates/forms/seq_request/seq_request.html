@@ -112,6 +112,11 @@
                             {{ form_group(sub_form.num_lanes, class="col-3") }}
                             {{ form_group(sub_form.read_length, class="col-3") }}
                         </div>
+                        <ol>
+                        {% for submission_type in SubmissionType.as_list(include_unpooled_libraries=False) %}
+                            <li><b>{{ submission_type.label }}</b>: <i>{{ submission_type.description }}</i></li>
+                        {% endfor %}
+                        </ol>
                         {{ form_group(sub_form.special_requirements) }}
                     </div>
                 </div>
@@ -130,7 +135,7 @@
                         {{ sub_form.csrf_token() }}
                         <ol>
                         {% for mode in DataDeliveryMode.as_list() %}
-                            <li>{{ mode.label }} <span class="desc">{{ mode.description }} </span></li>
+                            <li><b>{{ mode.label }}</b>: <em>{{ mode.description }}</em></li>
                         {% endfor %}
                         </ol>
                         {{ form_group(sub_form.data_delivery_mode_id, class="col") }}
