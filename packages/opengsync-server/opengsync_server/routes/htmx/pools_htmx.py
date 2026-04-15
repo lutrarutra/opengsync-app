@@ -178,8 +178,10 @@ def plate_pool(current_user: models.User, pool_id: int, form_type: Literal["crea
 
 
 @wrappers.htmx_route(pools_htmx, db=db)
-def get_dilutions(current_user: models.User):
-    return make_response(render_template(**logic.dilution.get_table_context(current_user, request)))
+def get_dilutions(current_user: models.User, pool_id: int):
+    if (pool := db.pools.get(pool_id)) is None:
+        raise exceptions.NotFoundException()
+    return make_response(render_template(**logic.dilution.get_table_context(current_user, request, pool=pool)))
 
 
 @wrappers.htmx_route(pools_htmx, db=db)

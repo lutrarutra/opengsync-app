@@ -501,3 +501,9 @@ def sequencer_loading_checklist(current_user: models.User, experiment_id: int):
         return forms.SequencerLoadingChecklistForm(current_user=current_user, experiment=experiment).make_response()
     
     return forms.SequencerLoadingChecklistForm(current_user=current_user, experiment=experiment, formdata=request.form).process_request()
+
+@wrappers.htmx_route(experiments_htmx, db=db)
+def get_dilutions(current_user: models.User, experiment_id: int):
+    if (experiment := db.experiments.get(experiment_id)) is None:
+        raise exceptions.NotFoundException()
+    return make_response(render_template(**logic.dilution.get_table_context(current_user, request, experiment=experiment)))
