@@ -166,10 +166,10 @@ class CommonBarcodeMatchForm(MultiStepForm):
         if not self.i7_kit.data and not self.i7_primer.data:
             self.i7_primer.errors = ("Please provide the i7 primer sequence.",)
 
-        if not self.i5_kit.data and not self.i5_primer.data:
+        if not self.i5_kit.data and not self.i5_primer.data and self.index_type in [IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX]:
             self.i5_primer.errors = ("Please provide the i5 primer sequence.",)
         
-        if not self.i5_kit.data and self.i5_option.data is None and self.index_type == IndexType.DUAL_INDEX:
+        if not self.i5_kit.data and self.i5_option.data is None and self.index_type in [IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX]:
             self.i5_option.errors = ("Please select how to proceed with the i5 index.",)
         
         if self.errors:
@@ -238,7 +238,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
             "i7_option": self.i7_option.data,
             "i5_option": self.i5_option.data,
         }
-        
+
         if self.i7_primer.data:
             self.add_comment("i7_primer", self.i7_primer.data)
 
