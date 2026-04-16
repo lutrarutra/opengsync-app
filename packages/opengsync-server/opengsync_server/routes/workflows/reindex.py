@@ -161,8 +161,8 @@ def complete_reindex(current_user: models.User, uuid: str):
         uuid=uuid, formdata=request.form,
         seq_request=context.get("seq_request"),
         lab_prep=context.get("lab_prep"),
-        pool=context.get("pool")
-    ).process_request()
+        pool=context.get("pool"),
+    ).process_request(user=current_user)
     
 
     
