@@ -67,7 +67,7 @@ prod-logs:
 	$(COMPOSE_PROD) logs -f $(LOGS)
 
 prod-logs-all:
-	$(COMPOSE_PROD) logs -f
+	$(COMPOSE_PROD) logs -f --tail=100
 
 prod-stop:
 	$(COMPOSE_PROD) stop
