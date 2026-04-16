@@ -64,7 +64,7 @@ class CompleteReindexForm(MultiStepForm):
 
         self.post_url = url_for("reindex_workflow.complete_reindex", uuid=self.uuid, **self.url_context)
 
-    def process_request(self) -> Response:
+    def process_request(self, user: models.User) -> Response:
         if not self.validate():
             return self.make_response()
         
@@ -84,11 +84,14 @@ class CompleteReindexForm(MultiStepForm):
                     "index_type_id"
                 ] = row["index_type_id"]
         
+        seq_request_ids: set[int] = set()
         for (library_id, index_type_id), _ in self.library_table.groupby(["library_id", "index_type_id"], dropna=False, sort=False):
-            library = db.libraries[int(library_id)]
+            library = db.libraries[int(library_id)]  # type: ignore
+
+            seq_request_ids.add(library.seq_request_id)
 
             try:
-                index_type_id = int(index_type_id)
+                index_type_id = int(index_type_id)  # type: ignore
                 index_type = IndexType.get(index_type_id)
             except ValueError:
                 logger.error(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
@@ -151,6 +154,19 @@ class CompleteReindexForm(MultiStepForm):
                         sequence_i7=row["sequence_i7"],
                         sequence_i5=row["sequence_i5"] if pd.notna(row["sequence_i5"]) else None,
                         orientation=orientation,
+                    )
+
+        for seq_request_id in seq_request_ids:
+            for context, text in self.get_comments().items():
+                if context == "i7_primer":
+                    db.comments.create(
+                        text=f"i7 Primer Sequence: {text}",
+                        author_id=user.id, seq_request_id=seq_request_id
+                    )
+                elif context == "i5_primer":
+                    db.comments.create(
+                        text=f"i5 Primer Sequence: {text}",
+                        author_id=user.id, seq_request_id=seq_request_id
                     )
 
         flash("Libraries Re-Indexed!", "success")

@@ -1,7 +1,7 @@
 import pandas as pd
 
 from flask import url_for
-from wtforms import SelectField, RadioField
+from wtforms import SelectField, RadioField, TextAreaField
 from wtforms.validators import Optional as OptionalValidator
 
 from opengsync_db import models
@@ -36,6 +36,9 @@ class CommonBarcodeMatchForm(MultiStepForm):
         ],
         validators=[OptionalValidator()],
     )
+
+    i7_primer = TextAreaField("i7 Primer Sequence", validators=[OptionalValidator()], description="Required if using custom kit")
+    i5_primer = TextAreaField("i5 Primer Sequence", validators=[OptionalValidator()], description="Required if using custom kit")
 
     @staticmethod
     def is_applicable(current_step: MultiStepForm) -> bool:        
@@ -121,13 +124,13 @@ class CommonBarcodeMatchForm(MultiStepForm):
         for _, row in kits_rc_i5.iterrows():
             kit_i5s.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}' + " (Reverse Complement)"))
         
-        self.i7_kit.choices = [(0, "Custom")] + kit_i7s  # type: ignore
-        self.i5_kit.choices = [(0, "Custom")] + kit_i5s  # type: ignore
+        self.i7_kit.choices = [(-1, "Select Kit"), (0, "Custom")] + kit_i7s  # type: ignore
+        self.i5_kit.choices = [(-1, "Select Kit"), (0, "Custom")] + kit_i5s  # type: ignore
 
         if self.i7_kit.data is None:
-            self.i7_kit.data = self.i7_kit.choices[-1][0]  # type: ignore
+            self.i7_kit.data = -1
         if self.i5_kit.data is None:
-            self.i5_kit.data = self.i5_kit.choices[-1][0]  # type: ignore
+            self.i5_kit.data = -1
 
         self._context["kits"] = list(set(kit_i7s + kit_i5s))
 
@@ -151,9 +154,20 @@ class CommonBarcodeMatchForm(MultiStepForm):
     def validate(self) -> bool:
         if not super().validate():
             return False
+        
+        if self.i5_kit.data == -1:
+            self.i5_kit.errors = ("Please select an i5 kit or choose Custom.",)
+        if self.i7_kit.data == -1:
+            self.i7_kit.errors = ("Please select an i7 kit or choose Custom.",)
 
         if not self.i7_kit.data and self.i7_option.data is None:
             self.i7_option.errors = ("Please select how to proceed with the i7 index.",)
+
+        if not self.i7_kit.data and not self.i7_primer.data:
+            self.i7_primer.errors = ("Please provide the i7 primer sequence.",)
+
+        if not self.i5_kit.data and not self.i5_primer.data:
+            self.i5_primer.errors = ("Please provide the i5 primer sequence.",)
         
         if not self.i5_kit.data and self.i5_option.data is None and self.index_type == IndexType.DUAL_INDEX:
             self.i5_option.errors = ("Please select how to proceed with the i5 index.",)
@@ -224,5 +238,11 @@ class CommonBarcodeMatchForm(MultiStepForm):
             "i7_option": self.i7_option.data,
             "i5_option": self.i5_option.data,
         }
+        
+        if self.i7_primer.data:
+            self.add_comment("i7_primer", self.i7_primer.data)
+
+        if self.i5_primer.data:
+            self.add_comment("i5_primer", self.i5_primer.data)
 
         return True

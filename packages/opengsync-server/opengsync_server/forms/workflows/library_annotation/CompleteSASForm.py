@@ -468,6 +468,16 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                     text=f"Parse Kit: {text}",
                     author_id=user.id, seq_request_id=self.seq_request.id
                 )
+            elif context == "i7_primer":
+                db.comments.create(
+                    text=f"i7 Primer Sequence: {text}",
+                    author_id=user.id, seq_request_id=self.seq_request.id
+                )
+            elif context == "i5_primer":
+                db.comments.create(
+                    text=f"i5 Primer Sequence: {text}",
+                    author_id=user.id, seq_request_id=self.seq_request.id
+                )
             else:
                 db.comments.create(
                     text=context.replace("_", " ").capitalize() + ": " + text,

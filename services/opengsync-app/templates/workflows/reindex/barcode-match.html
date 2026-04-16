@@ -34,6 +34,11 @@
                         If the barcodes do not originate from a kit, please select "Custom". Using pre-defined kits helps
                         to minimize the risk of input errors.
                     </p>
+                    <p>
+                        ⚠️ Mistakes in index kit selection can lead to barcode clashes and therefore <b>irreversible data loss</b>.
+                        Ensure that you select the correct kit or choose "Custom" if the barcodes do not match any predefined kits. If you are
+                        unsure which kit it is, select "Custom" and specify the primer sequence in the field below. 
+                    </p>
                 </div>
                 {{ form.csrf_token() }}
                 <div class="row">
@@ -50,6 +55,14 @@
                     {{ radio_input(form.i5_option, class="col-6") }}
                     {% else %}
                     {{ radio_input(form.i5_option, class="col-6", disabled=true) }}
+                    {% endif %}
+                </div>
+                <div class="row">
+                    {{ form_group(form.i7_primer, class="col-6") }}
+                    {% if index_type == IndexType.DUAL_INDEX %}
+                    {{ form_group(form.i5_primer, class="col-6") }}
+                    {% else %}
+                    {{ form_group(form.i5_primer, class="col-6", disabled=true) }}
                     {% endif %}
                 </div>
             </div>
