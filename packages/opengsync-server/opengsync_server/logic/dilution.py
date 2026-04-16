@@ -26,7 +26,7 @@ class DilutionTable(HTMXTable):
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
     fnc_context = {}
-    table = DilutionTable(route="pools_htmx.get_dilutions", page=None)
+    table = DilutionTable(route="", page=None)
 
     if (path := request.args.get("path")):
         fnc_context["path"] = path
@@ -68,10 +68,12 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         template = "components/tables/pool-dilution.html"
         fnc_context["pool_id"] = pool.id
         table.url_params["pool_id"] = pool.id
+        table.route = "pools_htmx.get_dilutions"
     elif (experiment := context.get("experiment")) is not None:
         template = "components/tables/experiment-pool-dilution.html"        
         fnc_context["experiment_id"] = experiment.id
         table.url_params["experiment_id"] = experiment.id
+        table.route = "experiments_htmx.get_dilutions"
     else:
         raise exceptions.BadRequestException("No pool or experiment context provided for dilution table.")
     
