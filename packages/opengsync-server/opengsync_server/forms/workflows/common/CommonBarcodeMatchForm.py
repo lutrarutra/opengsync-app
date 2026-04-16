@@ -155,7 +155,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         if not super().validate():
             return False
         
-        if self.i5_kit.data == -1:
+        if self.i5_kit.data == -1 and self.index_type in [IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX]:
             self.i5_kit.errors = ("Please select an i5 kit or choose Custom.",)
         if self.i7_kit.data == -1:
             self.i7_kit.errors = ("Please select an i7 kit or choose Custom.",)
