@@ -175,7 +175,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         if self.errors:
             return False
         
-        if kit_i7_id := self.i7_kit.data:
+        if (kit_i7_id := self.i7_kit.data) > 0:
             selected_i7 = next((name for kit_id, name in self.i7_kit.choices if kit_id == kit_i7_id), None)  # type: ignore
             rc_i7 = selected_i7.endswith(" (Reverse Complement)") if selected_i7 else False
 
@@ -202,7 +202,7 @@ class CommonBarcodeMatchForm(MultiStepForm):
         elif self.i7_option.data == "forward":
             self.barcode_table["orientation_i7_id"] = BarcodeOrientation.FORWARD_NOT_VALIDATED.id
         
-        if kit_i5_id := self.i5_kit.data:
+        if (kit_i5_id := self.i5_kit.data) > 0:
             selected_i5 = next((name for kit_id, name in self.i5_kit.choices if kit_id == kit_i5_id), None)  # type: ignore
             rc_i5 = selected_i5.endswith(" (Reverse Complement)") if selected_i5 else False
             if kit_i5_id == kit_i7_id:
