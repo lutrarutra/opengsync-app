@@ -5,7 +5,7 @@
 - `Phi X`: list : {phi_x} : 
 
 ## 1. Prepare NovaSeq X
-1. [ ] Check storage space on the sequencer (SBC >13 GB for 1.5B 100cyles)
+1. [ ] Check storage space on the sequencer (>15GB on SBS drive - 1.5B 100 cycles)
 2. [ ] Make sure SAF has been signed (if applicable)
 3. [ ] Thaw reagent cartridge (`4 hours`) RT waterbath
 4. [ ] Thaw Lyo Insert at RT (`10 minutes`)
