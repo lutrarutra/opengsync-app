@@ -19,7 +19,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
     predefined_columns: list[SpreadSheetColumn] = [
         IntegerColumn("sample_id", "ID", 50, required=True, read_only=True),
         DropdownColumn("sample_name", "Sample Name", 200, required=True, choices=[], all_options_required=True, unique=True, read_only=True)
-    ] + [TextColumn(t.label, t.display_name.replace("_", " ").title(), 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for _, t in enumerate(AttributeType.as_list()[1:])]
+    ] + [TextColumn(t.label, t.display_name.replace("_", " ").title(), 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH, can_be_deleted=True) for _, t in enumerate(AttributeType.as_list()[1:])]
 
     def __init__(self, project: models.Project, formdata: dict | None = None):
         super().__init__(formdata=formdata)
