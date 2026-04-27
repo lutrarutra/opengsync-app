@@ -193,6 +193,8 @@ class SelectSamplesForm(MultiStepForm):
         self.sample_ids = []
         try:
             for sample_id in sample_ids:
+                if not sample_id:
+                    continue
                 if (sample := db.samples.get(int(sample_id))) is None:
                     logger.error(f"Sample {sample_id} not found")
                     raise exceptions.NotFoundException(f"Sample with id {sample_id} not found")
@@ -206,6 +208,8 @@ class SelectSamplesForm(MultiStepForm):
         self.library_ids = []
         try:
             for library_id in library_ids:
+                if not library_id:
+                    continue
                 if (library := db.libraries.get(int(library_id))) is None:
                     logger.error(f"Library {library_id} not found")
                     raise exceptions.NotFoundException(f"Library with id {library_id} not found")
@@ -218,12 +222,13 @@ class SelectSamplesForm(MultiStepForm):
         self.pool_ids = []
         try:
             for pool_id in pool_ids:
+                if not pool_id:
+                    continue
                 if (pool := db.pools.get(int(pool_id))) is None:
                     logger.error(f"Pool {pool_id} not found")
                     raise exceptions.NotFoundException(f"Pool with id {pool_id} not found")
                 self.pool_ids.append(pool.id)
                 self.selected_pools.append(pool)
-
         except ValueError:
             self.selected_pool_ids.errors = ["Invalid pool id"]
             return False
@@ -231,6 +236,8 @@ class SelectSamplesForm(MultiStepForm):
         self.lane_ids = []
         try:
             for lane_id in lane_ids:
+                if not lane_id:
+                    continue
                 if (lane := db.lanes.get(int(lane_id))) is None:
                     logger.error(f"Lane {lane_id} not found")
                     raise exceptions.NotFoundException(f"Lane with id {lane_id} not found")
