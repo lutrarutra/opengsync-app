@@ -92,6 +92,7 @@ def download(current_user: models.User) -> Response:
         "num_lanes": [],
         "num_pools": [],
         "read_config": [],
+        "sequencing_completed": [],
     }
     
     lane_data = {
@@ -111,6 +112,13 @@ def download(current_user: models.User) -> Response:
         experiment_data["num_pools"].append(len(experiment.pools))
         experiment_data["read_config"].append(experiment.read_config)
         experiment_data["num_lanes"].append(experiment.num_lanes)
+        if experiment.seq_run:
+            if (completed := experiment.seq_run.get_timestamp("completed")) is not None:
+                experiment_data["sequencing_completed"].append(completed.strftime("%Y-%m-%d %H:%M"))
+            else:
+                experiment_data["sequencing_completed"].append("")
+        else:
+            experiment_data["sequencing_completed"].append("")
 
         lane_loaded_reads = {}
         flowcell_loaded_reads = 0
