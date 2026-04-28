@@ -254,7 +254,10 @@
         </div>  
         {% if experiment.seq_run %}
         <div class="tab-pane fade" id="experiment-seq_run-tab" role="tabpanel" tabindex="8">
-            <h2>Metadata</h2>
+            <div class="row">
+                {{ metadata_group("Started", experiment.seq_run.get_timestamp("started") | format_datetime, class="col-6") }}
+                {{ metadata_group("Completed", experiment.seq_run.get_timestamp("completed") | format_datetime, class="col-6") }}
+            </div>
             <div class="row">
                 {{
                     metadata_group_link(
