@@ -50,7 +50,7 @@ class CompleteBAForm(MultiStepForm):
             self.sample_fields[i].sample_type.data = row["sample_type"]
 
             if pd.notna(fragment_size := self.ba_table.at[idx, "avg_fragment_size"]):
-                self.sample_fields[i].avg_fragment_size.data = int(fragment_size)
+                self.sample_fields[i].avg_fragment_size.data = int(fragment_size)  # type: ignore
 
     def validate(self) -> bool:
         if not super().validate():

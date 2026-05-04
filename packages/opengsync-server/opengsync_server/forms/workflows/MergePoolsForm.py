@@ -1,6 +1,9 @@
+import pandas as pd
+
 from flask import Response, url_for, flash
 from flask_htmx import make_response
-from wtforms import StringField, FormField, SelectField, FloatField
+from wtforms import StringField, FormField, SelectField, FloatField, IntegerField, FieldList
+from flask_wtf import FlaskForm
 from wtforms.validators import Optional as OptionalValidator, Length, DataRequired
 
 from opengsync_db import models, exceptions
@@ -10,6 +13,12 @@ from ...core import exceptions as serv_exceptions
 from ... import db, logger, tools
 from ..MultiStepForm import MultiStepForm
 from ..SearchBar import OptionalSearchBar
+
+
+class SubForm(FlaskForm):
+    pool_id = IntegerField("Pool ID", validators=[DataRequired()])
+    num_m_reads_requested = FloatField("Number of M Reads Requested", validators=[DataRequired()])
+    pipet = FloatField("Pipet Volume (μL)", validators=[DataRequired()], default=20)
 
 
 class MergePoolsForm(MultiStepForm):
@@ -25,6 +34,9 @@ class MergePoolsForm(MultiStepForm):
     contact_name = StringField("Contact Name", validators=[OptionalValidator(), Length(max=models.Contact.name.type.length)])
     contact_email = StringField("Contact Email", validators=[OptionalValidator(), Length(max=models.Contact.email.type.length)])
     contact_phone = StringField("Contact Phone", validators=[OptionalValidator(), Length(max=models.Contact.phone.type.length)])
+
+    total_volume_ul = FloatField("Total Volume (μL)", validators=[DataRequired()])
+    pool_forms = FieldList(FormField(SubForm), min_entries=2)
 
     def __init__(self, uuid: str, formdata=None):
         MultiStepForm.__init__(
@@ -50,7 +62,26 @@ class MergePoolsForm(MultiStepForm):
         contact_phone = self.pools[0].contact.phone
         num_requested_reads = 0.0
 
-        for pool in self.pools:
+        pooling_table_data = {
+            "id": [],
+            "name": [],
+            "molarity": [],
+            "num_m_reads_requested": [],
+        }
+
+        for i, pool in enumerate(self.pools):
+            if i > len(self.pool_forms) - 1:
+                self.pool_forms.append_entry()
+
+            entry: FormField = self.pool_forms[i]
+            entry.pool_id.data = pool.id
+            entry.num_m_reads_requested.data = pool.num_m_reads_requested
+
+            pooling_table_data["id"].append(pool.id)
+            pooling_table_data["name"].append(pool.name)
+            pooling_table_data["molarity"].append(pool.molarity)
+            pooling_table_data["num_m_reads_requested"].append(pool.num_m_reads_requested)
+
             if status is not None:
                 if pool.status != status:
                     status = PoolStatus.DRAFT
@@ -70,6 +101,8 @@ class MergePoolsForm(MultiStepForm):
                 num_requested_reads += pool.num_m_reads_requested
             else:
                 num_requested_reads = None
+
+        df = pd.DataFrame(pooling_table_data)
 
         self.num_m_reads_requested.data = num_requested_reads
         self.status.data = status.id if status is not None else PoolStatus.DRAFT.id
@@ -97,6 +130,7 @@ class MergePoolsForm(MultiStepForm):
 
     def process_request(self, user: models.User) -> Response:
         if not self.validate(user):
+            logger.debug(self.errors)
             return self.make_response()
         
         if (contact_id := self.contact.selected.data) is not None:
@@ -119,6 +153,14 @@ class MergePoolsForm(MultiStepForm):
             contact_email=self.contact_email.data if contact is None else contact.email,  # type: ignore
             contact_phone=self.contact_phone.data  # type: ignore
         )
+
+        subform: SubForm
+        pool.merge_ratios = {}
+        for subform in self.pool_forms:  # type: ignore
+            pool.merge_ratios[str(subform.pool_id.data)] = {  # type: ignore
+                "num_m_reads_requested": subform.num_m_reads_requested.data,
+                "pipet_volume_ul": subform.pipet.data,
+            }
 
         pool = db.pools.merge(
             merged_pool_id=pool.id,

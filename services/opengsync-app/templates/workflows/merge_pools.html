@@ -1,4 +1,4 @@
-{% from 'components/form_group.jinja2' import form_group, select_input %}
+{% from 'components/form_group.jinja2' import form_group, select_input, form_cell %}
 {% from 'components/search_select.jinja2' import search_select_field %}
 {% from 'components/barcode_clashes_table.jinja2' import barcode_clashes_table with context %}
 {% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
@@ -18,7 +18,8 @@
                 Form</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab"
+                <button class="nav-link {% if barcode_table['error'].notna().any() %}cemm-red{% elif barcode_table['warning'].notna().any() %}cemm-yellow{% else %}cemm-green{% endif %}"
+                data-bs-toggle="tab"
                 id="form-tab-libraries-btn"
                 data-bs-target="#form-tab-libraries" type="button" role="tab"
                 aria-controls="form-tab-libraries" aria-selected="false">
@@ -56,6 +57,41 @@
                         {{ form_group(form.contact_phone, class="col-4") }}
                         {% endif %}
                     </div>
+                    <div class="row">
+                        {{ form_group(form.total_volume_ul, class="col-4", unit="μL", id="total_volume_ul") }}
+                    </div>
+                    <table class="table" id="pooling-table">
+                        <thead>
+                            <tr>
+                                <th class="col-1" scope="col">ID</th>
+                                <th class="col-3" scope="col">Name</th>
+                                <th class="col-2" scope="col">Molarity</th>
+                                <th class="col-2" scope="col">Num. M Reads Requested</th>
+                                <th class="col-2" scope="col">Pipet</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pool in form.pools %}
+                            {% set sub_form = form.pool_forms[loop.index0] %}
+                            {{ sub_form.csrf_token() }}
+                            {{ sub_form.pool_id(hidden=true) }}
+                            <tr>
+                                <th scope="row">{{ pool.id }}</th>
+                                <td>{{ pool.name }}</td>
+                                <td class="molarity-col" {% if pool.molarity is not none %}data-value="{{ pool.molarity }}"{% endif %}>
+                                    <div class="quantity-container {{ pool.molarity_color_class }}">
+                                        <div class="value">{{ pool.molarity_str }}</div>
+                                        <div class="unit">nM</div>
+                                    </div>
+                                </td>
+                                <td class="num_m_reads_requested-col">
+                                    {{ form_cell(sub_form.num_m_reads_requested, unit="m Reads") }}
+                                </td>
+                                <td class="pipet-col">{{ form_cell(sub_form.pipet, unit="μL") }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
             <div class="tab-pane fade" id="form-tab-libraries" role="tabpanel" tabindex="1">
@@ -104,6 +140,9 @@
                     {{ metadata_group_email_link("Contact Email", pool.contact.email, class="col-3") }}
                     {{ metadata_group("Contact Phone", pool.contact.phone, class="col-2") }}
                 </div>
+                {{
+                    metadata_group("Num. M Reads Requested", pool.num_m_reads_requested if notna(pool.num_m_reads_requested) else "", class="col-4", unit="M Reads")
+                }}
             </div>
             {% endfor %}
         </div>
@@ -123,5 +162,67 @@
             </button>
         </div>
     </div>
+    <script>
+        $(document).ready(function() {
+            const DALTON_FACTOR = 660;
+            const MOLARITY_FACTOR = 1_000_000;
+
+            function sum_num_m_reads_requested() {
+                let total = 0;
+                $("#pooling-table tbody tr").each(function() {
+                    const num_m_reads_requested = parseFloat($(this).find(".num_m_reads_requested-col input").val());
+                    if (!isNaN(num_m_reads_requested)) {
+                        total += num_m_reads_requested;
+                    }
+                });
+                return total;
+            }
+
+            function highest_molarity() {
+                let highest = 0;
+                $("#pooling-table tbody tr").each(function() {
+                    const molarity = parseFloat($(this).find(".molarity-col").data("value"));
+                    if (!isNaN(molarity) && molarity > highest) {
+                        highest = molarity;
+                    }
+                });
+                return highest;
+            }
+
+            function calculate() {
+                let abcde = 0.0;
+                $("#pooling-table tbody tr").each(function() {
+
+                    const molarity = parseFloat($(this).find(".molarity-col").data("value"));
+                    const num_m_reads_requested = parseFloat($(this).find(".num_m_reads_requested-col input").val());
+                    const total_num_m_reads_requested = sum_num_m_reads_requested();
+                    const share = num_m_reads_requested / total_num_m_reads_requested;
+                    const highest_pool_molarity = highest_molarity();
+                    
+                    if (molarity && share && highest_pool_molarity) {
+                        const ratio = (share) * (highest_pool_molarity / molarity);
+                        abcde += ratio;
+                        const pipetInput = $(this).find(".pipet-col input");
+                        pipetInput.val(ratio);
+                    }
+                });
+
+                $(".pipet-col input").each(function() {
+                    const pipetVolume = parseFloat($(this).val());
+                    const total_volume_ul = parseFloat($("#total_volume_ul").val());
+
+                    if (pipetVolume && abcde) {
+                        const normalizedPipetVolume = pipetVolume * total_volume_ul / abcde;
+                        $(this).val(normalizedPipetVolume.toFixed(2));
+                    }
+                });
+            }
+
+            $("#total_volume_ul, #target_molarity, .molarity-col input, .num_m_reads_requested-col input").on("input", function() {
+                calculate();
+            });
+            calculate();
+        });
+    </script>
 </div>
 
