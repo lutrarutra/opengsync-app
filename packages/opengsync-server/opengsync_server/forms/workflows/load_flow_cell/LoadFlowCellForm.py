@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response, flash, url_for
 from flask_wtf import FlaskForm
 from flask_htmx import make_response
-from wtforms import FloatField, FieldList, FormField
+from wtforms import FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
 from opengsync_db import models
@@ -14,7 +14,7 @@ from ...HTMXFlaskForm import HTMXFlaskForm
 
 
 class SubForm(FlaskForm):
-    lane_id = FloatField("Lane ID", validators=[DataRequired()])
+    lane_id = IntegerField("Lane ID", validators=[DataRequired()])
     phi_x = FloatField("Phi X %", validators=[DataRequired()])
 
     measured_qubit = FloatField("Qubit Concentration After Dilution", validators=[OptionalValidator()])
@@ -85,7 +85,6 @@ class LoadFlowCellForm(HTMXFlaskForm):
             self.lane_table["qubit_concentration"] = self.lane_table.apply(lambda row: row["original_qubit_concentration"] if pd.isna(row["sequencing_qubit_concentration"]) else row["sequencing_qubit_concentration"], axis="columns")
             self.lane_table["molarity"] = self.lane_table["qubit_concentration"] / (self.lane_table["avg_fragment_size"] * 660) * 1_000_000
             self._context["df"] = self.lane_table
-            logger.debug(self.lane_table)
             return self.make_response()
         
         all_lanes_loaded = True

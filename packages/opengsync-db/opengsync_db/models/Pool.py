@@ -5,6 +5,8 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.mutable import MutableDict
 
 from .Base import Base
 from . import links
@@ -21,7 +23,6 @@ if TYPE_CHECKING:
     from .PoolDilution import PoolDilution
     from .Plate import Plate
     from .LabPrep import LabPrep
-
 
 class Pool(Base):
     __tablename__ = "pool"
@@ -63,6 +64,8 @@ class Pool(Base):
     merged_to_pool: Mapped[Optional["Pool"]] = relationship("Pool", lazy="select", remote_side=[id], foreign_keys=[merged_to_pool_id])
 
     merged_from: Mapped[list["Pool"]] = relationship("Pool", lazy="select", back_populates="merged_to_pool", foreign_keys=[merged_to_pool_id])
+
+    merge_ratios: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="pool", lazy="select", order_by="Library.id")
     lane_links: Mapped[list[links.LanePoolLink]] = relationship(

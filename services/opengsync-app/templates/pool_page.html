@@ -314,9 +314,8 @@
                     <thead>
                         <th scope="col" class="col-1">ID</th>
                         <th scope="col" class="col-3">Name</th>
-                        <th scope="col" class="col-3">Status</th>
-                        <th scope="col" class="col-3">Type</th>
-                        <th scope="col" class="col-2">Owner</th>
+                        <th scope="col" class="col-3">Num. M.Reads</th>
+                        <th scope="col" class="col-3">Pipet Volume (μL)</th>
                     </thead>
                     <tbody>
                         {% for merged_pool in pool.merged_from %}
@@ -327,9 +326,13 @@
                                     {{ merged_pool.name }}{% if merged_pool.clone_number > 0 %}<sup class="clone-number">(re:{{ merged_pool.clone_number }})</sup>{% endif %}
                                 </a>
                             </td>
-                            <td>{{ merged_pool.status.icon }} {{ merged_pool.status.label }}</td>
-                            <td>{{ merged_pool.type.display_name }}</td>
-                            <td>{{ merged_pool.owner.name }}</td>
+                            {% if pool.merge_ratios %}
+                            <td>{{ pool.merge_ratios.get(merged_pool.id | string, {}).get("num_m_reads_requested", "") }}</td>
+                            <td>{{ pool.merge_ratios.get(merged_pool.id | string, {}).get("pipet_volume_ul", "") }}</td>
+                            {% else %}
+                            <td></td>
+                            <td></td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>

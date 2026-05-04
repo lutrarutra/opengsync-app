@@ -70,7 +70,7 @@
                                 "Check Clashes", 
                                 url_for('check_barcode_clashes_workflow.check_experiment_barcode_clashes', experiment_id=experiment.id), 
                                 size="fullscreen",
-                                disabled=not can_be_edited or lanes_assigned is none
+                                disabled=lanes_assigned is none
                             )
                         }}
                     </li>

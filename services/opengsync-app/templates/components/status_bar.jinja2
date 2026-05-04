@@ -124,6 +124,12 @@
         {{ PoolStatus.REJECTED.label }} {{ PoolStatus.REJECTED.icon | safe }}
     </div>
 </div>
+{% elif pool.status == PoolStatus.REPOOLED %}
+<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(PoolStatus.REPOOLED.description, position='top', category='warning') }}>
+    <div class="progress-bar progress-bar-striped bg-info" style="width: 100%">
+        {{ PoolStatus.REPOOLED.label }} {{ PoolStatus.REPOOLED.icon | safe }}
+    </div>
+</div>
 {% elif pool.status == PoolStatus.ARCHIVED %}
 <div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" {{ tooltip(PoolStatus.ARCHIVED.description, position='top', category='warning') }}>
     <div class="progress-bar progress-bar-striped bg-info text-dark" style="width: 100%">
