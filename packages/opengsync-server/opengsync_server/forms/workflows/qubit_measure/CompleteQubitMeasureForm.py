@@ -36,7 +36,6 @@ class CompleteQubitMeasureForm(MultiStepForm):
         self._context["enumerate"] = enumerate
         
     def prepare(self):
-        logger.debug(self.metadata)
         sample_table = self.tables["sample_table"]
         pool_table = self.tables["pool_table"]
         library_table = self.tables["library_table"]
@@ -88,7 +87,8 @@ class CompleteQubitMeasureForm(MultiStepForm):
             return self.make_response(
                 pool_table=self.tables["pool_table"],
                 library_table=self.tables["library_table"],
-                lane_table=self.tables["lane_table"]
+                lane_table=self.tables["lane_table"],
+                sample_table=self.tables["sample_table"],
             )
         
         library_table = self.tables["library_table"]
