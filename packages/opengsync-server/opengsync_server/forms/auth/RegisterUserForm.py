@@ -80,11 +80,12 @@ class RegisterUserForm(HTMXFlaskForm):
         if not self.validate():
             if len(self.errors) == 1 and next(iter(self.email.errors), None) == "Email already registered.":
                 email = self.email.data.strip()  # type: ignore
+                style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
                 try:
                     mail_handler.send_email(
                         recipients=email,
                         subject="Welcome Back to OpeNGSync",
-                        body=render_template("email/welcome-back.html", support_email=runtime.app.personalization["email"]),
+                        body=render_template("email/welcome-back.html", support_email=runtime.app.personalization["email"], style=style),
                         mime_type="html"
                     )
                 except Exception as e:
@@ -94,7 +95,7 @@ class RegisterUserForm(HTMXFlaskForm):
                 
                 flash("Email sent. Check your email for registration link.", "info")
                 logger.warning(f"Email already registered. Welcome back email sent!")
-                return self.make_response(redirect=url_for("dashboard"))
+                return make_response(redirect=url_for("dashboard"))
             return self.make_response()
         
         email = self.email.data.strip()  # type: ignore
