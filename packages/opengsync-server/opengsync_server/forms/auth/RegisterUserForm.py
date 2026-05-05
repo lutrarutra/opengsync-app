@@ -1,3 +1,4 @@
+import email
 from pathlib import Path
 
 from flask import flash, Response, render_template, url_for
@@ -77,6 +78,23 @@ class RegisterUserForm(HTMXFlaskForm):
     
     def process_request(self) -> Response:
         if not self.validate():
+            if self.errors == ("Email already registered.",):
+                email = self.email.data.strip()  # type: ignore
+                try:
+                    mail_handler.send_email(
+                        recipients=email,
+                        subject="Welcome Back to OpeNGSync",
+                        body=render_template("email/welcome-back.html", support_email=runtime.app.personalization["email"]),
+                        mime_type="html"
+                    )
+                except Exception as e:
+                    self.email.errors = ("Failed to send registration email. Please contact administrator.",)
+                    logger.error(f"Failed to send registration email to '{email}': {e}")
+                    return self.make_response()
+                
+                flash("Email sent. Check your email for registration link.", "info")
+                logger.warning(f"Email already registered. Welcome back email sent!")
+                return self.make_response(redirect=url_for("dashboard"))
             return self.make_response()
         
         email = self.email.data.strip()  # type: ignore
