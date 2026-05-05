@@ -548,7 +548,7 @@ def is_valid_email(email: str | None) -> bool:
 
 def render_share_project_data_email(
     share_token: models.ShareToken, current_user: models.User, project: models.Project, internal_share: bool,
-    outdir: str = "BSF_DATA", anonymous: bool = False
+    outdir: str = "BSF_DATA", anonymous: bool = False, comment: str | None = None
 ) -> str:
     from ..core import runtime
 
@@ -600,6 +600,7 @@ def render_share_project_data_email(
         outdir=outdir,
         email_header=email_header,
         email_footer=email_footer,
+        comment=comment
     )
 
     return premailer.transform(content)

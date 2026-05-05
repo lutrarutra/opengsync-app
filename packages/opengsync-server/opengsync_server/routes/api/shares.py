@@ -213,8 +213,13 @@ def remove_data_paths(
     
     return jsonify({"result": "success", "paths": paths}), 200
 
-@wrappers.api_route(shares_api_bp, db=db, methods=["POST"], json_params=["project_id", "internal_access", "time_valid_min", "anonymous_send", "recipients", "mark_project_delivered"], limit="1/second", limit_override=True)
-def release_project_data(current_user: models.User, recipients: list[str] | None, project_id: int, internal_access: bool, time_valid_min: int, anonymous_send: bool = False, mark_project_delivered: bool = True):
+@wrappers.api_route(shares_api_bp, db=db, methods=["POST"], json_params=["project_id", "internal_access", "time_valid_min", "anonymous_send", "recipients", "mark_project_delivered", "comment"], limit="1/second", limit_override=True)
+def release_project_data(
+    current_user: models.User, recipients: list[str] | None,
+    project_id: int, internal_access: bool, time_valid_min: int,
+    anonymous_send: bool = False, mark_project_delivered: bool = True,
+    comment: str | None = None
+):
     if (project := db.projects.get(project_id)) is None:
         raise exceptions.NotFoundException(f"Project with ID '{project_id}' not found.")
     
@@ -249,47 +254,9 @@ def release_project_data(current_user: models.User, recipients: list[str] | None
     project.share_token = share_token
     db.projects.update(project)
 
-    outdir = "BSF_DATA"
-
-    http_command = render_template("snippets/rclone-http.sh.j2", token=share_token.uuid, outdir=outdir)
-    sync_command = render_template("snippets/rclone-sync.sh.j2", token=share_token.uuid, outdir=outdir)
-    wget_command = render_template("snippets/wget.sh.j2", token=share_token.uuid, outdir=outdir)
-    style = open(os.path.join(runtime.app.static_folder, "style/compiled/email.css")).read()
-
-    browse_link = runtime.url_for("file_share.browse", token=share_token.uuid, _external=True)
-
-    library_types = {library.type for library in project.libraries}
-    tenx_contents = any(set(LibraryType.get_tenx_library_types()).intersection(library_types))
-
-    seq_requests = db.seq_requests.find(project_id=project.id, limit=None, sort_by="id")[0]
-    experiments = db.experiments.find(project_id=project.id, limit=None, sort_by="id")[0]
-
-    internal_share_content = ""
-    if (template := runtime.app.personalization.get("internal_share_template")):
-        if os.path.exists(os.path.join(runtime.app.template_folder, template)):
-            internal_paths = project.data_paths
-            internal_paths = utils.filter_subpaths([data_path.path for data_path in internal_paths])
-            internal_paths = [utils.replace_substrings(path, runtime.app.share_path_mapping) for path in internal_paths]
-            internal_share_content = render_template(template, paths=internal_paths, project=project)
-        else:
-            logger.info(f"Internal share template '{template}' not found.")
-
-    content = render_template(
-        "email/share-project-data.html", style=style, browse_link=browse_link,
-        project=project, tenx_contents=tenx_contents, library_types=library_types,
-        author=None if anonymous_send else current_user if current_user.is_insider() else None,
-        seq_requests=seq_requests, experiments=experiments, share_token=share_token,
-        internal_access_share=internal_access,
-        internal_share_content=internal_share_content,
-        sync_command=sync_command,
-        http_command=http_command,
-        wget_command=wget_command,
-        outdir=outdir
-    )
-
     content = utils.render_share_project_data_email(
         share_token=share_token, current_user=current_user, project=project, internal_share=internal_access,
-        anonymous=anonymous_send, outdir="BSF_DATA"
+        anonymous=anonymous_send, outdir="BSF_DATA", comment=comment
     )
     try:
         mail_handler.send_email(

@@ -2,6 +2,12 @@
 {% block content %}
 <br>
 <hr>
+{%- if comment is defined and comment %}
+<b>Attached Comment:</b>
+<p>{{ comment }}</p>
+<br>
+<hr>
+{%- endif %}
 <p>
     <b>You can copy the data with one of the following commands:</b>
     <ul>

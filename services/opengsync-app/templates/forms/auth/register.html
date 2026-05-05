@@ -15,7 +15,7 @@
             {{ select_input(form.role, disabled=true) }}
             {% endif %}
         </form>
-        {% if current_user.is_insider() %}
+        {% if current_user.is_authenticated and current_user.is_insider() %}
         <ul>
             <li>Select <b>{{ UserRole.DEACTIVATED.display_name }}</b> if the user did not request an account. This will create account "silently", i.e. no registration email is sent.</li>
         </ul>

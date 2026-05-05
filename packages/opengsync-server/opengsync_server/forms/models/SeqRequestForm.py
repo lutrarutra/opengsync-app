@@ -11,7 +11,7 @@ from wtforms.validators import Optional as OptionalValidator
 from opengsync_db import models
 from opengsync_db.categories import ReadType, DataDeliveryMode, SubmissionType, UserRole, DeliveryStatus
 
-from ... import db, logger
+from ... import db, logger, bcrypt
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ..SearchBar import OptionalSearchBar
 
@@ -467,11 +467,12 @@ class SeqRequestForm(HTMXFlaskForm):
             if (assigned_user_id := self.user_select_form.user.selected.data) is not None:
                 user = db.users[assigned_user_id]
             elif (assigned_user_email := self.user_select_form.email.data):
+                hashed_password = bcrypt.generate_password_hash(uuid4().hex).decode("utf-8")
                 user = db.users.create(
                     email=assigned_user_email,
                     first_name=self.user_select_form.first_name.data.strip(),  # type: ignore
                     last_name=self.user_select_form.last_name.data.strip(),  # type: ignore
-                    hashed_password=uuid4().hex,
+                    hashed_password=hashed_password,
                     role=UserRole.DEACTIVATED,
                 )
 

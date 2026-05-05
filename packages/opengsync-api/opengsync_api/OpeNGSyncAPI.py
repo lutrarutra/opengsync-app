@@ -154,6 +154,7 @@ class OpeNGSyncAPI:
         time_valid_min: int,
         recipients: list[str] | None = None,
         anonymous_send: bool = False,
+        comment: str | None = None
     ):
         """
         Creates temporary share-token and sends the token with instructions to recipients via email.
@@ -167,7 +168,7 @@ class OpeNGSyncAPI:
             time_valid_min (int): time in minutes for which the share is valid
             recipients (list[str] | None): list of email addresses to send the instructions to. If None, emails are sent to all emails added to Share-tab in the latest sequencing request.
             anonymous_send (bool, optional): if True, send the email anonymously. Defaults to False (owner of the API token).
-
+            comment (str | None, optional): comment to include in the email. Defaults to None.
         Raises:
             requests.HTTPError: if the request fails
 
@@ -182,6 +183,7 @@ class OpeNGSyncAPI:
             "time_valid_min": time_valid_min,
             "recipients": recipients,
             "anonymous_send": anonymous_send,
+            "comment": comment
         }
         response = requests.post(f"{self.base_url}/api/shares/release_project_data/", json=payload)
         try:
