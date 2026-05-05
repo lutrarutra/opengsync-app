@@ -1,0 +1,10 @@
+{% extends "email/base.html" %}
+{% block content %}
+<p>
+    Welcome back! It looks like you already have an account with us.
+</p>
+<p>
+    If you didn't request this or need assistance, please reach out to us at 
+    <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+</p>
+{% endblock %}

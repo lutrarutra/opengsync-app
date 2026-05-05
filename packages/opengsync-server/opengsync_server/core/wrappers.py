@@ -40,6 +40,14 @@ def _default_logger(exc: Exception, exc_type: str, level: Literal["error", "warn
     else:
         _level = level
 
+    log_exc = exc if DEBUG else False
+
+    log_func = {
+        "warning": logger.opt(depth=depth, exception=log_exc).warning,
+        "info": logger.opt(depth=depth, exception=log_exc).info,
+        "error": logger.opt(depth=depth, exception=log_exc).error,
+    }.get(_level, logger.opt(depth=depth, exception=log_exc).error)
+
     log_func = {
         "warning": logger.opt(depth=depth, exception=exc).warning,
         "info": logger.opt(depth=depth, exception=exc).info,

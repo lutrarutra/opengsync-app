@@ -30,22 +30,27 @@ class LoginForm(HTMXFlaskForm):
 
         # invalid email
         if (user := db.users.get_with_email(self.email.data)) is None:  # type: ignore
-            self.email.errors = ("Invalid email or password.",)
-            self.password.errors = ("Invalid email or password.",)
+            self.email.errors = ("Invalid email, password, or inactive account.",)
+            self.password.errors = ("Invalid email, password, or inactive account.",)
             return self.make_response()
 
         # invalid password
-        if not bcrypt.check_password_hash(user.password, self.password.data):
-            self.email.errors = ("Invalid email or password.",)
-            self.password.errors = ("Invalid email or password.",)
+        try:
+            if not bcrypt.check_password_hash(user.password, self.password.data):
+                self.email.errors = ("Invalid email, password, or inactive account.",)
+                self.password.errors = ("Invalid email, password, or inactive account.",)
+                return self.make_response()
+        except ValueError:
+            self.email.errors = ("Invalid email, password, or inactive account.",)
+            self.password.errors = ("Invalid email, password, or inactive account.",)
             return self.make_response()
         
         if user.role == UserRole.DEACTIVATED:
-            self.email.errors = ("Account is deactivated. Please contact us.",)
+            self.email.errors = ("Account is deactivated. Please contact us to activate your account.",)
             return self.make_response()
         
         if user.role == UserRole.TEMPORARY:
-            self.email.errors = ("Account is deactivated. Please contact us.",)
+            self.email.errors = ("Account is deactivated. Please contact us to activate your account.",)
             user.role = UserRole.DEACTIVATED
             db.users.update(user)
             return self.make_response()
