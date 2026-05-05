@@ -47,8 +47,8 @@ class RegisterUserForm(HTMXFlaskForm):
         
         if self.current_user is None or not self.current_user.is_insider():
             if runtime.app.email_domain_white_list is not None:
-                if self.email.data.split("@")[-1] not in runtime.app.email_domain_white_list:
-                    self.email.errors = ("Specified email domain is not allowed. Please contact us.",)
+                if self.email.data.split("@")[-1].lower() not in [domain.lower() for domain in runtime.app.email_domain_white_list]:
+                    self.email.errors = ("Specified email domain is not found in white-list. Please contact us.",)
                     return False
         
         if db.users.get_with_email(self.email.data):  # type: ignore
@@ -78,13 +78,14 @@ class RegisterUserForm(HTMXFlaskForm):
     
     def process_request(self) -> Response:
         if not self.validate():
-            if self.errors == ("Email already registered.",):
+            if len(self.errors) == 1 and next(iter(self.email.errors), None) == "Email already registered.":
                 email = self.email.data.strip()  # type: ignore
+                style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
                 try:
                     mail_handler.send_email(
                         recipients=email,
                         subject="Welcome Back to OpeNGSync",
-                        body=render_template("email/welcome-back.html", support_email=runtime.app.personalization["email"]),
+                        body=render_template("email/welcome-back.html", support_email=runtime.app.personalization["email"], style=style),
                         mime_type="html"
                     )
                 except Exception as e:
@@ -94,7 +95,7 @@ class RegisterUserForm(HTMXFlaskForm):
                 
                 flash("Email sent. Check your email for registration link.", "info")
                 logger.warning(f"Email already registered. Welcome back email sent!")
-                return self.make_response(redirect=url_for("dashboard"))
+                return make_response(redirect=url_for("dashboard"))
             return self.make_response()
         
         email = self.email.data.strip()  # type: ignore
