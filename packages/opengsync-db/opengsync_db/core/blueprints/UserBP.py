@@ -1,5 +1,5 @@
 import math
-from typing import Optional, Callable
+from typing import Callable
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Query
@@ -19,12 +19,16 @@ class UserBP(DBBlueprint):
     def where(
         cls,
         query: Query,
-        role_in: Optional[list[UserRole]] = None,
+        role: UserRole | None = None,
+        role_in: list[UserRole] | None = None,
         group_id: int | None = None,
         insider: bool | None = None,
         exclude_group_id: int | None = None,
         custom_query: Callable[[Query], Query] | None = None,
     ) -> Query:
+        if role is not None:
+            query = query.where(models.User.role_id == role.id)
+
         if role_in is not None:
             role_ids = [role.id for role in role_in]
             query = query.where(
@@ -84,7 +88,7 @@ class UserBP(DBBlueprint):
             models.User: user object
         """
         if self.db.session.query(models.User).where(
-            models.User.email == email
+            sa.func.lower(models.User.email) == email.lower()
         ).first() is not None:
             raise exceptions.NotUniqueValue(f"User with email {email} already exists")
 
@@ -129,14 +133,15 @@ class UserBP(DBBlueprint):
             models.User | None: user object or None if not found
         """
         user = self.db.session.query(models.User).where(
-            models.User.email == email
+            sa.func.lower(models.User.email) == email.lower()
         ).first()
         return user
 
     @DBBlueprint.transaction
     def find(
         self,
-        role_in: Optional[list[UserRole]] = None,
+        role: UserRole | None = None,
+        role_in: list[UserRole] | None = None,
         group_id: int | None = None,
         exclude_group_id: int | None = None,
         name: str | None = None,
@@ -150,6 +155,7 @@ class UserBP(DBBlueprint):
         """Query users
 
         Args:
+            role (UserRole | None, optional): filter users by role. Defaults to None.
             role_in (Optional[list[UserRole]], optional): filter users by role. Defaults to None.
             group_id (int | None, optional): filter users by group. Defaults to None.
             exclude_group_id (int | None, optional): exclude users from group. Defaults to None.
@@ -164,7 +170,7 @@ class UserBP(DBBlueprint):
         """
         query = self.db.session.query(models.User)
         query = self.where(
-            query, role_in=role_in, group_id=group_id,
+            query, role=role, role_in=role_in, group_id=group_id,
             exclude_group_id=exclude_group_id, insider=insider
         )
         if options is not None:
@@ -230,7 +236,7 @@ class UserBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query(
-        self, word: str, role_in: Optional[list[UserRole]] = None,
+        self, word: str, role_in: list[UserRole] | None = None,
         only_insiders: bool = False, limit: int | None = PAGE_LIMIT
     ) -> list[models.User]:
         """Natural language search for users by first name and last name.
@@ -268,7 +274,7 @@ class UserBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query_with_email(
-        self, word: str, role_in: Optional[list[UserRole]] = None, limit: int | None = PAGE_LIMIT
+        self, word: str, role_in: list[UserRole] | None = None, limit: int | None = PAGE_LIMIT
     ) -> list[models.User]:
         query = self.db.session.query(models.User)
 
@@ -290,7 +296,7 @@ class UserBP(DBBlueprint):
     @DBBlueprint.transaction
     def get_affiliations(
         self, user_id: int, limit: int | None = PAGE_LIMIT, offset: int | None = None,
-        sort_by: str | None = None, descending: bool = False, affiliation_type: Optional[AffiliationType] = None,
+        sort_by: str | None = None, descending: bool = False, affiliation_type: AffiliationType | None = None,
         group_name: str | None = None,
         page: int | None = None
     ) -> tuple[list[models.links.UserAffiliation], int | None]:

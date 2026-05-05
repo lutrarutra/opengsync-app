@@ -43,7 +43,7 @@ pd.set_option('display.width', 1000)
 
 DEBUG = os.getenv("OPENGSYNC_DEBUG", "0") == "1"
 SECRET_KEY = os.environ["SECRET_KEY"]
-TIMEZONE = pytz.timezone(os.environ["TZ"])
+TIMEZONE = pytz.timezone(os.environ.get("TZ", "UTC"))
 REDIS_PORT = int(os.environ["REDIS_PORT"])
 
 htmx = HTMX()
