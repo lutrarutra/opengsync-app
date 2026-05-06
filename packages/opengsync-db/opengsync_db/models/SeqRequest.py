@@ -4,6 +4,8 @@ from typing import Optional, TYPE_CHECKING, ClassVar
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
@@ -81,6 +83,11 @@ class SeqRequest(Base):
         secondary="join(SampleLibraryLink, Sample, SampleLibraryLink.sample_id == Sample.id).join(Library, Library.id == SampleLibraryLink.library_id)",
         primaryjoin="SeqRequest.id == Library.seq_request_id",
     )
+    sample_library_links: Mapped[list["links.SampleLibraryLink"]] = relationship(
+        "links.SampleLibraryLink", viewonly=True,
+        secondary="join(Library, SampleLibraryLink, Library.id == SampleLibraryLink.library_id)",
+        primaryjoin="SeqRequest.id == Library.seq_request_id",
+    )
     assignees: Mapped[list["User"]] = relationship(
         "User",
         secondary="seq_request_assignee_link",
@@ -89,9 +96,12 @@ class SeqRequest(Base):
     )
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="seq_request", lazy="select")
 
+    review_checklist: Mapped[dict[str, bool] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
+
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
 
-    def get_checklist(self) -> dict:
+
+    def get_submit_checklist(self) -> dict:
         if orm.object_session(self) is None:
             raise orm.exc.DetachedInstanceError("Session must be open for checklist")
         
@@ -106,6 +116,28 @@ class SeqRequest(Base):
             is_submittable=is_submittable,
             request_submitted=request_submitted,
         )
+    
+    def get_review_checklist(self) -> dict[str, bool]:
+        if orm.object_session(self) is None:
+            raise orm.exc.DetachedInstanceError("Session must be open for checklist")
+        
+        checklist = {}
+        if self.review_checklist is not None:
+            checklist.update(self.review_checklist)
+
+        checklist["technical_requirements"] = checklist.get("technical_requirements", False)
+        checklist["check_libraries"] = checklist.get("check_libraries", False)
+        checklist["check_multiplexing"] = checklist.get("check_multiplexing", False)
+        checklist["check_overview"] = checklist.get("check_overview", False)
+        checklist["check_contacts"] = checklist.get("check_contacts", False)
+        checklist["check_comments"] = checklist.get("check_comments", False)
+        checklist["samples_checked"] = checklist.get("samples_checked", False)
+        checklist["check_submission_date"] = checklist.get("check_submission_date", False)
+        checklist["check_barcodes"] = checklist.get("check_barcodes", True if self.submission_type not in [SubmissionType.POOLED_LIBRARIES, SubmissionType.UNPOOLED_LIBRARIES] else False)
+        checklist["auth_form_checked"] = checklist.get("auth_form_checked", None if self.seq_auth_form_file is None else False)
+        checklist["submission_processed"] = self.status > SeqRequestStatus.SUBMITTED
+
+        return checklist
     
     @property
     def projects(self) -> list["Project"]:

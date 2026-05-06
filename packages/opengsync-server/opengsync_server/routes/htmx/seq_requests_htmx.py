@@ -1,22 +1,24 @@
 import os
-import json
 from io import BytesIO
 from typing import Literal
 
 from flask import Blueprint, url_for, render_template, flash, request, Response
 from flask_htmx import make_response
+from sqlalchemy import orm
 import pandas as pd
 
-from opengsync_db import models, PAGE_LIMIT
+from opengsync_db import models
 from opengsync_db.categories import (
     SeqRequestStatus, LibraryStatus,
     SampleStatus, SubmissionType, PoolStatus, AccessType,
-    DataPathType
+    BarcodeOrientation
 )
 
 from ... import db, forms, logger, logic
 from ...core import wrappers, exceptions
 from ...core.RunTime import runtime
+from ...tools import StaticSpreadSheet
+from ...tools.spread_sheet_components import TextColumn
 
 
 seq_requests_htmx = Blueprint("seq_requests_htmx", __name__, url_prefix="/htmx/seq_requests/")
@@ -807,7 +809,7 @@ def remove_assignee(current_user: models.User, seq_request_id: int, assignee_id:
     )
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
-def checklist(current_user: models.User, seq_request_id: int):    
+def submit_checklist(current_user: models.User, seq_request_id: int):    
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
     
@@ -815,10 +817,145 @@ def checklist(current_user: models.User, seq_request_id: int):
     if access_type < AccessType.VIEW:
         raise exceptions.NoPermissionsException()
     
-    checklist = seq_request.get_checklist()
+    checklist = seq_request.get_submit_checklist()
     return make_response(
         render_template(
-            "components/checklists/seq_request.html",
+            "components/checklists/seq_request-submit.html",
             seq_request=seq_request, **checklist
         )
+    )
+
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def review_checklist(current_user: models.User, seq_request_id: int):    
+    if (seq_request := db.seq_requests.get(
+        seq_request_id, options=[
+            orm.selectinload(models.SeqRequest.samples).selectinload(models.Sample.project),
+            orm.selectinload(models.SeqRequest.libraries).selectinload(models.Library.pool),
+            orm.selectinload(models.SeqRequest.sample_library_links).selectinload(
+                models.links.SampleLibraryLink.library
+            ),
+            orm.selectinload(models.SeqRequest.sample_library_links).selectinload(
+                models.links.SampleLibraryLink.sample
+            ),
+        ]
+    )) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.INSIDER:
+        raise exceptions.NoPermissionsException()
+    
+    checklist = seq_request.get_review_checklist()
+    contains_mux_samples = any(library.is_multiplexed() for library in seq_request.libraries)
+
+    indices_checked = True
+    for library in seq_request.libraries:
+        for index in library.indices:
+            if index.orientation is None or index.orientation == BarcodeOrientation.FORWARD_NOT_VALIDATED:
+                indices_checked = False
+                break
+        if not indices_checked:
+            break
+
+    return make_response(
+        render_template(
+            "components/checklists/seq_request-review.html",
+            seq_request=seq_request, **checklist,
+            contains_mux_samples=contains_mux_samples,
+            indices_checked=indices_checked
+        )
+    )
+
+@wrappers.htmx_route(seq_requests_htmx, db=db)
+def get_sample_table(current_user: models.User, seq_request_id: int):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.VIEW:
+        raise exceptions.NoPermissionsException()
+
+    df = db.pd.get_seq_request_sample_table(seq_request_id=seq_request_id)
+    df["project"] = df["project_identifier"]
+    df.loc[df["project"].isna(), "project"] = df.loc[df["project"].isna(), "project_title"]
+    df = df.drop(columns=["project_identifier", "project_title", "sample_id"])
+
+    columns: list = [
+        TextColumn("sample_name", "Sample Name", width=300),
+    ]
+
+    for column in df.columns:
+        if column not in {"sample_name", "project"}:
+            columns.append(TextColumn(column, column.replace("_", " ").title(), width=200))
+
+    spreadsheet = StaticSpreadSheet(
+        df, columns=columns, 
+    )
+
+    return make_response(
+        render_template(
+            "components/itable.html", seq_request=seq_request, spreadsheet=spreadsheet
+        )
+    )
+
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def check_review_step(current_user: models.User, seq_request_id: int, step: str):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.INSIDER:
+        raise exceptions.NoPermissionsException()
+
+    if seq_request.review_checklist is None:
+        seq_request.review_checklist = {}
+
+    seq_request.review_checklist[step] = True
+    db.seq_requests.update(seq_request)
+
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id, tab="review-tab")
+    )
+
+
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def uncheck_review_step(current_user: models.User, seq_request_id: int, step: str):
+    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.INSIDER:
+        raise exceptions.NoPermissionsException()
+
+    if seq_request.review_checklist is None:
+        seq_request.review_checklist = {}
+
+    seq_request.review_checklist[step] = False
+    db.seq_requests.update(seq_request)
+
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id, tab="review-tab")
+    )
+
+@wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
+def confirm_barcodes(current_user: models.User, seq_request_id: int):
+    if (seq_request := db.seq_requests.get(
+        seq_request_id, options=[
+            orm.selectinload(models.SeqRequest.libraries).selectinload(models.Library.indices),
+        ]
+    )) is None:
+        raise exceptions.NotFoundException()
+    
+    access_type = db.seq_requests.get_access_type(seq_request, current_user)
+    if access_type < AccessType.INSIDER:
+        raise exceptions.NoPermissionsException()
+
+    for library in seq_request.libraries:
+        for index in library.indices:
+            if index.orientation is None or index.orientation == BarcodeOrientation.FORWARD_NOT_VALIDATED:
+                index.orientation = BarcodeOrientation.FORWARD
+        
+    db.seq_requests.update(seq_request)
+    return make_response(
+        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id)
     )

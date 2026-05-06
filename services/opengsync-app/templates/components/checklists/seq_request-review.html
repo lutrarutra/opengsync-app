@@ -1,0 +1,524 @@
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/button.jinja2" import modal_button, confirm_action_button %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+{% from "components/metadata_group.jinja2" import metadata_group, metadata_group_textarea, metadata_group_link, metadata_group_email_link %}
+{% from "components/library_index_cell.jinja2" import library_index_cell with context %}
+
+
+<div class="accordion p-1" id="request-review-accordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-technical_requirements" aria-expanded="false" aria-controls="request-review-accordion-technical_requirements">
+                <b>{% if technical_requirements %}✅{% else %}⚠️{% endif %} Check Technical Requirements</b>
+            </button>
+        </h2>
+        <div id="request-review-accordion-technical_requirements" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check that additional requirements make sense for the requested samples and type of libraries.</li>
+                </ul>
+                <hr>
+                <h4>Technical Requirements</h4>
+                <div class="row">
+                    {{ metadata_group("Submitted Time", seq_request.timestamp_submitted_str(), class="col-3") }}
+                    {{ metadata_group("Sequencing Type (SE/PE)", seq_request.read_type.label, class="col-3") }}
+                    {{ metadata_group("Read Length", seq_request.read_length, class="col-3") }}
+                    {{ metadata_group("# Lanes", seq_request.num_lanes, class="col-3") }}
+                </div>
+                {{ metadata_group_textarea("Special Requirements", seq_request.special_requirements) }}
+                <h4>Data Delivery</h4>
+                {{ metadata_group("Data Delivery Mode", seq_request.data_delivery_mode.label, class="col-4") }}
+                <ol>
+                    {% for mode in DataDeliveryMode.as_list() %}
+                    <li><b>{{ mode.label }}</b>: <em>{{ mode.description }}</em></li>
+                    {% endfor %}
+                </ol>
+                <hr>
+
+                {% if not technical_requirements %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='technical_requirements') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='technical_requirements') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_contacts" aria-expanded="false" aria-controls="request-review-accordion-check_contacts">
+                <b>{% if check_contacts %}✅{% else %}⚠️{% endif %} Check Submission Contacts</b>
+            </button>
+        </h2>
+        <div id="request-review-accordion-check_contacts" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check that necessary contacts are provided.</li>
+                    <li>Check billing information.</li>
+                </ul>
+                <hr>
+                <h4>Requestor</h4>
+                <div class="row">
+                    {{ metadata_group_link("Name", seq_request.requestor.first_name + " " + seq_request.requestor.last_name, url_for("users_page.user", user_id=seq_request.requestor.id), class="col") }}
+                    {{ 
+                        metadata_group_email_link(
+                            "Email", seq_request.requestor.email, class="col",
+                            subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                        ) 
+                    }}
+                </div>
+
+                <br>
+                <h4>Contact Person</h4>
+                <div class="row">
+                    {{ 
+                        metadata_group(
+                            "Contact Person",
+                            seq_request.contact_person.name,
+                            class="col-6 col-xl-4"
+                        ) 
+                    }}
+                    {{ 
+                        metadata_group_email_link(
+                            "Contact Person Email", seq_request.contact_person.email, class="col-6 col-xl-4",
+                            subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                        )
+                    }}
+                    {{ 
+                        metadata_group(
+                            "Contact Person Phone",
+                            seq_request.contact_person.phone,
+                            class="col-6 col-xl-4",
+                        ) 
+                    }}
+                </div>
+                {{ metadata_group("Organization", seq_request.organization_contact.name) }}
+                {{ metadata_group_textarea("Organization Address", seq_request.organization_contact.address) }}
+                
+                {% if seq_request.bioinformatician_contact_id %}
+                <br>
+                <h4>Bioinformatician Contact</h4>
+                <div class="row">
+                    {{ metadata_group("Name", seq_request.bioinformatician_contact.name, class="col-6 col-xl-4") }}
+                    {{ 
+                        metadata_group_email_link(
+                            "Email", seq_request.bioinformatician_contact.email, class="col-6 col-xl-4",
+                            subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                        )
+                    }}
+                    {{ metadata_group("Phone", seq_request.bioinformatician_contact.phone, class="col-6 col-xl-4") }}
+                </div>
+                {% endif %}
+            
+                <br>
+                <h4>Billing Info</h4>
+                {{ metadata_group("Billing Contact", seq_request.billing_contact.name) }}
+                {{ metadata_group_textarea("Address", seq_request.billing_contact.address) }}
+                
+                <div class="row">
+                    {{ 
+                        metadata_group_email_link(
+                            "Email", seq_request.billing_contact.email, class="col-6",
+                            subject="Sequencing request: " + seq_request.name + " (" + seq_request.id | string + ")"
+                        )
+                    }}
+                    {{ metadata_group("Phone", seq_request.billing_contact.phone, class="col-6") }}
+                </div>
+                <div class="row">
+                    {{ metadata_group("Billing Code", seq_request.billing_code, class="col-6") }}
+                </div>
+                <hr>
+                {% if not check_contacts %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_contacts') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_contacts') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-auth_form_checked" aria-expanded="false" aria-controls="request-review-accordion-auth_form_checked">
+                <b>{% if auth_form_checked %}✅{% if seq_request.seq_auth_form_file is none %}❗{% endif %}{% else %}{% if seq_request.seq_auth_form_file is not none %}⚠️{% else %}❗{% endif %}{% endif %} Check Sequencing Authorization Form</b>
+            </button>
+        </h2>
+        <div id="request-review-accordion-auth_form_checked" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check cost and signature.</li>
+                </ul>
+                {% if seq_request.seq_auth_form_file %}
+                <embed src="{{ url_for('pdf_file',  file_id=seq_request.seq_auth_form_file.id) }}" type="application/pdf" width="100%" height="1000px"/>
+                {% else %}
+                <p class="text-danger">Sequencing Authorization not provided.</p>
+                {% endif %}
+                {% if not auth_form_checked %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='auth_form_checked') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='auth_form_checked') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_comments" aria-expanded="false" aria-controls="request-review-accordion-check_comments">
+                <b>{% if check_comments %}✅{% else %}⚠️{% endif %} Check Comments</b>
+            </button>
+        </h2>
+        <div id="request-review-accordion-check_comments" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check any additional information provided in the comments.</li>
+                </ul>
+                <hr>
+                    <div hx-get="{{ url_for('seq_requests_htmx.get_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                        {{ spinner() }}
+                    </div>
+                <hr>
+                {% if not check_comments %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_comments') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_comments') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_submission_date" aria-expanded="false" aria-controls="request-review-accordion-check_submission_date">
+                <b>{% if check_submission_date %}✅{% else %}⚠️{% endif %} Check Specified Submission Date</b>
+            </button>
+        </h2>
+        <div id="request-review-accordion-check_submission_date" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check that the provided submission date is valid.</li>
+                    <li>If date is not provided, customer specified that samples will be delivered by mail</li>
+                </ul>
+                <hr>
+                <div class="row">
+                    {% if seq_request.sample_submission_event %}
+                    {{ metadata_group("Submission Time", seq_request.sample_submission_event.timestamp_str(), class="col-4") }}
+                    {% else %}
+                    {{ metadata_group("Submission Time", "", class="col-4") }}
+                    {% endif %}
+                </div>
+                <hr>
+                {% if not check_submission_date %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_submission_date') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_submission_date') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_overview" aria-expanded="false" aria-controls="request-review-accordion-check_overview">
+                <b>{% if check_overview %}✅{% else %}⚠️{% endif %} Check Overview</b>
+            </button>
+        </h2>
+        <div id="request-review-accordion-check_overview" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check overall relationship structure of the submitted samples, libraries, pooling, and projects.</li>
+                </ul>
+                <a class="btn btn-primary" href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, tab='request-overview-tab') }}" target="_blank">Open Overview</a>
+                <hr>
+                {% if not check_overview %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_overview') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_overview') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_sample_names" aria-expanded="false" aria-controls="request-review-accordion-check_sample_names">
+                <b>{% if samples_checked %}✅{% else %}⚠️{% endif %} Check Sample Names and Metadata</b>
+            </button>
+        </h2>
+        <div id="request-review-accordion-check_sample_names" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check sample names make sense.</li>
+                    <li>Check sample attributes.</li>
+                </ul>
+                <div hx-get="{{ url_for('seq_requests_htmx.get_sample_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    {{ spinner() }}
+                </div>
+                {% if not samples_checked %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='samples_checked') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='samples_checked') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_libraries" aria-expanded="false" aria-controls="request-review-accordion-check_libraries">
+                <b>{% if check_libraries %}✅{% else %}⚠️{% endif %} Check Libraries</b>
+            </button>
+        </h2>
+        <div id="request-review-accordion-check_libraries" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+
+                </ul>
+                <hr>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <th scope="col" class="col-3">Sample</th>
+                                <th scope="col" class="col-3">Project</th>
+                                <th scope="col" class="col-6">Libraries</th>
+                            </thead>
+                            <tbody>
+                                {% for sample in seq_request.samples %}
+                                <tr>
+                                    <th scope="row">{{ sample.name }}</th>
+                                    <td><a href="{{ url_for('projects_page.project', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}" target="_blank">
+                                        {{ sample.project.identifier or sample.project.title }}
+                                    </a></td>
+                                    <td class="x-scroll-cell">
+                                        <div class="scroll-container">
+                                            {% for library_link in sample.library_links %}
+                                            {% set library = library_link.library %}
+                                            {% if seq_request.id == library.seq_request_id %}
+                                            <span class="badge"><a href="{{ url_for('libraries_page.library', library_id=library.id, from='seq_request@' + seq_request.id | string) }}" target="_blank">{{ library.type.abbreviation }}</a></span>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                <hr>
+                {% if not check_libraries %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_libraries') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_libraries') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_multiplexing" aria-expanded="false" aria-controls="request-review-accordion-check_multiplexing">
+                <b>{% if check_multiplexing %}✅{% else %}{% if contains_mux_samples %}⚠️{% else %}🚫{% endif %}{% endif %} Check Multiplexing</b>
+            </button>
+        </h2>
+        <div id="request-review-accordion-check_multiplexing" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check that the number of samples multiplexed in a single library does not exceed the limit of the library technology.</li>
+                    <li>If pooled submission or multiplexing was performed by the customer, check that barcodes are provided for each multiplexed sample.</li>
+                    <li>10X Flex requires: <span class="code-highlight">barcode_id</span>, with <span class="code-highlight">BC</span>-prefix or <span class="code-highlight">X-Y</span> (plate-row)-prefix.</li>
+                    <li>10X On-chip requires: <span class="code-highlight">barcode_id</span>, with <span class="code-highlight">OB</span>-prefix</li>
+                    <li>10X Antibody/oligo-based cell multiplexing requires: <span class="code-highlight">barcode</span>, with <span class="code-highlight">read</span>, <span class="code-highlight">pattern</span></li>
+                </ul>
+                <hr>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <th scope="col" class="col-3">Sample</th>
+                                <th scope="col" class="col-3">Pool</th>
+                                <th scope="col" class="col-6">Barcode</th>
+                            </thead>
+                            <tbody>
+                                {% for link in seq_request.sample_library_links if link.mux %}
+                                <tr>
+                                    <th scope="row">{{ link.sample.name }}</th>
+                                    <td class="x-scroll-cell">
+                                        <div class="scroll-container">
+                                            <a href="{{ url_for('libraries_page.library', library_id=link.library_id, from='seq_request@' + seq_request.id | string) }}" target="_blank">
+                                                {{ link.library.sample_name }}{% if link.library.mux_type %}<sup class="mux-type">[{{ link.library.mux_type.abbreviation }}]</sup>{% endif %}
+                                            </a>
+                                            <span class="badge">
+                                                {{ link.library.type.abbreviation }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="x-scroll-cell"><div class="scroll-container">{{ link.mux }}</div></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                <hr>
+                {% if not check_multiplexing %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_multiplexing') }}">
+                    Check
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_multiplexing') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}disabled{% endif %} type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_barcodes" aria-expanded="false" aria-controls="request-review-accordion-check_barcodes">
+                {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
+                <b>🚫 Check Barcodes</b>
+                {% else %}
+                <b>{% if check_barcodes %}✅{% else %}⚠️{% endif %} Check Barcodes</b>
+                {% endif %}
+            </button>
+        </h2>
+        <div id="request-review-accordion-check_barcodes" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <b>What to look for?</b>:
+                <ul>
+                    <li>Check Clashes: <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('check_barcode_clashes_workflow.check_seq_request_barcode_clashes', seq_request_id=seq_request.id) }}"
+                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button></li>
+                    <li>Reindex Libraries if required, e.g. kit not specified but exists or barcode is specified in wrong orientation: <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                    hx-get="{{ url_for('reindex_workflow.begin', seq_request_id=seq_request.id) }}"
+                    hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button></li>
+                    <li>
+                        Mark custom barcodes as <span class="badge">checked</span> after confirming barcode orientation:
+                        {{
+                            confirm_action_button(
+                                "Mark as Checked",
+                                title="This will mark all custom barcodes as checked (forward orientation), without changing their orientation. Use this if you have confirmed that the provided barcode sequences are correct and in the correct orientation, but they do not match any of our existing kits.", 
+                                url=url_for('seq_requests_htmx.confirm_barcodes', seq_request_id=seq_request.id),
+                                method="hx-post"
+                            ) 
+                        }}
+                    </li>
+                </ul>
+                {% if seq_request.submission_type != SubmissionType.RAW_SAMPLES %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <th scope="col" class="col-3">Library</th>
+                            <th scope="col" class="col-9">
+                                Index
+                                <a type="button" role="button" onclick="toggle_index_display()">
+                                    <i class="bi bi-upc-scan"></i>
+                                </a>
+                                <span class="badge bg-cemm-green">Kit</span> <span class="badge bg-cemm-blue">Checked</span> <span class="badge bg-cemm-yellow">Forward (maybe)</span> <span class="badge bg-cemm-red">Unknown</span>
+                            </th>
+                        </thead>
+                        <tbody>
+                            {% for library in seq_request.libraries %}
+                            <tr>
+                                <th scope="row">{{ library.name }}</th>
+                                <td class="x-scroll-cell">
+                                    {{ library_index_cell(library) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                {% if not check_barcodes %}
+                {% if indices_checked %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_barcodes') }}">
+                    Check
+                </button>
+                {% else %}
+                {{
+                    confirm_action_button(
+                        "Check ❗",
+                        title="Some barcodes have not been validated yet. Are you sure you want to check this step without validating the barcode orientations? This may lead to issues during demultiplexing if the barcode orientations are incorrect.", 
+                        url=url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_barcodes'),
+                        method="hx-post",
+                        color="warning"
+                    )
+                }}
+                {% endif %}
+                {% else %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_barcodes') }}">
+                    Uncheck
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-submission_processed" aria-expanded="false" aria-controls="request-review-accordion-submission_processed">
+                <b>{% if submission_processed %}✅{% else %}⚠️{% endif %} Process the Submission</b>
+            </button>
+        </h2>
+        <div id="request-review-accordion-submission_processed" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
+            <div class="accordion-body">
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
+                hx-get="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}"
+                hx-target="#xl-modal-content" hx-swap="innerHTML">
+                    Process Request
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

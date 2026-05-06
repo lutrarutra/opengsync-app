@@ -1,0 +1,44 @@
+<div class="example-table">
+    <div class="input-help">
+        <h5>Columns</h5>
+        <ul>
+            <li>
+                <b>Sample Name</b>:
+                <ul>
+                    <li>Select the name of the previously specified sample.</li>
+                    <li>Same sample can appear in multiple pools.</li>
+                </ul>
+            </li>
+            <li>
+                <b>Multiplexing Pool</b>:
+                <ul>
+                    <li>Which pool the sample belongs to for multiplexing.</li>
+                    <li>1 Multiplexing Pool = 1 Gem Reaction = 1 Library</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+    <div id="mux-1-example"></div>
+</div>
+<script>
+    $(document).ready(function() {
+        jspreadsheet(document.getElementById('mux-1-example'), {
+            worksheets: [{
+                data: [
+                    ["brain_sample_1", "pool_1"],
+                    ["brain_sample_2", "pool_1"],
+                    ["brain_sample_3", "pool_1"],
+                    ["lung_sample_1", "pool_2"],
+                    ["lung_sample_2", "pool_2"],
+                    ["lung_sample_3", "pool_2"],
+                    ["brain_sample_1", "pool_3"],
+                    ["lung_sample_1", "pool_3"],
+                ],
+                columns: [
+                    { type: "text", title: "Sample Name", width: 300 },
+                    { type: "text", title: "Multiplexing Pool", width: 300 },   
+                ],
+            }]
+        });
+    });
+</script>

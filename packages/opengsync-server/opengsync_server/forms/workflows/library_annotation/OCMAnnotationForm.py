@@ -104,24 +104,24 @@ class OCMAnnotationForm(LibraryAnnotationWorkflow):
 
         for (sample_pool,), _ in self.sample_pooling_table.groupby(["sample_pool"], sort=False):
             for library_type in service_type_enum.library_types:
-                add_library(sample_pool, library_type)
+                add_library(sample_pool, library_type)  # type: ignore
 
             if self.metadata["antibody_capture"]:
                 if service_type_enum in ServiceType.get_flex_services():
-                    add_library(sample_pool, LibraryType.TENX_SC_ABC_FLEX)
+                    add_library(sample_pool, LibraryType.TENX_SC_ABC_FLEX)  # type: ignore
                 else:
-                    add_library(sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE)
+                    add_library(sample_pool, LibraryType.TENX_ANTIBODY_CAPTURE)  # type: ignore
 
             if self.metadata["vdj_b"]:
-                add_library(sample_pool, LibraryType.TENX_VDJ_B)
+                add_library(sample_pool, LibraryType.TENX_VDJ_B)  # type: ignore
 
             if self.metadata["vdj_t"]:
-                add_library(sample_pool, LibraryType.TENX_VDJ_T)
+                add_library(sample_pool, LibraryType.TENX_VDJ_T)  # type: ignore
 
             if self.metadata["vdj_t_gd"]:
-                add_library(sample_pool, LibraryType.TENX_VDJ_T_GD)
+                add_library(sample_pool, LibraryType.TENX_VDJ_T_GD)  # type: ignore
 
             if self.metadata["crispr_screening"]:
-                add_library(sample_pool, LibraryType.TENX_CRISPR_SCREENING)
+                add_library(sample_pool, LibraryType.TENX_CRISPR_SCREENING)  # type: ignore
 
         return self.get_next_step().make_response()

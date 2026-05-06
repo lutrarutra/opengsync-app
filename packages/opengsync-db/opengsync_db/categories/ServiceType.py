@@ -35,7 +35,7 @@ class ServiceType(ExtendedEnum):
     TENX_SC_MULTIOME = ServiceTypeEnum(14, "10X Single Cell Multiome", "10X Multiome", "10X Chromium", oligo_multiplexing=True, library_types=[LibraryType.TENX_SC_GEX_3PRIME, LibraryType.TENX_SC_ATAC])
     TENX_SC_4_PLEX_FLEX = ServiceTypeEnum(15, "10X Single Cell Gene Expression Flex 4-Plex", "10X Flex 4-Plex", "10X Chromium", library_types=[LibraryType.TENX_SC_GEX_FLEX], optional_library_types=[LibraryType.TENX_SC_ABC_FLEX])
     TENX_SC_16_PLEX_FLEX = ServiceTypeEnum(16, "10X Single Cell Gene Expression Flex 16-Plex", "10X Flex 16-Plex", "10X Chromium", library_types=[LibraryType.TENX_SC_GEX_FLEX], optional_library_types=[LibraryType.TENX_SC_ABC_FLEX])
-    TENX_SC_FLEX_V2 = ServiceTypeEnum(17, "10X Single Cell Gene Expression Flex V2", "10X Flex V2", "10X Chromium", library_types=[LibraryType.TENX_SC_GEX_FLEX], optional_library_types=[LibraryType.TENX_SC_ABC_FLEX])
+    TENX_SC_FLEX_V2 = ServiceTypeEnum(17, "10X Single Cell Gene Expression Flex Apex", "10X Flex Apex", "10X Chromium", library_types=[LibraryType.TENX_SC_GEX_FLEX], optional_library_types=[LibraryType.TENX_SC_ABC_FLEX])
 
     # Special
     OPENST = ServiceTypeEnum(50, "Open Spatial Transcriptomics", "Open-ST", library_types=[LibraryType.OPENST])

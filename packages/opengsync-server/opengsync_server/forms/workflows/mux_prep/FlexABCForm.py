@@ -8,7 +8,6 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import LibraryType, MUXType
 
-from .... import logger, tools, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, IntegerColumn
 from ...MultiStepForm import MultiStepForm
@@ -23,20 +22,13 @@ class FlexABCForm(CommonFlexABCForm):
     sample_table: pd.DataFrame
     lab_prep: models.LabPrep
     df: pd.DataFrame
-
-    @staticmethod
-    def padded_barcode_id(s: int | str | None) -> str | None:
-        if pd.isna(s):
-            return None
-        number = ''.join(filter(str.isdigit, str(s)))
-        return f"AB{number.zfill(3)}"
     
     columns = [
         IntegerColumn("sample_id", "Sample ID", 100, required=True, read_only=True),
         IntegerColumn("library_id", "Library ID", 100, required=True, read_only=True),
         TextColumn("sample_pool", "Sample Pool", 300, required=True, read_only=True),
         TextColumn("sample_name", "Demultiplexed Name", 300, required=True, read_only=True),
-        TextColumn("barcode_id", "Bardcode ID", 200, required=False, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, clean_up_fnc=padded_barcode_id),
+        TextColumn("barcode_id", "Bardcode ID", 200, required=False, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH),
     ]
 
     allowed_barcodes = [f"AB{i:03}" for i in range(1, 17)]

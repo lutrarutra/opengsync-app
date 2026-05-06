@@ -515,6 +515,36 @@ class PandasBP(DBBlueprint):
         df["mux_type"] = cats.MUXType.map_series(df["mux_type_id"], na_action="ignore")
 
         return df
+    
+    @DBBlueprint.transaction
+    def get_seq_request_sample_table(
+        self, seq_request_id: int
+    ) -> pd.DataFrame:
+        query = sa.select(
+            models.Sample.id.label("sample_id"), models.Sample.name.label("sample_name"),
+            models.Project.identifier.label("project_identifier"), models.Project.title.label("project_title"),
+            models.Sample._attributes.label("attributes"),
+        ).where(
+            sa.exists().where(
+                (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
+                (models.Library.id == models.links.SampleLibraryLink.library_id) &
+                (models.Library.seq_request_id == seq_request_id)
+            )
+        ).join(
+            models.Project,
+            models.Project.id == models.Sample.project_id,
+        )
+
+        df = pd.read_sql(query, self.db._engine)
+
+        if not df.empty:
+            expanded = df["attributes"].apply(pd.Series)
+            for col in expanded.columns:
+                expanded[col] = expanded[col].apply(lambda x: x.get("value") if isinstance(x, dict) else x)
+
+            df = pd.concat([df.drop(columns=["attributes"]), expanded], axis=1)
+
+        return df
 
     @DBBlueprint.transaction
     def get_experiment_seq_qualities(self, experiment_id: int) -> pd.DataFrame:

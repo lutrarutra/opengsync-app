@@ -148,12 +148,15 @@ class SeqRequestBP(DBBlueprint):
         return seq_request
 
     @DBBlueprint.transaction
-    def get(self, seq_request_id: int, options: ExecutableOption | None = None) -> models.SeqRequest | None:
+    def get(self, seq_request_id: int, options: ExecutableOption | list[ExecutableOption] | None = None) -> models.SeqRequest | None:
         if options is None:
             seq_request = self.db.session.get(models.SeqRequest, seq_request_id)
         else:
+            if not isinstance(options, list):
+                options = [options]
+
             seq_request = self.db.session.query(models.SeqRequest).options(
-                options
+                *options
             ).filter(models.SeqRequest.id == seq_request_id).first()
         return seq_request
     
@@ -240,12 +243,13 @@ class SeqRequestBP(DBBlueprint):
             raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request}', not found.")
 
         seq_request.status = SeqRequestStatus.SUBMITTED
+        seq_request.review_checklist = None
         seq_request.timestamp_submitted_utc = to_utc(datetime.now())
+        
         for library in seq_request.libraries:
             if library.status != LibraryStatus.DRAFT:
                 continue
             library.status = LibraryStatus.SUBMITTED
-            self.db.session.add(library)
 
         for pool in seq_request.pools:
             if pool.status != PoolStatus.DRAFT:
@@ -253,6 +257,7 @@ class SeqRequestBP(DBBlueprint):
             pool.status = PoolStatus.SUBMITTED
             self.db.session.add(pool)
 
+        self.db.session.add(seq_request)
         return seq_request
 
     @DBBlueprint.transaction
