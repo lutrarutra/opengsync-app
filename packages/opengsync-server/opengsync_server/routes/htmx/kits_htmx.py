@@ -20,16 +20,30 @@ def get(current_user: models.User):
 
 
 @wrappers.htmx_route(kits_htmx, db=db, methods=["GET", "POST"])
+def create(current_user: models.User):
+    if not current_user.is_admin():
+        raise exceptions.NoPermissionsException()
+    
+    if request.method == "GET":
+        return forms.models.KitForm(form_type="create").make_response()
+    elif request.method == "POST":
+        form = forms.models.KitForm(form_type="create", formdata=request.form)
+        return form.process_request()
+    else:
+        raise exceptions.MethodNotAllowedException()
+
+
+@wrappers.htmx_route(kits_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, kit_id: int):
     if not current_user.is_admin():
         raise exceptions.NoPermissionsException()
-    if (index_kit := db.kits.get(kit_id)) is None:
+    if (kit := db.kits.get(kit_id)) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
-        return forms.models.KitForm(form_type="edit", kit=index_kit).make_response()
+        return forms.models.KitForm(form_type="edit", kit=kit).make_response()
     elif request.method == "POST":
-        form = forms.models.KitForm(form_type="edit", formdata=request.form, kit=index_kit)
+        form = forms.models.KitForm(form_type="edit", formdata=request.form, kit=kit)
         return form.process_request()
     else:
         raise exceptions.MethodNotAllowedException()
