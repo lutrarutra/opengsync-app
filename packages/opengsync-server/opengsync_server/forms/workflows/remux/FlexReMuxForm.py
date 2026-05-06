@@ -26,7 +26,6 @@ class FlexReMuxForm(CommonFlexMuxForm):
                 TextColumn("sample_name", "Demultiplexed Name", 300, required=True, read_only=True),
                 TextColumn(
                     "barcode_id", "Bardcode ID", 200, required=False, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH,
-                    clean_up_fnc=CommonFlexMuxForm.padded_barcode_id
                 ),
             ]
         )

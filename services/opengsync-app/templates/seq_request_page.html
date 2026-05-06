@@ -21,13 +21,6 @@
                 Store Samples
             </button>
             {% endif %}
-            {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.SUBMITTED %}
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
-            hx-get="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}"
-            hx-target="#xl-modal-content" hx-swap="innerHTML">
-                Process Request
-            </button>
-            {% endif %}
             <span>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
@@ -151,10 +144,17 @@
     </div>
 
     <ul class="nav nav-tabs page-tabs" role="tablist">
+        {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.SUBMITTED %}
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
+            data-bs-target="#request-review-tab" type="button" role="tab"
+            aria-controls="request-review-tab" aria-selected="true">Review ({{ review_checklist_steps_completed }}/{{ review_checklist_steps_total }})</button>
+        </li>
+        {% endif %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if not current_user.is_insider() or seq_request.status != SeqRequestStatus.SUBMITTED %}active{% endif %}" data-bs-toggle="tab"
             data-bs-target="#request-checklist-tab" type="button" role="tab"
-            aria-controls="request-checklist-tab" aria-selected="true">Checklist ({{ checklist_steps_completed }}/{{ checklist_total_steps }})</button>
+            aria-controls="request-checklist-tab" aria-selected="true">Checklist ({{ submit_checklist_steps_completed }}/{{ submit_checklist_steps_total }})</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
@@ -230,7 +230,27 @@
 
 <div class="page-content">
     <div class="tab-content pt-1">
-        <div class="tab-pane fade show active" id="request-checklist-tab" role="tabpanel" tabindex="0">
+        {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.SUBMITTED %}
+        <div class="tab-pane fade show active" id="request-review-tab" role="tabpanel" tabindex="0">
+            <div class="d-flex justify-content-between align-items-center px-2">
+                <div>
+                    <h3>Review Checklist</h3>
+                    <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
+                </div>
+                <div style="height: 100%; display: flex; align-items: center;">
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
+                    hx-get="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}"
+                    hx-target="#xl-modal-content" hx-swap="innerHTML">
+                        Process Request
+                    </button>
+                </div>
+            </div>
+            <div hx-get="{{ url_for('seq_requests_htmx.review_checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                {{ spinner() }}
+            </div>
+        </div>
+        {% endif %}
+        <div class="tab-pane fade {% if not (current_user.is_insider() and seq_request.status == SeqRequestStatus.SUBMITTED) %}show active{% endif %}" id="request-checklist-tab" role="tabpanel" tabindex="1">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h3>Checklist</h3>
@@ -239,11 +259,11 @@
                     <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('seq_requests_htmx.submit_checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="request-samples-tab" role="tabpanel" tabindex="1">
+        <div class="tab-pane fade" id="request-samples-tab" role="tabpanel" tabindex="2">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Samples <img {{ tooltip('Right click on a sample name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
@@ -253,7 +273,7 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="workflows-tab" role="tabpanel" tabindex="2">
+        <div class="tab-pane fade" id="workflows-tab" role="tabpanel" tabindex="3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h3>Workflows <img {{ tooltip('If you want to change the submission type (raw samples/pooled libraries), you can change it in Manage -> Edit', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h3>
@@ -374,7 +394,7 @@
                 {% endif %}
             </div>
         </div>
-        <div class="tab-pane fade" id="request-libraries-tab" role="tabpanel" tabindex="2">
+        <div class="tab-pane fade" id="request-libraries-tab" role="tabpanel" tabindex="4">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Libraries <img {{ tooltip('Right click on a library name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
@@ -388,7 +408,7 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="request-pools-tab" role="tabpanel" tabindex="3">
+        <div class="tab-pane fade" id="request-pools-tab" role="tabpanel" tabindex="5">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Pools</h2>
@@ -398,15 +418,16 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="request-metadata-tab" role="tabpanel" tabindex="4">
+        <div class="tab-pane fade" id="request-metadata-tab" role="tabpanel" tabindex="6">
             <div class="display-form">
                 <h4>Metadata</h4>
                 <div class="row">
-                    {{ metadata_group("Request Name", seq_request.name, class="col-6") }}
+                    {{ metadata_group("Request Name", seq_request.name, class="col-4") }}
+                    {{ metadata_group("Data Delivery Mode", seq_request.data_delivery_mode.label, class="col-4") }}
                     {% if seq_request.group %}
-                    {{ metadata_group_link("Group", seq_request.group.name, url_for("groups_page.group", group_id=seq_request.group.id, from="seq_request@" + seq_request.id | string), class="col-6") }}
+                    {{ metadata_group_link("Group", seq_request.group.name, url_for("groups_page.group", group_id=seq_request.group.id, from="seq_request@" + seq_request.id | string), class="col-4") }}
                     {% else %}
-                    {{ metadata_group("Group", "", class="col-6") }}
+                    {{ metadata_group("Group", "", class="col-4") }}
                     {% endif %}
                 </div>
                 {{ metadata_group_textarea("Description", seq_request.description if seq_request.description else "") }}
@@ -495,17 +516,17 @@
                 </div>
             </div>
         </div>
-        <div class="tab-pane fade" id="request-overview-tab" role="tabpanel" tabindex="5">
+        <div class="tab-pane fade" id="request-overview-tab" role="tabpanel" tabindex="7">
             <div hx-get="{{ url_for('seq_requests_htmx.overview', seq_request_id=seq_request.id) }}" hx-trigger="intersect once">
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="seq_request-files-tab" role="tabpanel" tabindex="6">
+        <div class="tab-pane fade" id="seq_request-files-tab" role="tabpanel" tabindex="8">
             <div hx-get="{{ url_for('seq_requests_htmx.get_files', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="request-comments-tab" role="tabpanel" tabindex="7">
+        <div class="tab-pane fade" id="request-comments-tab" role="tabpanel" tabindex="9">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Comments</h2>
@@ -521,7 +542,7 @@
                 {{ spinner() }}
             </div>
         </div>  
-        <div class="tab-pane fade" id="request-share-tab" role="tabpanel" tabindex="8">
+        <div class="tab-pane fade" id="request-share-tab" role="tabpanel" tabindex="10">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>The data will be shared with following emails:</h2>
@@ -555,12 +576,12 @@
                 {% endfor %}
             </div>
         </div>
-        <div class="tab-pane fadee" id="request-projects-tab" role="tabpanel" tabindex="10">
+        <div class="tab-pane fadee" id="request-projects-tab" role="tabpanel" tabindex="11">
             <div hx-get="{{ url_for('projects_htmx.get', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="request-assignees-tab" role="tabpanel" tabindex="11">
+        <div class="tab-pane fade" id="request-assignees-tab" role="tabpanel" tabindex="12">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
@@ -578,7 +599,7 @@
                 {{ spinner() }}
             </div>
         </div>
-        <div class="tab-pane fade" id="request-data_paths-tab" role="tabpanel" tabindex="12">
+        <div class="tab-pane fade" id="request-data_paths-tab" role="tabpanel" tabindex="13">
             <div hx-get="{{ url_for('share_htmx.get_data_paths', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>

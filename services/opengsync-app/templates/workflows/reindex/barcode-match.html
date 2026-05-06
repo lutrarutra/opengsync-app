@@ -58,9 +58,9 @@
                     {% endif %}
                 </div>
                 <div class="row">
-                    {{ form_group(form.i7_primer, class="col-6") }}
+                    {{ form_group(form.i7_primer, class="col-6", placeholder="Required if Custom is selected") }}
                     {% if index_type == IndexType.DUAL_INDEX %}
-                    {{ form_group(form.i5_primer, class="col-6") }}
+                    {{ form_group(form.i5_primer, class="col-6", placeholder="Required if Custom is selected") }}
                     {% else %}
                     {{ form_group(form.i5_primer, class="col-6", disabled=true) }}
                     {% endif %}

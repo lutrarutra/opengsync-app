@@ -64,19 +64,22 @@ def seq_request(current_user: models.User, seq_request_id: int):
                 (f"Request {seq_request_id}", ""),
             ]
 
-    checklist = seq_request.get_checklist()
-    steps = [
-        checklist["samples_added"],
-        checklist["authorization_form_added"],
-        checklist["request_submitted"],
+    submit_checklist = seq_request.get_submit_checklist()
+    submit_steps = [
+        submit_checklist["samples_added"],
+        submit_checklist["authorization_form_added"],
+        submit_checklist["request_submitted"],
     ]
-    steps_completed = sum(1 for item in steps if item)
+
+    review_checklist = seq_request.get_review_checklist()
 
     return render_template(
         "seq_request_page.html",
         seq_request=seq_request,
         path_list=path_list,
-        checklist_steps_completed=steps_completed,
-        checklist_total_steps=len(steps),
+        submit_checklist_steps_completed=sum(1 for item in submit_steps if item),
+        submit_checklist_steps_total=len(submit_steps),
+        review_checklist_steps_completed=sum(1 for item in review_checklist.values() if item),
+        review_checklist_steps_total=len(review_checklist),
         title=seq_request.identifier
     )

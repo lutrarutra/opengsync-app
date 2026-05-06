@@ -17,27 +17,6 @@ class CommonFlexMuxForm(MultiStepForm):
     df: pd.DataFrame
     index_col: str
 
-    @staticmethod
-    def padded_barcode_id(s: int | str | None) -> str | None:
-        if pd.isna(s):
-            return None
-        barcode_numbers = str(s).split(";")
-        for i, bc in enumerate(barcode_numbers):
-            barcode_numbers[i] = f"BC{''.join(filter(str.isdigit, bc)).zfill(3)}"
-            
-        return ';'.join(sorted(barcode_numbers))
-    
-    @staticmethod
-    def is_valid_barcode(s: str | None) -> bool:
-        if pd.isna(s):
-            return True
-        
-        for bc in s.split(";"):
-            if bc not in CommonFlexMuxForm.allowed_barcodes:
-                return False
-        return True
-
-    allowed_barcodes = [f"BC{i:03}" for i in range(1, 96)]
     mux_type = MUXType.TENX_FLEX_PROBE
 
     def __init__(
@@ -142,9 +121,6 @@ class CommonFlexMuxForm(MultiStepForm):
         duplicated = df.duplicated(subset=["sample_pool", "barcode_id"] if "sample_pool" in df.columns else ["barcode_id"], keep=False) & pd.notna(df["barcode_id"])
         
         for idx, row in df.iterrows():
-            if pd.notna(row["barcode_id"]) and not CommonFlexMuxForm.is_valid_barcode(row["barcode_id"]):
-                self.spreadsheet.add_error(idx, "barcode_id", InvalidCellValue(f"'Barcode ID' must be one of: {', '.join(CommonFlexMuxForm.allowed_barcodes)}"))
-
             if duplicated.at[idx]:
                 self.spreadsheet.add_error(idx, "barcode_id", DuplicateCellValue("Duplicate 'Barcode ID' in the same 'Sample Pool' is not allowed."))
                 
@@ -158,7 +134,7 @@ class CommonFlexMuxForm(MultiStepForm):
     @classmethod
     def update_barcodes(cls, sample_table: pd.DataFrame):
         for (sample_id, library_id, barcode), _df in sample_table.groupby(["sample_id", "library_id", "mux_barcode"]):
-            if (link := db.links.get_sample_library_link(sample_id=int(sample_id), library_id=int(library_id))) is None:
+            if (link := db.links.get_sample_library_link(sample_id=int(sample_id), library_id=int(library_id))) is None:  # type: ignore
                 logger.error(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
                 raise exceptions.ElementDoesNotExist(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
             

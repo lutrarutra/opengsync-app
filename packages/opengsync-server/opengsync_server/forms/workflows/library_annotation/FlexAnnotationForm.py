@@ -19,7 +19,7 @@ class FlexAnnotationForm(LibraryAnnotationWorkflow, CommonFlexMuxForm):
     columns: list = [
         TextColumn("sample_name", "Sample Name", 300, required=True, read_only=True),
         TextColumn("sample_pool", "Multiplexing Pool", 300, required=True, read_only=True),
-        TextColumn("barcode_id", "Bardcode ID", 200, required=True, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH, clean_up_fnc=CommonFlexMuxForm.padded_barcode_id),
+        TextColumn("barcode_id", "Bardcode ID", 200, required=True, max_length=models.links.SampleLibraryLink.MAX_MUX_FIELD_LENGTH),
     ]
 
     @staticmethod
@@ -72,10 +72,10 @@ class FlexAnnotationForm(LibraryAnnotationWorkflow, CommonFlexMuxForm):
             library_table_data["library_type_id"].append(library_type.id)
 
         for (sample_pool,), _ in sample_pooling_table.groupby(["sample_pool"], sort=False):
-            add_library(sample_pool, LibraryType.TENX_SC_GEX_FLEX)
+            add_library(sample_pool, LibraryType.TENX_SC_GEX_FLEX)  # type: ignore
 
             if self.metadata["antibody_capture"]:
-                add_library(sample_pool, LibraryType.TENX_SC_ABC_FLEX)
+                add_library(sample_pool, LibraryType.TENX_SC_ABC_FLEX)  # type: ignore
 
         library_table = pd.DataFrame(library_table_data)
         library_table["seq_depth"] = None

@@ -78,7 +78,9 @@ class RegisterUserForm(HTMXFlaskForm):
     
     def process_request(self) -> Response:
         if not self.validate():
-            if len(self.errors) == 1 and next(iter(self.email.errors), None) == "Email already registered.":
+            invalid_email = "Email already registered." in self.email.errors
+            self.email.errors = tuple(error for error in self.email.errors if error != "Email already registered.")
+            if len(self.errors) == 1 and invalid_email:
                 email = self.email.data.strip()  # type: ignore
                 style = open(Path(runtime.app.static_folder) / "style/compiled/email.css").read()
                 try:

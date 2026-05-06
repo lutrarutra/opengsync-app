@@ -2,14 +2,14 @@
 {% from "components/button.jinja2" import modal_button %}
 {% from "components/library_index_cell.jinja2" import library_index_cell with context %}
 
-<div class="accordion p-1" id="sops-accordion">
+<div class="accordion p-1" id="request-submit-accordion">
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-1" aria-expanded="false" aria-controls="sops-accordiod-collapse-1">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-submit-accordion-1" aria-expanded="false" aria-controls="request-submit-accordion-1">
                 <b>{% if samples_added %}✅{% else %}⚠️{% endif %} Add Samples to the Request</b>
             </button>
         </h2>
-        <div id="sops-accordiod-collapse-1" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+        <div id="request-submit-accordion-1" class="accordion-collapse collapse collapsed" data-bs-parent="#request-submit-accordion">
             <div class="accordion-body">
                 <b>Steps:</b>
                 <ol>
@@ -34,11 +34,11 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-2" aria-expanded="false" aria-controls="sops-accordiod-collapse-2">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-submit-accordion-2" aria-expanded="false" aria-controls="request-submit-accordion-2">
                 <b>{% if authorization_form_added %}✅{% else %}⚠️{% endif %} Upload Signed Sequencing Authorization Form</b>
             </button>
         </h2>
-        <div id="sops-accordiod-collapse-2" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+        <div id="request-submit-accordion-2" class="accordion-collapse collapse collapsed" data-bs-parent="#request-submit-accordion">
             <div class="accordion-body">
                 <b>Steps:</b>
                 <ol>
@@ -65,17 +65,17 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-3" aria-expanded="false" aria-controls="sops-accordiod-collapse-3">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-submit-accordion-3" aria-expanded="false" aria-controls="request-submit-accordion-3">
                 <b>{% if request_submitted is none %}❗{% else %}{% if request_submitted %}✅{% else %}⚠️{% endif %}{% endif %} Submit Sequencing Request for Review</b>
             </button>
         </h2>
-        <div id="sops-accordiod-collapse-3" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+        <div id="request-submit-accordion-3" class="accordion-collapse collapse collapsed" data-bs-parent="#request-submit-accordion">
             <div class="accordion-body">
                 <b>Steps:</b>
                 <ol>
                     <li>Double-check the request details:
                         <ul>
-                            <li><button type="button" class="btn btn-success" onclick="open_tab('request-overview-tab')">Review</button> - Overview of the Sequencing Request</li>
+                            <li><button type="button" class="btn btn-primary" onclick="open_tab('request-overview-tab')">Review</button> - Overview of the Sequencing Request</li>
                             <li><b>Number of samples: {{ seq_request.num_samples }}</b></li>
                             <li><b>Number of libraries: {{ seq_request.num_libraries }}</b> {% for library_type, count in seq_request.library_type_counts.items() %}<span class="badge">{{ library_type.abbreviation }} ({{ count }})</span> {% endfor %}</li>
                         </ul>
@@ -84,7 +84,7 @@
                     <li>
                         {{
                             modal_button(
-                                text="Submit", size="xl",
+                                text="Submit", size="xl", color="success",
                                 url=url_for('seq_requests_htmx.submit_request', seq_request_id=seq_request.id),
                                 disabled=not is_submittable and not current_user.is_insider(),
                             )
@@ -111,11 +111,11 @@
     {% if request_submitted %}
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-4" aria-expanded="false" aria-controls="sops-accordiod-collapse-4">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#request-submit-accordion-4" aria-expanded="false" aria-controls="request-submit-accordion-4">
                 <b>🔘 What's next?</b>
             </button>
         </h2>
-        <div id="sops-accordiod-collapse-4" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+        <div id="request-submit-accordion-4" class="accordion-collapse collapse collapsed" data-bs-parent="#request-submit-accordion">
             <div class="accordion-body">
                 <ol>
                     <li>

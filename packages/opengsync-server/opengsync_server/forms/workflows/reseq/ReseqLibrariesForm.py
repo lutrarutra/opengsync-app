@@ -1,5 +1,3 @@
-from typing import Optional
-
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 from wtforms import SelectField

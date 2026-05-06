@@ -124,7 +124,7 @@ def render_table(feature_kit_id: int):
             width = 50
         else:
             width = 200
-        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID"), width, max_length=1000))
+        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID"), width))
 
     spreadsheet = StaticSpreadSheet(df, columns=columns, id=f"feature_kit_table-{feature_kit_id}")
     

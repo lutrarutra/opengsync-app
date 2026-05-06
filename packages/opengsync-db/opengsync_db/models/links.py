@@ -85,7 +85,7 @@ class SampleLibraryLink(Base):
     __tablename__ = "sample_library_link"
     __mapper_args__ = {"confirm_deleted_rows": False}
 
-    mux: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
+    mux: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
     sample_id: Mapped[int] = mapped_column(sa.ForeignKey("sample.id", ondelete="CASCADE"), primary_key=True)
     library_id: Mapped[int] = mapped_column(sa.ForeignKey("library.id", ondelete="CASCADE"), primary_key=True)

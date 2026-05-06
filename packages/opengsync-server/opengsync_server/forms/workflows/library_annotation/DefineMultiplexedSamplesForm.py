@@ -28,7 +28,7 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflow):
         self.sample_table = self.tables["sample_table"]
         self.columns: list = [
             DropdownColumn("sample_name", "Sample Name", 300, required=True, choices=self.sample_table["sample_name"].tolist(), read_only=False),
-            TextColumn("pool", "Multiplexing Pool", 300, max_length=models.Library.name.type.length, min_length=4, validation_fnc=utils.check_string),
+            TextColumn("pool", "Multiplexing Pool", 300, max_length=models.Library.name.type.length, min_length=1, validation_fnc=utils.check_string),
         ]
         
         self.spreadsheet: SpreadsheetInput = SpreadsheetInput(
@@ -90,7 +90,7 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflow):
                 elif self.service_type == ServiceType.TENX_SC_16_PLEX_FLEX:
                     df.at[idx, "pool"] = f"flex_pool_{i // 16 + 1}"  # type: ignore
                 elif self.service_type == ServiceType.TENX_SC_FLEX_V2:
-                    df.at[idx, "pool"] = f"flex_pool_{i // 96 + 1}"  # type: ignore
+                    df.at[idx, "pool"] = f"flex_pool_{i // 384 + 1}"  # type: ignore
                 else:
                     df.at[idx, "pool"] = f"hto_pool_{i + 1}"  # type: ignore
 
@@ -128,7 +128,7 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflow):
                 "sample_pool": [],
                 "sample_name": [],
             }
-            for (sample_name, sample_pool), _ in self.df.groupby(["sample_name", "pool"], sort=False):
+            for (sample_name, sample_pool), _ in self.df.groupby(["sample_name", "pool"], sort=False):  # type: ignore
                 sample_pooling_table["sample_pool"].append(sample_pool)
                 sample_pooling_table["sample_name"].append(sample_name)
                 
@@ -163,7 +163,8 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflow):
             sample_pooling_table["sample_pool"].append(sample_pool)
             sample_pooling_table["library_name"].append(f"{sample_pool}_{library_type.identifier}")
 
-        for (sample_pool,), _df in self.df.groupby(["pool"], sort=False):
+        sample_pool: str
+        for (sample_pool,), _df in self.df.groupby(["pool"], sort=False):  # type: ignore
             for library_type in self.service_type.library_types:
                 add_library(sample_pool, library_type)
             
