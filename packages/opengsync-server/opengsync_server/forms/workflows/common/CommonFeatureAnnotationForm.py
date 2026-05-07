@@ -178,11 +178,11 @@ class CommonFeatureAnnotationForm(MultiStepForm):
                 idx_pattern = self.df["pattern"] == row["pattern"]
                 idx_read = self.df["read"] == row["read"]
 
-                idx = idx_sequence & idx_pattern & idx_read
+                _idx = idx_sequence & idx_pattern & idx_read
                 if pd.notna(row["sample_name"]):
-                    idx = idx & idx_sample_name
+                    _idx = _idx & idx_sample_name
 
-                if self.df[idx].shape[0] > 1:
+                if self.df[_idx].shape[0] > 1:
                     self.spreadsheet.add_error(idx, "sequence", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination in same library."))
                     self.spreadsheet.add_error(idx, "pattern", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination in same library."))
                     self.spreadsheet.add_error(idx, "read", DuplicateCellValue("Duplicate 'Sequence + Pattern + Read' combination in same library."))

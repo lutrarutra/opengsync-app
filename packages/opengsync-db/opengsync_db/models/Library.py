@@ -371,6 +371,11 @@ class Library(Base):
             LibraryType.PARSE_SC_GEX,
         ]:
             return True
+
+        if self.mux_type == MUXType.TENX_ABC_HASH and self.type in [
+            LibraryType.TENX_ANTIBODY_CAPTURE,
+        ]:
+            return True
         
         return False
     
