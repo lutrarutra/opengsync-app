@@ -350,6 +350,29 @@ class Library(Base):
     
     def search_name(self) -> str:
         return self.name
+
+    def is_mux_library(self) -> bool:
+        if self.mux_type is None:
+            return False
+        
+        if self.type in [
+            LibraryType.TENX_SC_GEX_FLEX,
+            LibraryType.TENX_MUX_OLIGO,
+        ]:
+            return True
+        
+        if self.mux_type == MUXType.TENX_ON_CHIP and self.type in [
+            LibraryType.TENX_SC_GEX_3PRIME,
+            LibraryType.TENX_SC_GEX_5PRIME,
+        ]:
+            return True
+        
+        if self.mux_type == MUXType.PARSE_WELLS and self.type in [
+            LibraryType.PARSE_SC_GEX,
+        ]:
+            return True
+        
+        return False
     
     __table_args__ = (
         sa.Index(
