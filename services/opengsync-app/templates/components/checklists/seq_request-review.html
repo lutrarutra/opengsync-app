@@ -387,7 +387,7 @@
                                 <th scope="col" class="col-6">Barcode</th>
                             </thead>
                             <tbody>
-                                {% for link in seq_request.sample_library_links if link.mux %}
+                                {% for link in seq_request.sample_library_links if link.library.is_mux_library() %}
                                 <tr>
                                     <th scope="row">{{ link.sample.name }}</th>
                                     <td class="x-scroll-cell">
