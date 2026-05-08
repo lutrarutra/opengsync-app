@@ -102,7 +102,7 @@
                 }
 
                 function fetchMountStatus() {
-                    fetch('/status/mounts')
+                    fetch("{{ url_for('share_status_check') }}")
                         .then(response => {
                             if (!response.ok && response.status !== 503) {
                                 throw new Error("Server or network error");
