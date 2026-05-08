@@ -172,9 +172,11 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
             if run.experiment is not None:
                 run.experiment.status = ExperimentStatus.ARCHIVED
                 for pool in run.experiment.pools:
-                    pool.status = PoolStatus.SEQUENCED
+                    if pool.status < PoolStatus.SEQUENCED:
+                        pool.status = PoolStatus.SEQUENCED
                     for library in pool.libraries:
-                        library.status = LibraryStatus.SEQUENCED
+                        if library.status < LibraryStatus.SEQUENCED:
+                            library.status = LibraryStatus.SEQUENCED
             db.seq_runs.update(run)
             active_runs[run.experiment_name] = run
             logger.info(f"Archived: {run.experiment_name} ({run.run_folder})")
@@ -227,9 +229,11 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
                     for pool in run.experiment.pools:
-                        pool.status = PoolStatus.SEQUENCED
+                        if pool.status < PoolStatus.SEQUENCED:
+                            pool.status = PoolStatus.SEQUENCED
                         for library in pool.libraries:
-                            library.status = LibraryStatus.SEQUENCED
+                            if library.status < LibraryStatus.SEQUENCED:
+                                library.status = LibraryStatus.SEQUENCED
             
             # if run folder was removed and then added back, e.g. maintenance.
             if run.status == RunStatus.ARCHIVED:
@@ -238,9 +242,11 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
                     for pool in run.experiment.pools:
-                        pool.status = PoolStatus.SEQUENCED
+                        if pool.status < PoolStatus.SEQUENCED:
+                            pool.status = PoolStatus.SEQUENCED
                         for library in pool.libraries:
-                            library.status = LibraryStatus.SEQUENCED
+                            if library.status < LibraryStatus.SEQUENCED:
+                                library.status = LibraryStatus.SEQUENCED
                 db.seq_runs.update(run)
                 continue
             
@@ -288,9 +294,11 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.DEMULTIPLEXED if run.experiment.read_qualities else ExperimentStatus.SEQUENCED
                     for pool in run.experiment.pools:
-                        pool.status = PoolStatus.SEQUENCED
+                        if pool.status < PoolStatus.SEQUENCED:
+                            pool.status = PoolStatus.SEQUENCED
                         for library in pool.libraries:
-                            library.status = LibraryStatus.SEQUENCED
+                            if library.status < LibraryStatus.SEQUENCED:
+                                library.status = LibraryStatus.SEQUENCED
                             
             elif run.status == RunStatus.RUNNING:
                 if run.experiment is not None:
