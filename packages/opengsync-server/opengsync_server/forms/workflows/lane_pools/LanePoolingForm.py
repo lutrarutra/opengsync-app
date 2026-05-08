@@ -51,13 +51,12 @@ class LanePoolingForm(HTMXFlaskForm):
         self._context["error_max"] = models.Pool.error_max_molarity
         self._context["enumerate"] = enumerate
 
-    def prepare(self):
-        df = db.pd.get_experiment_laned_pools(experiment_id=self.experiment.id)
-        df["dilutions"] = None
-        df["sub_form_idx"] = None
+        self.df = db.pd.get_experiment_laned_pools(experiment_id=self.experiment.id)
+        self.df["dilutions"] = None
+        self.df["sub_form_idx"] = None
 
         counter = 0
-        for i, ((lane, lane_id), _df) in enumerate(df.groupby(["lane", "lane_id"])):
+        for i, ((lane, lane_id), _df) in enumerate(self.df.groupby(["lane", "lane_id"])):
             if i > len(self.lane_sub_forms) - 1:
                 self.lane_sub_forms.append_entry()
             
@@ -69,38 +68,40 @@ class LanePoolingForm(HTMXFlaskForm):
                     self.sample_sub_forms.append_entry()
 
                 sample_sub_form = self.sample_sub_forms[counter]
-                sample_sub_form.pool_id.data = row["pool_id"]
-                sample_sub_form.lane.data = lane
-                sample_sub_form.m_reads.data = row["num_m_reads"]
-                df.at[idx, "sub_form_idx"] = counter # type: ignore
+                if not formdata:
+                    sample_sub_form.pool_id.data = row["pool_id"]
+                    sample_sub_form.lane.data = lane
+                    sample_sub_form.m_reads.data = row["num_m_reads"]
+                self.df.at[idx, "sub_form_idx"] = counter # type: ignore
 
                 if (pool := db.pools.get(row["pool_id"])) is None:
                     logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
                     raise ValueError(f"Pool with id {row['pool_id']} does not exist")
                 
-                df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")] # type: ignore
-                sample_sub_form.dilution.data = "Orig."
+                self.df.at[idx, "dilutions"] = [("Orig.", pool.qubit_concentration, pool.molarity, "")] # type: ignore
+                if not formdata:
+                    sample_sub_form.dilution.data = "Orig."
                 
                 for dilution in pool.dilutions:
-                    sample_sub_form.dilution.data = dilution.identifier
-                    df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str())) # type: ignore
-                    df.at[idx, "qubit_concentration"] = dilution.qubit_concentration # type: ignore
+                    if not formdata:
+                        sample_sub_form.dilution.data = dilution.identifier
+                    self.df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str())) # type: ignore
+                    self.df.at[idx, "qubit_concentration"] = dilution.qubit_concentration # type: ignore
 
                 counter += 1
         
         # https://knowledge.illumina.com/library-preparation/dna-library-prep/library-preparation-dna-library-prep-reference_material-list/000001240
-        df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
+        self.df["molarity"] = self.df["qubit_concentration"] / (self.df["avg_fragment_size"] * 660) * 1_000_000
 
-        df["share"] = None
-        for _, _df in df.groupby("lane"):
-            df.loc[_df.index, "share"] = _df["num_m_reads"] / _df["num_m_reads"].sum()
+        self.df["share"] = None
+        for _, _df in self.df.groupby("lane"):
+            self.df.loc[_df.index, "share"] = _df["num_m_reads"] / _df["num_m_reads"].sum()
 
-        df["pipet"] = DEFAULT_TARGET_NM / df["molarity"] * df["share"] * DEFAULT_TOTAL_VOLUME_TARGET
-        self._context["df"] = df
+        self.df["pipet"] = DEFAULT_TARGET_NM / self.df["molarity"] * self.df["share"] * DEFAULT_TOTAL_VOLUME_TARGET
+        self._context["df"] = self.df
     
     def process_request(self, user: models.User) -> Response:
         if not self.validate():
-            logger.debug(self.errors)
             return self.make_response()
         
         for lane_sub_form in self.lane_sub_forms:
