@@ -1,4 +1,5 @@
 {% from "components/table_col.jinja2" import browser_col %}
+{% from "components/spinner.jinja2" import spinner %}
 
 {% extends "base.html" %}
 {% set active_page = "browser-page" %}
@@ -6,6 +7,17 @@
 <div class="file-browser table-container" id="file-browser-container">
     <table class="table">
         <thead>
+            <tr>
+                <th colspan="4" style="">
+                    Storage Status:
+                    <span id="mount-status-badge" style="font-weight: bold;">
+                        <div class="spinner-border cemm-blue spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </span>
+                    <small id="mount-status-details" style="margin-left: 10px;"></small>
+                </th>
+            </tr>
             <tr>
                 {{
                     browser_col(
@@ -46,4 +58,58 @@
         </tbody>
     </table>
 </div>
+<script>
+$(document).ready(function() {
+    function renderStatus(data) {
+        var $badge = $("#mount-status-badge");
+        var $details = $("#mount-status-details");
+        
+        // Reset details
+        $details.text("");
+
+        if (data.status === "online") {
+            $badge.text("🟢 Online");
+            
+        } else if (data.status === "degraded") {
+            $badge.text("🟠 Degraded");
+            
+            // Find which specific mounts are offline to show to the user
+            let offlineMounts = [];
+            for (const [name, status_msg] of Object.entries(data.details)) {
+                if (status_msg !== "online") {
+                    offlineMounts.push(name);
+                }
+            }
+            $details.text("Missing: " + offlineMounts.join(", "));
+            
+        } else if (data.status === "offline") {
+            $badge.text("🔴 Offline");
+            $details.text("Cannot connect to cluster storage.");
+        }
+    }
+
+    function fetchMountStatus() {
+        $.ajax({
+            url: "{{ url_for('share_status_check') }}",
+            type: "GET",
+            dataType: "json",
+            
+            success: function(data) {
+                renderStatus(data);
+            },
+            
+            error: function(jqXHR) {
+                if (jqXHR.responseJSON) {
+                    renderStatus(jqXHR.responseJSON);
+                } else {
+                    $("#mount-status-badge").text("⚫ Unknown Error");
+                    $("#mount-status-badge").css("color", "black");
+                    $("#mount-status-details").text("Failed to reach server API.");
+                }
+            }
+        });
+    }
+    fetchMountStatus();
+});
+</script>
 {% endblock content %}

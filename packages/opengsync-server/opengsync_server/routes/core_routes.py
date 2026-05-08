@@ -1,4 +1,5 @@
 import os
+import subprocess
 import datetime as dt
 
 from flask import (
@@ -167,6 +168,53 @@ def xlsx_data(current_user: models.User, file_id: int):
 @wrappers.api_route(runtime.app, login_required=False, api_token_required=False, limit="5/second", limit_override=True, track_usage=False)
 def status():
     return make_response("OK", 200)
+
+
+@wrappers.api_route(runtime.app, login_required=False, api_token_required=False, limit="5/second", limit_override=True, track_usage=False, cache_type="global", cache_timeout_seconds=20)
+def share_status_check():
+    if not runtime.app.canary_files:
+        return jsonify({"status": "unknown", "details": "No canary files configured"}), 200
+    
+    def check_canary_file(filepath: str):
+        try:
+            result = subprocess.run(
+                ['cat', filepath], 
+                capture_output=True, 
+                text=True, 
+                timeout=2 
+            )
+            
+            if result.returncode == 0 and result.stdout.strip() == "ok":
+                return True, "online"
+                
+            elif result.returncode == 0:
+                return False, f"File found, but contained: '{result.stdout.strip()}'"
+                
+            else:
+                return False, "File not found or endpoint disconnected"
+                
+        except subprocess.TimeoutExpired:
+            return False, "Timeout: Cluster is offline or hanging"
+        except Exception as e:
+            return False, f"Error: {str(e)}"
+        
+    status_report = {}
+    good_count = 0
+    total_count = len(runtime.app.canary_files)
+
+    for name, filepath in runtime.app.canary_files.items():
+        is_ok, msg = check_canary_file(filepath)
+        status_report[name] = msg
+        if is_ok:
+            good_count += 1
+
+    if good_count == total_count:
+        return jsonify({"status": "online", "details": status_report}), 200
+
+    elif good_count == 0:
+        return jsonify({"status": "offline", "details": status_report}), 503
+
+    return jsonify({"status": "degraded", "details": status_report}), 503
 
 
 @wrappers.api_route(runtime.app, login_required=False, api_token_required=False, track_usage=False)
