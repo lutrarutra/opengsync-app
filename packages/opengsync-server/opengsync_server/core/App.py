@@ -62,6 +62,7 @@ class App(Flask):
     debug: bool
     personalization: dict
     port: int
+    canary_files: dict[str, str]
 
     def __init__(self, config_path: str):
         opengsync_config = yaml.safe_load(open(config_path))
@@ -92,6 +93,7 @@ class App(Flask):
         self.uploads_folder = Path(opengsync_config["uploads_folder"])
         self.share_path_mapping = opengsync_config.get("share_path_mapping", {})
         self.personalization = opengsync_config["personalization"]
+        self.canary_files = opengsync_config.get("canary_files", {})
 
         if not os.path.exists(self.static_folder):
             raise FileNotFoundError(f"Static folder not found: {self.static_folder}")
