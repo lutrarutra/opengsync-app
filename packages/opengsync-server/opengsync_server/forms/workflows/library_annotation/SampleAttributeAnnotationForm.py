@@ -60,6 +60,7 @@ class SampleAttributeAnnotationForm(LibraryAnnotationWorkflow):
 
     def fill_previous_form(self):
         df = self.tables["sample_table"]
+        df["sample_id"] = df["sample_id"].astype(pd.StringDtype())
         df.loc[df["sample_id"].isna(), "sample_id"] = "new"
         for col in df.columns:
             if col.startswith("_attr_"):

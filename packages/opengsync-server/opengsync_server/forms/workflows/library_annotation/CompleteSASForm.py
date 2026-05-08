@@ -404,6 +404,9 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                 sample_ids = self.sample_table[self.sample_table["sample_name"] == pooling_row["sample_name"]]["sample_id"].values
                 if len(sample_ids) != 1:
                     logger.error(f"{self.uuid}: Expected exactly one sample for name {pooling_row['sample_name']}, found {len(sample_ids)}.")
+                    logger.error(self.library_table)
+                    logger.error(self.sample_table)
+                    logger.error(self.sample_pooling_table)
                     raise ValueError(f"Expected exactly one sample for name {pooling_row['sample_name']}, found {len(sample_ids)}.")
                 db.links.link_sample_library(sample_id=sample_ids[0], library_id=library.id, mux=mux)
 

@@ -49,7 +49,8 @@ class DilutePoolsForm(HTMXFlaskForm):
     
     def process_request(self, user: models.User) -> Response:
         if not self.validate():
-            return self.make_response(df=self.df)
+            self.prepare()
+            return self.make_response()
         
         for i, (_, row) in enumerate(self.df.iterrows()):
             entry = self.input_fields[i]
