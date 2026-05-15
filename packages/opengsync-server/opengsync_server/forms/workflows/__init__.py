@@ -13,3 +13,23 @@ from . import edit_kit_barcodes
 from . import add_protocol_kits
 from . import select_library_protocols
 from .EditExperimentCyclesForm import EditExperimentCyclesForm
+from .MergeProjectsForm import MergeProjectsForm
+
+__all__ = [
+    "lane_pools",
+    "library_annotation",
+    "dilute_pools",
+    "check_barcode_clashes",
+    "ba_report",
+    "lane_qc",
+    "load_flow_cell",
+    "library_prep",
+    "library_pooling",
+    "dist_reads",
+    "remux",
+    "edit_kit_barcodes",
+    "add_protocol_kits",
+    "select_library_protocols",
+    "EditExperimentCyclesForm",
+    "MergeProjectsForm",
+]

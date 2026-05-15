@@ -78,7 +78,8 @@ prod-tag:
 deploy: prod-build prod-run
 
 test:
-	$(COMPOSE_TEST) up --build --abort-on-container-exit --exit-code-from opengsync-pytest --remove-orphans && $(COMPOSE_TEST) down
+	$(COMPOSE_TEST) up --build --abort-on-container-exit --exit-code-from opengsync-pytest --remove-orphans 
+	$(COMPOSE_TEST) down --rmi local --remove-orphans
 
 gitlab-runner:
 	docker compose -f compose.gitlab-runner.yaml -p gitlab-runner up --build -d
