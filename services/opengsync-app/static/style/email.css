@@ -47,10 +47,10 @@ span.path {
 }
 
 div.code {
-    background-color: #f4f4f4; 
+    background-color: #e7e7e7; 
     border: 1px solid #ddd; 
     border-radius: 4px; 
-    padding: 5px 10px;
+    padding: 5px 7px;
     margin: 10px 0;
     font-family: Consolas, Courier, monospace; 
     font-size: 14px; 

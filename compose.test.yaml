@@ -29,10 +29,6 @@ services:
             POSTGRES_DB: test_db
             PGPORT: 5434
             TZ: "Europe/Vienna"
-        expose:
-            - 5434
-        ports:
-            - 5434:5434
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "test_db", "-U", "admin"]
             interval: 10s

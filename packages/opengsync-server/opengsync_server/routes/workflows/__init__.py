@@ -23,3 +23,31 @@ from .billing import billing_workflow
 from .check_barcode_constraints import check_barcode_constraints_workflow
 from .add_kits_to_protocol import add_kits_to_protocol_workflow
 from .select_library_protocols import select_library_protocols_workflow
+
+__all__ = [
+    "lane_pools_workflow",
+    "library_annotation_workflow",
+    "ba_report_workflow",
+    "select_experiment_pools_workflow",
+    "dilute_pools_workflow",
+    "check_barcode_clashes_workflow",
+    "lane_qc_workflow",
+    "load_flow_cell_workflow",
+    "qubit_measure_workflow",
+    "store_samples_workflow",
+    "library_pooling_workflow",
+    "library_prep_workflow",
+    "mux_prep_workflow",
+    "dist_reads_workflow",
+    "reindex_workflow",
+    "reseq_workflow",
+    "merge_pools_workflow",
+    "select_pool_libraries_workflow",
+    "library_remux_workflow",
+    "relib_workflow",
+    "share_project_data_workflow",
+    "billing_workflow",
+    "check_barcode_constraints_workflow",
+    "add_kits_to_protocol_workflow",
+    "select_library_protocols_workflow",
+]

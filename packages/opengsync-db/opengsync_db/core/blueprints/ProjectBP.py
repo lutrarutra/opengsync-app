@@ -240,6 +240,35 @@ class ProjectBP(DBBlueprint):
             return AccessType.EDIT
 
         return AccessType.NONE
+    
+    @DBBlueprint.transaction
+    def merge_projects(self, project_dst: models.Project, project_src: models.Project) -> models.Project:
+        dst_sample_mapping = {sample.name: sample.id for sample in project_dst.samples}
+
+        samples_to_delete = []
+
+        for sample in project_src.samples:
+            if sample.name in dst_sample_mapping:
+                dst_sample_id = dst_sample_mapping[sample.name]
+                for link in sample.library_links:
+                    link.sample_id = dst_sample_id
+                    self.db.session.add(link)
+
+                samples_to_delete.append(sample)
+            else:
+                sample.project_id = project_dst.id
+                self.db.session.add(sample)
+
+        for sample in samples_to_delete:
+            self.db.session.delete(sample)
+
+        dst_assignee_ids = {u.id for u in project_dst.assignees}
+        for user in project_src.assignees:
+            if user.id not in dst_assignee_ids:
+                project_dst.assignees.append(user)
+
+        self.db.session.add(project_dst)
+        return project_dst
 
     @DBBlueprint.transaction
     def iter(
@@ -288,3 +317,4 @@ class ProjectBP(DBBlueprint):
         if (project := self.get(id)) is None:
             raise exceptions.ElementDoesNotExist(f"Project with identifier '{id}' does not exist")
         return project
+    

@@ -4,7 +4,7 @@ from wtforms.validators import Optional as OptionalValidator, Length
 
 from opengsync_db import models
 
-from .... import db, logger
+from .... import db
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 from ...SearchBar import OptionalSearchBar
 

@@ -75,7 +75,7 @@ def inject_jinja_format_filters(app: App):
         from pygments.lexers import BashLexer
         from pygments.formatters import HtmlFormatter
 
-        formatter = HtmlFormatter(style="friendly", noclasses=True)
+        formatter = HtmlFormatter(style="friendly", noclasses=True, prestyles="white-space: pre-wrap; word-break: break-all; word-wrap: break-word; background-color: #e7e7e7; padding: 5px 0; border-radius: 4px;")
         return highlight(code, BashLexer(), formatter)
     
     @app.template_filter()
