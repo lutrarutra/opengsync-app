@@ -76,10 +76,12 @@ prod-tag:
 	docker tag opengsync-app:latest opengsync-app:$(CLEAN_VERSION)
 
 deploy: prod-build prod-run
+	docker builder prune -f
 
 test:
 	$(COMPOSE_TEST) up --build --abort-on-container-exit --exit-code-from opengsync-pytest --remove-orphans 
 	$(COMPOSE_TEST) down --rmi local --remove-orphans
+	docker builder prune -f
 
 gitlab-runner:
 	docker compose -f compose.gitlab-runner.yaml -p gitlab-runner up --build -d
