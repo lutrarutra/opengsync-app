@@ -1,5 +1,6 @@
 import os
 import mimetypes
+import urllib.parse
 from pathlib import Path
 
 from flask import Blueprint, render_template, Response, send_from_directory, request
@@ -66,7 +67,7 @@ def render_data_file(current_user: models.User, data_path_id: int):
     response.headers["Content-Type"] = mimetype
     if not utils.is_browser_friendly(mimetype):
         response.headers["Content-Disposition"] = f"attachment; filename={path.name}"
-    response.headers["X-Accel-Redirect"] = path.as_posix().replace(runtime.app.share_root.as_posix(), "/nginx-share/")
+    response.headers["X-Accel-Redirect"] = urllib.parse.quote(path.as_posix().replace(runtime.app.share_root.as_posix(), "/nginx-share/"), safe="/")
     return response
 
 

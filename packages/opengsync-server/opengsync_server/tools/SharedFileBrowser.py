@@ -1,6 +1,8 @@
 import os
 import re
+import html
 from pathlib import Path
+import urllib.parse
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -146,9 +148,10 @@ class SharedFileBrowser:
                 href += '/'
 
             href = href.replace("./", "/")
+            href = urllib.parse.quote(href, safe="/")
 
             props = [
-                DAVProp("displayname", fs_path.name),
+                DAVProp("displayname", html.escape(fs_path.name)),
                 DAVProp("getlastmodified", self._format_date(stat.st_mtime)),
             ]
 
