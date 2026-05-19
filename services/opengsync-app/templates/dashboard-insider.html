@@ -90,6 +90,12 @@
                             aria-controls="tab-workflows" aria-selected="false">
                             Workflows</button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab"
+                            data-bs-target="#tab-system" type="button" role="tab"
+                            aria-controls="tab-system" aria-selected="false">
+                            System</button>
+                        </li>
                     </ul>
                 </div>
                 <div class="tab-content dash-component-content">
@@ -101,9 +107,153 @@
                     <div class="tab-pane fade" id="tab-workflows" role="tabpanel" tabindex="1">
                         {% include "components/workflow-container.html"%}
                     </div>
+                    <div class="tab-pane fade p-2 d-flex flex-column gap-3" id="tab-system" role="tabpanel" tabindex="2">
+                        <div>
+                            Storage Status:
+                            <span id="mount-status-badge" style="font-weight: bold;">
+                                <div class="spinner-border cemm-blue spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </span>
+                            <small id="mount-status-details" style="margin-left: 10px;"></small>
+                        </div>
+                        <div>
+                            Storage Usage:
+                            <span id="storage-usage-badge" style="font-weight: bold;">
+                                <div class="spinner-border cemm-blue spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </span>
+                        </div>
+                        <div>
+                            <ul>
+                                <li>Version: {{ app_version }}</li>
+                                <li>API Version: {{ api_version }}</li>
+                                <li>DB Version: {{ db_version }}</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+<script>
+$(document).ready(function() {
+    // --- Tab Persistence Logic ---
+    function setCookie(name, value, days) {
+        var expires = "";
+        if (days) {
+            var date = new Date();
+            date.setTime(date.getTime() + (days*24*60*60*1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+    }
+    
+    function getCookie(name) {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(';');
+        for(var i=0;i < ca.length;i++) {
+            var c = ca[i];
+            while (c.charAt(0)==' ') c = c.substring(1,c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+        }
+        return null;
+    }
+
+    // Save tab state on click
+    $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+        var tabId = $(e.target).attr('data-bs-target');
+        
+        // Find a consistent index for the tab group (0 for top-right, 1 for bottom-right)
+        var groupIndex = $('.nav-tabs').index($(e.target).closest('.nav-tabs'));
+        setCookie('dashboardTab-' + groupIndex, tabId, 7);
+    });
+
+    // Restore tab state on load
+    $('.nav-tabs').each(function(index, navTab) {
+        var tabId = getCookie('dashboardTab-' + index);
+        if (tabId) {
+            var $tabBtn = $(navTab).find('button[data-bs-target="' + tabId + '"]');
+            if ($tabBtn.length) {
+                // Correct Bootstrap 5 API for showing tabs programmatically
+                var tab = new bootstrap.Tab($tabBtn[0]);
+                tab.show();
+            }
+        }
+    });
+
+    function renderStatus(data) {
+        var $badge = $("#mount-status-badge");
+        var $details = $("#mount-status-details");
+        
+        // Reset details
+        $details.text("");
+
+        if (data.status === "online") {
+            $badge.text("🟢 Online");
+            
+        } else if (data.status === "degraded") {
+            $badge.text("🟠 Degraded");
+            
+            // Find which specific mounts are offline to show to the user
+            let offlineMounts = [];
+            for (const [name, status_msg] of Object.entries(data.details)) {
+                if (status_msg !== "online") {
+                    offlineMounts.push(name);
+                }
+            }
+            $details.text("Missing: " + offlineMounts.join(", "));
+            
+        } else if (data.status === "offline") {
+            $badge.text("🔴 Offline");
+            $details.text("Cannot connect to cluster storage.");
+        }
+    }
+
+    function fetchMountStatus() {
+        $.ajax({
+            url: "{{ url_for('share_status_check') }}",
+            type: "GET",
+            dataType: "json",
+            
+            success: function(data) {
+                renderStatus(data);
+            },
+            
+            error: function(jqXHR) {
+                if (jqXHR.responseJSON) {
+                    renderStatus(jqXHR.responseJSON);
+                } else {
+                    $("#mount-status-badge").text("⚫ Unknown Error");
+                    $("#mount-status-badge").css("color", "black");
+                    $("#mount-status-details").text("Failed to reach server API.");
+                }
+            }
+        });
+    }
+    fetchMountStatus();
+
+    function renderStorageUsage(data) {
+        var $badge = $("#storage-usage-badge");
+        $badge.text(`${data.used} / ${data.total} (${data.percent_used})`);
+    }
+
+    function fetchStorageUsage() {
+        $.ajax({
+            url: "{{ url_for('storage_availability_check') }}",
+            type: "GET",
+            dataType: "json",
+            success: function(data) {
+                renderStorageUsage(data);
+            },
+            error: function(jqXHR) {
+                $("#storage-usage-badge").text("⚫ Unknown Error");
+            }
+        });
+    }
+    fetchStorageUsage();
+});
+</script>
 {% endblock content %}

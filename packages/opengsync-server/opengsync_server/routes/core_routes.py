@@ -1,6 +1,7 @@
 import os
 import subprocess
 import datetime as dt
+import shutil
 
 from flask import (
     jsonify,
@@ -170,7 +171,7 @@ def status():
     return make_response("OK", 200)
 
 
-@wrappers.api_route(runtime.app, login_required=False, api_token_required=False, limit="5/second", limit_override=True, track_usage=False, cache_type="global", cache_timeout_seconds=20)
+@wrappers.api_route(runtime.app, login_required=False, api_token_required=False, limit="5/second", limit_override=True, track_usage=False, cache_type="global", cache_timeout_seconds=120)
 def share_status_check():
     if not runtime.app.canary_files:
         return jsonify({"status": "unknown", "details": "No canary files configured"}), 200
@@ -215,6 +216,17 @@ def share_status_check():
         return jsonify({"status": "offline", "details": status_report}), 503
 
     return jsonify({"status": "degraded", "details": status_report}), 503
+
+@wrappers.api_route(runtime.app, login_required=False, api_token_required=False, limit="5/second", limit_override=True, track_usage=False, cache_type="global", cache_timeout_seconds=120)
+def storage_availability_check():
+    usage = shutil.disk_usage(runtime.app.media_folder)
+
+    return {
+        "used": f"{usage.used / (1024**3):.1f} GB",
+        "free": f"{usage.free / (1024**3):.1f} GB",
+        "total": f"{usage.total / (1024**3):.1f} GB",
+        "percent_used": f"{(usage.used / usage.total) * 100:.1f}%"
+    }
 
 
 @wrappers.api_route(runtime.app, login_required=False, api_token_required=False, track_usage=False)
