@@ -1,4 +1,5 @@
 from pathlib import Path
+import urllib.parse
 import mimetypes
 from typing import Literal
 import zipstream.ng as zipstream
@@ -54,7 +55,7 @@ def rclone(token: str, subpath: Path = Path()):
             
             response = Response()
             response.headers["Content-Type"] = mimetype
-            response.headers["X-Accel-Redirect"] = file.as_posix().replace(SHARE_ROOT.as_posix(), "/nginx-share/")
+            response.headers["X-Accel-Redirect"] = urllib.parse.quote(file.as_posix().replace(SHARE_ROOT.as_posix(), "/nginx-share/"), safe="/")
             return response
 
     return render_template(
@@ -91,7 +92,7 @@ def browse(token: str, subpath: Path = Path()):
             response.headers["Content-Type"] = mimetype
             if not utils.is_browser_friendly(mimetype):
                 response.headers["Content-Disposition"] = f"attachment; filename={file.name}"
-            response.headers["X-Accel-Redirect"] = file.as_posix().replace(SHARE_ROOT.as_posix(), "/nginx-share/")
+            response.headers["X-Accel-Redirect"] = urllib.parse.quote(file.as_posix().replace(SHARE_ROOT.as_posix(), "/nginx-share/"), safe="/")
             return response
         
     paths = sorted(paths, key=lambda p: p.name.lower())
