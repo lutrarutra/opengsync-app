@@ -200,7 +200,8 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     elif (pool := context.get("pool")) is not None:
         fnc_context["pool_id"] = pool.id
     elif (lab_prep := context.get("lab_prep")) is not None:
-        fnc_context["lab_prep_id"] = lab_prep.id
+        if kwargs["workflow"] != "library_prep":
+            fnc_context["lab_prep_id"] = lab_prep.id
     elif (seq_request := context.get("seq_request")) is not None:
         fnc_context["seq_request_id"] = seq_request.id
 
