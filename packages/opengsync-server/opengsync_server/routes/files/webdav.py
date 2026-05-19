@@ -1,4 +1,5 @@
 from pathlib import Path
+import urllib.parse
 import mimetypes
 
 from sqlalchemy import orm
@@ -89,7 +90,7 @@ def share(token: str, subpath: Path = Path()):
         stat = path.stat()
         response = Response()
         response.headers["Content-Type"] = mimetype
-        response.headers["X-Accel-Redirect"] = path.as_posix().replace(SHARE_ROOT.as_posix(), "/nginx-share/")
+        response.headers["X-Accel-Redirect"] = urllib.parse.quote(path.as_posix().replace(SHARE_ROOT.as_posix(), "/nginx-share/"), safe="/")
         response.headers["Content-Length"] = str(stat.st_size)
         response.headers["Last-Modified"] = browser._format_date(stat.st_mtime)
         return response
