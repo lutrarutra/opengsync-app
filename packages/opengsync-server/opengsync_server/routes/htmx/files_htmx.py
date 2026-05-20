@@ -3,6 +3,7 @@ import mimetypes
 import urllib.parse
 from pathlib import Path
 
+import markdown
 from flask import Blueprint, render_template, Response, send_from_directory, request
 from flask_htmx import make_response
 
@@ -73,7 +74,6 @@ def render_data_file(current_user: models.User, data_path_id: int):
 
 @wrappers.resource_route(files_htmx, db=db, login_required=True)
 def render_markdown_file(current_user: models.User, file_id: int):
-    import markdown
     if (file := db.media_files.get(file_id)) is None:
         raise exceptions.NotFoundException()
     
