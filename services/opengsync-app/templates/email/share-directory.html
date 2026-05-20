@@ -1,14 +1,15 @@
 {% extends "email/base.html" %}
 {% block content %}
+<p>BSF has shared directory with you.</p>
 <p>
     <b>You can copy the data with one of the following commands:</b>
     <ul>
         <li>
-            WebDAV <span class="desc">(Rclone, recommended, fastest, downloads only modified/missing files, might not work for older rclone < 1.6)</span>:
+            Rclone-WebDAV <span class="desc">(Rclone, recommended, fastest, downloads only modified/missing files, might not work for older rclone < 1.6)</span>:
             <div class="code">{{ sync_command | highlight_sh | safe }}</div><br>
         </li>
         <li>
-            HTTP <span class="desc">(Rclone)</span>:
+            Rclone-http <span class="desc">(Rclone)</span>:
             <div class="code">{{ http_command | highlight_sh | safe }}</div><br>
         </li>
         <li>
