@@ -358,6 +358,7 @@ class App(Flask):
         self.register_blueprint(routes.workflows.check_barcode_constraints_workflow)
         self.register_blueprint(routes.workflows.add_kits_to_protocol_workflow)
         self.register_blueprint(routes.workflows.select_library_protocols_workflow)
+        self.register_blueprint(routes.workflows.merge_projects_workflow)
 
         self.register_blueprint(routes.pages.samples_page_bp)
         self.register_blueprint(routes.pages.projects_page_bp)

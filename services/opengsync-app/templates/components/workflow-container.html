@@ -229,4 +229,25 @@
             </div>
         </div>
     </div>
+    <div class="flip-card card"
+        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+        hx-get="{{ url_for('merge_projects_workflow.begin') }}"
+        hx-target="#xl-modal-content" data-bs-toggle="modal"
+        hx-swap="innerHTML" hx-trigger="click">
+        <div class="flip-card-container">
+            <div class="card-front">
+                <div class="card-icon">
+                    <img src="{{ url_for('static', filename='images/merge.svg') }}" width="60px">
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Merge Projects</h5>
+                </div>
+            </div>
+            <div class="card-back">
+                <div class="text-container">
+                    <p class="card-text">Merge samples from two projects into one.</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

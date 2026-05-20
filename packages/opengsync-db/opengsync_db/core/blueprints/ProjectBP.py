@@ -243,16 +243,31 @@ class ProjectBP(DBBlueprint):
     
     @DBBlueprint.transaction
     def merge_projects(self, project_dst: models.Project, project_src: models.Project) -> models.Project:
-        dst_sample_mapping = {sample.name: sample.id for sample in project_dst.samples}
+        dst_sample_mapping = {sample.name: sample for sample in project_dst.samples}
 
         samples_to_delete = []
 
         for sample in project_src.samples:
             if sample.name in dst_sample_mapping:
-                dst_sample_id = dst_sample_mapping[sample.name]
+                dst_sample = dst_sample_mapping[sample.name]
                 for link in sample.library_links:
-                    link.sample_id = dst_sample_id
+                    link.sample_id = dst_sample.id
+                    for attr in sample.attributes:
+                        if (dst_attr := dst_sample.get_attribute(attr.name)) is None:
+                            dst_sample.set_attribute(attr.name, attr.value, type=attr.type)
+                        elif dst_attr.type_id != attr.type_id:
+                            raise ValueError(f"Sample attribute conflict for sample '{sample.name}' on attribute '{attr}' with value '{attr.value}' (destination type: '{dst_attr.type}')")
+                        elif dst_attr.value != attr.value:
+                            raise ValueError(f"Sample attribute conflict for sample '{sample.name}' on attribute '{attr}' with value '{attr.value}' (destination value: '{dst_attr.value}')")
+                    
                     self.db.session.add(link)
+
+                dst_sample.qubit_concentration = dst_sample.qubit_concentration or sample.qubit_concentration
+                dst_sample.avg_fragment_size = dst_sample.avg_fragment_size or sample.avg_fragment_size
+                dst_sample.timestamp_stored_utc = dst_sample.timestamp_stored_utc or sample.timestamp_stored_utc
+                dst_sample.status = dst_sample.status if dst_sample.status and dst_sample.status >= sample.status else sample.status
+                dst_sample.ba_report_id = dst_sample.ba_report_id or sample.ba_report_id
+                self.db.session.add(dst_sample)
 
                 samples_to_delete.append(sample)
             else:

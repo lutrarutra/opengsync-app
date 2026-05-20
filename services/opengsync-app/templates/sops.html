@@ -186,6 +186,34 @@
             </div>
         </div>
     </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sops-accordiod-collapse-9" aria-expanded="false" aria-controls="sops-accordiod-collapse-9">
+                <b><i class="bi bi-question-circle"></i> I want to merge projects into one project</b>
+            </button>
+        </h2>
+        <div id="sops-accordiod-collapse-9" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
+            <div class="accordion-body">
+                <b>Steps:</b>
+                <ol>
+                    <li>
+                        <button class="btn btn-primary"
+                        data-bs-toggle="modal" data-bs-target="#xl-modal" 
+                        hx-get="{{ url_for('merge_projects_workflow.begin') }}"
+                        hx-target="#xl-modal-content" data-bs-toggle="modal"
+                        hx-swap="innerHTML">Begin</button> 'Merge Projects' -workflow.
+                    </li>
+                </ol>
+                <b>Notes:</b>
+                <ul>
+                    <li>This workflow is meant to be used to merge a draft or a submitted project into existing one, in case the customer (or we) forgot to do so.</li>
+                    <li><b>Avoid selecting project that is already sequenced as the source project.</b></li>
+                    <li>More information can be found in the 'Merge Projects' workflow.</li>
+                    <li>Only insiders can merge projects.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
     {% endif %}
     <div class="accordion-item">
         <h2 class="accordion-header">

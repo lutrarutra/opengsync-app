@@ -22,8 +22,5 @@ def complete(current_user: models.User) -> Response:
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    form = MergeProjectsForm(formdata=request.form)
-    if not form.validate(current_user):
-        return form.make_response()
-    
-    return form.process(current_user)
+    form = MergeProjectsForm(formdata=request.form)    
+    return form.process_request(current_user)

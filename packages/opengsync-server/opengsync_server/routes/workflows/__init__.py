@@ -23,6 +23,7 @@ from .billing import billing_workflow
 from .check_barcode_constraints import check_barcode_constraints_workflow
 from .add_kits_to_protocol import add_kits_to_protocol_workflow
 from .select_library_protocols import select_library_protocols_workflow
+from .merge_projects import merge_projects_workflow
 
 __all__ = [
     "lane_pools_workflow",
@@ -50,4 +51,5 @@ __all__ = [
     "check_barcode_constraints_workflow",
     "add_kits_to_protocol_workflow",
     "select_library_protocols_workflow",
+    "merge_projects_workflow",
 ]

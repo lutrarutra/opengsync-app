@@ -1,0 +1,46 @@
+{% from "components/search_select.jinja2" import search_select_field %}
+
+<div id="merge_projects-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Merge Projects</h1>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body" id="merge_projects-form">
+        <div class="help">
+            <ul>
+                <li>This workflow is meant to be used to merge a draft or a submitted project into existing one, in case the customer (or we) forgot to do so.</li>
+                <li><b>Avoid selecting project that is already sequenced as the source project.</b></li>
+                <li>Generally, older (smaller ID or larger status) project should be the destination project.</li>
+                <li>All samples from the source project will be merged into the destination project.</li>
+                <li>Samples with same name will be merged into same sample of the destination project.</li>
+                <li>After the merge, the source project will be empty and can be deleted manually.</li>
+                <li>If there are any attribute conflicts between samples, e.g. different values for the same attribute in same sample, they will need to be resolved manually in the project's Attributes-tab.</li>
+                <li>Sample qubit and fragment size will be the destination sample's values when merging projects. If destination sample's values are not measured, the source sample's values will be used if available.</li>
+                <li>Sample status and BA report ID will be the destination sample's values when merging projects. If destination sample's values are not available, the source sample's values will be used if available.</li>
+            </ul>
+        </div>
+        {{ 
+            search_select_field(form.project_dst, url_for('projects_htmx.search'), "identifier_title")
+        }}
+        {{ 
+            search_select_field(form.project_src, url_for('projects_htmx.search'), "identifier_title")
+        }}
+        {{ form.csrf_token() }}
+    </div>
+
+    <div class="modal-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+                hx-target="#merge_projects-form-container" hx-swap="outerHTML"
+                hx-include="#merge_projects-form"
+                hx-post="{{ form.post_url }}">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>
+
