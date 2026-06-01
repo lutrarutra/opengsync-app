@@ -154,6 +154,7 @@ class OpeNGSyncAPI:
         time_valid_min: int,
         recipients: list[str] | None = None,
         anonymous_send: bool = False,
+        mark_project_delivered: bool | None = None,
         comment: str | None = None
     ):
         """
@@ -168,6 +169,7 @@ class OpeNGSyncAPI:
             time_valid_min (int): time in minutes for which the share is valid
             recipients (list[str] | None): list of email addresses to send the instructions to. If None, emails are sent to all emails added to Share-tab in the latest sequencing request.
             anonymous_send (bool, optional): if True, send the email anonymously. Defaults to False (owner of the API token).
+            mark_project_delivered (bool | None, optional): if True, mark the project as delivered. If None, mark as delivered only if all libraries in the project are sequenced. Defaults to None.
             comment (str | None, optional): comment to include in the email. Defaults to None.
         Raises:
             requests.HTTPError: if the request fails
@@ -185,6 +187,8 @@ class OpeNGSyncAPI:
             "anonymous_send": anonymous_send,
             "comment": comment
         }
+        if mark_project_delivered is not None:
+            payload["mark_project_delivered"] = mark_project_delivered
         response = requests.post(f"{self.base_url}/api/shares/release_project_data/", json=payload)
         try:
             response.raise_for_status()

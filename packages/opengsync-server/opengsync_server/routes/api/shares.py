@@ -4,7 +4,7 @@ import smtplib
 
 from flask import Blueprint, jsonify, render_template
 
-from opengsync_db.categories import DataPathType, DataPathType, LibraryType, ProjectStatus, DeliveryStatus
+from opengsync_db.categories import DataPathType, DataPathType, LibraryType, ProjectStatus, DeliveryStatus, LibraryStatus
 from opengsync_db import models
 
 from ...tools import utils
@@ -217,7 +217,7 @@ def remove_data_paths(
 def release_project_data(
     current_user: models.User, recipients: list[str] | None,
     project_id: int, internal_access: bool, time_valid_min: int,
-    anonymous_send: bool = False, mark_project_delivered: bool = True,
+    anonymous_send: bool = False, mark_project_delivered: bool | None = None,
     comment: str | None = None
 ):
     if (project := db.projects.get(project_id)) is None:
@@ -268,17 +268,30 @@ def release_project_data(
         logger.error(f"Failed to send email to {recipients}: {e}")
         raise e
     
-    if mark_project_delivered:
+    if mark_project_delivered is None:
+        all_libraries_delivered = True
+        for seq_request in project.seq_requests:
+            for library in seq_request.libraries:
+                if library.status < LibraryStatus.SEQUENCED:
+                    all_libraries_delivered = False
+                    break
+            if not all_libraries_delivered:
+                break
+        if all_libraries_delivered:
+            if project.status < ProjectStatus.DELIVERED:
+                project.status = ProjectStatus.DELIVERED
+                db.projects.update(project)
+    else:        
         if mark_project_delivered:
             if project.status < ProjectStatus.DELIVERED:
                 project.status = ProjectStatus.DELIVERED
                 db.projects.update(project)
 
-        for seq_request in project.seq_requests:
-            for link in seq_request.delivery_email_links:
-                if link.email in recipients:
-                    link.status = DeliveryStatus.DISPATCHED
-            db.seq_requests.update(seq_request)
+    for seq_request in project.seq_requests:
+        for link in seq_request.delivery_email_links:
+            if link.email in recipients:
+                link.status = DeliveryStatus.DISPATCHED
+        db.seq_requests.update(seq_request)
         
     return jsonify({"result": "success", "recipients": recipients}), 200
 
