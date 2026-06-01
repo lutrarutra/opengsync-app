@@ -265,7 +265,7 @@
                 icon: msg.category || 'success',
                 html: `<div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 0; font-weight: 600;">${msg.message}</div>`,
                 showConfirmButton: false,
-                timer: msg.category === 'error' ? null : 1000,
+                timer: msg.category === 'error' || msg.category === 'warning' ? null : 1500,
                 toast: true,
                 showCloseButton: true,
                 willClose: function() {

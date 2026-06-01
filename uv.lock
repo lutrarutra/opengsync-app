@@ -1778,6 +1778,16 @@ wheels = [
 [[package]]
 name = "opengsync-api"
 source = { editable = "packages/opengsync-api" }
+dependencies = [
+    { name = "opengsync-db" },
+    { name = "requests" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "opengsync-db", editable = "packages/opengsync-db" },
+    { name = "requests" },
+]
 
 [[package]]
 name = "opengsync-app"
