@@ -292,6 +292,11 @@ def release_project_data(
             if link.email in recipients:
                 link.status = DeliveryStatus.DISPATCHED
         db.seq_requests.update(seq_request)
+
+    for library in project.libraries:
+        if library.status == LibraryStatus.SEQUENCED:
+            library.status = LibraryStatus.SHARED
+            db.libraries.update(library)
         
     return jsonify({"result": "success", "recipients": recipients}), 200
 

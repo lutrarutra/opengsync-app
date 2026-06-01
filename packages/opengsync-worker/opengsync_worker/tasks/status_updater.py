@@ -128,22 +128,9 @@ def __find_sequenced_projects(q):
 
 def __find_finished_seq_requests(q):
     return q.where(
-        sa.exists().where(
-            (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.links.SampleLibraryLink.library_id == models.Library.id) &
-            (models.Sample.id == models.links.SampleLibraryLink.sample_id) &
-            (models.Project.id == models.Sample.project_id) &
-            (models.Project.status_id.in_([
-                categories.ProjectStatus.DELIVERED.id, categories.ProjectStatus.ARCHIVED.id
-            ]))
-        )
-    ).where(
         ~sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.links.SampleLibraryLink.library_id == models.Library.id) &
-            (models.Sample.id == models.links.SampleLibraryLink.sample_id) &
-            (models.Project.id == models.Sample.project_id) &
-            (models.Project.status_id < categories.ProjectStatus.DELIVERED.id)
+            (models.Library.status_id < categories.LibraryStatus.SHARED.id)
         )
     )
 
