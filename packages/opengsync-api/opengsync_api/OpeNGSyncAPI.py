@@ -162,6 +162,7 @@ class OpeNGSyncAPI:
         Previous token is invalidated.
         Project status is updated to -> DELIVERED.
         Sequencing request share email links status -> DISPATCHED
+        Library status -> SHARED
 
         Args:
             project_id (int): id of the project to share
