@@ -48,10 +48,19 @@ class LibraryPoolingForm(MultiStepForm):
                 else:
                     prep_table = pd.read_excel(path, "prep_table")  # type: ignore
                     prep_table = prep_table.dropna(subset=["library_id", "library_name"])
+                    if prep_table["library_id"].isna().any() or (~prep_table["library_id"].isin(self.library_table["library_id"])).any():
+                        if not prep_table["library_name"].duplicated().any():
+                            flash("Lab prep file is outdated, library_id mismatch. Attempting to map library_id using library_name. Please re-upload the lab prep file with correct library IDs to avoid potential issues.", "warning")
+                            prep_table["library_id"] = prep_table["library_name"].map(
+                                dict(zip(self.library_table["library_name"], self.library_table["library_id"]))
+                            )
+                        else:
+                            flash("Lab prep file is outdated, library_id mismatch. Please re-upload the lab prep file.", "warning")
                     order = prep_table["library_id"].tolist()
                     self.library_table["library_id"] = pd.Categorical(self.library_table["library_id"], categories=order, ordered=True)
                     self.library_table = self.library_table.sort_values("library_id").reset_index(drop=True)
                     self.library_table["library_id"] = self.library_table["library_id"].astype(pd.Int64Dtype())
+                        
                     self.library_table["pool"] = utils.map_columns(self.library_table, prep_table, idx_columns="library_id", col="pool")
 
         self.post_url = url_for("library_pooling_workflow.upload_pooling_form", uuid=self.uuid, lab_prep_id=self.lab_prep.id)
@@ -72,7 +81,8 @@ class LibraryPoolingForm(MultiStepForm):
         self.spreadsheet = SpreadsheetInput(
             columns=LibraryPoolingForm.columns,
             csrf_token=self._csrf_token,
-            post_url=self.post_url, formdata=formdata, df=self.library_table
+            post_url=self.post_url, formdata=formdata,
+            df=self.library_table
         )
     
     def validate(self) -> bool:

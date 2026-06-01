@@ -1318,17 +1318,39 @@ class PandasBP(DBBlueprint):
         return df
     
 
-    # @DBBlueprint.transaction
-    # def get_libraries(
-    #     self,
-    #     status: cats.LibraryStatus | None = None,
-    #     status_in: list[cats.LibraryStatus] | None = None,
-    #     type: cats.LibraryType | None = None,
-    #     type_in: list[cats.LibraryType] | None = None,
-    # ) -> pd.DataFrame:
+    @DBBlueprint.transaction
+    def get_library_data_qc(self, library_id: int | None = None, expand: bool = True) -> pd.DataFrame:
+        query = sa.select(
+            models.Library.name.label("library_name"),
+            models.Library.type_id.label("library_type_id"),
+            models.Library.id.label("library_id"),
+            models.Library.qc,
+            models.Pool.type_id.label("pool_type_id"),
+        ).where(
+            models.Library.qc.isnot(None)
+        ).join(
+            models.Pool,
+            models.Pool.id == models.Library.pool_id,
+        )
+
+        if library_id is not None:
+            query = query.where(models.Library.id == library_id)
+
+        df = pd.read_sql(query, self.db._engine)
+        df["library_type"] = cats.LibraryType.map_series(df["library_type_id"])
+        df["pool_type"] = cats.PoolType.map_series(df["pool_type_id"])
+        if expand and not df.empty:
+            expanded = df["qc"].apply(pd.Series)
+            for col in expanded.columns:
+                expanded[col] = expanded[col].apply(lambda x: x if isinstance(x, dict) else x)
+
+            df = pd.concat([df.drop(columns=["qc"]), expanded], axis=1)
+
+        return df
 
     @DBBlueprint.transaction
     def query(self, query: sa.Select | str) -> pd.DataFrame:
         df = pd.read_sql(query, self.db._engine)
         return df
+    
         

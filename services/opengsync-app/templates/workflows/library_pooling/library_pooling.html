@@ -18,6 +18,13 @@
                 aria-controls="spreadsheet-tab" aria-selected="true">
                 Spreadsheet</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                id="help-tab-btn"
+                data-bs-target="#help-tab" type="button" role="tab"
+                aria-controls="help-tab" aria-selected="false">
+                Help</button>
+            </li>
         </ul>
         <div class="tab-content" id="library_pooling-form">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
@@ -28,6 +35,14 @@
                         target_element_id="library_pooling-form-container",
                     )
                 }}
+            </div>
+            <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
+                <ul>
+                    <li>If you don't want to pool certain libraries (yet),  <span class="code-highlight">skip</span></li>
+                    <li>Mark pool with <span class="code-highlight">x</span> if a library should not be pooled, e.g. didn't pass QC.</li>
+                    <li>❗ Doing this workflow will re-create the pools. If pool has already been assigned an experiment, the new pools might not be added to the experiment it was sequenced in if there are conflicts. Refrain from re-doing this workflow after the pool has already been sequenced.</li>
+                    <li>If Library ID is empty, it means that the uploaded prep-table is outdated, probably due to library ID mismatch in prep-table.</li>
+                </ul>
             </div>
         </div>
     </div>

@@ -8,7 +8,7 @@
     </div>
     <div class="modal-body" id="user-form">
         {{ form.csrf_token() }}
-        {{ select_input(form.role) }}
+        {{ select_input(form.role, disabled=not current_user.is_admin()) }}
         <div class="row">
             {{ form_group(form.first_name, class="col-6") }}
             {{ form_group(form.last_name, class="col-6") }}

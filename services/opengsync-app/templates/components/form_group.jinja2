@@ -79,6 +79,9 @@
     </a>
     {% endif %}
     <div class="select-container">
+        {% if disabled %}
+        <input type="hidden" name="{{ field.name }}" value="{{ field.data | default('', true) }}">
+        {% endif %}
         <select class="form-control select-field {% if field.errors %}is-invalid{% endif %} {{ 'disabled' if disabled else '' }}" 
         {% if disabled %}disabled{% endif %}
         name="{{ field.name }}" id="{{ field.id }}">
