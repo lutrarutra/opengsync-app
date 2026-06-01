@@ -38,6 +38,8 @@ dev = [
     "ipykernel>=7.2.0",
     "ruff>=0.15.2",
     "alembic",
+    "matplotlib",
+    "seaborn",
 ]
 
 

@@ -28,8 +28,9 @@ class UserForm(HTMXFlaskForm):
         super().__init__(formdata=formdata)
         self.user = user
         self.current_user = current_user
+        logger.debug(formdata)
 
-        if self.current_user.is_admin():
+        if self.current_user.is_admin() or (self.current_user.id == self.user.id and self.user.is_insider()):
             self.role.choices = UserRole.as_selectable()  # type: ignore
         elif self.current_user.is_insider():
             allowed_roles = [UserRole.CLIENT, UserRole.DEACTIVATED]
@@ -53,7 +54,7 @@ class UserForm(HTMXFlaskForm):
                 return False
             
         elif not self.current_user.is_admin():
-            if self.role.data not in [UserRole.CLIENT.id, UserRole.DEACTIVATED.id]:
+            if self.role.data not in [UserRole.CLIENT.id, UserRole.DEACTIVATED.id] and self.current_user.role != self.user.role:
                 self.role.errors = ("You do not have permission to set this role.",)
                 return False
         
@@ -68,9 +69,11 @@ class UserForm(HTMXFlaskForm):
         if (role := UserRole.get(self.role.data)) is None:
             self.role.errors = ("Invalid role.",)
             return self.make_response()
-        self.user.role = role
+        if self.current_user.is_admin():
+            self.user.role = role
 
         db.users.update(self.user)
 
         flash("User updated successfully.", "success")
+        logger.info(f"User ID {self.user.id} updated by user ID {self.current_user.id}")
         return make_response(redirect=url_for("users_page.user", user_id=self.user.id))
