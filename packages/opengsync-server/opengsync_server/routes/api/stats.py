@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify
+from sqlalchemy import orm
 
-from opengsync_db.categories import ExperimentStatus
+from opengsync_db.categories import ExperimentStatus, LibraryStatus
+from opengsync_db import models
 
 from ...core import wrappers, exceptions
 from ... import db
@@ -13,12 +15,8 @@ def set_library_lane_reads(
     library_id: int | None, experiment_name: str, lane: int,
     num_reads: int, qc: dict | None = None, 
 ):
-    if (experiment := db.experiments.get(experiment_name)) is None:
+    if (experiment := db.experiments.get(experiment_name, options=orm.selectinload(models.Experiment.libraries))) is None:
         raise exceptions.NotFoundException(f"Experiment with name '{experiment_name}' not found.")
-    
-    if experiment.status < ExperimentStatus.DEMULTIPLEXED:
-        experiment.status = ExperimentStatus.DEMULTIPLEXED
-        db.experiments.update(experiment)
     
     db.libraries.set_seq_quality(
         library_id=library_id,
@@ -27,5 +25,16 @@ def set_library_lane_reads(
         num_reads=num_reads,
         qc=qc
     )
+
+    all_libraries_demultiplexed = True
+    for library in experiment.libraries:
+        if library.status >= LibraryStatus.SEQUENCED and not library.read_qualities:
+            if library.id != library_id:  # current library is being updated, so we can skip the check for read_qualities
+                all_libraries_demultiplexed = False
+                break
+        
+    if all_libraries_demultiplexed and experiment.status < ExperimentStatus.DEMULTIPLEXED:
+        experiment.status = ExperimentStatus.DEMULTIPLEXED
+        db.experiments.update(experiment)
     
     return jsonify({"status": "success"})

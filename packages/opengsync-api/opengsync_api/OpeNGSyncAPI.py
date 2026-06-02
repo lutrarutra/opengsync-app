@@ -122,6 +122,7 @@ class OpeNGSyncAPI:
     
     def set_library_lane_reads(self, library_id: int | None, experiment_name: str, lane: int, num_reads: int, qc: dict | None = None):
         """set the number of reads (and qc metadata) for a given library lane
+        Experiment status -> DEMULTIPLEXED if all libraries in the experiment have their lane reads set
 
         Args:
             library_id (int | None): id of the library, or None for undetermined reads
