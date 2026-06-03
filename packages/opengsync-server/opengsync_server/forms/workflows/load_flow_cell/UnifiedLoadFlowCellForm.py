@@ -65,7 +65,7 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
         if pd.notna(row["phi_x"]):
             self.phi_x.data = row["phi_x"]
 
-        self.avg_fragment_size.data = row["avg_fragment_size"]
+        self.avg_fragment_size.data = int(row["avg_fragment_size"])
         self.qubit_concentration.data = row["original_qubit_concentration"]
         self.lane_molarity.data = row["lane_molarity"]
         self.sequencing_molarity.data = sequencing_molarity
