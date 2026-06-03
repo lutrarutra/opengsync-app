@@ -1,18 +1,19 @@
 from typing import Literal
 
 from fastapi import Request as FastApiRequest, FastAPI as FastApiApp
-from starlette.datastructures import State
+from starlette.datastructures import URL, State
 from redis.asyncio import ConnectionPool
 from typing import cast
 
 from opengsync_db import AsyncDBHandler, models
 
-from . import mailer, audit
+from . import mailer, audit, secrets, config
 
 class AppState(State):
     db_handler: AsyncDBHandler
     mailer: mailer.Mailer
     redis_pool: ConnectionPool
+    bcrypt: secrets.BcryptCompat
 
 class CodeFlowerServer(FastApiApp):
     @property

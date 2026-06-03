@@ -25,7 +25,7 @@
                     </li>
                     <li>
                         <button type="button" class="dropdown-item"  data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                            hx-get="{{ url_for('add_kits_to_protocol_workflow.begin', protocol_id=protocol.id) }}"
+                            hx-get="{{ url_for('begin_add_kits_to_protocol_workflow', protocol_id=protocol.id) }}"
                             hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                             hx-swap="innerHTML">
                             Edit Combinations

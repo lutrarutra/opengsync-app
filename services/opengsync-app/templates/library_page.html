@@ -282,7 +282,7 @@
             <div>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#fullscreen-modal" hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
-                hx-get="{{ url_for('library_remux_workflow.begin', library_id=library.id) }}">
+                hx-get="{{ url_for('begin_library_remux_workflow', library_id=library.id) }}">
                     Edit
                 </button>
             </div>

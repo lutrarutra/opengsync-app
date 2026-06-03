@@ -1,5 +1,7 @@
-from . import pages
+from . import pages, htmx, api
 
 __all__ = [
-    "pages"
+    "pages",
+    "htmx",
+    "api",
 ]

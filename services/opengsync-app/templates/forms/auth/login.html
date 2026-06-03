@@ -1,13 +1,13 @@
 {% from 'components/form_group.jinja2' import form_group %}
 <form id="login-form">
-    {{ login_form.csrf_token(id="login_csrf_token") }}
+    {{ form.csrf_token.render() }}
     <div style="display: flex; width: 100%; justify-content: center; align-items: center; flex-direction: column;">
-        {{ form_group(login_form.email, class="col-6", autocomplete="username") }}
-        {{ form_group(login_form.password, class="col-6", autocomplete="current-password") }}
+        {{ form.email.render("col-12") }}
+        {{ form.password.render("col-12") }}
         <div class="col-6" style="display: flex; flex-direction: row; justify-content: flex-end; padding: 0 5px;">
             <button class="btn btn-success"
             hx-include="#login-form" hx-target="#login-form" hx-swap="outerHTML"
-            hx-post="{{ url_for('auth_htmx.login', next=next if next else '/') }}">
+            hx-post="{{ url_for('login_user') }}">
                 Sign In
             </button>
         </div>

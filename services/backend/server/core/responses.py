@@ -1,7 +1,7 @@
 from typing import Any
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
 
-from .templates import render_template
+from .templates import render_template, url_for
 
 from . import utils, runtime
 from .context import ctx
@@ -27,51 +27,52 @@ async def html_response(
     template: str | None = None, 
     redirect: str | None = None, 
     status: int = 200, 
+    response: Response | None = None,
     **context
 ) -> Response:
     if redirect:
-        return RedirectResponse(url=redirect, status_code=303)
+        resp = RedirectResponse(url=ctx.request.url_for(redirect), status_code=303)
+    else:
+        content = ""
+        if template is not None:
+            content = await render_template(template, **context | await get_request_context())
+        
+        resp = HTMLResponse(
+            content=content,
+            status_code=status,
+            headers={"Content-Type": "text/html; charset=utf-8"}
+        )
+
+    if response:
+        for header, value in response.raw_headers:
+            if header.lower() == b"set-cookie":
+                resp.raw_headers.append((header, value))
     
-    from loguru import logger
-    logger.debug(f"Rendering template '{template}' with context: {context}")
-    content = ""
-    if template is not None:
-        content = await render_template(template, **context | await get_request_context())
-    
-    return HTMLResponse(
-        content=content,
-        status_code=status,
-        headers={"Content-Type": "text/html; charset=utf-8"}
-    )
+    return resp
 
 async def htmx_response(
     template: str | None = None, 
     status: int = 200, 
     redirect: str | None = None, 
     re_target: str | None = None, 
-    re_swap: str | None = None, # Added for completeness
+    re_swap: str | None = None,
+    response: Response | None = None,
     **context
 ) -> Response:
     headers = {"HX-Trigger": "contentUpdated"}
     
     if redirect:
-        headers["HX-Redirect"] = redirect
-        return HTMLResponse(status_code=204, headers=headers)
-
-    if re_target:
-        headers["HX-Retarget"] = re_target
-    
-    if re_swap:
-        headers["HX-Reswap"] = re_swap
-    
-    content = ""
-    if template is not None:
+        headers["HX-Redirect"] = ctx.request.url_for(redirect).__str__()
+        resp = HTMLResponse(status_code=204, headers=headers)
+    elif template is not None:
         content = await render_template(template, **context | await get_request_context())
-    elif status == 200:
-        status = 204
+        resp = HTMLResponse(content=content, status_code=status, headers=headers)
+    else:
+        resp = HTMLResponse(status_code=status if status != 200 else 204, headers=headers)
 
-    return HTMLResponse(
-        content=content,
-        status_code=status,
-        headers=headers
-    )
+    if response:
+        for header, value in response.raw_headers:
+            if header.lower() == b"set-cookie":
+                resp.raw_headers.append((header, value))
+    
+    return resp

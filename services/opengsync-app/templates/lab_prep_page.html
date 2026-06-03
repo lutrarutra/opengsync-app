@@ -26,7 +26,7 @@
                         </button>
                     </li>
                         <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                                hx-get="{{ url_for('reseq_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                                hx-get="{{ url_for('begin_reseq_workflow', lab_prep_id=lab_prep.id) }}"
                                 hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                                 hx-swap="innerHTML">
                             Re-Sequence Libraries

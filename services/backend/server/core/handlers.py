@@ -6,7 +6,7 @@ from loguru import logger
 
 from opengsync_db import exceptions as db_exc
 
-from . import config, responses
+from . import config, responses, exceptions as exc
 
 async def default_exception_handler(request: Request, e: Exception) -> JSONResponse:
     logger.error(f"Unhandled exception {type(e)}: {e}")
@@ -43,4 +43,9 @@ async def pydantic_validation_exception_handler(request: Request, exc: Validatio
     return JSONResponse(content={"detail": "Internal Server Error."}, status_code=500)
 
 async def UserNotAuthenticatedException_handler(request: Request, exc: Exception) -> Response:
-    return RedirectResponse(url="/login", status_code=303)
+    if request.headers.get("HX-Request") == "true":
+        return await responses.htmx_response(redirect="login_page", status=303)
+    return await responses.html_response(redirect="login_page", status=303)
+
+async def form_validation_exception_handler(request: Request, exc: exc.FormValidationException) -> Response:
+    return await exc.form.make_response()

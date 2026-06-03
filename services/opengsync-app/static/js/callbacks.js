@@ -31,7 +31,7 @@ document.addEventListener("htmx:afterRequest", (event) => {
     if (xhr && xhr.getResponseHeader("HX-Redirect")) {
         return;
     }
-    render_flash_messages();
+    // render_flash_messages();
 });
 
 $(document).ready(function () {

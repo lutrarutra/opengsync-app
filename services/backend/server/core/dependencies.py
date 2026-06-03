@@ -1,14 +1,15 @@
 import json
+import token
 from uuid import UUID
 import hashlib
 
-from fastapi import Depends, BackgroundTasks, Request, Header
+from fastapi import Depends, BackgroundTasks, Request, Header, Cookie
 from starlette.background import BackgroundTask
 from redis.asyncio import Redis, ConnectionPool
 from fastapi_cache import FastAPICache
 from taskiq import TaskiqDepends
 
-from sqlalchemy.orm import make_transient_to_detached, joinedload
+from sqlalchemy.orm import make_transient_to_detached
 
 from opengsync_db import queries as Q, AsyncSession, exceptions as db_exc, models, categories as cats
 
@@ -51,21 +52,20 @@ async def _resolve_user(
             return user
 
     if (user := await session.first(
-        Q.user.select(id=auth_response.id, viewer_id=None),
-        options=[joinedload(models.User.avatar)]
+        Q.user.select(id=auth_response.id),
     )) is None:
         return None
     
-    async def __cache_current_user(user_obj: models.User, pool: ConnectionPool):
-        async with Redis(connection_pool=pool) as r:
-            await r.set(f"user:{user_obj.id}", json.dumps(user_obj.to_dict()), ex=300)
+    # async def __cache_current_user(user_obj: models.User, pool: ConnectionPool):
+    #     async with Redis(connection_pool=pool) as r:
+    #         await r.set(f"user:{user_obj.id}", json.dumps(user_obj.to_dict()), ex=300)
 
-    task = BackgroundTask(
-        __cache_current_user,
-        user_obj=user,
-        pool=request.app.state.redis_pool
-    )
-    background_tasks.add_task(task)
+    # task = BackgroundTask(
+    #     __cache_current_user,
+    #     user_obj=user,
+    #     pool=request.app.state.redis_pool
+    # )
+    # background_tasks.add_task(task)
     return user
 
 async def _resolve_user_by_api_token(
@@ -83,7 +83,7 @@ async def _resolve_user_by_api_token(
             if (user := await __get_cached_user(f"user:{user_id_str}", redis)) is not None:
                 return user
             
-    hint = token[-models.APIToken.HINT_SIZE:]
+    # hint = token[-models.APIToken.HINT_SIZE:]
     user = None
     # for db_token in await session.get_all(
     #     Q.api_token.select(hint=hint, is_valid=True),
@@ -97,18 +97,18 @@ async def _resolve_user_by_api_token(
     if not user:
         return None
     
-    async def __cache_api_token_mapping(user_obj: models.User, cached_key_name: str, pool: ConnectionPool):
-        async with Redis(connection_pool=pool) as r:
-            await r.set(cached_key_name, str(user_obj.id), ex=300)
-            await r.set(f"user:{user_obj.id}", json.dumps(user_obj.to_dict()), ex=300)
+    # async def __cache_api_token_mapping(user_obj: models.User, cached_key_name: str, pool: ConnectionPool):
+    #     async with Redis(connection_pool=pool) as r:
+    #         await r.set(cached_key_name, str(user_obj.id), ex=300)
+    #         await r.set(f"user:{user_obj.id}", json.dumps(user_obj.to_dict()), ex=300)
 
-    task = BackgroundTask(
-        __cache_api_token_mapping,
-        user_obj=user,
-        cached_key_name=cache_key,
-        pool=request.app.state.redis_pool
-    )
-    background_tasks.add_task(task)
+    # task = BackgroundTask(
+    #     __cache_api_token_mapping,
+    #     user_obj=user,
+    #     cached_key_name=cache_key,
+    #     pool=request.app.state.redis_pool
+    # )
+    # background_tasks.add_task(task)
     
     return user
 
@@ -117,12 +117,16 @@ async def get_user(
     request: runtime.Request = TaskiqDepends(),
     session: AsyncSession = Depends(db_session),
     token: str | None = Depends(auth.optional_oauth2_scheme),
-    api_token: str | None = Header(None, alias="X-API-Token")
+    api_token: str | None = Header(None, alias="X-API-Token"),
+    access_token: str | None = Cookie(None)
 ) -> models.User | None:
     """Returns the current user if authenticated, or None otherwise."""
 
     if getattr(request.state, "current_user", runtime.NOT_CHECKED) != runtime.NOT_CHECKED:
         return request.state.current_user  # type: ignore
+    
+    if not token:
+        token = access_token
         
     if token:
         try:
@@ -154,9 +158,8 @@ async def get_user(
 async def require_user(
     user: models.User | None = Depends(get_user),
 ) -> models.User:
-    """Requires an authenticated user, raises 401 if missing."""
     if not user:
-        raise exc.HTTPException(status_code=401, detail="Not authenticated")
+        raise exc.UserNotAuthenticatedException()
     return user
 
 async def require_admin(
@@ -166,8 +169,18 @@ async def require_admin(
         raise exc.HTTPException(status_code=403, detail="Admin privileges required")
     return user
 
+async def require_insider(
+    user: models.User = Depends(require_user),
+):
+    if not user.is_insider():
+        raise exc.PermissionDeniedException()
+    return user
+
 def mail_client(request: runtime.Request = TaskiqDepends(get_runtime_request)) -> mailer.Mailer:
     return request.app.state.mailer
+
+def get_bcrypt(request: runtime.Request = TaskiqDepends(get_runtime_request)):
+    return request.app.state.bcrypt
 
 def audit_log(request: runtime.Request = TaskiqDepends(get_runtime_request)):
     request.state.audit = audit.AuditLogger(request)

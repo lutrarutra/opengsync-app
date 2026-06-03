@@ -1,7 +1,57 @@
-from typing import Literal, Final, ClassVar
+from typing import Literal
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 import pytz
+
+class Personalization(BaseModel):
+    organization: str
+    email: str
+    internal_share_template: str | None = None
+
+
+class SampleSubmissionWindow(BaseModel):
+    weekday: int
+    start_time: str
+    end_time: str
+
+
+class DBConfig(BaseModel):
+    lab_protocol_start_number: int
+
+
+class SharePathMapping(BaseModel):
+    BSF_PROJECTS: str
+    BSF_SEQUENCES: str
+    BSF_SEQUENCES_10X: str
+
+
+class SchedulerConfig(BaseModel):
+    upload_folder_file_age_days: int
+    upload_folder_clean_schedule: str
+    rf_scan_interval_min: int
+    status_update_interval_min: int
+
+
+class AppConfig(BaseModel):
+    """Pydantic model for opengsync.yaml"""
+    personalization: Personalization
+    sample_submission_windows: list[SampleSubmissionWindow] = []
+    email_domain_white_list: list[str] = []
+    external_base_url: str | None = None
+    db: DBConfig
+    share_path_mapping: SharePathMapping
+    canary_files: dict[str, str] = dict()
+    app_root: str
+    media_folder: str
+    uploads_folder: str
+    app_data_folder: str
+    share_root: str
+    static_folder: str
+    template_folder: str
+    log_folder: str
+    illumina_run_folder: str
+    scheduler: SchedulerConfig
 
 class Settings(BaseSettings):
     SECRET_KEY: str = ""
@@ -9,8 +59,14 @@ class Settings(BaseSettings):
     SESSION_EXPIRE_SECONDS: int = 60 * 60 * 24 * 7  # 7 days
     ENVIRONMENT: Literal["dev", "prod", "test"] = "prod"
 
+    MAIL_SERVER: str = ""
+    MAIL_PORT: int = 587
+    MAIL_USER: str = ""
+    MAIL_PASSWORD: str = ""
+    MAIL_SENDER: str = ""
+
     # Database
-    POSTGRES_USER: str = "codeflower"
+    POSTGRES_USER: str = "admin"
     POSTGRES_PASSWORD: str = "password"
     POSTGRES_HOST: str = "localhost"
     POSTGRES_DB: str = "codeflower"
@@ -20,35 +76,7 @@ class Settings(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
 
-    HETZNER_ACCESS_KEY: str = ""
-    HETZNER_SECRET_KEY: str = ""
-
-    CLOUDFLARE_R2_ACCESS_KEY: str = ""
-    CLOUDFLARE_R2_SECRET_KEY: str = ""
-    CLOUDFLARE_ACCOUNT_ID: str = ""
-    CLOUDFLARE_ACCESS_CLIENT_ID: str = ""
-    CLOUDFLARE_ACCESS_CLIENT_SECRET: str = ""
-
-    AWS_ACCESS_KEY: str = ""
-    AWS_SECRET_KEY: str = ""
-
-    GCS_ACCESS_KEY: str = ""
-    GCS_SECRET_KEY: str = ""
-
-    RESEND_API_KEY: str = ""
-    EMAIL_SENDER: str = "CodeFlower <noreply@codeflower.com>"
-
-    PROXMOX_HOST: str = ""
-    PROXMOX_USER: str = "root@pam"
-    PROXMOX_API_TOKEN_NAME: str = ""
-    PROXMOX_API_TOKEN_VALUE: str = ""
-    PROXMOX_PORT: int = 8006
-
-    JWT_ALGORITHM: ClassVar[Final[str]] = "HS256"
-
-    REGISTRY_URL: str = "registry:5000"
-    
-    BINARY_PACKAGE_MAX_SIZE_BYTES: int = 20 * 1024 * 1024
+    JWT_ALGORITHM: str = "HS256"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
@@ -59,6 +87,15 @@ class Settings(BaseSettings):
     @property
     def REDIS_URL(self) -> str:
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}"
+    
+    def inject_app_config(self, cfg: AppConfig) -> None:
+        self._app_config = cfg
+
+    @property
+    def app_config(self) -> AppConfig:
+        if self._app_config is None:
+            raise RuntimeError("AppConfig has not been injected. Load it during startup.")
+        return self._app_config
 
 
 settings = Settings()

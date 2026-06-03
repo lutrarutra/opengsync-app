@@ -1,5 +1,7 @@
 from fastapi import HTTPException, status, Request, Response
 
+from ..forms import HTMXForm
+
 async def generic_exception_handler(request: Request, exc: Exception) -> Response:
     return Response(
         content=f"Internal server error: {str(exc)}",
@@ -13,8 +15,9 @@ class OpeNGSyncServerException(Exception):
     
 
 class FormValidationException(HTTPException):
-    def __init__(self, errors: dict[str, str], status_code: int = status.HTTP_409_CONFLICT):
-        super().__init__(status_code=status_code, detail=errors)
+    def __init__(self, form: HTMXForm, status_code: int = status.HTTP_409_CONFLICT):
+        super().__init__(status_code=status_code)
+        self.form = form
 
 class ItemNotFoundException(HTTPException):
     def __init__(self, message: str = "Item not found"):

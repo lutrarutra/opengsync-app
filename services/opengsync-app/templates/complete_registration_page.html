@@ -11,7 +11,7 @@
     </div>
 </div>
 <div class="page-content">
-    <div hx-get="{{ url_for('auth_htmx.complete_registration', token=token) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+    <div hx-get="{{ url_for('complete_registration_form', token=token) }}" hx-trigger="intersect once" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

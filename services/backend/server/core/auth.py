@@ -4,7 +4,7 @@ from opengsync_db import categories as cats
 
 
 class AuthResponse(BaseModel):
-    id: str
+    id: int
     username: str
     role: cats.UserRole
 

@@ -1,4 +1,6 @@
 import sys
+import os
+import yaml
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from loguru import logger
@@ -9,7 +11,7 @@ from fastapi_cache.backends.redis import RedisBackend
 
 from opengsync_db import AsyncDBHandler
 
-from . import config, mailer
+from . import config, mailer, secrets
 
 
 @asynccontextmanager
@@ -28,6 +30,15 @@ async def lifespan(app: FastAPI):
         level="DEBUG" if config.settings.ENVIRONMENT != "prod" else "INFO"
     )
 
+    if os.path.exists(config_path := "/app/opengsync.yaml"):
+        with open(config_path, "r") as f:
+            raw = yaml.safe_load(f)
+        app_config = config.AppConfig.model_validate(raw)
+        config.settings.inject_app_config(app_config)
+        logger.info("AppConfig injected from opengsync.yaml")
+    else:
+        logger.warning("opengsync.yaml not found, app_config unavailable")
+
     app.state.db_handler = AsyncDBHandler()
     await app.state.db_handler.connect(
         user=config.settings.POSTGRES_USER,
@@ -43,6 +54,12 @@ async def lifespan(app: FastAPI):
     
     app.state.mailer = mailer.Mailer()
     app.state.redis_pool = ConnectionPool.from_url(config.settings.REDIS_URL)
+    app.state.bcrypt = secrets.BcryptCompat()
+
+    from .templates import j2
+    from .config import settings
+    j2.env.globals["contact_email"] = settings.app_config.personalization.email
+    j2.env.globals["organization_name"] = settings.app_config.personalization.organization
 
     FastAPICache.init(RedisBackend(Redis(connection_pool=app.state.redis_pool)), prefix="fastapi-cache")
     yield

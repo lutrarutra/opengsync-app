@@ -284,7 +284,7 @@
                 <div class="flip-card card {% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %}"
                     {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                    hx-get="{{ url_for('merge_pools_workflow.begin', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('begin_merge_pools_workflow', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click"
                     {% else %}{{ tooltip("You can no longer edit libraries after the request has been submitted.", category="warning") }}{% endif %}>
@@ -309,7 +309,7 @@
                 <div class="flip-card card{% if seq_request.status != SeqRequestStatus.DRAFT and not current_user.is_insider() %} disabled text-muted{% endif %}"
                     {% if seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('reindex_workflow.begin', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('begin_reindex_workflow', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                     {% else %}{{ tooltip("You can no longer edit libraries after the request has been submitted.", category="warning") }}{% endif %}>
                     <div class="flip-card-container">
@@ -352,7 +352,7 @@
                 {% if current_user.is_insider() %}
                 <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('reseq_workflow.begin', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('begin_reseq_workflow', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
                     <div class="flip-card-container">
                         <div class="card-front">
@@ -372,7 +372,7 @@
                 </div>
                 <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('relib_workflow.begin', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('begin_relib_workflow', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click">
                     <div class="flip-card-container">

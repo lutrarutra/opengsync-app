@@ -7,7 +7,7 @@
             <h1>Authentication</h1>
         </div>
         <div class="page-controls">
-            <button type="button"  class="btn btn-warning" hx-get="{{ url_for('auth_htmx.register') }}"
+            <button type="button"  class="btn btn-warning" hx-get="{{ url_for('get_register_form') }}"
             data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content">
                 Register
             </button>
@@ -15,7 +15,7 @@
     </div>
 </div>
 <div class="page-content">
-    <div hx-get="{{ url_for('auth_htmx.login', next=next) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+    <div hx-get="{{ url_for('get_login_form') }}" hx-trigger="intersect once" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>
