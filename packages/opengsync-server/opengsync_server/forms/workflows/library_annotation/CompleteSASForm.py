@@ -496,4 +496,4 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
         os.makedirs(newdir, exist_ok=True)
         self.complete()
 
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id))
+        return make_response(redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id))

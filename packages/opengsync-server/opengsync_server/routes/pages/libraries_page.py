@@ -30,8 +30,8 @@ def library(current_user: models.User, library_id: int):
         page, id = _from.split("@")
         if page == "seq_request":
             path_list = [
-                ("Requests", url_for("seq_requests_page.seq_requests")),
-                (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
+                ("Requests", url_for("seq_request_pages")),
+                (f"Request {id}", url_for("seq_request_page", seq_request_id=id)),
                 (f"Library {library.id}", ""),
             ]
         elif page == "experiment":

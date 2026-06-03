@@ -56,4 +56,4 @@ class AddSeqRequestAssigneeForm(HTMXFlaskForm):
         db.seq_requests.update(self.seq_request)
         
         flash(f"Assignee Added Successfully!", "success")
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id, tab="request-assignees-tab"))
+        return make_response(redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id, tab="request-assignees-tab"))

@@ -154,7 +154,7 @@
                 {{ 
                     metadata_group_link(
                         "Request", library.seq_request.name,
-                        url_for("seq_requests_page.seq_request", seq_request_id=library.seq_request_id, from="library@" + library.id | string),
+                        url_for("seq_request_page", seq_request_id=library.seq_request_id, from="library@" + library.id | string),
                         class="col-4"
                     )
                 }}

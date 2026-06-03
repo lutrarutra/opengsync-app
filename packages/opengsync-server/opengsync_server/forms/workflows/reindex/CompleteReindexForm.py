@@ -173,7 +173,7 @@ class CompleteReindexForm(MultiStepForm):
         self.complete()
         
         if self.seq_request is not None:
-            return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id))
+            return make_response(redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id))
         if self.lab_prep is not None:
             return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))
         if self.pool is not None:

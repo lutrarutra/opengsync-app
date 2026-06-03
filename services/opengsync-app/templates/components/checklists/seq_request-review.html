@@ -259,7 +259,7 @@
                 <ul>
                     <li>Check overall relationship structure of the submitted samples, libraries, pooling, and projects.</li>
                 </ul>
-                <a class="btn btn-primary" href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id, tab='request-overview-tab') }}" target="_blank">Open Overview</a>
+                <a class="btn btn-primary" href="{{ url_for('seq_request_page', seq_request_id=seq_request.id, tab='request-overview-tab') }}" target="_blank">Open Overview</a>
                 <hr>
                 {% if not check_overview %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"

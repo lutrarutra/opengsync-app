@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, Query, Request, Response
+from sqlalchemy import orm
 
 from opengsync_db import models, AsyncSession, queries as Q, categories as C
 
-from ...core import dependencies, responses, secrets
+from ...core import dependencies, responses, exceptions as exc
 from ... import forms
 
 router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
@@ -13,6 +14,11 @@ async def recent_seq_requests(
     current_user: models.User = Depends(dependencies.require_user),
     session: AsyncSession = Depends(dependencies.db_session)
 ):
+    options = [
+        orm.selectinload(models.SeqRequest.assignees),
+        orm.selectinload(models.SeqRequest.requestor),
+        orm.with_expression(models.SeqRequest.num_libraries_, models.SeqRequest.num_libraries.expression),
+    ]
     if current_user.is_insider():        
         query = Q.seq_request.select(
             status_in=[
@@ -25,7 +31,6 @@ async def recent_seq_requests(
             models.SeqRequest.timestamp_submitted_utc.desc()
         )
         
-        seq_requests, num_total = await session.page(query, limit=10, page=page)
     else:
         query = Q.seq_request.select(
             status_in=[
@@ -39,9 +44,9 @@ async def recent_seq_requests(
             models.SeqRequest.timestamp_submitted_utc.desc()
         )
 
-        seq_requests, num_total = await session.page(query, limit=10, page=page)
+    seq_requests, num_total = await session.page(query, limit=10, page=page, options=options)
 
-    return responses.htmx_response("components/dashboard/seq_requests-list.html", seq_requests=seq_requests, num_total=num_total, page=page)
+    return await responses.htmx_response("components/dashboard/seq_requests-list.html", seq_requests=seq_requests, num_total=num_total, current_page=page, limit=10)
 
 
 # ---------------------------------------------------------------------------
@@ -121,3 +126,30 @@ async def edit_seq_request(
         form_type="edit",
         seq_request_id=seq_request_id,
     )
+
+
+@router.post("/add-assignee")
+async def add_assignee_to_seq_request(
+    seq_request_id: int = Query(...),
+    assignee_id: int | None = Query(None),
+    session: AsyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_insider),
+):
+    """Add an assignee to a SeqRequest."""
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    
+    if assignee_id is not None:
+        assignee = await session.get_one(Q.user.select(id=assignee_id))
+    else:
+        assignee = current_user
+    
+    if not assignee.is_insider():
+        raise exc.PermissionDeniedException("Assignee must be an insider.")
+    
+    if assignee in seq_request.assignees:
+        raise exc.BadRequestException("User is already an assignee.")
+    
+    seq_request.assignees.append(assignee)
+    await session.save(seq_request)
+    # flash("Assignee Added.", "success")
+    return await responses.htmx_response(redirect="dashboard")

@@ -138,7 +138,7 @@ def delete(current_user: models.User, seq_request_id: int):
 
     flash(f"Deleted sequencing request '{seq_request.name}'", "success")
     return make_response(
-        redirect=url_for("seq_requests_page.seq_requests"),
+        redirect=url_for("seq_request_pages"),
     )
 
 
@@ -157,7 +157,7 @@ def archive(current_user: models.User, seq_request_id: int):
     flash(f"Archived sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Archived sequencing request '{seq_request.name}'")
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
+        redirect=url_for("seq_request_page", seq_request_id=seq_request.id),
     )
 
 
@@ -177,7 +177,7 @@ def unarchive(current_user: models.User, seq_request_id: int):
     logger.debug(f"Unarchived sequencing request '{seq_request.name}'")
 
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
+        redirect=url_for("seq_request_page", seq_request_id=seq_request.id),
     )
 
 
@@ -300,7 +300,7 @@ def delete_file(current_user: models.User, seq_request_id: int, file_id: int):
 
     logger.info(f"Deleted file '{file.name}' from request (id='{seq_request_id}')")
     flash(f"Deleted file '{file.name}' from request.", "success")
-    return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request_id))
+    return make_response(redirect=url_for("seq_request_page", seq_request_id=seq_request_id))
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["DELETE"])
@@ -334,7 +334,7 @@ def remove_auth_form(current_user: models.User, seq_request_id: int):
     logger.debug(f"Removed sequencing authorization form for sequencing request '{seq_request.name}'")
 
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id),
+        redirect=url_for("seq_request_page", seq_request_id=seq_request.id),
     )
 
 
@@ -446,7 +446,7 @@ def remove_all_libraries(current_user: models.User, seq_request_id: int):
     logger.debug(f"Removed all libraries from sequencing request '{seq_request.name}'")
 
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request_id),
+        redirect=url_for("seq_request_page", seq_request_id=seq_request_id),
     )
 
 
@@ -499,7 +499,7 @@ def remove_share_email(current_user: models.User, seq_request_id: int, email: st
 
     flash(f"Removed email!", "success")
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id, tab="request-share-tab"),
+        redirect=url_for("seq_request_page", seq_request_id=seq_request.id, tab="request-share-tab"),
     )
 
 
@@ -659,7 +659,7 @@ def clone(current_user: models.User, seq_request_id: int, method: Literal["poole
     cloned_request = db.seq_requests.clone(seq_request_id=seq_request.id, method=method)
 
     flash("Request cloned", "success")
-    return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=cloned_request.id))
+    return make_response(redirect=url_for("seq_request_page", seq_request_id=cloned_request.id))
 
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
@@ -914,7 +914,7 @@ def check_review_step(current_user: models.User, seq_request_id: int, step: str)
     db.seq_requests.update(seq_request)
 
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id, tab="review-tab")
+        redirect=url_for("seq_request_page", seq_request_id=seq_request.id, tab="review-tab")
     )
 
 
@@ -934,7 +934,7 @@ def uncheck_review_step(current_user: models.User, seq_request_id: int, step: st
     db.seq_requests.update(seq_request)
 
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id, tab="review-tab")
+        redirect=url_for("seq_request_page", seq_request_id=seq_request.id, tab="review-tab")
     )
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
@@ -957,5 +957,5 @@ def confirm_barcodes(current_user: models.User, seq_request_id: int):
         
     db.seq_requests.update(seq_request)
     return make_response(
-        redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id)
+        redirect=url_for("seq_request_page", seq_request_id=seq_request.id)
     )

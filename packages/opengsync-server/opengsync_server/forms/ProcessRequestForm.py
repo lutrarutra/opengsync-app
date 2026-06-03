@@ -83,4 +83,4 @@ class ProcessRequestForm(HTMXFlaskForm):
                 user.assigned_seq_requests.append(seq_request)
                 db.users.update(user)
 
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
+        return make_response(redirect=url_for("seq_request_page", seq_request_id=seq_request.id))

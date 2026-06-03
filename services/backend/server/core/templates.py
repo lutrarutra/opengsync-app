@@ -5,7 +5,7 @@ import pandas as pd
 import jinja2
 from fastapi.templating import Jinja2Templates
 
-from opengsync_db import categories as cats
+from opengsync_db import categories as C, models
 from opengsync_db import units
 
 from .config import settings
@@ -121,34 +121,34 @@ j2.env.globals["api_version"] = "dev"
 j2.env.globals["db_version"] = "dev"
 
 # Categories
-j2.env.globals["ExperimentStatus"] = cats.ExperimentStatus
-j2.env.globals["SeqRequestStatus"] = cats.SeqRequestStatus
-j2.env.globals["LibraryStatus"] = cats.LibraryStatus
-j2.env.globals["UserRole"] = cats.UserRole
-j2.env.globals["DataDeliveryMode"] = cats.DataDeliveryMode
-j2.env.globals["GenomeRef"] = cats.GenomeRef
-j2.env.globals["LibraryType"] = cats.LibraryType
-j2.env.globals["PoolStatus"] = cats.PoolStatus
-j2.env.globals["ServiceType"] = cats.ServiceType
-j2.env.globals["SampleStatus"] = cats.SampleStatus
-j2.env.globals["RunStatus"] = cats.RunStatus
-j2.env.globals["SubmissionType"] = cats.SubmissionType
-j2.env.globals["AttributeType"] = cats.AttributeType
-j2.env.globals["IndexType"] = cats.IndexType
-j2.env.globals["EventType"] = cats.EventType
-j2.env.globals["PrepStatus"] = cats.PrepStatus
-j2.env.globals["LabChecklistType"] = cats.LabChecklistType
-j2.env.globals["PoolType"] = cats.PoolType
-j2.env.globals["KitType"] = cats.KitType
-j2.env.globals["AffiliationType"] = cats.AffiliationType
-j2.env.globals["ProjectStatus"] = cats.ProjectStatus
-j2.env.globals["MediaFileType"] = cats.MediaFileType
-j2.env.globals["MUXType"] = cats.MUXType
-j2.env.globals["DataPathType"] = cats.DataPathType
-j2.env.globals["ExperimentWorkFlow"] = cats.ExperimentWorkFlow
-j2.env.globals["DeliveryStatus"] = cats.DeliveryStatus
-j2.env.globals["TaskStatus"] = cats.TaskStatus
-j2.env.globals["FlowCellType"] = cats.FlowCellType
+j2.env.globals["ExperimentStatus"] = C.ExperimentStatus
+j2.env.globals["SeqRequestStatus"] = C.SeqRequestStatus
+j2.env.globals["LibraryStatus"] = C.LibraryStatus
+j2.env.globals["UserRole"] = C.UserRole
+j2.env.globals["DataDeliveryMode"] = C.DataDeliveryMode
+j2.env.globals["GenomeRef"] = C.GenomeRef
+j2.env.globals["LibraryType"] = C.LibraryType
+j2.env.globals["PoolStatus"] = C.PoolStatus
+j2.env.globals["ServiceType"] = C.ServiceType
+j2.env.globals["SampleStatus"] = C.SampleStatus
+j2.env.globals["RunStatus"] = C.RunStatus
+j2.env.globals["SubmissionType"] = C.SubmissionType
+j2.env.globals["AttributeType"] = C.AttributeType
+j2.env.globals["IndexType"] = C.IndexType
+j2.env.globals["EventType"] = C.EventType
+j2.env.globals["PrepStatus"] = C.PrepStatus
+j2.env.globals["LabChecklistType"] = C.LabChecklistType
+j2.env.globals["PoolType"] = C.PoolType
+j2.env.globals["KitType"] = C.KitType
+j2.env.globals["AffiliationType"] = C.AffiliationType
+j2.env.globals["ProjectStatus"] = C.ProjectStatus
+j2.env.globals["MediaFileType"] = C.MediaFileType
+j2.env.globals["MUXType"] = C.MUXType
+j2.env.globals["DataPathType"] = C.DataPathType
+j2.env.globals["ExperimentWorkFlow"] = C.ExperimentWorkFlow
+j2.env.globals["DeliveryStatus"] = C.DeliveryStatus
+j2.env.globals["TaskStatus"] = C.TaskStatus
+j2.env.globals["FlowCellType"] = C.FlowCellType
 
 # Utilities
 j2.env.globals["isna"] = pd.isna
@@ -160,20 +160,56 @@ j2.env.globals["SpreadSheetErrors"] = [
     # ssc.DuplicateCellValue(""),
 ]
 
+def prioritize_current_user(users: list[models.User], current_user: models.User) -> list[models.User]:
+    return sorted(
+        users,
+        key=lambda user: 0 if user == current_user else 1
+    )
+
+j2.env.filters["prioritize_current_user"] = prioritize_current_user
+
 
 @jinja2.pass_context
 def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
-    """Custom url_for that handles static files without needing request.url_for."""
+    """Custom url_for that handles static files without needing request.url_for.
+    
+    Unlike Flask, Starlette's url_for only substitutes path parameters and
+    ignores extra kwargs. This wrapper appends leftover kwargs as query params.
+    """
     request = ctx.get("request")
     if request is not None:
+        # Separate path params from query params BEFORE calling url_for,
+        # otherwise Starlette raises NoMatchFound for unknown kwargs.
+        route_param_names = _get_route_param_names(request.app.router, name)
+        url_kwargs = {k: v for k, v in path_params.items() if k in route_param_names}
+        query_kwargs = {k: v for k, v in path_params.items() if k not in route_param_names}
+
         try:
-            return request.url_for(name, **path_params)
+            url = request.url_for(name, **url_kwargs)
         except Exception:
             if name == "static":
                 filename = path_params.get("filename", "")
                 return f"/static/{filename.lstrip('/')}"
             raise
+
+        if query_kwargs:
+            from urllib.parse import urlencode
+            url = f"{url}?{urlencode(query_kwargs)}"
+
+        return url
     raise RuntimeError(f"Cannot generate URL for '{name}' without a request context")
+
+
+def _get_route_param_names(router, name: str) -> set:
+    """Extract the set of path parameter names for a given route name."""
+    for route in router.routes:
+        if getattr(route, "name", None) == name:
+            if hasattr(route, "param_convertors"):
+                return set(route.param_convertors.keys())
+            # Fallback: parse from path
+            import re
+            return set(re.findall(r"{(\w+)}", route.path))
+    return set()
 
 j2.env.globals["url_for"] = url_for
 

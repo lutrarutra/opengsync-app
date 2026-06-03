@@ -28,7 +28,7 @@
                     <div class="scroll-container">
                         {% for library_link in sample.library_links %}
                         {% set library = library_link.library %}
-                        <span class="badge"><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=library.seq_request_id, from='project@' + project.id | string) }}">{{ library.type.abbreviation }}</a></span>
+                        <span class="badge"><a href="{{ url_for('seq_request_page', seq_request_id=library.seq_request_id, from='project@' + project.id | string) }}">{{ library.type.abbreviation }}</a></span>
                         {% endfor %}
                     </div>
                 </td>

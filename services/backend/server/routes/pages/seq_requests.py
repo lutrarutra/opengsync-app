@@ -13,7 +13,7 @@ async def seq_requests():
 
 
 @router.get("/{seq_request_id}")
-async def seq_request(
+async def seq_request_page(
     seq_request_id: int,
     current_user: models.User = Depends(dependencies.require_user),
 ):

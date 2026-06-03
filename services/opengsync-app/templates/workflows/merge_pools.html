@@ -106,7 +106,7 @@
                     {{                     
                         metadata_group_link(
                             "Request", pool.seq_request.name,
-                            url_for("seq_requests_page.seq_request", seq_request_id=pool.seq_request_id, from='pool@' + pool.id | string),
+                            url_for("seq_request_page", seq_request_id=pool.seq_request_id, from='pool@' + pool.id | string),
                             class="col-3"
                         )
                     }}

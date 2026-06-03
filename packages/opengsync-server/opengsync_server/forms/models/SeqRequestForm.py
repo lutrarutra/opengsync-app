@@ -433,7 +433,7 @@ class SeqRequestForm(HTMXFlaskForm):
         flash("Changes Saved!", "success")
         logger.info(f"Updated sequencing request '{self.seq_request.name}'")
 
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),)
+        return make_response(redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id),)
     
     def __create_new_request(self) -> Response:
         contact_person = db.contacts.create_contact(
@@ -509,7 +509,7 @@ class SeqRequestForm(HTMXFlaskForm):
         flash("Request Created!", "success")
         logger.info(f"Created new sequencing request '{seq_request.name}'")
 
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
+        return make_response(redirect=url_for("seq_request_page", seq_request_id=seq_request.id))
     
     def process_request(self) -> Response:
         if not self.validate():

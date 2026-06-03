@@ -56,7 +56,7 @@
                     context_menu([
                         {"type": "copy", "value": library.seq_request.name, "label": "Copy Name"},
                     ])
-                }}><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=library.seq_request_id) }}">{{ library.seq_request.name }}</a></td>
+                }}><a href="{{ url_for('seq_request_page', seq_request_id=library.seq_request_id) }}">{{ library.seq_request.name }}</a></td>
                 <td class="x-scroll-cell">
                     {{ library_index_cell(library) }}
                 </td>

@@ -6,15 +6,15 @@
 {% for seq_request in seq_requests %}
 {% if loop.last and limit == loop.index %}
 <div class="element-banner"
-hx-get="{{ url_for('seq_requests_htmx.get_recent', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#seq_requests-htmx-indicator" hx-swap="outerHTML" hx-indicator="#seq_requests-htmx-indicator">
+hx-get="{{ url_for('recent_seq_requests', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#seq_requests-htmx-indicator" hx-swap="outerHTML" hx-indicator="#seq_requests-htmx-indicator">
 {% else %}
 <div class="element-banner">
 {% endif %}
     <div class="row">
-        <div class="col-6"><a href="{{ url_for('seq_requests_page.seq_request', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a> {% if seq_request.assignees %} - {{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}</div>
+        <div class="col-6"><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a> {% if seq_request.assignees %} - {{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}</div>
         <div class="col-6">
             {% if current_user.is_insider() and current_user not in seq_request.assignees %}
-            <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('seq_requests_htmx.add_assignee', seq_request_id=seq_request.id) }}"><i class="bi bi-person-fill-add"></i></button>
+            <button type="button" {{ tooltip("Assign yourself", category="success", position="left") }} class="btn" hx-post="{{ url_for('add_assignee_to_seq_request', seq_request_id=seq_request.id) }}"><i class="bi bi-person-fill-add"></i></button>
             {% endif %}
             <span class="badge">{{ seq_request.timestamp_submitted_str("%-d. %b.") }}</span>
             <span class="badge">{{ seq_request.submission_type.display_name }}</span>
@@ -22,7 +22,7 @@ hx-get="{{ url_for('seq_requests_htmx.get_recent', page=current_page + 1) }}" hx
     </div>
     <div class="row pb-1">
         <div class="col-8"><b>{{ seq_request.requestor.name }}</b>: <i>{{ seq_request.name }}</i></div>
-        <div class="col-4"><span class="badge">Libraries: {{ seq_request.num_libraries }}</span></div>
+        <div class="col-4"><span class="badge">Libraries: {{ seq_request.num_libraries_ }}</span></div>
     </div>
     {{ seq_request_status_bar(seq_request) }}
 </div>
