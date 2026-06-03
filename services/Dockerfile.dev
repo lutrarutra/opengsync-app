@@ -1,5 +1,5 @@
 # --- BASE: Common system deps and uv setup ---
-FROM python:3.13-slim AS base
+FROM python:3.14-slim AS base
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV PATH="/app/.venv/bin:$PATH" \
@@ -32,10 +32,8 @@ FROM builder AS opengsync-app
 # RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
 
 COPY packages /app/packages
-COPY ./services/opengsync-app/scripts /app/scripts
+COPY services/backend ./services/backend
 RUN uv sync --frozen
-RUN chmod +x /app/scripts/entrypoint.sh
-ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 
 # --- CELERY BASE ---
 FROM builder AS celery-base

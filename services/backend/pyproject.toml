@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=70.1", "setuptools-scm[simple]>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "server"
+dynamic = ["version"]
+authors = [
+    { name = "lutrarutra", email = "lutrarutra@pm.me" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "opengsync-db",
+    "loguru >= 0.7",
+    "fastapi < 0.133.0", #https://github.com/taskiq-python/taskiq-fastapi/pull/27 when this get merged we can update this
+    "uvicorn[standard]",
+    "gunicorn",
+    "pydantic[email]",
+    "pydantic-settings",
+    "redis",
+    "uuid6",
+    "websockets",
+    "python-multipart",
+    "pyJWT",
+    "passlib[argon2]",
+    "boto3",
+    "httpx",
+    "resend",
+    "premailer",
+    "jinja2",
+    "taskiq",
+    "proxmoxer",
+    "fastapi-cache2",
+]
+
+[tool.setuptools_scm]
+root = "../.."
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+opengsync-db = { workspace = true }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["server*"]
+
+[tool.setuptools.package-data]
+"server.templates" = ["templates/**/*.*"]
+
+[project.optional-dependencies]
+worker = [
+]
