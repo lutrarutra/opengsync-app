@@ -121,6 +121,6 @@ def select(current_user: models.User):
 
     flash("Samples Stored!", "success")
     if _seq_request is not None:
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=_seq_request.id))
+        return make_response(redirect=url_for("seq_request_page", seq_request_id=_seq_request.id))
     
     return make_response(redirect=url_for("dashboard"))

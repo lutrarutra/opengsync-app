@@ -123,7 +123,7 @@ class LibraryPropertyForm(HTMXFlaskForm):
         if self.project is not None:
             return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="libraries-tab"))
         elif self.seq_request is not None:
-            return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id, tab="request-libraries-tab"))
+            return make_response(redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id, tab="request-libraries-tab"))
         else:
             logger.error("Either project or seq_request must be provided.")
             raise ValueError("Either project or seq_request must be provided.")

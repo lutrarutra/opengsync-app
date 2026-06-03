@@ -94,4 +94,4 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
             "Sequencing Request Submitted for Review!",
             render_template("components/after-seq_request-submit-info.html", email=self.seq_request.contact_person.email or self.seq_request.requestor.email)
         )
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),)
+        return make_response(redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id),)

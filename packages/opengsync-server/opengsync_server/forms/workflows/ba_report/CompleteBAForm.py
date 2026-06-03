@@ -163,7 +163,7 @@ class CompleteBAForm(MultiStepForm):
         if (experiment_id := self.metadata.get("experiment_id")) is not None:
             url = url_for("experiments_page.experiment", experiment_id=experiment_id)
         elif (seq_request_id := self.metadata.get("seq_request_id")) is not None:
-            url = url_for("seq_requests_page.seq_request", seq_request_id=seq_request_id)
+            url = url_for("seq_request_page", seq_request_id=seq_request_id)
         elif (pool_id := self.metadata.get("pool_id")) is not None:
             url = url_for("pools_page.pool", pool_id=pool_id)
         elif (lab_prep_id := self.metadata.get("lab_prep_id")) is not None:

@@ -82,4 +82,4 @@ class ProcessRequestForm(HTMXFlaskForm):
             if seq_request not in user.assigned_seq_requests:
                 user.assigned_seq_requests.append(seq_request)
 
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))
+        return make_response(redirect=url_for("seq_request_page", seq_request_id=seq_request.id))

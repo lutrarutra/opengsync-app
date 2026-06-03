@@ -41,8 +41,8 @@ def pool(current_user: models.User, pool_id: int):
             ]
         elif page == "seq_request":
             path_list = [
-                ("Requests", url_for("seq_requests_page.seq_requests")),
-                (f"Request {id}", url_for("seq_requests_page.seq_request", seq_request_id=id)),
+                ("Requests", url_for("seq_request_pages")),
+                (f"Request {id}", url_for("seq_request_page", seq_request_id=id)),
                 (f"Pool {pool_id}", ""),
             ]
         elif page == "lab_prep":

@@ -22,7 +22,7 @@ def seq_request(current_user: models.User, seq_request_id: int):
         raise exceptions.NoPermissionsException()
 
     path_list = [
-        ("Requests", url_for("seq_requests_page.seq_requests")),
+        ("Requests", url_for("seq_request_pages")),
         (f"Request {seq_request_id}", ""),
     ]
     if (_from := request.args.get("from")) is not None:

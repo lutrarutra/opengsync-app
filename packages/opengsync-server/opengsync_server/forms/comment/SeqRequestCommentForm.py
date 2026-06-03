@@ -26,4 +26,4 @@ class SeqRequestCommentForm(CommentForm):
         ))
 
         flash("Comment added successfully.", "success")
-        return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id, tab="request-comments-tab"))
+        return make_response(redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id, tab="request-comments-tab"))

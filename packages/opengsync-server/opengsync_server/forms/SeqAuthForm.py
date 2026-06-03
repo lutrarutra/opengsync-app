@@ -65,5 +65,5 @@ class SeqAuthForm(HTMXFlaskForm):
         flash("Authorization form uploaded!", "success")
 
         return make_response(
-            redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),
+            redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id),
         )
