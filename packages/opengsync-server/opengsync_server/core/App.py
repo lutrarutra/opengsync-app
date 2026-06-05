@@ -17,7 +17,7 @@ from jinja2 import StrictUndefined
 from flask_session import Session
 from flask_session.base import ServerSideSession
 
-from opengsync_db import categories, models, TIMEZONE, __version__ as db_version
+from opengsync_db import categories, models, TIMEZONE, __version__ as db_version, queries as Q
 from opengsync_db.core import units
 from opengsync_api import __version__ as api_version
 
@@ -176,10 +176,6 @@ class App(Flask):
                 "No email domain white list configured. All domains are allowed."
             )
 
-        db.lab_protocol_start_number = int(
-            opengsync_config["db"]["lab_protocol_start_number"]
-        )
-
         @self.before_request
         def before_request():
             runtime.session["from_url"] = request.referrer
@@ -200,18 +196,12 @@ class App(Flask):
 
             if request.endpoint == "static":
                 return response
-
-            # try:
-            #     if (start_time := getattr(g, "start_time", None)) is not None:
-            #         duration_ms = int((time.time() - start_time) * 1000)
-            # except KeyError:
-            #     pass
             
             return response
 
         @login_manager.user_loader
         def load_user(user_id: int) -> models.User | None:
-            if (user := db.users.get(user_id)) is None:
+            if (user := db.first()) is None:
                 logger.error(f"User not found: {user_id}")
                 return None
             return user
