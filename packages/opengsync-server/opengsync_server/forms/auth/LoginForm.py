@@ -4,9 +4,9 @@ from flask_htmx import make_response
 from wtforms import EmailField, PasswordField
 from wtforms.validators import DataRequired, Email
 
-from opengsync_db.categories import UserRole
+from opengsync_db import categories as C, queries as Q
 
-from ... import bcrypt, db, logger
+from ... import bcrypt, db
 from ..HTMXFlaskForm import HTMXFlaskForm
 from ...core import runtime
 
@@ -29,7 +29,7 @@ class LoginForm(HTMXFlaskForm):
             return self.make_response()
 
         # invalid email
-        if (user := db.users.get_with_email(self.email.data)) is None:  # type: ignore
+        if (user := db.session.first(Q.user.select(email=self.email.data))) is None:
             self.email.errors = ("Invalid email, password, or inactive account.",)
             self.password.errors = ("Invalid email, password, or inactive account.",)
             return self.make_response()
@@ -45,14 +45,14 @@ class LoginForm(HTMXFlaskForm):
             self.password.errors = ("Invalid email, password, or inactive account.",)
             return self.make_response()
         
-        if user.role == UserRole.DEACTIVATED:
+        if user.role == C.UserRole.DEACTIVATED:
             self.email.errors = ("Account is deactivated. Please contact us to activate your account.",)
             return self.make_response()
         
-        if user.role == UserRole.TEMPORARY:
+        if user.role == C.UserRole.TEMPORARY:
             self.email.errors = ("Account is deactivated. Please contact us to activate your account.",)
-            user.role = UserRole.DEACTIVATED
-            db.users.update(user)
+            user.role = C.UserRole.DEACTIVATED
+            db.session.save(user)
             return self.make_response()
         
         runtime.session.clear()

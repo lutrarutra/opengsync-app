@@ -3,7 +3,7 @@ from flask_htmx import make_response
 from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired, Length
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ... import logger, db
 from ...core import exceptions
@@ -14,7 +14,7 @@ class FlowCellDesignForm(HTMXFlaskForm):
     _template_path = "forms/flow_cell_design.html"
 
     name = StringField("Name", validators=[DataRequired(), Length(min=1, max=models.FlowCellDesign.name.type.length)])
-    flow_cell_type_id = SelectField("Flow Cell Type", coerce=int, choices=[(-1, "-")] + cats.FlowCellType.as_selectable())
+    flow_cell_type_id = SelectField("Flow Cell Type", coerce=int, choices=[(-1, "-")] + C.FlowCellType.as_selectable())
 
     def __init__(
         self, flow_cell_design: models.FlowCellDesign | None, formdata: dict | None = None,
@@ -37,7 +37,7 @@ class FlowCellDesignForm(HTMXFlaskForm):
         
         if self.flow_cell_type_id.data != -1:
             try:
-                cats.FlowCellType.get(self.flow_cell_type_id.data)
+                C.FlowCellType.get(self.flow_cell_type_id.data)
             except ValueError:
                 self.flow_cell_type_id.errors = ("Invalid flow cell type selected.",)
                 return False

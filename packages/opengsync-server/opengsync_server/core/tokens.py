@@ -1,6 +1,6 @@
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 def generate_file_share_token(path: str, serializer: URLSafeTimedSerializer) -> str:
     return str(serializer.dumps({"path": path}))
@@ -15,15 +15,15 @@ def generate_reset_token(user: models.User, serializer: URLSafeTimedSerializer) 
     return str(serializer.dumps({"id": user.id, "email": user.email, "hash": user.password}))
 
 
-def generate_registration_token(email: str, serializer: URLSafeTimedSerializer, role: cats.UserRole = cats.UserRole.CLIENT) -> str:
+def generate_registration_token(email: str, serializer: URLSafeTimedSerializer, role: C.UserRole = C.UserRole.CLIENT) -> str:
     return str(serializer.dumps({"email": email, "role": role.id}))
 
 
-def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) -> tuple[str, cats.UserRole] | None:
+def verify_registration_token(token: str, serializer: URLSafeTimedSerializer) -> tuple[str, C.UserRole] | None:
     try:
         data = serializer.loads(token, max_age=24 * 3600)
         email = data["email"]
-        role = cats.UserRole.get(data.get("role", cats.UserRole.CLIENT.id))
+        role = C.UserRole.get(data.get("role", C.UserRole.CLIENT.id))
     except SignatureExpired:
         return None
     except BadSignature:

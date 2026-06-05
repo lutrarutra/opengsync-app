@@ -41,7 +41,7 @@ class ChangePasswordForm(HTMXFlaskForm):
         
         hashed_password = bcrypt.generate_password_hash(self.new_password.data).decode("utf-8")
         self.user.password = hashed_password
-        db.users.update(self.user)
+        db.session.save(self.user)
         logger.info(f"Password changed for user {self.user.email}")
         user_id = self.user.id
         logout_user()

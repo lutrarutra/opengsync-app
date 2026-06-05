@@ -3,7 +3,7 @@ from typing import cast
 
 from flask import Request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -15,9 +15,9 @@ class PoolTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
-        TableCol(title="Library Types", label="library_types", col_size=2, choices=cats.LibraryType.as_selectable()),
-        TableCol(title="Status", label="status", col_size=2, sortable=True, sort_by="status_id", choices=cats.PoolStatus.as_selectable()),
-        TableCol(title="Type", label="type", col_size=1, sortable=True, sort_by="type_id", choices=cats.PoolType.as_selectable()),
+        TableCol(title="Library Types", label="library_types", col_size=2, choices=C.LibraryType.as_selectable()),
+        TableCol(title="Status", label="status", col_size=2, sortable=True, sort_by="status_id", choices=C.PoolStatus.as_selectable()),
+        TableCol(title="Type", label="type", col_size=1, sortable=True, sort_by="type_id", choices=C.PoolType.as_selectable()),
         TableCol(title="Owner", label="owner", col_size=2, searchable=True),
         TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
     ]
@@ -31,7 +31,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
-            status_in = [cats.PoolStatus.get(int(status)) for status in status_in]
+            status_in = [C.PoolStatus.get(int(status)) for status in status_in]
             if status_in:
                 fnc_context["status_in"] = status_in
                 table.filter_values["status"] = status_in
@@ -41,7 +41,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (type_in := request.args.get("type_in")):
         type_in = json.loads(type_in)
         try:
-            type_in = [cats.PoolType.get(int(type)) for type in type_in]
+            type_in = [C.PoolType.get(int(type)) for type in type_in]
             if type_in:
                 fnc_context["type_in"] = type_in
                 table.filter_values["type"] = type_in
@@ -51,7 +51,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (library_types_in := request.args.get("library_types_in")):
         library_types_in = json.loads(library_types_in)
         try:
-            library_types_in = [cats.LibraryType.get(int(library_type)) for library_type in library_types_in]
+            library_types_in = [C.LibraryType.get(int(library_type)) for library_type in library_types_in]
             if library_types_in:
                 fnc_context["library_types_in"] = library_types_in
                 table.filter_values["library_types"] = library_types_in
@@ -101,7 +101,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         context["can_edit_pooling"] = (
             (
                 current_user.is_insider() and
-                experiment.status == cats.ExperimentStatus.DRAFT and 
+                experiment.status == C.ExperimentStatus.DRAFT and 
                 not experiment.workflow.combined_lanes
             ) or 
             (
@@ -171,7 +171,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
-            status_in = [cats.PoolStatus.get(int(status)) for status in status_in]
+            status_in = [C.PoolStatus.get(int(status)) for status in status_in]
             if status_in:
                 fnc_context["status_in"] = status_in
                 table.filter_values["status"] = status_in
@@ -181,7 +181,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     if (type_in := request.args.get("type_in")):
         type_in = json.loads(type_in)
         try:
-            type_in = [cats.PoolType.get(int(type)) for type in type_in]
+            type_in = [C.PoolType.get(int(type)) for type in type_in]
             if type_in:
                 fnc_context["type_in"] = type_in
                 table.filter_values["type"] = type_in
@@ -191,7 +191,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     if (library_types_in := request.args.get("library_types_in")):
         library_types_in = json.loads(library_types_in)
         try:
-            library_types_in = [cats.LibraryType.get(int(library_type)) for library_type in library_types_in]
+            library_types_in = [C.LibraryType.get(int(library_type)) for library_type in library_types_in]
             if library_types_in:
                 fnc_context["library_types_in"] = library_types_in
                 table.filter_values["library_types"] = library_types_in

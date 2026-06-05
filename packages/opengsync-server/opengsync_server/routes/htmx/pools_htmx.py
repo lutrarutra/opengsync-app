@@ -4,8 +4,8 @@ from typing import Literal
 from flask import Blueprint, render_template, request, flash, url_for
 from flask_htmx import make_response
 
-from opengsync_db import models
-from opengsync_db.categories import PoolStatus, LibraryStatus, AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import PoolStatus, LibraryStatus, AccessLevel
 
 from ... import db, forms, logic
 from ...core import wrappers, exceptions
@@ -37,7 +37,7 @@ def clone(current_user: models.User, pool_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
     form = forms.models.PoolForm("clone", pool=pool, current_user=current_user, formdata=request.form)
@@ -62,7 +62,7 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"], po
         if pool_id is None:
             raise exceptions.BadRequestException()
         
-        if (pool := db.pools.get(pool_id)) is None:
+        if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
             raise exceptions.NotFoundException()
         
         if not current_user.is_insider() and pool.owner_id != current_user.id:
@@ -74,11 +74,11 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"], po
 
 @wrappers.htmx_route(pools_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, pool_id: int):
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.pools.get_access_type(pool, current_user)
-    if access_type < AccessType.EDIT:
+    access_level = db.session.get_access_level(Q.pool.permissions(pool.id, current_user.id))
+    if access_level < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     form = forms.models.PoolForm("edit", current_user=current_user, pool=pool, formdata=request.form)
@@ -93,13 +93,13 @@ def delete(current_user: models.User, pool_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
     if len(pool.libraries) > 0:
         raise exceptions.NoPermissionsException()
     
-    db.pools.delete(pool.id)
+    db.session.delete(pool)
     flash("Pool deleted", "success")
     return make_response(redirect=url_for("pools_page.pools"))
 
@@ -109,7 +109,7 @@ def remove_libraries(current_user: models.User, pool_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
     if pool.status != PoolStatus.DRAFT and not current_user.is_admin():
@@ -120,7 +120,7 @@ def remove_libraries(current_user: models.User, pool_id: int):
         if library.status == LibraryStatus.POOLED:
             library.status = LibraryStatus.STORED
 
-    db.pools.update(pool)
+    db.session.save(pool)
     
     flash("Libraries removed from pool", "success")
     return make_response(redirect=url_for("pools_page.pool", pool_id=pool_id))
@@ -131,10 +131,10 @@ def remove_library(current_user: models.User, pool_id: int, library_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
     if library.pool_id != pool.id:
@@ -147,11 +147,11 @@ def remove_library(current_user: models.User, pool_id: int, library_id: int):
     if library.experiment_id == pool.experiment_id:
         library.experiment_id = None
 
-    db.libraries.update(library)
-    db.pools.update(pool)
-    db.flush()
+    db.session.save(library)
+    db.session.save(pool)
+    db.session.flush()
 
-    db.refresh(pool)
+    db.session.refresh(pool)
 
     flash("Library Removed!", "success")
 
@@ -163,7 +163,7 @@ def remove_library(current_user: models.User, pool_id: int, library_id: int):
 def plate_pool(current_user: models.User, pool_id: int, form_type: Literal["create", "edit"]):
     if form_type not in ["create", "edit"]:
         raise exceptions.BadRequestException()
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
     if not current_user.is_insider() and pool.owner_id != current_user.id:
@@ -179,7 +179,7 @@ def plate_pool(current_user: models.User, pool_id: int, form_type: Literal["crea
 
 @wrappers.htmx_route(pools_htmx, db=db)
 def get_dilutions(current_user: models.User, pool_id: int):
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     return make_response(render_template(**logic.dilution.get_table_context(current_user, request, pool=pool)))
 
@@ -195,9 +195,16 @@ def get_recent(current_user: models.User, page: int = 0):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    pools, _ = db.pools.find(
-        status_in=[PoolStatus.STORED, PoolStatus.ACCEPTED], sort_by="id", descending=True,
-        limit=PAGE_LIMIT, offset=page * PAGE_LIMIT
+    # pools, _ = db.pools.find(
+    #     status_in=[PoolStatus.STORED, PoolStatus.ACCEPTED], sort_by="id", descending=True,
+    #     limit=PAGE_LIMIT, offset=page * PAGE_LIMIT
+    # )
+
+    pools = db.session.get_all(
+        Q.pool.select(
+            status_in=[PoolStatus.STORED, PoolStatus.ACCEPTED],
+        ), limit=PAGE_LIMIT, offset=page * PAGE_LIMIT,
+        order_by=models.Pool.id.desc()
     )
     
     return make_response(render_template(

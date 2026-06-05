@@ -33,6 +33,7 @@ services:
             MAIL_PASSWORD: ${MAIL_PASSWORD}
             SECRET_KEY: ${SECRET_KEY}
             MAIL_USER: ${MAIL_USER}
+            ENVIRONMENT: prod
             OPENGSYNC_DEBUG: 0
         ports:
             - ${OPENGSYNC_PORT}:5000

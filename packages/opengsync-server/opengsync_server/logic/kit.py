@@ -2,7 +2,7 @@ import json
 
 from flask import Request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -15,7 +15,7 @@ class KitTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
         TableCol(title="Identifier", label="identifier", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Type", label="type", col_size=2, choices=cats.KitType.as_selectable(), sortable=True, sort_by="kit_type_id"),
+        TableCol(title="Type", label="type", col_size=2, choices=C.KitType.as_selectable(), sortable=True, sort_by="kit_type_id"),
     ]
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
@@ -55,7 +55,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (type_in := request.args.get("type_in")) is not None:
         type_in = json.loads(type_in)
         try:
-            type_in = [cats.KitType.get(int(kit_type)) for kit_type in type_in]
+            type_in = [C.KitType.get(int(kit_type)) for kit_type in type_in]
             if type_in:
                 fnc_context["type_in"] = type_in
                 table.filter_values["type"] = type_in

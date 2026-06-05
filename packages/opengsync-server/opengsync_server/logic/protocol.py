@@ -2,7 +2,7 @@ import json
 
 from flask import Request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -15,7 +15,7 @@ class ProtocolTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
         TableCol(title="Read Structure", label="read_structure", col_size=3),
-        TableCol(title="Assay", label="service_type", col_size=2, choices=cats.ServiceType.as_selectable(), sortable=True, sort_by="service_type_id"),
+        TableCol(title="Assay", label="service_type", col_size=2, choices=C.ServiceType.as_selectable(), sortable=True, sort_by="service_type_id"),
     ]
 
 
@@ -50,7 +50,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (service_type_in := request.args.get("service_type_in")) is not None:
         service_type_in = json.loads(service_type_in)
         try:
-            service_type_in = [cats.ServiceType.get(int(service_type)) for service_type in service_type_in]
+            service_type_in = [C.ServiceType.get(int(service_type)) for service_type in service_type_in]
             if service_type_in:
                 fnc_context["service_type_in"] = service_type_in
                 table.filter_values["service_type"] = service_type_in

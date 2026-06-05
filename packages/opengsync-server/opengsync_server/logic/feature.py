@@ -2,7 +2,7 @@ import json
 
 from flask import Request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..import db
 from .HTMXTable import HTMXTable
@@ -20,7 +20,7 @@ class FeatureTable(HTMXTable):
         TableCol(title="Sequence", label="sequence", col_size=2),
         TableCol(title="Pattern", label="pattern", col_size=2),
         TableCol(title="Read", label="read", col_size=2),
-        TableCol(title="Feature Type", label="type", col_size=2, choices=cats.FeatureType.as_selectable(), sortable=True, sort_by="type_id"),
+        TableCol(title="Feature Type", label="type", col_size=2, choices=C.FeatureType.as_selectable(), sortable=True, sort_by="type_id"),
     ]
 
 
@@ -59,7 +59,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (type_in := request.args.get("type_in")):
         type_in = json.loads(type_in)
         try:
-            type_in = [cats.FeatureType.get(int(kit_type)) for kit_type in type_in]
+            type_in = [C.FeatureType.get(int(kit_type)) for kit_type in type_in]
             if type_in:
                 fnc_context["type_in"] = type_in
                 table.filter_values["type"] = type_in

@@ -8,7 +8,7 @@ from wtforms.validators import DataRequired
 from markupsafe import Markup
 from wtforms import FloatField, HiddenField, StringField, FieldList, FormField
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..core.RunTime import runtime
 from ..tools import utils
@@ -105,14 +105,14 @@ class SequencerLoadingChecklistForm(HTMXFlaskForm):
 
         file = db.media_files.create(
             name="sequencer_loading_checklist",
-            type=cats.MediaFileType.SEQUENCER_LOADING_CHECKLIST,
+            type=C.MediaFileType.SEQUENCER_LOADING_CHECKLIST,
             uploader_id=self.current_user.id,
             extension=".md",
             size_bytes=len(final_markdown_text.encode("utf-8")),
             experiment_id=self.experiment.id
         )
 
-        with open(os.path.join(runtime.app.media_folder, cats.MediaFileType.SEQUENCER_LOADING_CHECKLIST.dir, f"{file.uuid}.md"), "w") as f:
+        with open(os.path.join(runtime.app.media_folder, C.MediaFileType.SEQUENCER_LOADING_CHECKLIST.dir, f"{file.uuid}.md"), "w") as f:
             f.write(final_markdown_text)
         
         flash("Checklist Generated!", "success")

@@ -65,7 +65,8 @@ dependencies = [
     "pyarrow",
     "markdown",
     "pymdown-extensions",
-    "tabulate"
+    "tabulate",
+    "pydantic-settings",
 ]
 
 [tool.setuptools_scm]

@@ -1,8 +1,8 @@
 from flask import Request
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
-from ..import db, logger
+from ..import db
 from ..core import exceptions
 
 def get_flow_cell_list_context(current_user: models.User, request: Request, archived: bool = False, **kwargs) -> dict:
@@ -14,11 +14,14 @@ def get_flow_cell_list_context(current_user: models.User, request: Request, arch
     else:
         template = "components/design/archived_flow_cell_design-list.html"
     
-    flow_cell_designs, _ = db.flow_cell_designs.find(archived=archived, limit=None, sort_by="id", descending=True)
+    # flow_cell_designs, _ = db.flow_cell_designs.find(archived=archived, limit=None, sort_by="id", descending=True)
+    designs = db.session.get_all(
+        Q.flow_cell_design.select(archived=archived).order_by(models.FlowCellDesign.id.desc())
+    )
     
     return {
         "template_name_or_list": template,
-        "flow_cell_designs": flow_cell_designs,
+        "flow_cell_designs": designs,
     }
 
 def get_pool_list_context(current_user: models.User, request: Request, flow_cell_design_id: int | None = None, **kwargs) -> dict:
@@ -27,16 +30,21 @@ def get_pool_list_context(current_user: models.User, request: Request, flow_cell
     
     orphan_pool_only = None
     if flow_cell_design_id is not None:
-        if (flow_cell_design := db.flow_cell_designs.get(flow_cell_design_id)) is None:
+        if (flow_cell_design := db.session.first(Q.flow_cell_design.select(id=flow_cell_design_id))) is None:
             raise exceptions.NotFoundException("Flow Cell Design not found")
     else:
         flow_cell_design = None
         orphan_pool_only = True
 
-    pool_designs, _ = db.pool_designs.find(flow_cell_design_id=flow_cell_design_id, orphan=orphan_pool_only, sort_by="id", descending=True)
+    designs = db.session.get_all(
+        Q.pool_design.select(
+            flow_cell_design_id=flow_cell_design_id,
+            orphan=orphan_pool_only
+        ).order_by(models.PoolDesign.id.desc())
+    )
 
     return {
         "template_name_or_list": "components/design/pool_design-list.html",
-        "pool_designs": pool_designs,
+        "pool_designs": designs,
         "flow_cell_design": flow_cell_design
     }

@@ -5,7 +5,7 @@ from sqlalchemy import orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from opengsync_db.categories import LabChecklistType, LabChecklistType, PrepStatus, PrepStatus, MediaFileType, ServiceType, ServiceType, MUXType, LibraryStatus, MUXType, LibraryType, LibraryType
+from opengsync_db.categories import LabChecklistType, PrepStatus, MediaFileType, ServiceType, MUXType, LibraryStatus, LibraryType
 
 from .Base import Base
 from . import links

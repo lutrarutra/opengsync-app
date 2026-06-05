@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
-from ... import db, logger
+from ... import db
 from ...core import wrappers, exceptions
 
 events_htmx = Blueprint("events_htmx", __name__, url_prefix="/htmx/events/")
@@ -28,9 +28,10 @@ def render_calendar_month(current_user: models.User, year: int | None = None, mo
     start_date = start_date - timedelta(days=start_date.weekday())
     end_date = end_date + timedelta(days=6 - end_date.weekday())
 
-    events, _ = db.events.find(
-        start_date=start_date, end_date=end_date, limit=None,
-        sort_by="timestamp_utc", descending=False,
+    events = db.session.get_all(
+        Q.event.select(start_date=start_date, end_date=end_date),
+        order_by=models.Event.timestamp_utc.asc(),
+        limit=None,
     )
 
     calendar = {}
@@ -67,10 +68,11 @@ def render_calendar_week(current_user: models.User, year: int | None = None, wee
         end_date = datetime.fromisocalendar(year, week, 7)
     except TypeError:
         raise exceptions.BadRequestException()
-
-    events, _ = db.events.find(
-        start_date=start_date, end_date=end_date, limit=None,
-        sort_by="timestamp_utc", descending=False,
+    
+    events = db.session.get_all(
+        Q.event.select(start_date=start_date, end_date=end_date),
+        order_by=models.Event.timestamp_utc.asc(),
+        limit=None,
     )
 
     calendar = {}
@@ -118,9 +120,10 @@ def render_calendar_day(current_user: models.User, year: int | None = None, mont
     except TypeError:
         raise exceptions.BadRequestException()
     
-    events, _ = db.events.find(
-        start_date=start_date, end_date=end_date, limit=None,
-        sort_by="timestamp_utc", descending=False,
+    events = db.session.get_all(
+        Q.event.select(start_date=start_date, end_date=end_date),
+        order_by=models.Event.timestamp_utc.asc(),
+        limit=None,
     )
 
     return make_response(render_template(

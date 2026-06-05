@@ -1,8 +1,9 @@
 import json
 
 from flask import Request
+import sqlalchemy as sa
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C, queries as Q
 
 from ..import db
 from .HTMXTable import HTMXTable
@@ -15,23 +16,24 @@ class ProjectTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Identifier", label="identifier", col_size=1, searchable=True, sortable=True),
         TableCol(title="Title", label="title", col_size=3, searchable=True, sortable=True),
-        TableCol(title="Library Types", label="library_types", col_size=2, choices=cats.LibraryType.as_selectable()),
-        TableCol(title="Status", label="status", col_size=1, sort_by="status_id", sortable=True, choices=cats.ProjectStatus.as_selectable()),
+        TableCol(title="Library Types", label="library_types", col_size=2, choices=C.LibraryType.as_selectable()),
+        TableCol(title="Status", label="status", col_size=1, sort_by="status_id", sortable=True, choices=C.ProjectStatus.as_selectable()),
         TableCol(title="Group", label="group", col_size=2),
         TableCol(title="Owner", label="owner_name", col_size=2, searchable=True),
         TableCol(title="# Samples", label="num_samples", col_size=1, sortable=True),
     ]
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    fnc_context = {}
     table = ProjectTable(route="projects_htmx.get", page=request.args.get("page", 0, type=int))
 
+    stmt = sa.select(models.Project)
+
     if (identifier := request.args.get("identifier")):
-        fnc_context["identifier"] = identifier
+        stmt = Q.project.select(search_identifier=identifier, statement=stmt)
         table.active_search_var = "identifier"
         table.active_query_value = identifier
     elif (title := request.args.get("title")):
-        fnc_context["title"] = title
+        stmt = Q.project.select(search_title=title, statement=stmt)
         table.active_search_var = "title"
         table.active_query_value = title
     elif (project_id := request.args.get("id")):
@@ -39,22 +41,23 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_query_value = str(project_id)
         try:
             project_id = int("".join(filter(str.isdigit, project_id)))
-            fnc_context["id"] = project_id
+            stmt = Q.project.select(id=project_id, statement=stmt)
         except ValueError:
             pass
     elif (owner_name := request.args.get("owner_name")):
-        fnc_context["owner_name"] = owner_name
+        stmt = Q.project.select(search_owner_name=owner_name, statement=stmt)
         table.active_search_var = "owner_name"
         table.active_query_value = owner_name
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
         descending = sort_order == "desc"
-        if sort_by not in models.Project.sortable_fields:
+
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.Project, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
             raise exceptions.BadRequestException()
 
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
     
@@ -63,9 +66,9 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
-            status_in = [cats.ProjectStatus.get(int(status)) for status in status_in]
+            status_in = [C.ProjectStatus.get(int(status)) for status in status_in]
             if status_in:
-                fnc_context["status_in"] = status_in
+                stmt = Q.project.select(status_in=status_in, statement=stmt)
                 table.filter_values["status"] = status_in
         except ValueError:
             raise exceptions.BadRequestException()
@@ -73,35 +76,36 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (library_types_in := request.args.get("library_types_in")):
         library_types_in = json.loads(library_types_in)
         try:
-            library_types_in = [cats.LibraryType.get(int(library_type)) for library_type in library_types_in]
+            library_types_in = [C.LibraryType.get(int(library_type)) for library_type in library_types_in]
             if library_types_in:
-                fnc_context["library_types_in"] = library_types_in
+                stmt = Q.project.select(library_types_in=library_types_in, statement=stmt)
                 table.filter_values["library_types"] = library_types_in
         except ValueError:
             raise exceptions.BadRequestException()
 
     if (user := context.get("user")) is not None:
         template = "components/tables/user-project.html"
-        fnc_context["user_id"] = user.id
+        stmt = Q.project.select(user_id=user.id, statement=stmt)
         table.url_params["user_id"] = user.id
     elif (experiment := context.get("experiment")) is not None:
         template = "components/tables/experiment-project.html"        
-        fnc_context["experiment_id"] = experiment.id
+        stmt = Q.project.select(experiment_id=experiment.id, statement=stmt)
         table.url_params["experiment_id"] = experiment.id
     elif (seq_request := context.get("seq_request")) is not None:
         template = "components/tables/seq_request-project.html"
-        fnc_context["seq_request_id"] = seq_request.id
+        stmt = Q.project.select(seq_request_id=seq_request.id, statement=stmt)
         table.url_params["seq_request_id"] = seq_request.id
     elif (group := context.get("group")) is not None:
         template = "components/tables/group-project.html"
-        fnc_context["group_id"] = group.id
+        stmt = Q.project.select(group_id=group.id, statement=stmt)
         table.url_params["group_id"] = group.id
     else:
         template = "components/tables/project.html"
         if not current_user.is_insider():
-            fnc_context["user_id"] = current_user.id
+            stmt = Q.project.select(user_id=current_user.id, statement=stmt)
 
-    projects, table.num_pages = db.projects.find(page=table.active_page, **fnc_context)
+    # projects, table.num_pages = db.projects.find(page=table.active_page, **fnc_context)
+    projects, count = db.session.page(stmt, page=table.active_page or 0)
 
     context.update({
         "projects": projects,
@@ -112,49 +116,43 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
 
 def get_search_context(current_user: models.User, request: Request, **kwargs) -> dict:
     context = parse_context(current_user, request) | kwargs
-    fnc_context = {}    
     page = request.args.get("page", 0, type=int)
+
+    stmt = sa.select(models.Project)
     
     if (identifier := request.args.get("identifier")) is not None:
         if (identifier := identifier.strip()):
-            fnc_context["identifier"] = identifier
+            stmt = Q.project.select(search_identifier=identifier, statement=stmt)
         else:
-            fnc_context["sort_by"] = "identifier"
+            stmt = stmt.order_by(sa.nulls_last(models.Project.identifier.asc()))
     elif (title := request.args.get("title")) is not None:
         if (title := title.strip()):
-            fnc_context["title"] = title
+            stmt = Q.project.select(search_title=title, statement=stmt)
         else:
-            fnc_context["sort_by"] = "title"
-    elif (project_id := request.args.get("id")) is not None:
-        try:
-            project_id = int("".join(filter(str.isdigit, project_id)))
-            fnc_context["id"] = project_id
-        except ValueError:
-            pass
+            stmt = stmt.order_by(sa.nulls_last(models.Project.title.asc()))
     elif (owner_name := request.args.get("owner_name")) is not None:
         if (owner_name := owner_name.strip()):
-            fnc_context["owner_name"] = owner_name
+            stmt = Q.project.select(search_owner_name=owner_name, statement=stmt)
         else:
-            fnc_context["sort_by"] = "owner_name"
+            stmt = stmt.join(models.User, models.User.id == models.Project.owner_id).order_by(sa.nulls_last(models.User.name.asc()))
     elif (identifier_title := request.args.get("identifier_title")) is not None:
         if (identifier_title := identifier_title.strip()):
-            fnc_context["identifier_title"] = identifier_title
+            stmt = Q.project.select(search_identifier_title=identifier_title, statement=stmt)
         else:
-            fnc_context["sort_by"] = "title"
+            stmt = stmt.order_by(sa.nulls_last(models.Project.title.asc()), sa.nulls_last(models.Project.identifier.asc()))
     else:
         raise exceptions.BadRequestException("No valid search parameters provided.")
 
     if (group := context.get("group")) is not None:
-        fnc_context["group_id"] = group.id
+        stmt = Q.project.select(group_id=group.id, statement=stmt)
     else:
         if not current_user.is_insider():
-            fnc_context["user_id"] = current_user.id
+            stmt = Q.project.select(user_id=current_user.id, statement=stmt)
     
-    projects, num_pages = db.projects.find(page=page, **fnc_context)
+    projects, _ = db.session.page(stmt, page=page)
 
     context.update({
         "projects": projects,
         "template_name_or_list": "components/search/project.html",
-        "num_pages": num_pages,
     })
     return context

@@ -3,7 +3,7 @@ from flask_htmx import make_response
 from wtforms import TextAreaField, SelectField
 from wtforms.validators import DataRequired, Length
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ... import logger, db
 from ...core import exceptions
@@ -14,7 +14,7 @@ class TODOCommentForm(HTMXFlaskForm):
     _template_path = "forms/todo_comment.html"
 
     text = TextAreaField("Note", validators=[DataRequired(), Length(min=1, max=2048)])
-    status_id = SelectField("Status", validators=[DataRequired()], choices=[(-1, "-")] + cats.TaskStatus.as_selectable(), default=cats.TaskStatus.IN_PROGRESS.id, coerce=int)
+    status_id = SelectField("Status", validators=[DataRequired()], choices=[(-1, "-")] + C.TaskStatus.as_selectable(), default=C.TaskStatus.IN_PROGRESS.id, coerce=int)
 
     def __init__(
         self,

@@ -66,7 +66,7 @@ class ResetPasswordForm(HTMXFlaskForm):
         
         hashed_password = bcrypt.generate_password_hash(self.password.data).decode("utf-8")
         self.user.password = hashed_password
-        db.users.update(self.user)
+        db.session.save(self.user)
         logger.info(f"Password reset for {self.user.id}")
         runtime.app.delete_user_sessions(self.user.id)
         runtime.session.clear()

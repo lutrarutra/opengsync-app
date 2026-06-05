@@ -72,7 +72,7 @@ class UserForm(HTMXFlaskForm):
         if self.current_user.is_admin():
             self.user.role = role
 
-        db.users.update(self.user)
+        db.session.save(self.user)
 
         flash("User updated successfully.", "success")
         logger.info(f"User ID {self.user.id} updated by user ID {self.current_user.id}")

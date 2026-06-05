@@ -130,7 +130,7 @@ class DBHandler():
         self.info(f"Connected to DB '{self.public_url}'")
         self.session_factory = orm.sessionmaker(bind=self._engine, expire_on_commit=self.expire_on_commit)
         DBHandler.Session = orm.scoped_session(self.session_factory)
-        from . import listeners
+        from . import listeners  # noqa
         
         if self.auto_open:
             self.open_session()

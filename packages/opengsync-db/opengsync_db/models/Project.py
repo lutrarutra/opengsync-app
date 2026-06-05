@@ -11,8 +11,7 @@ from sqlalchemy.ext.mutable import MutableDict
 
 
 from .Base import Base
-from .. import localize
-from ..categories import ProjectStatus, ProjectStatus, LibraryType, LibraryType
+from ..categories import ProjectStatus, LibraryType
 from . import links
 
 if TYPE_CHECKING:
@@ -295,6 +294,7 @@ class Project(Base):
 
     @property
     def timestamp_created(self) -> datetime:
+        from .. import localize
         return localize(self.timestamp_created_utc)
 
     def timestamp_created_str(self, fmt: str = "%Y-%m-%d %H:%M") -> str:

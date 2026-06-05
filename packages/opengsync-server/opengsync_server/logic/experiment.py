@@ -1,11 +1,11 @@
 import json
 
 from flask import Request
+import sqlalchemy as sa
 
-from opengsync_db import models, categories as cats
-from opengsync_server.routes.pages.groups_page import group
+from opengsync_db import models, categories as C, queries as Q
 
-from ..import db, logger
+from ..import db
 from .HTMXTable import HTMXTable
 from .TableCol import TableCol
 from ..core import exceptions
@@ -15,10 +15,10 @@ class ExperimentTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=2, searchable=True, sortable=True),
-        TableCol(title="Workflow", label="workflow", col_size=2, choices=cats.ExperimentWorkFlow.as_selectable(), sortable=True, sort_by="workflow_id"),
-        TableCol(title="Status", label="status", col_size=2, choices=cats.ExperimentStatus.as_selectable(), sortable=True, sort_by="status_id"),
+        TableCol(title="Workflow", label="workflow", col_size=2, choices=C.ExperimentWorkFlow.as_selectable(), sortable=True, sort_by="workflow_id"),
+        TableCol(title="Status", label="status", col_size=2, choices=C.ExperimentStatus.as_selectable(), sortable=True, sort_by="status_id"),
         TableCol(title="# Seq Requests", label="num_seq_requests", col_size=1, sortable=True),
-        TableCol(title="Library Types", label="library_types", col_size=3, choices=cats.LibraryType.as_selectable()),
+        TableCol(title="Library Types", label="library_types", col_size=3, choices=C.LibraryType.as_selectable()),
         TableCol(title="Operator", label="operator", col_size=2, searchable=True),
         TableCol(title="Created", label="timestamp_created", col_size=2, sortable=True, sort_by="timestamp_created_utc"),
         TableCol(title="Completed", label="timestamp_completed", col_size=2, sortable=True, sort_by="timestamp_finished_utc"),
@@ -26,16 +26,17 @@ class ExperimentTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:    
-    fnc_context = {}
     table = ExperimentTable(route="experiments_htmx.get", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
+
+    stmt = sa.select(models.Experiment)
 
     if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
-            status_in = [cats.ExperimentStatus.get(int(status)) for status in status_in]
+            status_in = [C.ExperimentStatus.get(int(status)) for status in status_in]
             if status_in:
-                fnc_context["status_in"] = status_in
+                stmt = Q.experiment.select(status_in=status_in, statement=stmt)
                 table.filter_values["status"] = status_in
         except ValueError:
             raise exceptions.BadRequestException()  
@@ -43,27 +44,26 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (workflow_in := request.args.get("workflow_in")):
         workflow_in = json.loads(workflow_in)
         try:
-            workflow_in = [cats.ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
+            workflow_in = [C.ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
             if workflow_in:
-                fnc_context["workflow_in"] = workflow_in
+                stmt = Q.experiment.select(workflow_in=workflow_in, statement=stmt)
                 table.filter_values["workflow"] = workflow_in
         except ValueError:
             raise exceptions.BadRequestException()
 
     if (name := request.args.get("name")):
-        fnc_context["name"] = name
+        stmt = Q.experiment.select(search_name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (operator := request.args.get("operator")):
-        fnc_context["operator"] = operator
+        stmt = Q.experiment.select(search_operator_name=operator, statement=stmt)
         table.active_search_var = "operator"
         table.active_query_value = operator
     elif (id_ := request.args.get("id")):
         table.active_search_var = "id"
         table.active_query_value = str(id_)
         try:
-            id_ = int("".join(filter(str.isdigit, id_)))
-            fnc_context["id"] = id_
+            stmt = Q.experiment.select(id=int("".join(filter(str.isdigit, id_))), statement=stmt)
         except ValueError:
             pass
     else:
@@ -73,27 +73,24 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         if sort_by not in models.Experiment.sortable_fields:
             raise exceptions.BadRequestException()
         
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.Experiment, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
+            raise exceptions.BadRequestException()
+        
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
     if (project := context.get("project")) is not None:
         template = "components/tables/project-experiment.html"        
-        fnc_context["project_id"] = project.id
+        stmt = Q.experiment.select(project_id=project.id, statement=stmt)
         table.url_params["project_id"] = project.id
-    elif (seq_request := context.get("seq_request")) is not None:
-        template = "components/tables/seq_request-experiment.html"        
-        fnc_context["seq_request_id"] = seq_request.id
-        table.url_params["seq_request_id"] = seq_request.id
     else:
         if not current_user.is_insider():
             raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
         template = "components/tables/experiment.html"
-        if not current_user.is_insider():
-            fnc_context["user_id"] = current_user.id   
 
-    experiments, table.num_pages = db.experiments.find(page=table.active_page, **fnc_context)
+    experiments, count = db.session.page(stmt, page=table.active_page or 0)
     context.update({
         "experiments": experiments,
         "template_name_or_list": template,
@@ -102,25 +99,23 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     return context
 
 def get_search_context(current_user: models.User, request: Request, **kwargs) -> dict:
+    if not current_user.is_insider():
+        raise exceptions.BadRequestException("You do not have permission to view this resource.")
+    
     context = parse_context(current_user, request) | kwargs
-    fnc_context = {}
     page = request.args.get("page", 0, type=int)
+
+    stmt = sa.select(models.Experiment)
     
     if (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            fnc_context["name"] = name
+            stmt = Q.experiment.select(search_name=name, statement=stmt)
         else:
-            fnc_context["sort_by"] = "name"
+            stmt = stmt.order_by(sa.nulls_last(models.Experiment.name.asc()))
     else:
         raise exceptions.BadRequestException("No valid search parameters provided.")
-
-    if (group := context.get("group")) is not None:
-        fnc_context["group_id"] = group.id
-    else:
-        if not current_user.is_insider():
-            fnc_context["user_id"] = current_user.id
     
-    experiments, num_pages = db.experiments.find(page=page, **fnc_context)
+    experiments, num_pages = db.session.page(stmt, page=page)
 
     context.update({
         "experiments": experiments,
@@ -134,7 +129,6 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    fnc_context = {}
     table = ExperimentTable(route="experiments_htmx.browse", page=request.args.get("page", 0, type=int))
     table.url_params["workflow"] = kwargs["workflow"]
     
@@ -144,12 +138,14 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
 
     context = parse_context(current_user, request) | kwargs
 
+    stmt = sa.select(models.Experiment)
+
     if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
-            status_in = [cats.ExperimentStatus.get(int(status)) for status in status_in]
+            status_in = [C.ExperimentStatus.get(int(status)) for status in status_in]
             if status_in:
-                fnc_context["status_in"] = status_in
+                stmt = Q.experiment.select(status_in=status_in, statement=stmt)
                 table.filter_values["status"] = status_in
         except ValueError:
             raise exceptions.BadRequestException()  
@@ -157,9 +153,9 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     if (workflow_in := request.args.get("workflow_in")):
         workflow_in = json.loads(workflow_in)
         try:
-            workflow_in = [cats.ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
+            workflow_in = [C.ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_in]
             if workflow_in:
-                fnc_context["workflow_in"] = workflow_in
+                stmt = Q.experiment.select(workflow_in=workflow_in, statement=stmt)
                 table.filter_values["workflow"] = workflow_in
         except ValueError:
             raise exceptions.BadRequestException()
@@ -168,30 +164,28 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         table.active_search_var = "id"
         table.active_query_value = str(id_)
         try:
-            id_ = int("".join(filter(str.isdigit, id_)))
-            fnc_context["id"] = id_
+            stmt = Q.experiment.select(id=int("".join(filter(str.isdigit, id_))), statement=stmt)
         except ValueError:
             pass
     elif (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            fnc_context["name"] = name
+            stmt = Q.experiment.select(search_name=name, statement=stmt)
         else:
-            fnc_context["sort_by"] = "name"
-    elif (group := context.get("group")) is not None:
-        fnc_context["group_id"] = group.id        
+            stmt = stmt.order_by(sa.nulls_last(models.Experiment.name.asc()))
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
         descending = sort_order == "desc"
-        if sort_by not in models.Lane.sortable_fields:
+
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.Experiment, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
             raise exceptions.BadRequestException()
-        
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
+
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
-    experiments, table.num_pages = db.experiments.find(page=table.active_page, **fnc_context)
+    experiments, count = db.session.page(stmt, page=table.active_page or 0)
 
     context.update({
         "experiments": experiments,

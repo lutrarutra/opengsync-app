@@ -2,7 +2,7 @@ import json
 
 from flask import Request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -16,7 +16,7 @@ class ShareTokenTable(HTMXTable):
         TableCol(title="UUID", label="uuid", col_size=1, searchable=True, sortable=True),
         TableCol(title="Expiration", label="expiration", col_size=4),
         TableCol(title="Time Valid", label="time_valid_min", col_size=4),
-        TableCol(title="Owner", label="owner", col_size=4, choices=cats.DataPathType.as_selectable(), sortable=True, sort_by="owner_id"),
+        TableCol(title="Owner", label="owner", col_size=4, choices=C.DataPathType.as_selectable(), sortable=True, sort_by="owner_id"),
         TableCol(title="# Paths", label="num_paths", col_size=3, sortable=True),
     ]
 
@@ -52,7 +52,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (type_in := request.args.get("type_id_in")) is not None:
         type_in = json.loads(type_in)
         try:
-            type_in = [cats.DataPathType.get(int(t)) for t in type_in]
+            type_in = [C.DataPathType.get(int(t)) for t in type_in]
         except ValueError:
             raise exceptions.BadRequestException()
     

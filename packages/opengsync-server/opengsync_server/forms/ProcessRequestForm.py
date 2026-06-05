@@ -81,6 +81,6 @@ class ProcessRequestForm(HTMXFlaskForm):
         if self.assign_seq_request_to_me.data:
             if seq_request not in user.assigned_seq_requests:
                 user.assigned_seq_requests.append(seq_request)
-                db.users.update(user)
+                db.session.save(user)
 
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))

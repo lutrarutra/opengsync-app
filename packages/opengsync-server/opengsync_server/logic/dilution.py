@@ -2,7 +2,7 @@ import json
 
 from flask import Request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -55,7 +55,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (type_in := request.args.get("type_id_in")) is not None:
         type_in = json.loads(type_in)
         try:
-            type_in = [cats.DataPathType.get(int(t)) for t in type_in]
+            type_in = [C.DataPathType.get(int(t)) for t in type_in]
         except ValueError:
             raise exceptions.BadRequestException()
     

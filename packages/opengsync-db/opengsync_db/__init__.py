@@ -7,14 +7,6 @@ from sqlalchemy import exc
 
 from importlib.metadata import version, PackageNotFoundError
 
-from . import categories
-from .core.DBHandler import DBHandler  
-from .core.DBSession import DBSession
-from .core.SyncSession import SyncSession
-from .core.SyncDBHandler import SyncDBHandler
-from .core import exceptions
-from .core import units
-
 try:
     __version__ = version("opengsync-db")
 except PackageNotFoundError:
@@ -46,6 +38,15 @@ def localize(timestamp: dt.datetime, timezone: pytz.BaseTzInfo | str = TIMEZONE)
 
 def to_utc(timestamp: dt.datetime) -> dt.datetime:
     return TIMEZONE.localize(timestamp).astimezone(pytz.utc)
+
+
+from . import categories  # noqa
+from .core.DBHandler import DBHandler    # noqa
+from .core.DBSession import DBSession  # noqa
+from .core.SyncSession import SyncSession  # noqa
+from .core.SyncDBHandler import SyncDBHandler  # noqa
+from .core import exceptions  # noqa
+from .core import units  # noqa
 
 
 def db_session(db: DBHandler):

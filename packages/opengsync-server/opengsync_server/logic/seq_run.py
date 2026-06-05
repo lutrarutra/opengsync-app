@@ -2,7 +2,7 @@ import json
 
 from flask import Request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -14,7 +14,7 @@ class SeqRunTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Experiment", label="experiment", col_size=2, searchable=True, sortable=True, sort_by="experiment_name"),
-        TableCol(title="Status", label="status", col_size=1, choices=cats.RunStatus.as_selectable(), sortable=True, sort_by="status_id"),
+        TableCol(title="Status", label="status", col_size=1, choices=C.RunStatus.as_selectable(), sortable=True, sort_by="status_id"),
         TableCol(title="Cycles", label="cycles", col_size=1),
         TableCol(title="Flow Cell ID", label="flow_cell_id", searchable=True, col_size=1),
         TableCol(title="Run Folder", label="run_folder", col_size=4, searchable=True),
@@ -30,7 +30,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
-            status_in = [cats.RunStatus.get(int(status)) for status in status_in]
+            status_in = [C.RunStatus.get(int(status)) for status in status_in]
             if status_in:
                 fnc_context["status_in"] = status_in
                 table.filter_values["status"] = status_in

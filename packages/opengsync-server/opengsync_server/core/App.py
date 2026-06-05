@@ -200,8 +200,8 @@ class App(Flask):
             return response
 
         @login_manager.user_loader
-        def load_user(user_id: int) -> models.User | None:
-            if (user := db.first()) is None:
+        def load_user(user_id: int | str) -> models.User | None:
+            if (user := db.session.first(Q.user.select(id=int(user_id)))) is None:
                 logger.error(f"User not found: {user_id}")
                 return None
             return user

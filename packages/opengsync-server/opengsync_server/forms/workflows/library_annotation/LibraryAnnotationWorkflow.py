@@ -1,5 +1,5 @@
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ... import MultiStepForm
 from .. import library_annotation as wf
@@ -24,7 +24,7 @@ class LibraryAnnotationWorkflow(MultiStepForm):
             case wf.SampleAttributeAnnotationForm:
                 return wf.SelectServiceForm(seq_request=self.seq_request, uuid=self.uuid)
             case wf.SelectServiceForm:
-                if self.seq_request.submission_type.id == cats.SubmissionType.POOLED_LIBRARIES.id:
+                if self.seq_request.submission_type.id == C.SubmissionType.POOLED_LIBRARIES.id:
                     return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
                 elif wf.FeatureAnnotationForm.is_applicable(self):
                     return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
@@ -146,7 +146,7 @@ class LibraryAnnotationWorkflow(MultiStepForm):
                 else:
                     return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
             case wf.FlexAnnotationForm:
-                if self.seq_request.submission_type.id == cats.SubmissionType.POOLED_LIBRARIES.id:
+                if self.seq_request.submission_type.id == C.SubmissionType.POOLED_LIBRARIES.id:
                     return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
                 elif wf.ParseMuxAnnotationForm.is_applicable(self):
                     return wf.ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
@@ -165,7 +165,7 @@ class LibraryAnnotationWorkflow(MultiStepForm):
                     return wf.FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
                 elif wf.ParseMuxAnnotationForm.is_applicable(self):
                     return wf.ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-                elif self.seq_request.submission_type.id == cats.SubmissionType.POOLED_LIBRARIES.id:
+                elif self.seq_request.submission_type.id == C.SubmissionType.POOLED_LIBRARIES.id:
                     return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
                 elif wf.FeatureAnnotationForm.is_applicable(self):
                     return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
@@ -178,7 +178,7 @@ class LibraryAnnotationWorkflow(MultiStepForm):
                 else:
                     return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
             case wf.OligoMuxAnnotationForm:
-                if self.seq_request.submission_type.id == cats.SubmissionType.POOLED_LIBRARIES.id:
+                if self.seq_request.submission_type.id == C.SubmissionType.POOLED_LIBRARIES.id:
                     return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
                 elif wf.OCMAnnotationForm.is_applicable(self):
                     return wf.OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
@@ -197,7 +197,7 @@ class LibraryAnnotationWorkflow(MultiStepForm):
                 else:
                     return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
             case wf.ParseMuxAnnotationForm:
-                if self.seq_request.submission_type.id == cats.SubmissionType.POOLED_LIBRARIES.id:
+                if self.seq_request.submission_type.id == C.SubmissionType.POOLED_LIBRARIES.id:
                     return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
                 elif wf.FeatureAnnotationForm.is_applicable(self):
                     return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)

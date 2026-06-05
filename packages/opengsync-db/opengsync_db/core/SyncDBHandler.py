@@ -17,12 +17,19 @@ class SyncDBHandler:
         logger: Optional["loguru.Logger"] = None,
         expire_on_commit: bool = False,
         auto_commit: bool = False,
+        auto_open: bool = False
     ):
         self._logger = logger
-        self._engine: Optional[Engine] = None
+        self.auto_open = auto_open
+        self._engine: Engine = None  # type: ignore[assignment]
         self.expire_on_commit = expire_on_commit
         self.auto_commit = auto_commit
         self._local = threading.local()
+
+        from .blueprints.PandasBP import PandasBP
+        from .blueprints.ActionsBP import ActionsBP
+        self.pd = PandasBP("pd", self)
+        self.actions = ActionsBP("actions", self)
 
     def connect(
         self, user: str, password: str, host: str, db: str = "token_db", port: Union[str, int] = 5432

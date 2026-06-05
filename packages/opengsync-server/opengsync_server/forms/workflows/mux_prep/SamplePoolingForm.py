@@ -1,7 +1,7 @@
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
-from opengsync_db import models, exceptions, categories as cats
+from opengsync_db import models, exceptions, categories as C
 
 from .... import logger, tools, db
 from ....tools import utils
@@ -96,7 +96,7 @@ class SamplePoolingForm(HTMXFlaskForm):
 
             new_library.features = old_library.features
             if new_sample_pool == "x":
-                new_library.status = cats.LibraryStatus.FAILED
+                new_library.status = C.LibraryStatus.FAILED
             db.libraries.update(new_library)
 
             for _, row in _df.iterrows():

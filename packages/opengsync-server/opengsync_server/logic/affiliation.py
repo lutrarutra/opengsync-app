@@ -2,7 +2,7 @@ import json
 
 from flask import Request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -16,7 +16,7 @@ class AffiliationTable(HTMXTable):
         TableCol(title="User", label="user_name", col_size=3, searchable=True),
         TableCol(title="Group", label="group_name", col_size=3, searchable=True),
         TableCol(title="Email", label="email", col_size=3),
-        TableCol(title="Affiliation", label="affiliation", col_size=2, choices=cats.UserRole.as_selectable(), sortable=True, sort_by="role_id"),
+        TableCol(title="Affiliation", label="affiliation", col_size=2, choices=C.UserRole.as_selectable(), sortable=True, sort_by="role_id"),
     ]
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
@@ -56,7 +56,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         template = "components/tables/group-user.html"
         table.route = "groups_htmx.get_affiliations"
         affiliation = db.groups.get_user_affiliation(current_user.id, group.id)
-        context["can_add_users"] = current_user.is_insider() or affiliation is not None and affiliation.affiliation_type in (cats.AffiliationType.OWNER, cats.AffiliationType.MANAGER)
+        context["can_add_users"] = current_user.is_insider() or affiliation is not None and affiliation.affiliation_type in (C.AffiliationType.OWNER, C.AffiliationType.MANAGER)
         table.url_params["group_id"] = group.id
         affiliations, table.num_pages = db.groups.get_affiliations(group_id=group.id, page=table.active_page, **fnc_context)
     elif (user := context.get("user")) is not None:

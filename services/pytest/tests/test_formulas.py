@@ -1,6 +1,6 @@
 import random
 from pytest import approx
-from opengsync_db import DBHandler, categories as cats
+from opengsync_db import DBHandler, categories as C
 
 from .create_units import (
     create_user, create_project, create_experiment, create_sample, create_pool, create_library, create_seq_request
@@ -26,9 +26,9 @@ def test_separate_lane_molarity(db: DBHandler):
     for i, library in enumerate(libraries):
         db.libraries.add_to_pool(library.id, pools[i % NUM_POOLS].id)
 
-    experiment = create_experiment(db, user, cats.ExperimentWorkFlow.NOVASEQ_6K_S4_XP)
+    experiment = create_experiment(db, user, C.ExperimentWorkFlow.NOVASEQ_6K_S4_XP)
     assert len(experiment.lanes) == experiment.num_lanes
-    assert len(experiment.lanes) == cats.ExperimentWorkFlow.NOVASEQ_6K_S4_XP.flow_cell_type.num_lanes
+    assert len(experiment.lanes) == C.ExperimentWorkFlow.NOVASEQ_6K_S4_XP.flow_cell_type.num_lanes
     assert len(db.lanes.find(limit=None)[0]) == experiment.num_lanes
 
     for i, pool in enumerate(db.pools.find(limit=None)[0]):

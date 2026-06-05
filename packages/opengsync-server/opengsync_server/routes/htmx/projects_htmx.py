@@ -5,10 +5,10 @@ import pandas as pd
 from flask import Blueprint, url_for, render_template, flash, request, Response
 from flask_htmx import make_response
 
-from opengsync_db import models
-from opengsync_db.categories import ProjectStatus, LibraryStatus, AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import ProjectStatus, LibraryStatus, AccessLevel
 
-from ... import db, forms, logger, logic
+from ... import db, forms, logic
 from ...core import wrappers, exceptions
 from ...tools.spread_sheet_components import TextColumn
 from ...tools import StaticSpreadSheet
@@ -46,18 +46,17 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.projects.get_access_type(project, current_user)
-
-    if access_type < AccessType.EDIT:
+    access_type = db.session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+    if access_type < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
         return forms.models.ProjectForm(project=project, form_type="edit").make_response()
     
-    if project.status != ProjectStatus.DRAFT and access_type < AccessType.INSIDER:
+    if project.status != ProjectStatus.DRAFT and access_type < AccessLevel.INSIDER:
         raise exceptions.NoPermissionsException()
     
     return forms.models.ProjectForm(
@@ -67,21 +66,19 @@ def edit(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.projects.get_access_type(project, current_user)
-
-    if access_type < AccessType.EDIT:
+    access_type = db.session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+    if access_type < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
-    
-    if project.status != ProjectStatus.DRAFT and access_type < AccessType.INSIDER:
+    if project.status != ProjectStatus.DRAFT and access_type < AccessLevel.INSIDER:
         raise exceptions.NoPermissionsException()
 
     if project.num_samples > 0:
         raise exceptions.BadRequestException()
     
-    db.projects.delete(project_id)
+    db.session.delete(project)
     flash(f"Deleted project {project.title}.", "success")
     return make_response(redirect=url_for("projects_page.projects"))
 
@@ -91,7 +88,7 @@ def complete(current_user: models.User, project_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
     for library in project.libraries:
@@ -100,20 +97,20 @@ def complete(current_user: models.User, project_id: int):
             return make_response(redirect=url_for("projects_page.project", project_id=project_id))
             
     project.status = ProjectStatus.DELIVERED
-    db.projects.update(project)
+    db.session.save(project)
     return make_response(redirect=url_for("projects_page.project", project_id=project.id))
 
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_sample_attributes(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
 
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.VIEW:
+    access_type = db.session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+    if access_type < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
     
-    df = db.pd.get_project_samples(project_id=project_id).sort_values("sample_id").reset_index(drop=True).rename(columns={"sample_id": "id", "sample_name": "name"})
+    df = db.pd.get_project_samples(project_id=project.id).sort_values("sample_id").reset_index(drop=True).rename(columns={"sample_id": "id", "sample_name": "name"})
 
     columns = []
     for col in df.columns:
@@ -131,16 +128,16 @@ def get_sample_attributes(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def render_sample_table(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
 
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.EDIT:
+    access_type = db.session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+    if access_type < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
-    if project.status != ProjectStatus.DRAFT and access_type < AccessType.INSIDER:
+    if project.status != ProjectStatus.DRAFT and access_type < AccessLevel.INSIDER:
         raise exceptions.NoPermissionsException()
     
-    df = db.pd.get_project_samples(project_id=project_id)
+    df = db.pd.get_project_samples(project_id=project.id)
 
     columns: list = [
         TextColumn("sample_name", "Sample Name", 400, read_only=True),
@@ -153,13 +150,13 @@ def render_sample_table(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def edit_sample_attributes(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.EDIT:
+    access_type = db.session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+    if access_type < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
-    if project.status > ProjectStatus.SEQUENCED and access_type < AccessType.INSIDER:
+    if project.status > ProjectStatus.SEQUENCED and access_type < AccessLevel.INSIDER:
         raise exceptions.NoPermissionsException()
 
     if request.method == "GET":
@@ -180,11 +177,10 @@ def get_recent(current_user: models.User, page: int = 0):
             ProjectStatus.PROCESSING, ProjectStatus.SEQUENCED,
         ]
 
-    projects, _ = db.projects.find(
+    projects = db.session.get_all(Q.project.select(
         user_id=current_user.id if not current_user.is_insider() else None,
-        sort_by="id", status_in=status_in, descending=True,
-        limit=PAGE_LIMIT, offset=PAGE_LIMIT * page
-    )
+        status_in=status_in
+    ), limit=PAGE_LIMIT, offset=PAGE_LIMIT * page, order_by=models.Project.id.desc())
 
     return make_response(
         render_template(
@@ -196,11 +192,11 @@ def get_recent(current_user: models.User, page: int = 0):
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_software(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
 
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.VIEW:
+    access_type = db.session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+    if access_type < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
     
     software = project.software or {}
@@ -214,11 +210,11 @@ def get_software(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_shares(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
 
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.VIEW:
+    access_type = db.session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+    if access_type < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
     
     return make_response(
@@ -230,14 +226,14 @@ def get_shares(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db)
 def overview(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
 
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.VIEW:
+    access_type = db.session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+    if access_type < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
         
-    df = db.pd.get_project_libraries(project_id=project_id)
+    df = db.pd.get_project_libraries(project_id=project.id)
 
     LINK_WIDTH_UNIT = 1
 
@@ -340,7 +336,7 @@ def remove_data_path(current_user: models.User, project_id: int):
     if (data_path_id := request.args.get("data_path_id", None)) is None:
         raise exceptions.BadRequestException()
     
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
 
     try:
@@ -348,13 +344,13 @@ def remove_data_path(current_user: models.User, project_id: int):
     except ValueError:
         raise exceptions.BadRequestException()
     
-    if (data_path := db.data_paths.get(data_path_id)) is None:
+    if (data_path := db.session.first(Q.data_path.select(id=data_path_id))) is None:
         raise exceptions.NotFoundException()
     
     if data_path.project_id != project.id:
         raise exceptions.BadRequestException()
     
-    db.data_paths.delete(data_path)
+    db.session.delete(data_path)
 
     flash("Path Removed.", "success")
     return make_response(redirect=url_for("projects_page.project", project_id=project.id, tab="project-data_paths-tab"))
@@ -362,11 +358,11 @@ def remove_data_path(current_user: models.User, project_id: int):
         
 @wrappers.htmx_route(projects_htmx, db=db)
 def get_assignees(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.VIEW:
+    access_type = db.session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+    if access_type < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
     
     return make_response(
@@ -379,14 +375,14 @@ def get_assignees(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
 def add_assignee(current_user: models.User, project_id: int, assignee_id: int | None = None):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
     if assignee_id is not None:
-        if (assignee := db.users.get(assignee_id)) is None:
+        if (assignee := db.session.first(Q.user.select(id=assignee_id))) is None:
             raise exceptions.NotFoundException()
     else:
         assignee = current_user
@@ -398,7 +394,7 @@ def add_assignee(current_user: models.User, project_id: int, assignee_id: int | 
         raise exceptions.BadRequestException("User is already an assignee.")
     
     project.assignees.append(assignee)
-    db.projects.update(project)
+    db.session.save(project)
 
     flash("Assignee Added!", "success")
     if request.args.get("context") == "dashboard":
@@ -408,7 +404,7 @@ def add_assignee(current_user: models.User, project_id: int, assignee_id: int | 
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET", "POST"])
 def add_assignee_form(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
     if not current_user.is_insider():
@@ -422,20 +418,20 @@ def add_assignee_form(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["DELETE"])
 def remove_assignee(current_user: models.User, project_id: int, assignee_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (assignee := db.users.get(assignee_id)) is None:
+    if (assignee := db.session.first(Q.user.select(id=assignee_id))) is None:
         raise exceptions.NotFoundException()
     
     if assignee not in project.assignees:
         raise exceptions.BadRequestException()
 
     project.assignees.remove(assignee)
-    db.projects.update(project)
+    db.session.save(project)
 
     flash("Assignee Removed.", "success")
 
@@ -449,11 +445,11 @@ def remove_assignee(current_user: models.User, project_id: int, assignee_id: int
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["GET"])
 def export(current_user: models.User, project_id: int):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.projects.get_access_type(project, current_user)
-    if access_type < AccessType.VIEW:
+    access_type = db.session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+    if access_type < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
     
     metadata = pd.DataFrame.from_records({

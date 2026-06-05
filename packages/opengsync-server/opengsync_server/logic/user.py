@@ -2,7 +2,7 @@ import json
 
 from flask import Request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -15,7 +15,7 @@ class UserTable(HTMXTable):
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=3, searchable=True),
         TableCol(title="Email", label="email", col_size=3, sortable=True),
-        TableCol(title="Role", label="role", col_size=2, choices=cats.UserRole.as_selectable(), sortable=True, sort_by="role_id"),
+        TableCol(title="Role", label="role", col_size=2, choices=C.UserRole.as_selectable(), sortable=True, sort_by="role_id"),
         TableCol(title="# Seq Requests", label="num_seq_requests", col_size=1, sortable=True),
         TableCol(title="# Projects", label="num_projects", col_size=1, sortable=True),
     ]
@@ -30,7 +30,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (role_in := request.args.get("role_in")):
         role_in = json.loads(role_in)
         try:
-            role_in = [cats.UserRole.get(int(role)) for role in role_in]
+            role_in = [C.UserRole.get(int(role)) for role in role_in]
             if role_in:
                 fnc_context["role_in"] = role_in
                 table.filter_values["role"] = role_in

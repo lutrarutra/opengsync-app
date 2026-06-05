@@ -2,7 +2,7 @@ import json
 
 from flask import Request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -14,7 +14,7 @@ class SequencerTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=3, searchable=True, sortable=True),
-        TableCol(title="Model", label="model", col_size=2, choices=cats.SequencerModel.as_selectable(), sortable=True, sort_by="model_id"),
+        TableCol(title="Model", label="model", col_size=2, choices=C.SequencerModel.as_selectable(), sortable=True, sort_by="model_id"),
     ]
     
 
@@ -49,7 +49,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (model_in := request.args.get("model_in")) is not None:
         model_in = json.loads(model_in)
         try:
-            model_in = [cats.SequencerModel.get(int(model)) for model in model_in]
+            model_in = [C.SequencerModel.get(int(model)) for model in model_in]
             if model_in:
                 fnc_context["model_in"] = model_in
                 table.filter_values["model"] = model_in

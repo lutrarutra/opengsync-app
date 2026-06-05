@@ -29,7 +29,7 @@ def logout(current_user: models.User):
     user_id = current_user.id
     if current_user.role == UserRole.TEMPORARY:
         current_user.role = UserRole.DEACTIVATED
-        db.users.update(current_user)
+        db.session.save(current_user)
     logout_user()
     num_deleted = runtime.app.delete_user_sessions(user_id)
     logger.info(f"Closed {num_deleted} sessions for user ID: {user_id}")
@@ -111,7 +111,7 @@ def activate_account(current_user: models.User, user_id: int):
         raise exceptions.BadRequestException("User account is not deactivated")
     
     user.role = UserRole.CLIENT
-    db.users.update(user)
+    db.session.save(user)
 
     token = tokens.generate_reset_token(user=user, serializer=serializer)
     link = runtime.url_for("auth_page.reset_password", token=token, _external=True)
@@ -177,7 +177,7 @@ def start_user_session(current_user: models.User, user_id: int):
     login_user(user)
     if user.role == UserRole.DEACTIVATED:
         user.role = UserRole.TEMPORARY
-        db.users.update(user)
+        db.session.save(user)
     runtime.app.session_interface.regenerate(runtime.session)  # type: ignore
     flash("User Session Started!", "success")
     return make_response(redirect=url_for("dashboard"))

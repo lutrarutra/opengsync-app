@@ -7,7 +7,7 @@ from sqlalchemy.sql.base import ExecutableOption
 
 from ... import models, PAGE_LIMIT
 from .. import exceptions
-from ...categories import ExperimentWorkFlow, ExperimentStatus, ExperimentWorkFlow
+from ...categories import ExperimentWorkFlow, ExperimentStatus
 from ..DBBlueprint import DBBlueprint
 
 

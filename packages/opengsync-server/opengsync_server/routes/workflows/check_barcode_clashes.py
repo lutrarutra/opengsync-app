@@ -2,7 +2,7 @@ import pandas as pd
 
 from flask import Blueprint, request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ... import db, logger
 from ...forms.workflows import check_barcode_clashes as wff
@@ -110,7 +110,7 @@ def check_seq_request_barcode_clashes(current_user: models.User, seq_request_id:
     if (seq_request := db.seq_requests.get(seq_request_id)) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < cats.AccessType.VIEW:
+    if db.seq_requests.get_access_type(seq_request, current_user) < C.AccessType.VIEW:
         raise exceptions.NoPermissionsException()
     
     library_data = {

@@ -1,5 +1,3 @@
-import os
-
 from .utils import connect_similar_strings, make_filenameable, parse_float, parse_int, titlecase_with_acronyms, tab_10_colors, check_indices, mapstr, make_alpha_numeric, get_barcode_table
 from . import io
 from .classproperty import classproperty
@@ -12,8 +10,16 @@ from .SharedFileBrowser import SharedFileBrowser
 from .MSFTableHandler import MSFTableHandler
 from .CachedDictionary import CachedDictionary
 
-if os.getenv("GEMINI_API_KEY"):
-    from .TextGen import TextGen
-    textgen = TextGen()
-else:
-    textgen = None
+__all__ = [
+    "connect_similar_strings", "make_filenameable", "parse_float", "parse_int", "titlecase_with_acronyms", "tab_10_colors", "check_indices", "mapstr", "make_alpha_numeric", "get_barcode_table",
+    "io",
+    "classproperty",
+    "RedisMSFFileCache",
+    "StaticSpreadSheet",
+    "MailHandler",
+    "ExcelWriter",
+    "FileBrowser",
+    "SharedFileBrowser",
+    "MSFTableHandler",
+    "CachedDictionary"
+]

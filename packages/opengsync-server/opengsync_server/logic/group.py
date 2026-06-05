@@ -2,7 +2,7 @@ import json
 
 from flask import Request
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -15,7 +15,7 @@ class GroupTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
         TableCol(title="Name", label="name", col_size=3, searchable=True),
-        TableCol(title="Type", label="type", col_size=2, choices=cats.GroupType.as_selectable(), sortable=True, sort_by="type_id"),
+        TableCol(title="Type", label="type", col_size=2, choices=C.GroupType.as_selectable(), sortable=True, sort_by="type_id"),
         TableCol(title="# Users", label="num_users", col_size=1, sortable=True),
         TableCol(title="# Projects", label="num_projects", col_size=1, sortable=True),
         TableCol(title="# Seq Requests", label="num_seq_requests", col_size=1, sortable=True),
@@ -29,7 +29,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (type_in := request.args.get("type_in")):
         type_in = json.loads(type_in)
         try:
-            type_in = [cats.GroupType.get(int(role)) for role in type_in]
+            type_in = [C.GroupType.get(int(role)) for role in type_in]
             if type_in:
                 fnc_context["type_in"] = type_in
                 table.filter_values["type"] = type_in
