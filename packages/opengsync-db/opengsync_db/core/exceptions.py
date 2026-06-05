@@ -47,3 +47,8 @@ class InvalidOperation(OpeNGSyncDBException):
 class FileExistsException(OpeNGSyncDBException):
     def __init__(self, message: str = "File already exists"):
         self.message = message
+
+class ModelNotFoundException(OpeNGSyncDBException):
+    """Raised when a requested object is not found in the database."""
+    def __init__(self, message: str = "Object not found in the database") -> None:
+        super().__init__(message)

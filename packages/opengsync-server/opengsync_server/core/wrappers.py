@@ -13,7 +13,6 @@ from opengsync_db.categories import HTTPResponse
 from opengsync_db import exceptions as db_exceptions
 
 from .. import logger
-from ..core.LogBuffer import log_buffer
 from ..tools import routes as rt, textgen
 from . import exceptions as serv_exceptions
 from .RunTime import runtime
@@ -195,7 +194,7 @@ def _route_decorator(
                 rollback = db.needs_commit if db is not None else False
                 _default_logger(e, "OpeNGSyncDBException", None)
                 return response_handler(e)
-            except RateLimitExceeded as e:
+            except RateLimitExceeded:
                 logger.warning(f"Rate limit exceeded for IP {request.remote_addr} on route {request.path}")
                 return response_handler(serv_exceptions.TooManyRequestsException())
             except Exception as e:

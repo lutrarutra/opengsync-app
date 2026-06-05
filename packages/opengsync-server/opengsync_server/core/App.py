@@ -24,7 +24,6 @@ from opengsync_api import __version__ as api_version
 
 from .. import (
     logger,
-    log_buffer,
     route_cache,
     msf_cache,
     flash_cache,
@@ -78,8 +77,6 @@ class App(Flask):
             # self.config["TEMPLATES_AUTO_RELOAD"] = True
 
         self.jinja_env.globals["uuid"] = lambda: str(uuid4())
-        log_buffer.set_log_dir(Path(opengsync_config["log_folder"]), debug=DEBUG)
-        log_buffer.start("App Initialization")
 
         from ..core import runtime
 
@@ -187,7 +184,6 @@ class App(Flask):
         def before_request():
             runtime.session["from_url"] = request.referrer
             g.start_time = time.time()
-            log_buffer.start(f"{request.method} -> {request.path}")
             db.open_session()
 
         @self.teardown_request
@@ -195,7 +191,6 @@ class App(Flask):
             if db._session is not None:
                 if db.close_session(commit=True, rollback=runtime.session.pop("rollback", False)):
                     route_cache.clear()
-            log_buffer.flush()
 
         @self.after_request
         def after_request(response):
@@ -378,8 +373,6 @@ class App(Flask):
         self.register_blueprint(routes.pages.protocols_page_bp)
         self.register_blueprint(routes.pages.admin_pages_bp)
         self.register_blueprint(routes.pages.design_page_bp)
-
-        log_buffer.flush()
 
     def no_context_render_template(self, template_name: str, **context: dict) -> str:
         return self.jinja_env.get_template(template_name).render(**context)
