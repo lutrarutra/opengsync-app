@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 
-from ..models import Library, Sample, links
+from ..models import Library, Sample, links, Pool
 from ..categories import (
     LibraryType, LibraryStatus, GenomeRef, ServiceType, IndexType, MUXType
 )
@@ -56,6 +56,8 @@ def select(
     type_in: list[LibraryType] | None = None,
     status_in: list[LibraryStatus] | None = None,
     pooled: bool | None = None, status: LibraryStatus | None = None,
+    search_name: str | None = None,
+    search_pool_name: str | None = None,
     statement: sa.Select[tuple[Library]] = sa.select(Library),
 ) -> sa.Select[tuple[Library]]:
     if id is not None:
@@ -115,4 +117,12 @@ def select(
 
     if status_in is not None:
         statement = statement.where(Library.status_id.in_([s.id for s in status_in]))
+
+    if search_name is not None:
+        statement = statement.where(Library.name.ilike(f"%{search_name}%"))
+    if search_pool_name is not None:
+        statement = statement.join(
+            Library.pool
+        ).where(Library.pool.has(Pool.name.ilike(f"%{search_pool_name}%")))
+
     return statement

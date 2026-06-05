@@ -76,6 +76,8 @@ def select(
     status_in: list[PoolStatus] | None = None,
     library_types_in: list[LibraryType] | None = None,
     type_in: list[PoolType] | None = None,
+    search_name: str | None = None,
+    search_owner_name: str | None = None,
     statement: sa.Select[tuple[Pool]] = sa.select(Pool),
 ) -> sa.Select[tuple[Pool]]:
     if id is not None:
@@ -122,6 +124,17 @@ def select(
         else:
             statement = statement.where(Pool.experiment_id.is_(None))
     
+    if search_name is not None:
+        statement = statement.order_by(sa.func.similarity(Pool.name, search_name).desc())
+    if search_owner_name is not None:
+        statement = statement.join(
+            User,
+            User.id == Pool.owner_id
+        ).where(
+            sa.func.similarity(User.name, search_owner_name) > 0
+        ).order_by(
+            sa.func.similarity(User.name, search_owner_name).desc()
+        )
     return statement
 
 

@@ -106,7 +106,7 @@ def download(current_user: models.User) -> Response:
     for experiment in experiments:
         experiment_data["experiment_name"].append(experiment.name)
         experiment_data["workflow"].append(experiment.workflow.name)
-        experiment_data["flow_cell_type"].append(experiment.flowcell_type.name)
+        experiment_data["flow_cell_type"].append(experiment.flowcell_type.label)
         experiment_data["max_m_reads"].append(experiment.flowcell_type.max_m_reads)
         experiment_data["max_m_reads_per_lane"].append(experiment.flowcell_type.max_m_reads_per_lane)
         experiment_data["num_pools"].append(len(experiment.pools))

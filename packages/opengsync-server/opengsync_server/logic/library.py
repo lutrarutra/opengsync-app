@@ -1,10 +1,11 @@
 import json
 
 from flask import Request
+import sqlalchemy as sa
 
-from opengsync_db import models, categories as C
+from opengsync_db import models, categories as C, queries as Q
 
-from ..import db, logger
+from ..import db
 from .. import forms
 from .HTMXTable import HTMXTable
 from .TableCol import TableCol
@@ -24,15 +25,16 @@ class LibraryTable(HTMXTable):
     ]
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    fnc_context = {}
     table = LibraryTable(route="libraries_htmx.get", page=request.args.get("page", 0, type=int))
+    stmt = sa.select(models.Library)
 
     if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
             status_in = [C.LibraryStatus.get(int(status)) for status in status_in]
             if status_in:
-                fnc_context["status_in"] = status_in
+                # fnc_context["status_in"] = status_in
+                stmt = Q.library.select(status_in=status_in, statement=stmt)
                 table.filter_values["status"] = status_in
         except ValueError:
             raise exceptions.BadRequestException()
@@ -42,36 +44,39 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         try:
             type_in = [C.LibraryType.get(int(type_)) for type_ in type_in]
             if type_in:
-                fnc_context["type_in"] = type_in
+                # fnc_context["type_in"] = type_in
+                stmt = Q.library.select(type_in=type_in, statement=stmt)
                 table.filter_values["type"] = type_in
         except ValueError:
             raise exceptions.BadRequestException()
 
     if (name := request.args.get("name")):
-        fnc_context["name"] = name
+        # fnc_context["name"] = name
+        stmt = Q.library.select(search_name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (pool_name := request.args.get("pool_name")):
-        fnc_context["pool_name"] = pool_name
+        # fnc_context["pool_name"] = pool_name
+        stmt = Q.library.select(search_pool_name=pool_name, statement=stmt)
         table.active_search_var = "pool_name"
         table.active_query_value = pool_name
     elif (id_ := request.args.get("id")):
         table.active_search_var = "id"
         table.active_query_value = str(id_)
         try:
-            id_ = int("".join(filter(str.isdigit, id_)))
-            fnc_context["id"] = id_
+            stmt = Q.library.select(id=int("".join(filter(str.isdigit, id_))), statement=stmt)
         except ValueError:
             pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
         descending = sort_order == "desc"
-        if sort_by not in models.Library.sortable_fields:
+        
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.Library, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
             raise exceptions.BadRequestException()
         
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
     
@@ -79,30 +84,31 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
 
     if (pool := context.get("pool")) is not None:
         template = "components/tables/pool-library.html"        
-        fnc_context["pool_id"] = pool.id
+        stmt = Q.library.select(pool_id=pool.id, statement=stmt)
         table.url_params["pool_id"] = pool.id
     elif (experiment := context.get("experiment")) is not None:      
         template = "components/tables/experiment-library.html"  
-        fnc_context["experiment_id"] = experiment.id
+        stmt = Q.library.select(experiment_id=experiment.id, statement=stmt)
         table.url_params["experiment_id"] = experiment.id
     elif (lab_prep := context.get("lab_prep")) is not None:
         template = "components/tables/lab_prep-library.html"
-        fnc_context["lab_prep_id"] = lab_prep.id
+        stmt = Q.library.select(lab_prep_id=lab_prep.id, statement=stmt)
         table.url_params["lab_prep_id"] = lab_prep.id
     elif (seq_request := context.get("seq_request")) is not None:
         template = "components/tables/seq_request-library.html"        
-        fnc_context["seq_request_id"] = seq_request.id
+        stmt = Q.library.select(seq_request_id=seq_request.id, statement=stmt)
         table.url_params["seq_request_id"] = seq_request.id
     elif (sample := context.get("sample")) is not None:
         template = "components/tables/sample-library.html"        
-        fnc_context["sample_id"] = sample.id
+        stmt = Q.library.select(sample_id=sample.id, statement=stmt)
         table.url_params["sample_id"] = sample.id
     else:
         template = "components/tables/library.html"
         if not current_user.is_insider():
-            fnc_context["user_id"] = current_user.id
+            stmt = Q.library.select(user_id=current_user.id, statement=stmt)
 
-    libraries, table.num_pages = db.libraries.find(page=table.active_page, **fnc_context)
+    # libraries, table.num_pages = db.libraries.find(page=table.active_page, **fnc_context)
+    libraries, count = db.session.page(stmt, page=table.active_page or 0)
         
     context.update({
         "libraries": libraries,
@@ -115,24 +121,32 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
 
 def get_search_context(current_user: models.User, request: Request, **kwargs) -> dict:
     context = parse_context(current_user, request) | kwargs
-    fnc_context = {}
     page = request.args.get("page", 0, type=int)
+    stmt = sa.select(models.Library)
     
     if (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            fnc_context["name"] = name
+            stmt = Q.library.select(search_name=name, statement=stmt)
         else:
-            fnc_context["sort_by"] = "name"
+            stmt = stmt.order_by(sa.nulls_last(models.Library.name.asc()))
     else:
         raise exceptions.BadRequestException("No valid search parameters provided.")
 
-    if (group := context.get("group")) is not None:
-        fnc_context["group_id"] = group.id
+    if (pool := context.get("pool")) is not None:
+        stmt = Q.library.select(pool_id=pool.id, statement=stmt)
+    elif (experiment := context.get("experiment")) is not None:      
+        stmt = Q.library.select(experiment_id=experiment.id, statement=stmt)
+    elif (lab_prep := context.get("lab_prep")) is not None:
+        stmt = Q.library.select(lab_prep_id=lab_prep.id, statement=stmt)
+    elif (seq_request := context.get("seq_request")) is not None:
+        stmt = Q.library.select(seq_request_id=seq_request.id, statement=stmt)
+    elif (sample := context.get("sample")) is not None:
+        stmt = Q.library.select(sample_id=sample.id, statement=stmt)
     else:
         if not current_user.is_insider():
-            fnc_context["user_id"] = current_user.id
+            stmt = Q.library.select(user_id=current_user.id, statement=stmt)
     
-    libraries, num_pages = db.libraries.find(page=page, **fnc_context)
+    libraries, num_pages = db.session.page(stmt, page=page)
 
     context.update({
         "libraries": libraries,
@@ -165,7 +179,6 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    fnc_context = {}
     table = LibraryTable(route="libraries_htmx.browse", page=request.args.get("page", 0, type=int))
     table.url_params["workflow"] = kwargs["workflow"]
     
@@ -174,13 +187,14 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     descending = sort_order == "desc"
 
     context = parse_context(current_user, request) | kwargs
+    stmt = sa.select(models.Library)
 
     if (status_in := request.args.get("status_in")):
         status_in = json.loads(status_in)
         try:
             status_in = [C.LibraryStatus.get(int(status)) for status in status_in]
             if status_in:
-                fnc_context["status_in"] = status_in
+                stmt = Q.library.select(status_in=status_in, statement=stmt)
                 table.filter_values["status"] = status_in
         except ValueError:
             raise exceptions.BadRequestException()
@@ -190,53 +204,53 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         try:
             type_in = [C.LibraryType.get(int(type_)) for type_ in type_in]
             if type_in:
-                fnc_context["type_in"] = type_in
+                stmt = Q.library.select(type_in=type_in, statement=stmt)
                 table.filter_values["type"] = type_in
         except ValueError:
             raise exceptions.BadRequestException()
 
-    if (experiment := context.get("experiment")) is not None:
-        fnc_context["experiment_id"] = experiment.id
-    elif (pool := context.get("pool")) is not None:
-        fnc_context["pool_id"] = pool.id
-    elif (lab_prep := context.get("lab_prep")) is not None:
-        if kwargs["workflow"] != "library_prep":
-            fnc_context["lab_prep_id"] = lab_prep.id
-    elif (seq_request := context.get("seq_request")) is not None:
-        fnc_context["seq_request_id"] = seq_request.id
-
     if (name := request.args.get("name")):
-        fnc_context["name"] = name
+        stmt = Q.library.select(search_name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (pool_name := request.args.get("pool_name")):
-        fnc_context["pool_name"] = pool_name
+        stmt = Q.library.select(search_pool_name=pool_name, statement=stmt)
         table.active_search_var = "pool_name"
         table.active_query_value = pool_name
     elif (id_ := request.args.get("id")):
         table.active_search_var = "id"
         table.active_query_value = str(id_)
         try:
-            id_ = int("".join(filter(str.isdigit, id_)))
-            fnc_context["id"] = id_
+            stmt = Q.library.select(id=int("".join(filter(str.isdigit, id_))), statement=stmt)
         except ValueError:
             pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
         descending = sort_order == "desc"
-        if sort_by not in models.Library.sortable_fields:
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.Library, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
             raise exceptions.BadRequestException()
-        
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
-    if not current_user.is_insider():
-        fnc_context["user_id"] = current_user.id
+    if (pool := context.get("pool")) is not None:
+        stmt = Q.library.select(pool_id=pool.id, statement=stmt)
+    elif (experiment := context.get("experiment")) is not None:      
+        stmt = Q.library.select(experiment_id=experiment.id, statement=stmt)
+    elif (lab_prep := context.get("lab_prep")) is not None:
+        stmt = Q.library.select(lab_prep_id=lab_prep.id, statement=stmt)
+    elif (seq_request := context.get("seq_request")) is not None:
+        stmt = Q.library.select(seq_request_id=seq_request.id, statement=stmt)
+    elif (sample := context.get("sample")) is not None:
+        stmt = Q.library.select(sample_id=sample.id, statement=stmt)
+    else:
+        if not current_user.is_insider():
+            stmt = Q.library.select(user_id=current_user.id, statement=stmt)
 
-    libraries, table.num_pages = db.libraries.find(page=table.active_page, **fnc_context)
+    # libraries, table.num_pages = db.libraries.find(page=table.active_page, **fnc_context)
+    libraries, count = db.session.page(stmt, page=table.active_page or 0)
     context.update({
         "libraries": libraries,
         "template_name_or_list": "components/tables/select-libraries.html",
