@@ -33,7 +33,7 @@
         });
 
         {% if current_user.is_insider() %}
-        let selected_path_id = null;
+        window.selected_path_id = null;
 
         function remove_path() {
             Swal.fire({
