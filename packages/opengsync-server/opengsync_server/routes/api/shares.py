@@ -175,7 +175,7 @@ def remove_data_paths(
         if (project := db.projects.get(project_id)) is None:
             raise exceptions.NotFoundException(f"Project with ID '{project_id}' not found.")
         
-        data_paths, _ = db.data_paths.find(project_id=project.id)
+        data_paths, _ = db.data_paths.find(project_id=project.id, limit=None)
         for data_path in data_paths:
             db.data_paths.delete(data_path)
             exists = (runtime.app.share_root / data_path.path).exists()
@@ -185,7 +185,7 @@ def remove_data_paths(
         if (seq_request := db.seq_requests.get(seq_request_id)) is None:
             raise exceptions.NotFoundException(f"Seq Request with ID '{seq_request_id}' not found.")
         
-        data_paths, _ = db.data_paths.find(seq_request_id=seq_request.id)
+        data_paths, _ = db.data_paths.find(seq_request_id=seq_request.id, limit=None)
         for data_path in data_paths:
             db.data_paths.delete(data_path)
             exists = (runtime.app.share_root / data_path.path).exists()
@@ -195,7 +195,7 @@ def remove_data_paths(
         if (experiment := db.experiments.get(experiment_id)) is None:
             raise exceptions.NotFoundException(f"Experiment with ID '{experiment_id}' not found.")
         
-        data_paths, _ = db.data_paths.find(experiment_id=experiment.id)
+        data_paths, _ = db.data_paths.find(experiment_id=experiment.id, limit=None)
         for data_path in data_paths:
             db.data_paths.delete(data_path)
             exists = (runtime.app.share_root / data_path.path).exists()
@@ -205,7 +205,7 @@ def remove_data_paths(
         if (library := db.libraries.get(library_id)) is None:
             raise exceptions.NotFoundException(f"Library with ID '{library_id}' not found.")  
         
-        data_paths, _ = db.data_paths.find(library_id=library.id)
+        data_paths, _ = db.data_paths.find(library_id=library.id, limit=None)
         for data_path in data_paths:
             db.data_paths.delete(data_path)
             exists = (runtime.app.share_root / data_path.path).exists()
