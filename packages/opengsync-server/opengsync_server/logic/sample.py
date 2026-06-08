@@ -84,8 +84,8 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         if not current_user.is_insider():
             stmt = Q.sample.select(user_id=current_user.id, statement=stmt)
 
-    # samples, table.num_pages = db.samples.find(page=table.active_page, **fnc_context)
     samples, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
     
     context.update({
         "samples": samples,
@@ -146,8 +146,8 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     if (pool := context.get("pool")) is not None:
         stmt = Q.sample.select(pool_id=pool.id, statement=stmt)
 
-    # samples, table.num_pages = db.samples.find(page=table.active_page, **fnc_context)
     samples, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
 
     context.update({
         "samples": samples,

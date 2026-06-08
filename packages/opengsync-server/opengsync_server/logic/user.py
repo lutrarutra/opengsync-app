@@ -69,8 +69,8 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         # fnc_context["user_id"] = current_user.id
         stmt = Q.user.select(id=current_user.id, statement=stmt)
 
-    # users, table.num_pages = db.users.find(page=table.active_page, **fnc_context)
     users, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
 
     context.update({
         "users": users,

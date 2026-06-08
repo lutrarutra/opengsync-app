@@ -1,9 +1,8 @@
 import sqlalchemy as sa
 
-from ..models import Library, Sample, links, Pool, User, SeqRequest
+from ..models import Library, Sample, links, User, SeqRequest
 from ..categories import (
-    LibraryType, LibraryStatus, GenomeRef, ServiceType, IndexType, MUXType,
-    UserRole, AccessLevel, SeqRequestStatus, SampleStatus
+    LibraryStatus, UserRole, AccessLevel, SeqRequestStatus, SampleStatus
 )
 
 def create(

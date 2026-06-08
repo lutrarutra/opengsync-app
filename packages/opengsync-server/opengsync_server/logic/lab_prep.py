@@ -98,6 +98,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     template = "components/tables/lab_prep.html"
 
     lab_preps, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
         
     context.update({
         "lab_preps": lab_preps,

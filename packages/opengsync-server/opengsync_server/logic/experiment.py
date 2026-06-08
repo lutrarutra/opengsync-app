@@ -91,6 +91,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         template = "components/tables/experiment.html"
 
     experiments, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
     context.update({
         "experiments": experiments,
         "template_name_or_list": template,
@@ -186,6 +187,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         table.active_sort_descending = descending
 
     experiments, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
 
     context.update({
         "experiments": experiments,

@@ -57,6 +57,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
 
     context = parse_context(current_user, request) | kwargs
     share_tokens, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
 
     context.update({
         "share_tokens": share_tokens,

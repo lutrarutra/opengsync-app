@@ -63,6 +63,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         stmt = Q.group.select(user=current_user, statement=stmt)
 
     groups, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
 
     context = parse_context(current_user, request) | kwargs
     context.update({

@@ -43,3 +43,6 @@ class HTMXTable:
     
     def page_url(self, page: int) -> str:
         return url_for(self.route, page=page, **self.url_params)
+
+    def set_num_pages(self, count: int, limit: int = 10) -> None:
+        self.num_pages = (count + limit - 1) // limit

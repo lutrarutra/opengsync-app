@@ -70,6 +70,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         template = "components/tables/kit.html"
 
     kits, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
     context.update({
         "kits": kits,
         "template_name_or_list": template,

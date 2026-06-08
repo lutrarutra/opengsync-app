@@ -104,8 +104,8 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         if not current_user.is_insider():
             stmt = Q.project.select(user_id=current_user.id, statement=stmt)
 
-    # projects, table.num_pages = db.projects.find(page=table.active_page, **fnc_context)
     projects, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
 
     context.update({
         "projects": projects,

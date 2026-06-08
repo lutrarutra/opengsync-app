@@ -113,7 +113,8 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
-    seq_requests, _ = db.session.page(stmt, page=table.active_page or 0)
+    seq_requests, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
 
     context.update({
         "seq_requests": seq_requests,

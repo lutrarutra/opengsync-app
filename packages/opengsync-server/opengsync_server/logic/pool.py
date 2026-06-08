@@ -114,8 +114,8 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         if not current_user.is_insider():
             stmt = Q.pool.select(user_id=current_user.id, statement=stmt)
 
-    # pools, table.num_pages = db.pools.find(page=table.active_page, **fnc_context)
-    pools, table.num_pages = db.session.page(stmt, page=table.active_page or 0)
+    pools, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
         
     context.update({
         "pools": pools,
@@ -250,6 +250,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         stmt = Q.pool.select(experiment_id=None, statement=stmt)
 
     pools, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
     
     context.update({
         "pools": pools,
