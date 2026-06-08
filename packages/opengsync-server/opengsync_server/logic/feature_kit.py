@@ -1,8 +1,9 @@
 import json
 
 from flask import Request
+import sqlalchemy as sa
 
-from opengsync_db import models, categories as C
+from opengsync_db import models, categories as C, queries as Q
 
 from ..import db
 from .HTMXTable import HTMXTable
@@ -20,34 +21,32 @@ class FeatureKitTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:    
-    fnc_context = {}
     table = FeatureKitTable(route="feature_kits_htmx.get", page=request.args.get("page", 0, type=int))
+    stmt = sa.select(models.FeatureKit)
 
     if (name := request.args.get("name")):
-        fnc_context["name"] = name
+        stmt = Q.feature_kit.select(search_name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (identifier := request.args.get("identifier")):
-        fnc_context["identifier"] = identifier
+        stmt = Q.feature_kit.select(search_identifier=identifier, statement=stmt)
         table.active_search_var = "identifier"
         table.active_query_value = identifier
     elif (id_ := request.args.get("id")):
         table.active_search_var = "id"
         table.active_query_value = str(id_)
         try:
-            id_ = int("".join(filter(str.isdigit, id_)))
-            fnc_context["id"] = id_
+            stmt = Q.feature_kit.select(id=int("".join(filter(str.isdigit, id_))), statement=stmt)
         except ValueError:
             pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
         descending = sort_order == "desc"
-        if sort_by not in models.FeatureKit.sortable_fields:
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.FeatureKit, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
             raise exceptions.BadRequestException()
-        
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
@@ -56,14 +55,14 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         try:
             type_in = [C.FeatureType.get(int(kit_type)) for kit_type in type_in]
             if type_in:
-                fnc_context["type_in"] = type_in
+                stmt = Q.feature_kit.select(type_in=type_in, statement=stmt)
                 table.filter_values["type"] = type_in
         except ValueError:
             raise exceptions.BadRequestException()
 
     context = parse_context(current_user, request) | kwargs
 
-    feature_kits, table.num_pages = db.feature_kits.find(page=table.active_page, **fnc_context)
+    feature_kits, count  = db.session.page(stmt, page=table.active_page or 0)
         
     context.update({
         "feature_kits": feature_kits,

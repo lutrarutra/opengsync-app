@@ -1,8 +1,9 @@
 import json
 
 from flask import Request
+import sqlalchemy as sa
 
-from opengsync_db import models, categories as C
+from opengsync_db import models, categories as C, queries as Q
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -23,47 +24,45 @@ class GroupTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    fnc_context = {}
     table = GroupTable(route="groups_htmx.get", page=request.args.get("page", 0, type=int))
+    stmt = sa.select(models.Group)
 
     if (type_in := request.args.get("type_in")):
         type_in = json.loads(type_in)
         try:
             type_in = [C.GroupType.get(int(role)) for role in type_in]
             if type_in:
-                fnc_context["type_in"] = type_in
+                stmt = Q.group.select(type_in=type_in, statement=stmt)
                 table.filter_values["type"] = type_in
         except ValueError:
             raise exceptions.BadRequestException()
 
     if (name := request.args.get("name")):
-        fnc_context["name"] = name
+        # fnc_context["name"] = name
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
         table.active_search_var = "id"
         table.active_query_value = str(id_)
         try:
-            id_ = int("".join(filter(str.isdigit, id_)))
-            fnc_context["id"] = id_
+            stmt = Q.group.select(id=int("".join(filter(str.isdigit, id_))), statement=stmt)
         except ValueError:
             pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
         descending = sort_order == "desc"
-        if sort_by not in models.Group.sortable_fields:
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.Group, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
             raise exceptions.BadRequestException()
-        
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
     if not current_user.is_insider():
-        fnc_context["user_id"] = current_user.id
+        stmt = Q.group.select(user=current_user, statement=stmt)
 
-    groups, table.num_pages = db.groups.find(page=table.active_page, **fnc_context)
+    groups, count = db.session.page(stmt, page=table.active_page or 0)
 
     context = parse_context(current_user, request) | kwargs
     context.update({
@@ -76,28 +75,24 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
 
 def get_search_context(current_user: models.User, request: Request, **kwargs) -> dict:
     context = parse_context(current_user, request) | kwargs
-    fnc_context = {}
     page = request.args.get("page", 0, type=int)
+    stmt = sa.select(models.Group)
     
     if (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            fnc_context["name"] = name
+            stmt = Q.group.select(search_name=name, statement=stmt)
         else:
-            fnc_context["sort_by"] = "name"
+            stmt = stmt.order_by(models.Group.name.desc())
     else:
         raise exceptions.BadRequestException("No valid search parameters provided.")
 
-    if (group := context.get("group")) is not None:
-        fnc_context["group_id"] = group.id
-    else:
-        if not current_user.is_insider():
-            fnc_context["user_id"] = current_user.id
+    if not current_user.is_insider():
+        stmt = Q.group.select(user=current_user, statement=stmt)
     
-    groups, num_pages = db.groups.find(page=page, **fnc_context)
+    groups, count = db.session.page(stmt, page=page)
 
     context.update({
         "groups": groups,
         "template_name_or_list": "components/search/group.html",
-        "num_pages": num_pages,
     })
     return context

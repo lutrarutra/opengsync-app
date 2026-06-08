@@ -65,6 +65,8 @@ class FileBrowser:
                 
                 if not self._is_safe(path.relative_to(self.root_dir)):
                     continue
+
+                
                 
                 paths.append(BrowserPath(
                     path=path,
@@ -76,7 +78,7 @@ class FileBrowser:
                             orm.joinedload(models.DataPath.seq_request),
                             orm.joinedload(models.DataPath.library),
                             orm.joinedload(models.DataPath.experiment),
-                        ]  # type: ignore
+                        ]
                     )[0]
                 ))
 

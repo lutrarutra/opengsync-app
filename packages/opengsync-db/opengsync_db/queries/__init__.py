@@ -15,6 +15,12 @@ from . import (
     pool,
     lane,
     library,
+    kit,
+    protocol,
+    index_kit,
+    feature_kit,
+    group,
+    seq_run
 )
 
 __all__ = [
@@ -36,4 +42,10 @@ __all__ = [
     "library",
     "links",
     "sample",
+    "kit",
+    "protocol",
+    "index_kit",
+    "feature_kit",
+    "group",
+    "seq_run"
 ]

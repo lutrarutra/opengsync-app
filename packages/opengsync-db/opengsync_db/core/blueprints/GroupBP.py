@@ -74,8 +74,8 @@ class GroupBP(DBBlueprint):
         user_id: int | None = None, type: Optional[GroupType] = None,
         name: str | None = None,
         id: int | None = None,
-        limit: int | None = PAGE_LIMIT, offset: int | None = None,
         type_in: Optional[list[GroupType]] = None,
+        limit: int | None = PAGE_LIMIT, offset: int | None = None,
         sort_by: str | None = None, descending: bool = False,
         page: int | None = None,
     ) -> tuple[list[models.Group], int | None]:
