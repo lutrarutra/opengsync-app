@@ -7,8 +7,8 @@ import markdown
 from flask import Blueprint, render_template, Response, send_from_directory, request
 from flask_htmx import make_response
 
-from opengsync_db import models
-from opengsync_db.categories import AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import AccessLevel
 
 from ... import db, logger
 from ...tools import utils, FileBrowser
@@ -20,11 +20,11 @@ files_htmx = Blueprint("files_htmx", __name__, url_prefix="/htmx/files/")
 
 @wrappers.htmx_route(files_htmx, db=db)
 def render_xlsx(current_user: models.User, file_id: int):
-    if (file := db.media_files.get(file_id)) is None:
+    if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
     
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
+        if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 
     filepath = os.path.join(runtime.app.media_folder, file.path)
@@ -37,19 +37,19 @@ def render_xlsx(current_user: models.User, file_id: int):
 
 @wrappers.resource_route(files_htmx, db=db, login_required=True)
 def render_data_file(current_user: models.User, data_path_id: int):
-    if (data_path := db.data_paths.get(data_path_id)) is None:
+    if (data_path := db.session.first(Q.data_path.select(id=data_path_id))) is None:
         raise exceptions.NotFoundException("DataPath not found")
     
     if not current_user.is_insider():
         if data_path.project is not None:
-            if not db.projects.get_access_type(data_path.project, current_user) < AccessType.VIEW:
+            if not db.session.get_access_level(Q.project.permissions(data_path.project.id, current_user.id)) < AccessLevel.READ:
                 raise exceptions.NoPermissionsException()
         elif data_path.seq_request is not None:
-            if not db.seq_requests.get_access_type(data_path.seq_request, current_user) < AccessType.VIEW:
+            if not db.session.get_access_level(Q.seq_request.permissions(data_path.seq_request.id, current_user.id)) < AccessLevel.READ:
                 raise exceptions.NoPermissionsException()
-        elif data_path.library is not None:
-            if not db.libraries.get_access_type(data_path.library, current_user) < AccessType.VIEW:
-                raise exceptions.NoPermissionsException()
+        # elif data_path.library is not None:
+        #     if not db.session.get_access_level(Q.library.permissions(data_path.library.id, current_user.id)) < AccessLevel.READ:
+        #         raise exceptions.NoPermissionsException()
         else:
             raise exceptions.NoPermissionsException()
     
@@ -74,11 +74,11 @@ def render_data_file(current_user: models.User, data_path_id: int):
 
 @wrappers.resource_route(files_htmx, db=db, login_required=True)
 def render_markdown_file(current_user: models.User, file_id: int):
-    if (file := db.media_files.get(file_id)) is None:
+    if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
     
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
+        if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 
     filepath = os.path.join(runtime.app.media_folder, file.path)

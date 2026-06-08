@@ -41,10 +41,10 @@ class ActionsBP(DBBlueprint):
         if flush:
             self.db.session.flush()
         
-        self.delete_orphan(flush=flush)
+        self.delete_orphan_features(flush=flush)
 
     @DBBlueprint.transaction
-    def delete_orphan(
+    def delete_orphan_features(
         self, flush: bool = True
     ) -> None:
         features = self.db.session.query(models.Feature).where(
@@ -180,6 +180,18 @@ class ActionsBP(DBBlueprint):
         if flush:
             self.db.session.flush()
 
+    @DBBlueprint.transaction
+    def unlink_sample_library(self, sample_id: int, library_id: int, flush: bool = True):
+        if (link := self.db.session.query(models.links.SampleLibraryLink).where(
+            models.links.SampleLibraryLink.sample_id == sample_id,
+            models.links.SampleLibraryLink.library_id == library_id,
+        ).first()) is None:
+            raise exceptions.LinkDoesNotExist(f"Sample with id {sample_id} and Library with id {library_id} are not linked")
+
+        self.db.session.delete(link)
+
+        if flush:
+            self.db.session.flush()
 
     @DBBlueprint.transaction
     def clone_library(
@@ -483,3 +495,38 @@ class ActionsBP(DBBlueprint):
         if flush:
             self.db.session.flush()
         return lab_prep
+    
+    @DBBlueprint.transaction
+    def set_library_seq_quality(
+        self, library: models.Library | None,
+        experiment: models.Experiment,
+        lane: int,
+        num_reads: int,
+        qc: dict | None = None,
+    ) -> models.SeqQuality:
+        if library is not None:
+            if library.status < LibraryStatus.SEQUENCED:
+                library.status = LibraryStatus.SEQUENCED
+            if library.pool is not None:
+                if library.pool.status < PoolStatus.SEQUENCED:
+                    library.pool.status = PoolStatus.SEQUENCED
+            
+            self.db.session.add(library)
+            
+        if (quality := self.db.session.query(models.SeqQuality).where(
+            (models.SeqQuality.library_id == library.id) if library is not None else (models.SeqQuality.library_id.is_(None)),
+            models.SeqQuality.experiment_id == experiment.id,
+            models.SeqQuality.lane == lane,
+        ).first()) is not None:
+            quality.num_reads = num_reads
+            quality.qc = qc
+        else:
+            quality = models.SeqQuality(
+                library_id=library.id if library is not None else None,
+                lane=lane, experiment_id=experiment.id,
+                num_reads=num_reads, qc=qc
+            )
+
+        self.db.session.add(quality)
+
+        return quality

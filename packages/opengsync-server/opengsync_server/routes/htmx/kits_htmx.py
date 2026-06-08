@@ -1,9 +1,8 @@
-import json
-
 from flask import Blueprint, render_template, request, url_for, flash
 from flask_htmx import make_response
+import sqlalchemy as sa
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import KitType
 
 from ... import db, forms, logger, logic
@@ -37,7 +36,7 @@ def create(current_user: models.User):
 def edit(current_user: models.User, kit_id: int):
     if not current_user.is_admin():
         raise exceptions.NoPermissionsException()
-    if (kit := db.kits.get(kit_id)) is None:
+    if (kit := db.session.first(Q.kit.select(id=kit_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -54,10 +53,12 @@ def delete(current_user: models.User, kit_id: int):
     if not current_user.is_admin():
         raise exceptions.NoPermissionsException()
     
-    if (kit := db.kits.get(kit_id)) is None:
+    if (kit := db.session.first(Q.kit.select(id=kit_id))) is None:
         raise exceptions.NotFoundException()
     
-    db.kits.delete(kit)
+    db.session.delete(kit, flush=True)
+    if kit.kit_type == KitType.FEATURE_KIT:
+        db.actions.delete_orphan_features()
     
     flash("Index kit deleted successfully.", "success")
     return make_response(redirect=url_for("kits_page.kits"))

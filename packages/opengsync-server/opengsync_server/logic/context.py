@@ -1,6 +1,7 @@
 from flask import Request
 
-from opengsync_db import models, categories
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import AccessLevel
 
 from ..import db
 from ..core import exceptions
@@ -13,11 +14,11 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (group := db.groups.get(group_id)) is None:
+        if (group := db.session.first(Q.group.select(id=group_id))) is None:
             raise exceptions.NotFoundException()
         
         if not current_user.is_insider():
-            if db.groups.get_user_affiliation(group_id=group.id, user_id=current_user.id) is None:
+            if db.session.first(Q.affiliation.select(group_id=group.id, user_id=current_user.id)) is None:
                 raise exceptions.NoPermissionsException()
         
         context["group"] = group
@@ -28,11 +29,11 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (project := db.projects.get(project_id)) is None:
+        if (project := db.session.first(Q.project.select(id=project_id))) is None:
             raise exceptions.NotFoundException()
         
-        access_type = db.projects.get_access_type(project, current_user)
-        if access_type < categories.AccessType.VIEW:
+        access_level = db.session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))
+        if access_level < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
         
         context["project"] = project
@@ -43,11 +44,11 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
             raise exceptions.NotFoundException()
         
-        access_type = db.seq_requests.get_access_type(seq_request, current_user)
-        if access_type < categories.AccessType.VIEW:
+        access_level = db.session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id))
+        if access_level < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
         
         context["seq_request"] = seq_request
@@ -60,7 +61,7 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (experiment := db.experiments.get(experiment_id)) is None:
+        if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
             raise exceptions.NotFoundException()
         
         context["experiment"] = experiment
@@ -73,7 +74,7 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+        if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
             raise exceptions.NotFoundException()
         
         context["lab_prep"] = lab_prep
@@ -87,7 +88,7 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         if not current_user.is_insider() and user_id != current_user.id:
             raise exceptions.NoPermissionsException()
         
-        if (user := db.users.get(user_id)) is None:
+        if (user := db.session.first(Q.user.select(id=user_id))) is None:
             raise exceptions.NotFoundException()
         
         context["user"] = user
@@ -98,11 +99,11 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (pool := db.pools.get(pool_id)) is None:
+        if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
             raise exceptions.NotFoundException()
         
-        access_type = db.pools.get_access_type(pool=pool, user=current_user)
-        if access_type < categories.AccessType.VIEW:
+        access_level = db.session.get_access_level(Q.pool.permissions(pool_id=pool_id, user_id=current_user.id))
+        if access_level < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
         
         context["pool"] = pool
@@ -113,11 +114,11 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (library := db.libraries.get(library_id)) is None:
+        if (library := db.session.first(Q.library.select(id=library_id))) is None:
             raise exceptions.NotFoundException()
         
-        access_type = db.libraries.get_access_type(library=library, user=current_user)
-        if access_type < categories.AccessType.VIEW:
+        access_level = db.session.get_access_level(Q.library.permissions(library_id=library_id, user_id=current_user.id))
+        if access_level < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
         
         context["library"] = library
@@ -128,11 +129,11 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (sample := db.samples.get(sample_id)) is None:
+        if (sample := db.session.first(Q.sample.select(id=sample_id))) is None:
             raise exceptions.NotFoundException()
         
-        access_type = db.samples.get_access_type(sample=sample, user=current_user)
-        if access_type < categories.AccessType.VIEW:
+        access_level = db.session.get_access_level(Q.sample.permissions(sample_id=sample_id, user_id=current_user.id))
+        if access_level < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
         
         context["sample"] = sample
@@ -143,7 +144,7 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (index_kit := db.index_kits.get(index_kit_id)) is None:
+        if (index_kit := db.session.first(Q.index_kit.select(id=index_kit_id))) is None:
             raise exceptions.NotFoundException()
         
         context["index_kit"] = index_kit
@@ -154,7 +155,7 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
+        if (feature_kit := db.session.first(Q.feature_kit.select(id=feature_kit_id))) is None:
             raise exceptions.NotFoundException()
         
         context["feature_kit"] = feature_kit
@@ -165,7 +166,7 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (protocol := db.protocols.get(protocol_id)) is None:
+        if (protocol := db.session.first(Q.protocol.select(id=protocol_id))) is None:
             raise exceptions.NotFoundException()
         
         context["protocol"] = protocol

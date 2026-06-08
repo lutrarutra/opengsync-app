@@ -1,11 +1,11 @@
-import os
 from pathlib import Path
 import smtplib
 
-from flask import Blueprint, jsonify, render_template
+from flask import Blueprint, jsonify
+from sqlalchemy import orm
 
-from opengsync_db.categories import DataPathType, DataPathType, LibraryType, ProjectStatus, DeliveryStatus, LibraryStatus
-from opengsync_db import models
+from opengsync_db.categories import DataPathType, DataPathType, ProjectStatus, DeliveryStatus, LibraryStatus
+from opengsync_db import models, queries as Q
 
 from ...tools import utils
 from ...core import wrappers, exceptions, runtime
@@ -104,62 +104,58 @@ def add_data_path(
     share_path, path_type = resolve_share_path(path, path_type)
     
     if project_id is not None:
-        if (project := db.projects.get(project_id)) is None:
+        if (project := db.session.first(Q.project.select(id=project_id))) is None:
             raise exceptions.NotFoundException(f"Project with ID '{project_id}' not found.")
-        if len(project_data_paths := db.data_paths.find(path=share_path, project_id=project.id)[0]) > 0:
-            data_path = project_data_paths[0]
+        if (data_path := db.session.first(Q.data_path.select(path=share_path, project_id=project.id))) is not None:
             data_path.type = path_type
-            db.data_paths.update(data_path)
+            db.session.save(data_path)
         else:
-            data_path = db.data_paths.create(
+            data_path = db.session.save(Q.data_path.create(
                 path=share_path,
                 type=path_type,
                 project=project,
-            )
+            ))
         
     if seq_request_id is not None:
-        if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
             raise exceptions.NotFoundException(f"Seq Request with ID '{seq_request_id}' not found.")
         
-        if len(seq_request_data_paths := db.data_paths.find(path=share_path, seq_request_id=seq_request.id)[0]) > 0:
-            data_path = seq_request_data_paths[0]
+        if (data_path := db.session.first(Q.data_path.select(path=share_path, seq_request_id=seq_request.id))) is not None:
             data_path.type = path_type
-            db.data_paths.update(data_path)
+            db.session.save(data_path)
         else:
-            data_path = db.data_paths.create(
+            data_path = db.session.save(Q.data_path.create(
                 path=share_path,
                 type=path_type,
                 seq_request=seq_request,
-            )
+            ))
 
     if experiment_id is not None:
-        if (experiment := db.experiments.get(experiment_id)) is None:
+        if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
             raise exceptions.NotFoundException(f"Experiment with ID '{experiment_id}' not found.")
         
-        if len(experiment_data_paths := db.data_paths.find(path=share_path, experiment_id=experiment.id)[0]) > 0:
-            data_path = experiment_data_paths[0]
+        if (data_path := db.session.first(Q.data_path.select(path=share_path, experiment_id=experiment.id))) is not None:
             data_path.type = path_type
-            db.data_paths.update(data_path)
+            db.session.save(data_path)
         else:
-            data_path = db.data_paths.create(
+            data_path = db.session.save(Q.data_path.create(
                 path=share_path,
                 type=path_type,
                 experiment=experiment,
-            )
+            ))
 
     if library_id is not None:
-        if (library := db.libraries.get(library_id)) is None:
+        if (library := db.session.first(Q.library.select(id=library_id))) is None:
             raise exceptions.NotFoundException(f"Library with ID '{library_id}' not found.")  
-        if len(library_data_paths := db.data_paths.find(path=share_path, library_id=library.id)[0]) > 0:
-            data_path = library_data_paths[0]
+        if (data_path := db.session.first(Q.data_path.select(path=share_path, library_id=library.id))) is not None:
             data_path.type = path_type
-            db.data_paths.update(data_path)
+            db.session.save(data_path)
         else:
-            data_path = db.data_paths.create(
+            data_path = db.session.save(Q.data_path.create(
                 path=share_path,
                 type=path_type,
                 library=library,
-            )
+            ))
 
     return jsonify({"result": "success", "share_path": share_path, "path": path, "type": path_type.name}), 200
 
@@ -172,42 +168,38 @@ def remove_data_paths(
 ):    
     paths = []
     if project_id is not None:
-        if (project := db.projects.get(project_id)) is None:
+        if (project := db.session.first(Q.project.select(id=project_id), options=[orm.selectinload(models.Project.data_paths)])) is None:
             raise exceptions.NotFoundException(f"Project with ID '{project_id}' not found.")
         
-        data_paths, _ = db.data_paths.find(project_id=project.id, limit=None)
-        for data_path in data_paths:
-            db.data_paths.delete(data_path)
+        for data_path in project.data_paths:
+            db.session.delete(data_path)
             exists = (runtime.app.share_root / data_path.path).exists()
             paths.append((data_path.path, get_real_path(data_path.path), exists))
 
     if seq_request_id is not None:
-        if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id), options=[orm.selectinload(models.SeqRequest.data_paths)])) is None:
             raise exceptions.NotFoundException(f"Seq Request with ID '{seq_request_id}' not found.")
         
-        data_paths, _ = db.data_paths.find(seq_request_id=seq_request.id, limit=None)
-        for data_path in data_paths:
-            db.data_paths.delete(data_path)
+        for data_path in seq_request.data_paths:
+            db.session.delete(data_path)
             exists = (runtime.app.share_root / data_path.path).exists()
             paths.append((data_path.path, get_real_path(data_path.path), exists))
 
     if experiment_id is not None:
-        if (experiment := db.experiments.get(experiment_id)) is None:
+        if (experiment := db.session.first(Q.experiment.select(id=experiment_id), options=[orm.selectinload(models.Experiment.data_paths)])) is None:
             raise exceptions.NotFoundException(f"Experiment with ID '{experiment_id}' not found.")
         
-        data_paths, _ = db.data_paths.find(experiment_id=experiment.id, limit=None)
-        for data_path in data_paths:
-            db.data_paths.delete(data_path)
+        for data_path in experiment.data_paths:
+            db.session.delete(data_path)
             exists = (runtime.app.share_root / data_path.path).exists()
             paths.append((data_path.path, get_real_path(data_path.path), exists))
 
     if library_id is not None:
-        if (library := db.libraries.get(library_id)) is None:
+        if (library := db.session.first(Q.library.select(id=library_id), options=[orm.selectinload(models.Library.data_paths)])) is None:
             raise exceptions.NotFoundException(f"Library with ID '{library_id}' not found.")  
         
-        data_paths, _ = db.data_paths.find(library_id=library.id, limit=None)
-        for data_path in data_paths:
-            db.data_paths.delete(data_path)
+        for data_path in library.data_paths:
+            db.session.delete(data_path)
             exists = (runtime.app.share_root / data_path.path).exists()
             paths.append((data_path.path, get_real_path(data_path.path), exists))
     
@@ -220,7 +212,7 @@ def release_project_data(
     anonymous_send: bool = False, mark_project_delivered: bool | None = None,
     comment: str | None = None
 ):
-    if (project := db.projects.get(project_id)) is None:
+    if (project := db.session.first(Q.project.select(id=project_id), options=[orm.selectinload(models.Project.data_paths)])) is None:
         raise exceptions.NotFoundException(f"Project with ID '{project_id}' not found.")
     
     if project.identifier is None:
@@ -234,13 +226,13 @@ def release_project_data(
     if (share_token := project.share_token) is not None:
         if not share_token._expired:
             share_token._expired = True
-            db.shares.update(share_token)
+            db.session.save(share_token)
     
-    share_token = db.shares.create(
+    share_token = db.session.save(Q.share_token.create(
         owner=current_user,
         time_valid_min=time_valid_min,
         paths=paths,
-    )
+    ))
 
     if recipients is None:
         _recipients: list[str] = db.pd.get_project_latest_request_share_emails(project.id)["email"].unique().tolist()
@@ -252,7 +244,7 @@ def release_project_data(
         raise exceptions.BadRequestException("No recipients specified and no emails found in latest sequencing request share-tab.")
 
     project.share_token = share_token
-    db.projects.update(project)
+    db.session.save(project)
 
     content = utils.render_share_project_data_email(
         share_token=share_token, current_user=current_user, project=project, internal_share=internal_access,
@@ -280,23 +272,23 @@ def release_project_data(
         if all_libraries_delivered:
             if project.status < ProjectStatus.DELIVERED:
                 project.status = ProjectStatus.DELIVERED
-                db.projects.update(project)
+                db.session.save(project)
     else:        
         if mark_project_delivered:
             if project.status < ProjectStatus.DELIVERED:
                 project.status = ProjectStatus.DELIVERED
-                db.projects.update(project)
+                db.session.save(project)
 
     for seq_request in project.seq_requests:
         for link in seq_request.delivery_email_links:
             if link.email in recipients:
                 link.status = DeliveryStatus.DISPATCHED
-        db.seq_requests.update(seq_request)
+        db.session.save(seq_request)
 
     for library in project.libraries:
         if library.status == LibraryStatus.SEQUENCED:
             library.status = LibraryStatus.SHARED
-            db.libraries.update(library)
+            db.session.save(library)
         
     return jsonify({"result": "success", "recipients": recipients}), 200
 

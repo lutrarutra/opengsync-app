@@ -3,7 +3,7 @@ from flask import Blueprint, url_for, flash, request, render_template
 from flask_htmx import make_response
 from flask_login import logout_user, login_user
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import UserRole
 
 from ... import db, forms, logger, mail_handler, serializer
@@ -59,7 +59,7 @@ def change_password(current_user: models.User, user_id: int):
     if current_user.id != user_id and not current_user.is_admin():
         raise exceptions.NoPermissionsException()
     
-    if (user := db.users.get(user_id)) is None:
+    if (user := db.session.first(Q.user.select(id=user_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -70,7 +70,7 @@ def change_password(current_user: models.User, user_id: int):
 
 @wrappers.htmx_route(auth_htmx, db=db, methods=["POST"])
 def reset_password_email(current_user: models.User, user_id: int):
-    if (user := db.users.get(user_id)) is None:
+    if (user := db.session.first(Q.user.select(id=user_id))) is None:
         raise exceptions.NotFoundException()
     
     if current_user.role != UserRole.ADMIN and current_user.id != user_id:
@@ -103,7 +103,7 @@ def activate_account(current_user: models.User, user_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (user := db.users.get(user_id)) is None:
+    if (user := db.session.first(Q.user.select(id=user_id))) is None:
         raise exceptions.NotFoundException()
     
     if user.role != UserRole.DEACTIVATED:
@@ -151,7 +151,7 @@ def delete_user_sessions(current_user: models.User, user_id: int):
     if current_user.id != user_id and not current_user.is_admin():
         raise exceptions.NoPermissionsException()
     
-    if (user := db.users.get(user_id)) is None:
+    if (user := db.session.first(Q.user.select(id=user_id))) is None:
         raise exceptions.NotFoundException()
     
     if current_user.id == user_id:
@@ -168,7 +168,7 @@ def start_user_session(current_user: models.User, user_id: int):
     if not current_user.is_admin():
         raise exceptions.NoPermissionsException()
     
-    if (user := db.users.get(user_id)) is None:
+    if (user := db.session.first(Q.user.select(id=user_id))) is None:
         raise exceptions.NotFoundException()
     
     logger.info(f"Admin {current_user.email} started session for user '{user.email}'")

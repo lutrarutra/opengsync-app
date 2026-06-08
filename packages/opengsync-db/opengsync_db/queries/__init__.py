@@ -20,7 +20,11 @@ from . import (
     index_kit,
     feature_kit,
     group,
-    seq_run
+    seq_run,
+    share_token,
+    sequencer,
+    affiliation,
+    plate
 )
 
 __all__ = [
@@ -47,5 +51,9 @@ __all__ = [
     "index_kit",
     "feature_kit",
     "group",
-    "seq_run"
+    "seq_run",
+    "share_token",
+    "sequencer",
+    "affiliation",
+    "plate"
 ]

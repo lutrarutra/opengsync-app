@@ -1,8 +1,9 @@
 import json
 
 from flask import Request
+import sqlalchemy as sa
 
-from opengsync_db import models, categories as C
+from opengsync_db import models, categories as C, queries as Q
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -22,30 +23,25 @@ class ShareTokenTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    fnc_context = {}
     table = ShareTokenTable(route="share_htmx.get_share_tokens", page=request.args.get("page", 0, type=int))
+    stmt = sa.select(models.ShareToken)
 
     if (path := request.args.get("path")):
-        fnc_context["path"] = path
+        raise NotImplementedError("Search by path is not implemented yet")
         table.active_search_var = "path"
         table.active_query_value = path
-    elif (id_ := request.args.get("id")):
-        table.active_search_var = "id"
-        table.active_query_value = str(id_)
-        try:
-            id_ = int("".join(filter(str.isdigit, id_)))
-            fnc_context["id"] = id_
-        except ValueError:
-            pass
+    elif (uuid := request.args.get("uuid")):
+        table.active_search_var = "uuid"
+        table.active_query_value = str(uuid)
+        stmt = Q.share_token.select(uuid=uuid, statement=stmt)
     else:
         sort_by = request.args.get("sort_by", "uuid")
         sort_order = request.args.get("sort_order", "asc")
         descending = sort_order == "desc"
-        if sort_by not in models.ShareToken.sortable_fields:
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.ShareToken, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
             raise exceptions.BadRequestException()
-        
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
@@ -60,7 +56,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
             type_in = None
 
     context = parse_context(current_user, request) | kwargs
-    share_tokens, table.num_pages = db.shares.find(page=table.active_page, **fnc_context)
+    share_tokens, count = db.session.page(stmt, page=table.active_page or 0)
 
     context.update({
         "share_tokens": share_tokens,

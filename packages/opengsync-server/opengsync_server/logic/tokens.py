@@ -1,8 +1,8 @@
 from flask import Request
 
-from opengsync_db import models, categories as C
+from opengsync_db import models, categories as C, queries as Q
 
-from ..import db, logger
+from ..import db
 from .HTMXTable import HTMXTable
 from .TableCol import TableCol
 from ..core import exceptions
@@ -16,17 +16,14 @@ class APITokenTable(HTMXTable):
     ]    
 
 def get_table_context(current_user: models.User, request: Request, user: models.User, **kwargs) -> dict:
-    fnc_context = {}
+    if user.id != current_user.id and not current_user.is_insider():
+        raise exceptions.NoPermissionsException()
+    
     table = APITokenTable(route="users_htmx.get_api_tokens", page=request.args.get("page", 0, type=int))
     table.url_params["user_id"] = user.id
     context = parse_context(current_user, request) | kwargs
     
-    if user.id != current_user.id and not current_user.is_insider():
-        raise exceptions.NoPermissionsException()
-    
-    tokens, table.num_pages = db.api_tokens.find(
-        page=table.active_page, owner=user, **fnc_context
-    )
+    tokens, count = db.session.page(Q.api_token.select(owner=user), page=table.active_page or 0)
 
     context.update({
         "tokens": tokens,

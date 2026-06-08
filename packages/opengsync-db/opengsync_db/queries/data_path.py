@@ -33,6 +33,8 @@ def select(
     experiment_id: int | None = None,
     statement: sa.Select[tuple[DataPath]] = sa.select(DataPath),
 ) -> sa.Select[tuple[DataPath]]:
+    if id is not None:
+        statement = statement.where(DataPath.id == id)
     if path is not None:
         statement = statement.where(DataPath.path == path)
 

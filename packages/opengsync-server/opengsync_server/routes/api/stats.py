@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify
 from sqlalchemy import orm
 
 from opengsync_db.categories import ExperimentStatus, LibraryStatus
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ...core import wrappers, exceptions
 from ... import db
@@ -15,12 +15,18 @@ def set_library_lane_reads(
     library_id: int | None, experiment_name: str, lane: int,
     num_reads: int, qc: dict | None = None, 
 ):
-    if (experiment := db.experiments.get(experiment_name, options=orm.selectinload(models.Experiment.libraries))) is None:
+    if (experiment := db.session.first(Q.experiment.select(name=experiment_name), options=[orm.selectinload(models.Experiment.libraries)])) is None:
         raise exceptions.NotFoundException(f"Experiment with name '{experiment_name}' not found.")
     
-    db.libraries.set_seq_quality(
-        library_id=library_id,
-        experiment_id=experiment.id,
+    if library_id is not None:
+        if (library := db.session.first(Q.library.select(id=library_id, experiment_id=experiment.id))) is None:
+            raise exceptions.NotFoundException(f"Library with id '{library_id}' not found in experiment '{experiment_name}'.")
+    else:
+        library = None
+    
+    db.actions.set_library_seq_quality(
+        library=library if library is not None else None,
+        experiment=experiment,
         lane=lane,
         num_reads=num_reads,
         qc=qc
@@ -35,6 +41,6 @@ def set_library_lane_reads(
         
     if all_libraries_demultiplexed and experiment.status < ExperimentStatus.DEMULTIPLEXED:
         experiment.status = ExperimentStatus.DEMULTIPLEXED
-        db.experiments.update(experiment)
+        db.session.save(experiment)
     
     return jsonify({"status": "success"})

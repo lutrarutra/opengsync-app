@@ -1,8 +1,9 @@
 import sqlalchemy as sa
 
-from ..models import Library, Sample, links, Pool
+from ..models import Library, Sample, links, Pool, User, SeqRequest
 from ..categories import (
-    LibraryType, LibraryStatus, GenomeRef, ServiceType, IndexType, MUXType
+    LibraryType, LibraryStatus, GenomeRef, ServiceType, IndexType, MUXType,
+    UserRole, AccessLevel, SeqRequestStatus
 )
 
 def create(
@@ -44,6 +45,50 @@ def create(
         original_library_id=original_library_id,
     )
 
+
+def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
+    is_admin = sa.select(1).where(
+        User.id == user_id,
+        User.role_id == UserRole.ADMIN.id
+    )
+
+    is_insider = sa.select(1).where(
+        User.id == user_id,
+        User.role_id.isin([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id])
+    )
+
+    has_write_access = sa.select(1).where(
+        sa.and_(
+            SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
+            sa.or_(
+                SeqRequest.requestor_id == user_id,
+                sa.exists().where(
+                    (links.UserAffiliation.user_id == user_id) &
+                    (links.UserAffiliation.group_id == SeqRequest.group_id) &
+                    (Library.seq_request_id == SeqRequest.id)
+                )
+            )
+        ),
+    )
+
+    has_read_access = sa.select(1).where(
+        sa.or_(
+            SeqRequest.requestor_id == user_id,
+            sa.exists().where(
+                (links.UserAffiliation.user_id == user_id) &
+                (links.UserAffiliation.group_id == SeqRequest.group_id) &
+                (Library.seq_request_id == SeqRequest.id)
+            )
+        )
+    )
+
+    return sa.case(
+        (sa.exists(is_admin), AccessLevel.ADMIN),
+        (sa.exists(is_insider), AccessLevel.INSIDER),
+        (sa.exists(has_write_access), AccessLevel.WRITE),
+        (sa.exists(has_read_access), AccessLevel.READ),
+        else_=AccessLevel.NONE
+    )
 
 def select(
     id: int | None = None,
@@ -126,3 +171,6 @@ def select(
         ).where(Library.pool.has(Pool.name.ilike(f"%{search_pool_name}%")))
 
     return statement
+
+def permissions(library_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
+    return sa.select(access_level(user_id)).where(Library.id == library_id)

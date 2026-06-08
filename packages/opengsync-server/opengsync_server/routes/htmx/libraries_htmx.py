@@ -7,9 +7,8 @@ from flask_htmx import make_response
 import sqlalchemy as sa
 from sqlalchemy import orm
 
-from opengsync_db import models
-from opengsync_db.categories import LibraryType, LibraryStatus, ServiceType, MUXType, AccessType, SampleStatus, PoolStatus
-from opengsync_server.routes.pages.libraries_page import library
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import LibraryType, LibraryStatus, ServiceType, MUXType, AccessLevel, SampleStatus, PoolStatus
 
 from ... import db, forms, logic
 from ...core import wrappers, exceptions
@@ -30,31 +29,12 @@ def search(current_user: models.User):
     return make_response(render_template(**context))
 
 
-@wrappers.htmx_route(libraries_htmx, db=db, methods=["POST"])
-def query(current_user: models.User):
-    field_name = next(iter(request.form.keys()))
-    if (word := request.form.get(field_name, default="")) is None:
-        raise exceptions.BadRequestException()
-
-    if not current_user.is_insider():
-        results = db.libraries.query(name=word, user_id=current_user.id)
-    else:
-        results = db.libraries.query(name=word)
-
-    return make_response(
-        render_template(
-            "components/search/library.html",
-            results=results, field_name=field_name,
-        )
-    )
-
-
 @wrappers.htmx_route(libraries_htmx, db=db)
 def render_feature_table(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.libraries.get_access_type(library=library, user=current_user) < AccessType.VIEW:
+    if db.session.get_access_level(Q.library.permissions(library_id=library.id, user_id=current_user.id)) < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
     
     df = db.pd.get_library_features(library_id=library.id)
@@ -81,10 +61,10 @@ def render_feature_table(current_user: models.User, library_id: int):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_crispr_guides(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.libraries.get_access_type(library=library, user=current_user) < AccessType.VIEW:
+    if db.session.get_access_level(Q.library.permissions(library_id=library.id, user_id=current_user.id)) < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
     
     if library.type != LibraryType.PARSE_SC_CRISPR:
@@ -107,11 +87,10 @@ def get_crispr_guides(current_user: models.User, library_id: int):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def reads_tab(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.libraries.get_access_type(library=library, user=current_user)
-    if access_type < AccessType.VIEW:
+    if db.session.get_access_level(Q.library.permissions(library_id=library.id, user_id=current_user.id)) < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
 
     if not library.read_qualities:
@@ -169,7 +148,7 @@ def select_all(current_user: models.User, workflow: str):
     if (experiment_id := request.args.get("experiment_id")) is not None:
         try:
             experiment_id = int(experiment_id)
-            if (experiment := db.experiments.get(experiment_id)) is None:
+            if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
                 raise exceptions.NotFoundException()
             context["experiment"] = experiment
         except ValueError:
@@ -178,7 +157,7 @@ def select_all(current_user: models.User, workflow: str):
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+            if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
                 raise exceptions.NotFoundException()
             context["seq_request"] = seq_request
         except ValueError:
@@ -187,7 +166,7 @@ def select_all(current_user: models.User, workflow: str):
     if (pool_id := request.args.get("pool_id")) is not None:
         try:
             pool_id = int(pool_id)
-            if (pool := db.pools.get(pool_id)) is None:
+            if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
                 raise exceptions.NotFoundException()
             context["pool"] = pool
         except ValueError:
@@ -196,30 +175,35 @@ def select_all(current_user: models.User, workflow: str):
     if (lab_prep_id := request.args.get("lab_prep_id")) is not None:
         try:
             lab_prep_id = int(lab_prep_id)
-            if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+            if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
                 raise exceptions.NotFoundException()
             context["lab_prep"] = lab_prep
         except ValueError:
             raise exceptions.BadRequestException()
 
-    libraries, _ = db.libraries.find(
-        seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id, limit=None,
-        pool_id=pool_id, in_lab_prep=False if workflow == "library_prep" else None,
+    # libraries, _ = db.libraries.find(
+    #     seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id, limit=None,
+    #     pool_id=pool_id, in_lab_prep=False if workflow == "library_prep" else None,
+    # )
+
+    libraries = db.session.get_all(
+        Q.library.select(
+            seq_request_id=seq_request_id, status_in=status_in, type_in=type_in, experiment_id=experiment_id,
+            pool_id=pool_id, in_lab_prep=False if workflow == "library_prep" else None,
+        ), limit=None
     )
 
-    form = forms.SelectSamplesForm.create_workflow_form(workflow, context=context, selected_libraries=libraries)
+    form = forms.SelectSamplesForm.create_workflow_form(workflow, context=context, selected_libraries=list(libraries))
     return form.make_response(libraries=libraries)
 
 
 @wrappers.htmx_route(libraries_htmx, db=db, methods=["DELETE"])
 def remove_sample(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.libraries.get_access_type(user=current_user, library=library)
-    if access_type < AccessType.EDIT:
-        raise exceptions.NoPermissionsException()
-    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+    access_type = db.session.get_access_level(Q.library.permissions(library_id=library.id, user_id=current_user.id))
+    if access_type < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
 
     if (sample_id := request.args.get("sample_id")) is None:
@@ -229,10 +213,10 @@ def remove_sample(current_user: models.User, library_id: int):
     except ValueError:
         raise exceptions.BadRequestException()
     
-    if (sample := db.samples.get(sample_id)) is None:
+    if (sample := db.session.first(Q.sample.select(id=sample_id))) is None:
         raise exceptions.NotFoundException()
     
-    db.links.unlink_sample_library(sample_id=sample.id, library_id=library.id)
+    db.actions.unlink_sample_library(sample_id=sample.id, library_id=library.id)
 
     flash("Sample removed from library successfully.", "success")
     return make_response(redirect=url_for("libraries_page.library", library_id=library.id))
@@ -240,11 +224,11 @@ def remove_sample(current_user: models.User, library_id: int):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_mux_table(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.libraries.get_access_type(user=current_user, library=library)
-    if access_type < AccessType.VIEW:
+    access_type = db.session.get_access_level(Q.library.permissions(library_id=library.id, user_id=current_user.id))
+    if access_type < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
     
     if library.mux_type is None:
@@ -350,18 +334,17 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
     }
 
     for (seq_request_id,), _df in df.groupby(["seq_request_id"]):
-        seq_request = db.seq_requests.get(
-            seq_request_id,  # type: ignore
+        seq_request = db.session.first(
+            Q.seq_request.select(id=int(seq_request_id)),  # type: ignore
             options=[
                 orm.selectinload(models.SeqRequest.samples),
                 orm.selectinload(models.SeqRequest.libraries),
                 orm.selectinload(models.SeqRequest.pools),
-            ]  # type: ignore
+            ]
         )
         if seq_request is None:
             raise exceptions.NotFoundException()
         
-
         data["seq_request"].append(seq_request)
         data["num_waiting_samples"].append(sum([s.status == SampleStatus.WAITING_DELIVERY for s in seq_request.samples]))
         data["num_preparing_libraries"].append(sum([ls.status == LibraryStatus.PREPARING for ls in seq_request.libraries]))
@@ -382,13 +365,11 @@ def get_service_type_todo_libraries(current_user: models.User, service_type_id: 
 
 @wrappers.htmx_route(libraries_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.libraries.get_access_type(user=current_user, library=library)
-    if access_type < AccessType.EDIT:
-        raise exceptions.NoPermissionsException()
-    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+    access_type = db.session.get_access_level(Q.library.permissions(library_id=library.id, user_id=current_user.id))
+    if access_type < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
@@ -408,13 +389,13 @@ def properties(current_user: models.User):
 
 @wrappers.htmx_route(libraries_htmx, db=db, methods=["GET", "POST"])
 def edit_properties(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.libraries.get_access_type(user=current_user, library=library)
-    if access_type < AccessType.EDIT:
+    access_type = db.session.get_access_level(Q.library.permissions(library_id=library.id, user_id=current_user.id))
+    if access_type < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
-    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+    if library.status != LibraryStatus.DRAFT and access_type < AccessLevel.INSIDER:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
@@ -427,13 +408,11 @@ def edit_properties(current_user: models.User, library_id: int):
 
 @wrappers.htmx_route(libraries_htmx, db=db, methods=["GET", "POST"])
 def edit_features(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.libraries.get_access_type(user=current_user, library=library)
-    if access_type < AccessType.EDIT:
-        raise exceptions.NoPermissionsException()
-    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+    access_type = db.session.get_access_level(Q.library.permissions(library_id=library.id, user_id=current_user.id))
+    if access_type < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     if library.type not in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX]:

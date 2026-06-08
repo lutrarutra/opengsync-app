@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import IndexType
 
 from ... import db, logger, forms, logic
@@ -32,7 +32,7 @@ def get_adapters(current_user: models.User):
 
 @wrappers.htmx_route(index_kits_htmx, db=db)
 def render_table(index_kit_id: int):
-    if (index_kit := db.index_kits.get(index_kit_id)) is None:
+    if (index_kit := db.session.first(Q.index_kit.select(id=index_kit_id))) is None:
         raise exceptions.NotFoundException()
     
     df = db.pd.get_index_kit_barcodes(index_kit_id, per_index=True)
@@ -65,7 +65,7 @@ def get_form(current_user: models.User, form_type: str):
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if (index_kit := db.index_kits.get(index_kit_id)) is None:
+        if (index_kit := db.session.first(Q.index_kit.select(id=index_kit_id))) is None:
             raise exceptions.NotFoundException()
     elif form_type == "create":
         index_kit = None
@@ -96,7 +96,7 @@ def create(current_user: models.User):
 def edit(current_user: models.User, index_kit_id: int):
     if not current_user.is_admin():
         raise exceptions.NoPermissionsException()
-    if (index_kit := db.index_kits.get(index_kit_id)) is None:
+    if (index_kit := db.session.first(Q.index_kit.select(id=index_kit_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -113,7 +113,7 @@ def edit_barcodes(current_user: models.User, index_kit_id: int):
     if not current_user.is_admin():
         raise exceptions.NoPermissionsException()
     
-    if (index_kit := db.index_kits.get(index_kit_id)) is None:
+    if (index_kit := db.session.first(Q.index_kit.select(id=index_kit_id))) is None:
         raise exceptions.NotFoundException()
     
     match index_kit.type:

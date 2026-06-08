@@ -13,7 +13,6 @@ class AccessLevel(ExtendedEnum):
     
     ADMIN = AccessLevelEnum(100, "Admin", "🤓")
     INSIDER = AccessLevelEnum(90, "Insider", "👥")
-    OWNER = AccessLevelEnum(50, "Owner", "👑")
     WRITE = AccessLevelEnum(20, "Write", "📝")
     READ = AccessLevelEnum(10, "Read", "👀")
     NONE = AccessLevelEnum(0, "None", "🚫")

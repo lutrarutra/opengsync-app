@@ -46,7 +46,7 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     return sa.case(
         (sa.exists(is_admin), AccessLevel.ADMIN),
         (sa.exists(is_insider), AccessLevel.INSIDER),
-        (sa.exists(is_owner), AccessLevel.OWNER),
+        (sa.exists(is_owner), AccessLevel.WRITE),
         (sa.exists(is_group_member), AccessLevel.WRITE),
         else_=AccessLevel.NONE
     )

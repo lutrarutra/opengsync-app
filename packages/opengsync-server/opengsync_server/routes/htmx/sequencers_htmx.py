@@ -1,7 +1,7 @@
 from flask import Blueprint, url_for, render_template, flash, request
 from flask_htmx import make_response
 
-from opengsync_db import PAGE_LIMIT, exceptions as db_exc, models
+from opengsync_db import queries as Q, exceptions as db_exc, models
 from opengsync_db.categories import UserRole
 
 from ... import db, forms, logic
@@ -29,7 +29,7 @@ def update(current_user: models.User, sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         raise exceptions.NoPermissionsException()
     
-    if (sequencer := db.sequencers.get(sequencer_id)) is None:
+    if (sequencer := db.session.first(Q.sequencer.select(id=sequencer_id))) is None:
         raise exceptions.NotFoundException()
 
     return forms.models.SequencerForm(request.form).process_request(
@@ -42,11 +42,11 @@ def delete(current_user: models.User, sequencer_id: int):
     if current_user.role != UserRole.ADMIN:
         raise exceptions.NoPermissionsException()
 
-    if db.sequencers.get(sequencer_id) is None:
+    if (sequencer := db.session.first(Q.sequencer.select(id=sequencer_id))) is None:
         raise exceptions.NotFoundException()
     
     try:
-        db.sequencers.delete(sequencer_id)
+        db.session.delete(sequencer)
     except db_exc.ElementIsReferenced:
         flash("Sequencer is referenced by experiment(s) and cannot be deleted.", "error")
         return make_response(

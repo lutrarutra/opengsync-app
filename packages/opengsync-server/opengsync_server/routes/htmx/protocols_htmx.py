@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, request, url_for, flash
 from flask_htmx import make_response
+from sqlalchemy import orm
+import sqlalchemy as sa
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db, forms, logic
 from ...core import wrappers, exceptions
@@ -33,7 +35,7 @@ def edit(current_user: models.User, protocol_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (protocol := db.protocols.get(protocol_id)) is None:
+    if (protocol := db.session.first(Q.protocol.select(id=protocol_id))) is None:
         raise exceptions.NotFoundException()
 
     form = forms.models.ProtocolForm(form_type="edit", formdata=request.form, protocol=protocol)
@@ -47,19 +49,20 @@ def remove_kit(current_user: models.User, protocol_id: int, kit_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (protocol := db.protocols.get(protocol_id)) is None:
+    if (protocol := db.session.first(Q.protocol.select(id=protocol_id), options=[
+        orm.selectinload(models.Protocol.kit_links)
+    ])) is None:
         raise exceptions.NotFoundException()
     
-    if (kit := db.kits.get(kit_id)) is None:
+    if (links := db.session.get_all(sa.select(models.links.ProtocolKitLink).where(
+        models.links.ProtocolKitLink.protocol_id == protocol_id,
+        models.links.ProtocolKitLink.kit_id == kit_id
+    ), limit=None)) is None:
         raise exceptions.NotFoundException()
-    
-    links = db.links.get_protocol_kit_links(protocol=protocol, kit=kit)
     
     for link in links:
         protocol.kit_links.remove(link)
 
-    db.protocols.update(protocol)
-    db.flush()
     flash("Kit Removed!", "success")
     return make_response(render_template(**logic.kit.get_table_context(current_user=current_user, protocol=protocol, request=request)))
 
@@ -68,20 +71,18 @@ def remove_kit_combination(current_user: models.User, protocol_id: int, kit_id: 
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (protocol := db.protocols.get(protocol_id)) is None:
+    if (protocol := db.session.first(Q.protocol.select(id=protocol_id))) is None:
         raise exceptions.NotFoundException()
     
-    if (kit := db.kits.get(kit_id)) is None:
+    if (kit_link := db.session.first(sa.select(models.links.ProtocolKitLink).where(
+        models.links.ProtocolKitLink.protocol_id == protocol_id,
+        models.links.ProtocolKitLink.kit_id == kit_id,
+        models.links.ProtocolKitLink.combination_num == combination_num
+    ))) is None:
         raise exceptions.NotFoundException()
     
-    links = db.links.get_protocol_kit_links(protocol=protocol, kit=kit)
-    
-    for link in links:
-        if link.combination_num == combination_num:
-            protocol.kit_links.remove(link)
+    protocol.kit_links.remove(kit_link)
         
-    db.protocols.update(protocol)
-    db.flush()
     flash("Kit Combination Removed!", "success")
     return make_response(render_template(**logic.kit.get_table_context(current_user=current_user, protocol=protocol, request=request)))
 
@@ -91,9 +92,9 @@ def delete(current_user: models.User, protocol_id: int):
     if not current_user.is_admin():
         raise exceptions.NoPermissionsException()
     
-    if (protocol := db.protocols.get(protocol_id)) is None:
+    if (protocol := db.session.first(Q.protocol.select(id=protocol_id))) is None:
         raise exceptions.NotFoundException()
     
-    db.protocols.delete(protocol)
+    db.session.delete(protocol)
     flash(f"Protocol '{protocol.name}' deleted.", "success")
     return make_response(redirect=url_for("protocols_page.protocols"))

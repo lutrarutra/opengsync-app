@@ -4,7 +4,7 @@ from typing import Literal
 
 from sqlalchemy import orm
 
-from opengsync_db import models, DBHandler
+from opengsync_db import models, SyncDBHandler, queries as Q
 
 @dataclass
 class BrowserPath:
@@ -14,7 +14,7 @@ class BrowserPath:
 
 
 class FileBrowser:
-    def __init__(self, root_dir: Path, db: DBHandler):
+    def __init__(self, root_dir: Path, db: SyncDBHandler):
         self.root_dir = root_dir
         self.db = db
 
@@ -66,20 +66,23 @@ class FileBrowser:
                 if not self._is_safe(path.relative_to(self.root_dir)):
                     continue
 
-                
+                data_paths = self.db.session.get_all(
+                    statement=Q.data_path.select(
+                        path=path.relative_to(self.root_dir).as_posix(),
+                    ),
+                    limit=None,
+                    options=[
+                        orm.joinedload(models.DataPath.project),
+                        orm.joinedload(models.DataPath.seq_request),
+                        orm.joinedload(models.DataPath.library),
+                        orm.joinedload(models.DataPath.experiment),                        
+                    ]
+                )
                 
                 paths.append(BrowserPath(
                     path=path,
                     rel_path=path.relative_to(self.root_dir),
-                    data_paths=self.db.data_paths.find(
-                        path=path.relative_to(self.root_dir).as_posix(), limit=None,
-                        options=[
-                            orm.joinedload(models.DataPath.project),
-                            orm.joinedload(models.DataPath.seq_request),
-                            orm.joinedload(models.DataPath.library),
-                            orm.joinedload(models.DataPath.experiment),
-                        ]
-                    )[0]
+                    data_paths=list(data_paths)
                 ))
 
                 counter += 1

@@ -57,16 +57,15 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
 
     has_write_access = sa.select(1).where(
         sa.and_(
-            SeqRequest.status_id == SeqRequestStatus.DRAFT.id
-
-        ),
-        sa.or_(
-            SeqRequest.requestor_id == user_id,
-            sa.exists().where(
-                (links.UserAffiliation.user_id == user_id) &
-                (links.UserAffiliation.group_id == SeqRequest.group_id)
+            SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
+            sa.or_(
+                SeqRequest.requestor_id == user_id,
+                sa.exists().where(
+                    (links.UserAffiliation.user_id == user_id) &
+                    (links.UserAffiliation.group_id == SeqRequest.group_id)
+                )
             )
-        )
+        ),
     )
 
     has_read_access = sa.select(1).where(
