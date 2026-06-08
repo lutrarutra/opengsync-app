@@ -105,8 +105,8 @@ def download(current_user: models.User) -> Response:
 
     for experiment in experiments:
         experiment_data["experiment_name"].append(experiment.name)
-        experiment_data["workflow"].append(experiment.workflow.name)
-        experiment_data["flow_cell_type"].append(experiment.flowcell_type.name)
+        experiment_data["workflow"].append(experiment.workflow.label)
+        experiment_data["flow_cell_type"].append(experiment.flowcell_type.label)
         experiment_data["max_m_reads"].append(experiment.flowcell_type.max_m_reads)
         experiment_data["max_m_reads_per_lane"].append(experiment.flowcell_type.max_m_reads_per_lane)
         experiment_data["num_pools"].append(len(experiment.pools))
@@ -144,7 +144,7 @@ def download(current_user: models.User) -> Response:
             info = ""
             pool_data["pool_id"].append(pool.id)
             pool_data["pool_name"].append(pool.name)
-            pool_data["pool_type"].append(pool.type.name)
+            pool_data["pool_type"].append(pool.type.label)
             pool_data["read_config"].append(experiment.read_config)
             num_m_reads_loaded = 0
             lane_share = {}
@@ -185,10 +185,10 @@ def download(current_user: models.User) -> Response:
             if seq_request is None:
                 info += "⚠️ Libraries in pool are from different requests "
                 
-            pool_data["workflow"].append(experiment.workflow.name)
+            pool_data["workflow"].append(experiment.workflow.label)
             pool_data["protocol"].append(", ".join(sorted({library.protocol.name for library in pool.libraries if library.protocol})))
-            pool_data["checklist"].append(pool.lab_prep.checklist_type.name if pool.lab_prep else "")
-            pool_data["service"].append(pool.lab_prep.service_type.name if pool.lab_prep else "")
+            pool_data["checklist"].append(pool.lab_prep.checklist_type.label if pool.lab_prep else "")
+            pool_data["service"].append(pool.lab_prep.service_type.label if pool.lab_prep else "")
             pool_data["contact_name"].append(contact.name if contact else "")
             pool_data["contact_email"].append(contact.email if contact else "")
             pool_data["billing_name"].append(seq_request.billing_contact.name if seq_request else "")
