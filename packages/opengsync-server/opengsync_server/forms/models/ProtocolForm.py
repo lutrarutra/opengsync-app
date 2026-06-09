@@ -5,8 +5,9 @@ from flask_htmx import make_response
 from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import ServiceType
+
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
 
@@ -48,7 +49,7 @@ class ProtocolForm(HTMXFlaskForm):
             return False
         
         if self.form_type == "create":            
-            if (_protocol := db.protocols.get_by_name(name=self.name.data)) is not None:
+            if (_protocol := db.session.first(Q.protocol.select(name=self.name.data))) is not None:
                 self.name.errors = ("protocol with this name already exists.",)
                 return False
         elif self.form_type == "edit":
@@ -56,7 +57,7 @@ class ProtocolForm(HTMXFlaskForm):
                 logger.error("protocol is not set.")
                 raise ValueError("protocol is not set.")
             
-            if (_protocol := db.protocols.get_by_name(name=self.name.data)) is not None:
+            if (_protocol := db.session.first(Q.protocol.select(name=self.name.data))) is not None:
                 if _protocol.id != self.protocol.id:
                     self.name.errors = ("protocol with this name already exists.",)
                     return False
@@ -79,11 +80,11 @@ class ProtocolForm(HTMXFlaskForm):
         return make_response(redirect=url_for("protocols_page.protocol", protocol_id=self.protocol.id))
         
     def __create_protocol(self) -> Response:
-        protocol = db.protocols.create(
+        protocol = db.session.save(Q.protocol.create(
             name=self.name.data.strip(),  # type: ignore
             service_type=ServiceType.get(self.service_type.data),
             read_structure=self.read_structure.data.strip() if self.read_structure.data else None,
-        )
+        ))
         flash("protocol created successfully.", "success")
         return make_response(redirect=url_for("protocols_page.protocol", protocol_id=protocol.id))
     

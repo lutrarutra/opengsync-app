@@ -69,7 +69,7 @@ class SeqRunForm(HTMXFlaskForm):
         return True
     
     def create_seq_run(self) -> models.SeqRun:
-        seq_run = db.seq_runs.create(
+        seq_run = db.session.save(Q.seq_run.create(
             experiment_name=self.experiment_name.data,  # type: ignore
             status=RunStatus.get(int(self.status.data)),
             run_folder=self.run_folder.data,  # type: ignore
@@ -84,7 +84,7 @@ class SeqRunForm(HTMXFlaskForm):
             r2_cycles=self.r2_cycles.data,
             i1_cycles=self.i1_cycles.data,
             i2_cycles=self.i2_cycles.data,
-        )
+        ))
 
         if (experiment := db.session.first(Q.experiment.select(name=seq_run.experiment_name))) is not None:
             if seq_run.status == RunStatus.FINISHED:

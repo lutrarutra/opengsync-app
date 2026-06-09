@@ -102,12 +102,12 @@ class IndexKitForm(HTMXFlaskForm):
         return make_response(redirect=url_for("kits_page.index_kit", index_kit_id=self.index_kit.id))
         
     def __create_index_kit(self) -> Response:
-        index_kit = db.index_kits.create(
+        index_kit = db.session.save(Q.index_kit.create(
             name=self.name.data,  # type: ignore
             identifier=self.identifier.data,  # type: ignore
             type=IndexType.get(self.index_type_id.data),
-            supported_protocols=[]
-        )
+            supported_protocol_ids=[]
+        ))
         flash("Index kit created successfully.", "success")
         return make_response(redirect=url_for("kits_page.index_kit", index_kit_id=index_kit.id))
     

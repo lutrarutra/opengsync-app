@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from wtforms import DateTimeLocalField, BooleanField, TextAreaField
 from wtforms.validators import Optional as OptionalValidator, Length
 
-from opengsync_db import models, to_utc
+from opengsync_db import models, to_utc, queries as Q
 from opengsync_db.categories import EventType
 
 from .. import db, logger
@@ -74,23 +74,22 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
         
         if self.sample_submission_time.data is not None:
             if self.seq_request.sample_submission_event is None:
-                self.seq_request.sample_submission_event = db.events.create(
+                self.seq_request.sample_submission_event = db.session.save(Q.event.create(
                     title=self.seq_request.name[:models.Event.title.type.length],
                     timestamp_utc=to_utc(self.sample_submission_time.data),
                     type=EventType.SAMPLE_SUBMISSION, user_id=user.id,
-                )
+                ))
             else:
                 self.seq_request.sample_submission_event.timestamp_utc = to_utc(self.sample_submission_time.data)
             db.session.save(self.seq_request)
 
         if self.comment.data and (comment := self.comment.data.strip()):
-            db.comments.create(
-                seq_request_id=self.seq_request.id,
-                author_id=user.id,
-                text=f"Sample submission comment: {comment}",
-            )
+            db.session.save(Q.comment.create(
+                seq_request=self.seq_request,
+                author=user, text=f"Sample submission comment: {comment}",
+            ))
 
-        self.seq_request = db.seq_requests.submit(seq_request_id=self.seq_request.id)
+        self.seq_request = db.actions.submit_seq_request(seq_request=self.seq_request)
         # flash("Sequencing request submitted successfully.", "success")
         runtime.app.add_praise(
             "Sequencing Request Submitted for Review!",

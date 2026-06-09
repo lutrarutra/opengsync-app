@@ -6,6 +6,20 @@ from ..models import Event
 from ..categories import EventType
 
 
+def create(
+    title: str, timestamp_utc: datetime, type: EventType,
+    user_id: int, note: str | None = None
+) -> Event:
+    event = Event(
+        title=title.strip(),
+        timestamp_utc=timestamp_utc,
+        type_id=type.id,
+        note=note,
+        creator_id=user_id,
+    )
+    return event
+
+
 def select(
     id: int | None = None,
     type: EventType | None = None,

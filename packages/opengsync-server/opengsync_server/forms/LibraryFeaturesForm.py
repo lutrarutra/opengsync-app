@@ -64,7 +64,7 @@ class LibraryFeaturesForm(HTMXFlaskForm):
         self.df["kit_id"] = pd.Series([None] * len(self.df), dtype="Int64")
         self.df["feature_id"] = None
         for identifier in kit_identifiers:
-            kit = db.feature_kits[identifier]
+            kit = db.session.get_or_fail(Q.feature_kit.select(identifier=identifier))
             kit_df = db.pd.get_feature_kit_features(kit.id)
             self.kits[identifier] = (kit, kit_df)
             self.df.loc[self.df["kit"] == identifier, "kit_id"] = kit.id
@@ -167,19 +167,18 @@ class LibraryFeaturesForm(HTMXFlaskForm):
         self.library.features = []
         for _, row in self.df.iterrows():
             if pd.notna(row["feature_id"]):
-                if (feature := db.session.first(Q.feature_kit.select(id=int(row["feature_id"])))) is None:
+                if (feature := db.session.first(Q.feature.select(id=int(row["feature_id"])))) is None:
                     raise Exception(f"Feature '{row['feature']}' not found in kit '{row['kit_id']}'")
                 self.library.features.append(feature)
             else:
-                feature = db.features.create(
+                self.library.features.append(Q.feature.create(
                     identifier=row["identifier"],
                     name=row["feature"],
                     sequence=row["sequence"],
                     pattern=row["pattern"],
                     read=row["read"],
                     type=FeatureType.ANTIBODY
-                )
-                self.library.features.append(feature)
+                ))
 
         db.session.save(self.library)
 

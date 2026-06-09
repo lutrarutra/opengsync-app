@@ -47,7 +47,7 @@ class SequencerForm(HTMXFlaskForm):
                 return False
             
             if self.name.data is not None:
-                if (temp := db.sequencers.get_with_name(self.name.data)) is not None:
+                if (temp := db.session.first(Q.sequencer.select(name=self.name.data))) is not None:
                     if temp.id != sequencer.id:
                         self.name.errors = ("You already have a sequencer with this name.",)
                         return False
@@ -55,18 +55,18 @@ class SequencerForm(HTMXFlaskForm):
         # Creating new sequencer
         else:
             if self.name.data is not None:
-                if db.sequencers.get_with_name(self.name.data) is not None:
+                if db.session.first(Q.sequencer.select(name=self.name.data)) is not None:
                     self.name.errors = ("You already have a sequencer with this name.",)
                     return False
 
         return True
     
     def __create_new_sequencer(self) -> Response:
-        sequencer = db.sequencers.create(
+        sequencer = db.session.save(Q.sequencer.create(
             name=self.name.data,  # type: ignore
             model=SequencerModel.get(self.model.data),
             ip=self.ip_address.data,
-        )
+        ))
 
         flash(f"Sequencer '{sequencer.name}' created.", "success")
 

@@ -13,7 +13,7 @@ from flask import render_template
 
 import pandas as pd
 
-from opengsync_db import models, exceptions, DBHandler
+from opengsync_db import models, exceptions, SyncDBHandler
 from opengsync_db.categories.ExtendedEnum import DBEnum
 
 from .. import logger
@@ -316,7 +316,7 @@ def connect_similar_strings(
     return res
 
 
-def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.DataFrame:
+def get_barcode_table(db: SyncDBHandler, libraries: Sequence[models.Library]) -> pd.DataFrame:
     library_data = {
         "library_id": [],
         "library_name": [],

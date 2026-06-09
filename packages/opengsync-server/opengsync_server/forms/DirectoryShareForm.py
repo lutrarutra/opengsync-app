@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from wtforms import StringField, BooleanField, SelectField
 from wtforms.validators import DataRequired
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from .. import db, logger, mail_handler
 from ..tools import utils
@@ -81,11 +81,11 @@ class DirectoryShareForm(HTMXFlaskForm):
         if not self.validate(current_user):
             return self.make_response()
         
-        share_token = db.shares.create(
+        share_token = db.session.save(Q.share_token.create(
             owner=current_user,
             time_valid_min=self.time_valid_min.data,
             paths=[self.p.as_posix()],
-        )
+        ), flush=True)
 
         outdir = "BSF_DATA"
 

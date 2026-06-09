@@ -124,7 +124,7 @@ class PoolForm(HTMXFlaskForm):
             
         pool_type = PoolType.get(self.pool_type.data)
             
-        pool = db.pools.create(
+        pool = db.session.save(Q.pool.create(
             name=self.name.data,  # type: ignore
             status=PoolStatus.get(self.status.data),
             num_m_reads_requested=self.num_m_reads_requested.data,
@@ -133,7 +133,7 @@ class PoolForm(HTMXFlaskForm):
             contact_name=self.contact_name.data if contact is None else contact.name,  # type: ignore
             contact_email=self.contact_email.data if contact is None else contact.email,  # type: ignore
             contact_phone=self.contact_phone.data  # type: ignore
-        )
+        ))
         return pool
     
     def __clone_pool(self) -> models.Pool:
@@ -141,7 +141,7 @@ class PoolForm(HTMXFlaskForm):
             logger.error("Pool not passed as argument for clone form")
             raise ValueError("Pool not passed as argument for clone form")
         
-        pool = db.pools.create(
+        pool = db.session.save(Q.pool.create(
             name=self.name.data,  # type: ignore
             status=PoolStatus.get(self.status.data),
             num_m_reads_requested=self.num_m_reads_requested.data,
@@ -152,7 +152,7 @@ class PoolForm(HTMXFlaskForm):
             contact_phone=self.pool.contact.phone,
             seq_request_id=self.pool.seq_request_id,
             original_pool_id=self.pool.original_pool_id if self.pool.original_pool_id is not None else self.pool.id,
-        )
+        ))
 
         pool.ba_report_id = self.pool.ba_report_id
         pool.avg_fragment_size = self.pool.avg_fragment_size
@@ -173,10 +173,9 @@ class PoolForm(HTMXFlaskForm):
         db.session.refresh(pool)
 
         for library in self.pool.libraries:
-            clone_library = db.libraries.clone(
-                library.id, seq_request_id=library.seq_request_id, indexed=True, status=LibraryStatus.POOLED
-            )
-            clone_library = db.libraries.add_to_pool(library_id=clone_library.id, pool_id=pool.id)
+            clone_library = db.actions.clone_library(library.id, seq_request_id=library.seq_request_id, indexed=True, status=LibraryStatus.POOLED)
+            clone_library.pool_id = pool.id
+            db.session.save(clone_library)
             
         return pool
     

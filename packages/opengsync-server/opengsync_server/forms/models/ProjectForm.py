@@ -163,13 +163,13 @@ class ProjectForm(HTMXFlaskForm):
         return True
     
     def __create_new_project(self, user_id: int) -> Response:
-        project = db.projects.create(
+        project = db.session.save(Q.project.create(
             identifier=self.identifier.data if self.identifier.data else None,
             title=self.title.data,  # type: ignore
             description=self.description.data,  # type: ignore
             owner_id=user_id,
             group_id=self.group.selected.data,
-        )
+        ))
 
         logger.debug(f"Created project {project.title}.")
         flash(f"Created project {project.title}.", "success")

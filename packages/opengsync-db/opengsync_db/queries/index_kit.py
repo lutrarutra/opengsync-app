@@ -24,6 +24,7 @@ def select(
     id: int | None = None,
     type_in: list[IndexType] | None = None,
     index_type: IndexType | None = None,
+    identifier: str | None = None,
     search_name: str | None = None,
     search_identifier: str | None = None,
     search_identifier_name: str | None = None,
@@ -33,12 +34,12 @@ def select(
 
     if id is not None:
         statement = statement.where(IndexKit.id == id)
-
     if type_in is not None:
         statement = statement.where(IndexKit.type_id.in_([t.id for t in type_in]))
-
     if index_type is not None:
         statement = statement.where(IndexKit.type_id == index_type.id)
+    if identifier is not None:
+        statement = statement.where(IndexKit.identifier == identifier.strip())
 
     if search_name is not None:
         statement = statement.order_by(sa.nulls_last(sa.func.similarity(IndexKit.name, search_name).desc()))

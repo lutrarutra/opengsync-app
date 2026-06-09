@@ -3,7 +3,8 @@ from typing import Optional
 from flask import Response, flash, url_for
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
+
 from ... import db
 from .CommentForm import CommentForm
 
@@ -18,11 +19,11 @@ class SeqRequestCommentForm(CommentForm):
         if not self.validate():
             return self.make_response()
         
-        db.comments.create(
+        db.session.save(Q.comment.create(
             text=self.comment.data,  # type: ignore
-            author_id=user.id,
-            seq_request_id=self.seq_request.id
-        )
+            author=user,
+            seq_request=self.seq_request
+        ))
 
         flash("Comment added successfully.", "success")
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id, tab="request-comments-tab"))

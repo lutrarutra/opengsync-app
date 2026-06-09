@@ -39,10 +39,9 @@ class SeqRequestShareEmailForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        db.seq_requests.add_share_email(
-            seq_request_id=self.seq_request.id,
+        self.seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
             email=self.email.data.strip()  # type: ignore
-        )
+        ))
 
         flash("Email added to the list.", "success")
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id, tab="request-share-tab"))

@@ -53,6 +53,7 @@ def select(
     id: int | None = None,
     user: User | None = None,
     type: GroupType | None = None,
+    name: str | None = None,
     search_name: str | None = None,
     type_in: list[GroupType] | None = None,
     statement: sa.Select[tuple[Group]] = sa.select(Group),
@@ -66,6 +67,8 @@ def select(
                 (links.UserAffiliation.group_id == Group.id)
             )
         )
+    if name is not None:
+        statement = statement.where(Group.name == name)
     if type is not None:
         statement = statement.where(Group.type_id == type.id)
     if type_in is not None:

@@ -1,12 +1,13 @@
 import pandas as pd
 
 from flask import url_for
+import sqlalchemy as sa
 
 from opengsync_db import models, exceptions
 from opengsync_db.categories import LibraryType, MUXType
 
 from .... import logger, db
-from ....tools.spread_sheet_components import InvalidCellValue, DuplicateCellValue
+from ....tools.spread_sheet_components import DuplicateCellValue
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
 
@@ -134,11 +135,16 @@ class CommonFlexMuxForm(MultiStepForm):
     @classmethod
     def update_barcodes(cls, sample_table: pd.DataFrame):
         for (sample_id, library_id, barcode), _df in sample_table.groupby(["sample_id", "library_id", "mux_barcode"]):
-            if (link := db.links.get_sample_library_link(sample_id=int(sample_id), library_id=int(library_id))) is None:  # type: ignore
+            if (link := db.session.get_or_fail(
+                sa.select(models.links.SampleLibraryLink).where(
+                    models.links.SampleLibraryLink.sample_id == sample_id,
+                    models.links.SampleLibraryLink.library_id == library_id
+                ))
+            ) is None:
                 logger.error(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
                 raise exceptions.ElementDoesNotExist(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
             
             if link.mux is None:
                 link.mux = {}
             link.mux["barcode"] = str(barcode)
-            db.links.update_sample_library_link(link)
+            db.session.save(link)

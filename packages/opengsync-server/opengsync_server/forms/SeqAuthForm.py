@@ -8,7 +8,7 @@ from wtforms.validators import DataRequired
 from flask_wtf.file import FileAllowed
 
 from opengsync_db.categories import MediaFileType
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from .. import logger, db
 from ..core.RunTime import runtime
@@ -51,19 +51,18 @@ class SeqAuthForm(HTMXFlaskForm):
 
         filename, extension = os.path.splitext(self.file.data.filename)
 
-        db_file = db.media_files.create(
+        db_file = db.session.save(Q.media_file.create(
             name=filename,
             type=MediaFileType.SEQ_AUTH_FORM,
             extension=extension,
             uploader_id=user.id,
             size_bytes=self.size_bytes,
             seq_request_id=self.seq_request.id,
-        )
+        ), flush=True)
         filepath = os.path.join(runtime.app.media_folder, db_file.path)
         self.file.data.save(filepath)
 
         flash("Authorization form uploaded!", "success")
-        logger.debug(f"Uploaded sequencing authorization form for sequencing request '{self.seq_request.name}': {filepath}")
 
         return make_response(
             redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),

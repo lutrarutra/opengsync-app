@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from .... import db, logger
 from ....tools.spread_sheet_components import CategoricalDropDown, IntegerColumn, MissingCellValue, DuplicateCellValue
@@ -28,7 +28,7 @@ class AddKitCombinationsFrom(HTMXFlaskForm):
         self._context["workflow"] = AddKitCombinationsFrom._workflow_name
         self.post_url = url_for("add_kits_to_protocol_workflow.add_kit_combinations", protocol_id=protocol.id)
 
-        self.kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.kits.iter(order_by="name")}
+        self.kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.session.get_all(Q.kit.select(), limit=None)}
         columns: list = [
             CategoricalDropDown("kit_identifier", "Kit", 600, categories=self.kit_mapping, required=True),
             IntegerColumn("combination_num", "Combination", 200, required=False),
@@ -76,7 +76,7 @@ class AddKitCombinationsFrom(HTMXFlaskForm):
         self.protocol.kit_links = []
         
         for _, row in self.df.iterrows():
-            kit = db.kits[row["kit_identifier"]]
+            kit = db.session.get_or_fail(Q.kit.select(identifier=row["kit_identifier"]))
             
             self.protocol.kit_links.append(
                 models.links.ProtocolKitLink(

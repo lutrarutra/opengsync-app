@@ -215,7 +215,7 @@ class CommonBarcodeInputForm(MultiStepForm):
         self.df["kit_i5_id"] = None
 
         for identifier in kit_identifiers:
-            kit = db.index_kits[identifier]
+            kit = db.session.get_or_fail(Q.index_kit.select(identifier=identifier))
             
             if kit.type in [IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX]:
                 idx = (self.df["kit_i5"].isna() & (self.df["kit_i7"] == identifier))

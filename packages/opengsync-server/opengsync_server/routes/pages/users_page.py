@@ -79,7 +79,7 @@ def user(current_user: models.User, user_id: int | None = None):
             ]
             
     projects = db.session.get_all(Q.project.select(user_id=user_id), limit=None)
-    seq_requests = db.session.get_all(Q.seq_request.select(user_id=user_id), limit=None)
+    seq_requests = db.session.get_all(Q.seq_request.select(requestor_id=user_id), limit=None)
     return render_template(
         "user_page.html", user=user, path_list=path_list,
         projects=projects, seq_requests=seq_requests,

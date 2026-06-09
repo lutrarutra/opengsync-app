@@ -71,6 +71,6 @@ class MergeProjectsForm(HTMXFlaskForm):
                             self.project_dst.selected.errors = (f"Sample name conflict for sample '{sample.name}' with incompatible attribute values.",)
                             return self.make_response()
         
-        project = db.projects.merge_projects(project_dst, project_src)
+        project = db.actions.merge_projects(project_dst, project_src)
         return make_response(redirect=url_for("projects_page.project", project_id=project.id))
                     

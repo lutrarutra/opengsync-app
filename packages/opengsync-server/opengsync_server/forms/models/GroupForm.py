@@ -5,8 +5,9 @@ from flask_htmx import make_response
 from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired, Length
 
-from opengsync_db import models
-from opengsync_db.categories import GroupType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import GroupType, AffiliationType
+
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
 
@@ -42,7 +43,7 @@ class GroupForm(HTMXFlaskForm):
 
         # Creating new group
         if group is None:
-            if db.groups.get_with_name(self.name.data) is not None:
+            if db.session.first(Q.group.select(name=self.name.data)) is not None:
                 self.name.errors = ("Group with this name already exists.",)
                 return False
         else:
@@ -51,11 +52,12 @@ class GroupForm(HTMXFlaskForm):
         return True
     
     def __create_new_group(self, user: models.User) -> Response:
-        group = db.groups.create(
+        group = Q.group.create(
             name=self.name.data,  # type: ignore
-            user_id=user.id,
             type=GroupType.get(self.group_type.data),
         )
+        group.user_links.append(Q.affiliation.create(user=user, group=group, type=AffiliationType.OWNER))
+        db.session.save(group)
 
         flash(f"Created group {group.name}.", "success")
 

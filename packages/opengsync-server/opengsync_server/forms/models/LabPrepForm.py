@@ -4,10 +4,11 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 from wtforms import StringField, SelectField
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import LabChecklistType, ServiceType
 
 from ... import db, logger
+from ...core import runtime
 from ..HTMXFlaskForm import HTMXFlaskForm
 
 
@@ -79,12 +80,21 @@ class LabPrepForm(HTMXFlaskForm):
         return self.lab_prep
 
     def __create_lab_prep(self, user: models.User) -> models.LabPrep:
-        lab_prep = db.lab_preps.create(
-            name=self.name.data,
+        if (latest_prep := db.session.first(Q.lab_prep.select(checklist_type=LabChecklistType.get(self.checklist_type.data)).order_by(
+            models.LabPrep.prep_number.desc()
+        ))) is not None:
+            prep_number = latest_prep.prep_number + 1
+        else:
+            raise ValueError("No existing preps found for this checklist type.")
+
+        lab_prep = db.session.save(Q.lab_prep.create(
+            name=self.name.data,  # type: ignore
             checklist_type=LabChecklistType.get(self.checklist_type.data),
-            creator_id=user.id,
-            service_type=ServiceType.get(self.service_type.data)
-        )
+            creator=user,
+            service_type=ServiceType.get(self.service_type.data),
+            number=prep_number
+        ))
+
         flash("Prep created!", "success")
         return lab_prep
 

@@ -102,11 +102,11 @@ class KitForm(HTMXFlaskForm):
         return make_response(redirect=url_for("kits_page.kit", kit_id=self.kit.id))
         
     def __create_kit(self) -> Response:
-        kit = db.kits.create(
+        kit = db.session.save(Q.kit.create(
             name=self.name.data,  # type: ignore
             identifier=self.identifier.data,  # type: ignore
             kit_type=KitType.LIBRARY_KIT,
-        )
+        ))
         flash("Kit created successfully.", "success")
         return make_response(redirect=url_for("kits_page.kit", kit_id=kit.id))
     

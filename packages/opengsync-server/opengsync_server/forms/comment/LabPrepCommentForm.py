@@ -3,7 +3,8 @@ from typing import Optional
 from flask import Response, flash, url_for
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
+
 from ... import db
 from .CommentForm import CommentForm
 
@@ -21,11 +22,11 @@ class LabPrepCommentForm(CommentForm):
         if not self.validate():
             return self.make_response()
         
-        db.comments.create(
+        db.session.save(Q.comment.create(
             text=self.comment.data,  # type: ignore
-            author_id=user.id,
-            lab_prep_id=self.lab_prep.id
-        )
+            author=user,
+            lab_prep=self.lab_prep
+        ))
 
         flash("Comment added successfully.", "success")
         return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id, tab="comments-tab"))

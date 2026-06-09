@@ -5,7 +5,7 @@ import pandas as pd
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import FeatureType
 
 from .. import db, logger
@@ -74,20 +74,24 @@ class EditKitFeaturesForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
 
-        self.feature_kit = db.feature_kits.remove_all_features(self.feature_kit.id)
+        self.feature_kit.features = []
         for _, row in self.df.iterrows():
-            db.features.create(
-                identifier=row["identifier"] if pd.notna(row["identifier"]) else None,
-                name=row["name"],
-                sequence=row["sequence"],
-                pattern=row["pattern"],
-                read=row["read"],
-                target_name=row["target_name"] if pd.notna(row["target_name"]) else None,
-                target_id=row["target_id"] if pd.notna(row["target_id"]) else None,
-                feature_kit_id=self.feature_kit.id,
-                type=self.feature_kit.type
+            self.feature_kit.features.append(
+                Q.feature.create(
+                    identifier=row["identifier"] if pd.notna(row["identifier"]) else None,
+                    name=row["name"],
+                    sequence=row["sequence"],
+                    pattern=row["pattern"],
+                    read=row["read"],
+                    target_name=row["target_name"] if pd.notna(row["target_name"]) else None,
+                    target_id=row["target_id"] if pd.notna(row["target_id"]) else None,
+                    feature_kit_id=self.feature_kit.id,
+                    type=self.feature_kit.type
+
+                )
             )
-        
+
+        db.session.save(self.feature_kit)
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("kits_page.feature_kit", feature_kit_id=self.feature_kit.id)))
         

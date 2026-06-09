@@ -6,7 +6,7 @@ from flask import Response, flash, url_for
 from flask_htmx import make_response
 from wtforms import SelectField
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import MediaFileType
 
 from .FileInputForm import FileInputForm
@@ -47,7 +47,7 @@ class LabPrepAttachmentForm(FileInputForm):
         self.file.data.save(filepath)
         size_bytes = os.stat(filepath).st_size
 
-        db_file = db.media_files.create(
+        db_file = db.session.save(Q.media_file.create(
             name=filename,
             type=file_type,
             extension=extension,
@@ -55,15 +55,15 @@ class LabPrepAttachmentForm(FileInputForm):
             size_bytes=size_bytes,
             uuid=_uuid,
             lab_prep_id=self.lab_prep.id
-        )
+        ))
 
         if self.comment.data and self.comment.data.strip() != "":
-            _ = db.comments.create(
+            _ = db.session.save(Q.comment.create(
                 text=self.comment.data,
-                author_id=user.id,
-                file_id=db_file.id,
-                lab_prep_id=self.lab_prep.id
-            )
+                author=user,
+                file=db_file,
+                lab_prep=self.lab_prep
+            ))
 
         flash("File uploaded successfully.", "success")
         logger.info(f"File '{db_file.uuid}' uploaded by user '{user.id}'.")

@@ -8,7 +8,7 @@ from wtforms import StringField, TextAreaField, EmailField, BooleanField, Select
 from wtforms.validators import DataRequired, Length, Email, NumberRange
 from wtforms.validators import Optional as OptionalValidator
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import ReadType, DataDeliveryMode, SubmissionType, UserRole, DeliveryStatus
 
 from ... import db, logger, bcrypt
@@ -341,7 +341,7 @@ class SeqRequestForm(HTMXFlaskForm):
                 logger.error(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
                 raise ValueError(f"Invalid submission type: {self.technical_info_form.submission_type.data}")
 
-        user_requests, _ = db.seq_requests.find(user_id=self.current_user.id, limit=None)
+        user_requests = db.session.get_all(Q.seq_request.select(requestor_id=self.current_user.id), limit=None)
         for request in user_requests:
             if seq_request is not None and seq_request.id == request.id:
                 continue
@@ -409,11 +409,11 @@ class SeqRequestForm(HTMXFlaskForm):
         self.seq_request.contact_person.phone = self.contact_form.contact_person_phone.data.replace(" ", "") if self.contact_form.contact_person_phone.data else None
         if self.bioinformatician_form.bioinformatician_name.data:
             if self.seq_request.bioinformatician_contact is None:
-                bioinformatician_contact = db.contacts.create_contact(
+                bioinformatician_contact = db.session.save(Q.contact.create(
                     name=self.bioinformatician_form.bioinformatician_name.data,
                     email=self.bioinformatician_form.bioinformatician_email.data,
                     phone=self.bioinformatician_form.bioinformatician_phone.data,
-                )
+                ))
                 self.seq_request.bioinformatician_contact_id = bioinformatician_contact.id
             else:
                 self.seq_request.bioinformatician_contact.name = self.bioinformatician_form.bioinformatician_name.data
@@ -436,49 +436,49 @@ class SeqRequestForm(HTMXFlaskForm):
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id),)
     
     def __create_new_request(self) -> Response:
-        contact_person = db.contacts.create_contact(
+        contact_person = db.session.save(Q.contact.create(
             name=self.contact_form.contact_person_name.data,  # type: ignore
             email=self.contact_form.contact_person_email.data,
             phone=self.contact_form.contact_person_phone.data.replace(" ", "") if self.contact_form.contact_person_phone.data else None,
-        )
+        ))
 
-        billing_contact = db.contacts.create_contact(
+        billing_contact = db.session.save(Q.contact.create(
             name=self.billing_form.billing_contact.data,  # type: ignore
             email=self.billing_form.billing_email.data,
             address=self.billing_form.billing_address.data,
             phone=self.billing_form.billing_phone.data.replace(" ", "") if self.billing_form.billing_phone.data else None
-        )
+        ))
 
-        organization_contact = db.contacts.create_contact(
+        organization_contact = db.session.save(Q.contact.create(
             name=self.organization_form.organization_name.data,  # type: ignore
             address=self.organization_form.organization_address.data,
-        )
+        ))
 
         bioinformatician_contact = None
         if self.bioinformatician_form.bioinformatician_name.data:
-            bioinformatician_contact = db.contacts.create_contact(
+            bioinformatician_contact = db.session.save(Q.contact.create(
                 name=self.bioinformatician_form.bioinformatician_name.data,
                 email=self.bioinformatician_form.bioinformatician_email.data,
                 phone=self.bioinformatician_form.bioinformatician_phone.data.replace(" ", "") if self.bioinformatician_form.bioinformatician_phone.data else None
-            )
+            ))
 
         user = self.current_user
         if self.current_user.is_insider():
             if (assigned_user_id := self.user_select_form.user.selected.data) is not None:
-                user = db.users[assigned_user_id]
+                user = db.session.get_or_fail(Q.user.select(id=assigned_user_id))
             elif (assigned_user_email := self.user_select_form.email.data):
                 hashed_password = bcrypt.generate_password_hash(uuid4().hex).decode("utf-8")
-                user = db.users.create(
+                user = db.session.save(Q.user.create(
                     email=assigned_user_email,
                     first_name=self.user_select_form.first_name.data.strip(),  # type: ignore
                     last_name=self.user_select_form.last_name.data.strip(),  # type: ignore
                     hashed_password=hashed_password,
                     role=UserRole.DEACTIVATED,
-                )
+                ))
 
-        seq_request = db.seq_requests.create(
+        seq_request = db.session.save(Q.seq_request.create(
             name=self.basic_info_form.request_name.data,  # type: ignore
-            group=db.groups[self.basic_info_form.group.selected.data] if self.basic_info_form.group.selected.data else None,
+            group=db.session.get_or_fail(Q.group.select(id=self.basic_info_form.group.selected.data)) if self.basic_info_form.group.selected.data else None,
             description=self.basic_info_form.request_description.data,
             data_delivery_mode=DataDeliveryMode.get(self.data_processing_form.data_delivery_mode_id.data),
             num_lanes=self.technical_info_form.num_lanes.data,
@@ -491,7 +491,7 @@ class SeqRequestForm(HTMXFlaskForm):
             billing_contact=billing_contact,
             bioinformatician_contact=bioinformatician_contact,
             organization_contact=organization_contact,
-        )
+        ))
 
         seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
             email=contact_person.email or seq_request.requestor.email,

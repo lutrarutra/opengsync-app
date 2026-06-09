@@ -83,14 +83,14 @@ class PoolDesignForm(HTMXFlaskForm):
         return make_response(redirect=url_for("design_page.design"))
 
     def __create_new_pool_design(self) -> Response:
-        new_pool_design = db.pool_designs.create(
+        new_pool_design = db.session.save(Q.pool_design.create(
             name=self.pool_design_name.data,  # type: ignore
             num_m_requested_reads=self.num_m_requested_reads.data,  # type: ignore
             cycles_r1=self.r1_cycles.data,  # type: ignore
             cycles_i1=self.i1_cycles.data,  # type: ignore
             cycles_r2=self.r2_cycles.data,  # type: ignore
             cycles_i2=self.i2_cycles.data,  # type: ignore
-        )
+        ))
 
         db.session.add(new_pool_design)
         db.session.flush()

@@ -8,7 +8,7 @@ from wtforms.validators import DataRequired
 from markupsafe import Markup
 from wtforms import FloatField, HiddenField, StringField, FieldList, FormField
 
-from opengsync_db import models, categories as C
+from opengsync_db import models, categories as C, queries as Q
 
 from ..core.RunTime import runtime
 from ..tools import utils
@@ -103,14 +103,14 @@ class SequencerLoadingChecklistForm(HTMXFlaskForm):
         )
         final_markdown_text = render_template_string(self.template_md, **template_context)
 
-        file = db.media_files.create(
+        file = db.session.save(Q.media_file.create(
             name="sequencer_loading_checklist",
             type=C.MediaFileType.SEQUENCER_LOADING_CHECKLIST,
             uploader_id=self.current_user.id,
             extension=".md",
             size_bytes=len(final_markdown_text.encode("utf-8")),
             experiment_id=self.experiment.id
-        )
+        ), flush=True)
 
         with open(os.path.join(runtime.app.media_folder, C.MediaFileType.SEQUENCER_LOADING_CHECKLIST.dir, f"{file.uuid}.md"), "w") as f:
             f.write(final_markdown_text)

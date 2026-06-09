@@ -53,7 +53,7 @@ class AddUserToGroupForm(HTMXFlaskForm):
             logger.error(f"User with email {self.email.data} not found.")
             raise Exception(f"User with email {self.email.data} not found.")
         
-        self.group = db.groups.add_user(user_id=user.id, group_id=self.group.id, affiliation_type=AffiliationType.get(self.affiliation_type.data))
+        db.session.save(Q.affiliation.create(user=user, group=self.group, type=AffiliationType.get(self.affiliation_type.data)))
         
         flash("User added to group.", "success")
         return make_response(redirect=url_for("groups_page.group", group_id=self.group.id))

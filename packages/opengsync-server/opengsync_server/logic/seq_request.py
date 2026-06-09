@@ -66,7 +66,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
 
     if (user := context.get("user")) is not None:
         template = "components/tables/user-seq_request.html"
-        stmt = Q.seq_request.select(user_id=user.id, statement=stmt)
+        stmt = Q.seq_request.select(requestor_id=user.id, statement=stmt)
         table.url_params["user_id"] = user.id
     elif (group := context.get("group")) is not None:
         template = "components/tables/group-seq_request.html"
@@ -79,7 +79,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     else:
         template = "components/tables/seq_request.html"
         if not current_user.is_insider():
-            stmt = Q.seq_request.select(user_id=current_user.id, statement=stmt)
+            stmt = Q.seq_request.select(requestor_id=current_user.id, statement=stmt)
 
     if (name := request.args.get("name")):
         stmt = Q.seq_request.select(search_name=name, statement=stmt)
@@ -140,14 +140,14 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
         raise exceptions.BadRequestException("No valid search parameters provided.")
 
     if (user := context.get("user")) is not None:
-        stmt = Q.seq_request.select(user_id=user.id, statement=stmt)
+        stmt = Q.seq_request.select(requestor_id=user.id, statement=stmt)
     elif (group := context.get("group")) is not None:
         stmt = Q.seq_request.select(group_id=group.id, statement=stmt)
     elif (project := context.get("project")) is not None:
         stmt = Q.seq_request.select(project_id=project.id, statement=stmt)
     else:
         if not current_user.is_insider():
-            stmt = Q.seq_request.select(user_id=current_user.id, statement=stmt)
+            stmt = Q.seq_request.select(requestor_id=current_user.id, statement=stmt)
     
     seq_requests, count = db.session.page(stmt, page=page)
     

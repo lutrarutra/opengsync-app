@@ -2,7 +2,7 @@ import pandas as pd
 
 from flask import url_for
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import LibraryType, FeatureType
 
 from .... import logger, tools, db
@@ -38,7 +38,7 @@ class CommonFeatureAnnotationForm(MultiStepForm):
         self.seq_request = seq_request
         self.lab_prep = lab_prep
 
-        self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.feature_kits.find(limit=None, sort_by="name", type=FeatureType.ANTIBODY)[0]}
+        self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.session.get_all(Q.feature_kit.select(type=FeatureType.ANTIBODY).order_by(models.FeatureKit.name.asc()), limit=None)}
 
         self.library_table = self.tables["library_table"]
         self.abc_libraries = self.library_table[
@@ -106,7 +106,7 @@ class CommonFeatureAnnotationForm(MultiStepForm):
         
         self.df["kit_id"] = None
         for identifier in kit_identifiers:
-            kit = db.feature_kits[identifier]
+            kit = db.session.get_or_fail(Q.feature_kit.select(identifier=identifier))
             kit_df = db.pd.get_feature_kit_features(kit.id)
             self.kits[identifier] = (kit, kit_df)
             self.df.loc[self.df["kit"] == identifier, "kit_id"] = kit.id

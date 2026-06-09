@@ -47,12 +47,12 @@ class PlateForm(HTMXFlaskForm):
         
         flipped = self.orientation.data == "flipped"
 
-        plate = db.plates.create(
+        plate = db.session.save(Q.plate.create(
             name=self.name.data,  # type: ignore
             num_cols=self.num_cols.data,  # type: ignore
             num_rows=self.num_rows.data,  # type: ignore
-            owner_id=user.id
-        )
+            owner=user
+        ))
 
         def get_well(i: int) -> str:
             return plate.get_well(i, flipped=flipped)
@@ -60,9 +60,9 @@ class PlateForm(HTMXFlaskForm):
         if self.pool is not None:
             libraries = db.session.get_all(Q.library.select(pool_id=self.pool.id), order_by=models.Library.id.asc(), limit=None)
             for i, library in enumerate(libraries):
-                db.plates.add_library(
-                    plate_id=plate.id, library_id=library.id, well_idx=i
-                )
+                plate.sample_links.append(models.links.SamplePlateLink(
+                    plate_id=plate.id, well_idx=i, library_id=library.id
+                ))
 
             flash(f"Plate {plate.name} created", "success")
             return make_response(redirect=url_for("pools_page.pool", pool_id=self.pool.id))

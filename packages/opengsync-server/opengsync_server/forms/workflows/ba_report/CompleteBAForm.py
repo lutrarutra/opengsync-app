@@ -74,7 +74,7 @@ class CompleteBAForm(MultiStepForm):
                 logger.error(f"{uuid}: lab_prep_id {lab_prep_id} not found")
                 raise ValueError(f"{uuid}: lab_prep_id {lab_prep_id} not found")
             
-        ba_file = db.media_files.create(
+        ba_file = db.session.save(Q.media_file.create(
             name=filename,
             extension=extension,
             size_bytes=size_bytes,
@@ -82,7 +82,7 @@ class CompleteBAForm(MultiStepForm):
             uploader_id=user.id,
             uuid=file_uuid,
             lab_prep_id=lab_prep_id
-        )
+        ))
 
         metadata["ba_report"] = {
             "filename": filename,

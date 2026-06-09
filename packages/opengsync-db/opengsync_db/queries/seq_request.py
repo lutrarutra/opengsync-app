@@ -90,7 +90,8 @@ def select(
     submission_type: SubmissionType | None = None,
     submission_type_in: list[SubmissionType] | None = None,
     library_types_in: list[LibraryType] | None = None,
-    show_drafts: bool = True, user_id: int | None = None,
+    show_drafts: bool = True,
+    requestor_id: int | None = None,
     project_id: int | None = None,
     group_id: int | None = None,
     viewer_id: int | None = None,
@@ -111,12 +112,12 @@ def select(
             SeqRequest.submission_type_id == submission_type.id
         )
 
-    if user_id is not None:
+    if requestor_id is not None:
         statement = statement.where(
             sa.or_(
-                SeqRequest.requestor_id == user_id,
+                SeqRequest.requestor_id == requestor_id,
                 sa.exists().where(
-                    (links.UserAffiliation.user_id == user_id) &
+                    (links.UserAffiliation.user_id == requestor_id) &
                     (links.UserAffiliation.group_id == SeqRequest.group_id)
                 ),
             )
@@ -146,7 +147,7 @@ def select(
         statement = statement.where(
             sa.or_(
                 SeqRequest.status_id != SeqRequestStatus.DRAFT.id,
-                SeqRequest.requestor_id == user_id
+                SeqRequest.requestor_id == requestor_id
             )
         )
 

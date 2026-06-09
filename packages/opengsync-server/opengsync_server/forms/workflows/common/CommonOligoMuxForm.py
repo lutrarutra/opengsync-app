@@ -75,7 +75,7 @@ class CommonOligoMuxForm(MultiStepForm):
         self.library = library
         self.kits = []
 
-        self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.feature_kits.find(limit=None, sort_by="name", type=FeatureType.CMO)[0]}
+        self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.session.get_all(Q.feature_kit.select(type=FeatureType.CMO).order_by(models.FeatureKit.name.asc()), limit=None)}
 
         if workflow == "mux_prep":
             self.index_col = "library_id"
@@ -175,7 +175,7 @@ class CommonOligoMuxForm(MultiStepForm):
         
         self.df["kit_id"] = None
         for identifier in kit_identifiers:
-            kit = db.feature_kits[identifier]
+            kit = db.session.get_or_fail(Q.feature_kit.select(identifier=identifier))
             kit_df = db.pd.get_feature_kit_features(kit.id)
             kits[identifier] = (kit, kit_df)
             self.df.loc[self.df["kit"] == identifier, "kit_id"] = kit.id

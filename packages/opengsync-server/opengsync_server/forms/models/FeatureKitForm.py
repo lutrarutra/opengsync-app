@@ -103,11 +103,11 @@ class FeatureKitForm(HTMXFlaskForm):
         return make_response(redirect=url_for("kits_page.feature_kit", feature_kit_id=self.feature_kit.id))
         
     def __create_feature_kit(self) -> Response:
-        feature_kit = db.feature_kits.create(
+        feature_kit = db.session.save(Q.feature_kit.create(
             name=self.name.data,  # type: ignore
             identifier=self.identifier.data,  # type: ignore
             type=FeatureType.get(self.feature_type_id.data),
-        )
+        ))
         flash("Index kit created successfully.", "success")
         return make_response(redirect=url_for("kits_page.feature_kit", feature_kit_id=feature_kit.id))
     

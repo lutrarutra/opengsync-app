@@ -3,7 +3,7 @@ import pandas as pd
 
 from flask import url_for
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import LibraryType, IndexType
 
 from ....core import exceptions
@@ -133,7 +133,7 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
         
         self.post_url = url_for(f"{workflow}_workflow.upload_tenx_atac_barcode_form", uuid=self.uuid, **self.url_context)
 
-        self.kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.index_kits.find(limit=None, sort_by="name", type_in=[IndexType.TENX_ATAC_INDEX])[0]}
+        self.kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.session.get_all(Q.index_kit.select(type=IndexType.TENX_ATAC_INDEX).order_by(models.IndexKit.name.asc()), limit=None)}
 
         columns = [
             TextColumn("library_name", "Library Name", 250, required=True, read_only=True),
