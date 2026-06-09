@@ -61,7 +61,7 @@ class TODOCommentForm(HTMXFlaskForm):
             author=current_user,
         )
         db.session.add(new_todo_comment)
-        db.flush()
+        db.session.flush()
         flash("Comment Added!", "success")
         return make_response(redirect=url_for("design_page.design"))
 

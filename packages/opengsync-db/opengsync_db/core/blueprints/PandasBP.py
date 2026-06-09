@@ -87,7 +87,7 @@ class PandasBP(DBBlueprint):
             )
                 
         query = query.order_by(models.Lane.number, models.Pool.id, models.Library.id)
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
 
         df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
         df["reference"] = C.GenomeRef.map_series(df["reference_id"], na_action="ignore")
@@ -162,7 +162,7 @@ class PandasBP(DBBlueprint):
         )
 
         query = query.order_by(models.Lane.number, models.Pool.id, models.Library.id)
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
         df["reference"] = C.GenomeRef.map_series(df["reference_id"], na_action="ignore")
         df["orientation"] = C.BarcodeOrientation.map_series(df["orientation_id"], na_action="ignore")
@@ -198,7 +198,7 @@ class PandasBP(DBBlueprint):
             models.LibraryIndex.library_id == models.Library.id
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["orientation"] = C.BarcodeOrientation.map_series(df["orientation_id"], na_action="ignore")
 
         return df
@@ -213,7 +213,7 @@ class PandasBP(DBBlueprint):
             models.Pool.experiment_id == experiment_id
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["status"] = C.PoolStatus.map_series(df["status_id"], na_action="ignore")
 
         return df
@@ -239,7 +239,7 @@ class PandasBP(DBBlueprint):
             isouter=True
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         return df
 
     @DBBlueprint.transaction
@@ -253,7 +253,7 @@ class PandasBP(DBBlueprint):
             models.Lane.experiment_id == experiment_id
         ).order_by(models.Lane.number)
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         return df
 
     @DBBlueprint.transaction
@@ -278,7 +278,7 @@ class PandasBP(DBBlueprint):
             isouter=True
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         return df
 
     @DBBlueprint.transaction
@@ -296,7 +296,7 @@ class PandasBP(DBBlueprint):
         )
 
         query = query.order_by(models.Library.id)
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         return df
 
     @DBBlueprint.transaction
@@ -321,7 +321,7 @@ class PandasBP(DBBlueprint):
         )
 
         query = query.order_by(models.Library.id)
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         return df
 
     @DBBlueprint.transaction
@@ -338,7 +338,7 @@ class PandasBP(DBBlueprint):
             models.SeqRequest.id == seq_request
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["role"] = C.UserRole.map_series(df["role_id"], na_action="ignore")
         return df
 
@@ -361,7 +361,7 @@ class PandasBP(DBBlueprint):
             models.links.LibraryFeatureLink.library_id == library_id
         ).distinct()
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["feature_type"] = C.FeatureType.map_series(df["feature_type_id"], na_action="ignore")
         return df
 
@@ -376,7 +376,7 @@ class PandasBP(DBBlueprint):
             models.links.SampleLibraryLink.library_id == library_id
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         if expand_attributes:
             expanded = df["attributes"].apply(pd.Series)
             for col in expanded.columns:
@@ -397,7 +397,7 @@ class PandasBP(DBBlueprint):
             models.links.SampleLibraryLink.library_id == library_id
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
 
         expanded = df["mux"].apply(pd.Series)
         for col in expanded.columns:
@@ -421,7 +421,7 @@ class PandasBP(DBBlueprint):
             models.Library.type_id == C.LibraryType.PARSE_SC_CRISPR.id
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
 
         return df
 
@@ -462,7 +462,7 @@ class PandasBP(DBBlueprint):
 
         query = query.order_by(models.Library.id)
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
 
         if include_indices and collapse_indicies:
             df = df.groupby(df.columns.difference(["sequence_i7", "sequence_i5", "name_i7", "name_i5"]).tolist(), as_index=False).agg({"sequence_i7": list, "sequence_i5": list, "name_i7": list, "name_i5": list}).copy().rename(
@@ -508,7 +508,7 @@ class PandasBP(DBBlueprint):
 
         query = query.order_by(models.Library.id)
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
 
         df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
         df["genome_ref"] = C.GenomeRef.map_series(df["genome_ref_id"], na_action="ignore")
@@ -535,7 +535,7 @@ class PandasBP(DBBlueprint):
             models.Project.id == models.Sample.project_id,
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
 
         if not df.empty:
             expanded = df["attributes"].apply(pd.Series)
@@ -559,7 +559,7 @@ class PandasBP(DBBlueprint):
             isouter=True
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
 
         df.loc[df["library_id"].isna(), "library_name"] = "Undetermined"
         df["library_id"] = df["library_id"].astype(pd.Int64Dtype())
@@ -579,7 +579,7 @@ class PandasBP(DBBlueprint):
             models.Barcode.index_kit_id == index_kit_id
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["name"] = df["name"].astype(str)
         df["well"] = df["well"].astype(str)
         df["type"] = C.BarcodeType.map_series(df["type_id"], na_action="ignore")
@@ -683,7 +683,7 @@ class PandasBP(DBBlueprint):
             models.Feature.feature_kit_id == feature_kit_id
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["type"] = C.FeatureType.map_series(df["type_id"], na_action="ignore")
 
         return df
@@ -708,7 +708,7 @@ class PandasBP(DBBlueprint):
             models.Feature.id == models.links.LibraryFeatureLink.feature_id
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["type"] = C.FeatureType.map_series(df["type_id"], na_action="ignore")
 
         return df
@@ -742,7 +742,7 @@ class PandasBP(DBBlueprint):
             models.FeatureKit.id == models.Feature.feature_kit_id,
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["type"] = C.FeatureType.map_series(df["type_id"], na_action="ignore")
 
         return df
@@ -775,7 +775,7 @@ class PandasBP(DBBlueprint):
                 models.Library.id == models.links.SampleLibraryLink.library_id,
             )
         
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
 
         if not df.empty and pivot:
             expanded = df["attributes"].apply(pd.Series)
@@ -810,7 +810,7 @@ class PandasBP(DBBlueprint):
             models.Contact.id == models.SeqRequest.contact_person_id,
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["status"] = C.SeqRequestStatus.map_series(df["status_id"], na_action="ignore")
         return df
 
@@ -841,7 +841,7 @@ class PandasBP(DBBlueprint):
             models.Library.id == models.links.SampleLibraryLink.library_id
         )
 
-        libraries = pd.read_sql(query, self.db._engine)
+        libraries = pd.read_sql(query, self.db.session.connection())
         experiment_ids = libraries["experiment_id"].unique().tolist()
         libraries_ids = libraries["library_id"].unique().tolist()
 
@@ -869,7 +869,7 @@ class PandasBP(DBBlueprint):
             models.Library.pool_id == models.Pool.id
         )
         
-        lanes = pd.read_sql(query, self.db._engine)
+        lanes = pd.read_sql(query, self.db.session.connection())
         if collapse_lanes:
             order = [
                 "sample_name", "library_name", "sample_pool",
@@ -906,7 +906,7 @@ class PandasBP(DBBlueprint):
             models.Pool.id == models.Library.pool_id
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["status"] = C.LibraryStatus.map_series(df["status_id"], na_action="ignore")
         df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
         df["genome_ref"] = C.GenomeRef.map_series(df["genome_ref_id"], na_action="ignore")
@@ -938,7 +938,7 @@ class PandasBP(DBBlueprint):
             isouter=True
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["index_type"] = C.IndexType.map_series(df["index_type_id"], na_action="ignore")
 
         return df
@@ -961,7 +961,7 @@ class PandasBP(DBBlueprint):
             models.Sample.id == models.links.SampleLibraryLink.sample_id,
         )
 
-        df = pd.read_sql(query, self.db._engine).sort_values(["library_id", "sample_id"])
+        df = pd.read_sql(query, self.db.session.connection()).sort_values(["library_id", "sample_id"])
         df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
         df["mux_type"] = C.MUXType.map_series(df["mux_type_id"], na_action="ignore")
 
@@ -991,7 +991,7 @@ class PandasBP(DBBlueprint):
             sa.func.similarity(models.Barcode.sequence, sequence).desc()
         ).limit(limit)
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         
         def hamming_distance(str1: str, str2: str) -> int:
             min_length = min(len(str1), len(str2))
@@ -1029,7 +1029,7 @@ class PandasBP(DBBlueprint):
             )
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["library_type"] = C.LibraryType.map_series(df["library_type_id"], na_action="ignore")
         df["mux_type"] = C.MUXType.map_series(df["mux_type_id"], na_action="ignore")
 
@@ -1062,7 +1062,7 @@ class PandasBP(DBBlueprint):
             models.Kit.id == models.links.ProtocolKitLink.kit_id
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         return df
     
     @DBBlueprint.transaction
@@ -1076,7 +1076,7 @@ class PandasBP(DBBlueprint):
         ).order_by(
             models.SeqQuality.lane
         )
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
 
         if expand_qc and not df.empty:
             expanded = df["qc"].apply(pd.Series)
@@ -1124,7 +1124,7 @@ class PandasBP(DBBlueprint):
         ).order_by(
             models.SeqQuality.lane
         )
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["library_id"] = df["library_id"].astype(pd.Int64Dtype())
 
         if expand_qc and not df.empty:
@@ -1158,7 +1158,7 @@ class PandasBP(DBBlueprint):
             models.links.SeqRequestDeliveryEmailLink.seq_request_id == seq_request
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["status"] = C.DeliveryStatus.map_series(df["status_id"], na_action="ignore")
 
         return df
@@ -1181,7 +1181,7 @@ class PandasBP(DBBlueprint):
                 )
             ).scalar_subquery()
         )
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["status"] = C.DeliveryStatus.map_series(df["status_id"], na_action="ignore")
         return df
     
@@ -1204,7 +1204,7 @@ class PandasBP(DBBlueprint):
             isouter=True
         )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["pool_id"] = df["pool_id"].astype(pd.Int64Dtype())
 
         stats = df.groupby(
@@ -1221,7 +1221,7 @@ class PandasBP(DBBlueprint):
             models.links.LanePoolLink.experiment_id == experiment_id
         )
 
-        planned_reads_df = pd.read_sql(query, self.db._engine)
+        planned_reads_df = pd.read_sql(query, self.db.session.connection())
         planned_reads_df["pool_id"] = planned_reads_df["pool_id"].astype(pd.Int64Dtype())
         planned_reads = planned_reads_df.groupby(
             ["pool_id"], dropna=False
@@ -1279,7 +1279,7 @@ class PandasBP(DBBlueprint):
                 models.IndexKit.type_id == index_type.id
             )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         return df
     
     @DBBlueprint.transaction
@@ -1308,7 +1308,7 @@ class PandasBP(DBBlueprint):
                 models.Sample.project_id == project_id
             )
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         if expand_properties and not df.empty:
             expanded = df["properties"].apply(pd.Series)
             for col in expanded.columns:
@@ -1336,7 +1336,7 @@ class PandasBP(DBBlueprint):
         if library_id is not None:
             query = query.where(models.Library.id == library_id)
 
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         df["library_type"] = C.LibraryType.map_series(df["library_type_id"])
         df["pool_type"] = C.PoolType.map_series(df["pool_type_id"])
         if expand and not df.empty:
@@ -1350,7 +1350,7 @@ class PandasBP(DBBlueprint):
 
     @DBBlueprint.transaction
     def query(self, query: sa.Select | str) -> pd.DataFrame:
-        df = pd.read_sql(query, self.db._engine)
+        df = pd.read_sql(query, self.db.session.connection())
         return df
     
         

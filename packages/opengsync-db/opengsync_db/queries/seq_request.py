@@ -52,23 +52,11 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
 
     is_insider = sa.select(1).where(
         User.id == user_id,
-        User.role_id.isin([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id])
+        User.role_id.in_([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id])
     )
 
-    has_write_access = sa.select(1).where(
-        sa.and_(
-            SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
-            sa.or_(
-                SeqRequest.requestor_id == user_id,
-                sa.exists().where(
-                    (links.UserAffiliation.user_id == user_id) &
-                    (links.UserAffiliation.group_id == SeqRequest.group_id)
-                )
-            )
-        ),
-    )
-
-    has_read_access = sa.select(1).where(
+    has_write_access = sa.and_(
+        SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
         sa.or_(
             SeqRequest.requestor_id == user_id,
             sa.exists().where(
@@ -78,11 +66,19 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
         )
     )
 
+    has_read_access = sa.or_(
+        SeqRequest.requestor_id == user_id,
+        sa.exists().where(
+            (links.UserAffiliation.user_id == user_id) &
+            (links.UserAffiliation.group_id == SeqRequest.group_id)
+        )
+    )
+
     return sa.case(
         (sa.exists(is_admin), AccessLevel.ADMIN),
         (sa.exists(is_insider), AccessLevel.INSIDER),
-        (sa.exists(has_write_access), AccessLevel.WRITE),
-        (sa.exists(has_read_access), AccessLevel.READ),
+        (has_write_access, AccessLevel.WRITE),
+        (has_read_access, AccessLevel.READ),
         else_=AccessLevel.NONE
     )
 

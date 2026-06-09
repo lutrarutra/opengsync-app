@@ -1,4 +1,3 @@
-from typing import Optional
 from opengsync_db import queries as Q
 
 import pandas as pd
@@ -141,24 +140,27 @@ class OCMMuxForm(MultiStepForm):
             
             lib = f"{row['new_sample_pool']}_{old_library.type.identifier}"
             if lib not in libraries.keys():
-                new_library = db.libraries.create(
-                    name=lib,
-                    sample_name=row["new_sample_pool"],
-                    library_type=old_library.type,
-                    status=LibraryStatus.PREPARING,
-                    owner_id=old_library.owner_id,
-                    seq_request_id=old_library.seq_request_id,
-                    lab_prep_id=self.lab_prep.id,
-                    genome_ref=old_library.genome_ref,
-                    service_type=old_library.service_type,
-                    mux_type=old_library.mux_type,
-                    nuclei_isolation=old_library.nuclei_isolation,
+                new_library = db.session.save(
+                    Q.library.create(
+                        name=lib,
+                        sample_name=row["new_sample_pool"],
+                        library_type=old_library.type,
+                        status=LibraryStatus.PREPARING,
+                        owner_id=old_library.owner_id,
+                        seq_request_id=old_library.seq_request_id,
+                        lab_prep_id=self.lab_prep.id,
+                        genome_ref=old_library.genome_ref,
+                        service_type=old_library.service_type,
+                        mux_type=old_library.mux_type,
+                        nuclei_isolation=old_library.nuclei_isolation,
+                        clone_number=old_library.clone_number,
+                    )
                 )
                 libraries[lib] = new_library
             else:
                 new_library = libraries[lib]
 
-            db.links.link_sample_library(
+            db.actions.link_sample_library(
                 sample_id=sample.id,
                 library_id=new_library.id,
                 mux={"barcode": row["mux_barcode"]},
@@ -169,7 +171,7 @@ class OCMMuxForm(MultiStepForm):
         for old_library_id in old_libraries:
             if (old_library := db.session.first(Q.library.select(id=old_library_id))) is None:
                 continue
-            db.libraries.delete(old_library, delete_orphan_samples=False)
+            db.session.delete(old_library)
 
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id)))

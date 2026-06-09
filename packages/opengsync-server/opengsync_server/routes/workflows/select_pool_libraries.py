@@ -61,7 +61,7 @@ def select(current_user: models.User, pool_id: int) -> Response:
     for library_id in library_ids:
         db.libraries.add_to_pool(library_id=int(library_id), pool_id=pool.id, flush=False)
 
-    db.flush()
+    db.session.flush()
     flash("Libraries added to pool!", "success")
     return make_response(redirect=url_for("pools_page.pool", pool_id=pool.id))
         

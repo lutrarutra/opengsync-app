@@ -100,7 +100,6 @@ def delete(current_user: models.User, feature_kit_id: int):
         raise exceptions.NotFoundException()
     
     db.session.delete(kit, flush=True)
-    db.actions.delete_orphan_features()
 
     flash("Index kit deleted successfully.", "success")
     return make_response(redirect=url_for("kits_page.feature_kits"))

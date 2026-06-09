@@ -78,7 +78,7 @@ class PoolDesignForm(HTMXFlaskForm):
         self.pool_design.cycles_i2 = self.i2_cycles.data  # type: ignore
 
         db.session.add(self.pool_design)
-        db.flush()
+        db.session.flush()
         flash("Changes Saved!", "success")
         return make_response(redirect=url_for("design_page.design"))
 
@@ -93,7 +93,7 @@ class PoolDesignForm(HTMXFlaskForm):
         )
 
         db.session.add(new_pool_design)
-        db.flush()
+        db.session.flush()
         flash("Design Created!", "success")
         return make_response(redirect=url_for("design_page.design"))
     

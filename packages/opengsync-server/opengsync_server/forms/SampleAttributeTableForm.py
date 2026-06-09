@@ -93,22 +93,24 @@ class SampleAttributeTableForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
 
-        for idx, row in self.df.iterrows():
-            sample_id = row["sample_id"]
+        for _, row in self.df.iterrows():
+            sample = db.session.get_or_fail(Q.sample.select(id=row["sample_id"]))
             for attribute_name in self.df.columns:
                 if attribute_name in ["sample_id", "sample_name"]:
                     continue
                 attribute_type = AttributeType.get_attribute_by_label(attribute_name)
                 if pd.isna(val := row[attribute_name]):
-                    if (_ := db.samples.get_attribute(sample_id=row["sample_id"], name=attribute_name)) is not None:
-                        db.samples.delete_attribute(sample_id=sample_id, name=attribute_name)
+                    if (_ := sample.get_attribute(attribute_name)) is not None:
+                        sample.delete_sample_attribute(attribute_name)
                 else:
-                    db.samples.set_attribute(sample_id=sample_id, name=attribute_name, value=val, type=attribute_type)
+                    sample.set_attribute(attribute_name, val, attribute_type)
+
+            db.session.save(sample)
 
         for label, col in self.spreadsheet.columns.items():
             if label not in self.df.columns and col.can_be_deleted:
                 for sample in self.project.samples:
-                    db.samples.delete_attribute(sample_id=sample.id, name=label)
+                    sample.delete_sample_attribute(label)
 
         flash("Changes Saved!", "success")
         return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-attributes-tab"))

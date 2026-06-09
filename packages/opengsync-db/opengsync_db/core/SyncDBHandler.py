@@ -53,6 +53,11 @@ class SyncDBHandler:
             class_=SyncSession,
         )
         SyncDBHandler.Session = orm.scoped_session(self.session_factory)
+        from . import listeners
+
+    @staticmethod
+    def AdminURL(user: str, password: str, host: str, db: str, port: str | int) -> str:
+        return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
 
     @property
     def _session(self) -> SyncSession | None:
@@ -106,7 +111,8 @@ class SyncDBHandler:
         return modified
 
     def close(self) -> None:
-        """Dispose the engine pool."""
+        if self._session is not None:
+            self.close_session()
         if self._engine:
             self._engine.dispose()
 
@@ -137,3 +143,6 @@ class SyncDBHandler:
             self._logger.opt(depth=1).debug(message)
         else:
             print(f"DEBUG: {message}")
+
+    def __del__(self):
+        self.close()

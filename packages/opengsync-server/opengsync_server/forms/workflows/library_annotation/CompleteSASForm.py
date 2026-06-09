@@ -409,7 +409,7 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                     logger.error(self.sample_table)
                     logger.error(self.sample_pooling_table)
                     raise ValueError(f"Expected exactly one sample for name {pooling_row['sample_name']}, found {len(sample_ids)}.")
-                db.links.link_sample_library(sample_id=sample_ids[0], library_id=library.id, mux=mux)
+                db.actions.link_sample_library(sample_id=sample_ids[0], library_id=library.id, mux=mux)
 
         self.library_table["library_id"] = self.library_table["library_id"].astype(int)
 

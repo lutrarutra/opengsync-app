@@ -1,11 +1,10 @@
 from flask import Response, url_for, flash
-from opengsync_db import queries as Q
 from flask_wtf import FlaskForm
 from flask_htmx import make_response
 from wtforms import FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
-from opengsync_db import models
+from opengsync_db import queries as Q, models
 
 from .... import db
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -58,12 +57,9 @@ class DilutePoolsForm(HTMXFlaskForm):
             if entry.qubit_after_dilution.data is None:
                 continue
             
-            pool_id = int(entry.pool_id.data)
+            pool = db.session.get_or_fail(Q.pool.select(id=int(entry.pool_id.data)))
             
-            if db.session.first(Q.pool.select(id=pool_id)) is None:
-                raise ValueError(f"Pool with id {row['id']} not found")
-            
-            db.pools.dilute(pool_id, entry.qubit_after_dilution.data, user.id)
+            db.actions.dilute_pool(pool, entry.qubit_after_dilution.data, user.id)
 
         flash("Dilution successful!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

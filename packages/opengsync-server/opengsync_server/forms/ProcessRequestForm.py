@@ -3,7 +3,7 @@ from flask_htmx import make_response
 from wtforms import TextAreaField, EmailField, SelectField, BooleanField
 from wtforms.validators import Optional as OptionalValidator, DataRequired, Length
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import RequestResponse, SeqRequestStatus
 
 from .. import logger, db
@@ -56,31 +56,32 @@ class ProcessRequestForm(HTMXFlaskForm):
         response_type = RequestResponse.get(self.response_type.data)
 
         if response_type == RequestResponse.ACCEPTED:
-            seq_request = db.seq_requests.process(self.seq_request.id, SeqRequestStatus.ACCEPTED)
+            seq_request = db.actions.process_seq_request(self.seq_request, SeqRequestStatus.ACCEPTED)
             flash("Request accepted!", "success")
         elif response_type == RequestResponse.REJECTED:
-            seq_request = db.seq_requests.process(self.seq_request.id, SeqRequestStatus.REJECTED)
+            seq_request = db.actions.process_seq_request(self.seq_request, SeqRequestStatus.REJECTED)
             flash("Request rejected!", "info")
         elif response_type == RequestResponse.PENDING_REVISION:
-            seq_request = db.seq_requests.process(self.seq_request.id, SeqRequestStatus.DRAFT)
+            seq_request = db.actions.process_seq_request(self.seq_request, SeqRequestStatus.DRAFT)
             flash("Request pending revision!", "info")
         else:
             raise exceptions.InternalServerErrorException()
         
         if self.notification_comment.data:
-            _ = db.comments.create(
+            self.seq_request.comments.append(Q.comment.create(
                 text=f"Request {response_type.display_name}. Comment: {self.notification_comment.data}",
-                author_id=user.id, seq_request_id=seq_request.id
-            )
+                author=user,
+            ))
         else:
-            _ = db.comments.create(
+            self.seq_request.comments.append(Q.comment.create(
                 text=f"Request {response_type.display_name}",
-                author_id=user.id, seq_request_id=seq_request.id
-            )
+                author=user
+            ))
 
         if self.assign_seq_request_to_me.data:
             if seq_request not in user.assigned_seq_requests:
                 user.assigned_seq_requests.append(seq_request)
                 db.session.save(user)
 
+        db.session.save(self.seq_request)
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=seq_request.id))

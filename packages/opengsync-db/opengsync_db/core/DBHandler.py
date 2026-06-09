@@ -256,7 +256,7 @@ class DBHandler():
                 self._session.rollback()
             else:
                 if not commit and self.needs_commit:
-                    self.warn("Session was not committed, but changes were made. This may lead to data loss. Use 'db.commit()', if you want changes to be written to the database.")
+                    self.warn("Session was not committed, but changes were made. This may lead to data loss. Use 'db.session.commit()', if you want changes to be written to the database.")
         finally:
             DBHandler.Session.remove()
             self._session = None

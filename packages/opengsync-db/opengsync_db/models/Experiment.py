@@ -60,7 +60,7 @@ class Experiment(Base):
 
     pools: Mapped[list["Pool"]] = relationship("Pool", lazy="select", back_populates="experiment")
     libraries: Mapped[list["Library"]] = relationship("Library", lazy="select", back_populates="experiment")
-    lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="merge, save-update, delete, delete-orphan")
+    lanes: Mapped[list["Lane"]] = relationship("Lane", lazy="select", order_by="Lane.number", cascade="all, delete, delete-orphan")
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan", order_by="MediaFile.id.desc()")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")

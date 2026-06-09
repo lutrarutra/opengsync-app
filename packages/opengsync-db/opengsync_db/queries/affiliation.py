@@ -1,6 +1,20 @@
 import sqlalchemy as sa
 
 from ..models.links import UserAffiliation
+from ..models import User, Group
+from ..categories import AffiliationType
+
+
+def create(
+    user: User,
+    group: Group,
+    type: AffiliationType,
+) -> UserAffiliation:
+    return UserAffiliation(
+        user_id=user.id,
+        group_id=group.id,
+        affiliation_type=type,
+    )
 
 
 def select(

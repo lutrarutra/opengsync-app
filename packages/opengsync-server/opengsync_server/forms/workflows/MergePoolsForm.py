@@ -52,7 +52,7 @@ class MergePoolsForm(MultiStepForm):
         self.post_url = url_for("merge_pools_workflow.merge", uuid=uuid)
         self._context["barcode_table"] = tools.check_indices(self.barcode_table)
         self._context["library_table"] = self.library_table
-        self.pools = [db.pools[int(pool_id)] for pool_id in self.pool_table["id"].unique().tolist()]
+        self.pools = [db.session.get_or_fail(Q.pool.select(id=pool_id)) for pool_id in self.pool_table["id"].unique().tolist()]
         self._context["pools"] = self.pools
 
     def prepare(self):
@@ -143,7 +143,7 @@ class MergePoolsForm(MultiStepForm):
             
         pool_type = PoolType.get(self.pool_type.data)
             
-        pool = db.pools.create(
+        pool = db.session.save(Q.pool.create(
             name=self.name.data,  # type: ignore
             status=PoolStatus.get(self.status.data),
             num_m_reads_requested=self.num_m_reads_requested.data,
@@ -152,21 +152,21 @@ class MergePoolsForm(MultiStepForm):
             pool_type=pool_type,
             contact_name=self.contact_name.data if contact is None else contact.name,  # type: ignore
             contact_email=self.contact_email.data if contact is None else contact.email,  # type: ignore
-            contact_phone=self.contact_phone.data  # type: ignore
-        )
+            contact_phone=self.contact_phone.data,  # type: ignore
+            clone_number=0
+        ))
 
         subform: SubForm
         pool.merge_ratios = {}
+        pools = []
         for subform in self.pool_forms:  # type: ignore
             pool.merge_ratios[str(subform.pool_id.data)] = {  # type: ignore
                 "num_m_reads_requested": subform.num_m_reads_requested.data,
                 "pipet_volume_ul": subform.pipet.data,
             }
+            pools.append(db.session.get_or_fail(Q.pool.select(id=subform.pool_id.data)))
 
-        pool = db.pools.merge(
-            merged_pool_id=pool.id,
-            pool_ids=[int(x) for x in self.pool_table["id"].tolist()],
-        )
+        pool = db.actions.merge_pools(merged_pool=pool, pools=pools)
 
         if len(pool.libraries) != len(self.library_table):
             logger.error(f"{self.uuid}: Mismatch in number of libraries after merging pools. Expected {len(self.pool_table)}, got {len(pool.libraries)}")

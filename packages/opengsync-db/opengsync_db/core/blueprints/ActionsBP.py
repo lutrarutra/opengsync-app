@@ -1,9 +1,8 @@
+import string
+from datetime import datetime
 from typing import Optional, Literal, Sequence
 
-import sqlalchemy as sa
-from sqlalchemy.orm import aliased
-
-from ... import models, queries as Q
+from ... import models, queries as Q, to_utc
 from ...categories import (
     LibraryStatus, PoolStatus,
     BarcodeOrientation, SeqRequestStatus, SampleStatus, ProjectStatus, SubmissionType
@@ -13,52 +12,6 @@ from ..DBBlueprint import DBBlueprint
 
 
 class ActionsBP(DBBlueprint):
-    @DBBlueprint.transaction
-    def delete_library(
-        self, library: models.Library, delete_orphan_samples: bool = True,
-        flush: bool = True
-    ):
-        if delete_orphan_samples:
-            SLL1 = aliased(models.links.SampleLibraryLink)
-            SLL2 = aliased(models.links.SampleLibraryLink)
-
-            subquery = (
-                self.db.session.query(models.Sample.id)
-                .join(SLL1, SLL1.sample_id == models.Sample.id)  # for counting
-                .group_by(models.Sample.id)
-                .having(sa.func.count(SLL1.library_id) == 1)
-                .join(SLL2, SLL2.sample_id == models.Sample.id)  # for filtering by library_id
-                .filter(SLL2.library_id == library.id)
-                .subquery()
-            )
-
-            self.db.session.query(models.Sample).filter(
-                models.Sample.id.in_(sa.select(subquery.c.id))
-            ).delete(synchronize_session="fetch")
-
-        self.db.session.delete(library)
-
-        if flush:
-            self.db.session.flush()
-        
-        self.delete_orphan_features(flush=flush)
-
-    @DBBlueprint.transaction
-    def delete_orphan_features(
-        self, flush: bool = True
-    ) -> None:
-        features = self.db.session.query(models.Feature).where(
-            models.Feature.feature_kit_id.is_(None),
-            ~sa.exists().where(models.links.LibraryFeatureLink.feature_id == models.Feature.id)
-        ).all()
-
-        for feature in features:
-            self.db.session.delete(feature)
-
-        if flush:
-            self.db.session.flush()
-
-
     @DBBlueprint.transaction
     def link_sample_library(
         self, sample_id: int, library_id: int,
@@ -86,20 +39,8 @@ class ActionsBP(DBBlueprint):
     
     @DBBlueprint.transaction
     def add_pool_to_lane(
-        self, experiment: models.Experiment, pool: models.Pool, lane_num: int, flush: bool = True
+        self, experiment: models.Experiment, pool: models.Pool, lane: models.Lane, flush: bool = True
     ) -> models.Lane:
-        if (lane := self.db.session.query(models.Lane).where(
-            models.Lane.experiment_id == experiment.id,
-            models.Lane.number == lane_num,
-        ).first()) is None:
-            raise exceptions.ElementDoesNotExist(f"Lane with number {lane_num} does not exist in experiment with id {experiment.id}")
-        
-        if self.db.session.query(models.links.LanePoolLink).where(
-            models.links.LanePoolLink.pool_id == pool.id,
-            models.links.LanePoolLink.lane_id == lane.id,
-        ).first():
-            raise exceptions.LinkAlreadyExists(f"Lane with id '{lane.id}' and Pool with id '{pool.id}' are already linked.")
-        
         if experiment.workflow.combined_lanes:
             num_m_reads_per_lane = pool.num_m_reads_requested / experiment.num_lanes if pool.num_m_reads_requested else None
         else:
@@ -108,15 +49,8 @@ class ActionsBP(DBBlueprint):
         for link in pool.lane_links:
             link.num_m_reads = num_m_reads_per_lane
 
-        experiment.laned_pool_links.append(
-            models.links.LanePoolLink(
-                lane_id=lane.id, pool_id=pool.id, experiment_id=experiment.id,
-                num_m_reads=num_m_reads_per_lane,
-                lane_num=lane_num,
-            )
-        )
+        experiment.laned_pool_links.append(models.links.LanePoolLink(lane=lane, pool=pool, lane_num=lane.number, num_m_reads=num_m_reads_per_lane))
         
-        self.db.session.add(pool)
         self.db.session.add(experiment)
 
         if flush:
@@ -125,13 +59,7 @@ class ActionsBP(DBBlueprint):
         return lane
     
     @DBBlueprint.transaction
-    def remove_pool_from_lane(self, experiment: models.Experiment, pool: models.Pool, lane_num: int, flush: bool = True) -> models.Lane:
-        if (lane := self.db.session.query(models.Lane).where(
-            models.Lane.experiment_id == experiment.id,
-            models.Lane.number == lane_num,
-        ).first()) is None:
-            raise exceptions.ElementDoesNotExist(f"Lane with number {lane_num} does not exist in experiment with id {experiment.id}")
-        
+    def remove_pool_from_lane(self, experiment: models.Experiment, pool: models.Pool, lane: models.Lane, flush: bool = True) -> models.Lane:
         if (link := self.db.session.query(models.links.LanePoolLink).where(
             models.links.LanePoolLink.pool_id == pool.id,
             models.links.LanePoolLink.lane_id == lane.id,
@@ -304,10 +232,7 @@ class ActionsBP(DBBlueprint):
 
 
     @DBBlueprint.transaction
-    def process_seq_request(self, seq_request_id: int, status: SeqRequestStatus) -> models.SeqRequest:
-        if (seq_request := self.db.session.get(models.SeqRequest, seq_request_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
-
+    def process_seq_request(self, seq_request: models.SeqRequest, status: SeqRequestStatus) -> models.SeqRequest:
         seq_request.status = status
 
         if seq_request.status in [SeqRequestStatus.DRAFT, SeqRequestStatus.REJECTED]:
@@ -365,57 +290,6 @@ class ActionsBP(DBBlueprint):
 
         self.db.session.add(seq_request)
         return seq_request
-    
-    @DBBlueprint.transaction
-    def clone_seq_request(self, seq_request_id: int, method: Literal["pooled", "indexed", "raw"]) -> models.SeqRequest:
-        if method not in {"pooled", "indexed", "raw"}:
-            raise ValueError(f"Method should be one of: {', '.join(['pooled', 'indexed', 'raw'])}")
-
-        if (seq_request := self.db.session.get(models.SeqRequest, seq_request_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
-        
-        if method == "raw":
-            submission_type = SubmissionType.RAW_SAMPLES
-        elif method == "indexed":
-            submission_type = SubmissionType.UNPOOLED_LIBRARIES
-        elif method == "pooled":
-            submission_type = SubmissionType.POOLED_LIBRARIES
-
-        cloned_request = Q.seq_request.create(
-            name=f"RE: {seq_request.name}"[:models.SeqRequest.name.type.length],
-            requestor=seq_request.requestor,
-            group=seq_request.group,
-            description=seq_request.description,
-            billing_contact=seq_request.billing_contact,
-            data_delivery_mode=seq_request.data_delivery_mode,
-            read_type=seq_request.read_type,
-            submission_type=submission_type,
-            contact_person=seq_request.contact_person,
-            organization_contact=seq_request.organization_contact,
-            bioinformatician_contact=seq_request.bioinformatician_contact,
-            read_length=seq_request.read_length,
-            num_lanes=seq_request.num_lanes,
-            special_requirements=seq_request.special_requirements,
-            billing_code=seq_request.billing_code,
-        )
-
-        if method == "pooled":
-            pools: dict[int, models.Pool] = {}
-            for library in seq_request.libraries:
-                cloned_library = self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True, status=LibraryStatus.POOLED)
-                if library.pool_id is not None:
-                    if library.pool_id not in pools.keys():
-                        pools[library.pool_id] = self.clone_pool(library.pool_id, seq_request_id=cloned_request.id, status=PoolStatus.STORED)
-                    cloned_library.pool_id = pools[library.pool_id].id
-        elif method == "indexed":
-            for library in seq_request.libraries:
-                self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True, status=LibraryStatus.STORED)
-        elif method == "raw":
-            for library in seq_request.libraries:
-                self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=False, status=LibraryStatus.ACCEPTED)
-
-        self.db.session.add(cloned_request)
-        return cloned_request
     
     @DBBlueprint.transaction
     def clone_pool(self, pool_id: int, status: PoolStatus, seq_request_id: int | None = None) -> models.Pool:
@@ -530,3 +404,219 @@ class ActionsBP(DBBlueprint):
         self.db.session.add(quality)
 
         return quality
+
+    @DBBlueprint.transaction
+    def remove_all_barcodes_from_kit(
+        self, index_kit: models.IndexKit, flush: bool = True
+    ) -> models.IndexKit:
+        for adapter in index_kit.adapters:
+            for barcode in adapter.barcodes_i7:
+                self.db.session.delete(barcode)
+                
+            for barcode in adapter.barcodes_i5:
+                self.db.session.delete(barcode)
+
+            self.db.session.delete(adapter)
+
+        if flush:
+            self.db.session.flush()
+        return index_kit
+
+
+    @DBBlueprint.transaction
+    def add_library_to_plate(
+        self, plate: models.Plate, library: models.Library, well_idx: int
+    ) -> models.Plate:
+        plate.sample_links.append(models.links.SamplePlateLink(
+            plate=plate, well_idx=well_idx, library=library
+        ))
+        self.db.session.add(plate)
+        return plate
+
+    @DBBlueprint.transaction
+    def link_pool_experiment(self, experiment: models.Experiment, pool: models.Pool, flush: bool = True):
+        if pool.experiment_id is not None:
+            raise exceptions.LinkAlreadyExists(f"Pool with id {pool.id} is already linked to an experiment")
+
+        experiment.pools.append(pool)
+
+        for library in pool.libraries:
+            library.experiment_id = experiment.id
+
+        if experiment.workflow.combined_lanes:
+            for lane in experiment.lanes:
+                self.add_pool_to_lane(experiment=experiment, pool=pool, lane=lane)
+
+        self.db.session.add(experiment)
+        self.db.session.add(pool)
+        
+        if flush:
+            self.db.session.flush()
+
+
+    @DBBlueprint.transaction
+    def dilute_pool(
+        self,
+        pool: models.Pool,
+        qubit_concentration: float,
+        operator_id: int,
+        volume_ul: float | None = None,
+        flush: bool = True
+    ) -> models.Pool:
+        n = len(pool.dilutions)
+
+        def to_identifier(n: int) -> str:
+            out = ""
+
+            while n >= 0:
+                n, r = divmod(n, 26)
+                out = string.ascii_uppercase[r] + out
+                n -= 1
+
+            return out
+
+        dilution = models.PoolDilution(
+            pool_id=pool.id,
+            operator_id=operator_id,
+            identifier=to_identifier(n),
+            qubit_concentration=qubit_concentration,
+            volume_ul=volume_ul,
+        )
+
+        pool.dilutions.append(dilution)
+        self.db.session.add(pool)
+        self.db.session.refresh(pool)
+        
+        if flush:
+            self.db.session.flush()
+
+        return pool
+
+    @DBBlueprint.transaction
+    def merge_pools(self, merged_pool: models.Pool, pools: Sequence[models.Pool], flush: bool = True) -> models.Pool:
+        for pool in pools:
+            for library in pool.libraries:
+                library.pool_id = merged_pool.id
+
+            pool.status = PoolStatus.REPOOLED
+            pool.merged_to_pool_id = merged_pool.id
+            self.db.session.add(pool)
+
+        self.db.session.add(merged_pool)
+
+        if flush:
+            self.db.session.flush()
+        return merged_pool
+    
+    @DBBlueprint.transaction
+    def merge_projects(self, project_dst: models.Project, project_src: models.Project) -> models.Project:
+        dst_sample_mapping = {sample.name: sample for sample in project_dst.samples}
+
+        samples_to_delete = []
+
+        for sample in project_src.samples:
+            if sample.name in dst_sample_mapping:
+                dst_sample = dst_sample_mapping[sample.name]
+                for link in sample.library_links:
+                    link.sample_id = dst_sample.id
+                    for attr in sample.attributes:
+                        if (dst_attr := dst_sample.get_attribute(attr.name)) is None:
+                            dst_sample.set_attribute(attr.name, attr.value, type=attr.type)
+                        elif dst_attr.type_id != attr.type_id:
+                            raise ValueError(f"Sample attribute conflict for sample '{sample.name}' on attribute '{attr}' with value '{attr.value}' (destination type: '{dst_attr.type}')")
+                        elif dst_attr.value != attr.value:
+                            raise ValueError(f"Sample attribute conflict for sample '{sample.name}' on attribute '{attr}' with value '{attr.value}' (destination value: '{dst_attr.value}')")
+                    
+                    self.db.session.add(link)
+
+                dst_sample.qubit_concentration = dst_sample.qubit_concentration or sample.qubit_concentration
+                dst_sample.avg_fragment_size = dst_sample.avg_fragment_size or sample.avg_fragment_size
+                dst_sample.timestamp_stored_utc = dst_sample.timestamp_stored_utc or sample.timestamp_stored_utc
+                dst_sample.status = dst_sample.status if dst_sample.status and dst_sample.status >= sample.status else sample.status
+                dst_sample.ba_report_id = dst_sample.ba_report_id or sample.ba_report_id
+                self.db.session.add(dst_sample)
+
+                samples_to_delete.append(sample)
+            else:
+                sample.project_id = project_dst.id
+                self.db.session.add(sample)
+
+        for sample in samples_to_delete:
+            self.db.session.delete(sample)
+
+        dst_assignee_ids = {u.id for u in project_dst.assignees}
+        for user in project_src.assignees:
+            if user.id not in dst_assignee_ids:
+                project_dst.assignees.append(user)
+
+        self.db.session.add(project_dst)
+        return project_dst
+
+    @DBBlueprint.transaction
+    def submit_seq_request(self, seq_request: models.SeqRequest) -> models.SeqRequest:
+        seq_request.status = SeqRequestStatus.SUBMITTED
+        seq_request.review_checklist = None
+        seq_request.timestamp_submitted_utc = to_utc(datetime.now())
+        
+        for library in seq_request.libraries:
+            if library.status != LibraryStatus.DRAFT:
+                continue
+            library.status = LibraryStatus.SUBMITTED
+
+        for pool in seq_request.pools:
+            if pool.status != PoolStatus.DRAFT:
+                continue
+            pool.status = PoolStatus.SUBMITTED
+            self.db.session.add(pool)
+
+        self.db.session.add(seq_request)
+        return seq_request
+
+
+    @DBBlueprint.transaction
+    def clone_seq_request(self, seq_request: models.SeqRequest, method: Literal["pooled", "indexed", "raw"]) -> models.SeqRequest:
+        if method not in {"pooled", "indexed", "raw"}:
+            raise ValueError(f"Method should be one of: {', '.join(['pooled', 'indexed', 'raw'])}")
+        
+        if method == "raw":
+            submission_type = SubmissionType.RAW_SAMPLES
+        elif method == "indexed":
+            submission_type = SubmissionType.UNPOOLED_LIBRARIES
+        elif method == "pooled":
+            submission_type = SubmissionType.POOLED_LIBRARIES
+
+        cloned_request = Q.seq_request.create(
+            name=f"RE: {seq_request.name}"[:models.SeqRequest.name.type.length],
+            requestor=seq_request.requestor,
+            group=seq_request.group,
+            description=seq_request.description,
+            billing_contact=seq_request.billing_contact,
+            data_delivery_mode=seq_request.data_delivery_mode,
+            read_type=seq_request.read_type,
+            submission_type=submission_type,
+            contact_person=seq_request.contact_person,
+            organization_contact=seq_request.organization_contact,
+            bioinformatician_contact=seq_request.bioinformatician_contact,
+            read_length=seq_request.read_length,
+            num_lanes=seq_request.num_lanes,
+            special_requirements=seq_request.special_requirements,
+            billing_code=seq_request.billing_code,
+        )
+
+        if method == "pooled":
+            pools: dict[int, models.Pool] = {}
+            for library in seq_request.libraries:
+                cloned_library = self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True, status=LibraryStatus.POOLED)
+                if library.pool_id is not None:
+                    if library.pool_id not in pools.keys():
+                        pools[library.pool_id] = self.clone_pool(library.pool_id, seq_request_id=cloned_request.id, status=PoolStatus.STORED)
+                    cloned_library.pool_id = pools[library.pool_id].id
+        elif method == "indexed":
+            for library in seq_request.libraries:
+                self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=True, status=LibraryStatus.STORED)
+        elif method == "raw":
+            for library in seq_request.libraries:
+                self.clone_library(library_id=library.id, seq_request_id=cloned_request.id, indexed=False, status=LibraryStatus.ACCEPTED)
+
+        self.db.session.add(cloned_request)
+        return cloned_request

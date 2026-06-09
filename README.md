@@ -272,7 +272,7 @@ db.users["user@email.com"]
 
 #### Commit and Auto-Commit
 - For safety, auto-commit is not enabled by default. (`auto_commit=False`)
-- Use `db.commit()` to write changes to db.
+- Use `db.session.commit()` to write changes to db.
 
 ## Backup and Restore
 

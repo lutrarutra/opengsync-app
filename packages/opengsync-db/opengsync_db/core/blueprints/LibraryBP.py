@@ -507,7 +507,7 @@ class LibraryBP(DBBlueprint):
         )
 
         for sample_link in library.sample_links:
-            self.db.links.link_sample_library(
+            self.db.actions.link_sample_library(
                 sample_id=sample_link.sample_id,
                 library_id=cloned_library.id,
                 mux=sample_link.mux if sample_link.mux is not None else None,

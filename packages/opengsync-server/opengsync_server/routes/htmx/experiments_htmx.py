@@ -140,14 +140,10 @@ def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_
     if lane_num > experiment.num_lanes or lane_num < 1:
         raise exceptions.BadRequestException()
     
-    if (_ := db.session.first(Q.lane.select(experiment_id=experiment_id, number=lane_num))) is None:
+    if (lane := db.session.first(Q.lane.select(experiment_id=experiment_id, number=lane_num))) is None:
         raise exceptions.NotFoundException()
     
-    db.actions.add_pool_to_lane(
-        experiment=experiment,
-        pool=pool,
-        lane_num=lane_num
-    )
+    db.actions.add_pool_to_lane(experiment=experiment, pool=pool, lane=lane)
 
     flash("Added pool to Lane!'.", "success")
     return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
@@ -167,14 +163,10 @@ def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lan
     if lane_num > experiment.num_lanes or lane_num < 1:
         raise exceptions.BadRequestException()
     
-    if (_ := db.session.first(Q.lane.select(experiment_id=experiment_id, number=lane_num))) is None:
+    if (lane := db.session.first(Q.lane.select(experiment_id=experiment_id, number=lane_num))) is None:
         raise exceptions.NotFoundException()
     
-    db.actions.remove_pool_from_lane(
-        experiment=experiment,
-        pool=pool,
-        lane_num=lane_num,
-    )
+    db.actions.remove_pool_from_lane(experiment=experiment, pool=pool, lane=lane)
     flash("Removed pool from Lane!", "success")
     return make_response(render_template(**logic.pool.get_table_context(current_user=current_user, request=request, experiment=experiment)))
 

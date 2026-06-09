@@ -169,8 +169,8 @@ class PoolForm(HTMXFlaskForm):
             ))
 
         db.session.save(pool)
-        db.flush()
-        db.refresh(pool)
+        db.session.flush()
+        db.session.refresh(pool)
 
         for library in self.pool.libraries:
             clone_library = db.libraries.clone(

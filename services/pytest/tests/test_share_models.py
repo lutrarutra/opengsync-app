@@ -1,9 +1,9 @@
-from opengsync_db import DBHandler, models
+from opengsync_db import SyncDBHandler, models
 
 from .create_units import create_user
 
 
-def test_share_models(db: DBHandler):
+def test_share_models(db: SyncDBHandler):
     user = create_user(db)
 
     token = models.ShareToken(
@@ -12,6 +12,6 @@ def test_share_models(db: DBHandler):
     )
 
     db.session.add(token)
-    db.flush()
+    db.session.flush()
 
     assert token.uuid is not None

@@ -4,7 +4,7 @@ from flask_htmx import make_response
 
 from opengsync_db import models, exceptions, categories as C
 
-from .... import logger, tools, db
+from .... import logger, db
 from ....tools import utils
 from ....tools.spread_sheet_components import TextColumn, IntegerColumn
 from ...HTMXFlaskForm import HTMXFlaskForm
@@ -69,18 +69,18 @@ class SamplePoolingForm(HTMXFlaskForm):
             old_libraries[library.id] = library
             library.sample_links.clear()
             db.session.save(library)
-            db.flush()
-            db.refresh(library)
+            db.session.flush()
+            db.session.refresh(library)
         
         libraries: dict[str, models.Library] = dict()
 
         for (new_sample_pool, library_id), _df in self.sample_table.groupby(["new_sample_pool", "library_id"]):
-            old_library = old_libraries[int(library_id)]
+            old_library = db.session.get_or_fail(Q.library.select(id=int(library_id)))  # type: ignore
             library_name = f"{new_sample_pool}_{old_library.type.identifier}" if new_sample_pool != "x" else f"canceled_samples_{old_library.type.identifier}"
             if (new_library := libraries.get(library_name)) is None:
-                new_library = db.libraries.create(
+                new_library = db.session.save(Q.library.create(
                     name=library_name,
-                    sample_name=new_sample_pool,
+                    sample_name=new_sample_pool,  # type: ignore
                     library_type=old_library.type,
                     status=old_library.status,
                     owner_id=old_library.owner_id,
@@ -92,7 +92,8 @@ class SamplePoolingForm(HTMXFlaskForm):
                     nuclei_isolation=old_library.nuclei_isolation,
                     index_type=old_library.index_type,
                     original_library_id=old_library.original_library_id if old_library.original_library_id is not None else None,
-                )
+                    clone_number=old_library.clone_number
+                ))
                 libraries[library_name] = new_library
 
             new_library.features = old_library.features
@@ -105,18 +106,18 @@ class SamplePoolingForm(HTMXFlaskForm):
                     logger.error(f"Sample {row['sample_id']} not found.")
                     raise Exception(f"Sample {row['sample_id']} not found.")
 
-                db.links.link_sample_library(
+                db.actions.link_sample_library(
                     sample_id=sample.id,
                     library_id=new_library.id,
                     mux=row["mux"],
                 )
 
-        db.flush()
-        db.refresh(self.lab_prep)
+        db.session.flush()
+        db.session.refresh(self.lab_prep)
         for library in self.lab_prep.libraries:
-            db.refresh(library)
+            db.session.refresh(library)
             if len(library.sample_links) == 0:
-                db.libraries.delete(library)
+                db.session.delete(library)
 
         flash("Sample pool annotation processed successfully.", "success")
         return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))

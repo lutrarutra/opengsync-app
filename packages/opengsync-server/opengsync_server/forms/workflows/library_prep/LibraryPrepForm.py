@@ -1,5 +1,5 @@
 import os
-from opengsync_db import queries as Q
+from datetime import datetime
 from uuid6 import uuid7
 
 import numpy as np
@@ -8,7 +8,7 @@ import pandas as pd
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 
-from opengsync_db import models, to_utc
+from opengsync_db import models, to_utc, queries as Q
 from opengsync_db.categories import MediaFileType, LibraryStatus
 
 from .... import logger, db
@@ -116,39 +116,35 @@ class LibraryPrepForm(HTMXFlaskForm):
         size_bytes = os.path.getsize(path)
 
         for plate in self.lab_prep.plates:
-            db.plates.delete(plate.id)
+            db.session.delete(plate)
 
-        db.refresh(self.lab_prep)
+        db.session.refresh(self.lab_prep)
 
         for plate, _df in self.df.groupby("plate", dropna=False):
             if pd.isna(plate):
-                plate = db.plates.create(
+                plate = db.session.save(Q.plate.create(
                     name=f"P-{self.lab_prep.name}",
                     num_cols=12, num_rows=8,
-                    owner_id=user.id
-                )
+                    owner=user
+                ))
             else:
                 try:
                     plate = int(plate)  # type: ignore
                 except ValueError:
                     pass
                 
-                plate = db.plates.create(
+                plate = db.session.save(Q.plate.create(
                     name=f"P-{self.lab_prep.name}-{plate}",
                     num_cols=12, num_rows=8,
-                    owner_id=user.id
-                )
+                    owner=user
+                ))
 
             for _, row in _df.iterrows():
                 if pd.isna(library_id := row["library_id"]):
                     continue
 
-                library_id = int(library_id)
-                if (library := db.session.first(Q.library.select(id=library_id))) is None:
-                    logger.error(f"Library {library_id} not found")
-                    raise ValueError(f"Library {library_id} not found")
-                
-                db.refresh(library)
+                library = db.session.get_or_fail(Q.library.select(id=int(library_id)))
+                db.session.refresh(library)
                 
                 if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
                     library.status = LibraryStatus.FAILED
@@ -161,10 +157,10 @@ class LibraryPrepForm(HTMXFlaskForm):
                     
                     library.qubit_concentration = float(row["lib_conc_ng_ul"])
                     db.session.save(library)
-                    db.flush()
+                    db.session.flush()
 
                 well_idx = plate.get_well_idx(row["plate_well"].strip())
-                plate = db.plates.add_library(plate_id=plate.id, library_id=library_id, well_idx=well_idx)
+                # plate = db.plates.add_library(plate_id=plate.id, library_id=library_id, well_idx=well_idx)
             
             self.lab_prep.plates.append(plate)
         
@@ -174,10 +170,10 @@ class LibraryPrepForm(HTMXFlaskForm):
             size_bytes = os.path.getsize(path)
             file.uuid = hash
             file.size_bytes = size_bytes
-            file.timestamp_utc = to_utc(db.timestamp())
+            file.timestamp_utc = to_utc(datetime.now())
             db.session.save(file)
         else:
-            db.media_files.create(
+            self.lab_prep.prep_file = Q.media_file.create(
                 name=f"{self.lab_prep.name}_prep",
                 type=MediaFileType.LIBRARY_PREP_FILE,
                 extension=".xlsx",

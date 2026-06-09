@@ -73,7 +73,7 @@ class SeqRequest(Base):
     sample_submission_event_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("event.id"), nullable=True)
     sample_submission_event: Mapped[Optional["Event"]] = relationship("Event", lazy="select", foreign_keys=[sample_submission_event_id], back_populates="seq_request", cascade="save-update, merge, delete")
 
-    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select")
+    libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select", cascade="all, delete-orphan")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)
     media_files: Mapped[list["MediaFile"]] = relationship("MediaFile", lazy="select", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship("Comment", lazy="select", cascade="all, delete-orphan", order_by="Comment.timestamp_utc.desc()")
@@ -99,7 +99,6 @@ class SeqRequest(Base):
     review_checklist: Mapped[dict[str, bool] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
 
     sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
-
 
     def get_submit_checklist(self) -> dict:
         if orm.object_session(self) is None:

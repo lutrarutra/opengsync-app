@@ -19,8 +19,7 @@ if TYPE_CHECKING:
     from .Lane import Lane
     from . import PoolDilution
     from .SeqRequest import SeqRequest
-    from .PoolDesign import PoolDesign
-    from .FlowCellDesign import FlowCellDesign
+    from .Experiment import Experiment
 
 class ProjectAssigneeLink(Base):
     __tablename__ = "project_assignee_link"
@@ -100,13 +99,14 @@ class SampleLibraryLink(Base):
 
 class LanePoolLink(Base):
     __tablename__ = "lane_pool_link"
-    lane_id: Mapped[int] = mapped_column(sa.ForeignKey("lane.id"), primary_key=True)
+    lane_id: Mapped[int] = mapped_column(sa.ForeignKey("lane.id", ondelete="CASCADE"), primary_key=True)
     lane: Mapped["Lane"] = relationship("Lane", lazy="select", back_populates="pool_links")
     
-    pool_id: Mapped[int] = mapped_column(sa.ForeignKey("pool.id"), primary_key=True)
+    pool_id: Mapped[int] = mapped_column(sa.ForeignKey("pool.id", ondelete="CASCADE"), primary_key=True)
     pool: Mapped["Pool"] = relationship("Pool", lazy="select", back_populates="lane_links")
     
-    experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id"), nullable=False)
+    experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id", ondelete="CASCADE"), nullable=False)
+    experiment: Mapped["Experiment"] = relationship("Experiment", lazy="select", back_populates="laned_pool_links")
 
     dilution_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool_dilution.id"), nullable=True, default=None)
     dilution: Mapped[Optional["PoolDilution"]] = relationship("PoolDilution", lazy="select")

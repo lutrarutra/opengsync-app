@@ -146,7 +146,7 @@ def update_statuses(db: DBHandler):
             logs.append(f"Updating experiment {run.experiment.id} status to {run.experiment.status}")
             db.session.save(run)
 
-    db.flush()
+    db.session.flush()
 
     for experiment in db.experiments.find(
         limit=None, custom_query=__find_finished_experiments,
@@ -168,7 +168,7 @@ def update_statuses(db: DBHandler):
             logs.append(f"Updating experiment {experiment.id} status to {experiment.status}")
             db.session.save(experiment)
 
-    db.flush()
+    db.session.flush()
 
     for library in db.libraries.find(
         status_in=[
@@ -181,7 +181,7 @@ def update_statuses(db: DBHandler):
             logs.append(f"Updating library {library.id} status to {library.status}")
             db.session.save(library)
     
-    db.flush()
+    db.session.flush()
 
     for sample in db.samples.find(
         status=categories.SampleStatus.WAITING_DELIVERY, limit=None,
@@ -191,7 +191,7 @@ def update_statuses(db: DBHandler):
         logs.append(f"Updating sample {sample.id} status to {sample.status}")
         db.session.save(sample)
 
-    db.flush()
+    db.session.flush()
 
     for pool in db.pools.find(
         status_in=[categories.PoolStatus.ACCEPTED, categories.PoolStatus.STORED],
@@ -201,7 +201,7 @@ def update_statuses(db: DBHandler):
         logs.append(f"Updating pool {pool.id} status to {pool.status}")
         db.session.save(pool)
 
-    db.flush()
+    db.session.flush()
 
     for seq_request in db.seq_requests.find(
         status=categories.SeqRequestStatus.ACCEPTED,
@@ -211,7 +211,7 @@ def update_statuses(db: DBHandler):
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
         db.session.save(seq_request)
 
-    db.flush()
+    db.session.flush()
 
     for seq_request in db.seq_requests.find(
         status=categories.SeqRequestStatus.SAMPLES_RECEIVED,
@@ -221,7 +221,7 @@ def update_statuses(db: DBHandler):
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
         db.session.save(seq_request)
 
-    db.flush()
+    db.session.flush()
 
     for seq_request in db.seq_requests.find(
         status_in=[categories.SeqRequestStatus.ACCEPTED, categories.SeqRequestStatus.SAMPLES_RECEIVED, categories.SeqRequestStatus.PREPARED],
@@ -231,7 +231,7 @@ def update_statuses(db: DBHandler):
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
         db.session.save(seq_request)
 
-    db.flush()
+    db.session.flush()
 
     for project in db.projects.iter(
         status=categories.ProjectStatus.PROCESSING, custom_query=__find_sequenced_projects
@@ -240,7 +240,7 @@ def update_statuses(db: DBHandler):
         db.session.save(project)
         logs.append(f"Updating project {project.id} status to {project.status}")
 
-    db.flush()
+    db.session.flush()
 
     for seq_request in db.seq_requests.iter(
         status=categories.SeqRequestStatus.DATA_PROCESSING, custom_query=__find_finished_seq_requests

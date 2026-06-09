@@ -2,7 +2,7 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 from wtforms import BooleanField
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import IndexType, BarcodeType
 
 from .... import db, logger
@@ -106,31 +106,32 @@ class EditDualIndexKitBarcodesForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        self.index_kit = db.index_kits.remove_all_barcodes(self.index_kit.id)
+        self.index_kit = db.actions.remove_all_barcodes_from_kit(self.index_kit)
         self.df["barcode_i7_id"] = None
         self.df["barcode_i5_id"] = None
 
-        for idx, row in self.df.iterrows():
-            adapter = db.adapters.create(
-                index_kit_id=self.index_kit.id,
+        barcodes = []
+        for _, row in self.df.iterrows():
+            adapter = Q.adapter.create(
+                index_kit=self.index_kit,
                 well=row["well"],
             )
-            db.barcodes.create(
-                name=row["name_i7"],
+            barcodes.append(Q.barcode.create(
+                name=row["name"],
                 sequence=row["sequence_i7"] if not self.rc_sequence_i7.data else models.Barcode.reverse_complement(row["sequence_i7"]),
                 well=row["well"],
-                adapter_id=adapter.id,
+                adapter=adapter,
                 type=BarcodeType.INDEX_I7,
-            )
-            db.barcodes.create(
+            ))
+            barcodes.append(Q.barcode.create(
                 name=row["name_i5"],
                 sequence=row["sequence_i5"] if not self.rc_sequence_i5.data else models.Barcode.reverse_complement(row["sequence_i5"]),
                 well=row["well"],
-                adapter_id=adapter.id,
+                adapter=adapter,
                 type=BarcodeType.INDEX_I5,
-            )
+            ))
 
+        db.session.add_all(barcodes)
         flash("Changes saved!", "success")
-        db.refresh(self.index_kit)
         return make_response(redirect=(url_for("kits_page.index_kit", index_kit_id=self.index_kit.id)))
     

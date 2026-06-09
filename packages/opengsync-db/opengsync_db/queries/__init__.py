@@ -26,7 +26,10 @@ from . import (
     affiliation,
     plate,
     adapter,
-    feature
+    feature,
+    barcode,
+    comment,
+    contact
 )
 
 __all__ = [
@@ -59,5 +62,8 @@ __all__ = [
     "affiliation",
     "plate",
     "adapter",
-    "feature"
+    "feature",
+    "barcode",
+    "comment",
+    "contact"
 ]

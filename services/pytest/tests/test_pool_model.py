@@ -1,11 +1,11 @@
-from opengsync_db import DBHandler
+from opengsync_db import SyncDBHandler, queries as Q
 
 from .create_units import (
     create_user, create_seq_request, create_library, create_pool
 )
 
 
-def test_pool_model(db: DBHandler):
+def test_pool_model(db: SyncDBHandler):
     user = create_user(db)
     seq_request = create_seq_request(db, user)
 
@@ -15,46 +15,43 @@ def test_pool_model(db: DBHandler):
         create_pool(db, user, seq_request),
     ]
 
-    assert len(db.pools.find(limit=None)[0]) == 3
+    assert db.session.count(Q.pool.select()) == 3
 
     for pool in pools:
         for i in range(2):
-            db.pools.dilute(pool.id, i, user.id, None)
+            db.actions.dilute_pool(pool, i, user.id, None)
 
-    assert len(db.pools.find(limit=None)[0]) == 3
+    assert db.session.count(Q.pool.select()) == 3
     
     for pool in pools:
-        db.refresh(pool)
+        db.session.refresh(pool)
         assert len(pool.dilutions) == 2
         for i in range(10):
             library = create_library(db, user, seq_request)
-            db.libraries.add_to_pool(library.id, pool.id)
+            library.pool_id = pool.id
 
-    assert len(db.pools.find(limit=None)[0]) == 3
-    assert len(db.libraries.find(limit=None)[0]) == 3 * 10
+    assert db.session.count(Q.pool.select()) == 3
+    assert db.session.count(Q.library.select()) == 3 * 10
 
     for pool in pools:
-        db.refresh(pool)
+        db.session.refresh(pool)
         assert pool.num_libraries == 10
         assert len(pool.libraries) == 10
         assert len(pool.dilutions) == 2
 
     merged = create_pool(db, user, seq_request)
 
-    db.pools.merge(
-        merged_pool_id=merged.id,
-        pool_ids=[pool.id for pool in pools],
-    )
+    db.actions.merge_pools(merged_pool=merged, pools=pools)
 
-    assert len(db.pools.find(limit=None)[0]) == 4
+    assert db.session.count(Q.pool.select()) == 4
 
-    db.refresh(merged)
+    db.session.refresh(merged)
     assert merged.num_libraries == 30
     assert len(merged.libraries) == 30
     assert len(merged.dilutions) == 0
 
-    db.pools.delete(merged.id)
-    assert len(db.pools.find(limit=None)[0]) == 3
-    assert len(db.libraries.find(limit=None)[0]) == 30
+    db.session.delete(merged, flush=True)
+    assert db.session.count(Q.pool.select()) == 3
+    assert db.session.count(Q.library.select()) == 30
 
     

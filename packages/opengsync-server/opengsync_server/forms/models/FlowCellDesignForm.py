@@ -52,7 +52,7 @@ class FlowCellDesignForm(HTMXFlaskForm):
         self.flow_cell_design.flow_cell_type_id = self.flow_cell_type_id.data if self.flow_cell_type_id.data != -1 else None
 
         db.session.add(self.flow_cell_design)
-        db.flush()
+        db.session.flush()
         flash("Changes Saved!", "success")
         return make_response(redirect=url_for("design_page.design"))
     
@@ -66,7 +66,7 @@ class FlowCellDesignForm(HTMXFlaskForm):
         )
 
         db.session.add(new_flow_cell_design)
-        db.flush()
+        db.session.flush()
         flash("Design Created!", "success")
         return make_response(redirect=url_for("design_page.design"))
     
