@@ -38,7 +38,7 @@ def test_separate_lane_molarity(db: DBHandler):
     for pool in db.pools.find(limit=None)[0]:
         pool.avg_fragment_size = random.randint(200, 500)
         pool.qubit_concentration = random.uniform(1, 10)
-        db.pools.update(pool)
+        db.session.save(pool)
 
     for lane in db.lanes.find(limit=None)[0]:
         db.refresh(lane)

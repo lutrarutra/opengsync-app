@@ -108,7 +108,6 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
         if not current_user.is_insider():
             stmt = Q.user.select(id=current_user.id, statement=stmt)
     
-    # users, num_pages = db.users.find(page=page, **fnc_context)
     users, count = db.session.page(stmt, page=page)
 
     context.update({

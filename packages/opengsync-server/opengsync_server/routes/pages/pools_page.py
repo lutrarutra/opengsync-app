@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, url_for, request
 
 from opengsync_db.categories import PoolStatus, AccessType
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -15,10 +15,10 @@ def pools():
 
 @wrappers.page_route(pools_page_bp, "pools", db=db, cache_timeout_seconds=360)
 def pool(current_user: models.User, pool_id: int):
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.pools.get_access_type(pool, current_user) < AccessType.VIEW:
+    if db.session.get_access_level(Q.pool.permissions(pool.id, current_user.id)) < AccessLevel.READ:
          raise exceptions.NoPermissionsException()
 
     path_list = [

@@ -1,6 +1,8 @@
 from flask import Request
+import sqlalchemy as sa
 
 from opengsync_db import models
+from opengsync_db import queries as Q
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -25,38 +27,32 @@ class AdapterTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:    
-    fnc_context = {}
     table = AdapterTable(route="adapters_htmx.get", page=request.args.get("page", 0, type=int))
+    stmt = sa.select(models.Adapter)
 
     if (name := request.args.get("name")):
-        fnc_context["name"] = name
+        stmt = Q.adapter.select(search_name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (well := request.args.get("well")):
-        fnc_context["well"] = well
+        stmt = Q.adapter.select(well=well, statement=stmt)
         table.active_search_var = "well"
         table.active_query_value = well
-    elif (sequence := request.args.get("sequence")):
-        fnc_context["sequence"] = sequence
-        table.active_search_var = "sequence"
-        table.active_query_value = sequence
     elif (id_ := request.args.get("id")):
         table.active_search_var = "id"
         table.active_query_value = str(id_)
         try:
-            id_ = int("".join(filter(str.isdigit, id_)))
-            fnc_context["id"] = id_
+            stmt = Q.adapter.select(id=int("".join(filter(str.isdigit, id_))), statement=stmt)
         except ValueError:
             pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
         descending = sort_order == "desc"
-        if sort_by not in models.Adapter.sortable_fields:
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.Adapter, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
             raise exceptions.BadRequestException()
-        
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
@@ -65,12 +61,13 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     if (index_kit := context.get("index_kit")) is not None:
         template = "components/tables/index_kit-adapter.html"  
         table.route = "index_kits_htmx.get_adapters"      
-        fnc_context["index_kit_id"] = index_kit.id
+        stmt = Q.adapter.select(index_kit_id=index_kit.id, statement=stmt)
         table.url_params["index_kit_id"] = index_kit.id
     else:
         template = "components/tables/adapter.html"
 
-    adapters, table.num_pages = db.adapters.find(page=table.active_page, **fnc_context)
+    adapters, table.num_pages = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(table.num_pages)
     
     context.update({
         "adapters": adapters,

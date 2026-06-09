@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, url_for
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import forms, db
 from ...core import wrappers, exceptions
@@ -21,7 +21,7 @@ def sequencer(current_user: models.User, sequencer_id: int):
     if not current_user.is_admin():
         raise exceptions.NoPermissionsException()
     
-    if (sequencer := db.sequencers.get(sequencer_id)) is None:
+    if (sequencer := db.session.first(Q.sequencer.select(id=sequencer_id))) is None:
         raise exceptions.NotFoundException()
     
     sequencer_form = forms.models.SequencerForm(sequencer=sequencer)

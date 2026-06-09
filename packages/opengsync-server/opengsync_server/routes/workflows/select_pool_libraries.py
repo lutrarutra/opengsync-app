@@ -1,7 +1,7 @@
 from flask import Blueprint, Response, url_for, request, flash
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import LibraryStatus
 
 from ... import db, logger
@@ -16,7 +16,7 @@ def begin(current_user: models.User, pool_id: int) -> Response:
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
         
     form = SelectSamplesForm(
@@ -39,7 +39,7 @@ def select(current_user: models.User, pool_id: int) -> Response:
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
 
-    if (pool := db.pools.get(pool_id)) is None:
+    if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
 
     form = SelectSamplesForm(

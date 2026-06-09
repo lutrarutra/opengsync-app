@@ -11,8 +11,8 @@ from flask import (
     flash
 )
 
-from opengsync_db import models
-from opengsync_db.categories import LibraryType, AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import LibraryType, AccessLevel
 
 from ..core import exceptions, wrappers
 from ..tools import utils, univer
@@ -46,7 +46,7 @@ if runtime.app.debug:
 
 @wrappers.api_route(runtime.app, db=db, methods=["GET"], json_params=["api_token"], limit="3/second", limit_override=True, api_token_required=False)
 def validate_api_token(api_token: str):
-    if (token := db.api_tokens.get(api_token)) is None:
+    if (token := db.session.first(Q.api_token.select(uuid=api_token))) is None:
         raise exceptions.NotFoundException("API token not found.")
     
     if token.is_expired:
@@ -74,11 +74,11 @@ def dashboard(current_user: models.User):
 
 @wrappers.resource_route(runtime.app, db=db)
 def pdf_file(file_id: int, current_user: models.User):
-    if (file := db.media_files.get(file_id)) is None:
+    if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
 
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
+        if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 
     if file.extension != ".pdf":
@@ -100,11 +100,11 @@ def pdf_file(file_id: int, current_user: models.User):
 
 @wrappers.resource_route(runtime.app, db=db)
 def img_file(current_user: models.User, file_id: int):
-    if (file := db.media_files.get(file_id)) is None:
+    if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
 
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
+        if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 
     if file.extension not in [".png", ".jpg", ".jpeg"]:
@@ -126,11 +126,11 @@ def img_file(current_user: models.User, file_id: int):
 
 @wrappers.resource_route(runtime.app, db=db)
 def download_file(file_id: int, current_user: models.User):
-    if (file := db.media_files.get(file_id)) is None:
+    if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
 
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
+        if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 
     filepath = os.path.join(runtime.app.media_folder, file.path)
@@ -148,11 +148,11 @@ def download_file(file_id: int, current_user: models.User):
 
 @wrappers.resource_route(runtime.app, db=db)
 def xlsx_data(current_user: models.User, file_id: int):
-    if (file := db.media_files.get(file_id)) is None:
+    if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
     
     if file.uploader_id != current_user.id and not current_user.is_insider():
-        if (_ := db.media_files.get_access_type(file, current_user)) < AccessType.VIEW:
+        if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 
     filepath = os.path.join(runtime.app.media_folder, file.path)

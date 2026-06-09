@@ -20,6 +20,8 @@ def create(
 
 def select(
     id: int | None = None,
+    name: str | None = None,
+    identifier: str | None = None,
     type: FeatureType | None = None,
     type_in: list[FeatureType] | None = None,
     search_name: str | None = None,
@@ -29,6 +31,10 @@ def select(
 ) -> sa.Select[tuple[FeatureKit]]:
     if id is not None:
         statement = statement.where(FeatureKit.id == id)
+    if name is not None:
+        statement = statement.where(FeatureKit.name == name)
+    if identifier is not None:
+        statement = statement.where(FeatureKit.identifier == identifier)
     if type is not None:
         statement = statement.where(FeatureKit.type_id == type.id)
     if type_in is not None:

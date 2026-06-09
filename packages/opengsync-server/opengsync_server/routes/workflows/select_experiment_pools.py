@@ -2,7 +2,7 @@ from flask import Blueprint, request, flash, url_for
 from flask_htmx import make_response
 from sqlalchemy import orm
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db, logger
 from ...core import wrappers, exceptions
@@ -16,7 +16,7 @@ def begin(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id, options=orm.selectinload(models.Experiment.pools))) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id), options=orm.selectinload(models.Experiment.pools))) is None:
         raise exceptions.NotFoundException()
     
     context = {"experiment": experiment}
@@ -34,7 +34,7 @@ def select(current_user: models.User):
         raise exceptions.BadRequestException()
     try:
         experiment_id = int(experiment_id)
-        if (experiment := db.experiments.get(experiment_id, options=orm.selectinload(models.Experiment.pools))) is None:
+        if (experiment := db.session.first(Q.experiment.select(id=experiment_id), options=orm.selectinload(models.Experiment.pools))) is None:
             raise exceptions.NotFoundException()
         
         experiment.pools
@@ -56,7 +56,7 @@ def select(current_user: models.User):
             logger.error(f"{row['id']} is not a valid pool id")
             raise ValueError("Invalid pool id")
         
-        if (_ := db.pools.get(pool_id)) is None:
+        if (_ := db.session.first(Q.pool.select(id=pool_id))) is None:
             raise exceptions.NotFoundException()
         
         if pool_id not in current_pool_ids:

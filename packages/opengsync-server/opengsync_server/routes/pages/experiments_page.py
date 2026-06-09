@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, url_for, request
 
 from sqlalchemy import orm
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -22,8 +22,8 @@ def experiment(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
 
-    if (experiment := db.experiments.get(
-        experiment_id, options=[
+    if (experiment := db.session.first(
+        Q.experiment.select(id=experiment_id), options=[
             orm.selectinload(models.Experiment.pools),
             orm.selectinload(models.Experiment.lanes).selectinload(models.Lane.pool_links),
             orm.selectinload(models.Experiment.media_files),

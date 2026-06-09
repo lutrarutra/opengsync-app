@@ -1,4 +1,5 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from dataclasses import dataclass
 
@@ -75,7 +76,7 @@ class BarcodeConstraintsForm(HTMXFlaskForm):
         kit = None
         
         if self.kit.selected.data is not None:
-            if (kit := db.index_kits.get(int(self.kit.selected.data))) is None:
+            if (kit := db.session.first(Q.index_kit.select(id=int(self.kit.selected.data)))) is None:
                 raise exceptions.NotFoundException("Kit not found")
             
             self.kit.search_bar.data = kit.search_name()

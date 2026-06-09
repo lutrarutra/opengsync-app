@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, url_for, make_response, request
 
+from opengsync_db import models, queries as Q
+
 from ... import db
 from ...core import wrappers, exceptions
 kits_page_bp = Blueprint("kits_page", __name__)
@@ -12,7 +14,7 @@ def kits():
 
 @wrappers.page_route(kits_page_bp, "kits", db=db, cache_timeout_seconds=360)
 def kit(kit_id: int):
-    if (kit := db.kits.get(kit_id)) is None:
+    if (kit := db.session.first(Q.kit.select(id=kit_id))) is None:
         raise exceptions.NotFoundException()
 
     path_list = [
@@ -32,7 +34,7 @@ def index_kits():
 
 @wrappers.page_route(kits_page_bp, "index_kits", db=db, cache_timeout_seconds=360)
 def index_kit(index_kit_id: int):
-    if (kit := db.index_kits.get(index_kit_id)) is None:
+    if (kit := db.session.first(Q.index_kit.select(id=index_kit_id))) is None:
         raise exceptions.NotFoundException()
 
     path_list = [
@@ -62,7 +64,7 @@ def feature_kits():
 
 @wrappers.page_route(kits_page_bp, "feature_kits", db=db, cache_timeout_seconds=360)
 def feature_kit(feature_kit_id: int):
-    if (feature_kit := db.feature_kits.get(feature_kit_id)) is None:
+    if (feature_kit := db.session.first(Q.feature_kit.select(id=feature_kit_id))) is None:
         raise exceptions.NotFoundException()
 
     path_list = [
@@ -89,7 +91,7 @@ def feature_kit(feature_kit_id: int):
 
 @wrappers.page_route(kits_page_bp, db=db)
 def export_features(feature_kit_id: int):
-    feature_kit = db.feature_kits.get(feature_kit_id)
+    feature_kit = db.session.first(Q.feature_kit.select(id=feature_kit_id))
     if feature_kit is None:
         raise exceptions.NotFoundException()
 

@@ -1,4 +1,5 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
@@ -134,7 +135,7 @@ class MergePoolsForm(MultiStepForm):
             return self.make_response()
         
         if (contact_id := self.contact.selected.data) is not None:
-            if (contact := db.users.get(contact_id)) is None:
+            if (contact := db.session.first(Q.user.select(id=contact_id))) is None:
                 logger.error(f"Contact {contact_id} not found")
                 raise exceptions.ElementDoesNotExist(f"Contact {contact_id} not found")
         else:

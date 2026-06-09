@@ -2,8 +2,8 @@ import os
 
 from flask import Blueprint, request, send_file
 
-from opengsync_db import models
-from opengsync_db.categories import AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import AccessLevel
 
 from ... import db, logger
 from ...forms.workflows import library_annotation as forms
@@ -30,10 +30,10 @@ def download_seq_auth_form():
 
 @wrappers.htmx_route(library_annotation_workflow, db=db)
 def begin(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
 
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
 
     form = forms.ProjectSelectForm(seq_request=seq_request)
@@ -42,10 +42,10 @@ def begin(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(library_annotation_workflow, db=db)
 def previous(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     if (step_name := MultiStepForm.PopLastStep("library_annotation", uuid)) is None:
@@ -60,10 +60,10 @@ def previous(current_user: models.User, seq_request_id: int, uuid: str):
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def select_project(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
@@ -73,60 +73,60 @@ def select_project(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_sample_annotation_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
         
     return forms.SampleAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_assay_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
         
     return forms.SelectServiceForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_pooled_library_annotation_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     return forms.PooledLibraryAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_custom_assay_annotation_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     return forms.CustomAssayAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_mux_definition_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     return forms.DefineMultiplexedSamplesForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_parse_mux_annotation(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     return forms.ParseMuxAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
@@ -134,10 +134,10 @@ def parse_parse_mux_annotation(current_user: models.User, seq_request_id: int, u
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST", "GET"])
 def define_pools(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
@@ -148,10 +148,10 @@ def define_pools(current_user: models.User, seq_request_id: int, uuid: str):
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def upload_barcode_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
 
     return forms.BarcodeInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
@@ -159,10 +159,10 @@ def upload_barcode_form(current_user: models.User, seq_request_id: int, uuid: st
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def upload_tenx_atac_barcode_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
 
     return forms.TENXATACBarcodeInputForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
@@ -170,10 +170,10 @@ def upload_tenx_atac_barcode_form(current_user: models.User, seq_request_id: int
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def barcode_match(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
 
     return forms.BarcodeMatchForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
@@ -181,10 +181,10 @@ def barcode_match(current_user: models.User, seq_request_id: int, uuid: str):
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_ocm_reference(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     return forms.OCMAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
@@ -192,10 +192,10 @@ def parse_ocm_reference(current_user: models.User, seq_request_id: int, uuid: st
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_oligo_mux_reference(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     return forms.OligoMuxAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
@@ -203,10 +203,10 @@ def parse_oligo_mux_reference(current_user: models.User, seq_request_id: int, uu
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_feature_annotation(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
 
     return forms.FeatureAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
@@ -214,10 +214,10 @@ def parse_feature_annotation(current_user: models.User, seq_request_id: int, uui
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_visium_reference(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     return forms.VisiumAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
@@ -225,10 +225,10 @@ def parse_visium_reference(current_user: models.User, seq_request_id: int, uuid:
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_openst_annotation(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     return forms.OpenSTAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
@@ -236,20 +236,20 @@ def parse_openst_annotation(current_user: models.User, seq_request_id: int, uuid
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_flex_annotation(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     return forms.FlexAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_parse_crispr_guide_annotation(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     return forms.ParseCRISPRGuideAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
@@ -257,10 +257,10 @@ def parse_parse_crispr_guide_annotation(current_user: models.User, seq_request_i
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def parse_sas_form(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     return forms.SampleAttributeAnnotationForm(uuid=uuid, seq_request=seq_request, formdata=request.form).process_request()
@@ -268,10 +268,10 @@ def parse_sas_form(current_user: models.User, seq_request_id: int, uuid: str):
 
 @wrappers.htmx_route(library_annotation_workflow, db=db, methods=["POST"])
 def complete(current_user: models.User, seq_request_id: int, uuid: str):
-    if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
     
     form = forms.CompleteSASForm(uuid=uuid, formdata=request.form, seq_request=seq_request)

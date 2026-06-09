@@ -95,8 +95,8 @@ def test_group_affiliations(db: DBHandler):
     req_2.group_id = group.id
     p2.group_id = group.id
 
-    db.seq_requests.update(req_2)
-    db.projects.update(p2)
+    db.session.save(req_2)
+    db.session.save(p2)
     db.flush()
 
     assert len(db.seq_requests.find(user_id=user_1.id, limit=None)[0]) == 2

@@ -86,7 +86,7 @@ class AddKitCombinationsFrom(HTMXFlaskForm):
                 )
             )
 
-        db.protocols.update(self.protocol)
+        db.session.save(self.protocol)
         
         flash("Successfully added kits to protocol.", "success")
         return make_response(redirect=url_for("protocols_page.protocol", protocol_id=self.protocol.id))

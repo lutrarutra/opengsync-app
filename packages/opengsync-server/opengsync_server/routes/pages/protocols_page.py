@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, url_for, make_response, request
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -20,7 +20,7 @@ def protocol(current_user: models.User, protocol_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (protocol := db.protocols.get(protocol_id)) is None:
+    if (protocol := db.session.first(Q.protocol.select(id=protocol_id))) is None:
         raise exceptions.NotFoundException()
 
     path_list = [

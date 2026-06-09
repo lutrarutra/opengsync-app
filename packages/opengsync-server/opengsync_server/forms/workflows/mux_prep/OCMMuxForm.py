@@ -1,4 +1,5 @@
 from typing import Optional
+from opengsync_db import queries as Q
 
 import pandas as pd
 
@@ -127,14 +128,14 @@ class OCMMuxForm(MultiStepForm):
         old_libraries: list[int] = []
         
         for _, row in self.sample_table.iterrows():
-            if (old_library := db.libraries.get(int(row["library_id"]))) is None:
+            if (old_library := db.session.first(Q.library.select(id=int(row["library_id"])))) is None:
                 logger.error(f"Library {row['library_id']} not found.")
                 raise Exception(f"Library {row['library_id']} not found.")
             
             if old_library.id not in old_libraries:
                 old_libraries.append(old_library.id)
             
-            if (sample := db.samples.get(int(row["sample_id"]))) is None:
+            if (sample := db.session.first(Q.sample.select(id=int(row["sample_id"])))) is None:
                 logger.error(f"Sample {row['sample_id']} not found.")
                 raise Exception(f"Sample {row['sample_id']} not found.")
             
@@ -163,10 +164,10 @@ class OCMMuxForm(MultiStepForm):
                 mux={"barcode": row["mux_barcode"]},
             )
             new_library.features = old_library.features
-            db.libraries.update(new_library)
+            db.session.save(new_library)
 
         for old_library_id in old_libraries:
-            if (old_library := db.libraries.get(old_library_id)) is None:
+            if (old_library := db.session.first(Q.library.select(id=old_library_id))) is None:
                 continue
             db.libraries.delete(old_library, delete_orphan_samples=False)
 

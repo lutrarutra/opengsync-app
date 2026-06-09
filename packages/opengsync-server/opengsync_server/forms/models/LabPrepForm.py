@@ -75,7 +75,7 @@ class LabPrepForm(HTMXFlaskForm):
         self.lab_prep.service_type = ServiceType.get(self.service_type.data)
 
         flash("Changes saved!", "success")
-        db.lab_preps.update(self.lab_prep)
+        db.session.save(self.lab_prep)
         return self.lab_prep
 
     def __create_lab_prep(self, user: models.User) -> models.LabPrep:

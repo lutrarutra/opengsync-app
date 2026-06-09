@@ -1,4 +1,5 @@
 import os
+from opengsync_db import queries as Q
 import pandas as pd
 from uuid6 import uuid7
 
@@ -69,7 +70,7 @@ class CompleteBAForm(MultiStepForm):
         size_bytes = os.stat(new_path).st_size
 
         if (lab_prep_id := metadata.get("lab_prep_id")) is not None:
-            if db.lab_preps.get(lab_prep_id) is None:
+            if db.session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
                 logger.error(f"{uuid}: lab_prep_id {lab_prep_id} not found")
                 raise ValueError(f"{uuid}: lab_prep_id {lab_prep_id} not found")
             
@@ -94,7 +95,7 @@ class CompleteBAForm(MultiStepForm):
 
             match sub_form.sample_type.data:
                 case "sample":
-                    if (sample := db.samples.get(obj_id)) is None:
+                    if (sample := db.session.first(Q.sample.select(id=obj_id))) is None:
                         logger.error(f"{uuid}: Sample {sub_form.obj_id.data} not found")
                         raise ValueError(f"{uuid}: Sample {sub_form.obj_id.data} not found")
 
@@ -104,9 +105,9 @@ class CompleteBAForm(MultiStepForm):
                     else:
                         sample.avg_fragment_size = sub_form.avg_fragment_size.data
                         sample.ba_report = ba_file
-                    db.samples.update(sample)
+                    db.session.save(sample)
                 case "library":
-                    if (library := db.libraries.get(obj_id)) is None:
+                    if (library := db.session.first(Q.library.select(id=obj_id))) is None:
                         logger.error(f"{uuid}: Library {obj_id} not found")
                         raise ValueError(f"{uuid}: Library {obj_id} not found")
 
@@ -116,9 +117,9 @@ class CompleteBAForm(MultiStepForm):
                     else:
                         library.avg_fragment_size = sub_form.avg_fragment_size.data
                         library.ba_report = ba_file
-                    db.libraries.update(library)
+                    db.session.save(library)
                 case "pool":
-                    if (pool := db.pools.get(obj_id)) is None:
+                    if (pool := db.session.first(Q.pool.select(id=obj_id))) is None:
                         logger.error(f"{uuid}: Pool {obj_id} not found")
                         raise ValueError(f"{uuid}: Pool {obj_id} not found")
 
@@ -130,9 +131,9 @@ class CompleteBAForm(MultiStepForm):
                         pool.ba_report_id = ba_file.id
                         if pool.status == PoolStatus.ACCEPTED:
                             pool.status = PoolStatus.STORED
-                    db.pools.update(pool)
+                    db.session.save(pool)
                 case "lane":
-                    if (lane := db.lanes.get(obj_id)) is None:
+                    if (lane := db.session.first(Q.lane.select(id=obj_id))) is None:
                         logger.error(f"{uuid}: Lane {obj_id} not found")
                         raise ValueError(f"{uuid}: Lane {obj_id} not found")
 
@@ -142,7 +143,7 @@ class CompleteBAForm(MultiStepForm):
                     else:
                         lane.avg_fragment_size = sub_form.avg_fragment_size.data
                         lane.ba_report_id = ba_file.id
-                    db.lanes.update(lane)
+                    db.session.save(lane)
                 case _:
                     logger.error(f"{uuid}: Invalid sample_type {sub_form.sample_type.data}")
                     raise exceptions.InternalServerErrorException(f"{uuid}: Invalid sample_type {sub_form.sample_type.data}")

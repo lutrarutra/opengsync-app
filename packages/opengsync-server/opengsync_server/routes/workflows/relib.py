@@ -2,7 +2,7 @@ import pandas as pd
 
 from flask import Blueprint, request, Response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db, logger
 from ...core import wrappers, exceptions
@@ -16,13 +16,13 @@ def get_context(args: dict) -> dict:
     context = {}
     if (seq_request_id := args.get("seq_request_id")) is not None:
         seq_request_id = int(seq_request_id)
-        if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
             raise exceptions.NotFoundException()
         context["seq_request"] = seq_request
         
     elif (lab_prep_id := args.get("lab_prep_id")) is not None:
         lab_prep_id = int(lab_prep_id)
-        if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+        if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
             raise exceptions.NotFoundException()
         context["lab_prep"] = lab_prep
         

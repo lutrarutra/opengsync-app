@@ -1,4 +1,5 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from flask import Response, flash, url_for
 from flask_wtf import FlaskForm
@@ -96,17 +97,17 @@ class CompleteQubitMeasureForm(MultiStepForm):
         lane_table = self.tables["lane_table"]
 
         for sub_form in self.library_fields:
-            if (library := db.libraries.get(sub_form.obj_id.data)) is None:
+            if (library := db.session.first(Q.library.select(id=sub_form.obj_id.data))) is None:
                 logger.error(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Library {sub_form.obj_id.data} not found")
             
             library.qubit_concentration = sub_form.qubit_concentration.data
-            db.libraries.update(library)
+            db.session.save(library)
 
             library_table.loc[library_table["id"] == library.id, "qubit_concentration"] = library.qubit_concentration
 
         for sub_form in self.pool_fields:
-            if (pool := db.pools.get(sub_form.obj_id.data)) is None:
+            if (pool := db.session.first(Q.pool.select(id=sub_form.obj_id.data))) is None:
                 logger.error(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Pool {sub_form.obj_id.data} not found")
             
@@ -120,17 +121,17 @@ class CompleteQubitMeasureForm(MultiStepForm):
             if pool.status == PoolStatus.ACCEPTED:
                 pool.status = PoolStatus.STORED
 
-            db.pools.update(pool)
+            db.session.save(pool)
 
             pool_table.loc[pool_table["id"] == pool.id, "qubit_concentration"] = pool.qubit_concentration
 
         for sub_form in self.lane_fields:
-            if (lane := db.lanes.get(sub_form.obj_id.data)) is None:
+            if (lane := db.session.first(Q.lane.select(id=sub_form.obj_id.data))) is None:
                 logger.error(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
                 raise ValueError(f"{self.uuid}: Lane {sub_form.obj_id.data} not found")
             
             lane.original_qubit_concentration = sub_form.qubit_concentration.data
-            db.lanes.update(lane)
+            db.session.save(lane)
 
             lane_table.loc[lane_table["id"] == lane.id, "qubit_concentration"] = lane.original_qubit_concentration
 

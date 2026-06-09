@@ -1,4 +1,5 @@
 from wtforms import FormField
+from opengsync_db import queries as Q
 from flask import Response, url_for
 from flask_htmx import make_response
 
@@ -46,11 +47,11 @@ class MergeProjectsForm(HTMXFlaskForm):
         if not self.validate(user):
             return self.make_response()
         
-        if (project_dst := db.projects.get(self.project_dst_id)) is None:
+        if (project_dst := db.session.first(Q.project.select(id=self.project_dst_id))) is None:
             self.project_dst.selected.errors = ("Selected project not found.",)
             return self.make_response()
         
-        if (project_src := db.projects.get(self.project_src_id)) is None:
+        if (project_src := db.session.first(Q.project.select(id=self.project_src_id))) is None:
             self.project_src.selected.errors = ("Selected project not found.",)
             return self.make_response()
         

@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from wtforms import StringField
 from wtforms.validators import DataRequired, Length
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import KitType
 from ... import logger, db
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -63,11 +63,11 @@ class KitForm(HTMXFlaskForm):
                 return False
         
         if self.form_type == "create":
-            if (_kit := db.kits.get(identifier=self.identifier.data)) is not None:
+            if (_kit := db.session.first(Q.kit.select(identifier=self.identifier.data))) is not None:
                 self.identifier.errors = ("Kit with this identifier already exists.",)
                 return False
             
-            if (_kit := db.kits.get(name=self.name.data)) is not None:
+            if (_kit := db.session.first(Q.kit.select(name=self.name.data))) is not None:
                 self.name.errors = ("Kit with this name already exists.",)
                 return False
         elif self.form_type == "edit":
@@ -75,12 +75,12 @@ class KitForm(HTMXFlaskForm):
                 logger.error("Kit is not set.")
                 raise ValueError("Kit is not set.")
             
-            if (_kit := db.kits.get(identifier=self.identifier.data)) is not None:
+            if (_kit := db.session.first(Q.kit.select(identifier=self.identifier.data))) is not None:
                 if _kit.id != self.kit.id:
                     self.identifier.errors = ("Kit with this identifier already exists.",)
                     return False
             
-            if (_kit := db.kits.get(name=self.name.data)) is not None:
+            if (_kit := db.session.first(Q.kit.select(name=self.name.data))) is not None:
                 if _kit.id != self.kit.id:
                     self.name.errors = ("Kit with this name already exists.",)
                     return False
@@ -97,7 +97,7 @@ class KitForm(HTMXFlaskForm):
         
         self.kit.name = self.name.data  # type: ignore
         self.kit.identifier = self.identifier.data  # type: ignore
-        db.kits.update(self.kit)
+        db.session.save(self.kit)
         flash("Kit updated successfully.", "success")
         return make_response(redirect=url_for("kits_page.kit", kit_id=self.kit.id))
         

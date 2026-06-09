@@ -1,4 +1,5 @@
 from typing import Optional, Union, TypeVar, Sequence, Literal
+from opengsync_db import queries as Q
 import itertools
 import json
 import difflib
@@ -354,7 +355,7 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
 
             for (kit_i7_id, name_i7), seqs_i7 in library.adapters_i7().items():
                 if kit_i7_id is not None:
-                    if (kit_i7 := db.index_kits.get(kit_i7_id)) is None:
+                    if (kit_i7 := db.session.first(Q.index_kit.select(id=kit_i7_id))) is None:
                         logger.error(f"Index kit {kit_i7_id} not found in database")
                         raise exceptions.ElementDoesNotExist("Index kit not found in database")
                     kit_i7 = kit_i7.identifier
@@ -369,7 +370,7 @@ def get_barcode_table(db: DBHandler, libraries: Sequence[models.Library]) -> pd.
             sequences_i5 = []
             for (kit_i5_id, name_i5), seqs_i5 in library.adapters_i5().items():
                 if kit_i5_id is not None:
-                    if (kit_i5 := db.index_kits.get(kit_i5_id)) is None:
+                    if (kit_i5 := db.session.first(Q.index_kit.select(id=kit_i5_id))) is None:
                         logger.error(f"Index kit {kit_i5_id} not found in database")
                         raise exceptions.ElementDoesNotExist("Index kit not found in database")
                     kit_i5 = kit_i5.identifier

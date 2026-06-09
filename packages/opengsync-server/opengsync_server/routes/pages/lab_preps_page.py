@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import LibraryStatus
 
 from ... import db, logger
@@ -21,7 +21,7 @@ def lab_prep(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     can_be_completed = len(lab_prep.libraries) > 0

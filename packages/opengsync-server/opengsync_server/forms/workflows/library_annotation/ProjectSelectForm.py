@@ -1,4 +1,5 @@
 from flask import Response
+from opengsync_db import queries as Q
 from wtforms import StringField, FormField, TextAreaField, BooleanField
 from wtforms.validators import Optional as OptionalValidator, Length
 
@@ -24,7 +25,7 @@ class ProjectSelectForm(LibraryAnnotationWorkflow):
     def fill_previous_form(self):
         if (project_id := self.metadata.get("project_id")) is not None:
             self.existing_project.selected.data = project_id
-            self.existing_project.search_bar.data = project.title if (project := db.projects.get(project_id)) is not None else None
+            self.existing_project.search_bar.data = project.title if (project := db.session.first(Q.project.select(id=project_id))) is not None else None
         else:
             self.new_project.data = self.metadata.get("project_title")
             self.project_description.data = self.metadata.get("project_description")

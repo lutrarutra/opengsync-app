@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db, logger
 from ...forms.workflows import lane_pools as wff
@@ -14,7 +14,7 @@ def begin(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
 
     if experiment.workflow.combined_lanes:
@@ -29,7 +29,7 @@ def lane_pools(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
 
     if experiment.workflow.combined_lanes:

@@ -1,4 +1,5 @@
 from flask import Response, url_for, flash
+from opengsync_db import queries as Q
 from flask_htmx import make_response
 
 from opengsync_db import models, exceptions, categories as C
@@ -61,13 +62,13 @@ class SamplePoolingForm(HTMXFlaskForm):
         old_libraries: dict[int, models.Library] = dict()
 
         for library_id in self.sample_table["library_id"].unique():
-            if (library := db.libraries.get(int(library_id))) is None:
+            if (library := db.session.first(Q.library.select(id=int(library_id)))) is None:
                 logger.error(f"Library {library_id} not found.")
                 raise exceptions.ElementDoesNotExist(f"Library {library_id} not found.")
             
             old_libraries[library.id] = library
             library.sample_links.clear()
-            db.libraries.update(library)
+            db.session.save(library)
             db.flush()
             db.refresh(library)
         
@@ -97,10 +98,10 @@ class SamplePoolingForm(HTMXFlaskForm):
             new_library.features = old_library.features
             if new_sample_pool == "x":
                 new_library.status = C.LibraryStatus.FAILED
-            db.libraries.update(new_library)
+            db.session.save(new_library)
 
             for _, row in _df.iterrows():
-                if (sample := db.samples.get(int(row["sample_id"]))) is None:
+                if (sample := db.session.first(Q.sample.select(id=int(row["sample_id"])))) is None:
                     logger.error(f"Sample {row['sample_id']} not found.")
                     raise Exception(f"Sample {row['sample_id']} not found.")
 

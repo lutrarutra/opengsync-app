@@ -1,4 +1,5 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -52,7 +53,7 @@ class UnifiedQCLanesForm(HTMXFlaskForm):
             lane.avg_fragment_size = self.avg_fragment_size.data
             lane.original_qubit_concentration = self.qubit_concentration.data
 
-            db.lanes.update(lane)
+            db.session.save(lane)
 
         flash("Flow cell loaded successfully", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
@@ -108,7 +109,7 @@ class QCLanesForm(HTMXFlaskForm):
             return self.make_response()
         
         for sub_form in self.input_fields:
-            if (lane := db.lanes.get(sub_form.lane_id.data)) is None:
+            if (lane := db.session.first(Q.lane.select(id=sub_form.lane_id.data))) is None:
                 logger.error(f"Lane with id {sub_form.lane_id.data} not found")
                 raise ValueError(f"Lane with id {sub_form.lane_id.data} not found")
                 
@@ -116,7 +117,7 @@ class QCLanesForm(HTMXFlaskForm):
             lane.avg_fragment_size = sub_form.avg_fragment_size.data
             lane.phi_x = sub_form.phi_x.data
 
-            db.lanes.update(lane)
+            db.session.save(lane)
 
         flash("Flow cell loaded successfully", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

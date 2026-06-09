@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from wtforms import StringField, SelectField, IntegerField, FloatField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import RunStatus, ReadType, ExperimentStatus
 from ... import db, logger
 from ..HTMXFlaskForm import HTMXFlaskForm
@@ -62,7 +62,7 @@ class SeqRunForm(HTMXFlaskForm):
             self.status.errors = ("Invalid status",)
             return False
         
-        if db.seq_runs.get(self.experiment_name.data) is not None:  # type: ignore
+        if db.session.first(Q.seq_run.select(experiment_name=self.experiment_name.data)) is not None:  # type: ignore
             self.experiment_name.errors = ("experiment_name not unique",)
             return False
 
@@ -86,19 +86,19 @@ class SeqRunForm(HTMXFlaskForm):
             i2_cycles=self.i2_cycles.data,
         )
 
-        if (experiment := db.experiments.get(seq_run.experiment_name)) is not None:
+        if (experiment := db.session.first(Q.experiment.select(name=seq_run.experiment_name))) is not None:
             if seq_run.status == RunStatus.FINISHED:
                 experiment.status = ExperimentStatus.SEQUENCED
-                db.experiments.update(experiment)
+                db.session.save(experiment)
             elif seq_run.status == RunStatus.FAILED:
                 experiment.status = ExperimentStatus.FAILED
-                db.experiments.update(experiment)
+                db.session.save(experiment)
             elif seq_run.status == RunStatus.RUNNING:
                 experiment.status = ExperimentStatus.SEQUENCING
-                db.experiments.update(experiment)
+                db.session.save(experiment)
             elif seq_run.status == RunStatus.ARCHIVED:
                 experiment.status = ExperimentStatus.ARCHIVED
-                db.experiments.update(experiment)
+                db.session.save(experiment)
 
         return seq_run
     
@@ -116,7 +116,7 @@ class SeqRunForm(HTMXFlaskForm):
         seq_run.r2_cycles = self.r2_cycles.data
         seq_run.i1_cycles = self.i1_cycles.data
         seq_run.i2_cycles = self.i2_cycles.data
-        db.seq_runs.update(seq_run)
+        db.session.save(seq_run)
         return seq_run
     
     def process_request(self, **context) -> Response:

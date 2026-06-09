@@ -1,4 +1,5 @@
 import json
+from opengsync_db import queries as Q
 
 from flask import url_for
 from wtforms import StringField
@@ -39,7 +40,7 @@ class SelectExperimentsForm(HTMXFlaskForm):
         selected_experiments = []
         try:
             for experiment_id in experiment_ids:
-                if (experiment := db.experiments.get(int(experiment_id))) is None:
+                if (experiment := db.session.first(Q.experiment.select(id=int(experiment_id)))) is None:
                     raise exceptions.NotFoundException(f"Experiment with id {experiment_id} not found")
                 selected_experiments.append(experiment)
         except ValueError:

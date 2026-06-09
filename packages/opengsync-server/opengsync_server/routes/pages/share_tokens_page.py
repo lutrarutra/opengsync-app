@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -17,7 +17,7 @@ def share_token(current_user: models.User, share_token_id: str):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (share_token := db.shares.get(share_token_id)) is None:
+    if (share_token := db.session.first(Q.share_token.select(uuid=share_token_id))) is None:
         raise exceptions.NotFoundException()
 
     path_list = [

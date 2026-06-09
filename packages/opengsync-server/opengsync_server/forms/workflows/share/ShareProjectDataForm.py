@@ -83,7 +83,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
         if (share_token := self.project.share_token) is not None:
             if not share_token._expired:
                 share_token._expired = True
-                db.shares.update(share_token)
+                db.session.save(share_token)
         
         share_token = db.shares.create(
             owner=current_user,
@@ -95,7 +95,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
             self.project.status = ProjectStatus.DELIVERED
             
         self.project.share_token = share_token
-        db.projects.update(self.project)
+        db.session.save(self.project)
         
         content = utils.render_share_project_data_email(
             share_token=share_token, current_user=current_user, project=self.project, internal_share=self.internal_share.data,
@@ -118,7 +118,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
             for link in seq_request.delivery_email_links:
                 if link.email in self.recipient_emails:
                     link.status = DeliveryStatus.DISPATCHED
-                    db.seq_requests.update(seq_request)
+                    db.session.save(seq_request)
 
         flash("Data Share Email Sent!", "success")
         return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-data_paths-tab"))

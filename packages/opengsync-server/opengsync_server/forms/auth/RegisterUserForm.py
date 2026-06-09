@@ -51,7 +51,7 @@ class RegisterUserForm(HTMXFlaskForm):
                     self.email.errors = ("Specified email domain is not found in white-list. Please contact us.",)
                     return False
         
-        if db.users.get_with_email(self.email.data):  # type: ignore
+        if db.session.first(Q.user.select(email=self.email.data)):  # type: ignore
             self.email.errors = ("Email already registered.",)
             return False
 

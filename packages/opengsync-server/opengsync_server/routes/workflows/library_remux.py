@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 
-from opengsync_db import models
-from opengsync_db.categories import LibraryType, LibraryStatus, AccessType, MUXType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import LibraryType, LibraryStatus, AccessLevel, MUXType
 
 from ... import db, logger
 from ...forms.workflows import remux as forms
@@ -12,13 +12,13 @@ library_remux_workflow = Blueprint("library_remux_workflow", __name__, url_prefi
 
 @wrappers.htmx_route(library_remux_workflow, db=db)
 def begin(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.libraries.get_access_type(user=current_user, library=library)
-    if access_type < AccessType.EDIT:
+    access_level = db.session.get_access_level(Q.library.permissions(library.id, current_user.id))
+    if access_level < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
-    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+    if library.status != LibraryStatus.DRAFT and access_level < AccessLevel.INSIDER:
         raise exceptions.NoPermissionsException()
     
     match library.mux_type:
@@ -34,13 +34,13 @@ def begin(current_user: models.User, library_id: int):
 
 @wrappers.htmx_route(library_remux_workflow, db=db, methods=["POST"])
 def parse_flex_annotation(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.libraries.get_access_type(user=current_user, library=library)
-    if access_type < AccessType.EDIT:
+    access_level = db.session.get_access_level(Q.library.permissions(library.id, current_user.id))
+    if access_level < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
-    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+    if library.status != LibraryStatus.DRAFT and access_level < AccessLevel.INSIDER:
         raise exceptions.NoPermissionsException()
         
     return forms.FlexReMuxForm(library=library, formdata=request.form).process_request()
@@ -48,13 +48,13 @@ def parse_flex_annotation(current_user: models.User, library_id: int):
 
 @wrappers.htmx_route(library_remux_workflow, db=db, methods=["POST"])
 def parse_oligo_mux_reference(current_user: models.User, library_id: int):
-    if (library := db.libraries.get(library_id)) is None:
+    if (library := db.session.first(Q.library.select(id=library_id))) is None:
         raise exceptions.NotFoundException()
     
-    access_type = db.libraries.get_access_type(user=current_user, library=library)
-    if access_type < AccessType.EDIT:
+    access_level = db.session.get_access_level(Q.library.permissions(library.id, current_user.id))
+    if access_level < AccessLevel.WRITE:
         raise exceptions.NoPermissionsException()
-    if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
+    if library.status != LibraryStatus.DRAFT and access_level < AccessLevel.INSIDER:
         raise exceptions.NoPermissionsException()
     
     return forms.OligoReMuxForm(library=library, formdata=request.form).process_request()

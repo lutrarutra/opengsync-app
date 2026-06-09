@@ -7,6 +7,7 @@ from wtforms.validators import DataRequired, Length
 from flask_htmx import make_response
 
 from opengsync_db import models
+from opengsync_db import queries as Q
 from opengsync_db.categories import PoolType
 
 from ... import logger, db
@@ -57,7 +58,7 @@ class PlateForm(HTMXFlaskForm):
             return plate.get_well(i, flipped=flipped)
 
         if self.pool is not None:
-            libraries, _ = db.libraries.find(pool_id=self.pool.id, limit=None, sort_by="id")
+            libraries = db.session.get_all(Q.library.select(pool_id=self.pool.id), order_by=models.Library.id.asc(), limit=None)
             for i, library in enumerate(libraries):
                 db.plates.add_library(
                     plate_id=plate.id, library_id=library.id, well_idx=i

@@ -6,7 +6,7 @@ import json
 from flask import url_for
 from wtforms import StringField
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import (
     SampleStatus, LibraryStatus, PoolStatus, SampleStatus, LibraryStatus, PoolStatus,
     LibraryType
@@ -195,7 +195,7 @@ class SelectSamplesForm(MultiStepForm):
             for sample_id in sample_ids:
                 if not sample_id:
                     continue
-                if (sample := db.samples.get(int(sample_id))) is None:
+                if (sample := db.session.first(Q.sample.select(id=int(sample_id)))) is None:
                     logger.error(f"Sample {sample_id} not found")
                     raise exceptions.NotFoundException(f"Sample with id {sample_id} not found")
                 self.sample_ids.append(sample.id)
@@ -210,7 +210,7 @@ class SelectSamplesForm(MultiStepForm):
             for library_id in library_ids:
                 if not library_id:
                     continue
-                if (library := db.libraries.get(int(library_id))) is None:
+                if (library := db.session.first(Q.library.select(id=int(library_id)))) is None:
                     logger.error(f"Library {library_id} not found")
                     raise exceptions.NotFoundException(f"Library with id {library_id} not found")
                 self.library_ids.append(library.id)
@@ -224,7 +224,7 @@ class SelectSamplesForm(MultiStepForm):
             for pool_id in pool_ids:
                 if not pool_id:
                     continue
-                if (pool := db.pools.get(int(pool_id))) is None:
+                if (pool := db.session.first(Q.pool.select(id=int(pool_id)))) is None:
                     logger.error(f"Pool {pool_id} not found")
                     raise exceptions.NotFoundException(f"Pool with id {pool_id} not found")
                 self.pool_ids.append(pool.id)
@@ -238,7 +238,7 @@ class SelectSamplesForm(MultiStepForm):
             for lane_id in lane_ids:
                 if not lane_id:
                     continue
-                if (lane := db.lanes.get(int(lane_id))) is None:
+                if (lane := db.session.first(Q.lane.select(id=int(lane_id)))) is None:
                     logger.error(f"Lane {lane_id} not found")
                     raise exceptions.NotFoundException(f"Lane with id {lane_id} not found")
                 self.lane_ids.append(lane.id)
@@ -268,7 +268,7 @@ class SelectSamplesForm(MultiStepForm):
             lane_data["avg_fragment_size"] = []
 
         for sample_id in self.sample_ids:
-            if (sample := db.samples.get(sample_id)) is None:
+            if (sample := db.session.first(Q.sample.select(id=sample_id))) is None:
                 logger.error(f"Sample {sample_id} not found")
                 raise ValueError(f"Sample {sample_id} not found")
             
@@ -281,7 +281,7 @@ class SelectSamplesForm(MultiStepForm):
                 sample_data["avg_fragment_size"].append(sample.avg_fragment_size)
 
         for library_id in self.library_ids:
-            if (library := db.libraries.get(library_id)) is None:
+            if (library := db.session.first(Q.library.select(id=library_id))) is None:
                 logger.error(f"Library {library_id} not found")
                 raise ValueError(f"Library {library_id} not found")
 
@@ -294,7 +294,7 @@ class SelectSamplesForm(MultiStepForm):
                 library_data["avg_fragment_size"].append(library.avg_fragment_size)
 
         for pool_id in self.pool_ids:
-            if (pool := db.pools.get(pool_id)) is None:
+            if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
                 logger.error(f"Pool {pool_id} not found")
                 raise ValueError(f"Pool {pool_id} not found")
 
@@ -307,7 +307,7 @@ class SelectSamplesForm(MultiStepForm):
                 pool_data["avg_fragment_size"].append(pool.avg_fragment_size)
 
         for lane_id in self.lane_ids:
-            if (lane := db.lanes.get(lane_id)) is None:
+            if (lane := db.session.first(Q.lane.select(id=lane_id))) is None:
                 logger.error(f"Lane {lane_id} not found")
                 raise ValueError(f"Lane {lane_id} not found")
 

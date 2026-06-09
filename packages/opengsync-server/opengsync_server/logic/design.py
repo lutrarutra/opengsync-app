@@ -14,7 +14,6 @@ def get_flow_cell_list_context(current_user: models.User, request: Request, arch
     else:
         template = "components/design/archived_flow_cell_design-list.html"
     
-    # flow_cell_designs, _ = db.flow_cell_designs.find(archived=archived, limit=None, sort_by="id", descending=True)
     designs = db.session.get_all(
         Q.flow_cell_design.select(archived=archived).order_by(models.FlowCellDesign.id.desc())
     )

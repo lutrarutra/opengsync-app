@@ -1,8 +1,9 @@
 from flask import Request
+import sqlalchemy as sa
 
-from opengsync_db import models, categories as C
+from opengsync_db import models, queries as Q
 
-from ..import db, logger
+from ..import db
 from .HTMXTable import HTMXTable
 from .TableCol import TableCol
 from ..core import exceptions
@@ -20,7 +21,6 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    fnc_context = {}
     table = LaneTable(route="lanes_htmx.browse", page=request.args.get("page", 0, type=int))
     table.url_params["workflow"] = kwargs["workflow"]
     
@@ -29,36 +29,36 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     descending = sort_order == "desc"
 
     context = parse_context(current_user, request) | kwargs
+    stmt = sa.select(models.Lane)
 
-    if (name := request.args.get("experiment")):
-        fnc_context["experiment_name"] = name
+    if (experiment_name := request.args.get("experiment")):
+        stmt = Q.lane.select(search_experiment_name=experiment_name, statement=stmt)
         table.active_search_var = "experiment"
-        table.active_query_value = name
+        table.active_query_value = experiment_name
 
     if (experiment := context.get("experiment")):
-        fnc_context["experiment_id"] = experiment.id
+        stmt = Q.lane.select(experiment=experiment, statement=stmt)
 
     elif (id_ := request.args.get("id")):
         table.active_search_var = "id"
         table.active_query_value = str(id_)
         try:
-            id_ = int("".join(filter(str.isdigit, id_)))
-            fnc_context["id"] = id_
+            stmt = Q.lane.select(id=int("".join(filter(str.isdigit, id_))), statement=stmt)
         except ValueError:
             pass
     else:
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
         descending = sort_order == "desc"
-        if sort_by not in models.Lane.sortable_fields:
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.Lane, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
             raise exceptions.BadRequestException()
-        
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
-    lanes, table.num_pages = db.lanes.find(page=table.active_page, **fnc_context)
+    lanes, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
 
     context.update({
         "lanes": lanes,

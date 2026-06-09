@@ -1,4 +1,5 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
@@ -20,7 +21,7 @@ class LibraryFeaturesForm(HTMXFlaskForm):
         self.library = library
         self._context["library"] = library
 
-        self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.feature_kits.find(limit=None, sort_by="name", type=FeatureType.ANTIBODY)[0]}
+        self.kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.session.get_all(Q.feature_kit.select(type=FeatureType.ANTIBODY), order_by=models.FeatureKit.name.desc(), limit=None)}
 
         columns = [
             CategoricalDropDown("kit", "Kit", 250, categories=self.kits_mapping, required=False),
@@ -166,7 +167,7 @@ class LibraryFeaturesForm(HTMXFlaskForm):
         self.library.features = []
         for _, row in self.df.iterrows():
             if pd.notna(row["feature_id"]):
-                if (feature := db.features.get(int(row["feature_id"]))) is None:
+                if (feature := db.session.first(Q.feature_kit.select(id=int(row["feature_id"])))) is None:
                     raise Exception(f"Feature '{row['feature']}' not found in kit '{row['kit_id']}'")
                 self.library.features.append(feature)
             else:
@@ -180,7 +181,7 @@ class LibraryFeaturesForm(HTMXFlaskForm):
                 )
                 self.library.features.append(feature)
 
-        db.libraries.update(self.library)
+        db.session.save(self.library)
 
         flash("Changes Saved!", "success")
         return make_response(redirect=url_for("libraries_page.library", library_id=self.library.id))

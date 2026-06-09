@@ -74,7 +74,7 @@ class ProtocolForm(HTMXFlaskForm):
         self.protocol.name = self.name.data.strip()  # type: ignore
         self.protocol.service_type = ServiceType.get(self.service_type.data)
         self.protocol.read_structure = self.read_structure.data.strip() if self.read_structure.data else None
-        db.protocols.update(self.protocol)
+        db.session.save(self.protocol)
         flash("protocol updated successfully.", "success")
         return make_response(redirect=url_for("protocols_page.protocol", protocol_id=self.protocol.id))
         

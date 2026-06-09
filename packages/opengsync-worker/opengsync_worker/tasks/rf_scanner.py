@@ -177,7 +177,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                     for library in pool.libraries:
                         if library.status < LibraryStatus.SEQUENCED:
                             library.status = LibraryStatus.SEQUENCED
-            db.seq_runs.update(run)
+            db.session.save(run)
             active_runs[run.experiment_name] = run
             logger.info(f"Archived: {run.experiment_name} ({run.run_folder})")
     
@@ -210,7 +210,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                 if status > run.status:
                     logger.info(f"Updating run folder name to {run_name}.")
                     run.run_folder = run_name
-                    db.seq_runs.update(run)
+                    db.session.save(run)
                     parsed_data = parse_run_folder(run_folder)
                 else:
                     logger.info("Skipping update due to lower status.")
@@ -247,7 +247,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                         for library in pool.libraries:
                             if library.status < LibraryStatus.SEQUENCED:
                                 library.status = LibraryStatus.SEQUENCED
-                db.seq_runs.update(run)
+                db.session.save(run)
                 continue
             
             metrics = parse_metrics(run_folder)
@@ -265,7 +265,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
             for key, value in metrics.items():
                 run.set_quantity(key, value)
 
-            db.seq_runs.update(run)
+            db.session.save(run)
             active_runs[experiment_name] = run
             logger.info("Updated!")
         else:
@@ -304,7 +304,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                 if run.experiment is not None:
                     run.experiment.status = ExperimentStatus.SEQUENCING
             
-            db.seq_runs.update(run)
+            db.session.save(run)
 
             active_runs[experiment_name] = run
             logger.info("Added!")

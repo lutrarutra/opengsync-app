@@ -1,4 +1,5 @@
 from flask import Response, flash, url_for
+from opengsync_db import queries as Q
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
 from wtforms import FloatField, IntegerField, FieldList, FormField, StringField
@@ -81,13 +82,13 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
 
         pool_field: PoolSubForm
         for pool_field in self.pool_fields:  # type: ignore
-            if (pool := db.pools.get(pool_field.pool_id.data)) is None:  # type: ignore
+            if (pool := db.session.first(Q.pool.select(id=pool_field.pool_id.data))) is None:  # type: ignore
                 logger.error(f"Pool with id {pool_field.pool_id.data} does not exist")
                 raise ValueError(f"Pool with id {pool_field.pool_id.data} does not exist")
 
             lane_field: LaneSubForm
             for lane_field in pool_field.reads_fields:  # type: ignore
-                if (lane := db.lanes.get(lane_field.lane_id.data)) is None:  # type: ignore
+                if (lane := db.session.first(Q.lane.select(id=lane_field.lane_id.data))) is None:  # type: ignore
                     logger.error(f"Lane with id {lane_field.lane_id.data} does not exist")
                     raise ValueError(f"Lane with id {lane_field.lane_id.data} does not exist")
 
@@ -97,7 +98,7 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
 
                 link.num_m_reads = lane_field.num_reads.data
                 
-        db.experiments.update(self.experiment)
+        db.session.save(self.experiment)
         flash("Saved!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))
     
@@ -154,13 +155,13 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
             if pool_field.num_reads.data is None:
                 continue
             
-            if (pool := db.pools.get(pool_field.pool_id.data)) is None:
+            if (pool := db.session.first(Q.pool.select(id=pool_field.pool_id.data))) is None:
                 logger.error(f"Pool with id {pool_field.pool_id.data} does not exist")
                 raise ValueError(f"Pool with id {pool_field.pool_id.data} does not exist")
             
             for link in pool.lane_links:
                 link.num_m_reads = pool_field.num_reads.data / self.experiment.num_lanes
                 
-        db.experiments.update(self.experiment)
+        db.session.save(self.experiment)
         flash("Saved!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

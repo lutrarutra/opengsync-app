@@ -1,4 +1,5 @@
 import string
+from opengsync_db import queries as Q
 from typing import Optional, Literal
 
 from flask import Response, flash, url_for
@@ -61,11 +62,11 @@ class IndexKitForm(HTMXFlaskForm):
                 return False
         
         if self.form_type == "create":
-            if (_kit := db.kits.get(identifier=self.identifier.data)) is not None:
+            if (_kit := db.session.first(Q.kit.select(identifier=self.identifier.data))) is not None:
                 self.identifier.errors = ("Index kit with this identifier already exists.",)
                 return False
             
-            if (_kit := db.kits.get(name=self.name.data)) is not None:
+            if (_kit := db.session.first(Q.kit.select(name=self.name.data))) is not None:
                 self.name.errors = ("Index kit with this name already exists.",)
                 return False
         elif self.form_type == "edit":
@@ -73,12 +74,12 @@ class IndexKitForm(HTMXFlaskForm):
                 logger.error("Index kit is not set.")
                 raise ValueError("Index kit is not set.")
             
-            if (_kit := db.kits.get(identifier=self.identifier.data)) is not None:
+            if (_kit := db.session.first(Q.kit.select(identifier=self.identifier.data))) is not None:
                 if _kit.id != self.index_kit.id:
                     self.identifier.errors = ("Index kit with this identifier already exists.",)
                     return False
             
-            if (_kit := db.kits.get(name=self.name.data)) is not None:
+            if (_kit := db.session.first(Q.kit.select(name=self.name.data))) is not None:
                 if _kit.id != self.index_kit.id:
                     self.name.errors = ("Index kit with this name already exists.",)
                     return False
@@ -96,7 +97,7 @@ class IndexKitForm(HTMXFlaskForm):
         self.index_kit.name = self.name.data  # type: ignore
         self.index_kit.identifier = self.identifier.data  # type: ignore
         self.index_kit.type_id = self.index_type_id.data  # type: ignore
-        db.index_kits.update(self.index_kit)
+        db.session.save(self.index_kit)
         flash("Index kit updated successfully.", "success")
         return make_response(redirect=url_for("kits_page.index_kit", index_kit_id=self.index_kit.id))
         

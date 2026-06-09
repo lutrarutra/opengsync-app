@@ -53,7 +53,7 @@ class AddSeqRequestAssigneeForm(HTMXFlaskForm):
         
         assignee = db.users[self.user.selected.data]
         self.seq_request.assignees.append(assignee)
-        db.seq_requests.update(self.seq_request)
+        db.session.save(self.seq_request)
         
         flash(f"Assignee Added Successfully!", "success")
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id, tab="request-assignees-tab"))

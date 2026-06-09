@@ -1,4 +1,5 @@
 from pathlib import Path
+from opengsync_db import queries as Q
 import urllib.parse
 import mimetypes
 
@@ -23,7 +24,7 @@ def share(token: str, subpath: Path = Path()):
     if SharedFileBrowser.OS_JUNK_REGEX.search(subpath.as_posix()):
         return Response(status=404)
 
-    if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
+    if (share_token := db.session.first(Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths)))) is None:
         raise exceptions.NotFoundException("Invalid Token")
 
     if share_token.is_expired:

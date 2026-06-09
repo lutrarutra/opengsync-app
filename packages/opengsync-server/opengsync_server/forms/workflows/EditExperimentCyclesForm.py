@@ -45,7 +45,7 @@ class EditExperimentCyclesForm(HTMXFlaskForm):
         self.experiment.i1_cycles = self.cycles_i1.data
         self.experiment.i2_cycles = self.cycles_i2.data
 
-        db.experiments.update(self.experiment)
+        db.session.save(self.experiment)
 
         flash("Changes Saved!.", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id, tab="checklist-tab"))

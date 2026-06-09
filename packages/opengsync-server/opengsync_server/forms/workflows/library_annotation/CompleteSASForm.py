@@ -1,4 +1,5 @@
 import os
+from opengsync_db import queries as Q
 
 import pandas as pd
 
@@ -192,7 +193,7 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
             return self.make_response()
 
         if (project_id := self.metadata.get("project_id")) is not None:
-            if (project := db.projects.get(project_id)) is None:
+            if (project := db.session.first(Q.project.select(id=project_id))) is None:
                 logger.error(f"{self.uuid}: Project with id {project_id} not found.")
                 raise ValueError(f"Project with id {project_id} not found.")
         else:
@@ -208,7 +209,7 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
 
         for idx, library_row in self.sample_table.iterrows():
             if pd.notna(library_row["sample_id"]):
-                if (sample := db.samples.get(library_row["sample_id"])) is None:
+                if (sample := db.session.first(Q.sample.select(id=library_row["sample_id"]))) is None:
                     logger.error(f"{self.uuid}: Sample with id {library_row['sample_id']} not found.")
                     raise ValueError(f"Sample with id {library_row['sample_id']} not found.")
             else:
@@ -248,7 +249,7 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
             
             for idx, library_row in self.pool_table.iterrows():
                 if pd.notna(library_row["pool_id"]):
-                    if (pool := db.pools.get(library_row["pool_id"])) is None:
+                    if (pool := db.session.first(Q.pool.select(id=library_row["pool_id"]))) is None:
                         logger.error(f"{self.uuid}: Pool with id {library_row['pool_id']} not found.")
                         raise ValueError(f"Pool with id {library_row['pool_id']} not found.")
                 else:
@@ -336,7 +337,7 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                         index_type = IndexType.DUAL_INDEX
 
                 library.index_type = index_type
-                db.libraries.update(library)
+                db.session.save(library)
 
                 for _, barcode_row in library_barcodes.iterrows():
                     if int(barcode_row["index_type_id"]) != index_type.id:

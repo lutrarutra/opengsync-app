@@ -1,4 +1,5 @@
 import os
+from opengsync_db import queries as Q
 import pandas as pd
 from flask import url_for, Response, flash
 
@@ -116,7 +117,7 @@ class LibraryPoolingForm(MultiStepForm):
                     _id = None
 
                 if _id is not None:
-                    if (library := db.libraries.get(_id)) is None:
+                    if (library := db.session.first(Q.library.select(id=_id))) is None:
                         self.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
                     elif library.name != row["library_name"]:
                         self.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))

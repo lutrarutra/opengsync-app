@@ -1,7 +1,7 @@
 from flask import Blueprint, request, Response
 
-from opengsync_db import models
-from opengsync_db.categories import AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import AccessLevel
 
 from ... import db, logger
 from ...core import wrappers, exceptions
@@ -17,21 +17,21 @@ def get_context(current_user: models.User, args: dict) -> dict:
     context = {}
     if (seq_request_id := args.get("seq_request_id")) is not None:
         seq_request_id = int(seq_request_id)
-        if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+        if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
             raise exceptions.NotFoundException()
-        if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.EDIT:
+        if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.WRITE:
             raise exceptions.NoPermissionsException()
         context["seq_request"] = seq_request
         
     elif (lab_prep_id := args.get("lab_prep_id")) is not None:
         lab_prep_id = int(lab_prep_id)
-        if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+        if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
             raise exceptions.NotFoundException()
         context["lab_prep"] = lab_prep
 
     elif (pool_id := args.get("pool_id")) is not None:
         pool_id = int(pool_id)
-        if (pool := db.pools.get(pool_id)) is None:
+        if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
             raise exceptions.NotFoundException()
         context["pool"] = pool
 

@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Blueprint, request, Response, flash, url_for
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import SampleStatus, LibraryStatus, PoolStatus, SeqRequestStatus, SubmissionType
 
 from ... import db, logger
@@ -22,7 +22,7 @@ def begin(current_user: models.User) -> Response:
     if (seq_request_id := request.args.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            if (seq_request := db.seq_requests.get(seq_request_id)) is None:
+            if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
                 raise exceptions.NotFoundException()
             context["seq_request"] = seq_request
         except ValueError:
@@ -41,7 +41,7 @@ def select(current_user: models.User):
     if (seq_request_id := request.form.get("seq_request_id")) is not None:
         try:
             seq_request_id = int(seq_request_id)
-            if (_seq_request := db.seq_requests.get(seq_request_id)) is None:
+            if (_seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
                 raise exceptions.NotFoundException()
             context["seq_request"] = _seq_request
         except ValueError:
@@ -61,7 +61,7 @@ def select(current_user: models.User):
         for library_link in sample.library_links:
             if library_link.library.seq_request.status == SeqRequestStatus.ACCEPTED:
                 check_request_ids.add(library_link.library.seq_request.id)
-        db.samples.update(sample)
+        db.session.save(sample)
 
     for library in form.get_libraries():        
         if library.seq_request_id not in check_request_ids:
@@ -73,7 +73,7 @@ def select(current_user: models.User):
             library.status = LibraryStatus.STORED
         
         library.timestamp_stored_utc = datetime.now()
-        db.libraries.update(library)
+        db.session.save(library)
 
     for pool in form.get_pools():
         if pool.seq_request_id is not None:
@@ -81,10 +81,10 @@ def select(current_user: models.User):
 
         pool.status = PoolStatus.STORED
         pool.timestamp_stored_utc = datetime.now()
-        db.pools.update(pool)
+        db.session.save(pool)
 
     for _srid in check_request_ids:
-        if (seq_request := db.seq_requests.get(_srid)) is None:
+        if (seq_request := db.session.first(Q.seq_request.select(id=_srid))) is None:
             logger.error(f"SeqRequest {_srid} not found")
             raise Exception(f"SeqRequest {_srid} not found")
 
@@ -96,7 +96,7 @@ def select(current_user: models.User):
                     break
             if all_samples_stored:
                 seq_request.status = SeqRequestStatus.SAMPLES_RECEIVED
-                db.seq_requests.update(seq_request)
+                db.session.save(seq_request)
 
         elif seq_request.submission_type == SubmissionType.POOLED_LIBRARIES:
             all_pools_stored = True
@@ -107,7 +107,7 @@ def select(current_user: models.User):
                     break
             if all_pools_stored:
                 seq_request.status = SeqRequestStatus.PREPARED
-                db.seq_requests.update(seq_request)
+                db.session.save(seq_request)
 
         elif seq_request.submission_type == SubmissionType.UNPOOLED_LIBRARIES:
             all_libraries_stored = True
@@ -117,7 +117,7 @@ def select(current_user: models.User):
                     break
             if all_libraries_stored:
                 seq_request.status = SeqRequestStatus.SAMPLES_RECEIVED
-                db.seq_requests.update(seq_request)
+                db.session.save(seq_request)
 
     flash("Samples Stored!", "success")
     if _seq_request is not None:

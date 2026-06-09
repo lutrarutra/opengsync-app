@@ -1,4 +1,5 @@
 from flask import Response, url_for, flash
+from opengsync_db import queries as Q
 from flask_htmx import make_response
 
 from opengsync_db import models
@@ -83,7 +84,7 @@ class LibraryEditTableForm(MultiStepForm):
             return self.make_response()
         
         for _, row in self.df.iterrows():
-            if (library := db.libraries.get(int(row["library_id"]))) is None:
+            if (library := db.session.first(Q.library.select(id=int(row["library_id"])))) is None:
                 logger.error(f"Library with ID {row['library_id']} not found.")
                 raise exceptions.NotFoundException()
 
@@ -93,7 +94,7 @@ class LibraryEditTableForm(MultiStepForm):
             library.genome_ref = GenomeRef.get(row["genome_id"])
             library.nuclei_isolation = bool(row["nuclei_isolation"] == "Yes")
             library.service_type = ServiceType.get(row["service_type_id"])
-            db.libraries.update(library)
+            db.session.save(library)
 
         flash("Changed Saved!", "success")
         if self.seq_request is not None:

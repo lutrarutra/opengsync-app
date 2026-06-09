@@ -1,4 +1,5 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
@@ -69,7 +70,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
             return False
             
         for idx, row in df.iterrows():
-            if (sample := db.samples.get(row["sample_id"])) is None:
+            if (sample := db.session.first(Q.sample.select(id=row["sample_id"]))) is None:
                 self.spreadsheet.add_error(idx, "sample_id", InvalidCellValue(f"Sample with ID {row['id']} does not exist"))
                 continue
             

@@ -99,7 +99,7 @@ class CompleteReindexForm(MultiStepForm):
 
             library = db.libraries.remove_indices(library_id=library.id)
             library.index_type = index_type
-            db.libraries.update(library)
+            db.session.save(library)
 
             match index_type:
                 case IndexType.TENX_ATAC_INDEX:

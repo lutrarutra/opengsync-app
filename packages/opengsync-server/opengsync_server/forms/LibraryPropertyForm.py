@@ -1,4 +1,5 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
@@ -97,7 +98,7 @@ class LibraryPropertyForm(HTMXFlaskForm):
             if label in self.df.columns:
                 continue
             for library_id in self.df["library_id"]:
-                if (library := db.libraries.get(int(library_id))) is None:
+                if (library := db.session.first(Q.library.select(id=int(library_id)))) is None:
                     raise exceptions.InternalServerErrorException(f"Library with ID {library_id} does not exist")
                 if library.properties is None:
                     continue
@@ -105,7 +106,7 @@ class LibraryPropertyForm(HTMXFlaskForm):
                     library.properties.pop(label) 
         
         for idx, row in self.df.iterrows():
-            if (library := db.libraries.get(row["library_id"])) is None:
+            if (library := db.session.first(Q.library.select(id=row["library_id"]))) is None:
                 self.spreadsheet.add_error(idx, "library_id", InvalidCellValue(f"Library with ID {row['library_id']} does not exist"))
                 continue
             

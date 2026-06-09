@@ -52,7 +52,7 @@ def delete_pool_design(current_user: models.User, pool_design_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (pool_design := db.session.get(models.PoolDesign, pool_design_id)) is None:
+    if (pool_design := db.session.first(Q.pool_design.select(id=pool_design_id))) is None:
         raise exceptions.NotFoundException("Pool Design not found")
     
     db.session.delete(pool_design)
@@ -116,7 +116,7 @@ def comment_form(current_user: models.User, todo_comment_id: int | None = None, 
     pool_design = None
 
     if todo_comment_id is not None:
-        if (todo_comment := db.session.get(models.TODOComment, todo_comment_id)) is None:
+        if (todo_comment := db.session.first(Q.todo_comment.select(id=todo_comment_id))) is None:
             raise exceptions.NotFoundException("TODO Comment not found")
     
     if flow_cell_design_id is not None:
@@ -145,7 +145,7 @@ def edit_comment_status(current_user: models.User, todo_comment_id: int, new_sta
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (todo_comment := db.session.get(models.TODOComment, todo_comment_id)) is None:
+    if (todo_comment := db.session.first(Q.todo_comment.select(id=todo_comment_id))) is None:
         raise exceptions.NotFoundException("TODO Comment not found")
     
     todo_comment.task_status_id = new_status_id
@@ -164,7 +164,7 @@ def delete_comment(current_user: models.User, todo_comment_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (todo_comment := db.session.get(models.TODOComment, todo_comment_id)) is None:
+    if (todo_comment := db.session.first(Q.todo_comment.select(id=todo_comment_id))) is None:
         raise exceptions.NotFoundException("TODO Comment not found")
     
     db.session.delete(todo_comment)

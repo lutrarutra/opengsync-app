@@ -1,4 +1,5 @@
 from flask import Response, url_for, flash
+from opengsync_db import queries as Q
 from flask_wtf import FlaskForm
 from flask_htmx import make_response
 from wtforms import FloatField, FieldList, FormField, IntegerField
@@ -59,7 +60,7 @@ class DilutePoolsForm(HTMXFlaskForm):
             
             pool_id = int(entry.pool_id.data)
             
-            if db.pools.get(pool_id) is None:
+            if db.session.first(Q.pool.select(id=pool_id)) is None:
                 raise ValueError(f"Pool with id {row['id']} not found")
             
             db.pools.dilute(pool_id, entry.qubit_after_dilution.data, user.id)

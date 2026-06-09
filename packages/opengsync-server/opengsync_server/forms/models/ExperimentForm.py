@@ -1,4 +1,5 @@
 from flask import Response, flash, url_for
+from opengsync_db import queries as Q
 from flask_htmx import make_response
 from wtforms import StringField, IntegerField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, Optional as OptionalValidator
@@ -71,7 +72,7 @@ class ExperimentForm(HTMXFlaskForm):
             return False
         
         try:
-            if (e := db.experiments.get(self.name.data)) is not None:  # type: ignore
+            if (e := db.session.first(Q.experiment.select(id=self.name.data))) is not None:  # type: ignore
                 if self.experiment is None or  self.experiment.id != e.id:
                     self.name.errors = ("An experiment with this name already exists.",)
                     return False
@@ -108,7 +109,7 @@ class ExperimentForm(HTMXFlaskForm):
         self.experiment.operator_id = self.operator.selected.data
         self.experiment.status = status
 
-        db.experiments.update(self.experiment)
+        db.session.save(self.experiment)
 
         flash(f"Changes Saved!.", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

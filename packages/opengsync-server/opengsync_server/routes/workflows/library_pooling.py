@@ -1,6 +1,6 @@
 from flask import Blueprint, request, Response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db, logger
 from ...core import wrappers, exceptions
@@ -15,7 +15,7 @@ def begin(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     form = forms.LibraryPoolingForm(lab_prep=lab_prep, uuid=None, formdata=None)
@@ -27,7 +27,7 @@ def previous(current_user: models.User, lab_prep_id: int, uuid: str):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     if (response := MultiStepForm.pop_last_step("library_pooling", uuid)) is None:
@@ -47,7 +47,7 @@ def upload_pooling_form(current_user: models.User, lab_prep_id: int, uuid: str):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     return forms.LibraryPoolingForm(
@@ -61,7 +61,7 @@ def complete_pooling(current_user: models.User, lab_prep_id: int, uuid: str) -> 
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     form = forms.CompleteLibraryPoolingForm(lab_prep=lab_prep, uuid=uuid, formdata=request.form)

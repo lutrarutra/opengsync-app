@@ -37,6 +37,7 @@ def create(
 def select(
     id: int | None = None,
     experiment: Experiment | None = None,
+    experiment_name: str | None = None,
     status: RunStatus | None = None,
     status_in: list[RunStatus] | None = None,
     experiment_status: ExperimentStatus | None = None,
@@ -54,6 +55,8 @@ def select(
         statement = statement.where(SeqRun.status_id.in_([s.id for s in status_in]))
     if experiment is not None:
         statement = statement.where(SeqRun.experiment_name == experiment.name)
+    if experiment_name is not None:
+        statement = statement.where(SeqRun.experiment_name == experiment_name)
 
     if experiment_status is not None or experiment_status_in is not None:
         statement = statement.join(

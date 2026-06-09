@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db import models
-from opengsync_db.categories import AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import AccessLevel
 
 from ... import forms, db, logger
 from ...core import wrappers, exceptions
@@ -15,10 +15,10 @@ def seq_requests():
 
 @wrappers.page_route(seq_requests_page_bp, "seq_requests", db=db, cache_timeout_seconds=360)
 def seq_request(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.seq_requests[seq_request_id]) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
 
-    if db.seq_requests.get_access_type(seq_request, current_user) < AccessType.VIEW:
+    if db.session.get_access_level(Q.seq_request.permissions(seq_request.id, current_user.id)) < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
 
     path_list = [

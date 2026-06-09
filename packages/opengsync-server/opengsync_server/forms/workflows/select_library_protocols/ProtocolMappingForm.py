@@ -6,6 +6,7 @@ from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, FieldList, FormField
 
 from opengsync_db import models
+from opengsync_db import queries as Q
 
 from .... import db, logger
 from ....tools import utils
@@ -64,7 +65,7 @@ class ProtocolMappingForm(MultiStepForm):
             self.kit_combinations.add(combination)
 
         self.kit_combinations = sorted(list(self.kit_combinations))
-        protocols = [(p.id, p.name) for p in db.protocols.find(limit=None, sort_by="name")[0]]
+        protocols = [(p.id, p.name) for p in db.session.get_all(Q.protocol.select(), order_by=models.Protocol.name.desc(), limit=None)]
         protocol_mapping = dict(protocols)
     
         for i, combination in enumerate(self.kit_combinations):

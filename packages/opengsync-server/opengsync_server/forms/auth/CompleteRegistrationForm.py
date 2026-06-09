@@ -29,7 +29,7 @@ class CompleteRegistrationForm(HTMXFlaskForm):
     
     def prepare(self):
         if self._email is not None:
-            if db.users.get_with_email(self._email) is not None:
+            if db.session.first(Q.user.select(email=self._email)) is not None:
                 self.email.errors = ("Token expired or invalid.",)
                 return
             self.email.data = self._email
@@ -45,7 +45,7 @@ class CompleteRegistrationForm(HTMXFlaskForm):
             return False
         
         self._email, self._role = data
-        if db.users.get_with_email(self._email) is not None:
+        if db.session.first(Q.user.select(email=self._email)) is not None:
             self.email.errors = ("Token expired or invalid.",)
             return False
         if self._email != self.email.data:

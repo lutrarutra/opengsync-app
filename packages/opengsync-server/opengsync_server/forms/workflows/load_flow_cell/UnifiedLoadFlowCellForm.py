@@ -88,11 +88,11 @@ class UnifiedLoadFlowCellForm(HTMXFlaskForm):
             else:
                 loaded = False
 
-            db.lanes.update(lane)
+            db.session.save(lane)
 
         if loaded:
             self.experiment.status = ExperimentStatus.LOADED
-            db.experiments.update(self.experiment)
+            db.session.save(self.experiment)
 
         flash("Saved!", "success")
         return make_response(redirect=url_for("experiments_page.experiment", experiment_id=self.experiment.id))

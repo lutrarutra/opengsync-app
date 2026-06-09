@@ -33,7 +33,7 @@ def select(
     if id is not None:
         statement = statement.where(User.id == id)
     if email is not None:
-        statement = statement.where(User.email == email)
+        statement = statement.where(sa.func.lower(User.email) == email.lower())
     if role is not None:
         statement = statement.where(User.role_id == role.id)
     if role_in is not None:

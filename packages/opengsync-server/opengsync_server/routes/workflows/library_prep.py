@@ -1,7 +1,7 @@
 from flask import Blueprint, request, Response, url_for, flash
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import LibraryStatus, LibraryType, LabChecklistType
 
 from ... import db
@@ -24,7 +24,7 @@ def begin(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
 
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     _args = args.copy()
@@ -42,7 +42,7 @@ def select(current_user: models.User, lab_prep_id: int) -> Response:
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     _args = args.copy()

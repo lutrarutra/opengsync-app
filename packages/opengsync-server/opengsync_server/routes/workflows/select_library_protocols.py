@@ -3,7 +3,7 @@ import pandas as pd
 
 from flask import Blueprint, request, flash
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import PoolStatus, LibraryStatus
 from opengsync_server.routes.htmx import lab_preps_htmx
 
@@ -23,7 +23,7 @@ def begin(current_user: models.User, lab_prep_id: int):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     if lab_prep.prep_file is None:
@@ -67,7 +67,7 @@ def map_protocols(current_user: models.User, lab_prep_id: int, uuid: str):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     form = wff.ProtocolMappingForm(lab_prep=lab_prep, uuid=uuid, formdata=request.form)
@@ -81,7 +81,7 @@ def submit(current_user: models.User, lab_prep_id: int, uuid: str):
     if not current_user.is_insider():
         raise exceptions.NoPermissionsException()
     
-    if (lab_prep := db.lab_preps.get(lab_prep_id)) is None:
+    if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
     form = wff.LibraryProtocolSelectForm(lab_prep=lab_prep, uuid=uuid, formdata=request.form)

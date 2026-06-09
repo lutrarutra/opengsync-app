@@ -1,4 +1,5 @@
 import os
+from opengsync_db import queries as Q
 from uuid6 import uuid7
 
 import numpy as np
@@ -143,7 +144,7 @@ class LibraryPrepForm(HTMXFlaskForm):
                     continue
 
                 library_id = int(library_id)
-                if (library := db.libraries.get(library_id)) is None:
+                if (library := db.session.first(Q.library.select(id=library_id))) is None:
                     logger.error(f"Library {library_id} not found")
                     raise ValueError(f"Library {library_id} not found")
                 
@@ -151,15 +152,15 @@ class LibraryPrepForm(HTMXFlaskForm):
                 
                 if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":
                     library.status = LibraryStatus.FAILED
-                    db.libraries.update(library)
+                    db.session.save(library)
                 
                 if pd.notna(row["lib_conc_ng_ul"]):
-                    if (library := db.libraries.get(library_id)) is None:
+                    if (library := db.session.first(Q.library.select(id=library_id))) is None:
                         logger.error(f"Library {library_id} not found")
                         raise ValueError(f"Library {library_id} not found")
                     
                     library.qubit_concentration = float(row["lib_conc_ng_ul"])
-                    db.libraries.update(library)
+                    db.session.save(library)
                     db.flush()
 
                 well_idx = plate.get_well_idx(row["plate_well"].strip())
@@ -167,14 +168,14 @@ class LibraryPrepForm(HTMXFlaskForm):
             
             self.lab_prep.plates.append(plate)
         
-        db.lab_preps.update(self.lab_prep)
+        db.session.save(self.lab_prep)
 
         if (file := self.lab_prep.prep_file) is not None:
             size_bytes = os.path.getsize(path)
             file.uuid = hash
             file.size_bytes = size_bytes
             file.timestamp_utc = to_utc(db.timestamp())
-            db.media_files.update(file)
+            db.session.save(file)
         else:
             db.media_files.create(
                 name=f"{self.lab_prep.name}_prep",
@@ -186,7 +187,7 @@ class LibraryPrepForm(HTMXFlaskForm):
                 lab_prep_id=self.lab_prep.id
             )
 
-        db.lab_preps.update(self.lab_prep)
+        db.session.save(self.lab_prep)
 
         flash("Table saved!", "success")
         return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id))

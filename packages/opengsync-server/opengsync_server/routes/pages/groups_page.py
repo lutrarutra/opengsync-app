@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import UserRole, AffiliationType
 
 from ... import db, forms
@@ -16,7 +16,7 @@ def groups():
 
 @wrappers.page_route(groups_page_bp, "groups", db=db, cache_timeout_seconds=360)
 def group(current_user: models.User, group_id: int):
-    if (group := db.groups.get(group_id)) is None:
+    if (group := db.session.first(Q.group.select(id=group_id))) is None:
         raise exceptions.NotFoundException()
     
     path_list = [
@@ -44,7 +44,7 @@ def group(current_user: models.User, group_id: int):
                 (f"Group {group.id}", ""),
             ]
 
-    affiliation = db.groups.get_user_affiliation(user_id=current_user.id, group_id=group_id)
+    affiliation = db.session.first(Q.affiliation.select(user_id=current_user.id, group_id=group_id))
 
     can_edit = current_user.role == UserRole.ADMIN or (affiliation is not None and affiliation.affiliation_type == AffiliationType.OWNER)
     can_add_users = current_user.is_insider() or (affiliation is not None and affiliation.affiliation_type in (AffiliationType.OWNER, AffiliationType.MANAGER))

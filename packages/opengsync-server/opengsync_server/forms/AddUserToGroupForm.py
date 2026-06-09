@@ -5,7 +5,7 @@ from flask_htmx import make_response
 from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import AffiliationType
 
 from .. import db, logger
@@ -31,7 +31,7 @@ class AddUserToGroupForm(HTMXFlaskForm):
             self.email.errors = ("Email is required.",)
             return False
 
-        if (user := db.users.get_with_email(self.email.data)) is None:
+        if (user := db.session.first(Q.user.select(email=self.email.data))) is None:
             self.email.errors = ("User with this email does not exist.",)
             return False
         
@@ -39,7 +39,7 @@ class AddUserToGroupForm(HTMXFlaskForm):
             self.affiliation_type.errors = ("Owner affiliation type is not allowed.",)
             return False
 
-        if db.groups.get_user_affiliation(user_id=user.id, group_id=self.group.id) is not None:
+        if db.session.first(Q.affiliation.select(user_id=user.id, group_id=self.group.id)) is not None:
             self.email.errors = ("User is already in this group.",)
             return False
 
@@ -49,7 +49,7 @@ class AddUserToGroupForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        if (user := db.users.get_with_email(self.email.data)) is None:  # type: ignore
+        if (user := db.session.first(Q.user.select(email=self.email.data))) is None:  # type: ignore
             logger.error(f"User with email {self.email.data} not found.")
             raise Exception(f"User with email {self.email.data} not found.")
         

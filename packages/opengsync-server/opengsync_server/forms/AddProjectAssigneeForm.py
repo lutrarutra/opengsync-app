@@ -53,7 +53,7 @@ class AddProjectAssigneeForm(HTMXFlaskForm):
         
         assignee = db.users[self.user.selected.data]
         self.project.assignees.append(assignee)
-        db.projects.update(self.project)
+        db.session.save(self.project)
         
         flash(f"Assignee Added Successfully!", "success")
         return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-assignees-tab"))

@@ -17,9 +17,9 @@ def test_library_features_links(db: DBHandler):
     library_2.type = categories.LibraryType.TENX_ANTIBODY_CAPTURE
     library_3.type = categories.LibraryType.TENX_ANTIBODY_CAPTURE
 
-    db.libraries.update(library_1)
-    db.libraries.update(library_2)
-    db.libraries.update(library_3)
+    db.session.save(library_1)
+    db.session.save(library_2)
+    db.session.save(library_3)
 
     db.refresh(library_1)
     db.refresh(library_2)

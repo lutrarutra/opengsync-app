@@ -1,4 +1,5 @@
 from typing import Literal
+from opengsync_db import queries as Q
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -93,7 +94,7 @@ class ProjectForm(HTMXFlaskForm):
                 return False
             
             if self.identifier.data:
-                if (db.projects.get(self.identifier.data) is not None):
+                if (db.session.first(Q.project.select(id=self.identifier.data)) is not None):
                     self.identifier.errors = ("Project with this identifier already exists.",)
                     return False
         # Editing existing project
@@ -105,7 +106,7 @@ class ProjectForm(HTMXFlaskForm):
                         return False
                     
             if self.identifier.data:
-                if (prj := db.projects.get(self.identifier.data)) is not None:
+                if (prj := db.session.first(Q.project.select(id=self.identifier.data))) is not None:
                     if prj.id != self.project.id:
                         self.identifier.errors = ("Project with this identifier already exists.",)
                         return False
@@ -118,7 +119,7 @@ class ProjectForm(HTMXFlaskForm):
                 self.status.errors = ("You don't have permissions to change the status.",)
                 return False
                     
-        if (user := db.users.get(self.owner.selected.data)) is None:
+        if (user := db.session.first(Q.user.select(id=self.owner.selected.data))) is None:
             self.owner.selected.errors = ("Selected user does not exist.",)
             return False
         
@@ -127,21 +128,21 @@ class ProjectForm(HTMXFlaskForm):
             return False
                     
         if self.group.selected.data is not None:
-            if (group := db.groups.get(self.group.selected.data)) is None:
+            if (group := db.session.first(Q.group.select(id=self.group.selected.data))) is None:
                 logger.error(f"Group with id {self.group.selected.data} does not exist.")
                 raise ValueError(f"Group with id {self.group.selected.data} does not exist.")
             
             if not user.is_insider():
-                if db.groups.get_user_affiliation(user_id=user.id, group_id=group.id) is None:
+                if db.session.first(Q.affiliation.select(user_id=user.id, group_id=group.id)) is None:
                     self.owner.selected.errors = ("Selected user must be part of the selected group.",)
                     return False
             
             if self.project is not None:
-                if not self.project.owner.is_insider() and db.groups.get_user_affiliation(user_id=self.project.owner_id, group_id=group.id) is None:
+                if not self.project.owner.is_insider() and db.session.first(Q.affiliation.select(user_id=self.project.owner_id, group_id=group.id)) is None:
                     self.group.selected.errors = ("Project owner must be part of the group.",)
                     return False
             else:
-                if not current_user.is_insider() and db.groups.get_user_affiliation(user_id=current_user.id, group_id=group.id) is None:
+                if not current_user.is_insider() and db.session.first(Q.affiliation.select(user_id=current_user.id, group_id=group.id)) is None:
                     self.group.selected.errors = ("You must be part of the group.",)
                     return False
                 
@@ -188,7 +189,7 @@ class ProjectForm(HTMXFlaskForm):
         self.project.status = ProjectStatus.get(self.status.data)
         self.project.group_id = self.group.selected.data
 
-        db.projects.update(project=self.project)
+        db.session.save(self.project)
 
         flash(f"Updated project {self.project.title}.", "success")
 

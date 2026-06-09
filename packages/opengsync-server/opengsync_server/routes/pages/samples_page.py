@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db import models
-from opengsync_db.categories import AccessType
+from opengsync_db import models, queries as Q
+from opengsync_db.categories import AccessLevel
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -15,10 +15,10 @@ def samples():
 
 @wrappers.page_route(samples_page_bp, "samples", db=db, cache_timeout_seconds=360)
 def sample(current_user: models.User, sample_id: int):
-    if (sample := db.samples.get(sample_id)) is None:
+    if (sample := db.session.first(Q.sample.select(id=sample_id))) is None:
         raise exceptions.NotFoundException()
         
-    if db.samples.get_access_type(sample, current_user) < AccessType.VIEW:
+    if db.session.get_access_level(Q.sample.permissions(sample.id, current_user.id)) < AccessLevel.READ:
         raise exceptions.NoPermissionsException()
 
     path_list = [

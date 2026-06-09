@@ -18,6 +18,8 @@ def create(
 
 def select(
     id: int | None = None,
+    name: str | None = None,
+    identifier: str | None = None,
     type: KitType | None = None,
     type_in: list[KitType] | None = None,
     protocol: Protocol | None = None,
@@ -30,6 +32,10 @@ def select(
 ) -> sa.Select[tuple[Kit]]:
     if id is not None:
         statement = statement.where(Kit.id == id)
+    if name is not None:
+        statement = statement.where(Kit.name == name)
+    if identifier is not None:
+        statement = statement.where(Kit.identifier == identifier)
 
     if type is not None:
         statement = statement.where(Kit.kit_type_id == type.id)

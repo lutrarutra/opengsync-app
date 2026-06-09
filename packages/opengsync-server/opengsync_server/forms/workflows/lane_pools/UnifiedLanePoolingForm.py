@@ -1,4 +1,5 @@
 import os
+from opengsync_db import queries as Q
 from uuid6 import uuid7
 
 import pandas as pd
@@ -60,7 +61,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
             sample_sub_form.pool_id.data = row["pool_id"]
             sample_sub_form.m_reads.data = row["num_m_reads"] * self.experiment.num_lanes if pd.notna(row["num_m_reads"]) else None
 
-            if (pool := db.pools.get(row["pool_id"])) is None:
+            if (pool := db.session.first(Q.pool.select(id=row["pool_id"]))) is None:
                 logger.error(f"lane_pools_workflow: Pool with id {row['pool_id']} does not exist")
                 raise ValueError(f"Pool with id {row['pool_id']} does not exist")
             
@@ -105,7 +106,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
         for lane in self.experiment.lanes:
             lane.target_molarity = self.target_molarity.data
             lane.total_volume_ul = self.target_total_volume.data
-            db.lanes.update(lane)
+            db.session.save(lane)
             for pool_reads_form in self.sample_sub_forms:
                 if (link := db.links.get_laned_pool_link(
                     experiment_id=self.experiment.id,

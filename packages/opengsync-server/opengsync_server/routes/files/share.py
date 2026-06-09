@@ -1,4 +1,5 @@
 from pathlib import Path
+from opengsync_db import queries as Q
 import urllib.parse
 import mimetypes
 from typing import Literal
@@ -20,7 +21,7 @@ file_share_bp = Blueprint("file_share", __name__, url_prefix="/files/share/")
 
 @wrappers.api_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute", api_token_required=False)
 def validate(token: str):
-    if (share_token := db.shares.get(token)) is None:
+    if (share_token := db.session.first(Q.share_token.select(uuid=token))) is None:
         raise exceptions.NotFoundException("Token Not Found")
     
     if share_token.is_expired:
@@ -34,7 +35,7 @@ def rclone(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
 
-    if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
+    if (share_token := db.session.first(Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths)))) is None:
         raise exceptions.NotFoundException("Token Not Found")
     
     if share_token.is_expired:
@@ -70,7 +71,7 @@ def browse(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
 
-    if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
+    if (share_token := db.session.first(Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths)))) is None:
         raise exceptions.NotFoundException("Token Not Found")
     
     if share_token.is_expired:
@@ -108,7 +109,7 @@ def download_archive(token: str, subpath: Path = Path()):
     if isinstance(subpath, str):
         subpath = Path(subpath)
     
-    if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
+    if (share_token := db.session.first(Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths)))) is None:
         raise exceptions.NotFoundException("Token Not Found")
     
     if share_token.is_expired:
@@ -149,7 +150,7 @@ def download_archive(token: str, subpath: Path = Path()):
 
 @wrappers.htmx_route(file_share_bp, db=db, login_required=False, strict_slashes=False, cache_timeout_seconds=60, cache_type="global", cache_query_string=True, limit_override=True, limit_exempt=None, limit="20/minute")
 def rclone_script(token: str):
-    if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
+    if (share_token := db.session.first(Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths)))) is None:
         raise exceptions.NotFoundException("Token Not Found")
     
     if share_token.is_expired:
@@ -168,7 +169,7 @@ def curl_script(token: str, platform: Literal["windows", "unix"]):
     else:
         raise exceptions.BadRequestException("Invalid platform")
     
-    if (share_token := db.shares.get(token, options=orm.selectinload(models.ShareToken.paths))) is None:
+    if (share_token := db.session.first(Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths)))) is None:
         raise exceptions.NotFoundException("Token Not Found")
     
     if share_token.is_expired:

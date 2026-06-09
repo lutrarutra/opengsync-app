@@ -1,4 +1,5 @@
 from typing import Optional
+from opengsync_db import queries as Q
 
 from flask import Response, flash, url_for
 from flask_htmx import make_response
@@ -41,7 +42,7 @@ class SequencerForm(HTMXFlaskForm):
         
         # Editing existing sequencer
         if sequencer is not None:
-            if (_ := db.sequencers.get(sequencer.id)) is None:
+            if (_ := db.session.first(Q.sequencer.select(id=sequencer.id))) is None:
                 logger.error(f"Sequencer with id {sequencer.id} does not exist.")
                 return False
             
@@ -75,7 +76,7 @@ class SequencerForm(HTMXFlaskForm):
         sequencer.name = self.name.data  # type: ignore
         sequencer.ip = self.ip_address.data
         sequencer.model = SequencerModel.get(self.model.data)
-        db.sequencers.update(sequencer)
+        db.session.save(sequencer)
 
         flash("Sequencer updated.", "success")
         return make_response(redirect=url_for("devices_page.sequencer", sequencer_id=sequencer.id))

@@ -1,4 +1,5 @@
 import pandas as pd
+from opengsync_db import queries as Q
 
 from flask import Response, url_for, flash
 from flask_htmx import make_response
@@ -63,7 +64,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                     for _, row in df.iterrows():
                         library = db.libraries[int(row["library_id"])]
                         library.status = LibraryStatus.FAILED
-                        db.libraries.update(library)
+                        db.session.save(library)
                     continue
 
                 pool_suffix = str(pool_suffix).removeprefix(f"{self.lab_prep.name}_").strip()
@@ -76,7 +77,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                     library = db.libraries[int(row["library_id"])]
                     library.pool_id = pool.id
                     library.status = LibraryStatus.POOLED
-                    db.libraries.update(library)
+                    db.session.save(library)
                     
         elif len(self.pooling_table["pool"].unique()) > 0:
             pool = db.pools.create(
@@ -88,7 +89,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 library = db.libraries[int(row["library_id"])]
                 library.pool_id = pool.id
                 library.status = LibraryStatus.POOLED
-                db.libraries.update(library)
+                db.session.save(library)
 
         request_ids = set()
 
@@ -111,7 +112,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
         #     wb.save(path)
 
         for request_id in request_ids:
-            if (seq_request := db.seq_requests.get(request_id)) is None:
+            if (seq_request := db.session.first(Q.seq_request.select(id=request_id))) is None:
                 logger.error(f"{self.uuid}: SeqRequest {request_id} not found")
                 raise ValueError(f"{self.uuid}: SeqRequest {request_id} not found")
             
@@ -121,7 +122,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
 
             if prepared and seq_request.status == SeqRequestStatus.ACCEPTED:
                 seq_request.status = SeqRequestStatus.PREPARED
-                db.seq_requests.update(seq_request)
+                db.session.save(seq_request)
 
         self.complete()
         flash("Library Indexing completed!", "success")

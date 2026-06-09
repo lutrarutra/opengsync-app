@@ -317,7 +317,7 @@ class SeqRequestForm(HTMXFlaskForm):
                         self.user_select_form.first_name.errors = ("First name is required when specifying email",)
                     if not assigned_user_last_name or assigned_user_last_name.strip() == "":
                         self.user_select_form.last_name.errors = ("Last name is required when specifying email",)
-                    if db.users.get_with_email(assigned_user_email):
+                    if db.session.first(Q.user.select(email=assigned_user_email)):
                         self.user_select_form.email.errors = ("Email already registered.",)
                 else:
                     if assigned_user_first_name:
@@ -428,7 +428,7 @@ class SeqRequestForm(HTMXFlaskForm):
         self.seq_request.billing_contact.address = self.billing_form.billing_address.data
         self.seq_request.billing_code = self.billing_form.billing_code.data
 
-        db.seq_requests.update(self.seq_request)
+        db.session.save(self.seq_request)
 
         flash("Changes Saved!", "success")
         logger.info(f"Updated sequencing request '{self.seq_request.name}'")
@@ -504,7 +504,7 @@ class SeqRequestForm(HTMXFlaskForm):
                 status_id=DeliveryStatus.PENDING.id,
             ))
 
-        db.seq_requests.update(seq_request)
+        db.session.save(seq_request)
 
         flash("Request Created!", "success")
         logger.info(f"Created new sequencing request '{seq_request.name}'")

@@ -1,4 +1,5 @@
 import json
+from opengsync_db import queries as Q
 import pandas as pd
 import numpy as np
 
@@ -30,7 +31,7 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.BadRequestException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -93,7 +94,7 @@ def experiment_pool_reads(current_user: models.User, experiment_id: int):
     if not current_user.is_insider():
         raise exceptions.BadRequestException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":
@@ -156,7 +157,7 @@ def experiment_pool_per_library_reads(current_user: models.User, experiment_id: 
     if not current_user.is_insider():
         raise exceptions.BadRequestException()
     
-    if (experiment := db.experiments.get(experiment_id)) is None:
+    if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     if request.method == "GET":

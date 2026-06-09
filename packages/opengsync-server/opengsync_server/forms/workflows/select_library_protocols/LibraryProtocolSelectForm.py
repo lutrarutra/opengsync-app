@@ -4,6 +4,7 @@ from flask import Response, url_for, flash
 from flask_htmx import make_response
 
 from opengsync_db import models
+from opengsync_db import queries as Q
 
 from .... import db, logger
 from ....core import runtime
@@ -23,7 +24,7 @@ class LibraryProtocolSelectForm(MultiStepForm):
         self._context["lab_prep"] = lab_prep
 
         self.library_mappings = {lib.id: lib.name for lib in lab_prep.libraries}
-        self.protocol_mappings = {protocol.id: protocol.name for protocol in db.protocols.find(limit=None, sort_by="name")[0]}
+        self.protocol_mappings = {protocol.id: protocol.name for protocol in db.session.get_all(Q.protocol.select(), order_by=models.Protocol.name.desc(), limit=None)}
         logger.debug(self.library_mappings)
         
         columns: list = [
@@ -68,9 +69,9 @@ class LibraryProtocolSelectForm(MultiStepForm):
         for _, row in self.df.iterrows():
             if pd.isna(row["library_id"]):
                 continue
-            library = db.libraries[int(row["library_id"])]
+            library = db.session.get_or_fail(Q.library.select(id=int(row["library_id"])))
             library.protocol_id = int(row["protocol_id"]) if pd.notna(row["protocol_id"]) else None
-            db.libraries.update(library)
+            db.session.save(library)
 
         self.complete()
         flash("Protocols Submitted!", "success")

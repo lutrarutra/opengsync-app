@@ -42,8 +42,6 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         if sort_by not in models.DataPath.sortable_fields:
             raise exceptions.BadRequestException()
         
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
@@ -78,7 +76,11 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     else:
         raise exceptions.BadRequestException("Experiment context is required to view sequencers.")
 
-    data_paths, table.num_pages = db.data_paths.find(page=table.active_page, **fnc_context)
+    data_paths, table.num_pages = db.session.page(
+        Q.data_path.select(**fnc_context),
+        page=table.active_page,
+        order_by=getattr(models.DataPath, sort_by).desc() if descending else getattr(models.DataPath, sort_by)
+    )
 
     context.update({
         "data_paths": data_paths,

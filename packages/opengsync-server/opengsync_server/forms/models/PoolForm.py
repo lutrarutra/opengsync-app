@@ -1,4 +1,5 @@
 from typing import Literal
+from opengsync_db import queries as Q
 
 from flask import Response, url_for, flash
 from wtforms import StringField, SelectField, FloatField, FormField
@@ -111,13 +112,13 @@ class PoolForm(HTMXFlaskForm):
         self.pool.contact.email = self.contact_email.data  # type: ignore
         self.pool.contact.phone = self.contact_phone.data  # type: ignore
 
-        db.pools.update(self.pool)
+        db.session.save(self.pool)
 
         return self.pool
 
     def __create_new_pool(self) -> models.Pool:
         if (contact_id := self.contact.selected.data) is not None:
-            if (contact := db.users.get(contact_id)) is None:
+            if (contact := db.session.first(Q.user.select(id=contact_id))) is None:
                 logger.error(f"Contact {contact_id} not found")
                 raise ValueError(f"Contact {contact_id} not found")
             
@@ -167,7 +168,7 @@ class PoolForm(HTMXFlaskForm):
                 timestamp_utc=dilution.timestamp_utc
             ))
 
-        db.pools.update(pool)
+        db.session.save(pool)
         db.flush()
         db.refresh(pool)
 

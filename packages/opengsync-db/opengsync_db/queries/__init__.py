@@ -24,7 +24,9 @@ from . import (
     share_token,
     sequencer,
     affiliation,
-    plate
+    plate,
+    adapter,
+    feature
 )
 
 __all__ = [
@@ -55,5 +57,7 @@ __all__ = [
     "share_token",
     "sequencer",
     "affiliation",
-    "plate"
+    "plate",
+    "adapter",
+    "feature"
 ]

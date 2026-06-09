@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, request, url_for, flash
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db, serializer
 from ...core import wrappers, tokens
@@ -29,7 +29,7 @@ def register(token: str):
         return redirect(url_for("auth_page.auth"))
     
     email, user_role = data
-    if (_ := db.users.get_with_email(email)) is not None:
+    if (_ := db.session.first(Q.user.select(email=email))) is not None:
         flash("Email already registered.", "warning")
         return redirect(url_for("auth_page.auth"))
 

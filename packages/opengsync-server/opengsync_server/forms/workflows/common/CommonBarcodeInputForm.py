@@ -4,6 +4,7 @@ import pandas as pd
 from flask import url_for
 
 from opengsync_db import models
+from opengsync_db import queries as Q
 from opengsync_db.categories import LibraryType, IndexType, BarcodeOrientation
 
 from ....core import exceptions
@@ -66,8 +67,8 @@ class CommonBarcodeInputForm(MultiStepForm):
         self.lab_prep = lab_prep
         self.pool = pool
 
-        self.i7_kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.index_kits.find(limit=None, sort_by="name", type_in=[IndexType.DUAL_INDEX, IndexType.SINGLE_INDEX_I7, IndexType.COMBINATORIAL_DUAL_INDEX])[0]}
-        self.i5_kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.index_kits.find(limit=None, sort_by="name", type_in=[IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX])[0]}
+        self.i7_kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.session.get_all(Q.index_kit.select(type_in=[IndexType.DUAL_INDEX, IndexType.SINGLE_INDEX_I7, IndexType.COMBINATORIAL_DUAL_INDEX]), order_by=models.IndexKit.name.desc(), limit=None)}
+        self.i5_kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.session.get_all(Q.index_kit.select(type_in=[IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX]), order_by=models.IndexKit.name.desc(), limit=None)}
 
         columns = [
             TextColumn("library_name", "Library Name", 250, required=True, read_only=True),

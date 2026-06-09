@@ -6,7 +6,7 @@ import pandas as pd
 from flask import Blueprint, request, Response, url_for
 from flask_htmx import make_response
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from ... import db
 from ...core import wrappers, exceptions
@@ -49,7 +49,7 @@ def download(current_user: models.User) -> Response:
         experiment_ids = json.loads(experiment_ids)
         experiments: list[models.Experiment] = []
         for experiment_id in experiment_ids:
-            if (experiment := db.experiments.get(int(experiment_id))) is None:
+            if (experiment := db.session.first(Q.experiment.select(id=int(experiment_id)))) is None:
                 raise exceptions.NotFoundException(f"Experiment with id {experiment_id} not found")
             experiments.append(experiment)
     except ValueError:
