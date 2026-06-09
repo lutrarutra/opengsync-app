@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional, TYPE_CHECKING, ClassVar
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy import orm
@@ -66,8 +66,6 @@ class Experiment(Base):
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="experiment", lazy="select", cascade="delete")
     laned_pool_links: Mapped[list[links.LanePoolLink]] = relationship("LanePoolLink", lazy="select", cascade="merge, save-update, delete, delete-orphan")
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="experiment", lazy="select")
-
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "flowcell_id", "timestamp_created_utc", "timestamp_finished_utc", "status_id", "sequencer_id", "flowcell_type_id", "workflow_id"]
 
     def get_checklist(self) -> dict:
         if orm.object_session(self) is None:

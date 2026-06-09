@@ -1,4 +1,4 @@
-from typing import Optional, ClassVar
+from typing import Optional
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
@@ -14,8 +14,6 @@ class Sequencer(Base):
     name: Mapped[str] = mapped_column(sa.String(32), nullable=False, unique=True, index=True)
     model_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     ip: Mapped[Optional[str]] = mapped_column(sa.String(64), nullable=True, unique=False)
-
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "model_id"]
 
     @property
     def model(self) -> SequencerModel:

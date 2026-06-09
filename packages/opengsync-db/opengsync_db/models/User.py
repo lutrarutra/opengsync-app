@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy import orm
@@ -99,8 +99,6 @@ class User(Base, UserMixin):
         back_populates="assignees",
         lazy="select",
     )
-
-    sortable_fields: ClassVar[list[str]] = ["id", "email", "last_name", "role_id", "num_projects", "num_samples", "num_projects", "num_seq_requests"]
 
     @hybrid_property
     def num_api_tokens(self) -> int:  # type: ignore[override]

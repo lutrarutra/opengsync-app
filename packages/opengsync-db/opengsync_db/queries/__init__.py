@@ -29,7 +29,8 @@ from . import (
     feature,
     barcode,
     comment,
-    contact
+    contact,
+    pool_dilution,
 )
 
 __all__ = [
@@ -65,5 +66,6 @@ __all__ = [
     "feature",
     "barcode",
     "comment",
-    "contact"
+    "contact",
+    "pool_dilution",
 ]

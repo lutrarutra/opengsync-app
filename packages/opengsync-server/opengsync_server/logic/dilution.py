@@ -1,8 +1,8 @@
 import json
-
 from flask import Request
+import sqlalchemy as sa
 
-from opengsync_db import models, categories as C
+from opengsync_db import models, categories as C, queries as Q
 
 from ..import db, logger
 from .HTMXTable import HTMXTable
@@ -25,59 +25,45 @@ class DilutionTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    fnc_context = {}
     table = DilutionTable(route="", page=None)
+    stmt = sa.select(models.PoolDilution)
 
-    if (path := request.args.get("path")):
-        fnc_context["path"] = path
-        table.active_search_var = "path"
-        table.active_query_value = path
-    elif (id_ := request.args.get("id")):
+    if (id_ := request.args.get("id")):
         table.active_search_var = "id"
         table.active_query_value = str(id_)
         try:
-            id_ = int("".join(filter(str.isdigit, id_)))
-            fnc_context["id"] = id_
+            stmt = Q.pool_dilution.select(id=int("".join(filter(str.isdigit, id_))), statement=stmt)
         except ValueError:
             pass
     else:
         sort_by = request.args.get("sort_by", "pool_id")
         sort_order = request.args.get("sort_order", "desc")
         descending = sort_order == "desc"
-        if sort_by not in models.PoolDilution.sortable_fields:
+        try:
+            stmt = stmt.order_by(getattr(getattr(models.PoolDilution, sort_by), "desc" if descending else "asc")())
+        except AttributeError:
             raise exceptions.BadRequestException()
-        
-        fnc_context["sort_by"] = sort_by
-        fnc_context["descending"] = descending
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
-
-    if (type_in := request.args.get("type_id_in")) is not None:
-        type_in = json.loads(type_in)
-        try:
-            type_in = [C.DataPathType.get(int(t)) for t in type_in]
-        except ValueError:
-            raise exceptions.BadRequestException()
-    
-        if len(type_in) == 0:
-            type_in = None
 
     context = parse_context(current_user, request) | kwargs
 
     if (pool := context.get("pool")) is not None:
         template = "components/tables/pool-dilution.html"
-        fnc_context["pool_id"] = pool.id
+        stmt = Q.pool_dilution.select(pool=pool, statement=stmt)
         table.url_params["pool_id"] = pool.id
         table.route = "pools_htmx.get_dilutions"
     elif (experiment := context.get("experiment")) is not None:
         template = "components/tables/experiment-pool-dilution.html"        
-        fnc_context["experiment_id"] = experiment.id
+        stmt = Q.pool_dilution.select(experiment=experiment, statement=stmt)
         table.url_params["experiment_id"] = experiment.id
         table.route = "experiments_htmx.get_dilutions"
     else:
         raise exceptions.BadRequestException("No pool or experiment context provided for dilution table.")
     
-    dilutions, table.num_pages = db.pools.get_dilutions(page=table.active_page, **fnc_context, limit=None)
+    dilutions, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
+    
     context.update({
         "dilutions": dilutions,
         "template_name_or_list": template,

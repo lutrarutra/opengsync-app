@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 from datetime import datetime
 from datetime import timezone
 
@@ -65,8 +65,6 @@ class Project(Base):
     group: Mapped["Group | None"] = relationship("Group", back_populates="projects", lazy="select", foreign_keys=[group_id], cascade="save-update, merge")
 
     __software: Mapped[dict[str, dict] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="software")
-
-    sortable_fields: ClassVar[list[str]] = ["id", "identifier", "title", "owner_id", "status_id", "group_id", "timestamp_created_utc", "num_samples"]
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -17,11 +17,7 @@ class FeatureKit(Kit):
 
     features: Mapped[list["Feature"]] = relationship("Feature", back_populates="feature_kit", lazy="select")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "identifier", "type_id"]
-
     __mapper_args__ = {"polymorphic_identity": KitType.FEATURE_KIT.id}
-
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "identifier", "kit_type_id", "type_id"]
 
     @property
     def type(self) -> FeatureType:

@@ -67,12 +67,11 @@ class ExperimentForm(HTMXFlaskForm):
             self.status.data =  self.experiment.status_id
 
     def validate(self) -> bool:
-        logger.debug(self.formdata)
         if (validated := super().validate()) is False:
             return False
         
         try:
-            if (e := db.session.first(Q.experiment.select(id=self.name.data))) is not None:  # type: ignore
+            if (e := db.session.first(Q.experiment.select(name=self.name.data))) is not None:
                 if self.experiment is None or  self.experiment.id != e.id:
                     self.name.errors = ("An experiment with this name already exists.",)
                     return False
@@ -118,7 +117,7 @@ class ExperimentForm(HTMXFlaskForm):
         workflow = ExperimentWorkFlow.get(self.workflow.data)
         status = ExperimentStatus.get(self.status.data)
 
-        experiment = db.experiments.create(
+        experiment = db.session.save(Q.experiment.create(
             name=self.name.data,  # type: ignore
             workflow=workflow,
             sequencer_id=self.sequencer.selected.data,
@@ -128,13 +127,10 @@ class ExperimentForm(HTMXFlaskForm):
             i2_cycles=self.i2_cycles.data,
             operator_id=self.operator.selected.data,
             status=status
-        )
+        ), flush=True)
 
         flash(f"Created experiment '{experiment.name}'.", "success")
-
-        return make_response(
-            redirect=url_for("experiments_page.experiment", experiment_id=experiment.id),
-        )
+        return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment.id))
 
     def process_request(self) -> Response:
         if not self.validate():

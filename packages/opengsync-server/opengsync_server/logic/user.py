@@ -86,11 +86,9 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     stmt = sa.select(models.User)
     if (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            # fnc_context["name"] = name
             stmt = Q.user.select(search_name=name, statement=stmt)
         else:
-            # fnc_context["sort_by"] = "name"
-            stmt = stmt.order_by(sa.nulls_last(models.User.first_name + ' ' + models.User.last_name.asc()))
+            stmt = stmt.order_by(models.User.name.asc())
     else:
         raise exceptions.BadRequestException("No valid search parameters provided.")
     

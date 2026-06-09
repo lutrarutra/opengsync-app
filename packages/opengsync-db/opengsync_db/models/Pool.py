@@ -78,8 +78,6 @@ class Pool(Base):
         cascade="merge, save-update, delete, delete-orphan", order_by="PoolDilution.timestamp_utc"
     )
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "owner_id", "num_libraries", "num_m_reads_requested", "status_id"]
-
     warning_min_molarity: ClassVar[float] = 1.0
     warning_max_molarity: ClassVar[float] = 5.0
     error_min_molarity: ClassVar[float] = 0.5

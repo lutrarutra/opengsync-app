@@ -1,5 +1,5 @@
 
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -26,8 +26,6 @@ class Feature(Base):
 
     feature_kit_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("feature_kit.id"), nullable=True)
     feature_kit: Mapped[Optional["FeatureKit"]] = relationship("FeatureKit", back_populates="features", lazy="select")
-
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "target_name", "target_id", "feature_kit_id"]
 
     @property
     def type(self) -> FeatureType:

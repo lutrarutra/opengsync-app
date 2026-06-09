@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING, ClassVar, Any
+from typing import Optional, TYPE_CHECKING, Any
 from datetime import datetime
 from dataclasses import dataclass
 
@@ -103,8 +103,6 @@ class Library(Base):
     read_qualities: Mapped[list["SeqQuality"]] = relationship("SeqQuality", back_populates="library", lazy="select", cascade="all, save-update, merge, delete, delete-orphan", order_by="SeqQuality.lane")
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="library", lazy="select", cascade="all, delete, delete-orphan")
     qc: Mapped[dict[str, Any] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None) 
-
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "type_id", "status_id", "service_type_id", "owner_id", "pool_id", "adapter", "num_samples", "num_features"]
 
     def get_num_sequenced_reads(self) -> int:
         if orm.object_session(self) is None:

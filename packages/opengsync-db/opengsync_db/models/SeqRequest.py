@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING, ClassVar
+from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy import orm
@@ -97,8 +97,6 @@ class SeqRequest(Base):
     data_paths: Mapped[list["DataPath"]] = relationship("DataPath", back_populates="seq_request", lazy="select")
 
     review_checklist: Mapped[dict[str, bool] | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None)
-
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "status_id", "timestamp_submitted_utc", "timestamp_finished_utc", "num_libraries"]
 
     def get_submit_checklist(self) -> dict:
         if orm.object_session(self) is None:

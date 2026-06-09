@@ -41,8 +41,6 @@ class SeqRun(Base):
 
     experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="joined", primaryjoin="SeqRun.experiment_name == Experiment.name", foreign_keys=experiment_name)
 
-    sortable_fields: ClassVar[list[str]] = ["id", "experiment_name", "status_id", "read_type_id"]
-
     @property
     def status(self) -> RunStatus:
         return RunStatus.get(self.status_id)

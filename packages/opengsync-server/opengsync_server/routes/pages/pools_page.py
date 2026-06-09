@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, url_for, request
 
-from opengsync_db.categories import PoolStatus, AccessType
+from opengsync_db.categories import PoolStatus, AccessLevel
 from opengsync_db import models, queries as Q
 
 from ... import db

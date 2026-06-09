@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -20,8 +20,6 @@ class IndexKit(Kit):
     
     barcodes: Mapped[list["Barcode"]] = relationship("Barcode", back_populates="index_kit", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
     adapters: Mapped[list["Adapter"]] = relationship("Adapter", back_populates="index_kit", lazy="select", cascade="all, save-update, merge, delete, delete-orphan")
-
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "identifier", "type_id"]
 
     __mapper_args__ = {
         "polymorphic_identity": KitType.INDEX_KIT.id,

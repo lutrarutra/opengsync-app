@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING, ClassVar
-
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,8 +16,6 @@ class Protocol(Base):
 
     service_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "service_type_id"]
-
     kit_links: Mapped[list[links.ProtocolKitLink]] = relationship(
         links.ProtocolKitLink, lazy="select", cascade="save-update, merge, delete, delete-orphan",
         order_by="links.ProtocolKitLink.combination_num",

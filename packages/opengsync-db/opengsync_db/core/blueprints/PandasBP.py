@@ -2,7 +2,7 @@ import pandas as pd
 
 import sqlalchemy as sa
 
-from ... import models, categories as C
+from ... import models, categories as C, queries as Q
 from ..DBBlueprint import DBBlueprint
 
 
@@ -594,8 +594,7 @@ class PandasBP(DBBlueprint):
             )
 
         if per_index:
-            if (index_kit := self.db.index_kits.get(index_kit_id)) is None:
-                raise ValueError(f"Index kit with ID {index_kit_id} not found.")
+            index_kit = self.db.session.get_or_fail(Q.index_kit.select(id=index_kit_id))
             
             if index_kit.type == C.IndexType.TENX_ATAC_INDEX:
                 barcode_data = {

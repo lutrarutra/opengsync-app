@@ -66,8 +66,8 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     else:
         template = "components/tables/adapter.html"
 
-    adapters, table.num_pages = db.session.page(stmt, page=table.active_page or 0)
-    table.set_num_pages(table.num_pages)
+    adapters, count = db.session.page(stmt, page=table.active_page or 0)
+    table.set_num_pages(count)
     
     context.update({
         "adapters": adapters,

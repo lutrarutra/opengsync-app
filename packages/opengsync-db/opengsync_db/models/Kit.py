@@ -20,8 +20,6 @@ class Kit(Base):
         ProtocolKitLink, lazy="select", cascade="save-update, merge, delete, delete-orphan",
         order_by="links.ProtocolKitLink.combination_num",
     )
-    
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "identifier", "kit_type_id"]
 
     __mapper_args__ = {
         "polymorphic_identity": KitType.LIBRARY_KIT.id,

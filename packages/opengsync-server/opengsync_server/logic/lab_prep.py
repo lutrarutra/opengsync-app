@@ -84,14 +84,10 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         sort_by = request.args.get("sort_by", "id")
         sort_order = request.args.get("sort_order", "desc")
         descending = sort_order == "desc"
-        if sort_by not in models.LabPrep.sortable_fields:
-            raise exceptions.BadRequestException()
-        
         try:
             stmt = stmt.order_by(getattr(getattr(models.LabPrep, sort_by), "desc" if descending else "asc")())
         except AttributeError:
             raise exceptions.BadRequestException()
-        
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 

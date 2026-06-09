@@ -39,8 +39,6 @@ class Lane(Base):
         cascade="save-update, merge, delete, delete-orphan",
     )
 
-    sortable_fields: ClassVar[list[str]] = ["id", "number", "experiment_id", "phi_x"]
-
     warning_min_molarity: ClassVar[float] = 1.0
     warning_max_molarity: ClassVar[float] = 5.0
     error_min_molarity: ClassVar[float] = 0.5
@@ -265,3 +263,7 @@ class Lane(Base):
             if link.num_m_reads is not None:
                 reads += link.num_m_reads
         return reads
+
+    __table_args__ = (
+        sa.UniqueConstraint("experiment_id", "number", name="uq_lane_experiment_id_number"),
+    )

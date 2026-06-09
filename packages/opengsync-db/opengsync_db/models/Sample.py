@@ -78,8 +78,6 @@ class Sample(Base):
 
     _attributes: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True, default=None, name="attributes")
 
-    sortable_fields: ClassVar[list[str]] = ["id", "name", "project_id", "owner_id", "num_libraries", "status_id"]
-
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
         if "library_links" not in orm.attributes.instance_state(self).unloaded:

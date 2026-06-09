@@ -1,8 +1,8 @@
 import sqlalchemy as sa
 from sqlalchemy import sql
 
-from ..models import Pool, Contact, Library, User
-from ..categories import PoolStatus, PoolType, LibraryType, AccessLevel, UserRole
+from ..models import Pool, Contact, Library, User, SeqRequest, links
+from ..categories import PoolStatus, PoolType, LibraryType, AccessLevel, UserRole, SeqRequestStatus
 
 
 def create(
@@ -48,7 +48,7 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
 
     is_insider = sa.select(1).where(
         User.id == user_id,
-        User.role_id.isin([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id])
+        User.role_id.in_([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id])
     )
 
     # TODO: This is not entirely correct, as it doesn't account for users having access to the pool through their projects
@@ -56,10 +56,38 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     #     U
     # )
 
+    has_write_access = sa.and_(
+        sa.exists().where(
+            Pool.seq_request_id == SeqRequest.id,
+            SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
+            sa.or_(
+                SeqRequest.requestor_id == user_id,
+                sa.exists().where(
+                    (links.UserAffiliation.user_id == user_id),
+                    (links.UserAffiliation.group_id == SeqRequest.group_id)
+                )
+            )
+        )
+    )
+
+    has_read_access = sa.and_(
+        sa.exists().where(
+            Pool.seq_request_id == SeqRequest.id,
+            sa.or_(
+                SeqRequest.requestor_id == user_id,
+                sa.exists().where(
+                    (links.UserAffiliation.user_id == user_id),
+                    (links.UserAffiliation.group_id == SeqRequest.group_id)
+                )
+            )
+        )
+    )
 
     return sa.case(
         (sa.exists(is_admin), AccessLevel.ADMIN),
         (sa.exists(is_insider), AccessLevel.INSIDER),
+        (has_write_access, AccessLevel.WRITE),
+        (has_read_access, AccessLevel.READ),
         else_=AccessLevel.NONE
     )
 

@@ -411,7 +411,7 @@ def remove_sample(current_user: models.User, seq_request_id: int, sample_id: int
     for library_link in sample.library_links:
         if library_link.library.seq_request_id != seq_request_id:
             continue
-        db.actions.delete_library(library_link.library, delete_orphan_samples=False)
+        db.session.delete(library_link.library)
 
     flash("Removed all libraries associated with the sample.", "success")
     context = logic.sample.get_table_context(current_user=current_user, request=request, seq_request=seq_request)
@@ -431,7 +431,7 @@ def remove_all_libraries(current_user: models.User, seq_request_id: int):
         raise exceptions.NoPermissionsException()
 
     for library in seq_request.libraries:
-        db.actions.delete_library(library)
+        db.session.delete(library)
 
     flash(f"Removed all libraries from sequencing request '{seq_request.name}'", "success")
     logger.debug(f"Removed all libraries from sequencing request '{seq_request.name}'")
@@ -499,7 +499,7 @@ def remove_share_email(current_user: models.User, seq_request_id: int, email: st
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def overview(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id), options=[orm.joinedload(models.SeqRequest.samples)])) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id), options=[orm.selectinload(models.SeqRequest.samples)])) is None:
         raise exceptions.NotFoundException()
     
     access_level = db.session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id))
@@ -606,7 +606,7 @@ def overview(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_comments(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id), options=[orm.joinedload(models.SeqRequest.comments)])) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id), options=[orm.selectinload(models.SeqRequest.comments)])) is None:
         raise exceptions.NotFoundException()
     
     access_level = db.session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id))
@@ -623,7 +623,7 @@ def get_comments(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def get_files(current_user: models.User, seq_request_id: int):
-    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id), options=[orm.joinedload(models.SeqRequest.media_files)])) is None:
+    if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id), options=[orm.selectinload(models.SeqRequest.media_files)])) is None:
         raise exceptions.NotFoundException()
     
     access_level = db.session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id))
@@ -650,7 +650,7 @@ def clone(current_user: models.User, seq_request_id: int, method: Literal["poole
     if method not in {"pooled", "indexed", "raw"}:
         raise exceptions.BadRequestException()
 
-    cloned_request = db.actions.clone_seq_request(seq_request_id=seq_request.id, method=method)
+    cloned_request = db.actions.clone_seq_request(seq_request=seq_request, method=method)
 
     flash("Request cloned", "success")
     return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=cloned_request.id))
