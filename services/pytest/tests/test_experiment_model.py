@@ -25,7 +25,6 @@ def test_experiment_lanes(db: SyncDBHandler):
 
     for i in range(NUM_POOLS):
         pool = create_pool(db, user, seq_request)
-        # db.libraries.add_to_pool(libraries[i % NUM_LIBRARIES].id, pool.id)
         libraries[i % NUM_LIBRARIES].pool_id = pool.id
         db.session.save(libraries[i % NUM_LIBRARIES])
         pools.append(pool)

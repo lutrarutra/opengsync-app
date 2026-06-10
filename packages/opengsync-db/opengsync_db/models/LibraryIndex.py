@@ -1,7 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy import orm
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .Base import Base

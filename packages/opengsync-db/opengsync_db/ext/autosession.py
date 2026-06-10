@@ -1,9 +1,11 @@
-from ..core.DBHandler import DBHandler
+import sqlalchemy as sa
+import sqlalchemy.exc as sa_exc
+from ..core.SyncDBHandler import SyncDBHandler
 
-_db_instance: DBHandler | None = None
+_db_instance: SyncDBHandler | None = None
 
 
-def set_db(db: DBHandler):
+def set_db(db: SyncDBHandler):
     global _db_instance
     _db_instance = db
 
@@ -24,10 +26,21 @@ def _merge_orm_objects_in_namespace(ip):
             state = obj._sa_instance_state
             if state.session is None and state.key is not None:
                 try:
-                    merged_obj = session.merge(obj, load=False)
-                    user_ns[name] = merged_obj
+                    session.add(obj)
+                except sa_exc.InvalidRequestError:
+                    try:
+                        merged_obj = session.merge(obj, load=False)
+                        user_ns[name] = merged_obj
+                    except sa_exc.InvalidRequestError:
+                        try:
+                            merged_obj = session.merge(obj)
+                            user_ns[name] = merged_obj
+                        except Exception as inner_e:
+                            print(f"[DB] Warning: Could not merge variable '{name}': {inner_e}")
+                    except Exception as e:
+                        print(f"[DB] Warning: Could not merge variable '{name}': {e}")
                 except Exception as e:
-                    print(f"[DB] Warning: Could not merge variable '{name}': {e}")
+                    print(f"[DB] Warning: Could not attach variable '{name}': {e}")
 
 
 def load_ipython_extension(ipython):

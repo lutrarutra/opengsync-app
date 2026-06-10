@@ -1,7 +1,6 @@
-from typing import Optional
-
 from flask import Response, url_for, flash
 from flask_htmx import make_response
+import sqlalchemy as sa
 
 from opengsync_db import models
 from opengsync_db.categories import MUXType
@@ -42,7 +41,10 @@ class OligoMuxForm(CommonOligoMuxForm):
             sample_id = int(row["sample_id"])
             library_id = int(row["library_id"])
 
-            if (link := db.links.get_sample_library_link(sample_id=sample_id, library_id=library_id)) is None:
+            if (link := db.session.first(sa.select(models.links.SampleLibraryLink).where(
+                models.links.SampleLibraryLink.sample_id == sample_id,
+                models.links.SampleLibraryLink.library_id == library_id
+            ))) is None:
                 logger.error(f"Could not find link for sample {sample_id} and library {library_id}")
                 raise Exception("Internal error")
             
@@ -53,7 +55,7 @@ class OligoMuxForm(CommonOligoMuxForm):
             link.mux["read"] = row["mux_read"]
             link.mux["pattern"] = row["mux_pattern"]
 
-            db.links.update_sample_library_link(link)
+            db.session.save(link)
 
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("lab_preps_page.lab_prep", lab_prep_id=self.lab_prep.id)))

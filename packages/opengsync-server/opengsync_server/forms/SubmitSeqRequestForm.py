@@ -81,7 +81,6 @@ class SubmitSeqRequestForm(HTMXFlaskForm):
                 ))
             else:
                 self.seq_request.sample_submission_event.timestamp_utc = to_utc(self.sample_submission_time.data)
-            db.session.save(self.seq_request)
 
         if self.comment.data and (comment := self.comment.data.strip()):
             db.session.save(Q.comment.create(

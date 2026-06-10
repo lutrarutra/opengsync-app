@@ -60,7 +60,7 @@ def select(current_user: models.User):
             raise exceptions.NotFoundException()
         
         if pool_id not in current_pool_ids:
-            db.links.link_pool_experiment(experiment_id=experiment.id, pool_id=pool_id)
+            db.actions.link_pool_experiment(experiment=experiment, pool=db.session.get_or_fail(Q.pool.select(id=pool_id)))
 
     flash("Pools linked to experiment", "success")
     return make_response(redirect=url_for("experiments_page.experiment", experiment_id=experiment.id))

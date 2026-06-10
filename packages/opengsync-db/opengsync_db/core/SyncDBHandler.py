@@ -17,13 +17,15 @@ class SyncDBHandler:
         logger: Optional["loguru.Logger"] = None,
         expire_on_commit: bool = False,
         auto_commit: bool = False,
-        auto_open: bool = False
+        auto_open: bool = False,
+        default_limit: int = 10,
     ):
         self._logger = logger
         self.auto_open = auto_open
         self._engine: Engine = None  # type: ignore[assignment]
         self.expire_on_commit = expire_on_commit
         self.auto_commit = auto_commit
+        self.default_limit = default_limit
         self._local = threading.local()
 
         from .blueprints.PandasBP import PandasBP
@@ -32,7 +34,7 @@ class SyncDBHandler:
         self.actions = ActionsBP("actions", self)
 
     def connect(
-        self, user: str, password: str, host: str, db: str = "token_db", port: Union[str, int] = 5432
+        self, user: str, password: str, host: str, db: str = "opengsync_db", port: Union[str, int] = 5432
     ) -> None:
         self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
         self.public_url = f"postgresql+psycopg://{host}:{port}/{db}"
@@ -51,6 +53,7 @@ class SyncDBHandler:
             bind=self._engine, 
             expire_on_commit=self.expire_on_commit,
             class_=SyncSession,
+            default_limit=self.default_limit,
         )
         SyncDBHandler.Session = orm.scoped_session(self.session_factory)
         from . import listeners

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from opengsync_db import DBHandler
+from opengsync_db import SyncDBHandler
 
 from opengsync_worker import celery
 from opengsync_worker.tasks.clean_upload_folder import clean_upload_folder
@@ -22,8 +22,8 @@ logger.add(logdir / f"{date}.log", level="INFO", colorize=False, rotation="1 day
 logger.add(logdir / f"{date}.err", level="ERROR", colorize=False, rotation="1 day")
 
 
-def connect() -> DBHandler:
-    db = DBHandler(logger=logger, auto_commit=True)
+def connect() -> SyncDBHandler:
+    db = SyncDBHandler(logger=logger)
     db.connect(
         user=os.environ["POSTGRES_USER"],
         password=os.environ["POSTGRES_PASSWORD"],
@@ -46,7 +46,7 @@ def process_run_folder_wrapper(run_folder: str):
         logger.error(f"\n-------- Exception [ process_run_folder ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
         rollback = True
     finally:
-        db.close_session(rollback=rollback)
+        db.close_session(rollback=rollback, commit=True)
 
 
 @celery.task
@@ -61,7 +61,7 @@ def update_statuses_wrapper():
         logger.error(f"\n-------- Exception [ update_statuses ] --------\n\tError: {e.__repr__()}\n\tMessage: {e}\n\tTraceback: {traceback.format_exc()}\n-------- END ERROR --------")
         rollback = True
     finally:
-        db.close_session(rollback=rollback)
+        db.close_session(rollback=rollback, commit=True)
 
 
 @celery.task

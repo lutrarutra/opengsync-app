@@ -886,7 +886,7 @@ class PandasBP(DBBlueprint):
             ]
 
         merged = pd.merge(libraries, lanes, on=["library_id", "experiment_id"], how="left")
-        return merged[order]
+        return merged[order].copy()
 
     @DBBlueprint.transaction
     def get_lab_prep_libraries(self, lab_prep_id: int) -> pd.DataFrame:

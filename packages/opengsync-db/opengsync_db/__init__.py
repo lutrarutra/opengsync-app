@@ -41,15 +41,13 @@ def to_utc(timestamp: dt.datetime) -> dt.datetime:
 
 
 from . import categories  # noqa
-from .core.DBHandler import DBHandler    # noqa
-from .core.DBSession import DBSession  # noqa
 from .core.SyncSession import SyncSession  # noqa
 from .core.SyncDBHandler import SyncDBHandler  # noqa
 from .core import exceptions  # noqa
 from .core import units  # noqa
 
 
-def db_session(db: DBHandler):
+def db_session(db: SyncDBHandler):
     def decorator(f: Callable):
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -71,7 +69,7 @@ def db_session(db: DBHandler):
 
 
 __all__ = [
-    "DBHandler", "DBSession", "SyncSession",
+    "SyncDBHandler", "SyncSession",
     "categories", "units",
-    "exceptions", "SyncDBHandler",
+    "exceptions",
 ]

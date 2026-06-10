@@ -10,8 +10,7 @@ from xml.dom.minidom import parse
 from dataclasses import dataclass
 
 from opengsync_db.categories import RunStatus, ExperimentStatus, ReadType, LibraryStatus, PoolStatus
-from opengsync_db.core import DBHandler
-from opengsync_db import units
+from opengsync_db import units, queries as Q, SyncDBHandler
 
 from . import logger
 
@@ -156,13 +155,10 @@ def parse_metrics(run_folder: Path) -> dict[str, units.Quantity]:
     return quantities
 
 
-def process_run_folder(illumina_run_folder: Path, db: DBHandler):
+def process_run_folder(illumina_run_folder: Path, db: SyncDBHandler):
     logger.info(f"Processing run folder: {illumina_run_folder}")
     
-    active_runs, _ = db.seq_runs.find(
-        status_in=[RunStatus.FINISHED, RunStatus.RUNNING],
-        limit=None
-    )
+    active_runs = db.session.get_all(Q.seq_run.select(status_in=[RunStatus.FINISHED, RunStatus.RUNNING]), limit=None)
 
     active_runs = dict([(run.experiment_name, run) for run in active_runs])
 
@@ -204,7 +200,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
         experiment_name = parsed_data["experiment_name"]
         logger.info(f"Processing {experiment_name} ({run_name}):")
 
-        if (run := db.seq_runs.get(experiment_name)) is not None:
+        if (run := db.session.first(Q.seq_run.select(experiment_name=experiment_name))) is not None:
             if run.run_folder != run_name:
                 logger.info(f"WARNING: Run folder name mismatch: {run.run_folder} != {run_name}.")
                 if status > run.status:
@@ -271,7 +267,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
         else:
             metrics = parse_metrics(run_folder)
                     
-            run = db.seq_runs.create(
+            run = db.session.save(Q.seq_run.create(
                 experiment_name=experiment_name,
                 status=status,
                 run_folder=run_name,
@@ -284,7 +280,7 @@ def process_run_folder(illumina_run_folder: Path, db: DBHandler):
                 i1_cycles=parsed_data.get("i1_cycles"),
                 i2_cycles=parsed_data.get("i2_cycles"),
                 quantities=metrics,
-            )
+            ))
             if completed is not None:
                 run.set_timestamp("completed", completed)
             if started is not None and isinstance(started, datetime):

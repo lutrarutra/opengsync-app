@@ -66,7 +66,6 @@ class PoolDesignForm(HTMXFlaskForm):
                 self.pool_design.num_m_requested_reads = pool.num_m_reads_requested
             else:
                 pool.num_m_reads_requested = self.pool_design.num_m_requested_reads
-                db.session.save(pool)
             self.pool_design.name = pool.name
             self.pool_design.pool_id = pool_id
         else:

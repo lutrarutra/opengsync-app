@@ -4,7 +4,7 @@ from flask import Response, flash, url_for
 from flask_htmx import make_response
 from wtforms import FormField
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 
 from .. import logger, db
 from .HTMXFlaskForm import HTMXFlaskForm
@@ -35,7 +35,7 @@ class AddSeqRequestAssigneeForm(HTMXFlaskForm):
             self.user.selected.errors = ("Please select a user.",)
             return False
 
-        assignee = db.users[self.user.selected.data]
+        assignee = db.session.get_or_fail(Q.user.select(id=self.user.selected.data))
 
         if not assignee.is_insider():
             self.user.selected.errors = ("Only insider users can be assigned to requests.",)
@@ -51,9 +51,8 @@ class AddSeqRequestAssigneeForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        assignee = db.users[self.user.selected.data]
+        assignee = db.session.get_or_fail(Q.user.select(id=self.user.selected.data))
         self.seq_request.assignees.append(assignee)
-        db.session.save(self.seq_request)
         
         flash(f"Assignee Added Successfully!", "success")
         return make_response(redirect=url_for("seq_requests_page.seq_request", seq_request_id=self.seq_request.id, tab="request-assignees-tab"))

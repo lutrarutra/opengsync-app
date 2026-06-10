@@ -1,7 +1,6 @@
 import sqlalchemy as sa
 
-from opengsync_db.core import DBHandler
-from opengsync_db import categories, models
+from opengsync_db import categories as C, models, SyncDBHandler, queries as Q
 
 from . import logger
 
@@ -11,7 +10,7 @@ def __find_stored_samples(q):
         ~sa.exists().where(
             (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
             (models.Library.id == models.links.SampleLibraryLink.library_id) &
-            (models.Library.status_id < categories.LibraryStatus.STORED.id)
+            (models.Library.status_id < C.LibraryStatus.STORED.id)
         )
     )
 
@@ -28,13 +27,13 @@ def __find_seq_requests_with_stored_samples(q):
                 (models.Library.seq_request_id == models.SeqRequest.id) &
                 (models.links.SampleLibraryLink.library_id == models.Library.id) &
                 (models.Sample.id == models.links.SampleLibraryLink.sample_id) &
-                (models.Sample.status_id < categories.SampleStatus.STORED.id)
+                (models.Sample.status_id < C.SampleStatus.STORED.id)
             ),
             ~sa.exists().where(
                 (models.Library.seq_request_id == models.SeqRequest.id) &
                 (models.links.SampleLibraryLink.library_id == models.Library.id) &
                 (models.Library.pool_id == models.Pool.id) &
-                (models.Pool.status_id < categories.PoolStatus.STORED.id)
+                (models.Pool.status_id < C.PoolStatus.STORED.id)
             )
         )
     )
@@ -43,12 +42,12 @@ def __find_seq_requests_with_pooled_libraries(q):
     return q.where(
         sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.Library.status_id == categories.LibraryStatus.POOLED.id)
+            (models.Library.status_id == C.LibraryStatus.POOLED.id)
         )
     ).where(
         ~sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.Library.status_id < categories.LibraryStatus.POOLED.id)
+            (models.Library.status_id < C.LibraryStatus.POOLED.id)
         )
     )
 
@@ -59,7 +58,7 @@ def __find_finished_experiments(q):
         models.SeqRun.experiment_name == models.Experiment.name,
     ).where(
         models.SeqRun.status_id.in_([
-            categories.RunStatus.FINISHED.id, categories.RunStatus.ARCHIVED.id,
+            C.RunStatus.FINISHED.id, C.RunStatus.ARCHIVED.id,
         ])
     )
 
@@ -70,9 +69,9 @@ def __find_finished_libraries(q):
         models.Experiment.id == models.Library.experiment_id,
     ).where(
         models.Experiment.status_id.in_([
-            categories.ExperimentStatus.SEQUENCED.id,
-            categories.ExperimentStatus.DEMULTIPLEXED.id,
-            categories.ExperimentStatus.ARCHIVED.id,
+            C.ExperimentStatus.SEQUENCED.id,
+            C.ExperimentStatus.DEMULTIPLEXED.id,
+            C.ExperimentStatus.ARCHIVED.id,
         ])
     )
 
@@ -83,9 +82,9 @@ def __find_sequenced_pools(q):
         models.Experiment.id == models.Pool.experiment_id,
     ).where(
         models.Experiment.status_id.in_([
-            categories.ExperimentStatus.SEQUENCED.id,
-            categories.ExperimentStatus.DEMULTIPLEXED.id,
-            categories.ExperimentStatus.ARCHIVED.id,
+            C.ExperimentStatus.SEQUENCED.id,
+            C.ExperimentStatus.DEMULTIPLEXED.id,
+            C.ExperimentStatus.ARCHIVED.id,
         ])
     )
 
@@ -95,15 +94,15 @@ def __find_sequenced_seq_requests(q):
         sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
             (models.Library.status_id.in_([
-                categories.LibraryStatus.SEQUENCED.id,
-                categories.LibraryStatus.SHARED.id,
-                categories.LibraryStatus.ARCHIVED.id,
+                C.LibraryStatus.SEQUENCED.id,
+                C.LibraryStatus.SHARED.id,
+                C.LibraryStatus.ARCHIVED.id,
             ]))
         )
     ).where(
         ~sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.Library.status_id < categories.LibraryStatus.SEQUENCED.id)
+            (models.Library.status_id < C.LibraryStatus.SEQUENCED.id)
         )
     )
 
@@ -114,14 +113,14 @@ def __find_sequenced_projects(q):
             (models.Sample.project_id == models.Project.id) &
             (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
             (models.Library.id == models.links.SampleLibraryLink.library_id) &
-            (models.Library.status_id >= categories.LibraryStatus.SEQUENCED.id)
+            (models.Library.status_id >= C.LibraryStatus.SEQUENCED.id)
         )
     ).where(
         ~sa.exists().where(
             (models.Sample.project_id == models.Project.id) &
             (models.links.SampleLibraryLink.sample_id == models.Sample.id) &
             (models.Library.id == models.links.SampleLibraryLink.library_id) &
-            (models.Library.status_id < categories.LibraryStatus.SEQUENCED.id)
+            (models.Library.status_id < C.LibraryStatus.SEQUENCED.id)
         )
     )
 
@@ -130,39 +129,36 @@ def __find_finished_seq_requests(q):
     return q.where(
         ~sa.exists().where(
             (models.Library.seq_request_id == models.SeqRequest.id) &
-            (models.Library.status_id < categories.LibraryStatus.SHARED.id)
+            (models.Library.status_id < C.LibraryStatus.SHARED.id)
         )
     )
 
 
-def update_statuses(db: DBHandler):
+def update_statuses(db: SyncDBHandler):
     logs = ["Checking statuses.."]
 
-    for run in db.seq_runs.find(
-        status=categories.RunStatus.RUNNING, limit=None
-    )[0]:
+    for run in db.session.get_all(Q.seq_run.select(status=C.RunStatus.RUNNING), limit=None):
         if run.experiment is not None:
-            run.experiment.status = categories.ExperimentStatus.SEQUENCING
+            run.experiment.status = C.ExperimentStatus.SEQUENCING
             logs.append(f"Updating experiment {run.experiment.id} status to {run.experiment.status}")
             db.session.save(run)
 
     db.session.flush()
 
-    for experiment in db.experiments.find(
-        limit=None, custom_query=__find_finished_experiments,
+    for experiment in db.session.get_all(Q.experiment.select(
         status_in=[
-            categories.ExperimentStatus.DRAFT,
-            categories.ExperimentStatus.LOADED,
-            categories.ExperimentStatus.SEQUENCING,
+            C.ExperimentStatus.DRAFT,
+            C.ExperimentStatus.LOADED,
+            C.ExperimentStatus.SEQUENCING,
         ],
-    )[0]:
+    ), limit=None):
         if experiment.seq_run is None:
-            experiment.status = categories.ExperimentStatus.SEQUENCED
+            experiment.status = C.ExperimentStatus.SEQUENCED
         else:
-            if experiment.seq_run.status == categories.RunStatus.FINISHED:
-                experiment.status = categories.ExperimentStatus.SEQUENCED
-            elif experiment.seq_run.status == categories.RunStatus.ARCHIVED:
-                experiment.status = categories.ExperimentStatus.ARCHIVED
+            if experiment.seq_run.status == C.RunStatus.FINISHED:
+                experiment.status = C.ExperimentStatus.SEQUENCED
+            elif experiment.seq_run.status == C.RunStatus.ARCHIVED:
+                experiment.status = C.ExperimentStatus.ARCHIVED
             else:
                 continue
             logs.append(f"Updating experiment {experiment.id} status to {experiment.status}")
@@ -170,82 +166,77 @@ def update_statuses(db: DBHandler):
 
     db.session.flush()
 
-    for library in db.libraries.find(
+    for library in db.session.get_all(__find_finished_libraries(Q.library.select(
         status_in=[
-            categories.LibraryStatus.POOLED, categories.LibraryStatus.STORED, categories.LibraryStatus.PREPARING,
-            categories.LibraryStatus.ACCEPTED, categories.LibraryStatus.SUBMITTED, categories.LibraryStatus.DRAFT,
-        ], custom_query=__find_finished_libraries, limit=None
-    )[0]:
+            C.LibraryStatus.POOLED, C.LibraryStatus.STORED, C.LibraryStatus.PREPARING,
+            C.LibraryStatus.ACCEPTED, C.LibraryStatus.SUBMITTED, C.LibraryStatus.DRAFT,
+        ]
+    )), limit=None):
         if library.experiment is not None:
-            library.status = categories.LibraryStatus.SEQUENCED
+            library.status = C.LibraryStatus.SEQUENCED
             logs.append(f"Updating library {library.id} status to {library.status}")
             db.session.save(library)
     
     db.session.flush()
 
-    for sample in db.samples.find(
-        status=categories.SampleStatus.WAITING_DELIVERY, limit=None,
-        custom_query=__find_stored_samples,
-    )[0]:
-        sample.status = categories.SampleStatus.STORED
+    for sample in db.session.get_all(__find_stored_samples(Q.sample.select(
+        status=C.SampleStatus.WAITING_DELIVERY,
+    )), limit=None):
+        sample.status = C.SampleStatus.STORED
         logs.append(f"Updating sample {sample.id} status to {sample.status}")
         db.session.save(sample)
 
     db.session.flush()
 
-    for pool in db.pools.find(
-        status_in=[categories.PoolStatus.ACCEPTED, categories.PoolStatus.STORED],
-        custom_query=__find_sequenced_pools, limit=None
-    )[0]:
-        pool.status = categories.PoolStatus.SEQUENCED
+    for pool in db.session.get_all(__find_sequenced_pools(Q.pool.select(
+        status_in=[C.PoolStatus.ACCEPTED, C.PoolStatus.STORED],
+    )), limit=None):
+        pool.status = C.PoolStatus.SEQUENCED
         logs.append(f"Updating pool {pool.id} status to {pool.status}")
         db.session.save(pool)
 
     db.session.flush()
 
-    for seq_request in db.seq_requests.find(
-        status=categories.SeqRequestStatus.ACCEPTED,
-        custom_query=__find_seq_requests_with_stored_samples, limit=None
-    )[0]:
-        seq_request.status = categories.SeqRequestStatus.SAMPLES_RECEIVED
+    for seq_request in db.session.get_all(__find_seq_requests_with_stored_samples(Q.seq_request.select(
+        status=C.SeqRequestStatus.ACCEPTED,
+    )), limit=None):
+        seq_request.status = C.SeqRequestStatus.SAMPLES_RECEIVED
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
         db.session.save(seq_request)
 
     db.session.flush()
 
-    for seq_request in db.seq_requests.find(
-        status=categories.SeqRequestStatus.SAMPLES_RECEIVED,
-        custom_query=__find_seq_requests_with_pooled_libraries, limit=None
-    )[0]:
-        seq_request.status = categories.SeqRequestStatus.PREPARED
+    for seq_request in db.session.get_all(__find_seq_requests_with_pooled_libraries(Q.seq_request.select(
+        status=C.SeqRequestStatus.SAMPLES_RECEIVED,
+    )), limit=None):
+        seq_request.status = C.SeqRequestStatus.PREPARED
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
         db.session.save(seq_request)
 
     db.session.flush()
 
-    for seq_request in db.seq_requests.find(
-        status_in=[categories.SeqRequestStatus.ACCEPTED, categories.SeqRequestStatus.SAMPLES_RECEIVED, categories.SeqRequestStatus.PREPARED],
-        custom_query=__find_sequenced_seq_requests, limit=None
-    )[0]:
-        seq_request.status = categories.SeqRequestStatus.DATA_PROCESSING
+    for seq_request in db.session.get_all(__find_sequenced_seq_requests(Q.seq_request.select(
+        status_in=[C.SeqRequestStatus.ACCEPTED, C.SeqRequestStatus.SAMPLES_RECEIVED, C.SeqRequestStatus.PREPARED],
+    )), limit=None):
+        seq_request.status = C.SeqRequestStatus.DATA_PROCESSING
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
         db.session.save(seq_request)
 
     db.session.flush()
 
-    for project in db.projects.iter(
-        status=categories.ProjectStatus.PROCESSING, custom_query=__find_sequenced_projects
-    ):
-        project.status = categories.ProjectStatus.SEQUENCED
+    for project in db.session.get_all(__find_sequenced_projects(Q.project.select(
+        status=C.ProjectStatus.PROCESSING,
+    )), limit=None):
+        project.status = C.ProjectStatus.SEQUENCED
         db.session.save(project)
         logs.append(f"Updating project {project.id} status to {project.status}")
 
     db.session.flush()
 
-    for seq_request in db.seq_requests.iter(
-        status=categories.SeqRequestStatus.DATA_PROCESSING, custom_query=__find_finished_seq_requests
-    ):
-        seq_request.status = categories.SeqRequestStatus.FINISHED
+    for seq_request in db.session.get_all(__find_finished_seq_requests(Q.seq_request.select(
+        status=C.SeqRequestStatus.DATA_PROCESSING,
+    )), limit=None):
+        seq_request.status = C.SeqRequestStatus.FINISHED
         db.session.save(seq_request)
         logs.append(f"Updating seq_request {seq_request.id} status to {seq_request.status}")
 

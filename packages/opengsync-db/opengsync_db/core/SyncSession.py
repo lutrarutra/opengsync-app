@@ -7,16 +7,27 @@ from sqlalchemy.orm import Session as SQLAlchemySession
 from . import utils
 from .exceptions import ModelNotFoundException
 
+class _DefaultLimitSentinel(int):
+    pass
+
+DEFAULT_LIMIT = _DefaultLimitSentinel()
+
 class SyncSession(SQLAlchemySession):
+    def __init__(self, *args, default_limit: int = 10, **kwargs):
+        self.default_limit = default_limit
+        super().__init__(*args, **kwargs)
+
     def get_all(
         self,
         statement: sa.Select[tuple[utils.SAModelType]],
         order_by: sql.expression.UnaryExpression | None = None,
-        limit: int | None = 10,
+        limit: int | None = DEFAULT_LIMIT,
         options: utils.QueryOptions | None = None,
         offset: int | None = None
     ) -> Sequence[utils.SAModelType]:
         """Execute a select statement and return a sequence of objects."""
+        if limit is DEFAULT_LIMIT:
+            limit = self.default_limit
         statement = utils.apply_settings(statement, order_by=order_by, limit=limit, options=options, offset=offset)
         result = super().execute(statement)
         return result.scalars().all()
@@ -26,10 +37,12 @@ class SyncSession(SQLAlchemySession):
         statement: sa.Select[tuple[utils.SAModelType]],
         page: int,
         order_by: sql.expression.UnaryExpression | None = None,
-        limit: int = 10,
+        limit: int | _DefaultLimitSentinel = DEFAULT_LIMIT,
         options: utils.QueryOptions | None = None
     ) -> tuple[Sequence[utils.SAModelType], int]:
         """Execute a select statement and return a page of objects."""
+        if limit is DEFAULT_LIMIT:
+            limit = self.default_limit
         count = self.count(statement)
         offset = page * limit
         

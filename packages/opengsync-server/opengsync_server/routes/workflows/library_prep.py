@@ -57,10 +57,9 @@ def select(current_user: models.User, lab_prep_id: int) -> Response:
         return form.make_response()
 
     for _, row in form.library_table.iterrows():
-        lab_prep = db.lab_preps.add_library(
-            lab_prep_id=lab_prep_id,
-            library_id=int(row["id"]),
-        )
+        lab_prep.libraries.append(db.session.get_or_fail(Q.library.select(id=int(row["id"]))))
+
+    db.session.save(lab_prep)
 
     flash("Libraries added!", "success")
     return make_response(redirect=url_for("lab_preps_page.lab_prep", lab_prep_id=lab_prep_id))

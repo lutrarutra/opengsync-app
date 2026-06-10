@@ -66,3 +66,7 @@ class PoolDilution(Base):
     
     def __repr__(self) -> str:
         return self.__str__()
+
+    __table_args__ = (
+        sa.UniqueConstraint("pool_id", "identifier", name="uq_pool_dilution_pool_id_identifier"),
+    )

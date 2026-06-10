@@ -1,13 +1,12 @@
-from typing import Optional
-
 from flask import Response, url_for, flash
 from flask_htmx import make_response
 from wtforms import BooleanField
+import sqlalchemy as sa
 
 from opengsync_db import models
 from opengsync_db.categories import MUXType
 
-from .... import logger, db, tools
+from .... import logger, db
 from ....tools import utils, StaticSpreadSheet
 from ....tools.spread_sheet_components import TextColumn
 from ..common.CommonOligoMuxForm import CommonOligoMuxForm
@@ -62,7 +61,10 @@ class OligoReMuxForm(CommonOligoMuxForm):
             for _, row in self.pooling_table.iterrows():
                 sample_id = int(row["sample_id"])
 
-                if (link := db.links.get_sample_library_link(sample_id=sample_id, library_id=self.library.id)) is None:
+                if (link := db.session.first(sa.select(models.links.SampleLibraryLink).where(
+                    models.links.SampleLibraryLink.library_id == self.library.id,
+                    models.links.SampleLibraryLink.sample_id == sample_id
+                ))) is None:
                     logger.error(f"Could not find link for sample {sample_id} and library {self.library.id}")
                     raise Exception("Internal error")
                 
@@ -73,7 +75,7 @@ class OligoReMuxForm(CommonOligoMuxForm):
                 link.mux["read"] = row["mux_read"]
                 link.mux["pattern"] = row["mux_pattern"]
 
-                db.links.update_sample_library_link(link)
+                db.session.save(link)
         else:
             for _, row in self.df.iterrows():
                 for _, pool_row in self.library_sample_pool_table[
@@ -82,7 +84,10 @@ class OligoReMuxForm(CommonOligoMuxForm):
                     sample_id = int(pool_row["sample_id"])
                     library_id = int(pool_row["library_id"])
 
-                    if (link := db.links.get_sample_library_link(sample_id=sample_id, library_id=library_id)) is None:
+                    if (link := db.session.first(sa.select(models.links.SampleLibraryLink).where(
+                        models.links.SampleLibraryLink.library_id == library_id,
+                        models.links.SampleLibraryLink.sample_id == sample_id
+                    ))) is None:
                         logger.error(f"Could not find link for sample {sample_id} and library {library_id}")
                         raise Exception("Internal error")
                     
@@ -93,7 +98,7 @@ class OligoReMuxForm(CommonOligoMuxForm):
                     link.mux["read"] = row["mux_read"]
                     link.mux["pattern"] = row["mux_pattern"]
 
-                    db.links.update_sample_library_link(link)
+                    db.session.save(link)
 
         flash("Changes saved!", "success")
         return make_response(redirect=(url_for("libraries_page.library", library_id=self.library.id, tab="library-multiplexing-tab")))

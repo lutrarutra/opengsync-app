@@ -6,7 +6,7 @@ from flask_htmx import make_response
 from wtforms import StringField, BooleanField, SelectField, EmailField
 from wtforms.validators import DataRequired, Optional as OptionalValidator
 
-from opengsync_db import models
+from opengsync_db import models, queries as Q
 from opengsync_db.categories import ProjectStatus, DeliveryStatus
 
 from .... import db, logger, mail_handler
@@ -85,11 +85,11 @@ class ShareProjectDataForm(HTMXFlaskForm):
                 share_token._expired = True
                 db.session.save(share_token)
         
-        share_token = db.shares.create(
+        share_token = db.session.save(Q.share_token.create(
             owner=current_user,
             time_valid_min=self.time_valid_min.data,
             paths=self.paths,
-        )
+        ))
 
         if self.mark_project_delivered.data:
             self.project.status = ProjectStatus.DELIVERED

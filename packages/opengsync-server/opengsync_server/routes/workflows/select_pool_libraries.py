@@ -59,7 +59,9 @@ def select(current_user: models.User, pool_id: int) -> Response:
     
     library_ids = form.library_table["id"].unique().tolist()
     for library_id in library_ids:
-        db.libraries.add_to_pool(library_id=int(library_id), pool_id=pool.id, flush=False)
+        library = db.session.get_or_fail(Q.library.select(id=int(library_id)))
+        library.pool_id = pool.id
+        db.session.save(library)
 
     db.session.flush()
     flash("Libraries added to pool!", "success")

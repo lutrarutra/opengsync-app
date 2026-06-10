@@ -89,16 +89,12 @@ class SeqRunForm(HTMXFlaskForm):
         if (experiment := db.session.first(Q.experiment.select(name=seq_run.experiment_name))) is not None:
             if seq_run.status == RunStatus.FINISHED:
                 experiment.status = ExperimentStatus.SEQUENCED
-                db.session.save(experiment)
             elif seq_run.status == RunStatus.FAILED:
                 experiment.status = ExperimentStatus.FAILED
-                db.session.save(experiment)
             elif seq_run.status == RunStatus.RUNNING:
                 experiment.status = ExperimentStatus.SEQUENCING
-                db.session.save(experiment)
             elif seq_run.status == RunStatus.ARCHIVED:
                 experiment.status = ExperimentStatus.ARCHIVED
-                db.session.save(experiment)
 
         return seq_run
     
@@ -116,7 +112,6 @@ class SeqRunForm(HTMXFlaskForm):
         seq_run.r2_cycles = self.r2_cycles.data
         seq_run.i1_cycles = self.i1_cycles.data
         seq_run.i2_cycles = self.i2_cycles.data
-        db.session.save(seq_run)
         return seq_run
     
     def process_request(self, **context) -> Response:

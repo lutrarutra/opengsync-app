@@ -6,6 +6,7 @@ from ..models import PoolDilution, Pool, Experiment
 def select(
     id: int | None = None,
     pool: Pool | None = None,
+    identifier: str | None = None,
     experiment: Experiment | None = None,
     statement: sa.Select[tuple[PoolDilution]] = sa.select(PoolDilution),
 ) -> sa.Select[tuple[PoolDilution]]:
@@ -15,4 +16,6 @@ def select(
         statement = statement.where(PoolDilution.pool_id == pool.id)
     if experiment is not None:
         statement = statement.join(Pool, PoolDilution.pool_id == Pool.id).where(Pool.experiment_id == experiment.id)
+    if identifier is not None:
+        statement = statement.where(PoolDilution.identifier == identifier)
     return statement

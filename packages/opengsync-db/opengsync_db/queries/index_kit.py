@@ -23,7 +23,7 @@ def create(
 def select(
     id: int | None = None,
     type_in: list[IndexType] | None = None,
-    index_type: IndexType | None = None,
+    type: IndexType | None = None,
     identifier: str | None = None,
     search_name: str | None = None,
     search_identifier: str | None = None,
@@ -36,8 +36,8 @@ def select(
         statement = statement.where(IndexKit.id == id)
     if type_in is not None:
         statement = statement.where(IndexKit.type_id.in_([t.id for t in type_in]))
-    if index_type is not None:
-        statement = statement.where(IndexKit.type_id == index_type.id)
+    if type is not None:
+        statement = statement.where(IndexKit.type_id == type.id)
     if identifier is not None:
         statement = statement.where(IndexKit.identifier == identifier.strip())
 

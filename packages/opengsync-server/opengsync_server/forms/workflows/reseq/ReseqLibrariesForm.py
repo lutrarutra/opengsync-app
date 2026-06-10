@@ -51,7 +51,7 @@ class ReseqLibrariesForm(MultiStepForm):
             if (library := db.session.first(Q.library.select(id=row["library_id"]))) is None:
                 logger.error(f"{self.uuid}: Library with ID {row['library_id']} not found")
                 raise exceptions.ElementDoesNotExist(f"{self.uuid}: Library with ID {row['library_id']} not found")
-            db.libraries.clone(
+            db.actions.clone_library(
                 library_id=library.id,
                 indexed=True if self.reprep_type.data == "indexed" else False,
                 seq_request_id=library.seq_request_id,

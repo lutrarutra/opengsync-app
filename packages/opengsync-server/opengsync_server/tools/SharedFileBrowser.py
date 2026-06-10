@@ -6,7 +6,7 @@ import urllib.parse
 from dataclasses import dataclass
 from datetime import datetime
 
-from opengsync_db import models, DBHandler
+from opengsync_db import models, SyncDBHandler
 
 from .. import logger
 from ..core import exceptions
@@ -43,7 +43,7 @@ class SharedFileBrowser:
         re.IGNORECASE
     )
 
-    def __init__(self, root_dir: Path, db: DBHandler, share_token: models.ShareToken, allow_symlink_traversal: bool = True):
+    def __init__(self, root_dir: Path, db: SyncDBHandler, share_token: models.ShareToken, allow_symlink_traversal: bool = True):
         self.root_dir = root_dir.resolve()
         self.db = db
         self.share_token = share_token

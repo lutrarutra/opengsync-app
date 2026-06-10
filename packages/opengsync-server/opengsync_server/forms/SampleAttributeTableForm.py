@@ -105,8 +105,6 @@ class SampleAttributeTableForm(HTMXFlaskForm):
                 else:
                     sample.set_attribute(attribute_name, val, attribute_type)
 
-            db.session.save(sample)
-
         for label, col in self.spreadsheet.columns.items():
             if label not in self.df.columns and col.can_be_deleted:
                 for sample in self.project.samples:

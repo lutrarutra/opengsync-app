@@ -4,7 +4,7 @@ from flask import Response, url_for
 from flask_htmx import make_response
 from wtforms import FormField
 
-from opengsync_db import models, exceptions
+from opengsync_db import models, exceptions, queries as Q
 from opengsync_db.categories import DataPathType
 
 from .... import db, logger
@@ -35,13 +35,13 @@ class AssociatePathForm(HTMXFlaskForm):
             return False
         
         if (project_id := self.project.selected.data) is not None:
-            self._project = db.projects[int(project_id)]
+            self._project = db.session.get_or_fail(Q.project.select(id=int(project_id)))
         if (experiment_id := self.experiment.selected.data) is not None:
-            self._experiment = db.experiments[int(experiment_id)]
+            self._experiment = db.session.get_or_fail(Q.experiment.select(id=int(experiment_id)))
         if (seq_request_id := self.seq_request.selected.data) is not None:
-            self._seq_request = db.seq_requests[int(seq_request_id)]
+            self._seq_request = db.session.get_or_fail(Q.seq_request.select(id=int(seq_request_id)))
         if (library_id := self.library.selected.data) is not None:
-            self._library = db.libraries[int(library_id)]
+            self._library = db.session.get_or_fail(Q.library.select(id=int(library_id)))
 
         return True
 
@@ -68,41 +68,41 @@ class AssociatePathForm(HTMXFlaskForm):
         
         try:
             if self._project is not None:
-                db.data_paths.create(
+                db.session.save(Q.data_path.create(
                     path=self.path.as_posix(),
                     type=file_type,
                     project=self._project,
-                )
+                ))
         except exceptions.LinkAlreadyExists as e:
             pass
         
         if self._experiment is not None:
             try:
-                db.data_paths.create(
+                db.session.save(Q.data_path.create(
                     path=self.path.as_posix(),
                     type=file_type,
                     experiment=self._experiment,
-                )
+                ))
             except exceptions.LinkAlreadyExists as e:
                 pass
             
         if self._seq_request is not None:
             try:
-                db.data_paths.create(
+                db.session.save(Q.data_path.create(
                     path=self.path.as_posix(),
                     type=file_type,
                     seq_request=self._seq_request,
-                )
+                ))
             except exceptions.LinkAlreadyExists as e:
                 pass
             
         if self._library is not None:
             try:
-                db.data_paths.create(
+                db.session.save(Q.data_path.create(
                     path=self.path.as_posix(),
                     type=file_type,
                     library=self._library,
-                )
+                ))
             except exceptions.LinkAlreadyExists as e:
                 pass
 

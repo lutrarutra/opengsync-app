@@ -9,7 +9,7 @@ from flask_htmx import make_response
 from opengsync_db import models
 from opengsync_db.categories import (
     GenomeRef, LibraryType, FeatureType, MediaFileType, SampleStatus, PoolType, AttributeType,
-    ServiceType, SubmissionType, MUXType, IndexType, BarcodeOrientation
+    ServiceType, SubmissionType, MUXType, IndexType, BarcodeOrientation, LibraryStatus
 )
 
 from .... import db, logger, tools
@@ -197,12 +197,12 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                 logger.error(f"{self.uuid}: Project with id {project_id} not found.")
                 raise ValueError(f"Project with id {project_id} not found.")
         else:
-            project = db.projects.create(
+            project = db.session.save(Q.project.create(
                 title=self.metadata["project_title"],
                 description=self.metadata["project_description"],
                 owner_id=int(self.metadata["project_owner_id"]),
                 group_id=self.seq_request.group_id
-            )
+            ), flush=True)
 
         predefined_attrs = [f"_attr_{attr.label}" for attr in AttributeType.as_list()]
         custom_sample_attributes = [attr for attr in self.sample_table.columns if attr.startswith("_attr_") and attr not in predefined_attrs]
@@ -213,32 +213,31 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                     logger.error(f"{self.uuid}: Sample with id {library_row['sample_id']} not found.")
                     raise ValueError(f"Sample with id {library_row['sample_id']} not found.")
             else:
-                sample = db.samples.create(
+                sample = db.session.save(Q.sample.create(
                     name=library_row["sample_name"],
                     project_id=project.id,
                     owner_id=user.id,
                     status=None if self.seq_request.submission_type == SubmissionType.POOLED_LIBRARIES else SampleStatus.DRAFT
-                )
+                ), flush=True)
                 self.sample_table.at[idx, "sample_id"] = sample.id  # type: ignore
 
             for attr in AttributeType.as_list():
                 attr_label = f"_attr_{attr.label}"
                 if attr_label in library_row.keys() and pd.notna(library_row[attr_label]):
-                    sample = db.samples.set_attribute(
-                        sample_id=sample.id,
+                    sample.set_attribute(
+                        key=attr.label,
                         type=attr,
                         value=str(library_row[attr_label]),
-                        name=None
                     )
 
             for attr_label in custom_sample_attributes:
                 if attr_label in library_row.keys() and pd.notna(library_row[attr_label]):
-                    sample = db.samples.set_attribute(
-                        sample_id=sample.id,
+                    sample.set_attribute(
+                        key=attr_label.removeprefix("_attr_"),
                         type=AttributeType.CUSTOM,
                         value=str(library_row[attr_label]),
-                        name=attr_label.removeprefix("_attr_")
                     )
+            db.session.save(sample)
 
         self.sample_table["sample_id"] = self.sample_table["sample_id"].astype(int)
 
@@ -253,7 +252,7 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                         logger.error(f"{self.uuid}: Pool with id {library_row['pool_id']} not found.")
                         raise ValueError(f"Pool with id {library_row['pool_id']} not found.")
                 else:
-                    pool = db.pools.create(
+                    pool = db.session.save(Q.pool.create(
                         name=library_row["pool_name"],
                         owner_id=user.id,
                         seq_request_id=self.seq_request.id,
@@ -261,8 +260,9 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                         contact_name=self.metadata["pool_contact_name"],
                         contact_email=self.metadata["pool_contact_email"],
                         contact_phone=self.metadata["pool_contact_phone"],
-                        num_m_reads_requested=library_row["num_m_reads_requested"]
-                    )
+                        num_m_reads_requested=library_row["num_m_reads_requested"],
+                        clone_number=0
+                    ), flush=True)
 
                 self.pool_table.at[idx, "pool_id"] = pool.id  # type: ignore
                 
@@ -300,7 +300,7 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
 
             service_type = ServiceType.get(self.metadata["service_type_id"])
 
-            library = db.libraries.create(
+            library = db.session.save(Q.library.create(
                 name=library_row["library_name"],
                 sample_name=library_row["sample_name"],
                 seq_request_id=self.seq_request.id,
@@ -313,7 +313,9 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                 mux_type=MUXType.get(library_row["mux_type_id"]) if pd.notna(library_row["mux_type_id"]) else None,
                 nuclei_isolation=self.metadata.get("nuclei_isolation", False),
                 seq_depth_requested=library_row["seq_depth"] if "seq_depth" in library_row and pd.notna(library_row["seq_depth"]) else None,
-            )
+                clone_number=0,
+                status=LibraryStatus.DRAFT
+            ), flush=True)
 
             self.library_table.at[idx, "library_id"] = library.id  # type: ignore
             
@@ -354,7 +356,7 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                             logger.error(f"{self.uuid}: Conflicting orientations for i7 and i5 in library {library_row['library_name']}.")
                             raise ValueError("Conflicting orientations for i7 and i5.")
 
-                    library = db.libraries.add_index(
+                    library = db.actions.add_index_to_library(
                         library_id=library.id,
                         sequence_i7=barcode_row["sequence_i7"] if pd.notna(barcode_row["sequence_i7"]) else None,
                         sequence_i5=barcode_row["sequence_i5"] if pd.notna(barcode_row["sequence_i5"]) else None,
@@ -416,14 +418,14 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
         if self.feature_table is not None:
             custom_features = self.feature_table[self.feature_table["feature_id"].isna()]
             for (identifier, feature, pattern, read, sequence), _df in custom_features.groupby(["identifier", "feature", "pattern", "read", "sequence"], dropna=False):
-                feature = db.features.create(
+                feature = db.session.save(Q.feature.create(
                     identifier=identifier if pd.notna(identifier) else None,  # type: ignore
                     name=feature,  # type: ignore
                     sequence=sequence,  # type: ignore
                     pattern=pattern,  # type: ignore
                     read=read,  # type: ignore
                     type=FeatureType.ANTIBODY
-                )
+                ), flush=True)
                 self.feature_table.loc[_df.index, "feature_id"] = feature.id
 
             self.feature_table["feature_id"] = self.feature_table["feature_id"].astype(int)
@@ -434,59 +436,33 @@ class CompleteSASForm(LibraryAnnotationWorkflow):
                     self.feature_table["library_name"].isna()
                 )
                 if len(ids := self.feature_table[mask]["feature_id"].values.tolist()) > 0:
-                    db.links.link_features_library(feature_ids=ids, library_id=int(library_row["library_id"]))
+                    for feature_id in ids:
+                        db.session.save(models.links.LibraryFeatureLink(
+                            library_id=int(library_row["library_id"]),
+                            feature_id=feature_id
+                        ), flush=True)
             
         for context, text in self.get_comments().items():
             if context == "visium_instructions":
-                db.comments.create(
-                    text=f"Visium data instructions: {text}",
-                    author_id=user.id, seq_request_id=self.seq_request.id
-                )
+                self.seq_request.comments.append(Q.comment.create(text=f"Visium data instructions: {text}", author=user))
             elif context == "custom_genome_reference":
-                db.comments.create(
-                    text=f"Custom genome reference: {text}",
-                    author_id=user.id, seq_request_id=self.seq_request.id
-                )
+                self.seq_request.comments.append(Q.comment.create(text=f"Custom genome reference: {text}", author=user))
             elif context == "assay_tech_selection":
-                db.comments.create(
-                    text=f"Additional info from assay selection: {text}",
-                    author_id=user.id, seq_request_id=self.seq_request.id
-                )
+                self.seq_request.comments.append(Q.comment.create(text=f"Additional info from assay selection: {text}", author=user))
             elif context == "i7_option":
-                db.comments.create(
-                    text=text,
-                    author_id=user.id, seq_request_id=self.seq_request.id
-                )
+                self.seq_request.comments.append(Q.comment.create(text=text, author=user))
             elif context == "i5_option":
-                db.comments.create(
-                    text=text,
-                    author_id=user.id, seq_request_id=self.seq_request.id
-                )
+                self.seq_request.comments.append(Q.comment.create(text=text, author=user))
             elif context == "parse_chemistry":
-                db.comments.create(
-                    text=f"Parse Chemistry: {text}",
-                    author_id=user.id, seq_request_id=self.seq_request.id
-                )
+                self.seq_request.comments.append(Q.comment.create(text=f"Parse Chemistry: {text}", author=user))
             elif context == "parse_kit":
-                db.comments.create(
-                    text=f"Parse Kit: {text}",
-                    author_id=user.id, seq_request_id=self.seq_request.id
-                )
+                self.seq_request.comments.append(Q.comment.create(text=f"Parse Kit: {text}", author=user))
             elif context == "i7_primer":
-                db.comments.create(
-                    text=f"i7 Primer Sequence: {text}",
-                    author_id=user.id, seq_request_id=self.seq_request.id
-                )
+                self.seq_request.comments.append(Q.comment.create(text=f"i7 Primer Sequence: {text}", author=user))
             elif context == "i5_primer":
-                db.comments.create(
-                    text=f"i5 Primer Sequence: {text}",
-                    author_id=user.id, seq_request_id=self.seq_request.id
-                )
+                self.seq_request.comments.append(Q.comment.create(text=f"i5 Primer Sequence: {text}", author=user))
             else:
-                db.comments.create(
-                    text=context.replace("_", " ").capitalize() + ": " + text,
-                    author_id=user.id, seq_request_id=self.seq_request.id
-                )
+                self.seq_request.comments.append(Q.comment.create(text=context.replace("_", " ").capitalize() + ": " + text, author=user))
 
         self.__update_data()
 

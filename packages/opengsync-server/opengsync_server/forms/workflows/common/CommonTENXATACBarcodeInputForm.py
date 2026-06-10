@@ -181,7 +181,7 @@ class CommonTENXATACBarcodeInputForm(MultiStepForm):
         self.df["kit_id"] = None
         kits: dict[str, tuple[models.IndexKit, pd.DataFrame]] = {}
         for identifier in kit_identifiers:
-            kit = db.index_kits[identifier]
+            kit = db.session.get_or_fail(Q.index_kit.select(identifier=identifier))
 
             if kit.type != IndexType.TENX_ATAC_INDEX:
                 logger.error(f"Index kit '{identifier}' is not of type TENX_ATAC_INDEX")

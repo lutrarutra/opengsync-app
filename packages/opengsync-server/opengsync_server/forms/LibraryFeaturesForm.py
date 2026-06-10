@@ -180,7 +180,5 @@ class LibraryFeaturesForm(HTMXFlaskForm):
                     type=FeatureType.ANTIBODY
                 ))
 
-        db.session.save(self.library)
-
         flash("Changes Saved!", "success")
         return make_response(redirect=url_for("libraries_page.library", library_id=self.library.id))

@@ -189,6 +189,36 @@ db.connect(
 - If `auto_open=True` when creating `DBHandler`-object, session is opened and closed automatically. But lazy loading of relationships will not work.
 - `db.close_session()` writes/commits the updates to db and closes the session.
 
+## DB API
+
+Here is a comprehensive overview of how to interact with the database using the internal `opengsync_db` API. 
+
+The API consists of three major components:
+1.  **`SyncDBHandler`**: Manages the connection pool, engine, and threaded sessions.
+2.  **`queries`**: Stores entity-specific builder functions that return pre-constructed `sqlalchemy.Select` statements or un-saved model instances.
+3.  **`SyncSession`**: An extension of the standard SQLAlchemy `Session` class equipped with custom fetch, iteration, and pagination mechanisms to consume the statements built by `queries`.
+
+---
+
+### 1. Connection & Session Management (`SyncDBHandler`)
+
+`SyncDBHandler` acts as a thread-safe factory wrapper around SQLAlchemy's Engine and `sessionmaker`. 
+
+**Setup & Connection:**
+```python
+from opengsync_db.core.SyncDBHandler import SyncDBHandler
+
+db_handler = SyncDBHandler(logger=my_logger, auto_commit=False, expire_on_commit=False)
+
+# Establish connection via psycopg wrapper
+db_handler.connect(
+    user=os.environ["POSTGRES_USER"],
+    password=os.environ["POSTGRES_PASSWORD"],
+    host="localhost",
+    port=5432
+)
+```
+
 ### Jupyter/IPython Auto DB Session Open Extension
 When working in Jupyer Notebook, you can enable autosession extension which will open and close db session automatically when running a cell.
 ```python
@@ -201,78 +231,141 @@ db.connect(
     password=os.environ["POSTGRES_PASSWORD"],
     host=os.environ["POSTGRES_SERVER_IP"],
     port=os.environ["POSTGRES_PORT"],
-    db=os.environ["POSTGRES_DB"],
 )
-set_db(db)  # Important
+set_db(db)  # Important to activate the extension
 ```
 
-## DB API
-### Pandas DataFrame
+Then you can run any query in a notebook cell without explicitly opening a session, e.g:
+```python
+project = db.session.get_or_fail(queries.project.select(project_id=1))
+project.title = "New Title"
+db.session.commit()  # need to manually commit changes to db if auto_commit=False (default)
+```
+
+**Lifecycle Methods:**
+Sessions act as local transactions and should be explicitly opened and closed depending on context.
+
+```python
+# 1. Open a new session scope
+session = db_handler.open_session(autoflush=True)
+
+try:
+    # ... use the session to modify/read data
+    pass
+    
+    # 2. Close session successfully (commits if auto_commit is True, else pass commit=True)
+    db_handler.close_session(commit=True)
+except Exception:
+    # 3. Rollback the active transaction
+    db_handler.close_session(rollback=True)
+```
+
+*(Note: `db_handler` also exposes blueprints `db_handler.pd` and `db_handler.actions` for batch pandas jobs or multi-step tasks)*
+
+---
+
+### 2. Building Queries (`opengsync_db.queries`)
+
+Rather than relying purely on direct ORM syntax throughout the application, the `queries` module unifies structure-specific logic. They **do not execute** the queries by themselves, but rather construct standard `sqlalchemy.Select` statements.
+
+```python
+from opengsync_db import queries as Q
+from opengsync_db.categories import ProjectStatus
+
+# Create uncommitted ORM model instances 
+new_project = Q.project.create(
+    title="Alpha Genome",
+    description="Sample data set",
+    owner_id=1,
+    status=ProjectStatus.ACTIVE
+)
+# Add it to the session
+db.session.save(new_project, flush=True)  # flush=True to get the id of the new project without committing
+# commit session to write to db
+db.session.commit()
+
+# Builder functions (like `select()`) generate filtered SQLAlchemy statements
+stmt = Q.project.select(
+    owner_id=1,
+    status=ProjectStatus.DRAFT,
+    search_title="Alpha"
+)
+
+# The returned `stmt` can be further modified with custom filters, joins, order_by, etc. before execution.
+stmt = stmt.order_by(Project.created_at.desc()).limit(10)
+```
+
+---
+
+### 3. Executing & Retrieving Data (`SyncSession`)
+
+Once you build your SQL statement through the `queries` utility, use `SyncSession`'s custom API to elegantly extract the data.
+
+#### Fetching Single Objects
+```python
+# Returns the first object, or None if no match is found
+project = session.first(stmt)
+
+# Returns a single object, but raises ModelNotFoundException if none exist
+project = session.get_or_fail(stmt)
+
+# Shorthand alias to .get_or_fail() using subscripts
+project = session[stmt]
+```
+
+#### Fetching Multiple Objects
+```python
+from sqlalchemy import desc
+from opengsync_db.models import Project
+
+# Returns a List of objects matching the criteria
+projects = session.get_all(
+    stmt, 
+    limit=50, 
+    order_by=desc(Project.id)
+)
+
+# Yields objects one by one (executes internally using `yield_per` chunking).
+# Ideal for huge sets/export operations.
+for project in session.iter(stmt, batch_size=200):
+    print(project.title)
+```
+
+#### Pagination and Quantities
+```python
+# Evaluates exactly how many rows match the statement
+total_items = session.count(stmt)
+
+# Returns True if at least 1 row matches
+is_existing = session.exists(stmt)
+
+# Returns a Tuple: (List[Objects], TotalCount)
+# Handled intelligently: automatically skirts queries where offset > total count
+page_results, total_count = session.page(
+    stmt, 
+    page=0, 
+    limit=10, 
+    order_by=Project.id
+)
+```
+
+#### Evaluating Scalars and Modifying State
+```python
+# Retrieve arbitrary SQL scalar values (useful when computing permissions/sums)
+access_level = session.get_access_level(Q.project.access_level(user_id=10))
+
+# Instantly adds and flushes (but doesn't commit) a model to the underlying active transaction
+session.save(new_project, flush=True)
+
+# Instantly deletes and flushes the object state
+session.delete(existing_project, flush=True)
+```
+
+#### Pandas DataFrame
 - User one of the pre-existing queries, e.g:
     - `db.pd.get_project_libraries(project_id)`
     - `db.pd.get_seq_requestor(seq_request_id)`
 - Or custom query:
-```python
-# Custom query
-db.pd.query(sa.select(models.Library).order_by(models.Library.status_id, models.Library.id).limit(5))
-# Equivalent to
-db.pd.query("SELECT * FROM library ORDER BY status_id, id LIMIT 5")
-```
-
-### ORM Models
-
-#### Sub-modules
-```python
-db.seq_requests
-db.libraries
-db.projects
-db.experiments
-db.samples
-db.pools
-db.users
-db.index_kits
-db.contacts
-db.lanes
-db.features
-db.feature_kits
-db.sequencers
-db.adapters
-db.plates
-db.barcodes
-db.lab_preps
-db.kits
-db.links
-db.media_files
-db.comments
-db.seq_runs
-db.events
-db.groups
-db.shares
-```
-
-#### Common Methods
-- Get object:
-    - `db.<submodule>.get(<obj-id>)  # returns None if not found`
-    - `db.<submodule>[<obj-id>] # raises exception if not found`
-- Query objects:
-    - `db.<submodule>.find() # returns list of objects`
-- Create object:
-    - `db.<submodule>.create(<args>) # returns created object`
-- Update object:
-    - `db.<submodule>.update(<obj>) # returns updated object or None if not found`
-- Delete object:
-    - `db.<submodule>.delete(<obj-id>) # returns True if deleted, False if not found`
-
-- Additionally, in following cases you can use special columns as keys:
-```python
-db.projects["<project identifier>"]
-db.experiments["<experiment name>"]
-db.users["user@email.com"]
-```
-
-#### Commit and Auto-Commit
-- For safety, auto-commit is not enabled by default. (`auto_commit=False`)
-- Use `db.session.commit()` to write changes to db.
 
 ## Backup and Restore
 

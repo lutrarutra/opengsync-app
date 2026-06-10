@@ -1,16 +1,16 @@
 import os
-from opengsync_db import queries as Q
 from uuid6 import uuid7
 
 import pandas as pd
 
+import sqlalchemy as sa
 from flask import Response, flash, url_for
 from flask_htmx import make_response
 from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, FieldList, FormField, IntegerField
 from wtforms.validators import Optional as OptionalValidator, DataRequired
 
-from opengsync_db import models
+from opengsync_db import queries as Q, models
 from opengsync_db.categories import MediaFileType
 
 from .... import db, logger
@@ -106,10 +106,10 @@ class LanePoolingForm(HTMXFlaskForm):
             return self.make_response()
         
         for lane_sub_form in self.lane_sub_forms:
-            if (lane := db.lanes.get_experiment_lane(
+            if (lane := db.session.first(Q.lane.select(
                 experiment_id=self.experiment.id,
-                lane_num=lane_sub_form.lane.data
-            )) is None:
+                number=lane_sub_form.lane.data
+            ))) is None:
                 logger.error(f"lane_pools_workflow: Lane {lane_sub_form.lane.data} does not exist for experiment {self.experiment.id}")
                 raise ValueError(f"Lane {lane_sub_form.lane.data} does not exist for experiment {self.experiment.id}")
 
@@ -130,11 +130,11 @@ class LanePoolingForm(HTMXFlaskForm):
             "dilution": [],
         }
         for pool_reads_form in self.sample_sub_forms:
-            if (link := db.links.get_laned_pool_link(
-                experiment_id=self.experiment.id,
-                lane_num=pool_reads_form.lane.data,
-                pool_id=pool_reads_form.pool_id.data
-            )) is None:
+            if (link := db.session.first(sa.select(models.links.LanePoolLink).where(
+                models.links.LanePoolLink.experiment_id == self.experiment.id,
+                models.links.LanePoolLink.lane_num == pool_reads_form.lane.data,
+                models.links.LanePoolLink.pool_id == pool_reads_form.pool_id.data
+            ))) is None:
                 logger.error(f"lane_pools_workflow: No link found for lane {pool_reads_form.lane.data} and pool {pool_reads_form.pool_id.data} for experiment {self.experiment.id} in lane_pooling_form")
                 raise ValueError(f"No link found for lane {pool_reads_form.lane.data} and pool {pool_reads_form.pool_id.data} for experiment {self.experiment.id}")
             
@@ -143,12 +143,12 @@ class LanePoolingForm(HTMXFlaskForm):
                 link.dilution_id = None
                 pool_reads_form.dilution.data = "Orig."
             else:
-                if (dilution := db.pools.get_dilution(link.pool_id, pool_reads_form.dilution.data)) is None:
+                if (dilution := db.session.first(Q.pool_dilution.select(pool=link.pool, identifier=pool_reads_form.dilution.data))) is None:
                     logger.error(f"lane_pools_workflow: PoolDilution with pool_id {link.pool_id} and identifier {pool_reads_form.dilution.data} does not exist")
                     raise ValueError(f"PoolDilution with pool_id '{link.pool_id}' and identifier '{pool_reads_form.dilution.data}' does not exist")
                 link.dilution_id = dilution.id
 
-            db.links.update_laned_pool_link(link)
+            db.session.save(link)
 
             data["lane"].append(link.lane.number)
             data["pool"].append(link.pool.name)
@@ -179,7 +179,7 @@ class LanePoolingForm(HTMXFlaskForm):
         df.to_csv(filepath, sep="\t", index=False)
         size_bytes = os.stat(filepath).st_size
 
-        db_file = db.media_files.create(
+        db_file = db.session.save(Q.media_file.create(
             name=filename,
             uuid=_uuid,
             size_bytes=size_bytes,
@@ -187,13 +187,13 @@ class LanePoolingForm(HTMXFlaskForm):
             extension=extension,
             uploader_id=user.id,
             experiment_id=self.experiment.id
-        )
-        _ = db.comments.create(
-            author_id=user.id,
-            file_id=db_file.id,
+        ))
+        _ = db.session.save(Q.comment.create(
+            author=user,
+            file=db_file,
             text="Added file for pooling ratios",
-            experiment_id=self.experiment.id
-        )
+            experiment=self.experiment
+        ))
 
         flash("Laning Completed!", "success")
 
