@@ -161,7 +161,7 @@
                 {% if current_user.is_insider() %}
                 <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                    hx-get="{{ url_for('select_pool_libraries_workflow.begin', pool_id=pool.id) }}"
+                    hx-get="{{ url_for('begin_select_pool_libraries_workflow', pool_id=pool.id) }}"
                     hx-target="#xl-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click">
                     <div class="flip-card-container">
@@ -182,7 +182,7 @@
                 </div>
                 <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                    hx-get="{{ url_for('reindex_workflow.begin', pool_id=pool.id) }}"
+                    hx-get="{{ url_for('begin_reindex_workflow', pool_id=pool.id) }}"
                     hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click">
                     <div class="flip-card-container">

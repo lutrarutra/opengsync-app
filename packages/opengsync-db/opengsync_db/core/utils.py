@@ -11,7 +11,6 @@ ScalarType = TypeVar("ScalarType")
 QueryOptions = sa.sql.base.ExecutableOption | Sequence[sa.sql.base.ExecutableOption] | None
 ColumnOptions = sa.ColumnElement[Any] | InstrumentedAttribute[Any] | sa.Function[Any]
 
-
 def apply_settings(
     statement: sa.Select[tuple[SAModelType]],
     order_by: sql.expression.UnaryExpression | None = None,

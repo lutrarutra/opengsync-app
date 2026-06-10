@@ -21,6 +21,7 @@ dependencies = [
     "opengsync-server",
     "opengsync-worker",
     "opengsync-api",
+    "server",
 
     "numpy >= 2.2",
     "pandas >= 3.0",
@@ -46,6 +47,7 @@ dev = [
 [tool.uv.workspace]
 members = [
     "packages/*",
+    "services/backend",
 ]
 
 [tool.uv.sources]
@@ -53,3 +55,4 @@ opengsync-db = { workspace = true }
 opengsync-api = { workspace = true }
 opengsync-server = { workspace = true }
 opengsync-worker = { workspace = true }
+server = { workspace = true }

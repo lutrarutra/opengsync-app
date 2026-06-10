@@ -15,7 +15,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                        hx-get="{{ url_for('library_prep_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                        hx-get="{{ url_for('begin_library_prep_workflow', lab_prep_id=lab_prep.id) }}"
                         hx-target="#xl-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Add Libraries' - Workflow
                     </li>
@@ -62,7 +62,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_OLIGO.id) }}"
+                        hx-get="{{ url_for('begin_mux_prep_workflow', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_OLIGO.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML" {% if not oligo_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Oligo Multiplexing Prep' - Workflow
                     </li>
@@ -86,7 +86,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_FLEX_PROBE.id) }}"
+                        hx-get="{{ url_for('begin_mux_prep_workflow', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_FLEX_PROBE.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML" {% if not flex_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Flex Multiplexing Prep' - Workflow
                     </li>
@@ -111,7 +111,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('mux_prep_workflow.begin', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_ON_CHIP.id) }}"
+                        hx-get="{{ url_for('begin_mux_prep_workflow', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_ON_CHIP.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML" {% if not on_chip_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'On-Chip Multiplexing Prep' - Workflow
                     </li>
@@ -171,7 +171,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('select_library_protocols_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                        hx-get="{{ url_for('begin_select_library_protocols_workflow', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Select Library Protocols' - Workflow
                     </li>
@@ -214,7 +214,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                        hx-get="{{ url_for('ba_report_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                        hx-get="{{ url_for('begin_ba_report_workflow', lab_prep_id=lab_prep.id) }}"
                         hx-target="#xl-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Bio Analyzer' - Workflow
                     </li>
@@ -259,7 +259,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('reindex_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                        hx-get="{{ url_for('begin_reindex_workflow', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Index Libraries' - Workflow
                     </li>
@@ -303,7 +303,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('library_pooling_workflow.begin', lab_prep_id=lab_prep.id) }}"
+                        hx-get="{{ url_for('begin_library_pooling_workflow', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Pool Libraries' - Workflow
                     </li>

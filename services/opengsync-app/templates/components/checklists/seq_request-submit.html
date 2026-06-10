@@ -17,7 +17,7 @@
                         {{
                             modal_button(
                                 text="Begin", size="fullscreen",
-                                url=url_for('library_annotation_workflow.begin', seq_request_id=seq_request.id),
+                                url=url_for('begin_library_annotation_workflow', seq_request_id=seq_request.id),
                                 disabled=not current_user.is_insider() and seq_request.status != SeqRequestStatus.DRAFT
                             )
                         }} - Sample Annotation Workflow
