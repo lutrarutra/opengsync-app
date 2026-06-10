@@ -13,7 +13,7 @@ class _DefaultLimitSentinel(int):
 DEFAULT_LIMIT = _DefaultLimitSentinel()
 
 class SyncSession(SQLAlchemySession):
-    def __init__(self, *args, default_limit: int = 10, **kwargs):
+    def __init__(self, *args, default_limit: int, **kwargs):
         self.default_limit = default_limit
         super().__init__(*args, **kwargs)
 
@@ -37,12 +37,10 @@ class SyncSession(SQLAlchemySession):
         statement: sa.Select[tuple[utils.SAModelType]],
         page: int,
         order_by: sql.expression.UnaryExpression | None = None,
-        limit: int | _DefaultLimitSentinel = DEFAULT_LIMIT,
+        limit: int = 10,
         options: utils.QueryOptions | None = None
     ) -> tuple[Sequence[utils.SAModelType], int]:
         """Execute a select statement and return a page of objects."""
-        if limit is DEFAULT_LIMIT:
-            limit = self.default_limit
         count = self.count(statement)
         offset = page * limit
         

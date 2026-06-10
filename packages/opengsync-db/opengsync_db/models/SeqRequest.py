@@ -208,8 +208,6 @@ class SeqRequest(Base):
         ).where(
             Library.seq_request_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
-
-    num_libraries_ = orm.query_expression()
     
     @hybrid_property
     def num_pools(self) -> int:  # type: ignore[override]
@@ -484,6 +482,8 @@ class SeqRequest(Base):
     @property
     def identifier(self) -> str:
         return f"BSR_{self.id:04d}"
+    
+    num_libraries_ = orm.query_expression()
     
     __table_args__ = (
         sa.Index(

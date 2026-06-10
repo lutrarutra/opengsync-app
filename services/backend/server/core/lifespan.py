@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("opengsync.yaml not found, app_config unavailable")
 
-    app.state.db_handler = AsyncDBHandler()
+    app.state.db_handler = AsyncDBHandler(default_row_limit=None)
     await app.state.db_handler.connect(
         user=config.settings.POSTGRES_USER,
         password=config.settings.POSTGRES_PASSWORD,

@@ -20,7 +20,7 @@ services:
             - ./share:/share:ro
             - compiled_css:/static/style/compiled:ro
         environment:
-            OPENGSYNC_PORT: ${OPENGSYNC_PORT}
+            OPENGSYNC_PORT: ${OPENGSYNC_PORT:-5000}
             TZ: ${TIMEZONE}
             REDIS_PORT: ${REDIS_PORT}
             REDIS_HOST: redis-cache
@@ -38,7 +38,7 @@ services:
             OPENGSYNC_DEBUG: 1
             ENVIRONMENT: dev
         ports:
-            - ${OPENGSYNC_PORT}:${OPENGSYNC_PORT}
+            - ${OPENGSYNC_PORT:-5000}:${OPENGSYNC_PORT:-5000}
         restart: on-failure
         depends_on:
             postgres:
@@ -48,14 +48,14 @@ services:
                 condition: service_healthy
                 restart: true
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://opengsync-app:${OPENGSYNC_PORT}/status/"]
+            test: ["CMD", "curl", "-f", "http://opengsync-app:${OPENGSYNC_PORT:-5000}/api/health"]
             interval: 10s
             timeout: 10s
         command: >
             bash -c "
             cd services/backend &&
             python -m server.scripts.prestart &&
-            uvicorn server.main:app --host 0.0.0.0 --port 5000 --reload"
+            uvicorn server.main:app --host 0.0.0.0 --port ${OPENGSYNC_PORT:-5000} --reload"
 
     opengsync-celery-worker:
         container_name: opengsync-celery-worker-dev

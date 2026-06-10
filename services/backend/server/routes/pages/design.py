@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from opengsync_db import models, categories as cats
+from opengsync_db import models, categories as C
 
 from ...core import dependencies, responses, exceptions
 

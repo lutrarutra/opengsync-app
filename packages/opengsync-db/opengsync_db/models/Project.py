@@ -68,7 +68,7 @@ class Project(Base):
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]
-        if "samples" in orm.attributes.instance_state(self).unloaded:
+        if "samples" not in orm.attributes.instance_state(self).unloaded:
             return len(self.samples)
         
         if (session := orm.object_session(self)) is None:
@@ -305,7 +305,10 @@ class Project(Base):
     
     def __repr__(self) -> str:
         return self.__str__()
-    
+
+    # Lazy loaded properties that require a session
+    num_samples_ = orm.query_expression()
+        
     __table_args__ = (
         sa.Index(
             "trgm_project_identifier_idx",

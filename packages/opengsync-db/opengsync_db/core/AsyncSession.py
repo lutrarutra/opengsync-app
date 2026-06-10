@@ -1,6 +1,5 @@
 from typing import Any, Sequence, AsyncIterator
 
-from pydantic import BaseModel
 import sqlalchemy as sa
 from sqlalchemy import exc as sa_exc
 from sqlalchemy import sql
@@ -9,16 +8,27 @@ from sqlalchemy.ext.asyncio import AsyncSession as SQLAlchemyAsyncSession
 from . import utils
 from .exceptions import ModelNotFoundException
 
+class _DefaultLimitSentinel(int):
+    pass
+
+DEFAULT_LIMIT = _DefaultLimitSentinel()
+
 class AsyncSession(SQLAlchemyAsyncSession):
+    def __init__(self, *args, default_limit: int, **kwargs):
+        self.default_limit = default_limit
+        super().__init__(*args, **kwargs)
+
     async def get_all(
         self,
         statement: sa.Select[tuple[utils.SAModelType]],
-        order_by: sql.expression.UnaryExpression | None = None,
-        limit: int | None = 10,
+        order_by: utils.OrderBy | None = None,
+        limit: int | None = DEFAULT_LIMIT,
         options: utils.QueryOptions | None = None,
         offset: int | None = None
     ) -> Sequence[utils.SAModelType]:
         """Execute a select statement and return a sequence of objects."""
+        if limit is DEFAULT_LIMIT:
+            limit = self.default_limit
         statement = utils.apply_settings(statement, order_by=order_by, limit=limit, options=options, offset=offset)
         result = await super().execute(statement)
         return result.scalars().all()
@@ -27,7 +37,7 @@ class AsyncSession(SQLAlchemyAsyncSession):
         self,
         statement: sa.Select[tuple[utils.SAModelType]],
         page: int,
-        order_by: sql.expression.UnaryExpression | None = None,
+        order_by: utils.OrderBy | None = None,
         limit: int = 10,
         options: utils.QueryOptions | None = None
     ) -> tuple[Sequence[utils.SAModelType], int]:
@@ -113,7 +123,7 @@ class AsyncSession(SQLAlchemyAsyncSession):
     
     async def iter(
         self, statement: sa.Select[tuple[utils.SAModelType]],
-        order_by: sql.expression.UnaryExpression | None = None,
+        order_by: utils.OrderBy | None = None,
         batch_size: int = 100,
         options: utils.QueryOptions | None = None
     ) -> AsyncIterator[utils.SAModelType]:

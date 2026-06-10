@@ -10,10 +10,12 @@ SAModelType = TypeVar("SAModelType", bound=Base)
 ScalarType = TypeVar("ScalarType")
 QueryOptions = sa.sql.base.ExecutableOption | Sequence[sa.sql.base.ExecutableOption] | None
 ColumnOptions = sa.ColumnElement[Any] | InstrumentedAttribute[Any] | sa.Function[Any]
+type OrderBy = sql.expression.UnaryExpression
+
 
 def apply_settings(
     statement: sa.Select[tuple[SAModelType]],
-    order_by: sql.expression.UnaryExpression | None = None,
+    order_by: OrderBy | None = None,
     limit: int | None = None,
     options: QueryOptions | None = None,
     offset: int | None = None

@@ -1,7 +1,7 @@
 from typing import Any
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
 
-from .templates import render_template, url_for
+from .templates import render_template
 
 from . import utils, runtime
 from .context import ctx

@@ -1,5 +1,6 @@
 from typing import Optional, Union
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncEngine
+import loguru
 import sqlalchemy as sa
 
 from .AsyncSession import AsyncSession
@@ -9,13 +10,18 @@ class AsyncDBHandler:
     
     def __init__(
         self,
-        expire_on_commit: bool = False, auto_open: bool = False,
+        logger: Optional["loguru.Logger"] = None,
+        expire_on_commit: bool = False,
         auto_commit: bool = False,
+        auto_open: bool = False,
+        default_row_limit: int | None = 10,
     ):
+        self._logger = logger
         self._engine: Optional[AsyncEngine] = None
         self.expire_on_commit = expire_on_commit
         self.auto_open = auto_open
         self.auto_commit = auto_commit
+        self.default_limit = default_row_limit
 
     async def connect(
         self, user: str, password: str, host: str, db: str = "token_db", port: Union[str, int] = 5432
@@ -23,9 +29,7 @@ class AsyncDBHandler:
         self._url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
         self.public_url = f"postgresql+psycopg://{host}:{port}/{db}"
         
-        self._engine = create_async_engine(
-            self._url, pool_pre_ping=True,
-        )
+        self._engine = create_async_engine(self._url, pool_pre_ping=True)
 
         try:
             async with self._engine.connect() as conn:
@@ -36,7 +40,8 @@ class AsyncDBHandler:
         self.session_factory = async_sessionmaker(
             bind=self._engine, 
             expire_on_commit=self.expire_on_commit,
-            class_=AsyncSession
+            class_=AsyncSession,
+            default_limit=self.default_limit,
         )
 
     def get_session(self) -> AsyncSession:
@@ -47,3 +52,31 @@ class AsyncDBHandler:
         """Dispose the engine pool."""
         if self._engine:
             await self._engine.dispose()
+
+    def info(self, *values: object) -> None:
+        message = " ".join([str(value) for value in values])
+        if self._logger is not None:
+            self._logger.opt(depth=1).info(message)
+        else:
+            print(f"LOG: {message}")
+    
+    def error(self, *values: object) -> None:
+        message = " ".join([str(value) for value in values])
+        if self._logger is not None:
+            self._logger.opt(depth=1).error(message)
+        else:
+            print(f"ERROR: {message}")
+            
+    def warn(self, *values: object) -> None:
+        message = " ".join([str(value) for value in values])
+        if self._logger is not None:
+            self._logger.opt(depth=1).warning(message)
+        else:
+            print(f"WARNING: {message}")
+            
+    def debug(self, *values: object) -> None:
+        message = " ".join([str(value) for value in values])
+        if self._logger is not None:
+            self._logger.opt(depth=1).debug(message)
+        else:
+            print(f"DEBUG: {message}")

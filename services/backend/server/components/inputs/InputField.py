@@ -28,5 +28,5 @@ class InputField(ABC):
         self.description = description
         self.read_only = read_only
     
-    async def render(self, container_class="") -> str:
-        return Markup(await render_template(self.template, field=self, container_class=container_class))
+    async def render(self, container_class="", hide_label: bool = False) -> str:
+        return Markup(await render_template(self.template, field=self, container_class=container_class, hide_label=hide_label))

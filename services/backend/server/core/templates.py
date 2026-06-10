@@ -114,11 +114,11 @@ j2.env.filters["highlight_r"] = highlight_r
 j2.env.filters["replace_substrings"] = replace_substrings
 j2.env.filters["root_name"] = root_name
 
-
 # ─── Globals ported from add_context ───
 j2.env.globals["app_version"] = "dev"
 j2.env.globals["api_version"] = "dev"
 j2.env.globals["db_version"] = "dev"
+j2.env.globals["debug"] = settings.ENVIRONMENT == "dev"
 
 # Categories
 j2.env.globals["ExperimentStatus"] = C.ExperimentStatus

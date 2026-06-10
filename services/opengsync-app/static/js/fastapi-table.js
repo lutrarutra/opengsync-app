@@ -91,7 +91,7 @@ class HTMXTable {
                 }
             );
             if (state[field_name + "_in"]) {
-                this._show_filter_menu($(element).closest("th"), focus=false);
+                this._show_filter_menu($(element).closest("th"), false);
             }
             this.multiselects.push(select);
         });
@@ -103,6 +103,21 @@ class HTMXTable {
                 this._show_search_menu(th);
             }
         });
+
+        // Parse order_by if it exists in the state
+        if (state.order_by) {
+            const [field, order] = state.order_by.split(":");
+            this.$table.find("th.sortable-col").each((index, th) => {
+                let $th = $(th);
+                if ($th.data("sort_by") === field) {
+                    $th.attr("data-current_sort", order);
+                    $th.data("current_sort", order);
+                } else {
+                    $th.removeAttr("data-current_sort");
+                    $th.removeData("current_sort");
+                }
+            });
+        }
     }
 
     _handleSearch(field_name, search_value) {
@@ -122,9 +137,9 @@ class HTMXTable {
         if (include_sort) {
             this.$table.find("th.sortable-col").each((index, th) => {
                 let $th = $(th);
-                if ($th.data("current_sort")) {
-                    state.sort_by = $th.data("sort_by");
-                    state.sort_order = $th.data("current_sort");
+                let current_sort = $th.data("current_sort") || $th.attr("data-current_sort");
+                if (current_sort) {
+                    state.order_by = `${$th.data("sort_by")}:${current_sort}`;
                 }
             });
         }
@@ -171,10 +186,25 @@ class HTMXTable {
         // Sort btn
         this.$table.on("click", ".sort-btn", (e) => {
             e.stopPropagation();
+            const $th = $(e.currentTarget).closest("th");
+            const target_sort_by = $th.data("sort_by");
+            const current_sort = $th.data("current_sort") || $th.attr("data-current_sort");
+            const next_sort = current_sort === "asc" ? "desc" : "asc";
+
+            // Reset all other sort columns visual state
+            this.$table.find("th.sortable-col").each((index, th) => {
+                let $otherTh = $(th);
+                if ($otherTh.data("sort_by") !== target_sort_by) {
+                    $otherTh.removeAttr("data-current_sort");
+                    $otherTh.removeData("current_sort");
+                }
+            });
+
+            // Set current sort on active column
+            $th.attr("data-current_sort", next_sort);
+            $th.data("current_sort", next_sort);
+
             let state = this._getState();
-            state.sort_by = $(e.currentTarget).closest("th").data("sort_by");
-            let current_sort = $(e.currentTarget).closest("th").data("current_sort");
-            state.sort_order = current_sort === "asc" ? "desc" : "asc";
             this._ajax(state);
         });
 

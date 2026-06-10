@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends
-from fastapi.responses import RedirectResponse
 
 from opengsync_db import models
 
@@ -8,7 +7,7 @@ from ...core import dependencies, responses
 router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
 
 @router.get("/")
-async def seq_requests():  
+async def seq_requests_page():  
     return await responses.html_response("seq_requests_page.html", title="Requests")
 
 

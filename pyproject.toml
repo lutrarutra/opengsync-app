@@ -18,7 +18,6 @@ name = "opengsync-app"
 dynamic = ["version"]
 dependencies = [
     "opengsync-db",
-    "opengsync-server",
     "opengsync-worker",
     "opengsync-api",
     "server",
@@ -53,6 +52,5 @@ members = [
 [tool.uv.sources]
 opengsync-db = { workspace = true }
 opengsync-api = { workspace = true }
-opengsync-server = { workspace = true }
 opengsync-worker = { workspace = true }
 server = { workspace = true }

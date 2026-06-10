@@ -86,3 +86,30 @@ class PasswordInputField(StringInputField):
             hidden=hidden,
             read_only=read_only,
         )
+
+
+class TextAreaInputField(StringInputField):
+    def __init__(
+        self, label: str,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = None,
+        required: bool = True,
+        hidden: bool = False,
+        read_only: bool = False,
+    ):
+        super().__init__(
+            label=label,
+            default=default,
+            pydantic_type=Annotated[str, StringConstraints(max_length=max_length, min_length=min_length)],
+            autocomplete=autocomplete,
+            placeholder=placeholder,
+            type="textarea",
+            description=description,
+            required=required,
+            hidden=hidden,
+            read_only=read_only
+        )

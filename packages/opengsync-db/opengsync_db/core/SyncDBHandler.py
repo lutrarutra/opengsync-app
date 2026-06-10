@@ -18,14 +18,14 @@ class SyncDBHandler:
         expire_on_commit: bool = False,
         auto_commit: bool = False,
         auto_open: bool = False,
-        default_limit: int = 10,
+        default_row_limit: int | None = 10,
     ):
         self._logger = logger
         self.auto_open = auto_open
         self._engine: Engine = None  # type: ignore[assignment]
         self.expire_on_commit = expire_on_commit
         self.auto_commit = auto_commit
-        self.default_limit = default_limit
+        self.default_limit = default_row_limit
         self._local = threading.local()
 
         from .blueprints.PandasBP import PandasBP

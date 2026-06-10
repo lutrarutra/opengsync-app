@@ -8,14 +8,14 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("/")
-async def users(
+async def users_page(
     current_user: models.User = Depends(dependencies.require_insider),
 ):
     return await responses.html_response("users_page.html", title="Users")
 
 
 @router.get("/{user_id}")
-async def user(
+async def user_page(
     user_id: int,
     current_user: models.User = Depends(dependencies.require_user),
 ):

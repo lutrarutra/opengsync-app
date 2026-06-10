@@ -40,12 +40,12 @@
             <img src="{{ url_for('static', filename='images/help.svg') }}" width="26px" style="z-index: 1100;">
         </a>
     </div>
-    {% if current_user.is_authenticated %}
+    {% if current_user %}
         {% set user_role = current_user.role %}
     {% else %}
         {% set user_role = none %}
     {% endif %}
-    <nav id="navbar" {% if current_user.is_authenticated and current_user.is_admin() %}class="admin"{% endif %}>
+    <nav id="navbar" {% if current_user and current_user.is_admin() %}class="admin"{% endif %}>
         <div class="nav-left">
             <div id="burger">
                 <div class="line1"></div>
@@ -64,12 +64,12 @@
                 <a class="nav-link {{'active' if active_page == 'dashboard-page' else ''}}" id="dashboard-page" href="{{ url_for('dashboard') }}">Dashboard</a>
             </div>
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'projects-page' else ''}}" href="{{ url_for('projects') }}">Projects</a>
+                <a class="nav-link {{'active' if active_page == 'projects-page' else ''}}" href="{{ url_for('projects_page') }}">Projects</a>
             </div>
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'seq_requests-page' else ''}}" href="{{ url_for('seq_requests') }}">Requests</a>
+                <a class="nav-link {{'active' if active_page == 'seq_requests-page' else ''}}" href="{{ url_for('seq_requests_page') }}">Requests</a>
             </div>
-            {% if current_user.is_authenticated and current_user.is_insider() %}
+            {% if current_user and current_user.is_insider() %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'design-page' else ''}}" href="{{ url_for('design') }}">Design</a>
             </div>
@@ -91,7 +91,7 @@
                 </ul>
             </div>
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'users-page' else ''}}" href="{{ url_for('users') }}">Users</a>
+                <a class="nav-link {{'active' if active_page == 'users-page' else ''}}" href="{{ url_for('users_page') }}">Users</a>
             </div>
             {% endif %}
             <div class="nav-item nav-item-dropdown">
@@ -100,7 +100,7 @@
                     <i class="bi bi-caret-down-fill" style="font-size: 10px;"></i>
                 </p>
                 <ul>
-                    {% if current_user.is_authenticated and current_user.is_insider() %}
+                    {% if current_user and current_user.is_insider() %}
                     <li><a class="nav-link {{'active' if active_page == 'kits-page' else ''}}" href="{{ url_for('kits') }}">Kits</a></li>
                     <li><a class="nav-link {{'active' if active_page == 'protocols-page' else ''}}" href="{{ url_for('protocols') }}">Protocols</a></li>
                     {% endif %}
@@ -108,17 +108,17 @@
                     <li><a class="nav-link {{'active' if active_page == 'feature_kits-page' else ''}}" href="{{ url_for('feature_kits') }}">Features</a></li>
                 </ul>
             </div>
-            {% if current_user.is_authenticated %}
+            {% if current_user %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'groups-page' else ''}}" href="{{ url_for('groups') }}">Groups</a>
             </div>
             {% endif %}
-            {% if current_user.is_authenticated and not current_user.is_insider() %}
+            {% if current_user and not current_user.is_insider() %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'help-page' else ''}}" href="{{ url_for('help') }}">Help</a>
             </div>
             {% endif %}
-            {% if current_user.is_authenticated and current_user.is_insider() %}
+            {% if current_user and current_user.is_insider() %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'seq_run-page' else ''}}" href="{{ url_for('seq_runs') }}">Runs</a>
             </div>
@@ -141,7 +141,7 @@
             {% endif %}
         </div>
         <div class="nav-right">
-            {% if current_user.is_authenticated %}
+            {% if current_user %}
             <a type="button" class="btn btn-secondary login-btn user-btn" href="{{ url_for('login_page') }}">
                 <p>
                     {% if user_role == UserRole.ADMIN %}
@@ -340,7 +340,7 @@
     <script src="{{ url_for('static', filename='js/contextmenu.js') }}"></script>
     <script src="{{ url_for('static', filename='js/reverse_complement.js') }}"></script>
     <script src="{{ url_for('static', filename='js/confirm_close.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/flask-table.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/fastapi-table.js') }}"></script>
     <script src="{{ url_for('static', filename='js/colors.js') }}"></script>
     <script src="{{ url_for('static', filename='js/cookie.js') }}"></script>
     <script src="{{ url_for('static', filename='js/nav.js') }}"></script>

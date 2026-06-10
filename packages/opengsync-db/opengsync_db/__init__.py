@@ -43,8 +43,11 @@ def to_utc(timestamp: dt.datetime) -> dt.datetime:
 from . import categories  # noqa
 from .core.SyncSession import SyncSession  # noqa
 from .core.SyncDBHandler import SyncDBHandler  # noqa
+from .core.AsyncSession import AsyncSession  # noqa
+from .core.AsyncDBHandler import AsyncDBHandler  # noqa
 from .core import exceptions  # noqa
 from .core import units  # noqa
+from .core import utils  # noqa
 
 
 def db_session(db: SyncDBHandler):
@@ -70,6 +73,7 @@ def db_session(db: SyncDBHandler):
 
 __all__ = [
     "SyncDBHandler", "SyncSession",
+    "AsyncDBHandler", "AsyncSession",
     "categories", "units",
-    "exceptions",
+    "exceptions", "utils",
 ]

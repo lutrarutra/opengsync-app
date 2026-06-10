@@ -38,7 +38,7 @@ async def recent_seq_requests(
                 C.SeqRequestStatus.SAMPLES_RECEIVED, C.SeqRequestStatus.PREPARED,
                 C.SeqRequestStatus.DATA_PROCESSING
             ],
-            requestor=current_user
+            requestor_id=current_user.id
         ).order_by(
             models.SeqRequest.status_id,
             models.SeqRequest.timestamp_submitted_utc.desc()
