@@ -187,7 +187,7 @@ db.connect(
 - When reading/writing data from/to db, db session must be opened: `db.open_session()`
 - If session is closed (and `auto_open=False`), querying the database will raise `sqlalchemy.orm.exc.DetachedInstanceError`.
 - If `auto_open=True` when creating `DBHandler`-object, session is opened and closed automatically. But lazy loading of relationships will not work.
-- `db.close_session()` writes/commits the updates to db and closes the session.
+- `db.close_session(commit=True)` writes/commits the updates to db and closes the session.
 
 ## DB API
 
