@@ -31,39 +31,37 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
     )
 
     has_write_access = sa.select(1).where(
-        sa.and_(
-            SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
-            sa.or_(
-                SeqRequest.requestor_id == user_id,
-                sa.exists().where(
-                    (links.UserAffiliation.user_id == user_id) &
-                    (links.UserAffiliation.group_id == SeqRequest.group_id) &
-                    (Library.seq_request_id == SeqRequest.id) &
-                    (links.SampleLibraryLink.library_id == Library.id) &
-                    (links.SampleLibraryLink.sample_id == Sample.id)
-                )
-            ),
-            ~sa.exists().where(
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.seq_request_id == SeqRequest.id) &
-                (Library.status_id != LibraryStatus.DRAFT.id)
-            )
-        ),
-    )
-
-    has_read_access = sa.select(1).where(
+        links.SampleLibraryLink.sample_id == Sample.id,
+        Library.id == links.SampleLibraryLink.library_id,
+        Library.seq_request_id == SeqRequest.id,
+        SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
         sa.or_(
             SeqRequest.requestor_id == user_id,
-            sa.exists().where(
+            sa.select(1).where(
                 (links.UserAffiliation.user_id == user_id) &
-                (links.UserAffiliation.group_id == SeqRequest.group_id) &
-                (Library.seq_request_id == SeqRequest.id) &
-                (links.SampleLibraryLink.library_id == Library.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id)
-            )
+                (links.UserAffiliation.group_id == SeqRequest.group_id)
+            ).correlate_except(links.UserAffiliation).exists()
+        ),
+        ~sa.select(1).where(
+            (links.SampleLibraryLink.sample_id == Sample.id) &
+            (Library.id == links.SampleLibraryLink.library_id) &
+            (Library.seq_request_id == SeqRequest.id) &
+            (Library.status_id != LibraryStatus.DRAFT.id)
+        ).correlate_except(links.SampleLibraryLink, Library).exists()
+    ).correlate_except(links.SampleLibraryLink, Library, SeqRequest)
+
+    has_read_access = sa.select(1).where(
+        links.SampleLibraryLink.sample_id == Sample.id,
+        Library.id == links.SampleLibraryLink.library_id,
+        Library.seq_request_id == SeqRequest.id,
+        sa.or_(
+            SeqRequest.requestor_id == user_id,
+            sa.select(1).where(
+                (links.UserAffiliation.user_id == user_id) &
+                (links.UserAffiliation.group_id == SeqRequest.group_id)
+            ).correlate_except(links.UserAffiliation).exists()
         )
-    )
+    ).correlate_except(links.SampleLibraryLink, Library, SeqRequest)
 
     return sa.case(
         (sa.exists(is_admin), AccessLevel.ADMIN),
@@ -89,55 +87,18 @@ def select(
     search_owner_name: str | None = None,
     statement: sa.Select[tuple[Sample]] = sa.select(Sample),
 ) -> sa.Select[tuple[Sample]]:
-    if id is not None:
-        statement = statement.where(Sample.id == id)
 
-    if user_id is not None:
-        statement = statement.where(Sample.owner_id == user_id)
-
-    if project_id is not None:
-        statement = statement.where(Sample.project_id == project_id)
-
-    if library_id is not None:
-        statement = statement.where(
-            sa.exists().where(
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (links.SampleLibraryLink.library_id == library_id)
-            )
-        )
-
-    if pool_id is not None:
-        statement = statement.where(
-            sa.exists().where(
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.pool_id == pool_id)
-            )
-        )
-
-    if lab_prep_id is not None:
-        statement = statement.where(
-            sa.exists().where(
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.lab_prep_id == lab_prep_id)
-            )
-        )
-
-    if seq_request_id is not None:
-        statement = statement.where(
-            sa.exists().where(
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.seq_request_id == seq_request_id)
-            )
-        )
-
-    if status is not None:
-        statement = statement.where(Sample.status_id == status.id)
-
-    if status_in is not None:
-        statement = statement.where(Sample.status_id.in_([s.id for s in status_in]))
+    statement = statement.where(*where_clauses(
+        id=id,
+        user_id=user_id,
+        project_id=project_id,
+        library_id=library_id,
+        pool_id=pool_id,
+        seq_request_id=seq_request_id,
+        lab_prep_id=lab_prep_id,
+        status=status,
+        status_in=status_in,
+    ))
 
     if search_name is not None:
         statement = statement.order_by(sa.func.similarity(Sample.name, search_name).desc())
@@ -152,3 +113,72 @@ def select(
 
 def permissions(sample_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
     return sa.select(access_level(user_id)).where(Sample.id == sample_id)
+
+
+def where_clauses(
+    id: int | None = None,
+    user_id: int | None = None,
+    project_id: int | None = None,
+    library_id: int | None = None,
+    pool_id: int | None = None,
+    seq_request_id: int | None = None,
+    lab_prep_id: int | None = None,
+    status: SampleStatus | None = None,
+    status_in: list[SampleStatus] | None = None,
+) -> list[sa.ColumnElement[bool]]:
+    """Return WHERE clauses for filtering samples. 
+    Reusable in correlated subqueries where .subquery() would break correlation.
+    """
+    clauses: list[sa.ColumnElement[bool]] = []
+
+    if id is not None:
+        clauses.append(Sample.id == id)
+
+    if user_id is not None:
+        clauses.append(Sample.owner_id == user_id)
+
+    if project_id is not None:
+        clauses.append(Sample.project_id == project_id)
+
+    if library_id is not None:
+        clauses.append(
+            sa.select(1).where(
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (links.SampleLibraryLink.library_id == library_id)
+            ).correlate_except(links.SampleLibraryLink).exists()
+        )
+
+    if pool_id is not None:
+        clauses.append(
+            sa.select(1).where(
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.pool_id == pool_id)
+            ).correlate_except(links.SampleLibraryLink, Library).exists()
+        )
+
+    if lab_prep_id is not None:
+        clauses.append(
+            sa.select(1).where(
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.lab_prep_id == lab_prep_id)
+            ).correlate_except(links.SampleLibraryLink, Library).exists()
+        )
+
+    if seq_request_id is not None:
+        clauses.append(
+            sa.select(1).where(
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.seq_request_id == seq_request_id)
+            ).correlate_except(links.SampleLibraryLink, Library).exists()
+        )
+
+    if status is not None:
+        clauses.append(Sample.status_id == status.id)
+
+    if status_in is not None:
+        clauses.append(Sample.status_id.in_([s.id for s in status_in]))
+
+    return clauses

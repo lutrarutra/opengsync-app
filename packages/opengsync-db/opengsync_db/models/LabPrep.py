@@ -173,124 +173,198 @@ class LabPrep(Base):
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]
-        from .Sample import Sample
-        from .Library import Library
+        if self._num_samples is not None:
+            return self._num_samples
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
 
-        return session.query(Sample.id).where(
-            sa.exists().where(
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.lab_prep_id == self.id)
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_samples was not populated via with_expression. "
+                "Use orm.with_expression(LabPrep._num_samples, LabPrep.num_samples.expression) "
+                "in your query options."
             )
-        ).count()
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.sample.select(lab_prep_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_samples.expression
     def num_samples(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Sample import Sample
-        from .Library import Library
 
         return sa.select(
-            sa.func.count(sa.distinct(Sample.id))
-        ).join(
-            links.SampleLibraryLink, links.SampleLibraryLink.sample_id == Sample.id
-        ).join(
-            Library, Library.id == links.SampleLibraryLink.library_id
+            sa.func.count(Sample.id)
         ).where(
-            Library.lab_prep_id == cls.id
+            *Q.sample.where_clauses(lab_prep_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_samples: Mapped[int | None] = orm.query_expression()
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
+        if self._num_libraries is not None:
+            return self._num_libraries
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             return len(self.libraries)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_libraries was not populated via with_expression. "
+                "Use orm.with_expression(LabPrep._num_libraries, LabPrep.num_libraries.expression) "
+                "in your query options."
+            )
         
-        from .Library import Library
-        return session.query(sa.func.count(Library.id)).filter(Library.lab_prep_id == self.id).scalar()
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.library.select(lab_prep_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_libraries.expression
     def num_libraries(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Library import Library
         return sa.select(
             sa.func.count(Library.id)
         ).where(
-            Library.lab_prep_id == cls.id
+            *Q.library.where_clauses(lab_prep_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_libraries: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_pools(self) -> int:  # type: ignore[override]
+        if self._num_pools is not None:
+            return self._num_pools
+
         if "pools" not in orm.attributes.instance_state(self).unloaded:
             return len(self.pools)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_pools' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_pools was not populated via with_expression. "
+                "Use orm.with_expression(LabPrep._num_pools, LabPrep.num_pools.expression) "
+                "in your query options."
+            )
         
-        from .Pool import Pool
-        return session.query(sa.func.count(Pool.id)).filter(Pool.lab_prep_id == self.id).scalar()
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.pool.select(lab_prep_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_pools.expression
     def num_pools(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Pool import Pool
         return sa.select(
             sa.func.count(Pool.id)
         ).where(
-            Pool.lab_prep_id == cls.id
+            *Q.pool.where_clauses(lab_prep_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_pools: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_files(self) -> int:  # type: ignore[override]
+        if self._num_files is not None:
+            return self._num_files
+
         if "files" not in orm.attributes.instance_state(self).unloaded:
             return len(self.media_files)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_files' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_files was not populated via with_expression. "
+                "Use orm.with_expression(LabPrep._num_files, LabPrep.num_files.expression) "
+                "in your query options."
+            )
         
-        from .MediaFile import MediaFile
-        return session.query(sa.func.count(MediaFile.id)).filter(MediaFile.lab_prep_id == self.id).scalar()
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.media_file.select(lab_prep_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_files.expression
     def num_files(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .MediaFile import MediaFile
         return sa.select(
             sa.func.count(MediaFile.id)
         ).where(
-            MediaFile.lab_prep_id == cls.id
+            *Q.media_file.where_clauses(lab_prep_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_files: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_comments(self) -> int:  # type: ignore[override]
+        if self._num_comments is not None:
+            return self._num_comments
+
         if "comments" not in orm.attributes.instance_state(self).unloaded:
             return len(self.comments)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_comments' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_comments was not populated via with_expression. "
+                "Use orm.with_expression(LabPrep._num_comments, LabPrep.num_comments.expression) "
+                "in your query options."
+            )
         
-        from .Comment import Comment
-        return session.query(sa.func.count(Comment.id)).filter(Comment.lab_prep_id == self.id).scalar()
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.comment.select(lab_prep_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_comments.expression
     def num_comments(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Comment import Comment
         return sa.select(
             sa.func.count(Comment.id)
         ).where(
-            Comment.lab_prep_id == cls.id
+            *Q.comment.where_clauses(lab_prep_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_comments: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_plates(self) -> int:  # type: ignore[override]
+        if self._num_plates is not None:
+            return self._num_plates
+
         if "plates" not in orm.attributes.instance_state(self).unloaded:
             return len(self.plates)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_plates' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_plates was not populated via with_expression. "
+                "Use orm.with_expression(LabPrep._num_plates, LabPrep.num_plates.expression) "
+                "in your query options."
+            )
         
         from .Plate import Plate
-        return session.query(sa.func.count(Plate.id)).filter(Plate.lab_prep_id == self.id).scalar()
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            sa.select(Plate).where(Plate.lab_prep_id == self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_plates.expression
     def num_plates(cls) -> sa.ScalarSelect[int]:
@@ -300,6 +374,8 @@ class LabPrep(Base):
         ).where(
             Plate.lab_prep_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_plates: Mapped[int | None] = orm.query_expression()
     
     @property
     def checklist_type(self) -> LabChecklistType:

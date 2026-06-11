@@ -57,30 +57,30 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     # )
 
     has_write_access = sa.and_(
-        sa.exists().where(
+        sa.select(1).where(
             Pool.seq_request_id == SeqRequest.id,
             SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
             sa.or_(
                 SeqRequest.requestor_id == user_id,
-                sa.exists().where(
+                sa.select(1).where(
                     (links.UserAffiliation.user_id == user_id),
                     (links.UserAffiliation.group_id == SeqRequest.group_id)
-                )
+                ).correlate_except(links.UserAffiliation).exists()
             )
-        )
+        ).correlate_except(SeqRequest).exists()
     )
 
     has_read_access = sa.and_(
-        sa.exists().where(
+        sa.select(1).where(
             Pool.seq_request_id == SeqRequest.id,
             sa.or_(
                 SeqRequest.requestor_id == user_id,
-                sa.exists().where(
+                sa.select(1).where(
                     (links.UserAffiliation.user_id == user_id),
                     (links.UserAffiliation.group_id == SeqRequest.group_id)
-                )
+                ).correlate_except(links.UserAffiliation).exists()
             )
-        )
+        ).correlate_except(SeqRequest).exists()
     )
 
     return sa.case(
@@ -108,50 +108,20 @@ def select(
     search_owner_name: str | None = None,
     statement: sa.Select[tuple[Pool]] = sa.select(Pool),
 ) -> sa.Select[tuple[Pool]]:
-    if id is not None:
-        statement = statement.where(Pool.id == id)
-    if user_id is not None:
-        statement = statement.where(Pool.owner_id == user_id)
-    if library_id is not None:
-        statement = statement.where(
-            sa.exists().where(
-                (Library.pool_id == Pool.id) &
-                (Library.id == library_id)
-            )
-        )
+    statement = statement.where(*where_clauses(
+        id=id,
+        user_id=user_id,
+        library_id=library_id,
+        experiment_id=experiment_id,
+        lab_prep_id=lab_prep_id,
+        seq_request_id=seq_request_id,
+        associated_to_experiment=associated_to_experiment,
+        status=status,
+        status_in=status_in,
+        library_types_in=library_types_in,
+        type_in=type_in,
+    ))
 
-    if experiment_id is not None:
-        statement = statement.where(Pool.experiment_id == experiment_id)
-
-    if seq_request_id is not None:
-        statement = statement.where(Pool.seq_request_id == seq_request_id)
-
-    if lab_prep_id is not None:
-        statement = statement.where(Pool.lab_prep_id == lab_prep_id)
-
-    if status is not None:
-        statement = statement.where(Pool.status_id == status.id)
-
-    if status_in is not None:
-        statement = statement.where(Pool.status_id.in_([s.id for s in status_in]))
-
-    if type_in is not None:
-        statement = statement.where(Pool.type_id.in_([t.id for t in type_in]))
-
-    if library_types_in is not None:
-        statement = statement.join(
-            Library,
-            Library.pool_id == Pool.id
-        ).where(
-            Library.type_id.in_([lt.id for lt in library_types_in])
-        )
-
-    if associated_to_experiment is not None:
-        if associated_to_experiment:
-            statement = statement.where(Pool.experiment_id.isnot(None))
-        else:
-            statement = statement.where(Pool.experiment_id.is_(None))
-    
     if search_name is not None:
         statement = statement.order_by(sa.func.similarity(Pool.name, search_name).desc())
     if search_owner_name is not None:
@@ -168,3 +138,60 @@ def select(
 
 def permissions(pool_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
     return sa.select(access_level(user_id)).where(Pool.id == pool_id)
+
+
+def where_clauses(
+    id: int | None = None,
+    user_id: int | None = None,
+    library_id: int | None = None,
+    experiment_id: int | None = None,
+    lab_prep_id: int | None = None,
+    seq_request_id: int | None = None,
+    associated_to_experiment: bool | None = None,
+    status: PoolStatus | None = None,
+    status_in: list[PoolStatus] | None = None,
+    library_types_in: list[LibraryType] | None = None,
+    type_in: list[PoolType] | None = None,
+) -> list[sa.ColumnElement[bool]]:
+    """Return WHERE clauses for filtering pools.
+    Reusable in correlated subqueries where .subquery() would break correlation.
+    """
+    clauses: list[sa.ColumnElement[bool]] = []
+
+    if id is not None:
+        clauses.append(Pool.id == id)
+    if user_id is not None:
+        clauses.append(Pool.owner_id == user_id)
+    if library_id is not None:
+        clauses.append(
+            sa.select(1).where(
+                (Library.pool_id == Pool.id) &
+                (Library.id == library_id)
+            ).correlate_except(Library).exists()
+        )
+    if experiment_id is not None:
+        clauses.append(Pool.experiment_id == experiment_id)
+    if seq_request_id is not None:
+        clauses.append(Pool.seq_request_id == seq_request_id)
+    if lab_prep_id is not None:
+        clauses.append(Pool.lab_prep_id == lab_prep_id)
+    if status is not None:
+        clauses.append(Pool.status_id == status.id)
+    if status_in is not None:
+        clauses.append(Pool.status_id.in_([s.id for s in status_in]))
+    if type_in is not None:
+        clauses.append(Pool.type_id.in_([t.id for t in type_in]))
+    if library_types_in is not None:
+        clauses.append(
+            sa.select(1).where(
+                (Library.pool_id == Pool.id) &
+                (Library.type_id.in_([lt.id for lt in library_types_in]))
+            ).correlate_except(Library).exists()
+        )
+    if associated_to_experiment is not None:
+        if associated_to_experiment:
+            clauses.append(Pool.experiment_id.isnot(None))
+        else:
+            clauses.append(Pool.experiment_id.is_(None))
+
+    return clauses

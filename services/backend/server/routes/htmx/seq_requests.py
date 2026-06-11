@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import orm
 
 from opengsync_db import models, AsyncSession, queries as Q, categories as C
@@ -17,7 +17,7 @@ async def recent_seq_requests(
     options = [
         orm.selectinload(models.SeqRequest.assignees),
         orm.selectinload(models.SeqRequest.requestor),
-        orm.with_expression(models.SeqRequest.num_libraries_, models.SeqRequest.num_libraries.expression),
+        orm.with_expression(models.SeqRequest._num_libraries, models.SeqRequest.num_libraries.expression),
     ]
     if current_user.is_insider():        
         query = Q.seq_request.select(

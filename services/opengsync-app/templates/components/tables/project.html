@@ -44,7 +44,7 @@
                 <td>{{ project.status.icon }} {{ project.status.label }}</td>
                 <td>{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</td>
                 <td><a href="{{ url_for('user_page', user_id=project.owner_id) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></a></td>
-                <td>{{ project.num_samples_ }}</td>
+                <td>{{ project.num_samples }}</td>
             </tr>
             {% endfor %}
         </tbody>

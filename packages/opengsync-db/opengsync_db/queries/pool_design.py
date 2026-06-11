@@ -50,17 +50,17 @@ def select(
     if archived is not None:
         if archived:
             statement = statement.where(
-                sa.exists().where(
+                sa.select(1).where(
                     (PoolDesign.flow_cell_design_id == FlowCellDesign.id) &
                     (FlowCellDesign.task_status_id >= TaskStatus.COMPLETED.id)
-                )
+                ).correlate_except(FlowCellDesign).exists()
             )
         else:
             statement = statement.where(
-                sa.exists().where(
+                sa.select(1).where(
                     (PoolDesign.flow_cell_design_id == FlowCellDesign.id) &
                     (FlowCellDesign.task_status_id < TaskStatus.COMPLETED.id)
-                )
+                ).correlate_except(FlowCellDesign).exists()
             )
 
     return statement

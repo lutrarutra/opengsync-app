@@ -283,15 +283,13 @@ class Experiment(Base):
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_dilutions' attribute.")
         
-        from .Pool import Pool
+        from .. import queries as Q
         from .PoolDilution import PoolDilution
         return session.query(sa.func.count(PoolDilution.id)).where(
-            sa.exists().where(
-                sa.and_(
-                    PoolDilution.pool_id == Pool.id,
-                    Pool.experiment_id == self.id
-                )
-            )
+            sa.select(1).where(
+                *Q.pool.where_clauses(experiment_id=self.id),
+                PoolDilution.pool_id == Q.pool.Pool.id
+            ).correlate_except(Q.pool.Pool).exists()
         ).scalar()
     
     @hybrid_property
@@ -299,38 +297,22 @@ class Experiment(Base):
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_projects' attribute.")
         
+        from .. import queries as Q
         from .Project import Project
-        from .Sample import Sample
-        from .Library import Library
 
         return session.query(sa.func.count(Project.id)).where(
-            sa.exists().where(
-                sa.and_(
-                    Sample.project_id == Project.id,
-                    links.SampleLibraryLink.sample_id == Sample.id,
-                    Library.id == links.SampleLibraryLink.library_id,
-                    Library.experiment_id == self.id,
-                )
-            )
+            *Q.project.where_clauses(experiment_id=self.id)
         ).scalar()
     
     @num_projects.expression
     def num_projects(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Project import Project
-        from .Sample import Sample
-        from .Library import Library
 
         return sa.select(
             sa.func.count(Project.id)
         ).where(
-            sa.exists().where(
-                sa.and_(
-                    Sample.project_id == Project.id,
-                    links.SampleLibraryLink.sample_id == Sample.id,
-                    Library.id == links.SampleLibraryLink.library_id,
-                    Library.experiment_id == cls.id,
-                )
-            )
+            *Q.project.where_clauses(experiment_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
@@ -352,8 +334,8 @@ class Experiment(Base):
             DataPath.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
-    @hybrid_property
-    def lane_pooling_table(self) -> Optional["MediaFile"]:
+    @property
+    def lane_pooling_table(self) -> "MediaFile | None":
         if "lane_pooling_tables" not in orm.attributes.instance_state(self).unloaded:
             return self.lane_pooling_tables[0] if len(self.lane_pooling_tables) > 0 else None
         
@@ -365,8 +347,8 @@ class Experiment(Base):
             MediaFile.type_id == MediaFileType.LANE_POOLING_TABLE.id
         ).order_by(MediaFile.id.desc()).first()
     
-    @hybrid_property
-    def sequencer_loading_checklist(self) -> Optional["MediaFile"]:
+    @property
+    def sequencer_loading_checklist(self) -> "MediaFile | None":
         if "sequencer_loading_checklist" not in orm.attributes.instance_state(self).unloaded:
             return self.sequencer_loading_checklists[0] if len(self.sequencer_loading_checklists) > 0 else None
         

@@ -101,36 +101,78 @@ class Pool(Base):
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
+        if self._num_libraries is not None:
+            return self._num_libraries
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             return len(self.libraries)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
-        from .Library import Library
-        return session.query(sa.func.count(Library.id)).filter(Library.pool_id == self.id).scalar()
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_libraries was not populated via with_expression. "
+                "Use orm.with_expression(Pool._num_libraries, Pool.num_libraries.expression) "
+                "in your query options."
+            )
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.library.select(pool_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_libraries.expression
     def num_libraries(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Library import Library
         return sa.select(
             sa.func.count(Library.id)
         ).where(
-            Library.pool_id == cls.id
+            *Q.library.where_clauses(pool_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
-    
+
+    _num_libraries: Mapped[int | None] = orm.query_expression()
+
+    _library_types: Mapped[list[int] | None] = orm.query_expression()
+
     @hybrid_property
-    def library_types(self) -> list[LibraryType]:
+    def library_types(self) -> list[LibraryType]:  # type: ignore[override]
+        if self._library_types is not None:
+            return [LibraryType.get(type_id) for type_id in self._library_types]
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
                 types.add(lib.type_id)
-
             return [LibraryType.get(type_id) for type_id in sorted(types)]
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_types was not populated via with_expression. "
+                "Use orm.with_expression(Pool._library_types, Pool.library_types.expression) "
+                "in your query options."
+            )
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_types' attribute.")
+
+        from .. import queries as Q
+        result = session.scalar(sa.select(sa.func.array_agg(sa.distinct(Library.type_id))).select_from(
+            Q.library.select(pool_id=self.id).subquery()
+        ))
+        if result is None:
+            return []
+        return [LibraryType.get(type_id) for type_id in result]
+
+    @library_types.expression
+    def library_types(cls):
+        from .. import queries as Q
         from .Library import Library
-        type_ids = session.query(Library.type_id).filter(Library.pool_id == self.id).distinct().order_by(Library.type_id).all()
-        return [LibraryType.get(type_id) for (type_id,) in type_ids]
+        return sa.select(
+            sa.func.array_agg(sa.distinct(Library.type_id))
+        ).where(
+            *Q.library.where_clauses(pool_id=cls.id)
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property
     def status(self) -> PoolStatus:

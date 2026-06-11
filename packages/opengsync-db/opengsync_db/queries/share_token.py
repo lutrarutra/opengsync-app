@@ -18,10 +18,28 @@ def create(
 def select(
     uuid: str | None = None,
     owner: User | None = None,
+    owner_id: int | None = None,
     statement: sa.Select[tuple[ShareToken]] = sa.select(ShareToken),
 ) -> sa.Select[tuple[ShareToken]]:
-    if uuid is not None:
-        statement = statement.where(ShareToken.uuid == uuid)
-    if owner is not None:
-        statement = statement.where(ShareToken.owner_id == owner.id)
+    statement = statement.where(*where_clauses(uuid=uuid, owner=owner, owner_id=owner_id))
     return statement
+
+
+def where_clauses(
+    uuid: str | None = None,
+    owner: User | None = None,
+    owner_id: int | None = None,
+) -> list[sa.ColumnElement[bool]]:
+    """Return WHERE clauses for filtering share tokens.
+    Reusable in correlated subqueries where .subquery() would break correlation.
+    """
+    clauses: list[sa.ColumnElement[bool]] = []
+
+    if uuid is not None:
+        clauses.append(ShareToken.uuid == uuid)
+    if owner is not None:
+        clauses.append(ShareToken.owner_id == owner.id)
+    if owner_id is not None:
+        clauses.append(ShareToken.owner_id == owner_id)
+
+    return clauses

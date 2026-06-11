@@ -24,22 +24,18 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
     )
 
     has_write_access = sa.select(1).where(
-        sa.exists().where(
-            (links.UserAffiliation.user_id == user_id) &
-            (links.UserAffiliation.group_id == Group.id) &
-            sa.or_(
-                (links.UserAffiliation.affiliation_type_id == AffiliationType.OWNER.id),
-                (links.UserAffiliation.affiliation_type_id == AffiliationType.MANAGER.id)
-            )
+        (links.UserAffiliation.user_id == user_id) &
+        (links.UserAffiliation.group_id == Group.id) &
+        sa.or_(
+            (links.UserAffiliation.affiliation_type_id == AffiliationType.OWNER.id),
+            (links.UserAffiliation.affiliation_type_id == AffiliationType.MANAGER.id)
         )
-    )
+    ).correlate_except(links.UserAffiliation)
 
     has_read_access = sa.select(1).where(
-        sa.exists().where(
-            (links.UserAffiliation.user_id == user_id) &
-            (links.UserAffiliation.group_id == Group.id)
-        )
-    )
+        (links.UserAffiliation.user_id == user_id) &
+        (links.UserAffiliation.group_id == Group.id)
+    ).correlate_except(links.UserAffiliation)
 
     return sa.case(
         (sa.exists(is_admin), AccessLevel.ADMIN),
@@ -62,10 +58,10 @@ def select(
         statement = statement.where(Group.id == id)
     if user is not None:
         statement = statement.where(
-            sa.exists().where(
+            sa.select(1).where(
                 (links.UserAffiliation.user_id == user.id) &
                 (links.UserAffiliation.group_id == Group.id)
-            )
+            ).correlate_except(links.UserAffiliation).exists()
         )
     if name is not None:
         statement = statement.where(Group.name == name)

@@ -141,209 +141,330 @@ class SeqRequest(Base):
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'projects' attribute.")
         
+        from .. import queries as Q
         from .Project import Project
-        from .Sample import Sample
-        from .Library import Library
 
         return session.query(Project).where(
-            sa.exists().where(
-                (Sample.project_id == Project.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.seq_request_id == self.id)
-            )
+            *Q.project.where_clauses(seq_request_id=self.id)
         ).all()
     
     @hybrid_property
-    def num_projects(self) -> int:  # type: ignore[override]        
+    def num_projects(self) -> int:  # type: ignore[override]
+        if self._num_projects is not None:
+            return self._num_projects
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_projects.")
 
-        from .Project import Project
-        from .Sample import Sample
-        from .Library import Library
-
-        return session.query(sa.func.count(sa.distinct(Project.id))).where(
-            sa.exists().where(
-                (Sample.project_id == Project.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.seq_request_id == self.id)
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_projects was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._num_projects, SeqRequest.num_projects.expression) "
+                "in your query options."
             )
-        ).scalar()
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.project.select(seq_request_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_projects.expression
     def num_projects(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Project import Project
-        from .Sample import Sample
-        from .Library import Library
 
         return sa.select(
             sa.func.count(sa.distinct(Project.id))
         ).where(
-            sa.exists().where(
-                (Sample.project_id == Project.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.seq_request_id == cls.id)
-            )
+            *Q.project.where_clauses(seq_request_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
+        if self._num_libraries is not None:
+            return self._num_libraries
+        
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             return len(self.libraries)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_libraries.")
 
-        from .Library import Library
-        return session.query(sa.func.count(Library.id)).filter(Library.seq_request_id == self.id).scalar()
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_libraries was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._num_libraries, SeqRequest.num_libraries.expression) "
+                "in your query options."
+            )
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.library.select(seq_request_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_libraries.expression
     def num_libraries(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Library import Library
         return sa.select(
             sa.func.count(Library.id)
         ).where(
-            Library.seq_request_id == cls.id
+            *Q.library.where_clauses(seq_request_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
     def num_pools(self) -> int:  # type: ignore[override]
+        if self._num_pools is not None:
+            return self._num_pools
+
         if "pools" not in orm.attributes.instance_state(self).unloaded:
             return len(self.pools)
-        
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_pools.")
-        from .Pool import Pool
-        return session.query(sa.func.count(Pool.id)).filter(Pool.seq_request_id == self.id).scalar()
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_pools was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._num_pools, SeqRequest.num_pools.expression) "
+                "in your query options."
+            )
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.pool.select(seq_request_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_pools.expression
     def num_pools(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Pool import Pool
         return sa.select(
             sa.func.count(Pool.id)
         ).where(
-            Pool.seq_request_id == cls.id
+            *Q.pool.where_clauses(seq_request_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]
+        if self._num_samples is not None:
+            return self._num_samples
+
         if "samples" not in orm.attributes.instance_state(self).unloaded:
             return len(self.samples)
-        
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_samples.")
-        from .Sample import Sample
-        from .Library import Library
-        return session.query(sa.func.count(Sample.id)).where(
-            sa.exists().where(
-                sa.and_(
-                    links.SampleLibraryLink.sample_id == Sample.id,
-                    Library.id == links.SampleLibraryLink.library_id,
-                    Library.seq_request_id == self.id
-                )
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_samples was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._num_samples, SeqRequest.num_samples.expression) "
+                "in your query options."
             )
-        ).scalar()
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.sample.select(seq_request_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_samples.expression
     def num_samples(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Sample import Sample
-        from .Library import Library
         return sa.select(
             sa.func.count(Sample.id)
         ).where(
-            sa.exists().where(
-                sa.and_(
-                    links.SampleLibraryLink.sample_id == Sample.id,
-                    Library.id == links.SampleLibraryLink.library_id,
-                    Library.seq_request_id == cls.id
-                )
+            *Q.sample.where_clauses(seq_request_id=cls.id)
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_assignees: Mapped[int | None] = orm.query_expression()
+
+    @hybrid_property
+    def num_assignees(self) -> int:  # type: ignore[override]
+        if self._num_assignees is not None:
+            return self._num_assignees
+
+        if "assignees" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.assignees)
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_assignees was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._num_assignees, SeqRequest.num_assignees.expression) "
+                "in your query options."
             )
+
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_assignees.")
+
+        from .User import User
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            sa.select(User).join(
+                links.SeqRequestAssigneeLink,
+                links.SeqRequestAssigneeLink.user_id == User.id
+            ).where(
+                links.SeqRequestAssigneeLink.seq_request_id == self.id
+            ).subquery()
+        ))  # type: ignore[return-value]
+
+    @num_assignees.expression
+    def num_assignees(cls) -> sa.ScalarSelect[int]:
+        from .User import User
+        return sa.select(
+            sa.func.count(User.id)
+        ).where(
+            sa.select(1).where(
+                (links.SeqRequestAssigneeLink.user_id == User.id) &
+                (links.SeqRequestAssigneeLink.seq_request_id == cls.id)
+            ).correlate_except(links.SeqRequestAssigneeLink).exists()
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
-    def num_assignees(self) -> int:  # type: ignore[override]
-        if "assignees" not in orm.attributes.instance_state(self).unloaded:
-            return len(self.assignees)
-        if (session := orm.object_session(self)) is None:
-            raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_assignees.")
-        from .User import User
-        return session.query(sa.func.count(User.id)).join(links.SeqRequestAssigneeLink
-        ).filter(links.SeqRequestAssigneeLink.seq_request_id == self.id).scalar()
-    
-    @hybrid_property
     def num_comments(self) -> int:  # type: ignore[override]
+        if self._num_comments is not None:
+            return self._num_comments
+
         if "comments" not in orm.attributes.instance_state(self).unloaded:
             return len(self.comments)
-        
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_comments.")
-        from .Comment import Comment
-        return session.query(sa.func.count(Comment.id)).filter(Comment.seq_request_id == self.id).scalar()
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_comments was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._num_comments, SeqRequest.num_comments.expression) "
+                "in your query options."
+            )
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.comment.select(seq_request_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_comments.expression
     def num_comments(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Comment import Comment
         return sa.select(
             sa.func.count(Comment.id)
         ).where(
-            Comment.seq_request_id == cls.id
+            *Q.comment.where_clauses(seq_request_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
     def num_files(self) -> int:  # type: ignore[override]
+        if self._num_files is not None:
+            return self._num_files
+
         if "files" not in orm.attributes.instance_state(self).unloaded:
             return len(self.media_files)
-        
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_files.")
-        from .MediaFile import MediaFile
-        return session.query(sa.func.count(MediaFile.id)).filter(MediaFile.seq_request_id == self.id).scalar()
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_files was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._num_files, SeqRequest.num_files.expression) "
+                "in your query options."
+            )
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.media_file.select(seq_request_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_files.expression
     def num_files(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .MediaFile import MediaFile
         return sa.select(
             sa.func.count(MediaFile.id)
         ).where(
-            MediaFile.seq_request_id == cls.id
+            *Q.media_file.where_clauses(seq_request_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @hybrid_property
     def num_data_paths(self) -> int:  # type: ignore[override]
+        if self._num_data_paths is not None:
+            return self._num_data_paths
+
         if "data_paths" not in orm.attributes.instance_state(self).unloaded:
             return len(self.data_paths)
-        
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_data_paths.")
-        from .DataPath import DataPath
-        return session.query(sa.func.count(DataPath.id)).filter(DataPath.seq_request_id == self.id).scalar()
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_data_paths was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._num_data_paths, SeqRequest.num_data_paths.expression) "
+                "in your query options."
+            )
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.data_path.select(seq_request_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_data_paths.expression
     def num_data_paths(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .DataPath import DataPath
         return sa.select(
             sa.func.count(DataPath.id)
         ).where(
-            DataPath.seq_request_id == cls.id
+            *Q.data_path.where_clauses(seq_request_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
-    
-    @property
-    def library_types(self) -> list[LibraryType]:
+
+    _library_types: Mapped[list[int] | None] = orm.query_expression()
+
+    @hybrid_property
+    def library_types(self) -> list[LibraryType]:  # type: ignore[override]
+        if self._library_types is not None:
+            return [LibraryType.get(type_id) for type_id in self._library_types]
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
                 types.add(lib.type_id)
-
             return [LibraryType.get(type_id) for type_id in sorted(types)]
-        
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_types was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._library_types, SeqRequest.library_types.expression) "
+                "in your query options."
+            )
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_types' attribute.")
+
+        from .. import queries as Q
         from .Library import Library
-        type_ids = session.query(Library.type_id).filter(Library.seq_request_id == self.id).distinct().order_by(Library.type_id).all()
-        return [LibraryType.get(type_id) for (type_id,) in type_ids]
+        result = session.scalar(sa.select(
+            sa.func.array_agg(sa.distinct(Library.type_id))
+        ).select_from(
+            Q.library.select(seq_request_id=self.id).subquery()
+        ))
+        if result is None:
+            return []
+        return [LibraryType.get(type_id) for type_id in result]
+
+    @library_types.expression
+    def library_types(cls):
+        from .. import queries as Q
+        from .Library import Library
+        return sa.select(
+            sa.func.coalesce(
+                sa.func.array_agg(sa.distinct(Library.type_id)),
+                sa.cast(sa.text("'{}'"), sa.ARRAY(sa.Integer))
+            )
+        ).where(
+            *Q.library.where_clauses(seq_request_id=cls.id)
+        ).order_by(Library.type_id).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @property
     def mux_types(self) -> list[MUXType]:
@@ -381,13 +502,27 @@ class SeqRequest(Base):
     
     @hybrid_property
     def num_delivery_email_links(self) -> int:  # type: ignore[override]
+        if self._num_delivery_email_links is not None:
+            return self._num_delivery_email_links
+
         if "delivery_email_links" not in orm.attributes.instance_state(self).unloaded:
             return len(self.delivery_email_links)
-        
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_delivery_email_links.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_delivery_email_links was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._num_delivery_email_links, SeqRequest.num_delivery_email_links.expression) "
+                "in your query options."
+            )
         
-        return session.query(links.SeqRequestDeliveryEmailLink).where(links.SeqRequestDeliveryEmailLink.seq_request_id == self.id).count()
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            sa.select(links.SeqRequestDeliveryEmailLink).where(
+                links.SeqRequestDeliveryEmailLink.seq_request_id == self.id
+            ).subquery()
+        ))  # type: ignore[return-value]
     
     @num_delivery_email_links.expression
     def num_delivery_email_links(cls) -> sa.ScalarSelect[int]:
@@ -483,7 +618,14 @@ class SeqRequest(Base):
     def identifier(self) -> str:
         return f"BSR_{self.id:04d}"
     
-    num_libraries_ = orm.query_expression()
+    _num_libraries: Mapped[int | None] = orm.query_expression()
+    _num_projects: Mapped[int | None] = orm.query_expression()
+    _num_pools: Mapped[int | None] = orm.query_expression()
+    _num_samples: Mapped[int | None] = orm.query_expression()
+    _num_comments: Mapped[int | None] = orm.query_expression()
+    _num_files: Mapped[int | None] = orm.query_expression()
+    _num_data_paths: Mapped[int | None] = orm.query_expression()
+    _num_delivery_email_links: Mapped[int | None] = orm.query_expression()
     
     __table_args__ = (
         sa.Index(

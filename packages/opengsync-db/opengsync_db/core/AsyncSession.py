@@ -1,4 +1,4 @@
-from typing import Any, Sequence, AsyncIterator
+from typing import TYPE_CHECKING, Any, Sequence, AsyncIterator
 
 import sqlalchemy as sa
 from sqlalchemy import exc as sa_exc
@@ -6,8 +6,10 @@ from sqlalchemy import sql
 from sqlalchemy.ext.asyncio import AsyncSession as SQLAlchemyAsyncSession
 
 from . import utils
-from .blueprints.PandasBP import PandasBP
 from .exceptions import ModelNotFoundException
+
+if TYPE_CHECKING:
+    from .blueprints.AsyncPandasBP import AsyncPandas
 
 class _DefaultLimitSentinel(int):
     pass
@@ -15,10 +17,19 @@ class _DefaultLimitSentinel(int):
 DEFAULT_LIMIT = _DefaultLimitSentinel()
 
 class AsyncSession(SQLAlchemyAsyncSession):
-    def __init__(self, *args, default_limit: int, pd: PandasBP, **kwargs):
+    def __init__(self, *args, default_limit: int, **kwargs):
         self.default_limit = default_limit
-        self.pd = pd
+        self._pd: "AsyncPandas | None" = None
         super().__init__(*args, **kwargs)
+        # Tag the internal sync session so hybrid properties can detect async context
+        self.sync_session._is_async_context = True  # type: ignore[attr-defined]
+
+    @property
+    def pd(self) -> "AsyncPandas":
+        if self._pd is None:
+            from .blueprints.AsyncPandasBP import AsyncPandas
+            self._pd = AsyncPandas(self)
+        return self._pd
 
     async def get_all(
         self,

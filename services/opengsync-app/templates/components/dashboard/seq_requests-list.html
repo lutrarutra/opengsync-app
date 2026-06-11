@@ -22,7 +22,7 @@ hx-get="{{ url_for('recent_seq_requests', page=current_page + 1) }}" hx-trigger=
     </div>
     <div class="row pb-1">
         <div class="col-8"><b>{{ seq_request.requestor.name }}</b>: <i>{{ seq_request.name }}</i></div>
-        <div class="col-4"><span class="badge">Libraries: {{ seq_request.num_libraries_ }}</span></div>
+        <div class="col-4"><span class="badge">Libraries: {{ seq_request.num_libraries }}</span></div>
     </div>
     {{ seq_request_status_bar(seq_request) }}
 </div>

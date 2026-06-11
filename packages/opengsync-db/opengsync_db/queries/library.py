@@ -58,29 +58,27 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
     )
 
     has_write_access = sa.select(1).where(
-        sa.and_(
-            SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
-            sa.or_(
-                SeqRequest.requestor_id == user_id,
-                sa.exists().where(
-                    (links.UserAffiliation.user_id == user_id) &
-                    (links.UserAffiliation.group_id == SeqRequest.group_id) &
-                    (Library.seq_request_id == SeqRequest.id)
-                )
-            )
-        ),
-    )
-
-    has_read_access = sa.select(1).where(
+        Library.seq_request_id == SeqRequest.id,
+        SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
         sa.or_(
             SeqRequest.requestor_id == user_id,
-            sa.exists().where(
+            sa.select(1).where(
                 (links.UserAffiliation.user_id == user_id) &
-                (links.UserAffiliation.group_id == SeqRequest.group_id) &
-                (Library.seq_request_id == SeqRequest.id)
-            )
+                (links.UserAffiliation.group_id == SeqRequest.group_id)
+            ).correlate_except(links.UserAffiliation).exists()
         )
-    )
+    ).correlate_except(SeqRequest)
+
+    has_read_access = sa.select(1).where(
+        Library.seq_request_id == SeqRequest.id,
+        sa.or_(
+            SeqRequest.requestor_id == user_id,
+            sa.select(1).where(
+                (links.UserAffiliation.user_id == user_id) &
+                (links.UserAffiliation.group_id == SeqRequest.group_id)
+            ).correlate_except(links.UserAffiliation).exists()
+        )
+    ).correlate_except(SeqRequest)
 
     return sa.case(
         (sa.exists(is_admin), AccessLevel.ADMIN),
@@ -92,10 +90,13 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
 
 def select(
     id: int | None = None,
-    user_id: int | None = None, sample_id: int | None = None,
-    experiment_id: int | None = None, seq_request_id: int | None = None,
+    user_id: int | None = None,
+    sample_id: int | None = None,
+    experiment_id: int | None = None,
+    seq_request_id: int | None = None,
     service_type: ServiceType | None = None,
-    pool_id: int | None = None, lab_prep_id: int | None = None,
+    pool_id: int | None = None,
+    lab_prep_id: int | None = None,
     in_lab_prep: bool | None = None,
     project_id: int | None = None,
     type_in: list[LibraryType] | None = None,
@@ -105,63 +106,23 @@ def select(
     search_pool_name: str | None = None,
     statement: sa.Select[tuple[Library]] = sa.select(Library),
 ) -> sa.Select[tuple[Library]]:
-    if id is not None:
-        statement = statement.where(Library.id == id)
-    if user_id is not None:
-        statement = statement.where(Library.owner_id == user_id)
 
-    if seq_request_id is not None:
-        statement = statement.where(Library.seq_request_id == seq_request_id)
-
-    if sample_id is not None:
-        statement = statement.where(
-            sa.exists().where(
-                (links.SampleLibraryLink.sample_id == sample_id) &
-                (Library.id == links.SampleLibraryLink.library_id)
-            )
-        )
-
-    if project_id is not None:
-        statement = statement.where(
-            sa.exists().where(
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Sample.project_id == project_id)
-            )
-        )
-
-    if experiment_id is not None:
-        statement = statement.where(Library.experiment_id == experiment_id)
-
-    if pooled is not None:
-        if pooled:
-            statement = statement.where(Library.pool_id.is_not(None))
-        else:
-            statement = statement.where(Library.pool_id.is_(None))
-
-    if status is not None:
-        statement = statement.where(Library.status_id == status.id)
-
-    if pool_id is not None:
-        statement = statement.where(Library.pool_id == pool_id)
-
-    if service_type is not None:
-        statement = statement.where(Library.service_type_id == service_type.id)
-
-    if lab_prep_id is not None:
-        statement = statement.where(Library.lab_prep_id == lab_prep_id)
-
-    if in_lab_prep is not None:
-        if in_lab_prep:
-            statement = statement.where(Library.lab_prep_id != None) # noqa
-        else:
-            statement = statement.where(Library.lab_prep_id == None) # noqa
-
-    if type_in is not None:
-        statement = statement.where(Library.type_id.in_([t.id for t in type_in]))
-
-    if status_in is not None:
-        statement = statement.where(Library.status_id.in_([s.id for s in status_in]))
+    statement = statement.where(*where_clauses(
+        id=id,
+        user_id=user_id,
+        sample_id=sample_id,
+        experiment_id=experiment_id,
+        seq_request_id=seq_request_id,
+        service_type=service_type,
+        pool_id=pool_id,
+        lab_prep_id=lab_prep_id,
+        in_lab_prep=in_lab_prep,
+        project_id=project_id,
+        type_in=type_in,
+        status_in=status_in,
+        pooled=pooled,
+        status=status,
+    ))
 
     if search_name is not None:
         statement = statement.where(Library.name.ilike(f"%{search_name}%"))
@@ -174,3 +135,73 @@ def select(
 
 def permissions(library_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
     return sa.select(access_level(user_id)).where(Library.id == library_id)
+
+
+def where_clauses(
+    id: int | None = None,
+    user_id: int | None = None,
+    sample_id: int | None = None,
+    experiment_id: int | None = None,
+    seq_request_id: int | None = None,
+    service_type: ServiceType | None = None,
+    pool_id: int | None = None,
+    lab_prep_id: int | None = None,
+    in_lab_prep: bool | None = None,
+    project_id: int | None = None,
+    type_in: list[LibraryType] | None = None,
+    status_in: list[LibraryStatus] | None = None,
+    pooled: bool | None = None,
+    status: LibraryStatus | None = None,
+) -> list[sa.ColumnElement[bool]]:
+    """Return WHERE clauses for filtering libraries.
+    Reusable in correlated subqueries where .subquery() would break correlation.
+    """
+    clauses: list[sa.ColumnElement[bool]] = []
+
+    if id is not None:
+        clauses.append(Library.id == id)
+    if user_id is not None:
+        clauses.append(Library.owner_id == user_id)
+    if seq_request_id is not None:
+        clauses.append(Library.seq_request_id == seq_request_id)
+    if sample_id is not None:
+        clauses.append(
+            sa.select(1).where(
+                (links.SampleLibraryLink.sample_id == sample_id),
+                (Library.id == links.SampleLibraryLink.library_id)
+            ).correlate_except(links.SampleLibraryLink).exists()
+        )
+    if project_id is not None:
+        clauses.append(
+            sa.select(1).where(
+                (links.SampleLibraryLink.sample_id == Sample.id),
+                (Library.id == links.SampleLibraryLink.library_id),
+                (Sample.project_id == project_id)
+            ).correlate_except(Sample, links.SampleLibraryLink).exists()
+        )
+    if experiment_id is not None:
+        clauses.append(Library.experiment_id == experiment_id)
+    if pooled is not None:
+        if pooled:
+            clauses.append(Library.pool_id.is_not(None))
+        else:
+            clauses.append(Library.pool_id.is_(None))
+    if status is not None:
+        clauses.append(Library.status_id == status.id)
+    if pool_id is not None:
+        clauses.append(Library.pool_id == pool_id)
+    if service_type is not None:
+        clauses.append(Library.service_type_id == service_type.id)
+    if lab_prep_id is not None:
+        clauses.append(Library.lab_prep_id == lab_prep_id)
+    if in_lab_prep is not None:
+        if in_lab_prep:
+            clauses.append(Library.lab_prep_id != None)  # noqa
+        else:
+            clauses.append(Library.lab_prep_id == None)  # noqa
+    if type_in is not None:
+        clauses.append(Library.type_id.in_([t.id for t in type_in]))
+    if status_in is not None:
+        clauses.append(Library.status_id.in_([s.id for s in status_in]))
+
+    return clauses

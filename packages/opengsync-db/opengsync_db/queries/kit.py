@@ -45,24 +45,24 @@ def select(
 
     if protocol is not None:
         statement = statement.where(
-            sa.exists().where(
+            sa.select(1).where(
                 (links.ProtocolKitLink.protocol_id == protocol.id) &
                 (links.ProtocolKitLink.kit_id == Kit.id)
-            )
+            ).correlate_except(links.ProtocolKitLink).exists()
         )
     elif protocol_id is not None:
         statement = statement.where(
-            sa.exists().where(
+            sa.select(1).where(
                 (links.ProtocolKitLink.protocol_id == protocol_id) &
                 (links.ProtocolKitLink.kit_id == Kit.id)
-            )
+            ).correlate_except(links.ProtocolKitLink).exists()
         )
     if not_in_protocol is not None:
         statement = statement.where(
-            ~sa.exists().where(
+            ~sa.select(1).where(
                 (links.ProtocolKitLink.protocol_id == not_in_protocol.id) &
                 (links.ProtocolKitLink.kit_id == Kit.id)
-            )
+            ).correlate_except(links.ProtocolKitLink).exists()
         )
 
     if search_name is not None:

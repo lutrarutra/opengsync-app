@@ -30,14 +30,14 @@
                 hx-swap="innerHTML" hx-trigger="click">
                 Edit Project
             </button>
-            <a type="button" class="btn btn-primary" href="{{ url_for('projects_htmx.export', project_id=project.id) }}">
+            <a type="button" class="btn btn-primary" href="{{ url_for('export_project_data', project_id=project.id) }}">
                 Export Project
             </a>
             {{
                 confirm_action_button(
                     text="Delete Project",
                     title='Delete project ' + project.title,
-                    url=url_for('projects_htmx.delete', project_id=project.id),
+                    url=url_for('delete_project', project_id=project.id),
                     color="danger",
                     method="hx-delete",
                     disabled_tooltip="Non-empty project cannot be deleted.",

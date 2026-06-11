@@ -31,7 +31,8 @@ from . import (
     comment,
     contact,
     pool_dilution,
-    library_index
+    library_index,
+    pd,
 )
 
 __all__ = [
@@ -70,4 +71,5 @@ __all__ = [
     "contact",
     "pool_dilution",
     "library_index",
+    "pd",
 ]

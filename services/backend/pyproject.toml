@@ -31,6 +31,7 @@ dependencies = [
     "taskiq",
     "proxmoxer",
     "fastapi-cache2",
+    "openpyxl",
 ]
 
 [tool.setuptools_scm]

@@ -114,85 +114,108 @@ class Library(Base):
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]
+        if self._num_samples is not None:
+            return self._num_samples
+
         if "sample_links" not in orm.attributes.instance_state(self).unloaded:
             return len(self.sample_links)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_samples' attribute.")
         
-        from .Sample import Sample
-        return session.query(sa.func.count(Sample.id)).where(
-            sa.exists().where(
-                sa.and_(
-                    Sample.id == links.SampleLibraryLink.sample_id,
-                    links.SampleLibraryLink.library_id == self.id
-                )
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_samples was not populated via with_expression. "
+                "Use orm.with_expression(Library._num_samples, Library.num_samples.expression) "
+                "in your query options."
             )
-        ).scalar()
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.sample.select(library_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_samples.expression
     def num_samples(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Sample import Sample
         return sa.select(
             sa.func.count(Sample.id)
         ).where(
-            sa.exists().where(
-                sa.and_(
-                    Sample.id == links.SampleLibraryLink.sample_id,
-                    links.SampleLibraryLink.library_id == cls.id
-                )
-            )
+            *Q.sample.where_clauses(library_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_samples: Mapped[int | None] = orm.query_expression()
 
     @hybrid_property
     def num_features(self) -> int:  # type: ignore[override]
+        if self._num_features is not None:
+            return self._num_features
+
         if "features" not in orm.attributes.instance_state(self).unloaded:
             return len(self.features)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_features' attribute.")
-        from .Feature import Feature
-        return session.query(sa.func.count(Feature.id)).where(
-            sa.exists().where(
-                sa.and_(
-                    Feature.id == links.LibraryFeatureLink.feature_id,
-                    links.LibraryFeatureLink.library_id == self.id
-                )
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_features was not populated via with_expression. "
+                "Use orm.with_expression(Library._num_features, Library.num_features.expression) "
+                "in your query options."
             )
-        ).scalar()
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.feature.select(library_id=self.id).subquery()
+        ))  # type: ignore[return-value]
 
     @num_features.expression
     def num_features(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Feature import Feature
         return sa.select(
             sa.func.count(Feature.id)
         ).where(
-            sa.exists().where(
-                sa.and_(
-                    Feature.id == links.LibraryFeatureLink.feature_id,
-                    links.LibraryFeatureLink.library_id == cls.id
-                )
-            )
+            *Q.feature.where_clauses(library_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_features: Mapped[int | None] = orm.query_expression()
 
     @hybrid_property
     def num_data_paths(self) -> int:  # type: ignore[override]
+        if self._num_data_paths is not None:
+            return self._num_data_paths
+
         if "data_paths" not in orm.attributes.instance_state(self).unloaded:
             return len(self.data_paths)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_data_paths' attribute.")
-        from .DataPath import DataPath
-        return session.query(sa.func.count(DataPath.id)).filter(DataPath.library_id == self.id).scalar()
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_data_paths was not populated via with_expression. "
+                "Use orm.with_expression(Library._num_data_paths, Library.num_data_paths.expression) "
+                "in your query options."
+            )
+
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.data_path.select(library_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_data_paths.expression
     def num_data_paths(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .DataPath import DataPath
         return sa.select(
             sa.func.count(DataPath.id)
         ).where(
-            DataPath.library_id == cls.id
+            *Q.data_path.where_clauses(library_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_data_paths: Mapped[int | None] = orm.query_expression()
 
     @property
     def status(self) -> LibraryStatus:

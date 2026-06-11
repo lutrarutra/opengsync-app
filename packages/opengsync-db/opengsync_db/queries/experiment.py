@@ -43,26 +43,10 @@ def select(
     search_operator_name: str | None = None,
     statement: sa.Select[tuple[Experiment]] = sa.select(Experiment),
 ) -> sa.Select[tuple[Experiment]]:
-    if id is not None:
-        statement = statement.where(Experiment.id == id)
-    if name is not None:
-        statement = statement.where(Experiment.name == name)
-    if status is not None:
-        statement = statement.where(Experiment.status_id == status.id)
-    if status_in is not None:
-        statement = statement.where(Experiment.status_id.in_([s.id for s in status_in]))
-    if workflow_in is not None:
-        statement = statement.where(Experiment.workflow_id.in_([w.id for w in workflow_in]))
-    if project_id is not None:
-        statement = statement.where(
-            sa.exists().where(
-                (Project.id == project_id) &
-                (Sample.project_id == Project.id) &
-                (links.SampleLibraryLink.sample_id == Sample.id) &
-                (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.experiment_id == Experiment.id)
-            )
-        )
+    statement = statement.where(*where_clauses(
+        id=id, name=name, status=status, project_id=project_id,
+        status_in=status_in, workflow_in=workflow_in,
+    ))
 
     if search_name is not None:
         statement = statement.order_by(sa.func.similarity(Experiment.name, search_name).desc())
@@ -74,3 +58,40 @@ def select(
         )
     
     return statement
+
+
+def where_clauses(
+    id: int | None = None,
+    name: str | None = None,
+    status: ExperimentStatus | None = None,
+    project_id: int | None = None,
+    status_in: list[ExperimentStatus] | None = None,
+    workflow_in: list[ExperimentWorkFlow] | None = None,
+) -> list[sa.ColumnElement[bool]]:
+    """Return WHERE clauses for filtering experiments.
+    Reusable in correlated subqueries where .subquery() would break correlation.
+    """
+    clauses: list[sa.ColumnElement[bool]] = []
+
+    if id is not None:
+        clauses.append(Experiment.id == id)
+    if name is not None:
+        clauses.append(Experiment.name == name)
+    if status is not None:
+        clauses.append(Experiment.status_id == status.id)
+    if status_in is not None:
+        clauses.append(Experiment.status_id.in_([s.id for s in status_in]))
+    if workflow_in is not None:
+        clauses.append(Experiment.workflow_id.in_([w.id for w in workflow_in]))
+    if project_id is not None:
+        clauses.append(
+            sa.select(1).where(
+                (Project.id == project_id) &
+                (Sample.project_id == Project.id) &
+                (links.SampleLibraryLink.sample_id == Sample.id) &
+                (Library.id == links.SampleLibraryLink.library_id) &
+                (Library.experiment_id == Experiment.id)
+            ).correlate_except(Project, Sample, links.SampleLibraryLink, Library).exists()
+        )
+
+    return clauses

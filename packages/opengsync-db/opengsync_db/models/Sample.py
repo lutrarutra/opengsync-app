@@ -80,35 +80,38 @@ class Sample(Base):
 
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
+        if self._num_libraries is not None:
+            return self._num_libraries
+        
         if "library_links" not in orm.attributes.instance_state(self).unloaded:
             return len(self.library_links)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_libraries' attribute.")
         
-        from .Library import Library
-        return session.query(sa.func.count(Library.id)).where(
-            sa.exists().where(
-                sa.and_(
-                    Library.id == links.SampleLibraryLink.library_id,
-                    links.SampleLibraryLink.sample_id == self.id
-                )
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_libraries was not populated via with_expression. "
+                "Use orm.with_expression(Sample._num_libraries, Sample.num_libraries.expression) "
+                "in your query options."
             )
-        ).scalar()
+        
+        from .. import queries as Q
+        return session.scalar(sa.select(sa.func.count()).select_from(
+            Q.library.select(sample_id=self.id).subquery()
+        ))  # type: ignore[return-value]
     
     @num_libraries.expression
     def num_libraries(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .Library import Library
         return sa.select(
             sa.func.count(Library.id)
         ).where(
-            sa.exists().where(
-                sa.and_(
-                    Library.id == links.SampleLibraryLink.library_id,
-                    links.SampleLibraryLink.sample_id == cls.id
-                )
-            )
+            *Q.library.where_clauses(sample_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_libraries: Mapped[int | None] = orm.query_expression()
 
     @property
     def status(self) -> SampleStatus | None:

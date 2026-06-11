@@ -24,22 +24,52 @@ def create(
 def select(
     id: int | None = None,
     author: User | None = None,
+    author_id: int | None = None,
     file: MediaFile | None = None,
+    file_id: int | None = None,
     seq_request: SeqRequest | None = None,
+    seq_request_id: int | None = None,
     experiment: Experiment | None = None,
+    experiment_id: int | None = None,
     lab_prep: LabPrep | None = None,
+    lab_prep_id: int | None = None,
     statement: sa.Select[tuple[Comment]] = sa.select(Comment),
 ) -> sa.Select[tuple[Comment]]:
-    if id is not None:
-        statement = statement.where(Comment.id == id)
-    if author is not None:
-        statement = statement.where(Comment.author_id == author.id)
-    if file is not None:
-        statement = statement.where(Comment.file_id == file.id)
-    if seq_request is not None:
-        statement = statement.where(Comment.seq_request_id == seq_request.id)
-    if experiment is not None:
-        statement = statement.where(Comment.experiment_id == experiment.id)
-    if lab_prep is not None:
-        statement = statement.where(Comment.lab_prep_id == lab_prep.id)
+    statement = statement.where(*where_clauses(
+        id=id,
+        author_id=author.id if author is not None else author_id,
+        file_id=file.id if file is not None else file_id,
+        seq_request_id=seq_request.id if seq_request is not None else seq_request_id,
+        experiment_id=experiment.id if experiment is not None else experiment_id,
+        lab_prep_id=lab_prep.id if lab_prep is not None else lab_prep_id,
+    ))
     return statement
+
+
+def where_clauses(
+    id: int | None = None,
+    author_id: int | None = None,
+    file_id: int | None = None,
+    seq_request_id: int | None = None,
+    experiment_id: int | None = None,
+    lab_prep_id: int | None = None,
+) -> list[sa.ColumnElement[bool]]:
+    """Return WHERE clauses for filtering comments.
+    Reusable in correlated subqueries where .subquery() would break correlation.
+    """
+    clauses: list[sa.ColumnElement[bool]] = []
+
+    if id is not None:
+        clauses.append(Comment.id == id)
+    if author_id is not None:
+        clauses.append(Comment.author_id == author_id)
+    if file_id is not None:
+        clauses.append(Comment.file_id == file_id)
+    if seq_request_id is not None:
+        clauses.append(Comment.seq_request_id == seq_request_id)
+    if experiment_id is not None:
+        clauses.append(Comment.experiment_id == experiment_id)
+    if lab_prep_id is not None:
+        clauses.append(Comment.lab_prep_id == lab_prep_id)
+
+    return clauses

@@ -1,4 +1,6 @@
-from typing import Sequence, Iterator
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional, Sequence, Iterator
 
 import sqlalchemy as sa
 from sqlalchemy import sql
@@ -6,6 +8,9 @@ from sqlalchemy.orm import Session as SQLAlchemySession
 
 from . import utils
 from .exceptions import ModelNotFoundException
+
+if TYPE_CHECKING:
+    from .blueprints.SyncPandasBP import SyncPandas
 
 class _DefaultLimitSentinel(int):
     pass
@@ -15,7 +20,15 @@ DEFAULT_LIMIT = _DefaultLimitSentinel()
 class SyncSession(SQLAlchemySession):
     def __init__(self, *args, default_limit: int, **kwargs):
         self.default_limit = default_limit
+        self._pd: "SyncPandas | None" = None
         super().__init__(*args, **kwargs)
+
+    @property
+    def pd(self) -> "SyncPandas":
+        if self._pd is None:
+            from .blueprints.SyncPandasBP import SyncPandas
+            self._pd = SyncPandas(self)
+        return self._pd
 
     def get_all(
         self,

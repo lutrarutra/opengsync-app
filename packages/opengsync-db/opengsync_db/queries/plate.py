@@ -16,6 +16,19 @@ def select(
     id: int | None = None,
     statement: sa.Select[tuple[Plate]] = sa.select(Plate),
 ) -> sa.Select[tuple[Plate]]:
-    if id is not None:
-        statement = statement.where(Plate.id == id)
+    statement = statement.where(*where_clauses(id=id))
     return statement
+
+
+def where_clauses(
+    id: int | None = None,
+) -> list[sa.ColumnElement[bool]]:
+    """Return WHERE clauses for filtering plates.
+    Reusable in correlated subqueries where .subquery() would break correlation.
+    """
+    clauses: list[sa.ColumnElement[bool]] = []
+
+    if id is not None:
+        clauses.append(Plate.id == id)
+
+    return clauses

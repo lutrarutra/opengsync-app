@@ -1,5 +1,5 @@
 # --- BASE: Common system deps and uv setup ---
-FROM python:3.13-slim AS base
+FROM python:3.14-slim AS base
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV PATH="/app/.venv/bin:$PATH" \
@@ -24,14 +24,12 @@ ARG VERSION=0.0.0
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION
 COPY pyproject.toml uv.lock ./
 COPY packages/opengsync-db/pyproject.toml ./packages/opengsync-db/
-COPY packages/opengsync-server/pyproject.toml ./packages/opengsync-server/
 COPY packages/opengsync-api/pyproject.toml ./packages/opengsync-api/
 COPY packages/opengsync-worker/pyproject.toml ./packages/opengsync-worker/
 RUN uv sync --frozen --no-install-project --no-dev
 
 # --- SERVER ---
 FROM builder AS opengsync-app
-# RUN apt update && apt install build-essential libpq-dev curl postgresql-client -y
 
 COPY packages /app/packages
 COPY ./services/opengsync-app/scripts /app/scripts

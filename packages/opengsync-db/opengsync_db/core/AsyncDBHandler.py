@@ -23,11 +23,6 @@ class AsyncDBHandler:
         self.auto_commit = auto_commit
         self.default_limit = default_row_limit
 
-        from .blueprints.PandasBP import PandasBP
-        from .blueprints.ActionsBP import ActionsBP
-        self.pd = PandasBP("pd", self)
-        self.actions = ActionsBP("actions", self)
-
     async def connect(
         self, user: str, password: str, host: str, db: str = "token_db", port: Union[str, int] = 5432
     ) -> None:
@@ -47,7 +42,6 @@ class AsyncDBHandler:
             expire_on_commit=self.expire_on_commit,
             class_=AsyncSession,
             default_limit=self.default_limit,
-            pd=self.pd,
         )
 
     def get_session(self) -> AsyncSession:

@@ -81,10 +81,10 @@ async def render_project_table(
         stmt, page=page, order_by=order_by,
         options=[
             orm.selectinload(models.Project.assignees),
-            orm.selectinload(models.Project.libraries),
             orm.selectinload(models.Project.owner),
             orm.selectinload(models.Project.group),
-            orm.with_expression(models.Project.num_samples_, models.Project.num_samples.expression),
+            orm.with_expression(models.Project._num_samples, models.Project.num_samples.expression),
+            orm.with_expression(models.Project._library_types, models.Project.library_types.expression),
         ]
     )
     table.set_num_pages(count)
@@ -99,7 +99,6 @@ async def render_project_table(
 @router.get("/create")
 async def render_create_project_form(
     request: Request,
-    current_user: models.User = Depends(dependencies.require_user),
 ):
     """Render the create project form."""
     form = forms.models.ProjectForm(request, form_type="create")
@@ -144,15 +143,14 @@ async def export_project_data(
         "Number of Samples": [project.num_samples],
     }).T
 
-    samples_df = session.pd.get_project_samples(project_id=project.id)
-    libraries_df = session.pd.get_project_libraries(project_id=project.id).astype(str)
-    seq_requests_df = session.pd.get_project_seq_requests(project_id=project.id)
+    samples_df = await session.pd.get_project_samples(project_id=project.id)
+    libraries_df = await session.pd.get_project_libraries(project_id=project.id)
+    seq_requests_df = await session.pd.get_project_seq_requests(project_id=project.id)
+    library_properties_df = await session.pd.get_library_properties(project_id=project.id)
     
     software = pd.DataFrame.from_records(
         {name: [data] for name, data in (project.software or {}).items()}
     ).T
-
-    library_properties_df = db.pd.get_library_properties(project_id=project.id)
 
     bytes_io = io.BytesIO()
 
@@ -172,6 +170,32 @@ async def export_project_data(
         headers={
             "Content-Disposition": f"attachment; filename=project_{project.identifier or f'P_{project.id}'}.xlsx"
         }
+    )
+
+@router.delete("/{project_id}/delete")
+async def delete_project(
+    project_id: int,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.project_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.PermissionDeniedException("You do not have permission to delete this project.")
+    
+    project = await session.get_one(Q.project.select(id=project_id).options(
+        orm.with_expression(models.Project._num_samples, models.Project.num_samples.expression),
+    ))
+
+    if (project.num_samples) > 0:
+        return await responses.htmx_response(
+            redirect=ctx.request.url_for("projects_page.project", project_id=project_id),
+            flash=responses.flash(f"Cannot delete project non empty project.", "warning")
+        )
+    
+    await session.delete(project, flush=True)
+    
+    return await responses.htmx_response(
+        redirect=ctx.request.url_for("projects_page"),
+        flash=responses.flash(f"Project '{project.title}' has been deleted.", "success")
     )
 
 
