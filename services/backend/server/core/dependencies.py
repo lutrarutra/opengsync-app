@@ -6,6 +6,7 @@ from fastapi import Depends, BackgroundTasks, Request, Header, Cookie, Query
 from starlette.background import BackgroundTask
 from redis.asyncio import Redis, ConnectionPool
 from fastapi_cache import FastAPICache
+import sqlalchemy as sa
 from taskiq import TaskiqDepends
 
 from sqlalchemy.orm import make_transient_to_detached
@@ -322,9 +323,7 @@ def parse_order_by(
     default: utils.OrderBy | None = None,
 ):
     def dependency(
-        order_by: str | None = Query(
-            None, description="Field and direction to order by, in the format 'field:asc|desc' e.g. 'created_at:desc'"
-        ),
+        order_by: str | None = Query(None, description="Field and direction to order by, in the format 'field:asc|desc' e.g. 'created_at:desc'"),
     ) -> utils.OrderBy | None:
         if order_by is None:
             return default

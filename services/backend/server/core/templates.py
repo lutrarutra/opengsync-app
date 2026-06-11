@@ -178,8 +178,6 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
     """
     request = ctx.get("request")
     if request is not None:
-        # Separate path params from query params BEFORE calling url_for,
-        # otherwise Starlette raises NoMatchFound for unknown kwargs.
         route_param_names = _get_route_param_names(request.app.router, name)
         url_kwargs = {k: v for k, v in path_params.items() if k in route_param_names}
         query_kwargs = {k: v for k, v in path_params.items() if k not in route_param_names}
@@ -201,14 +199,12 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
 
 
 def _get_route_param_names(router, name: str) -> set:
-    """Extract the set of path parameter names for a given route name."""
+    """Extract path parameter names from a route by its name."""
     for route in router.routes:
-        if getattr(route, "name", None) == name:
-            if hasattr(route, "param_convertors"):
+        if getattr(route, 'name', None) == name:
+            if hasattr(route, 'param_convertors'):
                 return set(route.param_convertors.keys())
-            # Fallback: parse from path
-            import re
-            return set(re.findall(r"{(\w+)}", route.path))
+            return set()
     return set()
 
 j2.env.globals["url_for"] = url_for

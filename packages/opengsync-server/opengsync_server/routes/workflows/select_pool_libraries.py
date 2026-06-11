@@ -59,7 +59,7 @@ def select(current_user: models.User, pool_id: int) -> Response:
     
     library_ids = form.library_table["id"].unique().tolist()
     for library_id in library_ids:
-        library = db.session.get_or_fail(Q.library.select(id=int(library_id)))
+        library = db.session.get_one(Q.library.select(id=int(library_id)))
         library.pool_id = pool.id
         db.session.save(library)
 

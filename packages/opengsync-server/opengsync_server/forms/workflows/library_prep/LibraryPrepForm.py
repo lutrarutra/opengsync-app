@@ -143,7 +143,7 @@ class LibraryPrepForm(HTMXFlaskForm):
                 if pd.isna(library_id := row["library_id"]):
                     continue
 
-                library = db.session.get_or_fail(Q.library.select(id=int(library_id)))
+                library = db.session.get_one(Q.library.select(id=int(library_id)))
                 db.session.refresh(library)
                 
                 if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "x":

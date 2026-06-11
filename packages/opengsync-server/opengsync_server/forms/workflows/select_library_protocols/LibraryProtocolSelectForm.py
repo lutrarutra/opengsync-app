@@ -69,7 +69,7 @@ class LibraryProtocolSelectForm(MultiStepForm):
         for _, row in self.df.iterrows():
             if pd.isna(row["library_id"]):
                 continue
-            library = db.session.get_or_fail(Q.library.select(id=int(row["library_id"])))
+            library = db.session.get_one(Q.library.select(id=int(row["library_id"])))
             library.protocol_id = int(row["protocol_id"]) if pd.notna(row["protocol_id"]) else None
             db.session.save(library)
 

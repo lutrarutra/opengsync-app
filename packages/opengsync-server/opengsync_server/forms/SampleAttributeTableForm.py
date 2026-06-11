@@ -94,7 +94,7 @@ class SampleAttributeTableForm(HTMXFlaskForm):
             return self.make_response()
 
         for _, row in self.df.iterrows():
-            sample = db.session.get_or_fail(Q.sample.select(id=row["sample_id"]))
+            sample = db.session.get_one(Q.sample.select(id=row["sample_id"]))
             for attribute_name in self.df.columns:
                 if attribute_name in ["sample_id", "sample_name"]:
                     continue

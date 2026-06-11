@@ -55,7 +55,20 @@ class HTMXTable {
         const $tbody = this.$table.find("tbody");
         const height = $tbody.outerHeight(); // Capture height before emptying
         
-        htmx.ajax("GET", this.url, {
+        let cleanUrl = this.url;
+        try {
+            // Clean up the URL to remove any parameters that are already being passed in state
+            // to avoid getting duplicate parameters like "?order_by=x&order_by=y" or "?page=1&page=2"
+            const urlObj = new URL(this.url, window.location.origin);
+            for (const key in state) {
+                urlObj.searchParams.delete(key);
+            }
+            cleanUrl = urlObj.pathname + urlObj.search;
+        } catch (e) {
+            console.error("Failed to parse/clean table URL", e);
+        }
+
+        htmx.ajax("GET", cleanUrl, {
             target: this.selector,
             swap: "outerHTML",
             values: state

@@ -60,7 +60,7 @@ class SyncSession(SQLAlchemySession):
         result = super().execute(sa.select(sql.exists(statement)))
         return result.scalar() or False
     
-    def get_or_fail(self, statement: sa.Select[tuple[utils.SAModelType]], options: utils.QueryOptions = None) -> utils.SAModelType:
+    def get_one(self, statement: sa.Select[tuple[utils.SAModelType]], options: utils.QueryOptions = None) -> utils.SAModelType:
         """Execute a select statement and return a single object or raise ModelNotFoundException."""
         statement = utils.apply_settings(statement, options=options)
         result = super().execute(statement)
@@ -98,7 +98,7 @@ class SyncSession(SQLAlchemySession):
             self.flush()
 
     def __getitem__(self, statement: sa.Select[tuple[utils.SAModelType]]) -> utils.SAModelType:
-        return self.get_or_fail(statement)
+        return self.get_one(statement)
     
     def iter(
         self, statement: sa.Select[tuple[utils.SAModelType]],

@@ -75,7 +75,7 @@ class SamplePoolingForm(HTMXFlaskForm):
         libraries: dict[str, models.Library] = dict()
 
         for (new_sample_pool, library_id), _df in self.sample_table.groupby(["new_sample_pool", "library_id"]):
-            old_library = db.session.get_or_fail(Q.library.select(id=int(library_id)))  # type: ignore
+            old_library = db.session.get_one(Q.library.select(id=int(library_id)))  # type: ignore
             library_name = f"{new_sample_pool}_{old_library.type.identifier}" if new_sample_pool != "x" else f"canceled_samples_{old_library.type.identifier}"
             if (new_library := libraries.get(library_name)) is None:
                 new_library = db.session.save(Q.library.create(

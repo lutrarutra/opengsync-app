@@ -17,7 +17,7 @@
                 confirm_action_button(
                     text="Complete Project",
                     title='Complete project ' + project.title,
-                    url=url_for('projects_htmx.complete', project_id=project.id),
+                    url=url_for('complete_project', project_id=project.id),
                     method="hx-post",
                     tooltip="Mark project and all samples in it completed.",
                     color="success",
@@ -25,7 +25,7 @@
             }}
             {% endif %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                hx-get="{{ url_for('projects_htmx.edit', project_id=project.id) }}"
+                hx-get="{{ url_for('render_project_edit_form', project_id=project.id) }}"
                 hx-target="#xl-modal-content" data-bs-toggle="modal"
                 hx-swap="innerHTML" hx-trigger="click">
                 Edit Project

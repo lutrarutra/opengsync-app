@@ -106,7 +106,7 @@ class CommonFeatureAnnotationForm(MultiStepForm):
         
         self.df["kit_id"] = None
         for identifier in kit_identifiers:
-            kit = db.session.get_or_fail(Q.feature_kit.select(identifier=identifier))
+            kit = db.session.get_one(Q.feature_kit.select(identifier=identifier))
             kit_df = db.pd.get_feature_kit_features(kit.id)
             self.kits[identifier] = (kit, kit_df)
             self.df.loc[self.df["kit"] == identifier, "kit_id"] = kit.id

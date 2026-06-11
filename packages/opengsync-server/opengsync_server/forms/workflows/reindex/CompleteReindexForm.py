@@ -86,7 +86,7 @@ class CompleteReindexForm(MultiStepForm):
         
         seq_request_ids: set[int] = set()
         for (library_id, index_type_id), _ in self.library_table.groupby(["library_id", "index_type_id"], dropna=False, sort=False):
-            library = db.session.get_or_fail(Q.library.select(id=int(library_id)))  # type: ignore
+            library = db.session.get_one(Q.library.select(id=int(library_id)))  # type: ignore
 
             seq_request_ids.add(library.seq_request_id)
 
@@ -163,7 +163,7 @@ class CompleteReindexForm(MultiStepForm):
             db.session.save(library)
 
         for seq_request_id in seq_request_ids:
-            seq_request = db.session.get_or_fail(Q.seq_request.select(id=seq_request_id))
+            seq_request = db.session.get_one(Q.seq_request.select(id=seq_request_id))
             for context, text in self.get_comments().items():
                 if context == "i7_primer":
                     db.session.save(Q.comment.create(

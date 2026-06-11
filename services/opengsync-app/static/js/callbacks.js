@@ -34,6 +34,19 @@ document.addEventListener("htmx:afterRequest", (event) => {
     // render_flash_messages();
 });
 
+document.addEventListener("flash", (event) => {
+    const msg = event.detail; // e.g. { category: 'warning', message: '...' }
+    Swal.fire({
+        position: 'top',
+        icon: msg.category || 'success',
+        html: `<div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 0; font-weight: 600;">${msg.message}</div>`,
+        showConfirmButton: false,
+        timer: msg.category === 'error' || msg.category === 'warning' ? null : 1500,
+        toast: true,
+        showCloseButton: true
+    });
+});
+
 $(document).ready(function () {
     init_htmx_callbacks();
 });

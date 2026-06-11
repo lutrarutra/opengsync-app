@@ -39,7 +39,7 @@ class HTMXTable:
     @property
     def url(self) -> URL:
         state = self.url_params.copy()
-        return ctx.request.url_for(self.route, **state)
+        return ctx.request.url_for(self.route)
     
     def get_state(self) -> dict:
         state = self.url_params.copy()
@@ -55,7 +55,7 @@ class HTMXTable:
         return state
     
     def page_url(self, page: int) -> URL:
-        return ctx.request.url_for(self.route, page=page, **self.url_params)
+        return ctx.request.url_for(self.route).include_query_params(**{**self.url_params, "page": page})
 
     def set_num_pages(self, count: int, limit: int = 10) -> None:
         self.num_pages = (count + limit - 1) // limit

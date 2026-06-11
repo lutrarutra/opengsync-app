@@ -77,7 +77,7 @@ class ProtocolMappingForm(MultiStepForm):
             choices = [(-1, "Unknown")]
 
             for _, row in self.protocols[self.protocols["identifiers"] == combination].iterrows():
-                protocol = db.session.get_or_fail(Q.protocol.select(id=int(row["protocol_id"])))
+                protocol = db.session.get_one(Q.protocol.select(id=int(row["protocol_id"])))
                 protocol_id = row["protocol_id"]
                 choices.append((protocol_id, f"{protocol.name}"))
 

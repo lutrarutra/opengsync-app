@@ -135,7 +135,7 @@ class CommonFlexMuxForm(MultiStepForm):
     @classmethod
     def update_barcodes(cls, sample_table: pd.DataFrame):
         for (sample_id, library_id, barcode), _df in sample_table.groupby(["sample_id", "library_id", "mux_barcode"]):
-            if (link := db.session.get_or_fail(
+            if (link := db.session.get_one(
                 sa.select(models.links.SampleLibraryLink).where(
                     models.links.SampleLibraryLink.sample_id == sample_id,
                     models.links.SampleLibraryLink.library_id == library_id

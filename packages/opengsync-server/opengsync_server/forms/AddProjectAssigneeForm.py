@@ -35,7 +35,7 @@ class AddProjectAssigneeForm(HTMXFlaskForm):
             self.user.selected.errors = ("Please select a user.",)
             return False
 
-        assignee = db.session.get_or_fail(Q.user.select(id=self.user.selected.data))
+        assignee = db.session.get_one(Q.user.select(id=self.user.selected.data))
 
         if not assignee.is_insider():
             self.user.selected.errors = ("Only insider users can be assigned to projects.",)
@@ -51,7 +51,7 @@ class AddProjectAssigneeForm(HTMXFlaskForm):
         if not self.validate():
             return self.make_response()
         
-        assignee = db.session.get_or_fail(Q.user.select(id=self.user.selected.data))
+        assignee = db.session.get_one(Q.user.select(id=self.user.selected.data))
         self.project.assignees.append(assignee)
         db.session.save(self.project)
         

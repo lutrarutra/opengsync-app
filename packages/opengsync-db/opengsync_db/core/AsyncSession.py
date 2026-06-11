@@ -6,6 +6,7 @@ from sqlalchemy import sql
 from sqlalchemy.ext.asyncio import AsyncSession as SQLAlchemyAsyncSession
 
 from . import utils
+from .blueprints.PandasBP import PandasBP
 from .exceptions import ModelNotFoundException
 
 class _DefaultLimitSentinel(int):
@@ -14,8 +15,9 @@ class _DefaultLimitSentinel(int):
 DEFAULT_LIMIT = _DefaultLimitSentinel()
 
 class AsyncSession(SQLAlchemyAsyncSession):
-    def __init__(self, *args, default_limit: int, **kwargs):
+    def __init__(self, *args, default_limit: int, pd: PandasBP, **kwargs):
         self.default_limit = default_limit
+        self.pd = pd
         super().__init__(*args, **kwargs)
 
     async def get_all(

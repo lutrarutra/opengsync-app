@@ -21,7 +21,7 @@ def apply_settings(
     offset: int | None = None
 ) -> sa.Select[Any]:
     if order_by is not None:
-        statement = statement.order_by(order_by)
+        statement = statement.order_by(sa.nulls_last(order_by))
     if offset is not None:
         statement = statement.offset(offset)
     if limit is not None:

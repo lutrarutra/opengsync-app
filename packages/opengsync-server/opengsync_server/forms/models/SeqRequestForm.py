@@ -465,7 +465,7 @@ class SeqRequestForm(HTMXFlaskForm):
         user = self.current_user
         if self.current_user.is_insider():
             if (assigned_user_id := self.user_select_form.user.selected.data) is not None:
-                user = db.session.get_or_fail(Q.user.select(id=assigned_user_id))
+                user = db.session.get_one(Q.user.select(id=assigned_user_id))
             elif (assigned_user_email := self.user_select_form.email.data):
                 hashed_password = bcrypt.generate_password_hash(uuid4().hex).decode("utf-8")
                 user = db.session.save(Q.user.create(
@@ -478,7 +478,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
         seq_request = db.session.save(Q.seq_request.create(
             name=self.basic_info_form.request_name.data,  # type: ignore
-            group=db.session.get_or_fail(Q.group.select(id=self.basic_info_form.group.selected.data)) if self.basic_info_form.group.selected.data else None,
+            group=db.session.get_one(Q.group.select(id=self.basic_info_form.group.selected.data)) if self.basic_info_form.group.selected.data else None,
             description=self.basic_info_form.request_description.data,
             data_delivery_mode=DataDeliveryMode.get(self.data_processing_form.data_delivery_mode_id.data),
             num_lanes=self.technical_info_form.num_lanes.data,

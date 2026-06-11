@@ -57,7 +57,7 @@ class DilutePoolsForm(HTMXFlaskForm):
             if entry.qubit_after_dilution.data is None:
                 continue
             
-            pool = db.session.get_or_fail(Q.pool.select(id=int(entry.pool_id.data)))
+            pool = db.session.get_one(Q.pool.select(id=int(entry.pool_id.data)))
             
             db.actions.dilute_pool(pool, entry.qubit_after_dilution.data, user.id)
 

@@ -52,7 +52,7 @@ class MergePoolsForm(MultiStepForm):
         self.post_url = url_for("merge_pools_workflow.merge", uuid=uuid)
         self._context["barcode_table"] = tools.check_indices(self.barcode_table)
         self._context["library_table"] = self.library_table
-        self.pools = [db.session.get_or_fail(Q.pool.select(id=pool_id)) for pool_id in self.pool_table["id"].unique().tolist()]
+        self.pools = [db.session.get_one(Q.pool.select(id=pool_id)) for pool_id in self.pool_table["id"].unique().tolist()]
         self._context["pools"] = self.pools
 
     def prepare(self):
@@ -164,7 +164,7 @@ class MergePoolsForm(MultiStepForm):
                 "num_m_reads_requested": subform.num_m_reads_requested.data,
                 "pipet_volume_ul": subform.pipet.data,
             }
-            pools.append(db.session.get_or_fail(Q.pool.select(id=subform.pool_id.data)))
+            pools.append(db.session.get_one(Q.pool.select(id=subform.pool_id.data)))
 
         pool = db.actions.merge_pools(merged_pool=pool, pools=pools)
 

@@ -62,7 +62,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                     continue
                 if pool_suffix == "x":
                     for _, row in df.iterrows():
-                        library = db.session.get_or_fail(Q.library.select(id=int(row["library_id"])))
+                        library = db.session.get_one(Q.library.select(id=int(row["library_id"])))
                         library.status = LibraryStatus.FAILED
                         db.session.save(library)
                     continue
@@ -75,7 +75,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                     clone_number=0
                 ))
                 for _, row in df.iterrows():
-                    library = db.session.get_or_fail(Q.library.select(id=int(row["library_id"])))
+                    library = db.session.get_one(Q.library.select(id=int(row["library_id"])))
                     library.pool_id = pool.id
                     library.status = LibraryStatus.POOLED
                     db.session.save(library)
@@ -88,7 +88,7 @@ class CompleteLibraryPoolingForm(MultiStepForm):
                 clone_number=0
             ))
             for _, row in self.pooling_table.iterrows():
-                library = db.session.get_or_fail(Q.library.select(id=int(row["library_id"])))
+                library = db.session.get_one(Q.library.select(id=int(row["library_id"])))
                 library.pool_id = pool.id
                 library.status = LibraryStatus.POOLED
                 db.session.save(library)

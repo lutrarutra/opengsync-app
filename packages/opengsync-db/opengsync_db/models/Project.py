@@ -29,7 +29,7 @@ class Project(Base):
     __tablename__ = "project"
 
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
-    identifier: Mapped[str | None] = mapped_column(sa.String(16), default=None, nullable=True, index=True)
+    identifier: Mapped[str | None] = mapped_column(sa.String(16), default=None, nullable=True, index=True, unique=True)
     title: Mapped[str] = mapped_column(sa.String(128), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(sa.Text, default=None, nullable=True)
 
@@ -320,4 +320,5 @@ class Project(Base):
             sa.text("lower(title) gin_trgm_ops"),
             postgresql_using="gin",
         ),
+        sa.UniqueConstraint("title", "owner_id", name="uq_project_title_owner_id")
     )

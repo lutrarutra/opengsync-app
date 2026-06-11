@@ -594,7 +594,7 @@ class PandasBP(DBBlueprint):
             )
 
         if per_index:
-            index_kit = self.db.session.get_or_fail(Q.index_kit.select(id=index_kit_id))
+            index_kit = self.db.session.get_one(Q.index_kit.select(id=index_kit_id))
             
             if index_kit.type == C.IndexType.TENX_ATAC_INDEX:
                 barcode_data = {

@@ -1,10 +1,20 @@
+import json
 from typing import Any
+
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
+from starlette.datastructures import URL
+from pydantic import BaseModel
 
 from .templates import render_template
-
 from . import utils, runtime
 from .context import ctx
+
+class FlashMessage(BaseModel):
+    message: str
+    category: str = "info"
+
+def flash(message: str, category: str = "info") -> FlashMessage:
+    return FlashMessage(message=message, category=category)
 
 async def get_request_context() -> dict[str, Any]:
     request = ctx.request
@@ -25,13 +35,13 @@ def raw_json_response(data: str | bytes, encapsulate: str | None = None) -> Resp
 
 async def html_response(
     template: str | None = None, 
-    redirect: str | None = None, 
+    redirect: URL | None = None, 
     status: int = 200, 
     response: Response | None = None,
     **context
 ) -> Response:
     if redirect:
-        resp = RedirectResponse(url=ctx.request.url_for(redirect), status_code=303)
+        resp = RedirectResponse(url=redirect, status_code=303)
     else:
         content = ""
         if template is not None:
@@ -53,16 +63,23 @@ async def html_response(
 async def htmx_response(
     template: str | None = None, 
     status: int = 200, 
-    redirect: str | None = None, 
+    redirect: URL | None = None, 
     re_target: str | None = None, 
     re_swap: str | None = None,
     response: Response | None = None,
+    flash: FlashMessage | str | None = None,
     **context
 ) -> Response:
     headers = {"HX-Trigger": "contentUpdated"}
+
+    if flash:
+        if isinstance(flash, FlashMessage):
+            headers["HX-Trigger"] = json.dumps({"flash": flash.model_dump()})
+        else:
+            headers["HX-Trigger"] = json.dumps({"flash": {"message": flash, "category": "info"}})
     
     if redirect:
-        headers["HX-Redirect"] = ctx.request.url_for(redirect).__str__()
+        headers["HX-Redirect"] = redirect.__str__()
         resp = HTMLResponse(status_code=204, headers=headers)
     elif template is not None:
         content = await render_template(template, **context | await get_request_context())

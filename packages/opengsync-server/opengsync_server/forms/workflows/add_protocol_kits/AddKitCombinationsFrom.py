@@ -76,7 +76,7 @@ class AddKitCombinationsFrom(HTMXFlaskForm):
         self.protocol.kit_links = []
         
         for _, row in self.df.iterrows():
-            kit = db.session.get_or_fail(Q.kit.select(identifier=row["kit_identifier"]))
+            kit = db.session.get_one(Q.kit.select(identifier=row["kit_identifier"]))
             
             self.protocol.kit_links.append(
                 models.links.ProtocolKitLink(

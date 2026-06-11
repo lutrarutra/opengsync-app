@@ -57,7 +57,7 @@ def select(current_user: models.User, lab_prep_id: int) -> Response:
         return form.make_response()
 
     for _, row in form.library_table.iterrows():
-        lab_prep.libraries.append(db.session.get_or_fail(Q.library.select(id=int(row["id"]))))
+        lab_prep.libraries.append(db.session.get_one(Q.library.select(id=int(row["id"]))))
 
     db.session.save(lab_prep)
 

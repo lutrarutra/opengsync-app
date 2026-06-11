@@ -4,6 +4,8 @@ from .InputField import InputField
 from pydantic import EmailStr, StringConstraints
 
 class StringInputField(InputField):
+    data: str | None = None
+    
     def __init__(
         self, label: str,
         placeholder: str | None = None,

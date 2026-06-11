@@ -35,13 +35,13 @@ class AssociatePathForm(HTMXFlaskForm):
             return False
         
         if (project_id := self.project.selected.data) is not None:
-            self._project = db.session.get_or_fail(Q.project.select(id=int(project_id)))
+            self._project = db.session.get_one(Q.project.select(id=int(project_id)))
         if (experiment_id := self.experiment.selected.data) is not None:
-            self._experiment = db.session.get_or_fail(Q.experiment.select(id=int(experiment_id)))
+            self._experiment = db.session.get_one(Q.experiment.select(id=int(experiment_id)))
         if (seq_request_id := self.seq_request.selected.data) is not None:
-            self._seq_request = db.session.get_or_fail(Q.seq_request.select(id=int(seq_request_id)))
+            self._seq_request = db.session.get_one(Q.seq_request.select(id=int(seq_request_id)))
         if (library_id := self.library.selected.data) is not None:
-            self._library = db.session.get_or_fail(Q.library.select(id=int(library_id)))
+            self._library = db.session.get_one(Q.library.select(id=int(library_id)))
 
         return True
 
