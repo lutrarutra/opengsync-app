@@ -61,7 +61,8 @@ async def html_response(
     return resp
 
 async def htmx_response(
-    template: str | None = None, 
+    template: str | None = None,
+    content: str | None = None,
     status: int = 200, 
     redirect: URL | None = None, 
     re_target: str | None = None, 
@@ -72,17 +73,27 @@ async def htmx_response(
 ) -> Response:
     headers = {"HX-Trigger": "contentUpdated"}
 
+    if template and content:
+        raise ValueError("Cannot provide both template and content for HTMX response.")
+
     if flash:
         if isinstance(flash, FlashMessage):
             headers["HX-Trigger"] = json.dumps({"flash": flash.model_dump()})
         else:
             headers["HX-Trigger"] = json.dumps({"flash": {"message": flash, "category": "info"}})
+
+    if re_target:
+        headers["HX-Target"] = re_target
+    if re_swap:
+        headers["HX-Swap"] = re_swap
     
     if redirect:
         headers["HX-Redirect"] = redirect.__str__()
         resp = HTMLResponse(status_code=204, headers=headers)
     elif template is not None:
         content = await render_template(template, **context | await get_request_context())
+        resp = HTMLResponse(content=content, status_code=status, headers=headers)
+    elif content is not None:
         resp = HTMLResponse(content=content, status_code=status, headers=headers)
     else:
         resp = HTMLResponse(status_code=status if status != 200 else 204, headers=headers)
@@ -93,3 +104,8 @@ async def htmx_response(
                 resp.raw_headers.append((header, value))
     
     return resp
+
+
+def url_for(name: str, **path_params) -> URL:
+    request = ctx.request
+    return request.url_for(name, **path_params)

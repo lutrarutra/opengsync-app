@@ -44,7 +44,7 @@ class ProjectForm(HTMXForm):
         session: AsyncSession = Depends(dependencies.db_session)
     ) -> Response:
         if access_level < C.AccessLevel.WRITE:
-            raise exc.PermissionDeniedException("You do not have permission to edit this project.")
+            raise exc.NoPermissionsException("You do not have permission to edit this project.")
 
         project = await session.get_one(Q.project.select(id=project_id))
         form = ProjectForm(request, form_type="edit", project=project)

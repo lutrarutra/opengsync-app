@@ -1,11 +1,68 @@
-from typing import Any, Annotated
+from typing import Any, Annotated, Generic, Literal, TypeVar, overload
 from .InputField import InputField
 
 from pydantic import EmailStr, StringConstraints
 
-class StringInputField(InputField):
-    data: str | None = None
-    
+_DataT = TypeVar("_DataT", str, str | None, covariant=True)
+
+
+class StringInputField(InputField, Generic[_DataT]):
+    data: _DataT
+
+    @overload
+    def __init__(
+        self: "StringInputField[str]",
+        label: str,
+        *,
+        required: Literal[True] = True,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = None,
+        pydantic_type: Any = None,
+        type: str = "text",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "StringInputField[str | None]",
+        label: str,
+        *,
+        required: Literal[False],
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = None,
+        pydantic_type: Any = None,
+        type: str = "text",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "StringInputField[str | None]",
+        label: str,
+        *,
+        required: bool,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = None,
+        pydantic_type: Any = None,
+        type: str = "text",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
     def __init__(
         self, label: str,
         placeholder: str | None = None,
@@ -36,7 +93,55 @@ class StringInputField(InputField):
         self.autocomplete = autocomplete
 
 
-class EmailInputField(StringInputField):
+class EmailInputField(StringInputField[_DataT]):
+    @overload
+    def __init__(
+        self: "EmailInputField[str]",
+        label: str,
+        *,
+        required: Literal[True] = True,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = "email",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "EmailInputField[str | None]",
+        label: str,
+        *,
+        required: Literal[False],
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = "email",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "EmailInputField[str | None]",
+        label: str,
+        *,
+        required: bool,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = "email",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
     def __init__(
         self, label: str,
         placeholder: str | None = None,
@@ -63,7 +168,55 @@ class EmailInputField(StringInputField):
         )
 
 
-class PasswordInputField(StringInputField):
+class PasswordInputField(StringInputField[_DataT]):
+    @overload
+    def __init__(
+        self: "PasswordInputField[str]",
+        label: str,
+        *,
+        required: Literal[True] = True,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = "current-password",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "PasswordInputField[str | None]",
+        label: str,
+        *,
+        required: Literal[False],
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = "current-password",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "PasswordInputField[str | None]",
+        label: str,
+        *,
+        required: bool,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = "current-password",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
     def __init__(
         self, label: str,
         placeholder: str | None = None,
@@ -90,7 +243,55 @@ class PasswordInputField(StringInputField):
         )
 
 
-class TextAreaInputField(StringInputField):
+class TextAreaInputField(StringInputField[_DataT]):
+    @overload
+    def __init__(
+        self: "TextAreaInputField[str]",
+        label: str,
+        *,
+        required: Literal[True] = True,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = None,
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "TextAreaInputField[str | None]",
+        label: str,
+        *,
+        required: Literal[False],
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = None,
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "TextAreaInputField[str | None]",
+        label: str,
+        *,
+        required: bool,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = None,
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
     def __init__(
         self, label: str,
         placeholder: str | None = None,

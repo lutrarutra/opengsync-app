@@ -173,7 +173,7 @@ async def require_insider(
     user: models.User = Depends(require_user),
 ):
     if not user.is_insider():
-        raise exc.PermissionDeniedException()
+        raise exc.NoPermissionsException()
     return user
 
 def mail_client(request: runtime.Request = TaskiqDepends(get_runtime_request)) -> mailer.Mailer:
@@ -214,7 +214,7 @@ async def project_permissions(
         return C.AccessLevel(int(cached_access))
     try:
         if (access_level := await session.get_access_level(Q.project.permissions(project_id=project_id, user_id=user.id))) < C.AccessLevel.READ:
-            raise exc.PermissionDeniedException("You do not have permission to access this project.")
+            raise exc.NoPermissionsException("You do not have permission to access this project.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("Project not found.")
 
@@ -232,7 +232,7 @@ async def seq_request_permissions(
         return C.AccessLevel(int(cached_access))
     try:
         if (access_level := await session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=user.id))) < C.AccessLevel.READ:
-            raise exc.PermissionDeniedException("You do not have permission to access this sequencing request.")
+            raise exc.NoPermissionsException("You do not have permission to access this sequencing request.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("Sequencing request not found.")
 
@@ -250,7 +250,7 @@ async def sample_permissions(
         return C.AccessLevel(int(cached_access))
     try:
         if (access_level := await session.get_access_level(Q.sample.permissions(sample_id=sample_id, user_id=user.id))) < C.AccessLevel.READ:
-            raise exc.PermissionDeniedException("You do not have permission to access this sample.")
+            raise exc.NoPermissionsException("You do not have permission to access this sample.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("Sample not found.")
 
@@ -268,7 +268,7 @@ async def library_permissions(
         return C.AccessLevel(int(cached_access))
     try:
         if (access_level := await session.get_access_level(Q.library.permissions(library_id=library_id, user_id=user.id))) < C.AccessLevel.READ:
-            raise exc.PermissionDeniedException("You do not have permission to access this library.")
+            raise exc.NoPermissionsException("You do not have permission to access this library.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("Library not found.")
 
@@ -286,7 +286,7 @@ async def pool_permissions(
         return C.AccessLevel(int(cached_access))
     try:
         if (access_level := await session.get_access_level(Q.pool.permissions(pool_id=pool_id, user_id=user.id))) < C.AccessLevel.READ:
-            raise exc.PermissionDeniedException("You do not have permission to access this pool.")
+            raise exc.NoPermissionsException("You do not have permission to access this pool.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("Pool not found.")
 
@@ -315,6 +315,66 @@ def parse_library_type_ids(
     try:
         library_type_ids = json.loads(library_types_in)
         return [C.LibraryType.get(int(library_type)) for library_type in library_type_ids]
+    except ValueError:
+        raise exc.BadRequestException()
+    
+def parse_sample_status_ids(
+    status_in: str | None = Query(None, description="JSON list of sample status IDs to filter by")
+) -> list[C.SampleStatus] | None:
+    if status_in is None:
+        return None
+    
+    try:
+        status_ids = json.loads(status_in)
+        return [C.SampleStatus.get(int(status)) for status in status_ids]
+    except ValueError:
+        raise exc.BadRequestException()
+    
+def parse_seq_request_status_ids(
+    status_in: str | None = Query(None, description="JSON list of sequencing request status IDs to filter by")
+) -> list[C.SeqRequestStatus] | None:
+    if status_in is None:
+        return None
+    
+    try:
+        status_ids = json.loads(status_in)
+        return [C.SeqRequestStatus.get(int(status)) for status in status_ids]
+    except ValueError:
+        raise exc.BadRequestException()
+
+def parse_experiment_status_ids(
+    status_in: str | None = Query(None, description="JSON list of experiment status IDs to filter by")
+) -> list[C.ExperimentStatus] | None:
+    if status_in is None:
+        return None
+    
+    try:
+        status_ids = json.loads(status_in)
+        return [C.ExperimentStatus.get(int(status)) for status in status_ids]
+    except ValueError:
+        raise exc.BadRequestException()
+
+def parse_experiment_workflow_ids(
+    workflow_in: str | None = Query(None, description="JSON list of experiment workflow IDs to filter by")
+) -> list[C.ExperimentWorkFlow] | None:
+    if workflow_in is None:
+        return None
+    
+    try:
+        workflow_ids = json.loads(workflow_in)
+        return [C.ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_ids]
+    except ValueError:
+        raise exc.BadRequestException()
+
+def parse_user_role_ids(
+    role_in: str | None = Query(None, description="JSON list of user role IDs to filter by")
+) -> list[C.UserRole] | None:
+    if role_in is None:
+        return None
+    
+    try:
+        role_ids = json.loads(role_in)
+        return [C.UserRole.get(int(role)) for role in role_ids]
     except ValueError:
         raise exc.BadRequestException()
     

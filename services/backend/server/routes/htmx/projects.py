@@ -57,25 +57,29 @@ async def render_project_table(
     )
     
     if user_id is not None:
+        if await session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view projects for this user.")
         template = "components/tables/user-project.html"
-        stmt = Q.project.select(user_id=user_id, statement=stmt)
         table.url_params["user_id"] = user_id
     elif experiment_id is not None:
+        if not current_user.is_insider():
+            raise exc.NoPermissionsException("You do not have permission to view projects for this experiment.")
         template = "components/tables/experiment-project.html"        
-        stmt = Q.project.select(experiment_id=experiment_id, statement=stmt)
         table.url_params["experiment_id"] = experiment_id
     elif seq_request_id is not None:
+        if await session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view projects for this seq request.")
         template = "components/tables/seq_request-project.html"
-        stmt = Q.project.select(seq_request_id=seq_request_id, statement=stmt)
         table.url_params["seq_request_id"] = seq_request_id
     elif group_id is not None:
+        if await session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view projects for this group.")
         template = "components/tables/group-project.html"
-        stmt = Q.project.select(group_id=group_id, statement=stmt)
         table.url_params["group_id"] = group_id
     else:
         template = "components/tables/project.html"
         if not current_user.is_insider():
-            stmt = Q.project.select(user_id=current_user.id, statement=stmt)
+            stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
 
     projects, count = await session.page(
         stmt, page=page, order_by=order_by,
@@ -89,11 +93,7 @@ async def render_project_table(
     )
     table.set_num_pages(count)
     
-    return await responses.htmx_response(
-        template=template,
-        projects=projects,
-        table=table,
-    )
+    return await responses.htmx_response(template=template, projects=projects, table=table)
     
     
 @router.get("/create")
@@ -112,7 +112,7 @@ async def render_project_edit_form(
     session: AsyncSession = Depends(dependencies.db_session)
 ):
     if access_level < C.AccessLevel.WRITE:
-        raise exc.PermissionDeniedException("You do not have permission to edit this project.")
+        raise exc.NoPermissionsException("You do not have permission to edit this project.")
     
     project = await session.get_one(Q.project.select(id=project_id))
     
@@ -179,7 +179,7 @@ async def delete_project(
     access_level: C.AccessLevel = Depends(dependencies.project_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
-        raise exc.PermissionDeniedException("You do not have permission to delete this project.")
+        raise exc.NoPermissionsException("You do not have permission to delete this project.")
     
     project = await session.get_one(Q.project.select(id=project_id).options(
         orm.with_expression(models.Project._num_samples, models.Project.num_samples.expression),
@@ -188,7 +188,7 @@ async def delete_project(
     if (project.num_samples) > 0:
         return await responses.htmx_response(
             redirect=ctx.request.url_for("projects_page.project", project_id=project_id),
-            flash=responses.flash(f"Cannot delete project non empty project.", "warning")
+            flash=responses.flash("Cannot delete project non empty project.", "warning")
         )
     
     await session.delete(project, flush=True)
@@ -216,5 +216,148 @@ async def complete_project(
     project.status = C.ProjectStatus.DELIVERED
     return await responses.htmx_response(
         redirect=ctx.request.url_for("projects_page.project", project_id=project.id),
-        flash=responses.flash(f"Project Completed!", "success")
+        flash=responses.flash("Project Completed!", "success")
     )
+
+
+@router.get("/{project_id}/edit-sample-attributes")
+async def render_project_sample_attributes_form(
+    access_level: C.AccessLevel = Depends(dependencies.project_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException("You do not have permission to edit this project.")
+    
+    pass
+
+
+@router.get("/{project_id}/sample-attributes", dependencies=[Depends(dependencies.project_permissions)])
+async def render_project_sample_attribute_spreadsheet(
+    project_id: int,
+    session: AsyncSession = Depends(dependencies.db_session),
+):
+    from ...components.tables.spreadsheet import TextColumn
+    from ...components.tables import StaticSpreadsheet
+
+    df = (await session.pd.get_project_samples(project_id=project_id)).sort_values("sample_id").reset_index(drop=True).rename(columns={"sample_id": "id", "sample_name": "name"})
+
+    columns = []
+    for col in df.columns:
+        if "id" == col:
+            width = 50
+        elif "name" == col:
+            width = 300
+        else:
+            width = 150
+        columns.append(TextColumn(col, col.replace("_", " ").title(), width, max_length=1000))
+
+    spreadsheet = StaticSpreadsheet(df, columns=columns, id="sample-attribute-table")
+    return await responses.htmx_response(content=await spreadsheet.render())
+
+
+@router.get("/{project_id}/overview", dependencies=[Depends(dependencies.project_permissions)])
+async def render_project_overview(
+    project_id: int,
+    session: AsyncSession = Depends(dependencies.db_session),
+):
+
+    df = await session.pd.get_project_libraries(project_id=project_id)
+
+    LINK_WIDTH_UNIT = 1
+
+    nodes = []
+    links = []
+    library_in_nodes = {}
+    library_out_nodes = {}
+
+    experiment_nodes = {}
+    seq_request_nodes = {}
+    idx = 0
+
+    for (experiment_name,), _ in df.groupby(["experiment_name"]):
+        node = {
+            "node": idx,
+            "name": experiment_name,
+        }
+        experiment_nodes[experiment_name] = node
+        nodes.append(node)
+        idx += 1
+
+    for (seq_request_id,), _ in df.groupby(["seq_request_id",]):
+        node = {
+            "node": idx,
+            "name": f"Request {seq_request_id}",
+        }
+        seq_request_nodes[seq_request_id] = node
+        nodes.append(node)
+        idx += 1
+
+    for (sample_name,), sample_df in df.groupby(["sample_name"]):
+        sample_node = {
+            "node": idx,
+            "name": sample_name,
+        }
+        idx += 1
+        nodes.append(sample_node)
+
+        for _, row in sample_df.iterrows():
+            library_name = row["library_name"]
+            library_id = row["library_id"]
+            seq_request_id = row["seq_request_id"]
+            experiment_name = row["experiment_name"] if pd.notna(row["experiment_name"]) else None
+
+            if library_id not in library_in_nodes:
+                library_in_node = {
+                    "node": idx,
+                    "name": library_name,
+                }
+                idx += 1
+                nodes.append(library_in_node)
+                library_in_nodes[library_id] = library_in_node
+                links.append({
+                    "source": library_in_node["node"],
+                    "target": seq_request_nodes[seq_request_id]["node"],
+                    "value": LINK_WIDTH_UNIT * len(df[df["library_id"] == library_id])
+                })
+            else:
+                library_in_node = library_in_nodes[library_id]
+
+            links.append({
+                "source": sample_node["node"],
+                "target": library_in_node["node"],
+                "value": LINK_WIDTH_UNIT
+            })
+
+            if experiment_name is not None:
+                if library_id not in library_out_nodes:
+                    library_out_node = {
+                        "node": idx,
+                        "name": library_name,
+                    }
+                    idx += 1
+                    nodes.append(library_out_node)
+                    library_out_nodes[library_id] = library_out_node
+                    links.append({
+                        "source": library_out_node["node"],
+                        "target": experiment_nodes[experiment_name]["node"],
+                        "value": LINK_WIDTH_UNIT * len(df[df["library_id"] == library_id])
+                    })
+                    links.append({
+                        "source": seq_request_nodes[seq_request_id]["node"],
+                        "target": library_out_node["node"],
+                        "value": LINK_WIDTH_UNIT * len(df[(df["library_id"] == library_id) & (df["seq_request_id"] == seq_request_id)])
+                    })
+
+    return await responses.htmx_response(
+        template="components/plots/project_overview.html",
+        nodes=nodes, links=links,
+    )
+
+
+@router.get("/{project_id}/assignee-form", dependencies=[Depends(dependencies.require_insider)])
+async def render_add_assignee_form(
+    project_id: int,
+):
+    pass
+
+
+@router.get("/{project_id}/software", dependencies=[Depends(dependencies.require_insider)])

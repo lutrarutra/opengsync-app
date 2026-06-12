@@ -1,3 +1,3 @@
-from . import inputs
+from . import inputs, tables
 
-__all__ = ["inputs"]
+__all__ = ["inputs", "tables"]

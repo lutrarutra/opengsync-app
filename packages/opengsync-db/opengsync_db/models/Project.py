@@ -144,7 +144,7 @@ class Project(Base):
             )
         ).where(
             *Q.library.where_clauses(project_id=cls.id)
-        ).order_by(Library.type_id).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     _library_types: Mapped[list[int] | None] = orm.query_expression()
 
@@ -205,19 +205,17 @@ class Project(Base):
 
         from .. import queries as Q
         return session.scalar(sa.select(sa.func.count()).select_from(
-            Q.project.select(id=self.id).subquery()
+            Q.user.select(assignees_project_id=self.id).subquery()
         ))  # type: ignore[return-value]
 
     @num_assignees.expression
     def num_assignees(cls) -> sa.ScalarSelect[int]:
+        from .. import queries as Q
         from .User import User
         return sa.select(
             sa.func.count(User.id)
         ).where(
-            sa.select(1).where(
-                (links.ProjectAssigneeLink.user_id == User.id) &
-                (links.ProjectAssigneeLink.project_id == cls.id)
-            ).correlate_except(links.ProjectAssigneeLink).exists()
+            *Q.user.where_clauses(assignees_project_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @property

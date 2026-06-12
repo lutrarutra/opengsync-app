@@ -34,7 +34,7 @@ class UserNotAuthenticatedException(HTTPException):
     def __init__(self, message: str = "User not authenticated"):
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=message)
 
-class PermissionDeniedException(HTTPException):
+class NoPermissionsException(HTTPException):
     def __init__(self, detail: str = "Permission denied"):
         super().__init__(
             status_code=status.HTTP_403_FORBIDDEN,

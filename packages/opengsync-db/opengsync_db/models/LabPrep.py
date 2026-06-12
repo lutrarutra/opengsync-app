@@ -8,7 +8,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from opengsync_db.categories import LabChecklistType, PrepStatus, MediaFileType, ServiceType, MUXType, LibraryStatus, LibraryType
 
 from .Base import Base
-from . import links
 
 if TYPE_CHECKING:
     from .User import User

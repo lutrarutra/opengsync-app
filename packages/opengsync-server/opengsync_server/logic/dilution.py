@@ -57,7 +57,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         template = "components/tables/experiment-pool-dilution.html"        
         stmt = Q.pool_dilution.select(experiment=experiment, statement=stmt)
         table.url_params["experiment_id"] = experiment.id
-        table.route = "experiments_htmx.get_dilutions"
+        table.route = "render_experiment_table_dilutions"
     else:
         raise exceptions.BadRequestException("No pool or experiment context provided for dilution table.")
     

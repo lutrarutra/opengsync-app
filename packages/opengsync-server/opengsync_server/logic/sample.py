@@ -25,7 +25,7 @@ class SampleTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    table = SampleTable(route="samples_htmx.get", page=request.args.get("page", 0, type=int))
+    table = SampleTable(route="render_sample_table", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
     stmt = sa.select(models.Sample)
     

@@ -26,7 +26,7 @@ class ExperimentTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:    
-    table = ExperimentTable(route="experiments_htmx.get", page=request.args.get("page", 0, type=int))
+    table = ExperimentTable(route="render_experiment_table", page=request.args.get("page", 0, type=int))
     context = parse_context(current_user, request) | kwargs
 
     stmt = sa.select(models.Experiment)

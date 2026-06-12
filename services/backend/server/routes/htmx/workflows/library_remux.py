@@ -22,9 +22,9 @@ async def begin_library_remux_workflow(
     #     raise exc.NotFoundException()
     # access_type = await library.get_access_type(session, current_user)
     # if access_type < AccessType.EDIT:
-    #     raise exc.PermissionDeniedException()
+    #     raise exc.NoPermissionsException()
     # if library.status != LibraryStatus.DRAFT and access_type < AccessType.INSIDER:
-    #     raise exc.PermissionDeniedException()
+    #     raise exc.NoPermissionsException()
     # match library.mux_type:
     #     case MUXType.TENX_FLEX_PROBE:
     #         form = FlexReMuxForm(library=library)

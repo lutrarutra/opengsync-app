@@ -123,7 +123,7 @@
 <div class="page-content">
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="project-samples-tab" role="tabpanel" tabindex="0">
-            <div hx-get="{{ url_for('samples_htmx.get', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_sample_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -135,7 +135,7 @@
                 <div>
                     {{
                         modal_button(
-                            "Edit Attributes", url=url_for('projects_htmx.edit_sample_attributes', project_id=project.id),
+                            "Edit Attributes", url=url_for('render_project_sample_attributes_form', project_id=project.id),
                             disabled=not (current_user.is_insider() or project.status <= ProjectStatus.SEQUENCED),
                             size="fullscreen",
                             disabled_tooltip="Only insiders can edit attributes of a completed project.",
@@ -143,12 +143,12 @@
                     }}
                 </div>
             </div>
-            <div hx-get="{{ url_for('projects_htmx.get_sample_attributes', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_project_sample_attribute_spreadsheet', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="project-overview-tab" role="tabpanel" tabindex="2">
-            <div hx-get="{{ url_for('projects_htmx.overview', project_id=project.id) }}" hx-trigger="intersect once">
+            <div hx-get="{{ url_for('render_project_overview', project_id=project.id) }}" hx-trigger="intersect once">
                 {{ spinner() }}
             </div>
         </div>
@@ -158,7 +158,7 @@
                     metadata_group_link(
                         "Owner Name",
                         project.owner.name,
-                        url_for("users_page.user", user_id=project.owner.id, from="project@" + project.id | string),
+                        url_for("user_page", user_id=project.owner.id, from="project@" + project.id | string),
                         class="col-4"
                     )
                 }}
@@ -185,12 +185,12 @@
             {{ metadata_group_textarea("Description", project.description) }}
         </div>
         <div class="tab-pane fade" id="project-seq_requests-tab" role="tabpanel" tabindex="4">
-            <div hx-get="{{ url_for('seq_requests_htmx.get', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_seq_request_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="project-experiments-tab" role="tabpanel" tabindex="5">
-            <div hx-get="{{ url_for('experiments_htmx.get', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_experiment_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -200,7 +200,7 @@
                     <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
                 <div>
-                    <button hx-get="{{ url_for('projects_htmx.add_assignee_form', project_id=project.id) }}" class="btn btn-success"
+                    <button hx-get="{{ url_for('render_add_assignee_form', project_id=project.id) }}" class="btn btn-success"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click"
                         {% if not current_user.is_insider() %}disabled{% endif %}>
@@ -208,17 +208,17 @@
                     </button>
                 </div>
             </div>
-            <div hx-get="{{ url_for('projects_htmx.get_assignees', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_user_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="project-shares-tab" role="tabpanel" tabindex="7">
-            <div hx-get="{{ url_for('projects_htmx.get_shares', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_share_token_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="project-software-tab" role="tabpanel" tabindex="8">
-            <div hx-get="{{ url_for('projects_htmx.get_software', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_project_table_software', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

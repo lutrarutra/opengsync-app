@@ -193,7 +193,7 @@
                     <li>Check any additional information provided in the comments.</li>
                 </ul>
                 <hr>
-                    <div hx-get="{{ url_for('seq_requests_htmx.get_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    <div hx-get="{{ url_for('render_seq_request_table_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                         {{ spinner() }}
                     </div>
                 <hr>
@@ -288,7 +288,7 @@
                     <li>Check sample names make sense.</li>
                     <li>Check sample attributes.</li>
                 </ul>
-                <div hx-get="{{ url_for('seq_requests_htmx.get_sample_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                <div hx-get="{{ url_for('render_seq_request_table_sample_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                     {{ spinner() }}
                 </div>
                 {% if not samples_checked %}

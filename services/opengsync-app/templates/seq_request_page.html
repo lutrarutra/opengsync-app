@@ -269,7 +269,7 @@
                     <h2>Samples <img {{ tooltip('Right click on a sample name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('samples_htmx.get', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_sample_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -522,7 +522,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="seq_request-files-tab" role="tabpanel" tabindex="8">
-            <div hx-get="{{ url_for('seq_requests_htmx.get_files', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_seq_request_table_files', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -538,7 +538,7 @@
                 </button>
             </div>
 
-            <div hx-get="{{ url_for('seq_requests_htmx.get_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_seq_request_table_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>  
@@ -577,7 +577,7 @@
             </div>
         </div>
         <div class="tab-pane fadee" id="request-projects-tab" role="tabpanel" tabindex="11">
-            <div hx-get="{{ url_for('projects_htmx.get', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_project_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -595,7 +595,7 @@
                     </button>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.get_assignees', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_seq_request_table_assignees', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

@@ -1,5 +1,5 @@
 from fastapi import Request, HTTPException
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import JSONResponse, Response
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from pydantic import ValidationError
 from loguru import logger
@@ -44,8 +44,8 @@ async def pydantic_validation_exception_handler(request: Request, exc: Validatio
 
 async def UserNotAuthenticatedException_handler(request: Request, exc: Exception) -> Response:
     if request.headers.get("HX-Request") == "true":
-        return await responses.htmx_response(redirect="login_page", status=303)
-    return await responses.html_response(redirect="login_page", status=303)
+        return await responses.htmx_response(redirect=responses.url_for("login_page"), status=303)
+    return await responses.html_response(redirect=responses.url_for("login_page"), status=303)
 
 async def form_validation_exception_handler(request: Request, exc: exc.FormValidationException) -> Response:
     return await exc.form.make_response()

@@ -21,7 +21,7 @@
 </div>
 
 <div class="page-content">
-    <div hx-get="{{ url_for('seq_requests_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
+    <div hx-get="{{ url_for('render_seq_request_table') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

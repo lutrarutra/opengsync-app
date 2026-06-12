@@ -22,7 +22,7 @@ async def begin_library_annotation_workflow(
     #     raise exc.NotFoundException()
     # access_type = await seq_request.get_access_type(session, current_user)
     # if access_type < AccessType.EDIT:
-    #     raise exc.PermissionDeniedException()
+    #     raise exc.NoPermissionsException()
     # form = ProjectSelectForm(seq_request=seq_request)
     # return await form.make_response()
     pass

@@ -187,7 +187,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('samples_htmx.get', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_sample_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

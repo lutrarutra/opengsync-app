@@ -21,7 +21,7 @@ async def user_page(
 ):
     # Non-insiders can only view their own profile
     if not current_user.is_insider() and user_id != current_user.id:
-        raise exceptions.PermissionDeniedException()
+        raise exceptions.NoPermissionsException()
 
     # NOTE: User lookup, projects/requests queries, and breadcrumb
     # resolution are handled client-side via API calls.

@@ -16,7 +16,7 @@ async def login_page(
     current_user: models.User | None = Depends(dependencies.get_user)
 ):
     if current_user:
-        return await responses.html_response(redirect="/dashboard")
+        return await responses.html_response(redirect=responses.url_for("dashboard"))
     
     return await responses.html_response("auth_page.html")
 

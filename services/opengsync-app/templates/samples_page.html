@@ -12,7 +12,7 @@
 </div>
 
 <div class="page-content">
-    <div hx-get="{{ url_for('samples_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
+    <div hx-get="{{ url_for('render_sample_table') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

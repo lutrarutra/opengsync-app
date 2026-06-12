@@ -1,10 +1,52 @@
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Literal, overload
 
 from .InputField import InputField
 
 T = TypeVar("T")
 
+
 class SelectableInputField(InputField, Generic[T]):
+    data: T | None
+
+    @overload
+    def __init__(
+        self,
+        label: str,
+        options: list[tuple[T, str]],
+        *,
+        required: Literal[True] = True,
+        default: T | None = None,
+        description: str | None = None,
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        label: str,
+        options: list[tuple[T, str]],
+        *,
+        required: Literal[False],
+        default: T | None = None,
+        description: str | None = None,
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        label: str,
+        options: list[tuple[T, str]],
+        *,
+        required: bool,
+        default: T | None = None,
+        description: str | None = None,
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
     def __init__(
         self,
         label: str,

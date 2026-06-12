@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .. import localize
 from .Base import Base
-from ..categories import SeqRequestStatus, SeqRequestStatus, ReadType, ReadType, DataDeliveryMode, DataDeliveryMode, SubmissionType, SubmissionType, MediaFileType, LibraryType, LibraryType, MUXType, MUXType
+from ..categories import SeqRequestStatus, ReadType, DataDeliveryMode, SubmissionType, MediaFileType, LibraryType, MUXType
 from . import links
 
 if TYPE_CHECKING:
@@ -298,26 +298,19 @@ class SeqRequest(Base):
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot query num_assignees.")
 
-        from .User import User
+        from .. import queries as Q
         return session.scalar(sa.select(sa.func.count()).select_from(
-            sa.select(User).join(
-                links.SeqRequestAssigneeLink,
-                links.SeqRequestAssigneeLink.user_id == User.id
-            ).where(
-                links.SeqRequestAssigneeLink.seq_request_id == self.id
-            ).subquery()
+            Q.user.select(assignees_seq_request_id=self.id).subquery()
         ))  # type: ignore[return-value]
 
     @num_assignees.expression
     def num_assignees(cls) -> sa.ScalarSelect[int]:
         from .User import User
+        from .. import queries as Q
         return sa.select(
             sa.func.count(User.id)
         ).where(
-            sa.select(1).where(
-                (links.SeqRequestAssigneeLink.user_id == User.id) &
-                (links.SeqRequestAssigneeLink.seq_request_id == cls.id)
-            ).correlate_except(links.SeqRequestAssigneeLink).exists()
+            *Q.user.where_clauses(assignees_seq_request_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
@@ -464,7 +457,7 @@ class SeqRequest(Base):
             )
         ).where(
             *Q.library.where_clauses(seq_request_id=cls.id)
-        ).order_by(Library.type_id).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @property
     def mux_types(self) -> list[MUXType]:

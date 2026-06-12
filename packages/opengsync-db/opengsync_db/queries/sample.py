@@ -83,6 +83,7 @@ def select(
     lab_prep_id: int | None = None,
     status: SampleStatus | None = None,
     status_in: list[SampleStatus] | None = None,
+    viewer_id: int | None = None,
     search_name: str | None = None,
     search_owner_name: str | None = None,
     statement: sa.Select[tuple[Sample]] = sa.select(Sample),
@@ -98,6 +99,7 @@ def select(
         lab_prep_id=lab_prep_id,
         status=status,
         status_in=status_in,
+        viewer_id=viewer_id,
     ))
 
     if search_name is not None:
@@ -121,6 +123,7 @@ def where_clauses(
     project_id: int | None = None,
     library_id: int | None = None,
     pool_id: int | None = None,
+    viewer_id: int | None = None,
     seq_request_id: int | None = None,
     lab_prep_id: int | None = None,
     status: SampleStatus | None = None,
@@ -180,5 +183,8 @@ def where_clauses(
 
     if status_in is not None:
         clauses.append(Sample.status_id.in_([s.id for s in status_in]))
+
+    if viewer_id is not None:
+        clauses.append(access_level(viewer_id) >= AccessLevel.READ)
 
     return clauses

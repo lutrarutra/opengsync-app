@@ -24,7 +24,7 @@ class ProjectTable(HTMXTable):
     ]
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    table = ProjectTable(route="projects_htmx.get", page=request.args.get("page", 0, type=int))
+    table = ProjectTable(route="render_project_table", page=request.args.get("page", 0, type=int))
 
     stmt = sa.select(models.Project)
 

@@ -185,7 +185,7 @@
                     <h2>Dilutions</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('experiments_htmx.get_dilutions', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_experiment_table_dilutions', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -232,7 +232,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="experiment-files-tab" role="tabpanel" tabindex="6">
-            <div hx-get="{{ url_for('experiments_htmx.get_files', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_experiment_table_files', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -248,7 +248,7 @@
                 </button>
             </div>
 
-            <div hx-get="{{ url_for('experiments_htmx.get_comments', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_experiment_table_comments', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>  
@@ -300,7 +300,7 @@
         </div>
         {% endif %}
         <div class="tab-pane fadee" id="experiment-projects-tab" role="tabpanel" tabindex="9">
-            <div hx-get="{{ url_for('projects_htmx.get', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_project_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

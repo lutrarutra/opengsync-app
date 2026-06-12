@@ -40,7 +40,7 @@ class AppConfig(BaseModel):
     email_domain_white_list: list[str] = []
     external_base_url: str | None = None
     db: DBConfig
-    share_path_mapping: SharePathMapping
+    share_path_mapping: SharePathMapping | None = None
     canary_files: dict[str, str] = dict()
     app_root: str
     media_folder: str
