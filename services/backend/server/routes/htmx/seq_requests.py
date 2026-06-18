@@ -32,7 +32,7 @@ async def render_seq_request_table(
     user_id: int | None = Query(None, description="Optional user ID to filter seq requests"),
     group_id: int | None = Query(None, description="Optional group ID to filter seq requests"),
     project_id: int | None = Query(None, description="Optional project ID to filter seq requests"),
-    status_in: list[C.SeqRequestStatus] | None = Depends(dependencies.parse_seq_request_status_ids),
+    status_in: list[C.SeqRequestStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.SeqRequestStatus, query_param="status_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_user),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.SeqRequest, default=models.SeqRequest.timestamp_submitted_utc.desc())),

@@ -245,7 +245,7 @@
                 {{ metadata_group("Assay", lab_prep.service_type.abbreviation, class="col-3") }}
             </div>
             <div class="row">
-                {{ metadata_group_link("Creator", lab_prep.creator.name, url_for("users_page.user", user_id=lab_prep.creator.id, from="lab_prep@" + lab_prep.id | string), class="col-3") }}
+                {{ metadata_group_link("Creator", lab_prep.creator.name, url_for("user_page", user_id=lab_prep.creator.id, from="lab_prep@" + lab_prep.id | string), class="col-3") }}
                 {{ 
                     metadata_group_email_link(
                         "Email", lab_prep.creator.email, class="col-3",

@@ -61,7 +61,7 @@ class GroupForm(HTMXFlaskForm):
 
         flash(f"Created group {group.name}.", "success")
 
-        return make_response(redirect=url_for("groups_page.group", group_id=group.id))
+        return make_response(redirect=url_for("group_page", group_id=group.id))
     
     def __update_existing_group(self, group: models.Group) -> Response:
         group.name = self.name.data  # type: ignore
@@ -72,7 +72,7 @@ class GroupForm(HTMXFlaskForm):
         logger.debug(f"Updated group {group.name}.")
         flash(f"Updated group {group.name}.", "success")
 
-        return make_response(redirect=url_for("groups_page.group", group_id=group.id),)
+        return make_response(redirect=url_for("group_page", group_id=group.id),)
     
     def process_request(self, user: models.User) -> Response:
         if not self.validate(group=self.group):

@@ -59,11 +59,11 @@ def remove_user(current_user: models.User, group_id: int, user_id: int):
     
     if affiliation.affiliation_type == AffiliationType.OWNER:
         flash("Owner cannot be removed", "warning")
-        return make_response(redirect=url_for("groups_page.group", group_id=group_id))
+        return make_response(redirect=url_for("group_page", group_id=group_id))
     
     db.session.delete(affiliation)
     flash("User removed from group", "success")
-    return make_response(redirect=url_for("groups_page.group", group_id=group_id))
+    return make_response(redirect=url_for("group_page", group_id=group_id))
 
 
 @wrappers.htmx_route(groups_htmx, db=db, methods=["POST"], arg_params=["user_id"])
@@ -90,7 +90,7 @@ def make_owner(current_user: models.User, group_id: int, user_id: int):
     db.session.save(owner_affiliation)
     
     flash("Owner Changed!", "success")
-    return make_response(redirect=url_for("groups_page.group", group_id=group_id))
+    return make_response(redirect=url_for("group_page", group_id=group_id))
 
 
 @wrappers.htmx_route(groups_htmx, db=db, methods=["GET", "POST"])

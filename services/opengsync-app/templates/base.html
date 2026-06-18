@@ -85,7 +85,7 @@
                     <i class="bi bi-caret-down-fill" style="font-size: 10px;"></i>
                 </p>
                 <ul>
-                    <li><a class="nav-link {{'active' if active_page == 'samples-page' else ''}}" href="{{ url_for('samples') }}">Bio Samples</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'samples-page' else ''}}" href="{{ url_for('samples_page') }}">Bio Samples</a></li>
                     <li><a class="nav-link {{'active' if active_page == 'libraries-page' else ''}}" href="{{ url_for('libraries') }}">Libraries</a></li>
                     <li><a class="nav-link {{'active' if active_page == 'pools-page' else ''}}" href="{{ url_for('pools') }}">Pools</a></li>
                 </ul>
@@ -110,7 +110,7 @@
             </div>
             {% if current_user %}
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'groups-page' else ''}}" href="{{ url_for('groups') }}">Groups</a>
+                <a class="nav-link {{'active' if active_page == 'groups-page' else ''}}" href="{{ url_for('groups_page') }}">Groups</a>
             </div>
             {% endif %}
             {% if current_user and not current_user.is_insider() %}
@@ -142,7 +142,7 @@
         </div>
         <div class="nav-right">
             {% if current_user %}
-            <a type="button" class="btn btn-secondary login-btn user-btn" href="{{ url_for('login_page') }}">
+            <a type="button" class="btn btn-secondary login-btn user-btn" href="{{ url_for('user_page', user_id=current_user.id) }}">
                 <p>
                     {% if user_role == UserRole.ADMIN %}
                     <i class="bi bi-wrench-adjustable-circle"></i>

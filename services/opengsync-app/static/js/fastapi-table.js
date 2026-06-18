@@ -15,6 +15,7 @@ class HTMXTable {
         
         this.multiselects = [];
         this._init(this.options.state);
+        this._initialState = {...this.options.state};
         this._bindEvents();
     }
 
@@ -140,7 +141,10 @@ class HTMXTable {
     }
 
     _getState(include_sort=true) {
-        let state = {};
+        let state = {...this._initialState};
+        delete state.page;
+        delete state.order_by;
+        
         this.multiselects.forEach(select => {
             let field_name = select.$container.data("field_name");
             if (select.options.selected.length > 0) {

@@ -59,4 +59,7 @@ class LoginForm(HTMXForm):
             max_age=60 * 60 * 24 * 7,  # 7 days
         )
 
-        return await responses.htmx_response(redirect=responses.url_for("dashboard"), response=response)
+        return await responses.htmx_response(
+            redirect=responses.url_for("dashboard"), response=response,
+            flash=responses.flash(message="Logged In!", category="success")
+        )

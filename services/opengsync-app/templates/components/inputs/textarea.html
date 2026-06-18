@@ -8,7 +8,7 @@
         {{ field.label }}
     </a>
     {% endif %}
-    <input
+    <textarea
     type="{% if field.hidden %}hidden{% else %}{{ field.type }}{% endif %}"
     class="form-control{% if field.errors %} is-invalid{% endif %}"
     placeholder="{% if field.placeholder %}{{ field.placeholder }}{% else %}{% if field.required %}Required{% else %}Optional{% endif %}{% endif %}"
@@ -16,7 +16,8 @@
     id="{{ field.id }}" value="{{ field.data or '' }}" name="{{ field.name }}"
     autocomplete="{{ field.autocomplete }}"
     {% if field.required %}required{% endif %}
-    {%if field.read_only %}readonly{% endif %}>
+    {%if field.read_only %}readonly{% endif %}
+    style="min-height: 12rem;">{{ field.data or '' }}</textarea>
     <div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">
         {% for error in field.errors %}
         <p>{{ error }}</p>

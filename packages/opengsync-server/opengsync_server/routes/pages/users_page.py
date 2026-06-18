@@ -29,7 +29,7 @@ def user(current_user: models.User, user_id: int | None = None):
         raise exceptions.NoPermissionsException()
 
     path_list = [
-        ("Users", url_for("users_page.users")),
+        ("Users", url_for("user_pages")),
         (f"User {user_id}", ""),
     ]
 
@@ -49,8 +49,8 @@ def user(current_user: models.User, user_id: int | None = None):
             ]
         elif page == "sample":
             path_list = [
-                ("Samples", url_for("samples_page.samples")),
-                (f"Sample {id}", url_for("samples_page.sample", sample_id=id)),
+                ("Samples", url_for("sample_pages")),
+                (f"Sample {id}", url_for("sample_page", sample_id=id)),
                 (f"User {user_id}", ""),
             ]
         elif page == "pool":
@@ -61,8 +61,8 @@ def user(current_user: models.User, user_id: int | None = None):
             ]
         elif page == "group":
             path_list = [
-                ("Groups", url_for("groups_page.groups")),
-                (f"Group {id}", url_for("groups_page.group", group_id=id)),
+                ("Groups", url_for("group_pages")),
+                (f"Group {id}", url_for("group_page", group_id=id)),
                 (f"User {user_id}", ""),
             ]
         elif page == "lab_prep":

@@ -18,7 +18,7 @@
             {% endif %}
             {% for option in field.options %}
             <option value="{{ option[0] }}"
-            {% if selected_value is not none and option[0] == selected_value %}selected{% endif %}>
+            {% if selected_value is not none and option[0]|string == selected_value|string %}selected{% endif %}>
                 {{ option[1] }}
             </option>
             {% endfor %}

@@ -22,7 +22,7 @@
                     {% if share_token.is_expired %}🔴{% else %}🟢{% endif %}
                     {{ share_token.expiration | format_datetime }}
                 </td>
-                <td><a href="{{ url_for('users_page.user', user_id=share_token.owner_id) }}">{{ share_token.owner.name }}{% if current_user.id == share_token.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
+                <td><a href="{{ url_for('user_page', user_id=share_token.owner_id) }}">{{ share_token.owner.name }}{% if current_user.id == share_token.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
                 <td>{{ share_token.time_valid_min }}</td>
                 <td>{{ share_token.num_paths }}</td>
             </tr>

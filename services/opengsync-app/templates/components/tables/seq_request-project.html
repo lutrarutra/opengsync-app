@@ -23,7 +23,7 @@
                 <td><a href="{{ url_for('projects_page.project', project_id=project.id, from='seq_request@' + seq_request.id | string) }}">{{ project.title }}</a></td>
                 <td>{{ project.status.icon }} {{ project.status.label }}</td>
                 <td>{% if project.group_id %}{{ project.group.name }} {{ project.group.type.icon }}{% endif %}</td>
-                <td><a href="{{ url_for('users_page.user', user_id=project.owner_id, from='seq_request@' + seq_request.id | string) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></a></td>
+                <td><a href="{{ url_for('user_page', user_id=project.owner_id, from='seq_request@' + seq_request.id | string) }}">{{ project.owner.name }} <span class="desc">{{ "me" if current_user.id == project.owner_id }}</span></a></td>
                 <td>{{ project.num_samples }}</td>
             </tr>
             {% endfor %}

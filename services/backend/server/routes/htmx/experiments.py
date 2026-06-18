@@ -26,8 +26,8 @@ class ExperimentTable(HTMXTable):
 @router.get("/render-table-page")
 async def render_experiment_table(
     project_id: int | None = Query(None, description="Optional project ID to filter experiments"),
-    status_in: list[C.ExperimentStatus] | None = Depends(dependencies.parse_experiment_status_ids),
-    workflow_in: list[C.ExperimentWorkFlow] | None = Depends(dependencies.parse_experiment_workflow_ids),
+    status_in: list[C.ExperimentStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ExperimentStatus, query_param="status_in")),
+    workflow_in: list[C.ExperimentWorkFlow] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ExperimentWorkFlow, query_param="workflow_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_insider),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Experiment, default=models.Experiment.id.desc())),

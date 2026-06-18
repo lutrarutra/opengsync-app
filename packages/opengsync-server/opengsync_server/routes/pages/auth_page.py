@@ -17,7 +17,7 @@ def reset_password(token: str):
 def auth(current_user: models.User | None):
     dest = request.args.get("next", "/")
     if current_user:
-        return redirect(url_for("users_page.user", user_id=current_user.id))
+        return redirect(url_for("user_page", user_id=current_user.id))
 
     return render_template("auth_page.html", next=dest)
 

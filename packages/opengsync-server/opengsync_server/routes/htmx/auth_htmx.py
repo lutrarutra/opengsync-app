@@ -91,11 +91,11 @@ def reset_password_email(current_user: models.User, user_id: int):
         flash("Failed to send password reset email. Please contact administrator.", "error")
         logger.error(f"Failed to send password reset email to '{user.email}':")
         logger.error(e)
-        return make_response(redirect=url_for("users_page.user", user_id=user_id))
+        return make_response(redirect=url_for("user_page", user_id=user_id))
 
     flash(f"Password reset email sent to '{user.email}'", "info")
     logger.info(f"Password reset email sent to '{user.email}'")
-    return make_response(redirect=url_for("users_page.user", user_id=user_id))
+    return make_response(redirect=url_for("user_page", user_id=user_id))
 
 
 @wrappers.htmx_route(auth_htmx, db=db, methods=["POST"])
@@ -128,11 +128,11 @@ def activate_account(current_user: models.User, user_id: int):
         flash("Failed to send password reset email. Please contact administrator.", "error")
         logger.error(f"Failed to send password reset email to '{user.email}':")
         logger.error(e)
-        return make_response(redirect=url_for("users_page.user", user_id=user_id))
+        return make_response(redirect=url_for("user_page", user_id=user_id))
 
     flash(f"Account activation email sent to '{user.email}'", "info")
     logger.info(f"Account activation email sent to '{user.email}'")
-    return make_response(redirect=url_for("users_page.user", user_id=user_id))
+    return make_response(redirect=url_for("user_page", user_id=user_id))
 
 
 
@@ -160,7 +160,7 @@ def delete_user_sessions(current_user: models.User, user_id: int):
     runtime.app.delete_user_sessions(user_id)
     flash(f"Deleted all sessions for user '{user.email}'", "info")
     logger.info(f"Deleted all sessions for user '{user.id}'")
-    return make_response(redirect=url_for("users_page.user", user_id=user_id))
+    return make_response(redirect=url_for("user_page", user_id=user_id))
 
 # Admin tool to start a session as another user without needing their password. This is useful for troubleshooting user issues.
 @wrappers.htmx_route(auth_htmx, methods=["POST"], db=db, login_required=True)

@@ -129,7 +129,7 @@
                     {{
                         metadata_group_link(
                             "Owner", pool.owner.name,
-                            url_for("users_page.user", user_id=pool.owner.id, from='pool@' + pool.id | string),
+                            url_for("user_page", user_id=pool.owner.id, from='pool@' + pool.id | string),
                             class="col-2"
                         )
                     }}

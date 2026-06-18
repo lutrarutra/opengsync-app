@@ -4,8 +4,9 @@ from typing import Callable, Awaitable
 from sqlalchemy import inspect
 from fastapi import Response
 from starlette.background import BackgroundTask, BackgroundTasks
+from loguru import logger
 
-from opengsync_db import models
+from opengsync_db import models, AsyncSession
 
 from . import audit, runtime
 
@@ -77,3 +78,18 @@ async def audit_middleware(request: runtime.Request, call_next: Callable[[runtim
             )
         )            
     return response
+
+
+async def db_session_cleanup_middleware(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
+    response = None
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        session: AsyncSession | None = getattr(request.state, "db_session", None)
+        
+        if session is not None:
+            try:
+                await session.commit()
+            finally:
+                await session.close()

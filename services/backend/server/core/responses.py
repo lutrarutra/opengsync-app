@@ -1,5 +1,6 @@
 import json
 from typing import Any
+from urllib.parse import quote
 
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
 from starlette.datastructures import URL
@@ -77,10 +78,25 @@ async def htmx_response(
         raise ValueError("Cannot provide both template and content for HTMX response.")
 
     if flash:
-        if isinstance(flash, FlashMessage):
-            headers["HX-Trigger"] = json.dumps({"flash": flash.model_dump()})
+        flash_data = flash.model_dump() if isinstance(flash, FlashMessage) else {"message": flash, "category": "info"}
+        if redirect:
+            headers["HX-Redirect"] = redirect.__str__()
+            resp = HTMLResponse(status_code=204, headers=headers)
+            resp.set_cookie(
+                key="flash_message",
+                value=quote(json.dumps(flash_data)),
+                max_age=60,
+                httponly=False,
+                samesite="lax",
+                path="/",
+            )
+            if response:
+                for header, value in response.raw_headers:
+                    if header.lower() == b"set-cookie":
+                        resp.raw_headers.append((header, value))
+            return resp
         else:
-            headers["HX-Trigger"] = json.dumps({"flash": {"message": flash, "category": "info"}})
+            headers["HX-Trigger"] = json.dumps({"flash": flash_data})
 
     if re_target:
         headers["HX-Target"] = re_target

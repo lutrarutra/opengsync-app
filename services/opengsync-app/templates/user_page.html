@@ -17,7 +17,7 @@
                 <ul class="dropdown-menu">
                     <li>
                         <button class="dropdown-item"
-                        hx-get="{{ url_for('users_htmx.edit', user_id=user.id) }}"
+                        hx-get="{{ url_for('render_edit_user_form', user_id=user.id) }}"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
                         {% if current_user.id != user.id and not current_user.is_admin() %}disabled{% endif %}>
                             Edit User
@@ -25,7 +25,7 @@
                     </li>
                     <li>
                         <button class="dropdown-item"
-                        hx-get="{{ url_for('auth_htmx.change_password', user_id=user.id) }}"
+                        hx-get="{{ url_for('render_change_password_form', user_id=user.id) }}"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
                         {% if current_user.id != user.id %}disabled{% endif %}>
                             Change Password
@@ -39,20 +39,7 @@
                                 title="Send Reset Password Email to {email}?".format(email=user.email),
                                 body="This will send an email to the user with instructions to reset their password. Do you want to continue?",
                                 method="hx-post",
-                                url=url_for('auth_htmx.reset_password_email', user_id=user.id),
-                                class="dropdown-item",
-                                disabled=not (current_user.is_admin() or current_user.id == user.id)
-                            )
-                        }}
-                    </li>
-                    <li>
-                        {{
-                            confirm_action_button(
-                                text="Delete Sessions",
-                                title="Delete All User Sessions?",
-                                body="This action will log-out user from all active sessions. Do you want to continue?",
-                                method="hx-post",
-                                url=url_for('auth_htmx.delete_user_sessions', user_id=user.id),
+                                url=url_for('send_reset_password_email', user_id=user.id),
                                 class="dropdown-item",
                                 disabled=not (current_user.is_admin() or current_user.id == user.id)
                             )
@@ -65,7 +52,7 @@
                                 title="Activate Account?",
                                 body="User will receive email to activate their account. Do you want to continue?",
                                 method="hx-post",
-                                url=url_for('auth_htmx.activate_account', user_id=user.id),
+                                url=url_for('activate_user', user_id=user.id),
                                 class="dropdown-item",
                                 disabled=(user.role != UserRole.DEACTIVATED) or not current_user.is_insider(),
                             )
@@ -78,7 +65,7 @@
                                 title="Start Session?",
                                 body="You will be logged in as the user. Do you want to continue?",
                                 method="hx-post",
-                                url=url_for('auth_htmx.start_user_session', user_id=user.id),
+                                url=url_for('start_user_session', user_id=user.id),
                                 class="dropdown-item",
                                 disabled=not current_user.is_admin(),
                                 disabled_tooltip="Only admins can start sessions as other users."
@@ -90,7 +77,7 @@
             </div>
             {% if current_user.id == user.id %}
             <button id="logout-btn" class="btn btn-danger"
-            hx-get="{{ url_for('auth_htmx.logout') }}"
+            hx-post="{{ url_for('logout') }}"
             _="on htmx:confirm(issueRequest)
                 halt the event
                 call Swal.fire({
@@ -161,7 +148,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="user-groups-tab" role="tabpanel" tabindex="3">
-            <div hx-get="{{ url_for('users_htmx.get_affiliations', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_affiliation_table', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -173,14 +160,14 @@
                 <div>
                     {{
                         modal_button(
-                            "New Token", url=url_for('api_tokens_htmx.create', user_id=user.id), size="sm",
+                            "New Token", url=url_for('render_create_api_token_form', user_id=user.id), size="sm",
                             disabled=not (current_user.is_admin() or (current_user.id == user.id and current_user.is_insider())),
                             disabled_tooltip="Only insiders can create API tokens.", tooltip_position="left"
                         )
                     }}
                 </div>
             </div>
-            <div hx-get="{{ url_for('users_htmx.get_api_tokens', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_api_tokens_table', user_id=user.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

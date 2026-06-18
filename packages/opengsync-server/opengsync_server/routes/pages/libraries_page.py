@@ -42,8 +42,8 @@ def library(current_user: models.User, library_id: int):
             ]
         elif page == "sample":
             path_list = [
-                ("Samples", url_for("samples_page.samples")),
-                (f"Sample {id}", url_for("samples_page.sample", sample_id=id)),
+                ("Samples", url_for("sample_pages")),
+                (f"Sample {id}", url_for("sample_page", sample_id=id)),
                 (f"Library {library.id}", ""),
             ]
         elif page == "pool":

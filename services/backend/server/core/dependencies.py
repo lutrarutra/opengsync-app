@@ -1,12 +1,11 @@
 import json
+from typing import Callable, TypeVar
 from uuid import UUID
 import hashlib
 
 from fastapi import Depends, BackgroundTasks, Request, Header, Cookie, Query
-from starlette.background import BackgroundTask
-from redis.asyncio import Redis, ConnectionPool
+from redis.asyncio import Redis
 from fastapi_cache import FastAPICache
-import sqlalchemy as sa
 from taskiq import TaskiqDepends
 
 from sqlalchemy.orm import make_transient_to_detached
@@ -18,7 +17,11 @@ from . import mailer, audit, auth, exceptions as exc, secrets, runtime, cache
 def get_runtime_request(request: Request = TaskiqDepends()) -> runtime.Request:
     return request  # type: ignore
 
-async def db_session(request: runtime.Request = TaskiqDepends(get_runtime_request)):
+async def db_session(request: runtime.Request = Depends(get_runtime_request)):
+    request.state.db_session = request.app.state.db_handler.get_session()
+    return request.state.db_session
+
+async def taskiq_session(request: runtime.Request = TaskiqDepends(get_runtime_request)):
     async with request.app.state.db_handler.get_session() as session:
         try:
             yield session
@@ -293,90 +296,42 @@ async def pool_permissions(
     await r.set(cache_key, int(access_level), ex=300)
     return access_level
 
+async def user_permissions(
+    user_id: int,
+    current_user: models.User = Depends(require_user),
+    session: AsyncSession = Depends(db_session),
+    r: Redis = Depends(redis),
+):
+    cache_key = f"access:user:{user_id}:user:{current_user.id}"
+    if (cached_access := await r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))
+    try:
+        if (access_level := await session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=current_user.id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this user.")
+    except db_exc.ModelNotFoundException:
+        raise exc.ItemNotFoundException("User not found.")
 
-def parse_project_status_ids(
-    status_in: str | None = Query(None, description="JSON list of project status IDs to filter by")
-) -> list[C.ProjectStatus] | None:
-    if status_in is None:
-        return None
+    await r.set(cache_key, int(access_level), ex=300)
+    return access_level
     
-    try:
-        status_ids = json.loads(status_in)
-        return [C.ProjectStatus.get(int(status)) for status in status_ids]
-    except ValueError:
-        raise exc.BadRequestException()
+E = TypeVar("E", bound=C.ExtendedEnum)
 
-def parse_library_type_ids(
-    library_types_in: str | None = Query(None, description="JSON list of library type IDs to filter by")
-) -> list[C.LibraryType] | None:
-    if library_types_in is None:
-        return None
+def parse_enum_ids(
+    enum_type: type[E], query_param: str,        
+) -> Callable[[], list[E] | None]:
+    def dependency(
+        ids_in: str | None = Query(None, alias=query_param, description=f"JSON list of {enum_type.__name__} IDs to filter by")
+    ) -> list[E] | None:
+        if ids_in is None:
+            return None
+        
+        try:
+            enum_ids = json.loads(ids_in)
+            return [enum_type.get(int(enum_id)) for enum_id in enum_ids] or None
+        except ValueError:
+            raise exc.BadRequestException()
     
-    try:
-        library_type_ids = json.loads(library_types_in)
-        return [C.LibraryType.get(int(library_type)) for library_type in library_type_ids]
-    except ValueError:
-        raise exc.BadRequestException()
-    
-def parse_sample_status_ids(
-    status_in: str | None = Query(None, description="JSON list of sample status IDs to filter by")
-) -> list[C.SampleStatus] | None:
-    if status_in is None:
-        return None
-    
-    try:
-        status_ids = json.loads(status_in)
-        return [C.SampleStatus.get(int(status)) for status in status_ids]
-    except ValueError:
-        raise exc.BadRequestException()
-    
-def parse_seq_request_status_ids(
-    status_in: str | None = Query(None, description="JSON list of sequencing request status IDs to filter by")
-) -> list[C.SeqRequestStatus] | None:
-    if status_in is None:
-        return None
-    
-    try:
-        status_ids = json.loads(status_in)
-        return [C.SeqRequestStatus.get(int(status)) for status in status_ids]
-    except ValueError:
-        raise exc.BadRequestException()
-
-def parse_experiment_status_ids(
-    status_in: str | None = Query(None, description="JSON list of experiment status IDs to filter by")
-) -> list[C.ExperimentStatus] | None:
-    if status_in is None:
-        return None
-    
-    try:
-        status_ids = json.loads(status_in)
-        return [C.ExperimentStatus.get(int(status)) for status in status_ids]
-    except ValueError:
-        raise exc.BadRequestException()
-
-def parse_experiment_workflow_ids(
-    workflow_in: str | None = Query(None, description="JSON list of experiment workflow IDs to filter by")
-) -> list[C.ExperimentWorkFlow] | None:
-    if workflow_in is None:
-        return None
-    
-    try:
-        workflow_ids = json.loads(workflow_in)
-        return [C.ExperimentWorkFlow.get(int(workflow)) for workflow in workflow_ids]
-    except ValueError:
-        raise exc.BadRequestException()
-
-def parse_user_role_ids(
-    role_in: str | None = Query(None, description="JSON list of user role IDs to filter by")
-) -> list[C.UserRole] | None:
-    if role_in is None:
-        return None
-    
-    try:
-        role_ids = json.loads(role_in)
-        return [C.UserRole.get(int(role)) for role in role_ids]
-    except ValueError:
-        raise exc.BadRequestException()
+    return dependency
     
 def parse_order_by(
     model: type[utils.Base],

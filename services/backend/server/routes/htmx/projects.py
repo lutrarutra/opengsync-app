@@ -33,8 +33,8 @@ async def render_project_table(
     experiment_id: int | None = Query(None, description="Optional experiment ID to filter projects"),
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter projects"),
     group_id: int | None = Query(None, description="Optional group ID to filter projects"),
-    status_in: list[C.ProjectStatus] | None = Depends(dependencies.parse_project_status_ids),
-    library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_library_type_ids),
+    status_in: list[C.ProjectStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ProjectStatus, query_param="status_in")),
+    library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Project, default=models.Project.id.desc())),
     current_user: models.User = Depends(dependencies.require_user),
@@ -104,6 +104,9 @@ async def render_create_project_form(
     form = forms.models.ProjectForm(request, form_type="create")
     return await form.make_response()
 
+@router.post("/create")
+async def create_project(response = Depends(forms.models.ProjectForm.create_project)): return response
+
 @router.get("/{project_id}/edit")
 async def render_project_edit_form(
     project_id: int,
@@ -120,8 +123,7 @@ async def render_project_edit_form(
     return await form.make_response()
 
 @router.post("/{project_id}/edit")
-async def edit_project(response = Depends(forms.models.ProjectForm.edit_project)):
-    return response
+async def edit_project(response = Depends(forms.models.ProjectForm.edit_project)): return response
 
 @router.get("/{project_id}/export", dependencies=[Depends(dependencies.project_permissions)])
 async def export_project_data(
@@ -360,4 +362,15 @@ async def render_add_assignee_form(
     pass
 
 
-@router.get("/{project_id}/software", dependencies=[Depends(dependencies.require_insider)])
+@router.get("/{project_id}/software", dependencies=[Depends(dependencies.project_permissions)])
+async def render_project_software(
+    project_id: int,
+    session: AsyncSession = Depends(dependencies.db_session),
+):
+    project = await session.get_one(Q.project.select(id=project_id))
+
+    return await responses.htmx_response(
+        template="components/project-software.html",
+        software=project.software or {},
+        project=project
+    )

@@ -43,11 +43,12 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
 def select(
     id: int | None = None,
     email: str | None = None,
-    group: Group | None = None,
+    group_id: int | None = None,
     role: UserRole | None = None,
     role_in: list[UserRole] | None = None,
     search_name: str | None = None,
     insider: bool | None = None,
+    viewer_id: int | None = None,
     assignees_project_id: int | None = None,
     assignees_seq_request_id: int | None = None,
     statement: sql.Select[tuple[User]] = sa.select(User),
@@ -56,9 +57,8 @@ def select(
         id=id, email=email, role=role, role_in=role_in, insider=insider,
         assignees_project_id=assignees_project_id,
         assignees_seq_request_id=assignees_seq_request_id,
+        group_id=group_id, viewer_id=viewer_id
     ))
-    if group is not None:
-        statement = statement.join(links.UserAffiliation, links.UserAffiliation.user_id == User.id).where(links.UserAffiliation.group_id == group.id)        
 
     if search_name is not None:
         statement = statement.order_by(
@@ -70,9 +70,11 @@ def select(
 def where_clauses(
     id: int | None = None,
     email: str | None = None,
+    group_id: int | None = None,
     role: UserRole | None = None,
     role_in: list[UserRole] | None = None,
     assignees_project_id: int | None = None,
+    viewer_id: int | None = None,
     assignees_seq_request_id: int | None = None,
     insider: bool | None = None,
 ) -> list[sa.ColumnElement[bool]]:
@@ -94,6 +96,12 @@ def where_clauses(
             clauses.append(User.role_id.in_([role.id for role in UserRole.insiders()]))
         else:
             clauses.append(User.role_id == UserRole.CLIENT.id)
+
+    if group_id is not None:
+        clauses.append(sa.select(1).where(
+            (links.UserAffiliation.user_id == User.id),
+            (links.UserAffiliation.group_id == group_id)
+        ).correlate_except(links.UserAffiliation).exists())
         
     if assignees_project_id is not None:
         clauses.append(sa.select(1).where(
@@ -106,6 +114,9 @@ def where_clauses(
             (links.SeqRequestAssigneeLink.user_id == User.id),
             (links.SeqRequestAssigneeLink.seq_request_id == assignees_seq_request_id)
         ).correlate_except(links.SeqRequestAssigneeLink).exists())
+
+    if viewer_id is not None:
+        clauses.append(access_level(viewer_id) >= AccessLevel.READ)
 
     return clauses
     

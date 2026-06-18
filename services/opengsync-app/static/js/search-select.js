@@ -23,16 +23,27 @@ class SearchSelect {
     }
 
     _init() {
-        if (this.$selected_input.val() && this.$search_input.val()) {
+        const selectedId = this.$selected_input.val();
+        
+        if (selectedId && this.$search_input.val()) {
             let $span = $("<span class='search-select-name'>").text(this.$search_input.val());
             this.$selected_bar.empty().append($span).css("display", "flex");
             this.$search_input.val("").hide();
             window.domm[this.field_name] = $span;
-        }
-        else if (this.$selected_input.val() && window.domm[this.field_name]) {
+        } else if (selectedId && window.domm[this.field_name]) {
             this.$selected_bar.empty().append(window.domm[this.field_name]).css("display", "flex");
             this.$search_input.hide();
+        } else if (selectedId) {
+            this._ajax("");
+            this.$options_container.one("htmx:afterSwap", () => {
+                const $match = this.$options_container.find(`li.option[data-value="${selectedId}"]`);
+                if ($match.length) {
+                    $match.trigger("click");
+                }
+            });
+            return;
         }
+        
         this._ajax("");
     }
 
@@ -52,14 +63,17 @@ class SearchSelect {
     }
 
     _ajax(word) {
+        var payload = {
+            word: word,
+            field_name: this.field_name,
+        }
+        if (this.$selected_input.val()) {
+            payload.selected_id = this.$selected_input.val();
+        }
         htmx.ajax("GET", this.url, {
             target: this.$options_container[0],
             swap: "innerHTML",
-            values: { 
-                [this.$search_input.attr("name")]: word,
-                field_name: this.field_name,
-                selected: this.$selected_input.val()
-            }
+            values: payload
         });
     }
 

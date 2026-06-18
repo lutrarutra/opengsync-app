@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 
-from ..models import ShareToken, User, SharePath
+from ..models import ShareToken, User, SharePath, Project
 
 
 def create(
@@ -19,6 +19,7 @@ def select(
     uuid: str | None = None,
     owner: User | None = None,
     owner_id: int | None = None,
+    project_id: int | None = None,
     statement: sa.Select[tuple[ShareToken]] = sa.select(ShareToken),
 ) -> sa.Select[tuple[ShareToken]]:
     statement = statement.where(*where_clauses(uuid=uuid, owner=owner, owner_id=owner_id))
@@ -29,6 +30,7 @@ def where_clauses(
     uuid: str | None = None,
     owner: User | None = None,
     owner_id: int | None = None,
+    project_id: int | None = None,
 ) -> list[sa.ColumnElement[bool]]:
     """Return WHERE clauses for filtering share tokens.
     Reusable in correlated subqueries where .subquery() would break correlation.
@@ -41,5 +43,11 @@ def where_clauses(
         clauses.append(ShareToken.owner_id == owner.id)
     if owner_id is not None:
         clauses.append(ShareToken.owner_id == owner_id)
-
+    if project_id is not None:
+        clauses.append(
+            sa.select(1).where(
+                (ShareToken.uuid == Project.share_token_uuid),
+                (Project.id == project_id)
+            ).correlate_except(Project).exists()
+        )
     return clauses

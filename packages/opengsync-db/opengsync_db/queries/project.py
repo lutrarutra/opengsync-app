@@ -7,7 +7,7 @@ from ..categories import ProjectStatus, LibraryType, UserRole, AccessLevel
 
 def create(
     title: str,
-    description: str,
+    description: str | None,
     owner_id: int,
     identifier: str | None = None,
     group_id: int | None = None,
@@ -16,7 +16,7 @@ def create(
     return Project(
         identifier=identifier,
         title=title.strip(),
-        description=description.strip(),
+        description=(description.strip() or None) if description is not None else None,
         owner_id=owner_id,
         group_id=group_id,
         status_id=status.id,

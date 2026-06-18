@@ -36,6 +36,7 @@ from .DataPathType import DataPathType
 from .BarcodeOrientation import BarcodeOrientation
 from .TaskStatus import TaskStatus
 from .AccessLevel import AccessLevel
+from .ExtendedEnum import ExtendedEnum
 
 __all__ = [
     "ServiceType",
@@ -75,5 +76,6 @@ __all__ = [
     "DataPathType",
     "BarcodeOrientation",
     "TaskStatus",
-    "AccessLevel"
+    "AccessLevel",
+    "ExtendedEnum",
 ]

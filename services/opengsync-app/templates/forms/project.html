@@ -9,26 +9,16 @@
     </div>
     <div class="modal-body">
         <div id="project-form">
-            {{ form.csrf_token() }}
-            {{ form_group(form.title) }}
+            {{ form.csrf_token.render() }}
+            {{ form.title.render() }}
             <div class="row">
-                {% if current_user.is_insider() %}
-                {{ form_group(form.identifier, class="col-6", placeholder="BSA_XXXX") }}
-                {{ select_input(form.status, class="col-6") }}
-                {% else %}
-                {{ form_group(form.identifier, class="col-6", placeholder="BSA_XXXX", disabled=true) }}
-                {{ select_input(form.status, class="col-6", disabled=true) }}
-                {% endif %}
+                {{ form.identifier.render("col-6") }}
+                {{ form.status.render("col-6") }}
             </div>
             <div class="row">
-                {% if current_user.is_insider() %}
-                {{ search_select_field(form.owner, url_for('users_htmx.search'), "name", class="col-6") }}
-                {% else %}
-                {{ search_select_field(form.owner, url_for('users_htmx.search'), "name", class="col-6", readonly=True) }}
-                {% endif %}
-                {{ search_select_field(form.group, url_for('groups_htmx.search'), "name", class="col-6") }}
+                {{ form.owner.render() }}
             </div>
-            {{ form_group(form.description) }}
+            {{ form.description.render() }}
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">
@@ -40,11 +30,11 @@
             {% if form.form_type == "edit" %}
             <button id="submit-project-btn" class="btn btn-success"
             hx-include="#project-form" hx-target="#project-form-container" hx-swap="outerHTML"
-            hx-post="{{ url_for('projects_htmx.edit', project_id=form.project.id) }}">Submit</button>
+            hx-post="{{ url_for('edit_project', project_id=form.project.id) }}">Save</button>
             {% else %}
             <button id="submit-project-btn" class="btn btn-success"
             hx-include="#project-form" hx-target="#project-form-container" hx-swap="outerHTML"
-            hx-post="{{ url_for('projects_htmx.create') }}">Submit</button>
+            hx-post="{{ url_for('create_project') }}">Create</button>
             {% endif %}
         </div>
     </div>

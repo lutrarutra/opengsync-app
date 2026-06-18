@@ -15,6 +15,7 @@ from . import routes
 
 app = FastAPI(lifespan=lifespan.lifespan)
 
+app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.db_session_cleanup_middleware)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.state_initialization_middleware)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.audit_middleware)  # type: ignore
 app.add_middleware(context.ContextMiddleware)

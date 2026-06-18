@@ -34,7 +34,7 @@ def delete(current_user: models.User, sample_id: int):
 
     return make_response(
         redirect=url_for(
-            "samples_page.samples"
+            "sample_pages"
         ),
     )
 

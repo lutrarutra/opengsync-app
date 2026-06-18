@@ -27,7 +27,7 @@
                     {% if token.is_expired %}🔴{% else %}🟢{% endif %}
                     {{ token.expiration | format_datetime }}
                 </td>
-                <td><a href="{{ url_for('users_page.user', user_id=token.owner_id) }}">{{ token.owner.name }}{% if current_user.id == token.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
+                <td><a href="{{ url_for('user_page', user_id=token.owner_id) }}">{{ token.owner.name }}{% if current_user.id == token.owner_id %} <span class="desc">me</span>{% endif %}</a></td>
                 <td>{{ token.time_valid_min }}</td>
             </tr>
             {% endfor %}

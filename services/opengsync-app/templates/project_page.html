@@ -167,7 +167,7 @@
                     metadata_group_link(
                         "Group",
                         project.group.name + " " + project.group.type.icon,
-                        url_for("groups_page.group", group_id=project.group_id, from="project@" + project.id | string),
+                        url_for("group_page", group_id=project.group_id, from="project@" + project.id | string),
                         class="col-4"
                     )
                 }}
@@ -218,7 +218,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="project-software-tab" role="tabpanel" tabindex="8">
-            <div hx-get="{{ url_for('render_project_table_software', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_project_software', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -242,7 +242,7 @@
                     {% if current_user.is_insider() %}
                     <div>
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" style="width: 120px;"
-                            hx-get="{{ url_for('share_project_data_workflow.share_project_data', project_id=project.id) }}"
+                            hx-get="{{ url_for('begin_share_project_data_workflow', project_id=project.id) }}"
                             hx-swap="innerHTML" hx-target="#xl-modal-content"
                             {% if project.share_token_uuid and not project.share_token.is_expired %}
                             _="on htmx:confirm(issueRequest)
@@ -263,7 +263,7 @@
                     {% endif %}
                 </div>
             </div>
-            <div hx-get="{{ url_for('share_htmx.get_data_paths', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_data_path_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

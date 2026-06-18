@@ -18,6 +18,7 @@ class HTMXTable:
         self.num_pages: int | None = None
         self.active_page: int | None = page
         self.url_params: dict = {}
+        self.context: dict = {}
 
         if order_by is not None:
             try:
@@ -38,8 +39,7 @@ class HTMXTable:
     
     @property
     def url(self) -> URL:
-        state = self.url_params.copy()
-        return ctx.request.url_for(self.route)
+        return ctx.request.url_for(self.route).include_query_params(**self.url_params)
     
     def get_state(self) -> dict:
         state = self.url_params.copy()

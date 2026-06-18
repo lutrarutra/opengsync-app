@@ -56,5 +56,5 @@ class AddUserToGroupForm(HTMXFlaskForm):
         db.session.save(Q.affiliation.create(user=user, group=self.group, type=AffiliationType.get(self.affiliation_type.data)))
         
         flash("User added to group.", "success")
-        return make_response(redirect=url_for("groups_page.group", group_id=self.group.id))
+        return make_response(redirect=url_for("group_page", group_id=self.group.id))
         

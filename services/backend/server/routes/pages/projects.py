@@ -26,5 +26,6 @@ async def project_page(
         orm.with_expression(models.Project._num_data_paths, models.Project.num_data_paths.expression),
         orm.selectinload(models.Project.owner),
         orm.selectinload(models.Project.group),
+        orm.selectinload(models.Project.share_token),
     ))
     return await responses.html_response("project_page.html", project=project, title=project.identifier or f"Project #{project.id:04d}", access_level=access_level)

@@ -23,7 +23,7 @@
                     context_menu([
                         {"type": "copy", "value": user.name, "label": "Copy Name"},
                     ])
-                }}><a href="{{ url_for('users_page.user', user_id=user.id) }}">{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span>{% endif %}</a></td>
+                }}><a href="{{ url_for('user_page', user_id=user.id) }}">{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span>{% endif %}</a></td>
                 <td class="cm-callback" {{
                     context_menu([
                         {"type": "copy", "value": user.email, "label": "Copy Email"},

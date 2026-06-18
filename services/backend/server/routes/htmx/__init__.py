@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 
 from . import (
     auth, seq_requests, events, workflows, lab_preps, projects,
-    samples, experiments, share_tokens, users
+    samples, experiments, share_tokens, users, affiliations
 )
 
 router = APIRouter(prefix="/htmx", tags=["pages", "htmx"])
@@ -16,4 +16,5 @@ router.include_router(projects.router, dependencies=[Depends(auth.dependencies.r
 router.include_router(samples.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(experiments.router, dependencies=[Depends(auth.dependencies.require_insider)])
 router.include_router(share_tokens.router, dependencies=[Depends(auth.dependencies.require_insider)])
-router.include_router(users.router, dependencies=[Depends(auth.dependencies.require_insider)])
+router.include_router(users.router, dependencies=[Depends(auth.dependencies.require_user)])
+router.include_router(affiliations.router, dependencies=[Depends(auth.dependencies.require_insider)])

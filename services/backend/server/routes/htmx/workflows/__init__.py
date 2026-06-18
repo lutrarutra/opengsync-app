@@ -27,6 +27,7 @@ from . import (
     select_library_protocols,
     select_pool_libraries,
     store_samples,
+    share_project_data,
 )
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
@@ -58,4 +59,5 @@ router.include_router(select_experiment_pools.router, dependencies=insider)
 router.include_router(select_library_protocols.router, dependencies=insider)
 router.include_router(select_pool_libraries.router, dependencies=insider)
 router.include_router(store_samples.router, dependencies=insider)
+router.include_router(share_project_data.router, dependencies=insider)
 

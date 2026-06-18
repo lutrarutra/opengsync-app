@@ -53,9 +53,13 @@ class HTMXForm(ABC):
         # Build field definitions for Pydantic
         field_definitions = {}
         for field in self.input_fields:
-            # Use ... to make field required, or use default if provided
-            default_value = ... if field.default is None else field.default
-            field_definitions[field.name] = (field.pydantic_type, default_value)
+            if field.required:
+                # Required field: use ... if no default, otherwise use the default
+                default_value = ... if field.default is None else field.default
+                field_definitions[field.name] = (field.pydantic_type, default_value)
+            else:
+                # Optional field: make it nullable with None as default
+                field_definitions[field.name] = (field.pydantic_type | None, field.default)
         
         # Create dynamic Pydantic model
         self._pydantic_model = create_model(

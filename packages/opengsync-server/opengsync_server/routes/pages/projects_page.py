@@ -32,8 +32,8 @@ def project(current_user: models.User, project_id: int):
         page, id = _from.split("@")
         if page == "user":
             path_list = [
-                ("Users", url_for("users_page.users")),
-                (f"User {id}", url_for("users_page.user", user_id=id)),
+                ("Users", url_for("user_pages")),
+                (f"User {id}", url_for("user_page", user_id=id)),
                 (f"Project {project_id}", ""),
             ]
         elif page == "seq_request":

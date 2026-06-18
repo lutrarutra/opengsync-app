@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy import orm
 
-from opengsync_db import models
+from opengsync_db import models, categories as C, AsyncSession, queries as Q
 
-from ...core import dependencies, responses, exceptions
+from ...core import dependencies, responses, exceptions as exc
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -17,16 +18,18 @@ async def users_page(
 @router.get("/{user_id}")
 async def user_page(
     user_id: int,
-    current_user: models.User = Depends(dependencies.require_user),
+    access_level: C.AccessLevel = Depends(dependencies.user_permissions),
+    session: AsyncSession = Depends(dependencies.db_session)
 ):
-    # Non-insiders can only view their own profile
-    if not current_user.is_insider() and user_id != current_user.id:
-        raise exceptions.NoPermissionsException()
+    user = await session.get_one(
+        Q.user.select(id=user_id).options(
+            orm.with_expression(models.User._num_projects, models.User.num_projects.expression),
+            orm.with_expression(models.User._num_seq_requests, models.User.num_seq_requests.expression),
+            orm.with_expression(models.User._num_affiliations, models.User.num_affiliations.expression),
+            orm.with_expression(models.User._num_api_tokens, models.User.num_api_tokens.expression)
+        )
+    )
 
-    # NOTE: User lookup, projects/requests queries, and breadcrumb
-    # resolution are handled client-side via API calls.
     return await responses.html_response(
-        "user_page.html",
-        user_id=user_id,
-        title=f"User {user_id}",
+        "user_page.html", user=user, title=f"{user.name}", access_level=access_level
     )

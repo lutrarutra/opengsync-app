@@ -8,12 +8,12 @@ router = APIRouter(prefix="/groups", tags=["groups"])
 
 
 @router.get("/")
-async def groups():
+async def groups_page():
     return await responses.html_response("groups_page.html", title="Groups")
 
 
 @router.get("/{group_id}")
-async def group(
+async def group_page(
     group_id: int,
     current_user: models.User = Depends(dependencies.require_user),
 ):

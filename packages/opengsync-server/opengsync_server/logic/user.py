@@ -101,7 +101,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
             raise exceptions.BadRequestException("Invalid value for 'insider' parameter. Must be 'true' or 'false'.")
 
     if (group := context.get("group")) is not None:
-        stmt = Q.user.select(group=group, statement=stmt)
+        stmt = Q.user.select(group_id=group.id, statement=stmt)
     else:
         if not current_user.is_insider():
             stmt = Q.user.select(id=current_user.id, statement=stmt)

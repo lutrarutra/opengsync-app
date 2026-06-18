@@ -1,3 +1,42 @@
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
+function deleteCookie(name) {
+    document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+}
+
+function showFlashToast(msg) {
+    Swal.fire({
+        position: 'top',
+        icon: msg.category || 'success',
+        html: `<div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 0; font-weight: 600;">${msg.message}</div>`,
+        showConfirmButton: false,
+        timer: msg.category === 'error' || msg.category === 'warning' ? null : 1500,
+        toast: true,
+        showCloseButton: true
+    });
+}
+
+function checkFlashCookie() {
+    const raw = getCookie('flash_message');
+    if (raw) {
+        let msg = null;
+        try {
+            msg = JSON.parse(decodeURIComponent(raw));
+        } catch (e) {
+            try {
+                msg = JSON.parse(raw);
+            } catch (e2) {}
+        }
+        if (msg) showFlashToast(msg);
+        deleteCookie('flash_message');
+    }
+}
+
 function init_htmx_callbacks() {
     $(document).on("click", "button[hx-post], button[hx-get], button[hx-delete], .submit-form-btn", function () {
         if ($(this).attr('_') && $(this).attr('_').includes('htmx:confirm')) {
@@ -35,18 +74,10 @@ document.addEventListener("htmx:afterRequest", (event) => {
 });
 
 document.addEventListener("flash", (event) => {
-    const msg = event.detail; // e.g. { category: 'warning', message: '...' }
-    Swal.fire({
-        position: 'top',
-        icon: msg.category || 'success',
-        html: `<div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 0; font-weight: 600;">${msg.message}</div>`,
-        showConfirmButton: false,
-        timer: msg.category === 'error' || msg.category === 'warning' ? null : 1500,
-        toast: true,
-        showCloseButton: true
-    });
+    showFlashToast(event.detail);
 });
 
 $(document).ready(function () {
     init_htmx_callbacks();
+    checkFlashCookie();
 });

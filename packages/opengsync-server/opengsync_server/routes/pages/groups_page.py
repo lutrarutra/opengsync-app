@@ -20,15 +20,15 @@ def group(current_user: models.User, group_id: int):
         raise exceptions.NotFoundException()
     
     path_list = [
-        ("Groups", url_for("groups_page.groups")),
+        ("Groups", url_for("group_pages")),
         (f"Group {group.id}", ""),
     ]
     if (_from := request.args.get("from", None)) is not None:
         page, id = _from.split("@")
         if page == "user":
             path_list = [
-                ("Users", url_for("users_page.users")),
-                (f"User {id}", url_for("users_page.user", user_id=id)),
+                ("Users", url_for("user_pages")),
+                (f"User {id}", url_for("user_page", user_id=id)),
                 (f"Group {group.id}", ""),
             ]
         elif page == "seq_request":

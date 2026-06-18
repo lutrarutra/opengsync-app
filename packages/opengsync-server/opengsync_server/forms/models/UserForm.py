@@ -74,4 +74,4 @@ class UserForm(HTMXFlaskForm):
 
         flash("User updated successfully.", "success")
         logger.info(f"User ID {self.user.id} updated by user ID {self.current_user.id}")
-        return make_response(redirect=url_for("users_page.user", user_id=self.user.id))
+        return make_response(redirect=url_for("user_page", user_id=self.user.id))

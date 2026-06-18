@@ -1,0 +1,40 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div class="form-group {{ container_class }} {% if field.hidden %}d-none{% endif %}">
+    <div class="search-select{% if field.read_only %} read-only{% endif %}" id="{{ field.id }}-container">
+        {% if not hide_label %}
+        <a {% if field.description %}
+        {{ tooltip(field.description, "top") }}
+        {% endif %}>
+            {{ field.label }}
+        </a>
+        {% endif %}
+        <div class="input-group">
+            <input
+            class="input-group-text searchbar-data" type="number" id="{{ field.id }}"
+            value="{{ field.data or '' }}" autocomplete="off" name="{{ field.name }}"
+            readonly>
+            <input
+                type="search" autocomplete="off" placeholder="Search"
+                class="form-control searchbar-input {% if field.errors %} is-invalid{% endif %}"
+                {% if field.read_only %}readonly{% endif %}
+                name="{{ field.name }}-selected" id="{{ field.id }}-selected">
+            <span class="form-control selected-bar" data-field="{{ field.id }}"></span>
+            <button class="btn btn-outline-secondary clear-btn" type="button" data-field="{{ field.id }}" {% if field.read_only %} disabled {% endif %}>Clear</button>
+        </div>
+        <ul class="options-container minimal-scrollbar">
+        </ul>
+    </div>
+    {% if not field.read_only %}
+    <script>
+        $(document).ready(function() {
+            let search_select = new SearchSelect($(`#{{ field.id }}-container`), "{{ field.url() }}", "{{ field.id }}");
+        });
+    </script>
+    {% endif %}
+    <div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">
+        {% for error in field.errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+</div>

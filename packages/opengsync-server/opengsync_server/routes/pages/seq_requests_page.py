@@ -35,8 +35,8 @@ def seq_request(current_user: models.User, seq_request_id: int):
             ]
         elif page == "user":
             path_list = [
-                ("Users", url_for("users_page.users")),
-                (f"User {id}", url_for("users_page.user", user_id=id)),
+                ("Users", url_for("user_pages")),
+                (f"User {id}", url_for("user_page", user_id=id)),
                 (f"Request {seq_request_id}", ""),
             ]
         elif page == "library":
@@ -53,14 +53,14 @@ def seq_request(current_user: models.User, seq_request_id: int):
             ]
         elif page == "group":
             path_list = [
-                ("Groups", url_for("groups_page.groups")),
-                (f"Group {id}", url_for("groups_page.group", group_id=id)),
+                ("Groups", url_for("group_pages")),
+                (f"Group {id}", url_for("group_page", group_id=id)),
                 (f"Request {seq_request_id}", ""),
             ]
         elif page == "sample":
             path_list = [
-                ("Samples", url_for("samples_page.samples")),
-                (f"Sample {id}", url_for("samples_page.sample", sample_id=id)),
+                ("Samples", url_for("sample_pages")),
+                (f"Sample {id}", url_for("sample_page", sample_id=id)),
                 (f"Request {seq_request_id}", ""),
             ]
 

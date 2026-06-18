@@ -22,7 +22,7 @@ def sample(current_user: models.User, sample_id: int):
         raise exceptions.NoPermissionsException()
 
     path_list = [
-        ("Samples", url_for("samples_page.samples")),
+        ("Samples", url_for("sample_pages")),
         (f"Sample {sample_id}", ""),
     ]
     if (_from := request.args.get("from", None)) is not None:

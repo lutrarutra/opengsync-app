@@ -40,6 +40,15 @@ class Mailer:
             body=self.j2_env.get_template("email/register-user.html").render(link=verification_link, style=style),
             mime_type="html"
         )
+
+    async def send_password_reset(self, recipient_email: str, reset_link: str | URL):
+        style = open("/static/style/compiled/email.css").read()
+        self.__send_email(
+            recipients=recipient_email,
+            subject="OpeNGSync Password Reset",
+            body=self.j2_env.get_template("email/password-reset.html").render(link=reset_link, style=style),
+            mime_type="html"
+        )
     
     def __send_email(self, recipients: str | Sequence[str], subject: str, body: str, mime_type: Literal["plain", "html"] = "plain"):
         if mime_type == "html":
