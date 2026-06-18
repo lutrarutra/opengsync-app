@@ -55,7 +55,7 @@ class ProjectForm(HTMXForm):
             self.owner.data = self.request.state.current_user.id
 
     @staticmethod
-    async def edit_project(
+    async def edit(
         project_id: int,
         request: Request,
         access_level: C.AccessLevel = Depends(dependencies.project_permissions),
@@ -115,7 +115,7 @@ class ProjectForm(HTMXForm):
         )
 
     @staticmethod
-    async def create_project(
+    async def create(
         request: Request,
         access_level: C.AccessLevel = Depends(dependencies.project_permissions),
         session: AsyncSession = Depends(dependencies.db_session),
@@ -126,8 +126,6 @@ class ProjectForm(HTMXForm):
             )
 
         form = ProjectForm(request, form_type="create")
-        from loguru import logger
-        logger.debug(await request.form())
         await form.validate()
 
         if await session.exists(

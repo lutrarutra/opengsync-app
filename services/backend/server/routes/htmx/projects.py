@@ -105,7 +105,7 @@ async def render_create_project_form(
     return await form.make_response()
 
 @router.post("/create")
-async def create_project(response = Depends(forms.models.ProjectForm.create_project)): return response
+async def create_project(response = Depends(forms.models.ProjectForm.create)): return response
 
 @router.get("/{project_id}/edit")
 async def render_project_edit_form(
@@ -123,7 +123,7 @@ async def render_project_edit_form(
     return await form.make_response()
 
 @router.post("/{project_id}/edit")
-async def edit_project(response = Depends(forms.models.ProjectForm.edit_project)): return response
+async def edit_project(response = Depends(forms.models.ProjectForm.edit)): return response
 
 @router.get("/{project_id}/export", dependencies=[Depends(dependencies.project_permissions)])
 async def export_project_data(

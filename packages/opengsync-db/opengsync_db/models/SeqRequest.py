@@ -459,21 +459,56 @@ class SeqRequest(Base):
             *Q.library.where_clauses(seq_request_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
-    @property
-    def mux_types(self) -> list[MUXType]:
-        if "libraries" not in orm.attributes.instance_state(self).unloaded:
-            return list(set(library.mux_type for library in self.libraries if library.mux_type is not None))
-        
-        from .Library import Library
-        if (session := orm.object_session(self)) is None:
-            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_libraries' attribute.")
-        
-        mux_type_ids = session.query(Library.mux_type_id).where(
-            (Library.seq_request_id == self.id) &
-            Library.mux_type_id.isnot(None)
-        ).distinct().all()
+    _mux_types: Mapped[list[int] | None] = orm.query_expression()
 
-        return [MUXType.get(mux_type_id) for (mux_type_id,) in mux_type_ids]
+    @hybrid_property
+    def mux_types(self) -> list[MUXType]:  # type: ignore[override]
+        if self._mux_types is not None:
+            return [MUXType.get(type_id) for type_id in self._mux_types]
+
+        if "libraries" not in orm.attributes.instance_state(self).unloaded:
+            types = set()
+            for lib in self.libraries:
+                if lib.mux_type_id is not None:
+                    types.add(lib.mux_type_id)
+            return [MUXType.get(type_id) for type_id in sorted(types)]
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_mux_types was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._mux_types, SeqRequest.mux_types.expression) "
+                "in your query options."
+            )
+
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session detached, cannot access 'mux_types' attribute.")
+
+        from .. import queries as Q
+        from .Library import Library
+        result = session.scalar(sa.select(
+            sa.func.array_agg(sa.distinct(Library.mux_type_id))
+        ).select_from(
+            Q.library.select(seq_request_id=self.id).subquery()
+        ).where(
+            Library.mux_type_id.isnot(None)
+        ))
+        if result is None:
+            return []
+        return [MUXType.get(type_id) for type_id in result]
+
+    @mux_types.expression
+    def mux_types(cls):
+        from .. import queries as Q
+        from .Library import Library
+        return sa.select(
+            sa.func.coalesce(
+                sa.func.array_agg(sa.distinct(Library.mux_type_id)),
+                sa.cast(sa.text("'{}'"), sa.ARRAY(sa.Integer))
+            )
+        ).where(
+            *Q.library.where_clauses(seq_request_id=cls.id),
+            Library.mux_type_id.isnot(None)
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
     def library_type_counts(self) -> dict[LibraryType, int]:

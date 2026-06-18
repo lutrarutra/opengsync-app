@@ -1,4 +1,5 @@
 from .InputField import InputField
-from . import string, selectable, searchable
+from .switch import SwitchInputField
+from . import string, numeric, selectable, searchable
 
-__all__ = ["InputField", "string", "selectable", "searchable"]
+__all__ = ["InputField", "SwitchInputField", "string", "numeric", "selectable", "searchable"]

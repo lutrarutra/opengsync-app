@@ -104,6 +104,7 @@ def select(
     status_in: list[PoolStatus] | None = None,
     library_types_in: list[LibraryType] | None = None,
     type_in: list[PoolType] | None = None,
+    viewer_id: int | None = None,
     search_name: str | None = None,
     search_owner_name: str | None = None,
     statement: sa.Select[tuple[Pool]] = sa.select(Pool),
@@ -120,6 +121,7 @@ def select(
         status_in=status_in,
         library_types_in=library_types_in,
         type_in=type_in,
+        viewer_id=viewer_id
     ))
 
     if search_name is not None:
@@ -152,6 +154,7 @@ def where_clauses(
     status_in: list[PoolStatus] | None = None,
     library_types_in: list[LibraryType] | None = None,
     type_in: list[PoolType] | None = None,
+    viewer_id: int | None = None,
 ) -> list[sa.ColumnElement[bool]]:
     """Return WHERE clauses for filtering pools.
     Reusable in correlated subqueries where .subquery() would break correlation.
@@ -193,5 +196,8 @@ def where_clauses(
             clauses.append(Pool.experiment_id.isnot(None))
         else:
             clauses.append(Pool.experiment_id.is_(None))
+
+    if viewer_id is not None:
+        clauses.append(access_level(viewer_id) >= AccessLevel.READ)
 
     return clauses

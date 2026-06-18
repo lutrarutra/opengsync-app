@@ -1,4 +1,4 @@
-from typing import Any, Annotated, Generic, Literal, TypeVar, overload
+from typing import Any, Annotated, Generic, TypeVar
 from .InputField import InputField
 
 from pydantic import EmailStr, StringConstraints
@@ -9,65 +9,9 @@ _DataT = TypeVar("_DataT", str, str | None, covariant=True)
 class StringInputField(InputField, Generic[_DataT]):
     data: _DataT
 
-    @overload
     def __init__(
-        self: "StringInputField[str]",
+        self,
         label: str,
-        *,
-        template: str | None = None,
-        required: Literal[True] = True,
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = None,
-        pydantic_type: Any = None,
-        type: str = "text",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "StringInputField[str | None]",
-        label: str,
-        *,
-        template: str | None = None,
-        required: Literal[False],
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = None,
-        pydantic_type: Any = None,
-        type: str = "text",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "StringInputField[str | None]",
-        label: str,
-        *,
-        template: str | None = None,
-        required: bool,
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = None,
-        pydantic_type: Any = None,
-        type: str = "text",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    def __init__(
-        self, label: str,
         template: str | None = None,
         placeholder: str | None = None,
         max_length: int | None = None,
@@ -86,68 +30,24 @@ class StringInputField(InputField, Generic[_DataT]):
             label=label,
             template=template or "components/inputs/string.html",
             default=default,
-            pydantic_type=pydantic_type or Annotated[str, StringConstraints(max_length=max_length, min_length=min_length)],
+            pydantic_type=pydantic_type
+            or Annotated[
+                str, StringConstraints(max_length=max_length, min_length=min_length)
+            ],
             type=type,
             description=description,
             required=required,
             hidden=hidden,
-            read_only=read_only
+            read_only=read_only,
         )
         self.placeholder = placeholder
         self.autocomplete = autocomplete
 
 
 class EmailInputField(StringInputField[_DataT]):
-    @overload
     def __init__(
-        self: "EmailInputField[str]",
+        self,
         label: str,
-        *,
-        required: Literal[True] = True,
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = "email",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "EmailInputField[str | None]",
-        label: str,
-        *,
-        required: Literal[False],
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = "email",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "EmailInputField[str | None]",
-        label: str,
-        *,
-        required: bool,
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = "email",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    def __init__(
-        self, label: str,
         placeholder: str | None = None,
         max_length: int | None = None,
         min_length: int | None = None,
@@ -165,7 +65,11 @@ class EmailInputField(StringInputField[_DataT]):
             description=description,
             default=default,
             autocomplete=autocomplete,
-            pydantic_type=Annotated[str, EmailStr, StringConstraints(max_length=max_length, min_length=min_length)],
+            pydantic_type=Annotated[
+                str,
+                EmailStr,
+                StringConstraints(max_length=max_length, min_length=min_length),
+            ],
             type="email",
             hidden=hidden,
             read_only=read_only,
@@ -173,56 +77,9 @@ class EmailInputField(StringInputField[_DataT]):
 
 
 class PasswordInputField(StringInputField[_DataT]):
-    @overload
     def __init__(
-        self: "PasswordInputField[str]",
+        self,
         label: str,
-        *,
-        required: Literal[True] = True,
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = "current-password",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "PasswordInputField[str | None]",
-        label: str,
-        *,
-        required: Literal[False],
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = "current-password",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "PasswordInputField[str | None]",
-        label: str,
-        *,
-        required: bool,
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = "current-password",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    def __init__(
-        self, label: str,
         placeholder: str | None = None,
         max_length: int | None = None,
         min_length: int | None = None,
@@ -240,7 +97,9 @@ class PasswordInputField(StringInputField[_DataT]):
             description=description,
             default=default,
             autocomplete=autocomplete,
-            pydantic_type=Annotated[str, StringConstraints(max_length=max_length, min_length=min_length)],
+            pydantic_type=Annotated[
+                str, StringConstraints(max_length=max_length, min_length=min_length)
+            ],
             type="password",
             hidden=hidden,
             read_only=read_only,
@@ -248,56 +107,9 @@ class PasswordInputField(StringInputField[_DataT]):
 
 
 class TextAreaInputField(StringInputField[_DataT]):
-    @overload
     def __init__(
-        self: "TextAreaInputField[str]",
+        self,
         label: str,
-        *,
-        required: Literal[True] = True,
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = None,
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "TextAreaInputField[str | None]",
-        label: str,
-        *,
-        required: Literal[False],
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = None,
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "TextAreaInputField[str | None]",
-        label: str,
-        *,
-        required: bool,
-        placeholder: str | None = None,
-        max_length: int | None = None,
-        min_length: int | None = None,
-        description: str | None = None,
-        default: str | None = None,
-        autocomplete: str | None = None,
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    def __init__(
-        self, label: str,
         placeholder: str | None = None,
         max_length: int | None = None,
         min_length: int | None = None,
@@ -316,7 +128,9 @@ class TextAreaInputField(StringInputField[_DataT]):
             default=default,
             autocomplete=autocomplete,
             template="components/inputs/textarea.html",
-            pydantic_type=Annotated[str, StringConstraints(max_length=max_length, min_length=min_length)],
+            pydantic_type=Annotated[
+                str, StringConstraints(max_length=max_length, min_length=min_length)
+            ],
             type="textarea",
             hidden=hidden,
             read_only=read_only,

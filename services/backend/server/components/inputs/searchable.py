@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, Literal, overload
+from typing import TypeVar, Generic
 
 from starlette.datastructures import URL
 
@@ -11,68 +11,6 @@ _T = TypeVar("_T", covariant=True)
 class SearchableInputField(InputField, Generic[_T]):
     data: _T
 
-    @overload
-    def __init__(
-        self: "SearchableInputField[int]",
-        label: str,
-        *,
-        route: str,
-        placeholder: str | None = None,
-        pydantic_type: type[int] = int,
-        default: int | None = None,
-        autocomplete: str | None = None,
-        type: str = "search",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "SearchableInputField[int | None]",
-        label: str,
-        *,
-        route: str,
-        placeholder: str | None = None,
-        required: Literal[False],
-        pydantic_type: type[int] = int,
-        default: int | None = None,
-        autocomplete: str | None = None,
-        type: str = "search",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "SearchableInputField[str]",
-        label: str,
-        *,
-        route: str,
-        placeholder: str | None = None,
-        pydantic_type: type[str],
-        default: str | None = None,
-        autocomplete: str | None = None,
-        type: str = "search",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "SearchableInputField[str | None]",
-        label: str,
-        *,
-        route: str,
-        placeholder: str | None = None,
-        required: Literal[False],
-        pydantic_type: type[str],
-        default: str | None = None,
-        autocomplete: str | None = None,
-        type: str = "search",
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
     def __init__(
         self,
         label: str,
@@ -81,7 +19,7 @@ class SearchableInputField(InputField, Generic[_T]):
         placeholder: str | None = None,
         required: bool = True,
         pydantic_type: type = int,
-        default = None,
+        default=None,
         autocomplete: str | None = None,
         type: str = "search",
         hidden: bool = False,

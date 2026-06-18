@@ -1,50 +1,12 @@
-from typing import TypeVar, Generic, Literal, overload
+from typing import TypeVar, Generic
 
 from .InputField import InputField
 
 T_int = TypeVar("T_int", int, int | None, covariant=True)
 
+
 class SelectableInputField(InputField, Generic[T_int]):
     data: T_int
-
-    @overload
-    def __init__(
-        self: "SelectableInputField[T_int]",  # type: ignore[override]
-        label: str,
-        options: list[tuple[T_int, str]],
-        *,
-        required: Literal[True] = True,
-        default: T_int | None = None,
-        description: str | None = None,
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "SelectableInputField[T_int | None]",  # type: ignore[override]
-        label: str,
-        options: list[tuple[T_int, str]],
-        *,
-        required: Literal[False],
-        default: T_int | None = None,
-        description: str | None = None,
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self: "SelectableInputField[T_int | None]",  # type: ignore[override]
-        label: str,
-        options: list[tuple[T_int, str]],
-        *,
-        required: bool,
-        default: T_int | None = None,
-        description: str | None = None,
-        hidden: bool = False,
-        read_only: bool = False,
-    ) -> None: ...
 
     def __init__(
         self,
@@ -67,6 +29,6 @@ class SelectableInputField(InputField, Generic[T_int]):
             required=required,
             description=description,
             hidden=hidden,
-            read_only=read_only
+            read_only=read_only,
         )
         self.options: list[tuple[T_int, str]] = options

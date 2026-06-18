@@ -1,368 +1,194 @@
-{% from 'components/form_group.jinja2' import form_group, select_input, checkbox_input %}
-{% from 'components/search_select.jinja2' import search_select_field %}
-
 <div class="modal-content" id="seq_request-form-container">
-    <div class="modal-header">
-        <h1 class="modal-title fs-5" >{% if seq_request_form.form_type == "create" %}Create{% elif seq_request_form.form_type == "edit" %}Edit{% endif %} Sequencing Request</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-    </div>
+  <div class="modal-header">
+    <h1 class="modal-title fs-5">
+      {% if form.form_type == "create" %}Create{% elif form.form_type == "edit"
+      %}Edit{% endif %} Sequencing Request
+    </h1>
+    <button
+      type="button"
+      class="btn-close"
+      data-bs-dismiss="modal"
+      aria-label="Close"
+    ></button>
+  </div>
 
-    <div class="modal-body">
-        <form id="seq_request-form" class="accordion" autocomplete="off">
-            {{ seq_request_form.csrf_token() }}
-            {% if current_user.is_insider() and seq_request_form.form_type == 'create' %}
-            {% set sub_form = seq_request_form.user_select_form %}
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button{% if sub_form.is_validated() == True %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#request-user-section" aria-expanded="true"
-                    aria-controls="request-user-section">
-                        Requestor
-                    </button>
-                </h2>
-                <div id="request-user-section" class="accordion-collapse collapse {% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-                    <div class="accordion-body">
-                        <h5>Existing User</h5>
-                        {{ search_select_field(sub_form.user, url_for('users_htmx.search'), "name") }}
-                        <h5 class="pt-3">New User</h5>
-                        <ul><li>New user will be created with {{ UserRole.DEACTIVATED.display_name }}-role. Deactivated users cannot log in. No registration email is sent out. User can be then activated later.</li></ul>
-                        {{ form_group(sub_form.email) }}
-                        <div class="row">
-                            {{ form_group(sub_form.first_name, class="col-6") }}
-                            {{ form_group(sub_form.last_name, class="col-6") }}
-                        </div>
-                        {{ sub_form.csrf_token() }}
-                    </div>
-                </div>
+  <div class="modal-body">
+    <form id="seq_request-form" class="accordion" autocomplete="off">
+      {{ form.csrf_token.render() }} {% for section_name, sub_form in
+      form.ordered_sub_forms %}
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button
+            class="accordion-button{% if sub_form.has_errors %} text-danger bg-danger-subtle{% else %} text-success bg-success-subtle{% endif %}{% if sub_form.collapsed %} collapsed{% endif %}"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#section-{{ section_name }}"
+            aria-expanded="{% if sub_form.has_errors or not sub_form.collapsed %}true{% else %}false{% endif %}"
+            aria-controls="section-{{ section_name }}"
+          >
+            {% if sub_form.icon %}<i class="{{ sub_form.icon }} me-2"></i>{%
+            endif %} {{ sub_form.title }}
+          </button>
+        </h2>
+        <div
+          id="section-{{ section_name }}"
+          class="accordion-collapse collapse{% if sub_form.has_errors or not sub_form.collapsed %} show{% endif %}"
+        >
+          <div class="accordion-body">
+            {% if section_name == "basic_info" %} {{ sub_form.name.render() }}
+            {{ sub_form.description.render() }} {% elif section_name ==
+            "technical_info" %}
+            <div class="row">
+              {{ sub_form.submission_type.render("col-md-3") }} {{
+              sub_form.read_type.render("col-md-3") }} {{
+              sub_form.num_lanes.render("col-md-3") }} {{
+              sub_form.read_length.render("col-md-3") }}
             </div>
-            {% else %}
-            {{ seq_request_form.user_select_form.csrf_token() }}
-            {{ seq_request_form.user_select_form.user.csrf_token() }}
+            <ol class="mt-2">
+              {% for st in
+              SubmissionType.as_list(include_unpooled_libraries=False) %}
+              <li><b>{{ st.label }}</b>: <i>{{ st.description }}</i></li>
+              {% endfor %}
+            </ol>
+            {{ sub_form.special_requirements.render() }} {{
+            sub_form.data_delivery_mode.render() }} {% elif section_name ==
+            "contact" %} {% if form.form_type == "create" %} {{
+            sub_form.current_user_is_contact.render() }} {% endif %}
+            <div class="row">
+              {{ sub_form.contact_person_name.render("col-md-4") }} {{
+              sub_form.contact_person_email.render("col-md-4") }} {{
+              sub_form.contact_person_phone.render("col-md-4") }}
+            </div>
+
+            {% elif section_name == "bioinformatician" %}
+            <div class="row">
+              {{ sub_form.bioinformatician_name.render("col-md-4") }} {{
+              sub_form.bioinformatician_email.render("col-md-4") }} {{
+              sub_form.bioinformatician_phone.render("col-md-4") }}
+            </div>
+
+            {% elif section_name == "organization" %} {{
+            sub_form.organization_name.render() }}
+            <div class="row">
+              {{ sub_form.organization_email.render("col-md-6") }} {{
+              sub_form.organization_phone.render("col-md-6") }}
+            </div>
+            {{ sub_form.organization_address.render() }} {% elif section_name ==
+            "billing" %}
+            <div class="row">
+              {{ sub_form.billing_contact_name.render("col-md-4") }} {{
+              sub_form.billing_contact_email.render("col-md-4") }} {{
+              sub_form.billing_contact_phone.render("col-md-4") }}
+            </div>
+            <div class="row">
+              {{ sub_form.billing_code.render("col-md-6") }}
+            </div>
             {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %} {% if form.user_id %}
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button
+            class="accordion-button collapsed"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#section-user-selection"
+            aria-expanded="false"
+            aria-controls="section-user-selection"
+          >
+            <i class="bi bi-person-plus me-2"></i>
+            User Selection
+          </button>
+        </h2>
+        <div id="section-user-selection" class="accordion-collapse collapse">
+          <div class="accordion-body">{{ form.user_id.render() }}</div>
+        </div>
+      </div>
+      {% endif %}
+    </form>
+  </div>
 
-            {% set sub_form = seq_request_form.disclaimer_form %}
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button{% if current_user.is_insider() or sub_form.is_validated() == True %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#request-disclaimer-section" aria-expanded="{% if current_user.is_insider() or sub_form.is_validated() == True %}false{% else %}true{% endif %}"
-                    aria-controls="request-disclaimer-section">
-                        Disclaimer
-                    </button>
-                </h2>
-                <div id="request-disclaimer-section" class="accordion-collapse collapse {% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and (not sub_form.is_validated() and not current_user.is_insider()) %} show{% endif %}">
-                    <div class="accordion-body">
-                        <div>
-                            <p>
-                            This program is designed to store and facilitate the transfer of information between customers and our team. It is not intended for designing or validating experimental setups. Users must ensure that their experimental setups are valid. If you are uncertain about your setup, please contact us at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.
-                            We reserve the right to reject any sequencing requests that are invalid, do not meet our quality standards, or are not feasible with our current resources.
-                            </p>
-                            <p>
-                            Each sequencing request is subject to review and approval by the our team. For non-standard experimental setups, such as using a custom genome reference, please contact us to ensure we can accommodate your request.
-                            </p>
-                            <p>
-                            Results from each request will be shared with a single entity (group), whether it is a research lab or an individual. If you are submitting a request on behalf of multiple entities, please submit separate requests for each entity. Results from different requests, including previous ones, can be grouped together for analysis by associating the libraries with the same project.
-                            </p>
-                            <p>
-                            <b>If group is selected</b>, the sequencing request will be editable by ALL members of the group until it is submitted. After submission, the request will be read-only for all group members. If you need to make changes to a submitted request, please contact us at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. <b>The sequencing results will be shared with all group members.</b>
-                            </p>
-                        </div>
-                        {{ sub_form.csrf_token() }}
-                        {{ checkbox_input(sub_form.disclaimer, class="fw-semibold") }}
-                    </div>
-                </div>
-            </div>
-            
-            {% set sub_form = seq_request_form.basic_info_form %}
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button{% if sub_form.is_validated() == True %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#request-info-section" aria-expanded="true"
-                    aria-controls="request-info-section">
-                        Request Info
-                    </button>
-                </h2>
-                <div id="request-info-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-                    <div class="accordion-body">
-                        {{ sub_form.csrf_token() }}
-                        <div class="row">
-                            {{ form_group(sub_form.request_name, class="col-6") }}
-                            {{ 
-                                search_select_field(sub_form.group, url_for('groups_htmx.search'), "name", class="col-6") 
-                            }}
-                        </div>
-                        {{ form_group(sub_form.request_description) }}
-                    </div>
-                </div>
-            </div>
-
-            {% set sub_form = seq_request_form.technical_info_form %}
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button{% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#technical-requirements-section" aria-expanded="true" aria-controls="technical-requirements-section">
-                        Technical Requirements
-                    </button>
-                </h2>
-                <div id="technical-requirements-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-                    <div class="accordion-body">
-                        {{ sub_form.csrf_token() }}
-                        <div class="row">
-                            {{ select_input(sub_form.submission_type, class="col-3") }}
-                            {{ select_input(sub_form.read_type, class="col-3") }}
-                            {{ form_group(sub_form.num_lanes, class="col-3") }}
-                            {{ form_group(sub_form.read_length, class="col-3") }}
-                        </div>
-                        <ol>
-                        {% for submission_type in SubmissionType.as_list(include_unpooled_libraries=False) %}
-                            <li><b>{{ submission_type.label }}</b>: <i>{{ submission_type.description }}</i></li>
-                        {% endfor %}
-                        </ol>
-                        {{ form_group(sub_form.special_requirements) }}
-                    </div>
-                </div>
-            </div>
-
-            {% set sub_form = seq_request_form.data_processing_form %}
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#data-processing-section" aria-expanded="true" aria-controls="data-processing-section">
-                        Data Processing
-                    </button>
-                </h2>
-                <div id="data-processing-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-                    <div class="accordion-body">
-                        {{ sub_form.csrf_token() }}
-                        <ol>
-                        {% for mode in DataDeliveryMode.as_list() %}
-                            <li><b>{{ mode.label }}</b>: <em>{{ mode.description }}</em></li>
-                        {% endfor %}
-                        </ol>
-                        {{ form_group(sub_form.data_delivery_mode_id, class="col") }}
-                    </div>
-                </div>
-            </div>
-
-            {% set sub_form = seq_request_form.contact_form %}
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button {% if seq_request_form.contact_form.is_validated() %} collapsed valid-section text-success{% elif seq_request_form.contact_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#contact-section" aria-expanded="true" aria-controls="contact-section">
-                        Contact Person
-                    </button>
-                </h2>
-                <div id="contact-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-                    <div class="accordion-body">
-                        {{ seq_request_form.contact_form.csrf_token() }}
-                        {% if seq_request_form.form_type == "create" %}
-                        <div class="form-check form-switch">
-                            {{ seq_request_form.contact_form.current_user_is_contact(class="form-check-input", checked=seq_request_form.contact_form.current_user_is_contact.data) }}
-                            <label class="form-check-label">Requestor is the contact person.</label>
-                        </div>
-                        {% endif %}
-                        <div class="row">
-                            {{ 
-                                form_group(
-                                    seq_request_form.contact_form.contact_person_name,
-                                    disabled=seq_request_form.contact_form.current_user_is_contact.data,
-                                    class="col-6 col-xl-4",
-                                ) 
-                            }}
-                            {{ 
-                                form_group(
-                                    seq_request_form.contact_form.contact_person_email,
-                                    disabled=seq_request_form.contact_form.current_user_is_contact.data,
-                                    class="col-6 col-xl-4"
-                                )
-                            }}
-                            {{ 
-                                form_group(
-                                    seq_request_form.contact_form.contact_person_phone,
-                                    class="col-6 col-xl-4"
-                                ) 
-                            }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {% set sub_form = seq_request_form.bioinformatician_form %}
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#bioinformatician-contact-section" aria-expanded="true" aria-controls="bioinformatician-contact-section">
-                        Bioinformatician Contact
-                    </button>
-                </h2>
-                <div id="bioinformatician-contact-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-                    <div class="accordion-body">
-                        {{ sub_form.csrf_token() }}
-                        <div class="row">
-                            {{ form_group(sub_form.bioinformatician_name, class="col-6 col-xl-4") }}
-                            {{ form_group(sub_form.bioinformatician_email, class="col-6 col-xl-4") }}
-                            {{ form_group(sub_form.bioinformatician_phone, class="col-6 col-xl-4") }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {% set sub_form = seq_request_form.organization_form %}
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#organization-section" aria-expanded="true" aria-controls="organization-section">
-                        Organization
-                    </button>
-                </h2>
-                <div id="organization-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-                    <div class="accordion-body">
-                        {{ sub_form.csrf_token() }}
-                        {{ form_group(sub_form.organization_name) }}
-                        {{ form_group(sub_form.organization_address) }}
-                    </div>
-                </div>
-            </div>
-
-            {% set sub_form = seq_request_form.billing_form %}
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button {% if sub_form.is_validated() %} collapsed valid-section text-success{% elif sub_form.errors %} invalid-section text-danger{% elif seq_request_form.form_type == 'edit' %} collapsed{% endif %}"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#billing-section" aria-expanded="true" aria-controls="billing-section">
-                        Billing
-                    </button>
-                </h2>
-                <div id="billing-section" class="accordion-collapse collapse{% if sub_form.errors %} show {% elif seq_request_form.form_type == 'create' and not sub_form.is_validated() %} show{% endif %}">
-                    <div class="accordion-body">
-                        {{ sub_form.csrf_token() }}
-                        {{ form_group(sub_form.billing_contact) }}
-                        {% if seq_request_form.form_type == "create" %}
-                        <div class="form-check form-switch">
-                            {{ sub_form.billing_is_organization(class="form-check-input") }}
-                            <label class="form-check-label">Use organization's address</label>
-                        </div>
-                        {% endif %}
-                        {{ form_group(sub_form.billing_address, disabled=sub_form.billing_is_organization.data) }}
-                        <div class="row">
-                            {{ form_group(sub_form.billing_email, class="col-6") }}
-                            {{ form_group(sub_form.billing_phone, class="col-6") }}
-                        </div>
-                        <div class="row">
-                            {{ form_group(sub_form.billing_code, class="col-6") }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </f>
+  <div class="modal-footer">
+    <div class="footer-id"></div>
+    <div class="footer-info"></div>
+    <div class="footer-controls">
+      {% if form.form_type == "edit" %}
+      <button
+        class="btn btn-success"
+        hx-include="#seq_request-form"
+        hx-target="#seq_request-form-container"
+        hx-swap="outerHTML"
+        hx-post="{{ url_for('edit_seq_request', seq_request_id=seq_request.id) }}"
+      >
+        Save
+      </button>
+      {% elif form.form_type == "create" %}
+      <button
+        class="btn btn-success"
+        hx-include="#seq_request-form"
+        hx-target="#seq_request-form-container"
+        hx-swap="outerHTML"
+        hx-post="{{ url_for('create_seq_request') }}"
+      >
+        Create
+      </button>
+      {% endif %}
     </div>
-    
-    <div class="modal-footer">
-        <div class="footer-id">
-        </div>
-        <div class="footer-info">
-        </div>
-        <div class="footer-controls">
-            {% if seq_request_form.form_type == "edit" %}
-            <button class="btn btn-success" hx-include="#seq_request-form" hx-target="#seq_request-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('seq_requests_htmx.edit', seq_request_id=seq_request.id) }}">Submit</button>
-            {% elif seq_request_form.form_type == "create" %}
-            <button class="btn btn-success" hx-include="#seq_request-form" hx-target="#seq_request-form-container"
-                hx-swap="outerHTML" hx-post="{{ url_for('seq_requests_htmx.create') }}">Create</button>
-            {% endif %}
-        </div>
-    </div>
+  </div>
 
-    {% if seq_request_form.form_type == "create" %}
-    <script>
-        function update_current_user_is_contact() {
-            const checked = $("#contact_form-current_user_is_contact").is(":checked");
-            if (checked){
-                $("#contact_form-contact_person_name").addClass("disabled");
-                $("#contact_form-contact_person_name").prop("readonly", true);
-                $("#contact_form-contact_person_name").val("{{ current_user.name }}");
+  {% if form.form_type == "create" %}
+  <script>
+    function update_current_user_is_contact() {
+      const checked = $("#contact_current_user_is_contact").is(":checked");
+      if (checked) {
+        $("#contact_contact_person_name").addClass("disabled");
+        $("#contact_contact_person_name").prop("readonly", true);
+        $("#contact_contact_person_name").val("{{ current_user.name }}");
 
-                $("#contact_form-contact_person_email").addClass("disabled");
-                $("#contact_form-contact_person_email").prop("readonly", true);
-                $("#contact_form-contact_person_email").val("{{ current_user.email }}");
-                update_contact_person();
-            } else {
-                $("#contact_form-contact_person_name").removeClass("disabled");
-                $("#contact_form-contact_person_name").prop("readonly", false);
-                $("#contact_form-contact_person_name").val("");
+        $("#contact_contact_person_email").addClass("disabled");
+        $("#contact_contact_person_email").prop("readonly", true);
+        $("#contact_contact_person_email").val("{{ current_user.email }}");
+      } else {
+        $("#contact_contact_person_name").removeClass("disabled");
+        $("#contact_contact_person_name").prop("readonly", false);
+        $("#contact_contact_person_name").val("");
 
-                $("#contact_form-contact_person_email").removeClass("disabled");
-                $("#contact_form-contact_person_email").prop("readonly", false);
-                $("#contact_form-contact_person_email").val("");
-            }
+        $("#contact_contact_person_email").removeClass("disabled");
+        $("#contact_contact_person_email").prop("readonly", false);
+        $("#contact_contact_person_email").val("");
+      }
+    }
+
+    function update_contact_person(force = false) {
+      if (force) {
+        $("#contact_current_user_is_contact").prop("checked", true);
+      }
+      if ($("#contact_current_user_is_contact").is(":checked") || force) {
+        var selected = $("#user_id-container")
+          .find("li.selected-option")
+          .first();
+        if (selected.length > 0) {
+          $("#contact_contact_person_email").val(selected.data("email"));
+          $("#contact_contact_person_name").val(selected.data("name"));
+        } else {
+          $("#contact_contact_person_email").val("{{ current_user.email }}");
+          $("#contact_contact_person_name").val("{{ current_user.name }}");
         }
+      }
+    }
 
-        function update_billing_is_organization() {
-            const checked = $("#billing_form-billing_is_organization").is(":checked");
-            if (checked){
-                $("#billing_form-billing_address").addClass("disabled");
-                $("#billing_form-billing_address").prop("readonly", true);
-                $("#billing_form-billing_address").val($("#organization_form-organization_address").val());
+    $(document).ready(function () {
+      $("#contact_current_user_is_contact").on("click", function () {
+        update_current_user_is_contact();
+      });
 
-            } else {
-                $("#billing_form-billing_address").removeClass("disabled");
-                $("#billing_form-billing_address").prop("readonly", false);
-                $("#billing_form-billing_address").val("");
-            }
-        }
-
-        function update_contact_person(force=false) {
-            if (force) {
-                $("#contact_form-current_user_is_contact").prop("checked", true);
-            }
-            if ($("#contact_form-current_user_is_contact").is(":checked") || force) {
-                var selected = $("#user_select_form-user-container").find("li.selected-option").first();
-                if (selected.length > 0) {
-                    $("#contact_form-contact_person_email").val(selected.data("email"));
-                    $("#contact_form-contact_person_name").val(selected.data("name"));
-                } else {
-                    $("#contact_form-contact_person_email").val("{{ current_user.email }}");
-                    $("#contact_form-contact_person_name").val("{{ current_user.name }}");
-                }
-            }
-        }
-
-        $(document).ready(function(){
-            $("#user_select_form-user").on("change", function() {
-                $("#contact_form-current_user_is_contact").prop("checked", true);
-            });
-
-            $("#billing_form-billing_is_organization").on("click", function(){
-                update_billing_is_organization();
-            });
-
-            $("#organization_form-organization_address").on("change", function(){
-                if ($("#billing_form-billing_is_organization").is(":checked")){
-                    $("#billing_form-billing_address").val($(this).val());
-                }
-            });
-
-            $("#contact_form-current_user_is_contact").on("click", function() {
-                update_current_user_is_contact();
-            });
-
-            $("#user_select_form-email").on("change", function() {
-                if ($("#contact_form-current_user_is_contact").is(":checked")) {
-                    $("#contact_form-contact_person_email").val($(this).val());
-                }
-            });
-
-            $("#user_select_form-first_name, #user_select_form-last_name").on("change", function() {
-                if ($("#contact_form-current_user_is_contact").is(":checked")) {
-                    const first_name = $("#user_select_form-first_name").val();
-                    const last_name = $("#user_select_form-last_name").val();
-                    $("#contact_form-contact_person_name").val(first_name + " " + last_name);
-                }
-            });
-
-            $("#user_select_form-user").on("change", function() {
-                update_contact_person();
-            });
-
-        });
-    </script>
-    {% endif %}
+      $("#user_id").on("change", function () {
+        $("#contact_current_user_is_contact").prop("checked", true);
+        update_contact_person();
+      });
+    });
+  </script>
+  {% endif %}
 </div>

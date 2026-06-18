@@ -36,7 +36,7 @@ class Protocol(Base):
         return f"{self.name}"
     
     def __str__(self):
-        return f"Protocol('{self.name}', '{self.name}', '{self.service_type.name}')"
+        return f"Protocol('{self.name}', '{self.service_type.name}')"
     
     def __repr__(self) -> str:
         return self.__str__()

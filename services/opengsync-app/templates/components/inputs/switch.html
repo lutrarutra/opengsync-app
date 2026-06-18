@@ -1,0 +1,14 @@
+<div class="form-check form-switch {{ container_class }}">
+    <input
+        class="form-check-input"
+        type="checkbox"
+        role="switch"
+        id="{{ field.id }}"
+        name="{{ field.name }}"
+        {% if field.data %}checked{% endif %}
+        {% if field.read_only %}disabled{% endif %}
+    >
+    <label class="form-check-label" for="{{ field.id }}">
+        {{ field.label }}
+    </label>
+</div>

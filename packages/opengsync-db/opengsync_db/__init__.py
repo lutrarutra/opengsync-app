@@ -48,6 +48,7 @@ from .core.AsyncDBHandler import AsyncDBHandler  # noqa
 from .core import exceptions  # noqa
 from .core import units  # noqa
 from .core import utils  # noqa
+from .core import actions  # noqa
 
 
 def db_session(db: SyncDBHandler):
@@ -76,4 +77,5 @@ __all__ = [
     "AsyncDBHandler", "AsyncSession",
     "categories", "units",
     "exceptions", "utils",
+    "actions"
 ]
