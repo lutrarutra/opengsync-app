@@ -24,27 +24,27 @@ class SearchSelect {
 
     _init() {
         const selectedId = this.$selected_input.val();
-        
-        if (selectedId && this.$search_input.val()) {
-            let $span = $("<span class='search-select-name'>").text(this.$search_input.val());
-            this.$selected_bar.empty().append($span).css("display", "flex");
-            this.$search_input.val("").hide();
-            window.domm[this.field_name] = $span;
-        } else if (selectedId && window.domm[this.field_name]) {
-            this.$selected_bar.empty().append(window.domm[this.field_name]).css("display", "flex");
-            this.$search_input.hide();
-        } else if (selectedId) {
+
+        if (selectedId) {
+            this.$search_input.css("display", "none");
+            this.$selected_bar.css("display", "flex");
+
+            if (window.domm[this.field_name]) {
+                this.$selected_bar.empty().append(window.domm[this.field_name]);
+            } else {
+                this._ajax("");
+                this.$options_container.one("htmx:afterSwap", () => {
+                    const $match = this.$options_container.find(`li.option[data-value="${selectedId}"]`);
+                    if ($match.length) {
+                        $match.trigger("click");
+                    }
+                });
+            }
+        } else {
+            this.$search_input.show();
+            this.$selected_bar.hide();
             this._ajax("");
-            this.$options_container.one("htmx:afterSwap", () => {
-                const $match = this.$options_container.find(`li.option[data-value="${selectedId}"]`);
-                if ($match.length) {
-                    $match.trigger("click");
-                }
-            });
-            return;
         }
-        
-        this._ajax("");
     }
 
     open() {
@@ -78,24 +78,20 @@ class SearchSelect {
     }
 
     _bindEvents() {
-        // Handle query input
         this.$search_input.on("input", () => {
             this._handleSearch();
         });
 
-        // Show options on focus
         this.$search_input.on("focus", () => {
             this.open();
         });
 
-        // Close dropdown when clicking outside
         $(document).on("click", (e) => {
             if (!$(e.target).closest(this.$element).length) {
                 this.close();
             }
         });
 
-        // Handle option selection
         this.$options_container.on("click", "li.option", (e) => {
             e.stopPropagation();
             window.domm[this.field_name] = $(e.currentTarget).clone().removeClass("option").addClass("selected-option");

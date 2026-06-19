@@ -18,6 +18,7 @@
                 type="search" autocomplete="off" placeholder="Search"
                 class="form-control searchbar-input {% if field.errors %} is-invalid{% endif %}"
                 {% if field.read_only %}readonly{% endif %}
+                style="display: {% if field.data %}none{% else %}block{% endif %};"
                 name="{{ field.name }}-selected" id="{{ field.id }}-selected">
             <span class="form-control selected-bar" data-field="{{ field.id }}"></span>
             <button class="btn btn-outline-secondary clear-btn" type="button" data-field="{{ field.id }}" {% if field.read_only %} disabled {% endif %}>Clear</button>

@@ -14,84 +14,76 @@
 
   <div class="modal-body">
     <form id="seq_request-form" class="accordion" autocomplete="off">
-      {{ form.csrf_token.render() }} {% for section_name, sub_form in
-      form.ordered_sub_forms %}
+      {{ form.csrf_token.render() }}
+
       <div class="accordion-item">
         <h2 class="accordion-header">
           <button
-            class="accordion-button{% if sub_form.has_errors %} text-danger bg-danger-subtle{% else %} text-success bg-success-subtle{% endif %}{% if sub_form.collapsed %} collapsed{% endif %}"
+            class="accordion-button{% if form.disclaimer.has_errors %} text-danger bg-danger-subtle{% elif form.disclaimer.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
             type="button"
             data-bs-toggle="collapse"
-            data-bs-target="#section-{{ section_name }}"
-            aria-expanded="{% if sub_form.has_errors or not sub_form.collapsed %}true{% else %}false{% endif %}"
-            aria-controls="section-{{ section_name }}"
+            data-bs-target="#section-disclaimer"
+            aria-expanded="{% if form.disclaimer.has_errors or not form.disclaimer.validated %}true{% else %}false{% endif %}"
+            aria-controls="section-disclaimer"
           >
-            {% if sub_form.icon %}<i class="{{ sub_form.icon }} me-2"></i>{%
-            endif %} {{ sub_form.title }}
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Disclaimer
           </button>
         </h2>
         <div
-          id="section-{{ section_name }}"
-          class="accordion-collapse collapse{% if sub_form.has_errors or not sub_form.collapsed %} show{% endif %}"
+          id="section-disclaimer"
+          class="accordion-collapse collapse{% if form.disclaimer.has_errors or not form.disclaimer.validated %} show{% endif %}"
         >
           <div class="accordion-body">
-            {% if section_name == "basic_info" %} {{ sub_form.name.render() }}
-            {{ sub_form.description.render() }} {% elif section_name ==
-            "technical_info" %}
-            <div class="row">
-              {{ sub_form.submission_type.render("col-md-3") }} {{
-              sub_form.read_type.render("col-md-3") }} {{
-              sub_form.num_lanes.render("col-md-3") }} {{
-              sub_form.read_length.render("col-md-3") }}
+            <div>
+              <p>
+                This program is designed to store and facilitate the transfer of
+                information between customers and our team. It is not intended
+                for designing or validating experimental setups. Users must
+                ensure that their experimental setups are valid. If you are
+                uncertain about your setup, please contact us at
+                <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. We
+                reserve the right to reject any sequencing requests that are
+                invalid, do not meet our quality standards, or are not feasible
+                with our current resources.
+              </p>
+              <p>
+                Each sequencing request is subject to review and approval by our
+                team. For non-standard experimental setups, such as using a
+                custom genome reference, please contact us to ensure we can
+                accommodate your request.
+              </p>
+              <p>
+                Results from each request will be shared with a single entity
+                (group), whether it is a research lab or an individual. If you
+                are submitting a request on behalf of multiple entities, please
+                submit separate requests for each entity. Results from different
+                requests, including previous ones, can be grouped together for
+                analysis by associating the libraries with the same project.
+              </p>
+              <p>
+                <b>If group is selected</b>, the sequencing request will be
+                editable by ALL members of the group until it is submitted.
+                After submission, the request will be read-only for all group
+                members. If you need to make changes to a submitted request,
+                please contact us at
+                <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.
+                <b
+                  >The sequencing results will be shared with all group
+                  members.</b
+                >
+              </p>
             </div>
-            <ol class="mt-2">
-              {% for st in
-              SubmissionType.as_list(include_unpooled_libraries=False) %}
-              <li><b>{{ st.label }}</b>: <i>{{ st.description }}</i></li>
-              {% endfor %}
-            </ol>
-            {{ sub_form.special_requirements.render() }} {{
-            sub_form.data_delivery_mode.render() }} {% elif section_name ==
-            "contact" %} {% if form.form_type == "create" %} {{
-            sub_form.current_user_is_contact.render() }} {% endif %}
-            <div class="row">
-              {{ sub_form.contact_person_name.render("col-md-4") }} {{
-              sub_form.contact_person_email.render("col-md-4") }} {{
-              sub_form.contact_person_phone.render("col-md-4") }}
-            </div>
-
-            {% elif section_name == "bioinformatician" %}
-            <div class="row">
-              {{ sub_form.bioinformatician_name.render("col-md-4") }} {{
-              sub_form.bioinformatician_email.render("col-md-4") }} {{
-              sub_form.bioinformatician_phone.render("col-md-4") }}
-            </div>
-
-            {% elif section_name == "organization" %} {{
-            sub_form.organization_name.render() }}
-            <div class="row">
-              {{ sub_form.organization_email.render("col-md-6") }} {{
-              sub_form.organization_phone.render("col-md-6") }}
-            </div>
-            {{ sub_form.organization_address.render() }} {% elif section_name ==
-            "billing" %}
-            <div class="row">
-              {{ sub_form.billing_contact_name.render("col-md-4") }} {{
-              sub_form.billing_contact_email.render("col-md-4") }} {{
-              sub_form.billing_contact_phone.render("col-md-4") }}
-            </div>
-            <div class="row">
-              {{ sub_form.billing_code.render("col-md-6") }}
-            </div>
-            {% endif %}
+            {{ form.disclaimer.accepted.render() }}
           </div>
         </div>
       </div>
-      {% endfor %} {% if form.user_id %}
+
+      {% if current_user.is_insider() %}
       <div class="accordion-item">
         <h2 class="accordion-header">
           <button
-            class="accordion-button collapsed"
+            class="accordion-button{% if form.user_selection.has_errors %} text-danger bg-danger-subtle{% elif form.user_selection.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %} collapsed"
             type="button"
             data-bs-toggle="collapse"
             data-bs-target="#section-user-selection"
@@ -99,14 +91,187 @@
             aria-controls="section-user-selection"
           >
             <i class="bi bi-person-plus me-2"></i>
-            User Selection
+            Requestor
           </button>
         </h2>
         <div id="section-user-selection" class="accordion-collapse collapse">
-          <div class="accordion-body">{{ form.user_id.render() }}</div>
+          <div class="accordion-body">
+            {{ form.user_selection.user_id.render() }}
+          </div>
         </div>
       </div>
       {% endif %}
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button
+            class="accordion-button{% if form.basic_info.has_errors %} text-danger bg-danger-subtle{% elif form.basic_info.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#section-basic-info"
+            aria-expanded="true"
+            aria-controls="section-basic-info"
+          >
+            <i class="bi bi-info-circle me-2"></i>
+            Request Info
+          </button>
+        </h2>
+        <div id="section-basic-info" class="accordion-collapse collapse show">
+          <div class="accordion-body">
+            {{ form.basic_info.name.render() }} {{
+            form.basic_info.description.render() }}
+            {{ form.basic_info.group_id.render() }}
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button
+            class="accordion-button{% if form.contact.has_errors %} text-danger bg-danger-subtle{% elif form.contact.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#section-contact"
+            aria-expanded="true"
+            aria-controls="section-contact"
+          >
+            <i class="bi bi-person me-2"></i>
+            Contact Person
+          </button>
+        </h2>
+        <div id="section-contact" class="accordion-collapse collapse show">
+          <div class="accordion-body">
+            {% if form.form_type == "create" %} {{
+            form.contact.current_user_is_contact.render() }} {% endif %}
+            <div class="row">
+              {{ form.contact.name.render("col-md-4") }} {{
+              form.contact.email.render("col-md-4") }} {{
+              form.contact.phone.render("col-md-4") }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button
+            class="accordion-button{% if form.technical_info.has_errors %} text-danger bg-danger-subtle{% elif form.technical_info.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#section-technical-info"
+            aria-expanded="true"
+            aria-controls="section-technical-info"
+          >
+            <i class="bi bi-cpu me-2"></i>
+            Technical Requirements
+          </button>
+        </h2>
+        <div
+          id="section-technical-info"
+          class="accordion-collapse collapse show"
+        >
+          <div class="accordion-body">
+            <div class="row">
+              {{ form.technical_info.submission_type.render("col-md-6") }}
+              {{ form.technical_info.read_type.render("col-md-6") }}
+              {{ form.technical_info.num_lanes.render("col-md-6") }}
+              {{ form.technical_info.read_length.render("col-md-6") }}
+            </div>
+            <ol class="mt-2">
+              {% for st in
+              SubmissionType.as_list(include_unpooled_libraries=False) %}
+              <li><b>{{ st.label }}</b>: <i>{{ st.description }}</i></li>
+              {% endfor %}
+            </ol>
+            {{ form.technical_info.special_requirements.render() }} {{
+            form.technical_info.data_delivery_mode.render() }}
+            <ol>
+            {% for mode in DataDeliveryMode.as_list() %}
+                <li><b>{{ mode.label }}</b>: <em>{{ mode.description }}</em></li>
+            {% endfor %}
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button
+            class="accordion-button{% if form.bioinformatician.has_errors %} text-danger bg-danger-subtle{% elif form.bioinformatician.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %} collapsed"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#section-bioinformatician"
+            aria-expanded="false"
+            aria-controls="section-bioinformatician"
+          >
+            <i class="bi bi-robot me-2"></i>
+            Bioinformatician Contact
+          </button>
+        </h2>
+        <div id="section-bioinformatician" class="accordion-collapse collapse">
+          <div class="accordion-body">
+            <div class="row">
+              {{ form.bioinformatician.name.render("col-md-4") }} {{
+              form.bioinformatician.email.render("col-md-4") }}
+              {{ form.bioinformatician.phone.render("col-md-4") }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button
+            class="accordion-button{% if form.organization.has_errors %} text-danger bg-danger-subtle{% elif form.organization.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#section-organization"
+            aria-expanded="true"
+            aria-controls="section-organization"
+          >
+            <i class="bi bi-building me-2"></i>
+            Organization
+          </button>
+        </h2>
+        <div id="section-organization" class="accordion-collapse collapse show">
+          <div class="accordion-body">
+            {{ form.organization.name.render() }}
+            <div class="row">
+              {{ form.organization.email.render("col-md-6") }} {{
+              form.organization.phone.render("col-md-6") }}
+            </div>
+            {{ form.organization.address.render() }}
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button
+            class="accordion-button{% if form.billing.has_errors %} text-danger bg-danger-subtle{% elif form.billing.validated %} text-success bg-success-subtle collapsed{% else %} text-primary bg-primary-subtle{% endif %}"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#section-billing"
+            aria-expanded="true"
+            aria-controls="section-billing"
+          >
+            <i class="bi bi-credit-card me-2"></i>
+            Billing
+          </button>
+        </h2>
+        <div id="section-billing" class="accordion-collapse collapse show">
+          <div class="accordion-body">
+            <div class="row">
+              {{ form.billing.name.render("col-md-4") }} {{
+              form.billing.email.render("col-md-4") }} {{
+              form.billing.phone.render("col-md-4") }}
+            </div>
+            <div class="row">
+              {{ form.billing.code.render("col-md-6") }}
+            </div>
+          </div>
+        </div>
+      </div>
     </form>
   </div>
 
@@ -141,53 +306,55 @@
   {% if form.form_type == "create" %}
   <script>
     function update_current_user_is_contact() {
-      const checked = $("#contact_current_user_is_contact").is(":checked");
-      if (checked) {
-        $("#contact_contact_person_name").addClass("disabled");
-        $("#contact_contact_person_name").prop("readonly", true);
-        $("#contact_contact_person_name").val("{{ current_user.name }}");
+        const checked = $("#contact-current_user_is_contact").is(":checked");
+        if (checked){
+            $("#contact-name").addClass("disabled");
+            $("#contact-name").prop("readonly", true);
+            $("#contact-name").val("{{ current_user.name }}");
 
-        $("#contact_contact_person_email").addClass("disabled");
-        $("#contact_contact_person_email").prop("readonly", true);
-        $("#contact_contact_person_email").val("{{ current_user.email }}");
-      } else {
-        $("#contact_contact_person_name").removeClass("disabled");
-        $("#contact_contact_person_name").prop("readonly", false);
-        $("#contact_contact_person_name").val("");
-
-        $("#contact_contact_person_email").removeClass("disabled");
-        $("#contact_contact_person_email").prop("readonly", false);
-        $("#contact_contact_person_email").val("");
-      }
-    }
-
-    function update_contact_person(force = false) {
-      if (force) {
-        $("#contact_current_user_is_contact").prop("checked", true);
-      }
-      if ($("#contact_current_user_is_contact").is(":checked") || force) {
-        var selected = $("#user_id-container")
-          .find("li.selected-option")
-          .first();
-        if (selected.length > 0) {
-          $("#contact_contact_person_email").val(selected.data("email"));
-          $("#contact_contact_person_name").val(selected.data("name"));
+            $("#contact-email").addClass("disabled");
+            $("#contact-email").prop("readonly", true);
+            $("#contact-email").val("{{ current_user.email }}");
+            update_contact_person();
         } else {
-          $("#contact_contact_person_email").val("{{ current_user.email }}");
-          $("#contact_contact_person_name").val("{{ current_user.name }}");
+            $("#contact-name").removeClass("disabled");
+            $("#contact-name").prop("readonly", false);
+            $("#contact-name").val("");
+
+            $("#contact-email").removeClass("disabled");
+            $("#contact-email").prop("readonly", false);
+            $("#contact-email").val("");
         }
-      }
     }
 
-    $(document).ready(function () {
-      $("#contact_current_user_is_contact").on("click", function () {
-        update_current_user_is_contact();
-      });
+    function update_contact_person(force=false) {
+        if (force) {
+            $("#contact-current_user_is_contact").prop("checked", true);
+        }
+        if ($("#contact-current_user_is_contact").is(":checked") || force) {
+            var selected = $("#user_selection-user_id-container").find("li.selected-option").first();
+            if (selected.length > 0) {
+                $("#contact-email").val(selected.data("email"));
+                $("#contact-name").val(selected.data("name"));
+            } else {
+                $("#contact-email").val("{{ current_user.email }}");
+                $("#contact-name").val("{{ current_user.name }}");
+            }
+        }
+    }
 
-      $("#user_id").on("change", function () {
-        $("#contact_current_user_is_contact").prop("checked", true);
-        update_contact_person();
-      });
+    $(document).ready(function(){
+        $("#user_selection-user_id").on("change", function() {
+            $("#contact-current_user_is_contact").prop("checked", true);
+        });
+
+        $("#contact-current_user_is_contact").on("click", function() {
+            update_current_user_is_contact();
+        });
+
+        $("#user_selection-user_id").on("change", function() {
+            update_contact_person();
+        });
     });
   </script>
   {% endif %}

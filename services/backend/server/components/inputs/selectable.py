@@ -1,11 +1,11 @@
 from typing import TypeVar, Generic
 
-from .InputField import InputField
+from .BaseInputField import BaseInputField
 
 T_int = TypeVar("T_int", int, int | None, covariant=True)
 
 
-class SelectableInputField(InputField, Generic[T_int]):
+class SelectableInputField(BaseInputField, Generic[T_int]):
     data: T_int
 
     def __init__(
@@ -20,7 +20,6 @@ class SelectableInputField(InputField, Generic[T_int]):
     ):
         pydantic_type = type(options[0][0]) if options else str
         super().__init__(
-            name=label.lower().replace(" ", "_"),
             label=label,
             template="components/inputs/selectable.html",
             default=default,

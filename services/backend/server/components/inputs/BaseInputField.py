@@ -5,10 +5,9 @@ from markupsafe import Markup
 from ...core.templates import render_template
 
 
-class InputField(ABC):
+class BaseInputField(ABC):
     def __init__(
         self,
-        name: str,
         label: str,
         template: str,
         type: str,
@@ -20,11 +19,11 @@ class InputField(ABC):
         description: str | None = None,
         read_only: bool = False,
     ):
-        self.name = name
-        self.type = type
         self.label = label
         self.template = template
-        self.id = id or name
+        self.type = type
+        self.id = id or ""
+        self.name = self.id
         self.default = default
         self.data = default
         self.errors: list[str] = []

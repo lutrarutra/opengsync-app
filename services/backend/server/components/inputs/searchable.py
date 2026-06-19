@@ -2,13 +2,13 @@ from typing import TypeVar, Generic
 
 from starlette.datastructures import URL
 
-from .InputField import InputField
+from .BaseInputField import BaseInputField
 from ...core.context import ctx
 
 _T = TypeVar("_T", covariant=True)
 
 
-class SearchableInputField(InputField, Generic[_T]):
+class SearchableInputField(BaseInputField, Generic[_T]):
     data: _T
 
     def __init__(
@@ -26,7 +26,6 @@ class SearchableInputField(InputField, Generic[_T]):
         read_only: bool = False,
     ):
         super().__init__(
-            name=label.lower().replace(" ", "_"),
             label=label,
             template="components/inputs/search-select.html",
             required=required,

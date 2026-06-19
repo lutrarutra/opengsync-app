@@ -2,156 +2,108 @@ from typing import Literal
 
 from fastapi import Depends, Request
 from fastapi.responses import Response
-from sqlalchemy import orm
 
 from opengsync_db import AsyncSession, models, queries as Q, categories as C
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
-from ...components.inputs.switch import SwitchInputField
 from ..HTMXForm import HTMXForm
 from ..SubHTMXForm import SubHTMXForm
+
+
+class DisclaimerSubForm(SubHTMXForm):
+    """Disclaimer that must be accepted."""
+
+    accepted = inputs.boolean.CheckboxInputField("I have read and understood the disclaimer")
+
+    async def validate(self, raw_data: dict) -> bool:
+        await super().validate(raw_data)
+        for field in self.input_fields:
+            field.errors = []
+
+        disclaimer_checked = self.accepted.validate_value(raw_data.get(self.accepted.name))
+        self.accepted.data = disclaimer_checked
+        if not disclaimer_checked:
+            self.accepted.errors.append("You must accept the disclaimer")
+            self.validated = True
+            return False
+
+        self.accepted.data = True
+        self.validated = True
+        return True
 
 
 class BasicInfoSubForm(SubHTMXForm):
     """Basic information about the sequencing request."""
 
-    title = "Request Info"
-    order = 1
-    collapsed = False
-    icon = "bi-info-circle"
-
     name = inputs.string.StringInputField("Request Name", required=True)
     description = inputs.string.TextAreaInputField("Description", required=False)
+    group_id = inputs.searchable.SearchableInputField("Group", route="search_groups", required=False)
+
+
+class UserSelectionSubForm(SubHTMXForm):
+    """User selection (insider only)."""
+
+    user_id = inputs.searchable.SearchableInputField("User", route="search_users", required=False)
 
 
 class TechnicalInfoSubForm(SubHTMXForm):
     """Technical requirements for sequencing."""
 
-    title = "Technical Requirements"
-    order = 2
-    collapsed = False
-    icon = "bi-cpu"
-
-    submission_type = inputs.selectable.SelectableInputField(
-        "Submission Type",
-        options=C.SubmissionType.as_selectable(),
-        required=True,
-    )
-    read_type = inputs.selectable.SelectableInputField(
-        "Read Type",
-        options=C.ReadType.as_selectable(),
-    )
+    submission_type = inputs.selectable.SelectableInputField("Submission Type", options=C.SubmissionType.as_selectable(include_unpooled_libraries=False))
+    read_type = inputs.selectable.SelectableInputField("Read Type", options=C.ReadType.as_selectable())
     read_length = inputs.string.StringInputField("Read Length", required=False)
     num_lanes = inputs.string.StringInputField("Number of Lanes", required=False)
-    data_delivery_mode = inputs.selectable.SelectableInputField(
-        "Data Delivery Mode",
-        options=C.DataDeliveryMode.as_selectable(),
-    )
-    special_requirements = inputs.string.TextAreaInputField(
-        "Special Requirements", required=False
-    )
+    data_delivery_mode = inputs.selectable.SelectableInputField("Data Delivery Mode", options=C.DataDeliveryMode.as_selectable())
+    special_requirements = inputs.string.TextAreaInputField("Special Requirements", required=False)
 
 
 class ContactSubForm(SubHTMXForm):
     """Contact person for the request."""
 
-    title = "Contact Person"
-    order = 3
-    collapsed = False
-    icon = "bi-person"
-
-    current_user_is_contact = SwitchInputField("Requestor is the contact person")
-    contact_person_name = inputs.string.StringInputField(
-        "Contact Person Name", required=True
-    )
-    contact_person_email = inputs.string.StringInputField(
-        "Contact Person Email", required=True
-    )
-    contact_person_phone = inputs.string.StringInputField(
-        "Contact Person Phone", required=False
-    )
+    current_user_is_contact = inputs.boolean.SwitchInputField("Requestor is the contact person")
+    name = inputs.string.StringInputField("Contact Person Name", required=True)
+    email = inputs.string.StringInputField("Contact Person Email", required=True)
+    phone = inputs.string.StringInputField("Contact Person Phone", required=False)
 
 
 class BioinformaticianSubForm(SubHTMXForm):
     """Bioinformatician contact (optional)."""
 
-    title = "Bioinformatician Contact"
-    order = 4
-    collapsed = True
-    icon = "bi-robot"
-
-    bioinformatician_name = inputs.string.StringInputField(
-        "Bioinformatician Name", required=False
-    )
-    bioinformatician_email = inputs.string.StringInputField(
-        "Bioinformatician Email", required=False
-    )
-    bioinformatician_phone = inputs.string.StringInputField(
-        "Bioinformatician Phone", required=False
-    )
+    name = inputs.string.StringInputField("Bioinformatician Name", required=False)
+    email = inputs.string.StringInputField("Bioinformatician Email", required=False)
+    phone = inputs.string.StringInputField("Bioinformatician Phone", required=False)
 
 
 class OrganizationSubForm(SubHTMXForm):
     """Organization information."""
 
-    title = "Organization"
-    order = 5
-    collapsed = False
-    icon = "bi-building"
-
-    organization_name = inputs.string.StringInputField(
-        "Organization Name", required=True
-    )
-    organization_email = inputs.string.StringInputField(
-        "Organization Email", required=False
-    )
-    organization_phone = inputs.string.StringInputField(
-        "Organization Phone", required=False
-    )
-    organization_address = inputs.string.StringInputField(
-        "Organization Address", required=True
-    )
+    name = inputs.string.StringInputField("Organization Name", required=True)
+    email = inputs.string.StringInputField("Organization Email", required=False)
+    phone = inputs.string.StringInputField("Organization Phone", required=False)
+    address = inputs.string.TextAreaInputField("Organization Address", required=True)
 
 
 class BillingSubForm(SubHTMXForm):
     """Billing information."""
 
-    title = "Billing"
-    order = 6
-    collapsed = False
-    icon = "bi-credit-card"
-
-    billing_code = inputs.string.StringInputField("Billing Code", required=False)
-    billing_contact_name = inputs.string.StringInputField(
-        "Billing Contact Name", required=True
-    )
-    billing_contact_email = inputs.string.StringInputField(
-        "Billing Contact Email", required=True
-    )
-    billing_contact_phone = inputs.string.StringInputField(
-        "Billing Contact Phone", required=False
-    )
+    code = inputs.string.StringInputField("Billing Code", required=False)
+    name = inputs.string.StringInputField("Billing Contact Name", required=True)
+    email = inputs.string.StringInputField("Billing Contact Email", required=True)
+    phone = inputs.string.StringInputField("Billing Contact Phone", required=False)
 
 
 class SeqRequestForm(HTMXForm):
     template_path = "forms/seq_request/seq_request.html"
 
-    # Sub-forms (accordion sections)
+    disclaimer = DisclaimerSubForm()
     basic_info = BasicInfoSubForm()
+    user_selection = UserSelectionSubForm()
     technical_info = TechnicalInfoSubForm()
     contact = ContactSubForm()
     bioinformatician = BioinformaticianSubForm()
     organization = OrganizationSubForm()
     billing = BillingSubForm()
-
-    # Direct fields (not in accordion)
-    user_id = inputs.searchable.SearchableInputField(
-        "User", route="search_users", required=False
-    )
-    group_id = inputs.searchable.SearchableInputField(
-        "Group", route="search_groups", required=False
-    )
 
     def __init__(
         self,
@@ -173,13 +125,15 @@ class SeqRequestForm(HTMXForm):
             )
 
     async def prepare(self) -> None:
+        current_user = self.request.state.current_user
+
         if self.form_type == "create":
-            self.contact.contact_person_name.data = (
-                self.request.state.current_user.name or ""
-            )
-            self.contact.contact_person_email.data = (
-                self.request.state.current_user.email or ""
-            )
+            # Insiders don't need to accept disclaimer
+            if current_user.is_insider():
+                self.disclaimer.validated = True
+                self.disclaimer.accepted.data = True
+            self.contact.name.data = current_user.name or ""
+            self.contact.email.data = current_user.email or ""
         elif self.form_type == "edit" and self.seq_request is not None:
             sr = self.seq_request
 
@@ -203,52 +157,52 @@ class SeqRequestForm(HTMXForm):
 
             # Contact
             if sr.contact_person:
-                self.contact.contact_person_name.data = sr.contact_person.name or ""
-                self.contact.contact_person_email.data = sr.contact_person.email or ""
-                self.contact.contact_person_phone.data = sr.contact_person.phone or ""
+                self.contact.name.data = sr.contact_person.name or ""
+                self.contact.email.data = sr.contact_person.email or ""
+                self.contact.phone.data = sr.contact_person.phone or ""
 
             # Bioinformatician
             if sr.bioinformatician_contact:
-                self.bioinformatician.bioinformatician_name.data = (
+                self.bioinformatician.name.data = (
                     sr.bioinformatician_contact.name or ""
                 )
-                self.bioinformatician.bioinformatician_email.data = (
+                self.bioinformatician.email.data = (
                     sr.bioinformatician_contact.email or ""
                 )
-                self.bioinformatician.bioinformatician_phone.data = (
+                self.bioinformatician.phone.data = (
                     sr.bioinformatician_contact.phone or ""
                 )
 
             # Organization
             if sr.organization_contact:
-                self.organization.organization_name.data = (
+                self.organization.name.data = (
                     sr.organization_contact.name or ""
                 )
-                self.organization.organization_email.data = (
+                self.organization.email.data = (
                     sr.organization_contact.email or ""
                 )
-                self.organization.organization_phone.data = (
+                self.organization.phone.data = (
                     sr.organization_contact.phone or ""
                 )
-                self.organization.organization_address.data = (
+                self.organization.address.data = (
                     sr.organization_contact.address or ""
                 )
 
             # Billing
             if sr.billing_contact:
-                self.billing.billing_contact_name.data = sr.billing_contact.name or ""
-                self.billing.billing_contact_email.data = sr.billing_contact.email or ""
-                self.billing.billing_contact_phone.data = sr.billing_contact.phone or ""
-                self.billing.billing_code.data = sr.billing_code or ""
+                self.billing.name.data = sr.billing_contact.name or ""
+                self.billing.email.data = sr.billing_contact.email or ""
+                self.billing.phone.data = sr.billing_contact.phone or ""
+                self.billing.code.data = sr.billing_code or ""
 
     @staticmethod
     def _validate_bioinformatician(form: "SeqRequestForm"):
         """If bioinformatician name is given, email is required."""
         if (
-            form.bioinformatician.bioinformatician_name.data
-            and not form.bioinformatician.bioinformatician_email.data
+            form.bioinformatician.name.data
+            and not form.bioinformatician.email.data
         ):
-            form.bioinformatician.bioinformatician_email.errors.append(
+            form.bioinformatician.email.errors.append(
                 "Email is required when bioinformatician name is provided."
             )
 
@@ -273,8 +227,8 @@ class SeqRequestForm(HTMXForm):
             raise exc.FormValidationException(form)
 
         if (
-            form.bioinformatician.bioinformatician_name.data
-            and not form.bioinformatician.bioinformatician_email.data
+            form.bioinformatician.name.data
+            and not form.bioinformatician.email.data
         ):
             raise exc.FormValidationException(form)
 
@@ -282,44 +236,44 @@ class SeqRequestForm(HTMXForm):
 
         # Determine requestor
         requestor_id = current_user.id
-        if form.user_id.data:
+        if form.user_selection.user_id.data:
             selected_user = await session.first(
-                Q.user.select(id=int(form.user_id.data))
+                Q.user.select(id=int(form.user_selection.user_id.data))
             )
             if selected_user is None:
-                form.user_id.errors.append("Selected user not found.")
+                form.user_selection.user_id.errors.append("Selected user not found.")
                 raise exc.FormValidationException(form)
             requestor_id = selected_user.id
 
         # Build contacts
         contact_person = Q.contact.create(
-            form.contact.contact_person_name.data,
-            form.contact.contact_person_email.data,
-            form.contact.contact_person_phone.data,
+            form.contact.name.data,
+            form.contact.email.data,
+            form.contact.phone.data,
         )
         if (
-            form.bioinformatician.bioinformatician_name.data
-            and form.bioinformatician.bioinformatician_email.data
+            form.bioinformatician.name.data
+            and form.bioinformatician.email.data
         ):
             bioinformatician = Q.contact.create(
-                form.bioinformatician.bioinformatician_name.data,
-                form.bioinformatician.bioinformatician_email.data,
-                form.bioinformatician.bioinformatician_phone.data,
+                form.bioinformatician.name.data,
+                form.bioinformatician.email.data,
+                form.bioinformatician.phone.data,
             )
         else:
             bioinformatician = None
 
         organization = Q.contact.create(
-            form.organization.organization_name.data,
-            form.organization.organization_email.data,
-            form.organization.organization_phone.data,
-            form.organization.organization_address.data,
+            form.organization.name.data,
+            form.organization.email.data,
+            form.organization.phone.data,
+            form.organization.address.data,
         )
 
         billing_contact = Q.contact.create(
-            form.billing.billing_contact_name.data,
-            form.billing.billing_contact_email.data,
-            form.billing.billing_contact_phone.data,
+            form.billing.name.data,
+            form.billing.email.data,
+            form.billing.phone.data,
         )
 
         seq_request = await session.save(
@@ -340,14 +294,14 @@ class SeqRequestForm(HTMXForm):
                 submission_type=C.SubmissionType.get(
                     form.technical_info.submission_type.data
                 ),
-                billing_code=form.billing.billing_code.data or None,
+                billing_code=form.billing.code.data or None,
                 contact_person=contact_person,
                 bioinformatician_contact=bioinformatician,
                 organization_contact=organization,
                 billing_contact=billing_contact,
                 requestor=current_user,
-                group=await session.get_one(Q.group.select(id=form.group_id.data))
-                if form.group_id.data
+                group=await session.get_one(Q.group.select(id=form.basic_info.group_id.data))
+                if form.basic_info.group_id.data
                 else None,
             ),
             flush=True,
@@ -387,8 +341,8 @@ class SeqRequestForm(HTMXForm):
         SeqRequestForm._validate_bioinformatician(form)
 
         if (
-            form.bioinformatician.bioinformatician_name.data
-            and not form.bioinformatician.bioinformatician_email.data
+            form.bioinformatician.name.data
+            and not form.bioinformatician.email.data
         ):
             raise exc.FormValidationException(form)
 
@@ -412,45 +366,45 @@ class SeqRequestForm(HTMXForm):
             form.technical_info.data_delivery_mode.data
         )
         seq_request.special_requirements = form.technical_info.special_requirements.data
-        seq_request.billing_code = form.billing.billing_code.data or None
+        seq_request.billing_code = form.billing.code.data or None
 
         # Sync contacts
-        seq_request.contact_person.name = form.contact.contact_person_name.data
-        seq_request.contact_person.email = form.contact.contact_person_email.data
-        seq_request.contact_person.phone = form.contact.contact_person_phone.data
+        seq_request.contact_person.name = form.contact.name.data
+        seq_request.contact_person.email = form.contact.email.data
+        seq_request.contact_person.phone = form.contact.phone.data
 
         if (
-            form.bioinformatician.bioinformatician_name.data
-            and form.bioinformatician.bioinformatician_email.data
+            form.bioinformatician.name.data
+            and form.bioinformatician.email.data
         ):
             if seq_request.bioinformatician_contact is None:
                 seq_request.bioinformatician_contact = Q.contact.create(
-                    form.bioinformatician.bioinformatician_name.data,
-                    form.bioinformatician.bioinformatician_email.data,
-                    form.bioinformatician.bioinformatician_phone.data,
+                    form.bioinformatician.name.data,
+                    form.bioinformatician.email.data,
+                    form.bioinformatician.phone.data,
                 )
             else:
                 seq_request.bioinformatician_contact.name = (
-                    form.bioinformatician.bioinformatician_name.data
+                    form.bioinformatician.name.data
                 )
                 seq_request.bioinformatician_contact.email = (
-                    form.bioinformatician.bioinformatician_email.data
+                    form.bioinformatician.email.data
                 )
                 seq_request.bioinformatician_contact.phone = (
-                    form.bioinformatician.bioinformatician_phone.data
+                    form.bioinformatician.phone.data
                 )
         else:
             seq_request.bioinformatician_contact = None
 
-        seq_request.organization_contact.name = form.organization.organization_name.data
+        seq_request.organization_contact.name = form.organization.name.data
         seq_request.organization_contact.email = (
-            form.organization.organization_email.data
+            form.organization.email.data
         )
         seq_request.organization_contact.phone = (
-            form.organization.organization_phone.data
+            form.organization.phone.data
         )
         seq_request.organization_contact.address = (
-            form.organization.organization_address.data
+            form.organization.address.data
         )
 
         await session.save(seq_request)

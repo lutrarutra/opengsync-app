@@ -1,11 +1,11 @@
 from typing import Any, Annotated, Generic, Literal, TypeVar, overload
 from pydantic import AfterValidator
-from .InputField import InputField
+from .BaseInputField import BaseInputField
 
 _FloatDataT = TypeVar("_FloatDataT", float, float | None, covariant=True)
 
 
-class FloatInputField(InputField, Generic[_FloatDataT]):
+class FloatInputField(BaseInputField, Generic[_FloatDataT]):
     data: _FloatDataT
 
     @overload
@@ -68,7 +68,6 @@ class FloatInputField(InputField, Generic[_FloatDataT]):
             pydantic_type = Annotated[float, AfterValidator(_validate)]
 
         super().__init__(
-            name=label.lower().replace(" ", "_"),
             label=label,
             template="components/inputs/numeric.html",
             type="number",
@@ -87,7 +86,7 @@ class FloatInputField(InputField, Generic[_FloatDataT]):
 _IntDataT = TypeVar("_IntDataT", int, int | None, covariant=True)
 
 
-class IntInputField(InputField, Generic[_IntDataT]):
+class IntInputField(BaseInputField, Generic[_IntDataT]):
     data: _IntDataT
 
     @overload
@@ -144,7 +143,6 @@ class IntInputField(InputField, Generic[_IntDataT]):
             pydantic_type = Annotated[int, AfterValidator(_validate)]
 
         super().__init__(
-            name=label.lower().replace(" ", "_"),
             label=label,
             template="components/inputs/numeric.html",
             type="number",

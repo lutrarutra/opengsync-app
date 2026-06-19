@@ -1,12 +1,12 @@
 from typing import Any, Annotated, Generic, TypeVar
-from .InputField import InputField
+from .BaseInputField import BaseInputField
 
 from pydantic import EmailStr, StringConstraints
 
 _DataT = TypeVar("_DataT", str, str | None, covariant=True)
 
 
-class StringInputField(InputField, Generic[_DataT]):
+class StringInputField(BaseInputField, Generic[_DataT]):
     data: _DataT
 
     def __init__(
@@ -26,7 +26,6 @@ class StringInputField(InputField, Generic[_DataT]):
         read_only: bool = False,
     ):
         super().__init__(
-            name=label.lower().replace(" ", "_"),
             label=label,
             template=template or "components/inputs/string.html",
             default=default,

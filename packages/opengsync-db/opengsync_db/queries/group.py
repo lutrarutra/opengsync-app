@@ -70,7 +70,7 @@ def select(
     if type_in is not None:
         statement = statement.where(Group.type_id.in_([t.id for t in type_in]))
     if search_name is not None:
-        statement = statement.where(sa.nulls_last(sa.func.similarity(Group.name, search_name).desc()))
+        statement = statement.order_by(sa.func.similarity(Group.name, search_name).desc())
     return statement
 
 

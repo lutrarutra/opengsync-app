@@ -1,7 +1,6 @@
 from typing import Any, Optional
 from pydantic import BaseModel, ValidationError, create_model
 
-from ..components.inputs.InputField import InputField
 from ..components import inputs
 
 
@@ -21,37 +20,28 @@ class SubHTMXForm:
             name = StringInputField("Request Name", required=True)
             description = TextAreaInputField("Description", required=False)
     """
-
-    # Class-level configuration for accordion rendering
-    title: str = ""
-    order: int = 0
-    collapsed: bool = False
-    icon: str | None = None
+    validated: bool = False
 
     def __init__(self, prefix: str = ""):
         self._prefix = prefix
-        self._fields_cache: Optional[list[InputField]] = None
+        self._fields_cache: Optional[list[inputs.BaseInputField]] = None
         self._pydantic_model: Optional[type[BaseModel]] = None
 
-        # Clone all InputField instances to avoid shared state
         for field_name in dir(self.__class__):
             if field_name.startswith("_"):
                 continue
 
             field = getattr(self.__class__, field_name)
-            if isinstance(field, InputField):
+            if isinstance(field, inputs.BaseInputField):
                 field_instance = self._clone_field(field)
-                # Add prefix to field name for namespacing
-                if prefix:
-                    field_instance.name = f"{prefix}_{field.name}"
-                    field_instance.id = field_instance.name
+                field_instance.name = f"{prefix}-{field_name}" if prefix else field_name
+                field_instance.id = field_instance.name
                 setattr(self, field_name, field_instance)
 
-    def _clone_field(self, field: InputField) -> InputField:
+    def _clone_field(self, field: inputs.BaseInputField) -> inputs.BaseInputField:
         """Clone a field instance to avoid shared state between form instances"""
         field_class = field.__class__
         new_field = object.__new__(field_class)
-        # Copy all attributes except internal ones
         for key, value in field.__dict__.items():
             setattr(new_field, key, value)
         new_field.data = field.default
@@ -59,14 +49,14 @@ class SubHTMXForm:
         return new_field
 
     @property
-    def input_fields(self) -> list[InputField]:
+    def input_fields(self) -> list[inputs.BaseInputField]:
         """Get all InputField instances in this sub-form"""
         if self._fields_cache is not None:
             return self._fields_cache
 
         fields = []
         for field_name, field_value in self.__dict__.items():
-            if not field_name.startswith("_") and isinstance(field_value, InputField):
+            if not field_name.startswith("_") and isinstance(field_value, inputs.BaseInputField):
                 fields.append(field_value)
 
         self._fields_cache = fields
@@ -94,11 +84,7 @@ class SubHTMXForm:
     def populate_from_data(self, data: dict[str, Any]) -> None:
         """Populate fields from a data dictionary"""
         for field in self.input_fields:
-            # Strip prefix when looking up data
-            key = field.name
-            if self._prefix and field.name.startswith(f"{self._prefix}_"):
-                key = field.name[len(self._prefix) + 1 :]
-            field.data = data.get(key, field.default)
+            field.data = data.get(field.name, field.default)
 
     def populate_from_model(
         self, model: Any, field_mapping: dict[str, str] | None = None
@@ -110,9 +96,8 @@ class SubHTMXForm:
             field_mapping: Optional mapping of field_name -> model_attribute_name
         """
         for field in self.input_fields:
-            # Get the model attribute name (strip prefix, use mapping if provided)
             key = field.name
-            if self._prefix and field.name.startswith(f"{self._prefix}_"):
+            if self._prefix and field.name.startswith(f"{self._prefix}-"):
                 key = field.name[len(self._prefix) + 1 :]
 
             if field_mapping and key in field_mapping:
@@ -131,11 +116,12 @@ class SubHTMXForm:
 
         field_definitions = {}
         for field in self.input_fields:
+            pydantic_key = field.name.replace("-", "_")
             if field.required:
                 default_value = ... if field.default is None else field.default
-                field_definitions[field.name] = (field.pydantic_type, default_value)
+                field_definitions[pydantic_key] = (field.pydantic_type, default_value)
             else:
-                field_definitions[field.name] = (
+                field_definitions[pydantic_key] = (
                     field.pydantic_type | None,
                     field.default,
                 )
@@ -146,56 +132,55 @@ class SubHTMXForm:
 
         return self._pydantic_model
 
-    def validate(self, raw_data: dict[str, Any]) -> bool:
+    async def validate(self, raw_data: dict[str, Any]) -> bool:
         """Validate the sub-form data.
 
         Returns True if valid, False otherwise.
         Sets errors on fields that fail validation.
         """
-        # Clear existing errors
         for field in self.input_fields:
             field.errors = []
 
-        # Check required fields
         for field in self.input_fields:
-            key = field.name
-            if self._prefix and field.name.startswith(f"{self._prefix}_"):
-                key = field.name[len(self._prefix) + 1 :]
-
-            value = raw_data.get(key)
+            value = raw_data.get(field.name)
             if field.required and (
                 value is None or (isinstance(value, str) and value.strip() == "")
             ):
                 field.errors.append(f"{field.label} is required")
+            elif not field.required and isinstance(value, str) and value.strip() == "":
+                raw_data[field.name] = None
 
-        # Run Pydantic validation
         PydanticModel = self._build_pydantic_model()
 
         try:
-            # Map raw_data keys to prefixed field names
             mapped_data = {}
             for field in self.input_fields:
-                key = field.name
-                if self._prefix and field.name.startswith(f"{self._prefix}_"):
-                    key = field.name[len(self._prefix) + 1 :]
-                mapped_data[field.name] = raw_data.get(key, field.default)
+                pydantic_key = field.name.replace("-", "_")
+                raw_value = raw_data.get(field.name, field.default)
+
+                if isinstance(field, inputs.BooleanInputField):
+                    raw_value = field.validate_value(raw_value)
+
+                mapped_data[pydantic_key] = raw_value
 
             validated_data = PydanticModel(**mapped_data)
 
-            # Update fields with validated data
             for field in self.input_fields:
                 if not field.errors:
-                    field.data = getattr(validated_data, field.name)
+                    pydantic_key = field.name.replace("-", "_")
+                    field.data = getattr(validated_data, pydantic_key)
 
         except ValidationError as e:
             for error in e.errors():
-                field_name = error["loc"][0] if error["loc"] else None
-                if field_name:
+                error_field_name = error["loc"][0] if error["loc"] else None
+                if error_field_name:
                     for field in self.input_fields:
-                        if field.name == field_name and not field.errors:
+                        pydantic_key = field.name.replace("-", "_")
+                        if pydantic_key == error_field_name and not field.errors:
                             msg = error["msg"]
                             msg = msg[0].upper() + msg[1:]
                             field.errors.append(msg)
                             break
 
+        self.validated = True
         return self.is_valid

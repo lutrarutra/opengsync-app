@@ -6,7 +6,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, ValidationError, create_model
 from markupsafe import Markup
 
-from ..components.inputs.InputField import InputField
+from ..components.inputs.BaseInputField import BaseInputField
 from ..components import inputs
 from ..core import templates, config, secrets, responses, exceptions as exc
 from ..core.context import ctx
@@ -22,7 +22,7 @@ class HTMXForm(ABC):
         self.request = request
         self.raw_data: dict[str, Any] = {}
         self._context: dict[str, Any] = {}
-        self._fields_cache: Optional[list[InputField]] = None
+        self._fields_cache: Optional[list[BaseInputField]] = None
         self._sub_forms_cache: Optional[list[SubHTMXForm]] = None
         self._pydantic_model: Optional[type[BaseModel]] = None
 
@@ -32,9 +32,11 @@ class HTMXForm(ABC):
                 continue
 
             field = getattr(self.__class__, field_name)
-            if isinstance(field, InputField):
+            if isinstance(field, BaseInputField):
                 # Create a new instance for this form instance
                 field_instance = self._clone_field(field)
+                field_instance.name = field_name
+                field_instance.id = field_name
                 setattr(self, field_name, field_instance)
 
         # Initialize all SubHTMXForm instances
@@ -44,19 +46,16 @@ class HTMXForm(ABC):
 
             field = getattr(self.__class__, field_name)
             if isinstance(field, SubHTMXForm):
-                # Create a new instance with the field name as prefix
                 sub_form_class = field.__class__
                 sub_form_instance = sub_form_class(prefix=field_name)
-                # Copy any data that was set on the class-level instance
                 for attr_name, attr_value in field.__dict__.items():
-                    if not attr_name.startswith("_"):
+                    if not attr_name.startswith("_") and not isinstance(attr_value, BaseInputField):
                         setattr(sub_form_instance, attr_name, attr_value)
                 setattr(self, field_name, sub_form_instance)
 
-    def _clone_field(self, field: InputField) -> InputField:
+    def _clone_field(self, field: BaseInputField) -> BaseInputField:
         """Clone a field instance to avoid shared state between form instances"""
         field_class = field.__class__
-        # Create a new instance with the same attributes
         new_field = object.__new__(field_class)
         new_field.__dict__.update(field.__dict__.copy())  # type: ignore
         new_field.data = field.default
@@ -68,21 +67,17 @@ class HTMXForm(ABC):
         if self._pydantic_model is not None:
             return self._pydantic_model
 
-        # Build field definitions for Pydantic
         field_definitions = {}
         for field in self.input_fields:
             if field.required:
-                # Required field: use ... if no default, otherwise use the default
                 default_value = ... if field.default is None else field.default
                 field_definitions[field.name] = (field.pydantic_type, default_value)
             else:
-                # Optional field: make it nullable with None as default
                 field_definitions[field.name] = (
                     field.pydantic_type | None,
                     field.default,
                 )
 
-        # Create dynamic Pydantic model
         self._pydantic_model = create_model(
             f"{self.__class__.__name__}Model", **field_definitions
         )
@@ -97,13 +92,11 @@ class HTMXForm(ABC):
         """
         self.raw_data = dict(await self.request.form())
 
-        # Validate all sub-forms
         all_sub_forms_valid = True
         for sub_form in self.sub_forms:
-            if not sub_form.validate(self.raw_data):
+            if not await sub_form.validate(self.raw_data):
                 all_sub_forms_valid = False
 
-        # Populate fields with raw data and check required
         for field in self.input_fields:
             field.data = self.raw_data.get(field.name, field.default)
             field.errors = []
@@ -112,14 +105,16 @@ class HTMXForm(ABC):
                     isinstance(field.data, str) and field.data.strip() == ""
                 ):
                     field.errors.append(f"{field.label} is required")
+            else:
+                if isinstance(field.data, str) and field.data.strip() == "":
+                    field.data = None
+                    self.raw_data[field.name] = None
 
-        # Build Pydantic model for direct fields
         PydanticModel = self._build_pydantic_model()
 
         try:
             validated_data = PydanticModel(**self.raw_data)
 
-            # Populate fields with validated data
             for field in self.input_fields:
                 if not field.errors:
                     field.data = getattr(validated_data, field.name)
@@ -130,7 +125,6 @@ class HTMXForm(ABC):
                 if field_name:
                     for field in self.input_fields:
                         if field.name == field_name:
-                            # Skip pydantic errors for fields that already failed required check
                             if field.errors:
                                 break
                             msg = error["msg"]
@@ -145,15 +139,14 @@ class HTMXForm(ABC):
             raise exc.FormValidationException(self)
 
     @property
-    def input_fields(self) -> list[InputField]:
+    def input_fields(self) -> list[BaseInputField]:
         """Get all direct InputField instances in this form (not from sub-forms)"""
         if self._fields_cache is not None:
             return self._fields_cache
 
         fields = []
-        # Iterate over instance attributes, not dir()
         for field_name, field_value in self.__dict__.items():
-            if not field_name.startswith("_") and isinstance(field_value, InputField):
+            if not field_name.startswith("_") and isinstance(field_value, BaseInputField):
                 fields.append(field_value)
 
         self._fields_cache = fields
@@ -170,33 +163,24 @@ class HTMXForm(ABC):
             if not field_name.startswith("_") and isinstance(field_value, SubHTMXForm):
                 sub_forms.append(field_value)
 
-        # Sort by order
-        sub_forms.sort(key=lambda sf: sf.__class__.order)
-
         self._sub_forms_cache = sub_forms
         return sub_forms
 
     @property
-    def ordered_sub_forms(self) -> list[tuple[str, SubHTMXForm]]:
-        """Get sub-forms as (field_name, sub_form) tuples, ordered by order attribute"""
-        result = []
+    def sub_form_dict(self) -> dict[str, SubHTMXForm]:
+        """Get sub-forms as a dict mapping field_name to sub_form"""
+        result = {}
         for field_name, field_value in self.__dict__.items():
             if not field_name.startswith("_") and isinstance(field_value, SubHTMXForm):
-                result.append((field_name, field_value))
-
-        # Sort by sub_form's order attribute
-        result.sort(key=lambda x: x[1].__class__.order)
+                result[field_name] = field_value
         return result
 
     def get_sub_form(self, name: str) -> SubHTMXForm | None:
         """Get a sub-form by its field name"""
-        for field_name, sub_form in self.ordered_sub_forms:
-            if field_name == name:
-                return sub_form
-        return None
+        return self.sub_form_dict.get(name)
 
     @property
-    def all_fields(self) -> list[InputField]:
+    def all_fields(self) -> list[BaseInputField]:
         """Get ALL fields including those from sub-forms"""
         fields = list(self.input_fields)
         for sub_form in self.sub_forms:
@@ -254,6 +238,13 @@ class HTMXForm(ABC):
             self.csrf_token.data = token
             self._set_csrf_cookie(token)
             await self.prepare()
+        elif self.raw_data:
+            # Re-populate sub-forms from raw_data for POST with errors
+            for sub_form in self.sub_forms:
+                sub_form.populate_from_data(self.raw_data)
+            # Re-populate direct fields from raw_data
+            for field in self.input_fields:
+                field.data = self.raw_data.get(field.name, field.default)
 
         return await responses.htmx_response(
             template=self.template_path,
