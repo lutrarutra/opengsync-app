@@ -217,13 +217,8 @@ class SeqRequestForm(HTMXForm):
 
         SeqRequestForm._validate_bioinformatician(form)
 
-        # Check for duplicate name
-        if await session.exists(
-            Q.seq_request.select(search_name=form.basic_info.name.data)
-        ):
-            form.basic_info.name.errors.append(
-                "A sequencing request with this name already exists."
-            )
+        if await session.exists(Q.seq_request.select(name=form.basic_info.name.data)):
+            form.basic_info.name.errors.append("A sequencing request with this name already exists.")
             raise exc.FormValidationException(form)
 
         if (
@@ -234,18 +229,12 @@ class SeqRequestForm(HTMXForm):
 
         current_user = request.state.current_user
 
-        # Determine requestor
-        requestor_id = current_user.id
         if form.user_selection.user_id.data:
-            selected_user = await session.first(
-                Q.user.select(id=int(form.user_selection.user_id.data))
-            )
+            selected_user = await session.first(Q.user.select(id=int(form.user_selection.user_id.data)))
             if selected_user is None:
                 form.user_selection.user_id.errors.append("Selected user not found.")
                 raise exc.FormValidationException(form)
-            requestor_id = selected_user.id
 
-        # Build contacts
         contact_person = Q.contact.create(
             form.contact.name.data,
             form.contact.email.data,
@@ -287,13 +276,9 @@ class SeqRequestForm(HTMXForm):
                 num_lanes=int(form.technical_info.num_lanes.data)
                 if form.technical_info.num_lanes.data
                 else None,
-                data_delivery_mode=C.DataDeliveryMode.get(
-                    form.technical_info.data_delivery_mode.data
-                ),
+                data_delivery_mode=C.DataDeliveryMode.get(form.technical_info.data_delivery_mode.data),
                 special_requirements=form.technical_info.special_requirements.data,
-                submission_type=C.SubmissionType.get(
-                    form.technical_info.submission_type.data
-                ),
+                submission_type=C.SubmissionType.get(form.technical_info.submission_type.data),
                 billing_code=form.billing.code.data or None,
                 contact_person=contact_person,
                 bioinformatician_contact=bioinformatician,

@@ -61,7 +61,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
             raise exceptions.BadRequestException()
 
     if (name := request.args.get("name")):
-        stmt = Q.pool.select(search_name=name, statement=stmt)
+        stmt = Q.pool.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
@@ -73,7 +73,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         except ValueError:
             pass
     elif (owner := request.args.get("owner")):
-        stmt = Q.pool.select(search_owner_name=owner, statement=stmt)
+        stmt = Q.pool.search(owner_name=owner, statement=stmt)
         table.active_search_var = "owner"
         table.active_query_value = owner
 
@@ -133,7 +133,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     
     if (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            stmt = Q.pool.select(search_name=name, statement=stmt)
+            stmt = Q.pool.search(name=name, statement=stmt)
         else:
             stmt = stmt.order_by(sa.nulls_last(models.Pool.name.asc()))
     else:
@@ -206,7 +206,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         stmt = Q.pool.select(seq_request_id=seq_request.id, statement=stmt)
 
     if (name := request.args.get("name")):
-        stmt = Q.pool.select(search_name=name, statement=stmt)
+        stmt = Q.pool.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
@@ -218,7 +218,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         except ValueError:
             pass
     elif (owner := request.args.get("owner")):
-        stmt = Q.pool.select(search_owner_name=owner, statement=stmt)
+        stmt = Q.pool.search(owner_name=owner, statement=stmt)
         table.active_search_var = "owner"
         table.active_query_value = owner
 

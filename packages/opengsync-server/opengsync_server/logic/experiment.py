@@ -52,11 +52,11 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
             raise exceptions.BadRequestException()
 
     if (name := request.args.get("name")):
-        stmt = Q.experiment.select(search_name=name, statement=stmt)
+        stmt = Q.experiment.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (operator := request.args.get("operator")):
-        stmt = Q.experiment.select(search_operator_name=operator, statement=stmt)
+        stmt = Q.experiment.search(operator_name=operator, statement=stmt)
         table.active_search_var = "operator"
         table.active_query_value = operator
     elif (id_ := request.args.get("id")):
@@ -106,7 +106,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     
     if (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            stmt = Q.experiment.select(search_name=name, statement=stmt)
+            stmt = Q.experiment.search(name=name, statement=stmt)
         else:
             stmt = stmt.order_by(sa.nulls_last(models.Experiment.name.asc()))
     else:
@@ -166,7 +166,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
             pass
     elif (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            stmt = Q.experiment.select(search_name=name, statement=stmt)
+            stmt = Q.experiment.search(name=name, statement=stmt)
         else:
             stmt = stmt.order_by(sa.nulls_last(models.Experiment.name.asc()))
     else:

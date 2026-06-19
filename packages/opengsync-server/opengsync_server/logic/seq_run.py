@@ -39,15 +39,15 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
             raise exceptions.BadRequestException()
         
     if (experiment := request.args.get("experiment")):
-        stmt = Q.seq_run.select(search_experiment_name=experiment, statement=stmt)
+        stmt = Q.seq_run.search(experiment_name=experiment, statement=stmt)
         table.active_search_var = "experiment"
         table.active_query_value = experiment
     elif (run_folder := request.args.get("run_folder")):
-        stmt = Q.seq_run.select(search_run_folder=run_folder, statement=stmt)
+        stmt = Q.seq_run.search(run_folder=run_folder, statement=stmt)
         table.active_search_var = "run_folder"
         table.active_query_value = run_folder
     elif (flow_cell_id := request.args.get("flow_cell_id")):
-        stmt = Q.seq_run.select(search_flow_cell_id=flow_cell_id, statement=stmt)
+        stmt = Q.seq_run.search(flow_cell_id=flow_cell_id, statement=stmt)
         table.active_search_var = "flow_cell_id"
         table.active_query_value = flow_cell_id
     elif (id_ := request.args.get("id")):

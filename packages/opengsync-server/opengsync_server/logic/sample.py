@@ -40,7 +40,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
             raise exceptions.BadRequestException()
 
     if (name := request.args.get("name")):
-        stmt = Q.sample.select(search_name=name, statement=stmt)
+        stmt = Q.sample.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
@@ -120,7 +120,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
             raise exceptions.BadRequestException()
 
     if (name := request.args.get("name")):
-        stmt = Q.sample.select(search_name=name, statement=stmt)
+        stmt = Q.sample.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):

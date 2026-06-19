@@ -79,8 +79,9 @@ async def search_users(
     stmt = Q.user.select(
         group_id=group_id,
         role_in=role_in,
-        search_name=word,
     )
+    if word is not None:
+        stmt = Q.user.search(name=word, statement=stmt)
     if selected_id is not None and not word:
         stmt = Q.user.select(id=selected_id, statement=stmt)
         

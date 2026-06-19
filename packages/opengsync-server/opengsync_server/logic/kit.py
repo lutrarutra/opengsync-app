@@ -24,12 +24,12 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     stmt = sa.select(models.Kit)
 
     if (name := request.args.get("name")):
-        stmt = Q.kit.select(search_name=name, statement=stmt)
+        stmt = Q.kit.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (identifier := request.args.get("identifier")):
         # fnc_context["identifier"] = identifier
-        stmt = Q.kit.select(search_identifier=identifier, statement=stmt)
+        stmt = Q.kit.search(identifier=identifier, statement=stmt)
         table.active_search_var = "identifier"
         table.active_query_value = identifier
     elif (id_ := request.args.get("id")):

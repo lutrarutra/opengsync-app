@@ -3,6 +3,7 @@ from sqlalchemy import sql
 
 from ..models import Project, User, Sample, Library, links
 from ..categories import ProjectStatus, LibraryType, UserRole, AccessLevel
+from ..core import utils
 
 
 def create(
@@ -66,6 +67,42 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
 
 
 
+def search(
+    title: str | None = None,
+    identifier: str | None = None,
+    owner_name: str | None = None,
+    title_weight: float = 0.3,
+    identifier_weight: float = 0.5,
+    owner_name_weight: float = 0.2,
+    statement: sql.Select[tuple[Project]] = sa.select(Project),
+) -> sql.Select[tuple[Project]]:
+    
+    filter_conditions: list[sql.ColumnElement[bool]] = []
+    relevance = sa.literal(0.0)
+
+    if title:
+        filter_conditions.append(utils.safe_trgm_search(Project.title, title))
+        relevance += sa.func.similarity(Project.title, title) * title_weight
+
+    if identifier:
+        filter_conditions.append(utils.safe_ilike(Project.identifier, identifier))
+        relevance += sa.func.similarity(Project.identifier, identifier) * identifier_weight
+
+    if owner_name:
+        filter_conditions.append(utils.safe_trgm_search(User.name.expression, owner_name))
+        relevance += sa.func.similarity(User.name.expression, owner_name) * owner_name_weight
+
+    if not filter_conditions:
+        return statement
+
+    statement = statement.where(sa.or_(*filter_conditions))
+
+    if owner_name is not None:
+        statement = statement.join(User, Project.owner_id == User.id)
+
+    return statement.order_by(sa.nulls_last(relevance.desc()))
+
+
 def select(
     id: int | None = None,
     identifier: str | None = None,
@@ -79,13 +116,9 @@ def select(
     experiment_id: int | None = None,
     library_types_in: list[LibraryType] | None = None,
     user_id: int | None = None,
-    search_title: str | None = None,
-    search_identifier: str | None = None,
-    search_identifier_title: str | None = None,
-    search_owner_name: str | None = None,
     statement: sql.Select[tuple[Project]] = sa.select(Project),
 ) -> sql.Select[tuple[Project]]:
-    statement = statement.where(*where_clauses(
+    return statement.where(*where_clauses(
         id=id,
         identifier=identifier,
         title=title,
@@ -99,29 +132,6 @@ def select(
         library_types_in=library_types_in,
         user_id=user_id,
     ))
-
-    if search_title is not None:
-        statement = statement.order_by(
-            sa.nulls_last(sa.func.similarity(Project.title, search_title).desc())
-        )
-    
-    if search_identifier is not None:
-        statement = statement.order_by(
-            sa.nulls_last(sa.func.similarity(Project.identifier, search_identifier).desc())
-        )
-
-    if search_identifier_title is not None:
-        statement = statement.order_by(
-            sa.nulls_last(sa.func.greatest(
-                sa.func.similarity(Project.title, search_identifier_title),
-                sa.func.similarity(Project.identifier, search_identifier_title)
-            ).desc())
-        )
-    if search_owner_name is not None:
-        statement = statement.join(User, Project.owner_id == User.id).order_by(
-            sa.func.similarity(User.first_name + ' ' + User.last_name, search_owner_name).desc()
-        )
-    return statement
     
 def permissions(project_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
     return sa.select(access_level(user_id)).where(Project.id == project_id)

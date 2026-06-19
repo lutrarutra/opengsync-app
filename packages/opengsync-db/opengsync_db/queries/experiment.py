@@ -1,7 +1,9 @@
 import sqlalchemy as sa
 
-from ..models import Experiment, Project, links, Sample, Library, Lane, User
+from ..models import Experiment, User, Lane, Project, Sample, Library, links
 from ..categories import ExperimentStatus, ExperimentWorkFlow
+from ..core import utils
+
 
 
 def create(
@@ -32,6 +34,36 @@ def create(
     return experiment
 
 
+def search(
+    name: str | None = None,
+    operator_name: str | None = None,
+    name_weight: float = 0.5,
+    operator_name_weight: float = 0.5,
+    statement: sa.Select[tuple[Experiment]] = sa.select(Experiment),
+) -> sa.Select[tuple[Experiment]]:
+    filter_conditions: list[sa.ColumnElement[bool]] = []
+    relevance = sa.literal(0.0)
+
+    if name is not None:
+        filter_conditions.append(utils.safe_trgm_search(Experiment.name, name))
+        relevance += sa.func.similarity(Experiment.name, name) * name_weight
+
+    if operator_name is not None:
+        full_name = User.name.expression
+        filter_conditions.append(utils.safe_trgm_search(full_name, operator_name))
+        relevance += sa.func.similarity(full_name, operator_name) * operator_name_weight
+
+    if not filter_conditions:
+        return statement
+
+    statement = statement.where(sa.or_(*filter_conditions))
+
+    if operator_name is not None:
+        statement = statement.join(User, Experiment.operator_id == User.id)
+
+    return statement.order_by(sa.nulls_last(relevance.desc()))
+
+
 def select(
     id: int | None = None,
     name: str | None = None,
@@ -39,25 +71,12 @@ def select(
     project_id: int | None = None,
     status_in: list[ExperimentStatus] | None = None,
     workflow_in: list[ExperimentWorkFlow] | None = None,
-    search_name: str | None = None,
-    search_operator_name: str | None = None,
     statement: sa.Select[tuple[Experiment]] = sa.select(Experiment),
 ) -> sa.Select[tuple[Experiment]]:
-    statement = statement.where(*where_clauses(
+    return statement.where(*where_clauses(
         id=id, name=name, status=status, project_id=project_id,
         status_in=status_in, workflow_in=workflow_in,
     ))
-
-    if search_name is not None:
-        statement = statement.order_by(sa.func.similarity(Experiment.name, search_name).desc())
-    elif search_operator_name is not None:
-        statement = statement.join(
-            Experiment.operator
-        ).order_by(
-            sa.func.similarity(User.first_name + ' ' + User.last_name, search_operator_name).desc()
-        )
-    
-    return statement
 
 
 def where_clauses(

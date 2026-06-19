@@ -24,11 +24,11 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     stmt = sa.select(models.links.UserAffiliation)
     
     if (user_name := request.args.get("user_name")):
-        stmt = Q.affiliation.select(search_user_name=user_name, statement=stmt)
+        stmt = Q.affiliation.search(user_name=user_name, statement=stmt)
         table.active_search_var = "user_name"
         table.active_query_value = user_name
     elif (group_name := request.args.get("group_name")):
-        stmt = Q.affiliation.select(search_group_name=group_name, statement=stmt)
+        stmt = Q.affiliation.search(group_name=group_name, statement=stmt)
         table.active_search_var = "group_name"
         table.active_query_value = group_name
     else:

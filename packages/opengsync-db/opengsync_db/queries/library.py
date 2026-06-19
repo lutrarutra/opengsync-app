@@ -1,10 +1,12 @@
 import sqlalchemy as sa
+from sqlalchemy import sql
 
 from ..models import Library, Sample, links, Pool, User, SeqRequest
 from ..categories import (
     LibraryType, LibraryStatus, GenomeRef, ServiceType, IndexType, MUXType,
     UserRole, AccessLevel, SeqRequestStatus
 )
+from ..core import utils
 
 def create(
     name: str,
@@ -88,6 +90,35 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
         else_=AccessLevel.NONE
     )
 
+def search(
+    name: str | None = None,
+    pool_name: str | None = None,
+    name_weight: float = 0.5,
+    pool_name_weight: float = 0.5,
+    statement: sa.Select[tuple[Library]] = sa.select(Library),
+) -> sa.Select[tuple[Library]]:
+    filter_conditions: list[sql.ColumnElement[bool]] = []
+    relevance = sa.literal(0.0)
+
+    if name is not None:
+        filter_conditions.append(utils.safe_trgm_search(Library.name, name))
+        relevance += sa.func.similarity(Library.name, name) * name_weight
+
+    if pool_name is not None:
+        filter_conditions.append(utils.safe_trgm_search(Pool.name, pool_name))
+        relevance += sa.func.similarity(Pool.name, pool_name) * pool_name_weight
+
+    if not filter_conditions:
+        return statement
+
+    statement = statement.where(sa.or_(*filter_conditions))
+
+    if pool_name is not None:
+        statement = statement.join(Pool, Library.pool_id == Pool.id)
+
+    return statement.order_by(sa.nulls_last(relevance.desc()))
+
+
 def select(
     id: int | None = None,
     user_id: int | None = None,
@@ -102,12 +133,9 @@ def select(
     type_in: list[LibraryType] | None = None,
     status_in: list[LibraryStatus] | None = None,
     pooled: bool | None = None, status: LibraryStatus | None = None,
-    search_name: str | None = None,
-    search_pool_name: str | None = None,
     statement: sa.Select[tuple[Library]] = sa.select(Library),
 ) -> sa.Select[tuple[Library]]:
-
-    statement = statement.where(*where_clauses(
+    return statement.where(*where_clauses(
         id=id,
         user_id=user_id,
         sample_id=sample_id,
@@ -123,15 +151,6 @@ def select(
         pooled=pooled,
         status=status,
     ))
-
-    if search_name is not None:
-        statement = statement.where(Library.name.ilike(f"%{search_name}%"))
-    if search_pool_name is not None:
-        statement = statement.join(
-            Library.pool
-        ).where(Library.pool.has(Pool.name.ilike(f"%{search_pool_name}%")))
-
-    return statement
 
 def permissions(library_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
     return sa.select(access_level(user_id)).where(Library.id == library_id)

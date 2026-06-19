@@ -52,12 +52,12 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
 
     if (name := request.args.get("name")):
         # fnc_context["name"] = name
-        stmt = Q.library.select(search_name=name, statement=stmt)
+        stmt = Q.library.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (pool_name := request.args.get("pool_name")):
         # fnc_context["pool_name"] = pool_name
-        stmt = Q.library.select(search_pool_name=pool_name, statement=stmt)
+        stmt = Q.library.search(pool_name=pool_name, statement=stmt)
         table.active_search_var = "pool_name"
         table.active_query_value = pool_name
     elif (id_ := request.args.get("id")):
@@ -126,7 +126,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     
     if (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            stmt = Q.library.select(search_name=name, statement=stmt)
+            stmt = Q.library.search(name=name, statement=stmt)
         else:
             stmt = stmt.order_by(sa.nulls_last(models.Library.name.asc()))
     else:
@@ -210,11 +210,11 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
             raise exceptions.BadRequestException()
 
     if (name := request.args.get("name")):
-        stmt = Q.library.select(search_name=name, statement=stmt)
+        stmt = Q.library.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (pool_name := request.args.get("pool_name")):
-        stmt = Q.library.select(search_pool_name=pool_name, statement=stmt)
+        stmt = Q.library.search(pool_name=pool_name, statement=stmt)
         table.active_search_var = "pool_name"
         table.active_query_value = pool_name
     elif (id_ := request.args.get("id")):

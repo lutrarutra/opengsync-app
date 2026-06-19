@@ -65,7 +65,7 @@ def query(current_user: models.User):
     else:
         _user_id = None
 
-    samples = db.session.get_all(Q.sample.select(search_name=word, user_id=_user_id))
+    samples = db.session.get_all(Q.sample.search(name=word, statement=Q.sample.select(user_id=_user_id)))
 
     return make_response(
         render_template(

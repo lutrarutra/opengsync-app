@@ -32,12 +32,12 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     stmt = sa.select(models.Lane)
 
     if (experiment_name := request.args.get("experiment")):
-        stmt = Q.lane.select(search_experiment_name=experiment_name, statement=stmt)
+        stmt = Q.lane.search(experiment_name=experiment_name, statement=stmt)
         table.active_search_var = "experiment"
         table.active_query_value = experiment_name
 
     if (experiment := context.get("experiment")):
-        stmt = Q.lane.select(experiment=experiment, statement=stmt)
+        stmt = Q.lane.select(experiment_id=experiment.id, statement=stmt)
 
     elif (id_ := request.args.get("id")):
         table.active_search_var = "id"

@@ -24,7 +24,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     stmt = sa.select(models.Sequencer)
 
     if (name := request.args.get("name")):
-        stmt = Q.sequencer.select(search_name=name, statement=stmt)
+        stmt = Q.sequencer.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
@@ -74,7 +74,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     
     if (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            stmt = Q.sequencer.select(search_name=name, statement=stmt)
+            stmt = Q.sequencer.search(name=name, statement=stmt)
         else:
             stmt = stmt.order_by(models.Sequencer.name.desc())
     else:

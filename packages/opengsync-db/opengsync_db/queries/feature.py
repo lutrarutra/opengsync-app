@@ -2,6 +2,7 @@ import sqlalchemy as sa
 
 from ..models import Feature, links
 from ..categories import FeatureType
+from ..core import utils
 
 
 def create(
@@ -28,25 +29,45 @@ def create(
     )
 
 
+def search(
+    name: str | None = None,
+    identifier: str | None = None,
+    name_weight: float = 0.5,
+    identifier_weight: float = 0.5,
+    statement: sa.Select[tuple[Feature]] = sa.select(Feature),
+) -> sa.Select[tuple[Feature]]:
+    filter_conditions: list[sa.ColumnElement[bool]] = []
+    relevance = sa.literal(0.0)
+
+    if name is not None:
+        filter_conditions.append(utils.safe_trgm_search(Feature.name, name))
+        relevance += sa.func.similarity(Feature.name, name) * name_weight
+
+    if identifier is not None:
+        filter_conditions.append(utils.safe_ilike(Feature.identifier, identifier))
+        relevance += sa.func.similarity(Feature.identifier, identifier) * identifier_weight
+
+    if not filter_conditions:
+        return statement
+
+    return (
+        statement
+        .where(sa.or_(*filter_conditions))
+        .order_by(sa.nulls_last(relevance.desc()))
+    )
+
+
 def select(
     id: int | None = None,
     feature_kit_id: int | None = None,
     library_id: int | None = None,
     type: FeatureType | None = None,
     type_in: list[FeatureType] | None = None,
-    search_name: str | None = None,
-    search_identifier: str | None = None,
     statement: sa.Select[tuple[Feature]] = sa.select(Feature),
 ) -> sa.Select[tuple[Feature]]:
-    statement = statement.where(*where_clauses(
+    return statement.where(*where_clauses(
         id=id, feature_kit_id=feature_kit_id, library_id=library_id, type=type, type_in=type_in,
     ))
-    
-    if search_name is not None:
-        statement = statement.order_by(sa.nulls_last(sa.func.similarity(Feature.name, search_name).desc()))
-    elif search_identifier is not None:
-        statement = statement.order_by(sa.nulls_last(sa.func.similarity(Feature.identifier, search_identifier).desc()))
-    return statement
 
 
 def where_clauses(

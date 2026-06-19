@@ -33,6 +33,9 @@ async def render_project_table(
     experiment_id: int | None = Query(None, description="Optional experiment ID to filter projects"),
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter projects"),
     group_id: int | None = Query(None, description="Optional group ID to filter projects"),
+    title: str | None = Query(None, description="Optional title to search for in project titles"),
+    identifier: str | None = Query(None, description="Optional identifier to search for in project identifiers"),
+    owner_name: str | None = Query(None, description="Optional owner name to search for in project owners"),
     status_in: list[C.ProjectStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ProjectStatus, query_param="status_in")),
     library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
@@ -54,6 +57,23 @@ async def render_project_table(
         group_id=group_id,
         status_in=status_in,
         library_types_in=library_types_in,
+    )
+
+    if title:
+        table.active_search_var = "title"
+        table.active_query_value = title
+    elif identifier:
+        table.active_search_var = "identifier"
+        table.active_query_value = identifier
+    elif owner_name:
+        table.active_search_var = "owner_name"
+        table.active_query_value = owner_name
+        
+    stmt = Q.project.search(
+        title=title,
+        identifier=identifier,
+        owner_name=owner_name,
+        statement=stmt,
     )
     
     if user_id is not None:

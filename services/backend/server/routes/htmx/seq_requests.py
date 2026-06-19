@@ -36,6 +36,9 @@ async def render_seq_request_table(
     user_id: int | None = Query(None, description="Optional user ID to filter seq requests"),
     group_id: int | None = Query(None, description="Optional group ID to filter seq requests"),
     project_id: int | None = Query(None, description="Optional project ID to filter seq requests"),
+    name: str | None = Query(None, description="Optional name search term to filter seq requests"),
+    group: str | None = Query(None, description="Optional group name search term to filter seq requests"),
+    requestor: str | None = Query(None, description="Optional requestor name search term to filter seq requests"),
     status_in: list[C.SeqRequestStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.SeqRequestStatus, query_param="status_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_user),
@@ -52,6 +55,23 @@ async def render_seq_request_table(
         group_id=group_id,
         project_id=project_id,
         status_in=status_in,
+    )
+
+    if name:
+        table.active_search_var = "name"
+        table.active_query_value = name
+    elif requestor:
+        table.active_search_var = "requestor"
+        table.active_query_value = requestor
+    elif group:
+        table.active_search_var = "group"
+        table.active_query_value = group
+
+    stmt = Q.seq_request.search(
+        name=name,
+        requestor_name=requestor,
+        group_name=group,
+        statement=stmt,
     )
 
     if user_id is not None:

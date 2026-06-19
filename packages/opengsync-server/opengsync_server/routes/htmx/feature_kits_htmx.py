@@ -24,7 +24,7 @@ def query():
     if (word := request.form.get(field_name, default="")) is None:
         raise exceptions.BadRequestException()
 
-    kits = db.session.get_all(Q.feature_kit.select(search_identifier_name=word))
+    kits = db.session.get_all(Q.feature_kit.search(name=word, identifier=word))
 
     return make_response(
         render_template(

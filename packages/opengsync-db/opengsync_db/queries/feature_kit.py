@@ -3,6 +3,7 @@ import sqlalchemy as sa
 
 from ..models import FeatureKit, Protocol, links
 from ..categories import KitType, FeatureType
+from ..core import utils
 
 
 def create(
@@ -18,15 +19,40 @@ def create(
     )
 
 
+def search(
+    name: str | None = None,
+    identifier: str | None = None,
+    name_weight: float = 0.5,
+    identifier_weight: float = 0.5,
+    statement: sa.Select[tuple[FeatureKit]] = sa.select(FeatureKit),
+) -> sa.Select[tuple[FeatureKit]]:
+    filter_conditions: list[sa.ColumnElement[bool]] = []
+    relevance = sa.literal(0.0)
+
+    if name is not None:
+        filter_conditions.append(utils.safe_trgm_search(FeatureKit.name, name))
+        relevance += sa.func.similarity(FeatureKit.name, name) * name_weight
+
+    if identifier is not None:
+        filter_conditions.append(utils.safe_ilike(FeatureKit.identifier, identifier))
+        relevance += sa.func.similarity(FeatureKit.identifier, identifier) * identifier_weight
+
+    if not filter_conditions:
+        return statement
+
+    return (
+        statement
+        .where(sa.or_(*filter_conditions))
+        .order_by(sa.nulls_last(relevance.desc()))
+    )
+
+
 def select(
     id: int | None = None,
     name: str | None = None,
     identifier: str | None = None,
     type: FeatureType | None = None,
     type_in: list[FeatureType] | None = None,
-    search_name: str | None = None,
-    search_identifier: str | None = None,
-    search_identifier_name: str | None = None,
     statement: sa.Select[tuple[FeatureKit]] = sa.select(FeatureKit),
 ) -> sa.Select[tuple[FeatureKit]]:
     if id is not None:
@@ -39,13 +65,4 @@ def select(
         statement = statement.where(FeatureKit.type_id == type.id)
     if type_in is not None:
         statement = statement.where(FeatureKit.type_id.in_([t.id for t in type_in]))
-
-    if search_name is not None:
-        statement = statement.order_by(sa.nulls_last(sa.func.similarity(FeatureKit.name, search_name).desc()))
-    elif search_identifier is not None:
-        statement = statement.order_by(sa.nulls_last(sa.func.similarity(FeatureKit.identifier, search_identifier).desc()))
-    elif search_identifier_name is not None:
-        statement = statement.order_by(sa.nulls_last(sa.func.similarity(
-            FeatureKit.identifier + ' ' + FeatureKit.name, search_identifier_name
-        ).desc()))
     return statement

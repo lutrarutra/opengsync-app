@@ -26,11 +26,11 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     stmt = sa.select(models.IndexKit)
 
     if (name := request.args.get("name")):
-        stmt = Q.index_kit.select(search_name=name, statement=stmt)
+        stmt = Q.index_kit.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (identifier := request.args.get("identifier")):
-        stmt = Q.index_kit.select(search_identifier=identifier, statement=stmt)
+        stmt = Q.index_kit.search(identifier=identifier, statement=stmt)
         table.active_search_var = "identifier"
         table.active_query_value = identifier
     elif (id_ := request.args.get("id")):
@@ -81,17 +81,17 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     
     if (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            stmt = Q.index_kit.select(search_name=name, statement=stmt)
+            stmt = Q.index_kit.search(name=name, statement=stmt)
         else:
             stmt = stmt.order_by(models.IndexKit.name.asc())
     elif (identifier := request.args.get("identifier")) is not None:
         if (identifier := identifier.strip()):
-            stmt = Q.index_kit.select(search_identifier=identifier, statement=stmt)
+            stmt = Q.index_kit.search(identifier=identifier, statement=stmt)
         else:
             stmt = stmt.order_by(models.IndexKit.identifier.asc())
     elif (identifier_name := request.args.get("identifier_name")) is not None:
         if (identifier_name := identifier_name.strip()):
-            stmt = Q.index_kit.select(search_identifier_name=identifier_name, statement=stmt)
+            stmt = Q.index_kit.search(name=identifier_name, identifier=identifier_name, statement=stmt)
         else:
             stmt = stmt.order_by(models.IndexKit.name.asc())
     else:

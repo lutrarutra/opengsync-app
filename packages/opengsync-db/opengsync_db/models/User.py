@@ -122,7 +122,7 @@ class User(Base, UserMixin):
 
         from .. import queries as Q
         return session.scalar(sa.select(sa.func.count()).select_from(
-            Q.api_token.select(owner=self).subquery()
+            Q.api_token.select(owner_id=self.id).subquery()
         ))  # type: ignore[return-value]
 
     @num_api_tokens.expression
@@ -295,8 +295,8 @@ class User(Base, UserMixin):
     @name.expression
     def name(cls) -> sa.ScalarSelect[str]:
         return sa.select(
-            (cls.first_name + " " + cls.last_name)  # type: ignore[arg-type]
-        ).correlate(cls).scalar_subquery()
+            sa.func.concat(cls.first_name, " ", cls.last_name)
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     def search_value(self) -> int:
         return self.id

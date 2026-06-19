@@ -5,6 +5,8 @@ from sqlalchemy import sql
 
 from ..models import User, LabPrep
 from ..categories import PrepStatus, LabChecklistType, ServiceType
+from ..core import utils
+
 
 def create(
     name: str,
@@ -22,6 +24,36 @@ def create(
     )
 
 
+def search(
+    name: str | None = None,
+    creator_name: str | None = None,
+    name_weight: float = 0.5,
+    creator_name_weight: float = 0.5,
+    statement: sql.Select[tuple[LabPrep]] = sa.select(LabPrep),
+) -> sql.Select[tuple[LabPrep]]:
+    filter_conditions: list[sql.ColumnElement[bool]] = []
+    relevance = sa.literal(0.0)
+
+    if name is not None:
+        filter_conditions.append(utils.safe_trgm_search(LabPrep.name, name))
+        relevance += sa.func.similarity(LabPrep.name, name) * name_weight
+
+    if creator_name is not None:
+        full_name = User.name.expression
+        filter_conditions.append(utils.safe_trgm_search(full_name, creator_name))
+        relevance += sa.func.similarity(full_name, creator_name) * creator_name_weight
+
+    if not filter_conditions:
+        return statement
+
+    statement = statement.where(sa.or_(*filter_conditions))
+
+    if creator_name is not None:
+        statement = statement.join(User, LabPrep.creator_id == User.id)
+
+    return statement.order_by(sa.nulls_last(relevance.desc()))
+
+
 def select(
     id: int | None = None,
     status: PrepStatus | None = None,
@@ -32,11 +64,9 @@ def select(
     service_type: ServiceType | None = None,
     checklist_type_in: Sequence[LabChecklistType] | None = None,
     service_type_in: Sequence[ServiceType] | None = None,
-    search_name: str | None = None,
-    search_creator_name: str | None = None,
     statement: sql.Select[tuple[LabPrep]] = sa.select(LabPrep),
 ) -> sql.Select[tuple[LabPrep]]:
-    statement = statement.where(*where_clauses(
+    return statement.where(*where_clauses(
         id=id,
         status=status,
         status_in=status_in,
@@ -47,17 +77,6 @@ def select(
         checklist_type_in=checklist_type_in,
         service_type_in=service_type_in,
     ))
-
-    if search_name is not None:
-        statement = statement.order_by(sa.func.similarity(LabPrep.name, search_name).desc())
-    elif search_creator_name is not None:
-        statement = statement.join(
-            User,
-            User.id == LabPrep.creator_id
-        ).order_by(
-            sa.func.similarity(User.first_name + ' ' + User.last_name, search_creator_name).desc()
-        )
-    return statement
 
 
 def where_clauses(

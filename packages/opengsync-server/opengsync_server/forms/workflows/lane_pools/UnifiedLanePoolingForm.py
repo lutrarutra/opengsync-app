@@ -121,7 +121,7 @@ class UnifiedLanePoolingForm(HTMXFlaskForm):
                     pool_reads_form.dilution.data = "Orig."
                     link.dilution_id = None
                 else:
-                    if (dilution := db.session.first(Q.pool_dilution.select(pool=link.pool, identifier=pool_reads_form.dilution.data))) is None:
+                    if (dilution := db.session.first(Q.pool_dilution.select(pool_id=link.pool.id, identifier=pool_reads_form.dilution.data))) is None:
                         logger.error(f"lane_pools_workflow: PoolDilution with pool_id {link.pool_id} and identifier {pool_reads_form.dilution.data} does not exist")
                         raise ValueError(f"PoolDilution with pool_id '{link.pool_id}' and identifier '{pool_reads_form.dilution.data}' does not exist")
                     link.dilution_id = dilution.id

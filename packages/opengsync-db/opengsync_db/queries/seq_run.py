@@ -3,6 +3,7 @@ import sqlalchemy as sa
 from ..models import SeqRun, Experiment
 from ..categories import RunStatus, ReadType, ExperimentStatus
 from ..core.units import Quantity
+from ..core import utils
 
 
 def create(
@@ -34,17 +35,47 @@ def create(
     return run
 
 
+def search(
+    experiment_name: str | None = None,
+    run_folder: str | None = None,
+    flow_cell_id: str | None = None,
+    statement: sa.Select[tuple[SeqRun]] = sa.select(SeqRun),
+) -> sa.Select[tuple[SeqRun]]:
+    filter_conditions: list[sa.ColumnElement[bool]] = []
+
+    if experiment_name is not None:
+        filter_conditions.append(utils.safe_trgm_search(SeqRun.experiment_name, experiment_name))
+    if run_folder is not None:
+        filter_conditions.append(utils.safe_ilike(SeqRun.run_folder, run_folder))
+    if flow_cell_id is not None:
+        filter_conditions.append(utils.safe_ilike(SeqRun.flowcell_id, flow_cell_id))
+
+    if not filter_conditions:
+        return statement
+
+    return (
+        statement
+        .where(sa.or_(*filter_conditions))
+        .order_by(sa.nulls_last(
+            sa.func.coalesce(
+                *[sa.func.similarity(col, val) for col, val in filter(
+                    lambda x: x[1] is not None,
+                    [(SeqRun.experiment_name, experiment_name),
+                     (SeqRun.run_folder, run_folder),
+                     (SeqRun.flowcell_id, flow_cell_id)]
+                )]
+            ).desc()
+        ))
+    )
+
+
 def select(
     id: int | None = None,
-    experiment: Experiment | None = None,
     experiment_name: str | None = None,
     status: RunStatus | None = None,
     status_in: list[RunStatus] | None = None,
     experiment_status: ExperimentStatus | None = None,
     experiment_status_in: list[ExperimentStatus] | None = None,
-    search_experiment_name: str | None = None,
-    search_run_folder: str | None = None,
-    search_flow_cell_id: str | None = None,
     statement: sa.Select[tuple[SeqRun]] = sa.select(SeqRun),
 ) -> sa.Select[tuple[SeqRun]]:
     if id is not None:
@@ -53,8 +84,6 @@ def select(
         statement = statement.where(SeqRun.status_id == status.id)
     if status_in is not None:
         statement = statement.where(SeqRun.status_id.in_([s.id for s in status_in]))
-    if experiment is not None:
-        statement = statement.where(SeqRun.experiment_name == experiment.name)
     if experiment_name is not None:
         statement = statement.where(SeqRun.experiment_name == experiment_name)
 
@@ -69,12 +98,5 @@ def select(
             
         if experiment_status_in is not None:
             statement = statement.where(Experiment.status_id.in_([s.id for s in experiment_status_in]))
-
-    if search_experiment_name is not None:
-        statement = statement.order_by(sa.nulls_last(sa.func.similarity(SeqRun.experiment_name, search_experiment_name).desc()))
-    elif search_run_folder is not None:
-        statement = statement.where(SeqRun.run_folder.ilike(f"%{search_run_folder}%"))
-    elif search_flow_cell_id is not None:
-        statement = statement.where(SeqRun.flowcell_id.ilike(f"%{search_flow_cell_id}%"))
 
     return statement

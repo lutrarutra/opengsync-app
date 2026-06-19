@@ -16,12 +16,12 @@ def create(
 def select(
     id: int | None = None,
     uuid: str | None = None,
-    owner: User | None = None,
+    owner_id: int | None = None,
     statement: sql.Select[tuple[APIToken]] = sa.select(APIToken),
 ) -> sql.Select[tuple[APIToken]]:
     statement = statement.where(*where_clauses(
         id=id, uuid=uuid,
-        owner_id=owner.id if owner is not None else None,
+        owner_id=owner_id,
     ))
     return statement
 

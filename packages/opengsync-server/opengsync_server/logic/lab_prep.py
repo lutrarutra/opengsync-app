@@ -65,7 +65,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
             raise exceptions.BadRequestException()
 
     if (name := request.args.get("name")):
-        stmt = Q.lab_prep.select(search_name=name, statement=stmt)
+        stmt = Q.lab_prep.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):
@@ -77,7 +77,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         except ValueError:
             pass
     elif (creator := request.args.get("creator")):
-        stmt = Q.lab_prep.select(search_creator_name=creator, statement=stmt)
+        stmt = Q.lab_prep.search(creator_name=creator, statement=stmt)
         table.active_search_var = "creator"
         table.active_query_value = creator
     else:

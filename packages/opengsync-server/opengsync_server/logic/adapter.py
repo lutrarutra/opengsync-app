@@ -31,7 +31,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     stmt = sa.select(models.Adapter)
 
     if (name := request.args.get("name")):
-        stmt = Q.adapter.select(search_name=name, statement=stmt)
+        stmt = Q.adapter.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (well := request.args.get("well")):

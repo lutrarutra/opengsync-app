@@ -13,6 +13,25 @@ ColumnOptions = sa.ColumnElement[Any] | InstrumentedAttribute[Any] | sa.Function
 type OrderBy = sql.expression.UnaryExpression
 
 
+def safe_ilike(
+    column: sql.ColumnElement | InstrumentedAttribute, value: str,
+) -> sql.ColumnElement[bool]:
+    """ILIKE with SQL wildcard characters escaped (exact substring match)."""
+    safe = value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return column.ilike(f"%{safe}%", escape="\\")
+
+
+def safe_trgm_search(
+    column: sql.ColumnElement | InstrumentedAttribute, value: str, threshold: float = 0.05,
+) -> sql.ColumnElement[bool]:
+    """Trigram similarity search allowing typos.
+    
+    Uses pg_trgm similarity() with a configurable threshold.
+    Default threshold of 0.05 allows moderate typos while avoiding noise.
+    """
+    return sa.func.similarity(column, value) > threshold
+
+
 def apply_settings(
     statement: sa.Select[tuple[SAModelType]],
     order_by: OrderBy | None = None,

@@ -23,7 +23,7 @@ def get_table_context(current_user: models.User, request: Request, user: models.
     table.url_params["user_id"] = user.id
     context = parse_context(current_user, request) | kwargs
     
-    tokens, count = db.session.page(Q.api_token.select(owner=user), page=table.active_page or 0)
+    tokens, count = db.session.page(Q.api_token.select(owner_id=user.id), page=table.active_page or 0)
     table.set_num_pages(count)
 
     context.update({

@@ -1,11 +1,12 @@
 import sqlalchemy as sa
 from sqlalchemy import sql
 
-from ..models import User, SeqRequest, Project, Sample, Library, links, Contact, Group
+from ..models import User, SeqRequest, Group, Project, Sample, Library, links, Contact
 from ..categories import (
     SeqRequestStatus, DataDeliveryMode, ReadType,
     SubmissionType, UserRole, LibraryType, AccessLevel
 )
+from ..core import utils
 
 def create(
     name: str,
@@ -83,8 +84,47 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     )
 
 
+def search(
+    name: str | None = None,
+    requestor_name: str | None = None,
+    group_name: str | None = None,
+    name_weight: float = 0.5,
+    requestor_name_weight: float = 0.25,
+    group_name_weight: float = 0.25,
+    statement: sql.Select[tuple[SeqRequest]] = sa.select(SeqRequest),
+) -> sql.Select[tuple[SeqRequest]]:
+    filter_conditions: list[sql.ColumnElement[bool]] = []
+    relevance = sa.literal(0.0)
+
+    if name is not None:
+        filter_conditions.append(utils.safe_trgm_search(SeqRequest.name, name))
+        relevance += sa.func.similarity(SeqRequest.name, name) * name_weight
+
+    if requestor_name is not None:
+        full_name = User.name.expression
+        filter_conditions.append(utils.safe_trgm_search(full_name, requestor_name))
+        relevance += sa.func.similarity(full_name, requestor_name) * requestor_name_weight
+
+    if group_name is not None:
+        filter_conditions.append(utils.safe_trgm_search(Group.name, group_name))
+        relevance += sa.func.similarity(Group.name, group_name) * group_name_weight
+
+    if not filter_conditions:
+        return statement
+
+    statement = statement.where(sa.or_(*filter_conditions))
+
+    if requestor_name is not None:
+        statement = statement.join(User, SeqRequest.requestor_id == User.id)
+    if group_name is not None:
+        statement = statement.join(Group, SeqRequest.group_id == Group.id)
+
+    return statement.order_by(sa.nulls_last(relevance.desc()))
+
+
 def select(
     id: int | None = None,
+    name: str | None = None,
     status: SeqRequestStatus | None = None,
     status_in: list[SeqRequestStatus] | None = None,
     submission_type: SubmissionType | None = None,
@@ -95,14 +135,12 @@ def select(
     project_id: int | None = None,
     group_id: int | None = None,
     viewer_id: int | None = None,
-    search_name: str | None = None,
-    search_requestor_name: str | None = None,
-    search_group_name: str | None = None,
     statement: sql.Select[tuple[SeqRequest]] = sa.select(SeqRequest),
 ) -> sql.Select[tuple[SeqRequest]]:
-    statement = statement.where(*where_clauses(
+    return statement.where(*where_clauses(
         id=id,
         status=status,
+        name=name,
         status_in=status_in,
         submission_type=submission_type,
         submission_type_in=submission_type_in,
@@ -114,24 +152,13 @@ def select(
         viewer_id=viewer_id,
     ))
 
-    if search_name is not None:
-        statement = statement.order_by(sa.func.similarity(SeqRequest.name, search_name).desc())
-    if search_requestor_name is not None:
-        statement = statement.join(User, SeqRequest.requestor_id == User.id).order_by(
-            sa.func.similarity(User.name, search_requestor_name).desc()
-        )
-    if search_group_name is not None:
-        statement = statement.join(Group, SeqRequest.group_id == Group.id).order_by(
-            sa.func.similarity(Group.name, search_group_name).desc()
-        )
-    return statement
-
 def permissions(seq_request_id: int, user_id: int) -> sql.Select[tuple[AccessLevel]]:
     return sa.select(access_level(user_id)).where(SeqRequest.id == seq_request_id)
 
 
 def where_clauses(
     id: int | None = None,
+    name: str | None = None,
     status: SeqRequestStatus | None = None,
     status_in: list[SeqRequestStatus] | None = None,
     submission_type: SubmissionType | None = None,
@@ -150,6 +177,8 @@ def where_clauses(
 
     if id is not None:
         clauses.append(SeqRequest.id == id)
+    if name is not None:
+        clauses.append(SeqRequest.name == name)
     if status is not None:
         clauses.append(SeqRequest.status_id == status.id)
     if submission_type is not None:

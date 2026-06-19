@@ -23,25 +23,20 @@ def create(
 
 def select(
     id: int | None = None,
-    author: User | None = None,
     author_id: int | None = None,
-    file: MediaFile | None = None,
     file_id: int | None = None,
-    seq_request: SeqRequest | None = None,
     seq_request_id: int | None = None,
-    experiment: Experiment | None = None,
     experiment_id: int | None = None,
-    lab_prep: LabPrep | None = None,
     lab_prep_id: int | None = None,
     statement: sa.Select[tuple[Comment]] = sa.select(Comment),
 ) -> sa.Select[tuple[Comment]]:
     statement = statement.where(*where_clauses(
         id=id,
-        author_id=author.id if author is not None else author_id,
-        file_id=file.id if file is not None else file_id,
-        seq_request_id=seq_request.id if seq_request is not None else seq_request_id,
-        experiment_id=experiment.id if experiment is not None else experiment_id,
-        lab_prep_id=lab_prep.id if lab_prep is not None else lab_prep_id,
+        author_id=author_id,
+        file_id=file_id,
+        seq_request_id=seq_request_id,
+        experiment_id=experiment_id,
+        lab_prep_id=lab_prep_id,
     ))
     return statement
 

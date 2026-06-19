@@ -3,6 +3,7 @@ from sqlalchemy import sql
 
 from ..models import Pool, Contact, Library, User, SeqRequest, links
 from ..categories import PoolStatus, PoolType, LibraryType, AccessLevel, UserRole, SeqRequestStatus
+from ..core import utils
 
 
 def create(
@@ -92,6 +93,37 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     )
 
 
+def search(
+    name: str | None = None,
+    owner_name: str | None = None,
+    name_weight: float = 0.5,
+    owner_name_weight: float = 0.5,
+    statement: sa.Select[tuple[Pool]] = sa.select(Pool),
+) -> sa.Select[tuple[Pool]]:
+    filter_conditions: list[sql.ColumnElement[bool]] = []
+    relevance = sa.literal(0.0)
+
+    if name is not None:
+        filter_conditions.append(utils.safe_trgm_search(Pool.name, name))
+        relevance += sa.func.similarity(Pool.name, name) * name_weight
+
+    if owner_name is not None:
+        full_name = sa.func.concat(User.first_name, ' ', User.last_name)
+        filter_conditions.append(utils.safe_trgm_search(full_name, owner_name))
+        relevance += sa.func.similarity(full_name, owner_name) * owner_name_weight
+
+    if not filter_conditions:
+        return statement
+        relevance = relevance + component
+
+    statement = statement.where(sa.or_(*filter_conditions))
+
+    if owner_name is not None:
+        statement = statement.join(User, Pool.owner_id == User.id)
+
+    return statement.order_by(sa.nulls_last(relevance.desc()))
+
+
 def select(
     id: int | None = None,
     user_id: int | None = None,
@@ -105,11 +137,9 @@ def select(
     library_types_in: list[LibraryType] | None = None,
     type_in: list[PoolType] | None = None,
     viewer_id: int | None = None,
-    search_name: str | None = None,
-    search_owner_name: str | None = None,
     statement: sa.Select[tuple[Pool]] = sa.select(Pool),
 ) -> sa.Select[tuple[Pool]]:
-    statement = statement.where(*where_clauses(
+    return statement.where(*where_clauses(
         id=id,
         user_id=user_id,
         library_id=library_id,
@@ -123,19 +153,6 @@ def select(
         type_in=type_in,
         viewer_id=viewer_id
     ))
-
-    if search_name is not None:
-        statement = statement.order_by(sa.func.similarity(Pool.name, search_name).desc())
-    if search_owner_name is not None:
-        statement = statement.join(
-            User,
-            User.id == Pool.owner_id
-        ).where(
-            sa.func.similarity(User.name, search_owner_name) > 0
-        ).order_by(
-            sa.func.similarity(User.name, search_owner_name).desc()
-        )
-    return statement
 
 
 def permissions(pool_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:

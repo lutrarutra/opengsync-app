@@ -50,12 +50,12 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
 
     if (pool := context.get("pool")) is not None:
         template = "components/tables/pool-dilution.html"
-        stmt = Q.pool_dilution.select(pool=pool, statement=stmt)
+        stmt = Q.pool_dilution.select(pool_id=pool.id, statement=stmt)
         table.url_params["pool_id"] = pool.id
         table.route = "pools_htmx.get_dilutions"
     elif (experiment := context.get("experiment")) is not None:
         template = "components/tables/experiment-pool-dilution.html"        
-        stmt = Q.pool_dilution.select(experiment=experiment, statement=stmt)
+        stmt = Q.pool_dilution.select(experiment_id=experiment.id, statement=stmt)
         table.url_params["experiment_id"] = experiment.id
         table.route = "render_experiment_table_dilutions"
     else:

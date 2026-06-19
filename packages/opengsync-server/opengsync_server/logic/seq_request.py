@@ -82,15 +82,15 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
             stmt = Q.seq_request.select(requestor_id=current_user.id, statement=stmt)
 
     if (name := request.args.get("name")):
-        stmt = Q.seq_request.select(search_name=name, statement=stmt)
+        stmt = Q.seq_request.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (requestor_name := request.args.get("requestor")):
-        stmt = Q.seq_request.select(search_requestor_name=requestor_name, statement=stmt)
+        stmt = Q.seq_request.search(requestor_name=requestor_name, statement=stmt)
         table.active_search_var = "requestor"
         table.active_query_value = requestor_name
     elif (group := request.args.get("group")):
-        stmt = Q.seq_request.select(search_group_name=group, statement=stmt)
+        stmt = Q.seq_request.search(group_name=group, statement=stmt)
         table.active_search_var = "group"
         table.active_query_value = group
     elif (id_ := request.args.get("id")):
@@ -133,7 +133,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     
     if (name := request.args.get("name")) is not None:
         if (name := name.strip()):
-            stmt = Q.seq_request.select(search_name=name, statement=stmt)
+            stmt = Q.seq_request.search(name=name, statement=stmt)
         else:
             stmt = stmt.order_by(sa.nulls_last(models.SeqRequest.name.asc()))
     else:

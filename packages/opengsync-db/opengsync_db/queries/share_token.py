@@ -17,18 +17,16 @@ def create(
 
 def select(
     uuid: str | None = None,
-    owner: User | None = None,
     owner_id: int | None = None,
     project_id: int | None = None,
     statement: sa.Select[tuple[ShareToken]] = sa.select(ShareToken),
 ) -> sa.Select[tuple[ShareToken]]:
-    statement = statement.where(*where_clauses(uuid=uuid, owner=owner, owner_id=owner_id))
+    statement = statement.where(*where_clauses(uuid=uuid, owner_id=owner_id, project_id=project_id))
     return statement
 
 
 def where_clauses(
     uuid: str | None = None,
-    owner: User | None = None,
     owner_id: int | None = None,
     project_id: int | None = None,
 ) -> list[sa.ColumnElement[bool]]:
@@ -39,8 +37,6 @@ def where_clauses(
 
     if uuid is not None:
         clauses.append(ShareToken.uuid == uuid)
-    if owner is not None:
-        clauses.append(ShareToken.owner_id == owner.id)
     if owner_id is not None:
         clauses.append(ShareToken.owner_id == owner_id)
     if project_id is not None:

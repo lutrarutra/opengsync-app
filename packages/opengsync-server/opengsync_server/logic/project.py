@@ -29,11 +29,11 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     stmt = sa.select(models.Project)
 
     if (identifier := request.args.get("identifier")):
-        stmt = Q.project.select(search_identifier=identifier, statement=stmt)
+        stmt = Q.project.search(identifier=identifier, statement=stmt)
         table.active_search_var = "identifier"
         table.active_query_value = identifier
     elif (title := request.args.get("title")):
-        stmt = Q.project.select(search_title=title, statement=stmt)
+        stmt = Q.project.search(title=title, statement=stmt)
         table.active_search_var = "title"
         table.active_query_value = title
     elif (project_id := request.args.get("id")):
@@ -45,7 +45,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         except ValueError:
             pass
     elif (owner_name := request.args.get("owner_name")):
-        stmt = Q.project.select(search_owner_name=owner_name, statement=stmt)
+        stmt = Q.project.search(owner_name=owner_name, statement=stmt)
         table.active_search_var = "owner_name"
         table.active_query_value = owner_name
     else:
@@ -122,22 +122,22 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     
     if (identifier := request.args.get("identifier")) is not None:
         if (identifier := identifier.strip()):
-            stmt = Q.project.select(search_identifier=identifier, statement=stmt)
+            stmt = Q.project.search(identifier=identifier, statement=stmt)
         else:
             stmt = stmt.order_by(sa.nulls_last(models.Project.identifier.asc()))
     elif (title := request.args.get("title")) is not None:
         if (title := title.strip()):
-            stmt = Q.project.select(search_title=title, statement=stmt)
+            stmt = Q.project.search(title=title, statement=stmt)
         else:
             stmt = stmt.order_by(sa.nulls_last(models.Project.title.asc()))
     elif (owner_name := request.args.get("owner_name")) is not None:
         if (owner_name := owner_name.strip()):
-            stmt = Q.project.select(search_owner_name=owner_name, statement=stmt)
+            stmt = Q.project.search(owner_name=owner_name, statement=stmt)
         else:
             stmt = stmt.join(models.User, models.User.id == models.Project.owner_id).order_by(sa.nulls_last(models.User.name.asc()))
     elif (identifier_title := request.args.get("identifier_title")) is not None:
         if (identifier_title := identifier_title.strip()):
-            stmt = Q.project.select(search_identifier_title=identifier_title, statement=stmt)
+            stmt = Q.project.search(title=identifier_title, identifier=identifier_title, statement=stmt)
         else:
             stmt = stmt.order_by(sa.nulls_last(models.Project.title.asc()), sa.nulls_last(models.Project.identifier.asc()))
     else:

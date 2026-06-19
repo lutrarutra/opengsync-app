@@ -4,6 +4,8 @@ from ..models import Library, Sample, links, User, SeqRequest
 from ..categories import (
     LibraryStatus, UserRole, AccessLevel, SeqRequestStatus, SampleStatus
 )
+from ..core import utils
+
 
 def create(
     name: str,
@@ -73,6 +75,36 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
 
 
 
+def search(
+    name: str | None = None,
+    owner_name: str | None = None,
+    name_weight: float = 0.5,
+    owner_name_weight: float = 0.5,
+    statement: sa.Select[tuple[Sample]] = sa.select(Sample),
+) -> sa.Select[tuple[Sample]]:
+    filter_conditions: list[sa.ColumnElement[bool]] = []
+    relevance = sa.literal(0.0)
+
+    if name is not None:
+        filter_conditions.append(utils.safe_trgm_search(Sample.name, name))
+        relevance += sa.func.similarity(Sample.name, name) * name_weight
+
+    if owner_name is not None:
+        full_name = sa.func.concat(User.first_name, ' ', User.last_name)
+        filter_conditions.append(utils.safe_trgm_search(full_name, owner_name))
+        relevance += sa.func.similarity(full_name, owner_name) * owner_name_weight
+
+    if not filter_conditions:
+        return statement
+
+    statement = statement.where(sa.or_(*filter_conditions))
+
+    if owner_name is not None:
+        statement = statement.join(User, Sample.owner_id == User.id)
+
+    return statement.order_by(sa.nulls_last(relevance.desc()))
+
+
 def select(
     id: int | None = None,
     user_id: int | None = None,
@@ -84,12 +116,9 @@ def select(
     status: SampleStatus | None = None,
     status_in: list[SampleStatus] | None = None,
     viewer_id: int | None = None,
-    search_name: str | None = None,
-    search_owner_name: str | None = None,
     statement: sa.Select[tuple[Sample]] = sa.select(Sample),
 ) -> sa.Select[tuple[Sample]]:
-
-    statement = statement.where(*where_clauses(
+    return statement.where(*where_clauses(
         id=id,
         user_id=user_id,
         project_id=project_id,
@@ -101,16 +130,6 @@ def select(
         status_in=status_in,
         viewer_id=viewer_id,
     ))
-
-    if search_name is not None:
-        statement = statement.order_by(sa.func.similarity(Sample.name, search_name).desc())
-    elif search_owner_name is not None:
-        from ..models import User
-        statement = statement.join(
-            Sample.owner
-        ).order_by(sa.func.similarity(User.name, search_owner_name).desc())
-
-    return statement
 
 
 def permissions(sample_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:

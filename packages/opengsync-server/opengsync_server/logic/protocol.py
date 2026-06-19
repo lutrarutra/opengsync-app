@@ -25,7 +25,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     stmt = sa.select(models.Protocol)
 
     if (name := request.args.get("name")):
-        stmt = Q.protocol.select(search_name=name, statement=stmt)
+        stmt = Q.protocol.search(name=name, statement=stmt)
         table.active_search_var = "name"
         table.active_query_value = name
     elif (id_ := request.args.get("id")):

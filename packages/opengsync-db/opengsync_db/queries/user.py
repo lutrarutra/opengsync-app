@@ -1,8 +1,9 @@
 import sqlalchemy as sa
 from sqlalchemy import sql
 
-from ..models import User, Group, links
+from ..models import User, links
 from ..categories import UserRole, AccessLevel
+from ..core import utils
 
 def create(
     email: str,
@@ -40,31 +41,45 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
         else_=AccessLevel.NONE
     )
 
+def search(
+    name: str | None = None,
+    name_weight: float = 0.5,
+    statement: sql.Select[tuple[User]] = sa.select(User),
+) -> sql.Select[tuple[User]]:
+    filter_conditions: list[sql.ColumnElement[bool]] = []
+    relevance = sa.literal(0.0)
+
+    if name is not None:
+        full_name = User.name.expression
+        filter_conditions.append(utils.safe_trgm_search(full_name, name))
+        relevance += sa.func.similarity(full_name, name) * name_weight
+
+    if not filter_conditions:
+        return statement
+
+    statement = statement.where(sa.or_(*filter_conditions))
+
+    return statement.order_by(sa.nulls_last(relevance.desc()))
+
+
 def select(
     id: int | None = None,
     email: str | None = None,
     group_id: int | None = None,
     role: UserRole | None = None,
     role_in: list[UserRole] | None = None,
-    search_name: str | None = None,
     insider: bool | None = None,
     viewer_id: int | None = None,
     assignees_project_id: int | None = None,
     assignees_seq_request_id: int | None = None,
     statement: sql.Select[tuple[User]] = sa.select(User),
 ) -> sa.Select[tuple[User]]:
-    statement = statement.where(*where_clauses(
+    return statement.where(*where_clauses(
         id=id, email=email, role=role, role_in=role_in, insider=insider,
         assignees_project_id=assignees_project_id,
         assignees_seq_request_id=assignees_seq_request_id,
         group_id=group_id, viewer_id=viewer_id
     ))
-
-    if search_name is not None:
-        statement = statement.order_by(
-            sa.func.similarity(User.first_name + ' ' + User.last_name, search_name).desc()
-        )
-    return statement
 
 
 def where_clauses(
