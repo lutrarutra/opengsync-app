@@ -16,7 +16,7 @@
         </div>
         <div class="page-controls">
             {% if current_user.is_insider() and seq_request.status == SeqRequestStatus.ACCEPTED %}
-            <button hx-get="{{ url_for('seq_requests_htmx.store_samples', seq_request_id=seq_request.id) }}" class="btn btn-success"
+            <button hx-get="{{ url_for('begin_store_samples_workflow', seq_request_id=seq_request.id) }}" class="btn btn-success"
                 data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click">
                 Store Samples
             </button>
@@ -24,7 +24,7 @@
             <span>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-                hx-get="{{ url_for('seq_requests_htmx.file_form', seq_request_id=seq_request.id) }}">
+                hx-get="{{ url_for('render_upload_file_form', seq_request_id=seq_request.id) }}">
                     Attach File
                 </button>
             </span>
@@ -33,10 +33,10 @@
                     Export
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ url_for('seq_requests_htmx.export_libraries', seq_request_id=seq_request.id) }}">
+                    <li><a class="dropdown-item" href="{{ url_for('export_seq_request_libraries', seq_request_id=seq_request.id) }}">
                         Libraries (.tsv)
                     </a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('seq_requests_htmx.export', seq_request_id=seq_request.id) }}">Everything (.xlsx)</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('export_seq_request', seq_request_id=seq_request.id) }}">Everything (.xlsx)</a></li>
                 </ul>
             </div>
             <div class="dropdown">
@@ -48,7 +48,7 @@
                         {{
                             modal_button(
                                 "Edit", class="dropdown-item", disabled=not (seq_request.is_editable() or current_user.is_insider()),
-                                url=url_for('seq_requests_htmx.edit', seq_request_id=seq_request.id),
+                                url=url_for('render_edit_seq_request', seq_request_id=seq_request.id),
                                 disabled_tooltip="Request cannot be edited after submission.",
                                 tooltip_position="left"
                             )
@@ -61,7 +61,7 @@
                                 disabled=not seq_request.is_editable(),
                                 disabled_tooltip="Request cannot be deleted after submission.",
                                 tooltip_position="left", method="hx-delete",
-                                url=url_for('seq_requests_htmx.delete', seq_request_id=seq_request.id),
+                                url=url_for('delete_seq_request', seq_request_id=seq_request.id),
                             )
                         }}
                     </li>
@@ -72,7 +72,7 @@
                                 disabled=not (current_user.is_insider() or seq_request.status == SeqRequestStatus.DRAFT),
                                 disabled_tooltip="Submitted request can only be archived by insiders.",
                                 tooltip_position="left", method="hx-post",
-                                url=url_for('seq_requests_htmx.archive', seq_request_id=seq_request.id),
+                                url=url_for('archive_seq_request', seq_request_id=seq_request.id),
                             )
                         }}
                     </li>
@@ -81,7 +81,7 @@
                         {{
                             confirm_action_button(
                                 "Unarchive", class="dropdown-item", title="Unarchive request {name}".format(name=seq_request.identifier),
-                                method="hx-post", url=url_for('seq_requests_htmx.unarchive', seq_request_id=seq_request.id),
+                                method="hx-post", url=url_for('unarchive_seq_request', seq_request_id=seq_request.id),
                             )
                         }}
                     </li>
@@ -92,7 +92,7 @@
                             confirm_action_button(
                                 "Clone (Pooled)", title="Clone request {name} (Pooled Libraries)".format(name=seq_request.identifier),
                                 body="This will make copy of the request with all libraries and pools in it. Do you want to proceed?",
-                                method="hx-post", url=url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='pooled'),
+                                method="hx-post", url=url_for('clone_seq_request', seq_request_id=seq_request.id, method='pooled'),
                                 class="dropdown-item"
                             )
                         }}
@@ -102,7 +102,7 @@
                             confirm_action_button(
                                 "Clone (Indexed)", title="Clone request {name} (Indexed Libraries)".format(name=seq_request.identifier),
                                 body="This will make copy of the request with all libraries in it (un-pooled). Do you want to proceed?",
-                                method="hx-post", url=url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='indexed'),
+                                method="hx-post", url=url_for('clone_seq_request', seq_request_id=seq_request.id, method='indexed'),
                                 class="dropdown-item"
                             )
                         }}
@@ -112,7 +112,7 @@
                             confirm_action_button(
                                 "Clone (Raw)", title="Clone request {name} (Raw Libraries)".format(name=seq_request.identifier),
                                 body="This will make copy of the request with unindexed libraries in it (prep required). Do you want to proceed?",
-                                method="hx-post", url=url_for('seq_requests_htmx.clone', seq_request_id=seq_request.id, method='raw'),
+                                method="hx-post", url=url_for('clone_seq_request', seq_request_id=seq_request.id, method='raw'),
                                 class="dropdown-item"
                             )
                         }}
@@ -123,7 +123,7 @@
                             confirm_action_button(
                                 "Remove All Libraries", class="dropdown-item",
                                 title="Remove All Libraries from {name}".format(name=seq_request.identifier),
-                                url=url_for('seq_requests_htmx.remove_all_libraries', seq_request_id=seq_request.id),
+                                url=url_for('remove_all_seq_request_libraries', seq_request_id=seq_request.id),
                                 tooltip_position="left", method="hx-delete",
                                 tooltip="This will remove all libraries from the request. This action cannot be un-done.",
                                 disabled=not(seq_request.status == SeqRequestStatus.DRAFT or current_user.is_insider() )
@@ -239,13 +239,13 @@
                 </div>
                 <div style="height: 100%; display: flex; align-items: center;">
                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                    hx-get="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}"
                     hx-target="#xl-modal-content" hx-swap="innerHTML">
                         Process Request
                     </button>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.review_checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('get_seq_request_review_checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -259,7 +259,7 @@
                     <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
                 </div>
             </div>
-            <div hx-get="{{ url_for('seq_requests_htmx.submit_checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('get_seq_request_submit_checklist', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -330,7 +330,7 @@
                 </div>
                 <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('check_barcode_clashes_workflow.check_seq_request_barcode_clashes', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('begin_check_barcode_clashes_workflow', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
                     <div class="flip-card-container">
                         <div class="card-front">
@@ -401,10 +401,10 @@
                 </div>
                 <div>
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-                    hx-get="{{ url_for('libraries_htmx.properties', seq_request_id=seq_request.id) }}">Properties</button>
+                    hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}">Properties</button>
                 </div>
             </div>
-            <div hx-get="{{ url_for('libraries_htmx.get', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -414,7 +414,7 @@
                     <h2>Pools</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('pools_htmx.get', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -425,7 +425,7 @@
                     {{ metadata_group("Request Name", seq_request.name, class="col-4") }}
                     {{ metadata_group("Data Delivery Mode", seq_request.data_delivery_mode.label, class="col-4") }}
                     {% if seq_request.group %}
-                    {{ metadata_group_link("Group", seq_request.group.name, url_for("groups_page.group", group_id=seq_request.group.id, from="seq_request@" + seq_request.id | string), class="col-4") }}
+                    {{ metadata_group_link("Group", seq_request.group.name, url_for("group_page", group_id=seq_request.group.id, from="seq_request@" + seq_request.id | string), class="col-4") }}
                     {% else %}
                     {{ metadata_group("Group", "", class="col-4") }}
                     {% endif %}
@@ -517,12 +517,12 @@
             </div>
         </div>
         <div class="tab-pane fade" id="request-overview-tab" role="tabpanel" tabindex="7">
-            <div hx-get="{{ url_for('seq_requests_htmx.overview', seq_request_id=seq_request.id) }}" hx-trigger="intersect once">
+            <div hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}" hx-trigger="intersect once">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="seq_request-files-tab" role="tabpanel" tabindex="8">
-            <div hx-get="{{ url_for('render_seq_request_table_files', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_media_file_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -533,12 +533,12 @@
                 </div>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-                hx-get="{{ url_for('seq_requests_htmx.comment_form', seq_request_id=seq_request.id) }}">
+                hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}">
                     Comment
                 </button>
             </div>
 
-            <div hx-get="{{ url_for('render_seq_request_table_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_seq_request_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>  
@@ -548,7 +548,7 @@
                     <h2>The data will be shared with following emails:</h2>
                 </div>
                 <div>
-                    {{ modal_button("Add Email", url=url_for('seq_requests_htmx.add_share_email', seq_request_id=seq_request.id), disabled=not current_user.is_insider() and seq_request.status >= SeqRequestStatus.FINISHED) }}
+                    {{ modal_button("Add Email", url=url_for('clone_seq_request', seq_request_id=seq_request.id), disabled=not current_user.is_insider() and seq_request.status >= SeqRequestStatus.FINISHED) }}
                 </div>
             </div>     
             {% set only_one = seq_request.delivery_email_links | length == 1 %}
@@ -567,7 +567,7 @@
                             {{ tooltip('Atleast one email is required. Add another email to remove this.', category='danger') }}
                         {% endif %}>
                             <button class="btn btn-danger" {% if only_one %}disabled{% endif %}
-                            hx-delete="{{ url_for('seq_requests_htmx.remove_share_email', seq_request_id=seq_request.id, email=link.email) }}">
+                            hx-delete="{{ url_for('clone_seq_request', seq_request_id=seq_request.id, email=link.email) }}">
                                 Remove
                             </button>
                         </span>
@@ -587,7 +587,7 @@
                     <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
                 <div>
-                    <button hx-get="{{ url_for('add_assignee_to_seq_request_form', seq_request_id=seq_request.id) }}" class="btn btn-success"
+                    <button hx-get="{{ url_for('add_assignee_to_seq_request', seq_request_id=seq_request.id) }}" class="btn btn-success"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click"
                         {% if not current_user.is_insider() %}disabled{% endif %}>
@@ -595,12 +595,12 @@
                     </button>
                 </div>
             </div>
-            <div hx-get="{{ url_for('render_seq_request_table_assignees', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_seq_request_assignee_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="request-data_paths-tab" role="tabpanel" tabindex="13">
-            <div hx-get="{{ url_for('share_htmx.get_data_paths', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

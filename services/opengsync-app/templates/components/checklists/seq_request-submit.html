@@ -43,7 +43,7 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
-                        <a type="button" class="btn btn-primary" href="{{ url_for('library_annotation_workflow.download_seq_auth_form') }}">
+                        <a type="button" class="btn btn-primary" href="{{ url_for('download_seq_auth_form') }}">
                             Download
                         </a> - Template
                     </li>
@@ -51,7 +51,7 @@
                         {{
                             modal_button(
                                 text="Upload", size="xl",
-                                url=url_for('seq_requests_htmx.file_form', seq_request_id=seq_request.id),
+                                url=url_for('render_upload_file_form', seq_request_id=seq_request.id),
                                 disabled=not (current_user.is_insider() or (seq_request.status == SeqRequestStatus.DRAFT) or seq_request.seq_auth_form_file is none)
                             )
                         }} - Signed Sequencing Authorization Form

@@ -296,6 +296,24 @@ async def pool_permissions(
     await r.set(cache_key, int(access_level), ex=300)
     return access_level
 
+async def media_file_permissions(
+    media_file_id: int,
+    user: models.User = Depends(require_user),
+    session: AsyncSession = Depends(db_session),
+    r: Redis = Depends(redis),
+):
+    cache_key = f"access:media_file:{media_file_id}:user:{user.id}"
+    if (cached_access := await r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))
+    try:
+        if (access_level := await session.get_access_level(Q.media_file.permissions(media_file_id=media_file_id, user_id=user.id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this media file.")
+    except db_exc.ModelNotFoundException:
+        raise exc.ItemNotFoundException("Media file not found.")
+
+    await r.set(cache_key, int(access_level), ex=300)
+    return access_level
+
 async def user_permissions(
     user_id: int,
     current_user: models.User = Depends(require_user),

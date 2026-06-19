@@ -460,6 +460,7 @@ class SeqRequest(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     _mux_types: Mapped[list[int] | None] = orm.query_expression()
+    _library_type_counts: Mapped[dict[int, int] | None] = orm.query_expression()
 
     @hybrid_property
     def mux_types(self) -> list[MUXType]:  # type: ignore[override]
@@ -511,13 +512,26 @@ class SeqRequest(Base):
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
-    def library_type_counts(self) -> dict[LibraryType, int]:
+    def library_type_counts(self) -> dict[LibraryType, int]:  # type: ignore[override]
         counts: dict[LibraryType, int] = {}
+
+        if self._library_type_counts is not None:
+            for type_id, count in self._library_type_counts.items():
+                counts[LibraryType.get(type_id)] = count
+            return counts
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             for lib in self.libraries:
                 lib_type = LibraryType.get(lib.type_id)
                 counts[lib_type] = counts.get(lib_type, 0) + 1
             return counts
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_type_counts was not populated via with_expression. "
+                "Use orm.with_expression(SeqRequest._library_type_counts, SeqRequest.library_type_counts.expression) "
+                "in your query options."
+            )
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_type_counts' attribute.")
@@ -527,6 +541,24 @@ class SeqRequest(Base):
             lib_type = LibraryType.get(type_id)
             counts[lib_type] = count
         return counts
+
+    @library_type_counts.expression
+    def library_type_counts(cls):
+        from .Library import Library
+        from .. import queries as Q
+        return sa.select(
+            sa.func.coalesce(
+                sa.func.jsonb_object_agg(
+                    Library.type_id,
+                    sa.func.count(Library.id)
+                ),
+                sa.cast(sa.text("'{}'"), JSONB)
+            )
+        ).where(
+            *Q.library.where_clauses(seq_request_id=cls.id)
+        ).group_by(
+            Library.seq_request_id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
     
     @hybrid_property
     def num_delivery_email_links(self) -> int:  # type: ignore[override]

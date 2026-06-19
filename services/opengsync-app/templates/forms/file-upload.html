@@ -1,0 +1,32 @@
+{% from 'components/form_group.jinja2' import form_group, select_input %}
+
+<div class="modal-content" id="file-input-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Upload file</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="file-input-form" enctype="multipart/form-data">
+            {{ form.csrf_token.render() }}
+            <div class="row">
+                {{ form.file_type.render("col-6") }}
+                <div class="col-6">
+                    <label for="file" class="form-label">File</label>
+                    <input type="file" class="form-control" name="file" id="file"
+                        accept=".tsv,.xlsx,.csv,.pdf,.png,.jpg,.jpeg">
+                </div>
+            </div>
+            {{ form.comment.render() }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <button class="btn btn-success"
+            hx-include="#file-input-form"
+            hx-target="#file-input-form-container"
+            hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+            hx-post="{{ url_for('upload_file', **{form.entity_type.query_param: form.entity_id}) }}">
+            Submit
+        </button>
+    </div>
+</div>

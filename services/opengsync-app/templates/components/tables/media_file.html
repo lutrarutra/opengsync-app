@@ -1,0 +1,41 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/spinner.jinja2" import spinner %}
+{% from "components/assignee_list.jinja2" import assignee_list %}
+{% from "components/contextmenu.jinja2" import context_menu %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
+
+<div id="media_file-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("media_file-table", table, "id") }}
+                {{ table_col("media_file-table", table, "name") }}
+                {{ table_col("media_file-table", table, "extension") }}
+                {{ table_col("media_file-table", table, "type") }}
+                {{ table_col("media_file-table", table, "uploader") }}
+                {{ table_col("media_file-table", table, "size_bytes") }}
+                {{ table_col("media_file-table", table, "timestamp_utc") }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in files %}
+            <tr>
+                <th scope="row">{{ file.id }}</th>
+                <td>{{ file.name }}</td>
+                <td>{{ file.extension }}</td>
+                <td>{{ file.type.display_name }}</td>
+                <td>{{ file.uploader.name }}</td>
+                <td>{{ file.size_bytes | filesize }}</td>
+                <td>{{ file.timestamp_utc | format_datetime }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("media_file-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#media_file-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

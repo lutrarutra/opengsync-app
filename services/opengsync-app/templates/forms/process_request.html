@@ -21,7 +21,7 @@
         </div>
         <div class="footer-controls">
             <button class="btn btn-success" hx-include="#process_request-form" hx-target="#process_request-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}">Process</button>
+                hx-post="{{ url_for('process_request', seq_request_id=seq_request.id) }}">Process</button>
         </div>
     </div>
 </div>

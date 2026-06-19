@@ -9,7 +9,7 @@ import pandas as pd
 from opengsync_db import models, AsyncSession, queries as Q, categories as C, actions, utils
 
 from ...core import dependencies, responses, exceptions as exc
-from ...forms.models import SeqRequestForm
+from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
 router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
@@ -152,12 +152,12 @@ async def render_create_seq_request_form(
     current_user: models.User = Depends(dependencies.require_user),
 ):
     """Render the create SeqRequest form."""
-    form = SeqRequestForm(request, form_type="create")
+    form = forms.models.SeqRequestForm(request, form_type="create")
     return await form.make_response()
 
 
 @router.post("/create")
-async def create_seq_request(response = Depends(SeqRequestForm.create)): return response
+async def create_seq_request(response = Depends(forms.models.SeqRequestForm.create)): return response
 
 
 @router.get("/edit/{seq_request_id}")
@@ -179,13 +179,38 @@ async def render_edit_seq_request(
             redirect=responses.url_for("seq_request_page", seq_request_id=seq_request_id)
         )
 
-    form = SeqRequestForm(request, form_type="edit", seq_request=seq_request)
+    form = forms.models.SeqRequestForm(request, form_type="edit", seq_request=seq_request)
     return await form.make_response()
 
 
 @router.post("/edit/{seq_request_id}")
-async def edit_seq_request(response = Depends(SeqRequestForm.edit)): return response
+async def edit_seq_request(response = Depends(forms.models.SeqRequestForm.edit)): return response
 
+
+@router.get("/{seq_request_id}/process-request")
+async def render_process_seq_request(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_insider),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    """Render the process SeqRequest form."""
+    if access_level < C.AccessLevel.WRITE:
+        return await responses.htmx_response(redirect=responses.url_for("seq_requests_page"))
+
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+
+    if seq_request.status_id != C.SeqRequestStatus.SUBMITTED.id and access_level < C.AccessLevel.INSIDER:
+        return await responses.htmx_response(
+            redirect=responses.url_for("seq_request_page", seq_request_id=seq_request_id)
+        )
+
+    form = forms.actions.ProcessSeqRequestForm(request, seq_request=seq_request)
+    return await form.make_response()
+
+@router.get("/{seq_request_id}/process-request")
+async def process_request(response = Depends(forms.actions.ProcessSeqRequestForm.process_request)): return response
 
 @router.delete("/delete/{seq_request_id}")
 async def delete_seq_request(
@@ -457,7 +482,7 @@ async def get_seq_request_overview(
 
 
 @router.get("/comments/{seq_request_id}")
-async def get_seq_request_comments(
+async def render_seq_request_comments(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
@@ -491,13 +516,13 @@ async def get_seq_request_files(
         "components/file-list.html",
         files=seq_request.media_files,
         seq_request=seq_request,
-        delete="delete_seq_request_file",
+        delete="delete_file",
         delete_context={"seq_request_id": seq_request_id},
     )
 
 
 @router.get("/assignees/{seq_request_id}")
-async def get_seq_request_assignees(
+async def render_seq_request_assignee_table(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
@@ -553,7 +578,15 @@ async def get_seq_request_submit_checklist(
     if access_level < C.AccessLevel.READ:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = await session.get_one(
+        Q.seq_request.select(id=seq_request_id).options(
+            orm.selectinload(models.SeqRequest.seq_auth_form_file),
+            orm.with_expression(models.SeqRequest._num_samples, models.SeqRequest.num_samples.expression),
+            orm.with_expression(models.SeqRequest._num_libraries, models.SeqRequest.num_libraries.expression),
+            orm.with_expression(models.SeqRequest._library_types, models.SeqRequest.library_types.expression),
+            orm.with_expression(models.SeqRequest._library_type_counts, models.SeqRequest.library_type_counts.expression),
+        )
+    )
     checklist = seq_request.get_submit_checklist()
 
     return await responses.htmx_response(
@@ -767,3 +800,5 @@ async def add_assignee_to_seq_request(
         redirect=responses.url_for("dashboard"),
         flash=responses.flash("Assignee Added!", "success"),
     )
+
+    

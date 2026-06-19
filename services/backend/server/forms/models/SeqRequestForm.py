@@ -270,12 +270,8 @@ class SeqRequestForm(HTMXForm):
                 name=form.basic_info.name.data,
                 description=form.basic_info.description.data,
                 read_type=C.ReadType.get(form.technical_info.read_type.data),
-                read_length=int(form.technical_info.read_length.data)
-                if form.technical_info.read_length.data
-                else None,
-                num_lanes=int(form.technical_info.num_lanes.data)
-                if form.technical_info.num_lanes.data
-                else None,
+                read_length=int(form.technical_info.read_length.data) if form.technical_info.read_length.data else None,
+                num_lanes=int(form.technical_info.num_lanes.data) if form.technical_info.num_lanes.data else None,
                 data_delivery_mode=C.DataDeliveryMode.get(form.technical_info.data_delivery_mode.data),
                 special_requirements=form.technical_info.special_requirements.data,
                 submission_type=C.SubmissionType.get(form.technical_info.submission_type.data),
@@ -285,9 +281,7 @@ class SeqRequestForm(HTMXForm):
                 organization_contact=organization,
                 billing_contact=billing_contact,
                 requestor=current_user,
-                group=await session.get_one(Q.group.select(id=form.basic_info.group_id.data))
-                if form.basic_info.group_id.data
-                else None,
+                group=await session.get_one(Q.group.select(id=form.basic_info.group_id.data)) if form.basic_info.group_id.data else None,
             ),
             flush=True,
         )

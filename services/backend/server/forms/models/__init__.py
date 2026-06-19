@@ -3,6 +3,7 @@ from .LabPrepForm import LabPrepForm
 from .ProjectForm import ProjectForm
 from .UserForm import UserForm
 from .PoolForm import PoolForm
+from .MediaFileForm import MediaFileForm
 
 __all__ = [
     "SeqRequestForm",
@@ -10,4 +11,5 @@ __all__ = [
     "ProjectForm",
     "UserForm",
     "PoolForm",
+    "MediaFileForm",
 ]

@@ -1,3 +1,4 @@
+import os
 import json
 from typing import Any
 from urllib.parse import quote
@@ -120,6 +121,23 @@ async def htmx_response(
                 resp.raw_headers.append((header, value))
     
     return resp
+
+async def file_response(path: str, filename: str | None = None, content_type: str | None = None) -> Response:
+    if not os.path.isfile(path):
+        return HTMLResponse(content="File not found", status_code=404)
+
+    if filename is None:
+        filename = os.path.basename(path)
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"'
+    }
+    response = Response(
+        content=open(path, "rb").read(),
+        media_type=content_type or "application/octet-stream",
+        headers=headers,
+    )
+    return response
 
 
 def url_for(name: str, **path_params) -> URL:
