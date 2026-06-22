@@ -85,6 +85,7 @@ async def render_sample_table(
         options=[
             orm.selectinload(models.Sample.library_links).selectinload(models.links.SampleLibraryLink.library),
             orm.selectinload(models.Sample.owner),
+            orm.selectinload(models.Sample.project)
         ]
     )
     table.set_num_pages(count)

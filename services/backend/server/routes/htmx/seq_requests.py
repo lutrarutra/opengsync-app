@@ -1,14 +1,23 @@
+import os
+import shutil
 from io import BytesIO
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, UploadFile
 from fastapi.responses import Response
 from sqlalchemy import orm
 import pandas as pd
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C, actions, utils
+from opengsync_db import (
+    models,
+    AsyncSession,
+    queries as Q,
+    categories as C,
+    actions,
+    utils,
+)
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies, responses, exceptions as exc, config
 from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
@@ -18,38 +27,92 @@ router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
 class SeqRequestTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
-        TableCol(title="Name", label="name", col_size=4, searchable=True, sortable=True),
-        TableCol(title="Library Types", label="library_types", col_size=3, choices=C.LibraryType.as_selectable()),
-        TableCol(title="Status", label="status", col_size=1, sortable=True, sort_by="status_id", choices=C.SeqRequestStatus.as_selectable()),
-        TableCol(title="Submission Type", label="submission_type", col_size=1, choices=C.SubmissionType.as_selectable()),
+        TableCol(
+            title="Name", label="name", col_size=4, searchable=True, sortable=True
+        ),
+        TableCol(
+            title="Library Types",
+            label="library_types",
+            col_size=3,
+            choices=C.LibraryType.as_selectable(),
+        ),
+        TableCol(
+            title="Status",
+            label="status",
+            col_size=1,
+            sortable=True,
+            sort_by="status_id",
+            choices=C.SeqRequestStatus.as_selectable(),
+        ),
+        TableCol(
+            title="Submission Type",
+            label="submission_type",
+            col_size=1,
+            choices=C.SubmissionType.as_selectable(),
+        ),
         TableCol(title="Group", label="group", col_size=2, searchable=True),
         TableCol(title="Requestor", label="requestor", col_size=2, searchable=True),
         TableCol(title="# Samples", label="num_samples", col_size=1, sortable=True),
         TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
-        TableCol(title="Submitted", label="timestamp_submitted", col_size=2, sortable=True, sort_by="timestamp_submitted_utc"),
-        TableCol(title="Completed", label="timestamp_completed", col_size=2, sortable=True, sort_by="timestamp_finished_utc"),
+        TableCol(
+            title="Submitted",
+            label="timestamp_submitted",
+            col_size=2,
+            sortable=True,
+            sort_by="timestamp_submitted_utc",
+        ),
+        TableCol(
+            title="Completed",
+            label="timestamp_completed",
+            col_size=2,
+            sortable=True,
+            sort_by="timestamp_finished_utc",
+        ),
     ]
 
 
 @router.get("/render-table-page")
 async def render_seq_request_table(
-    user_id: int | None = Query(None, description="Optional user ID to filter seq requests"),
-    group_id: int | None = Query(None, description="Optional group ID to filter seq requests"),
-    project_id: int | None = Query(None, description="Optional project ID to filter seq requests"),
-    name: str | None = Query(None, description="Optional name search term to filter seq requests"),
-    group: str | None = Query(None, description="Optional group name search term to filter seq requests"),
-    requestor: str | None = Query(None, description="Optional requestor name search term to filter seq requests"),
-    status_in: list[C.SeqRequestStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.SeqRequestStatus, query_param="status_in")),
+    user_id: int | None = Query(
+        None, description="Optional user ID to filter seq requests"
+    ),
+    group_id: int | None = Query(
+        None, description="Optional group ID to filter seq requests"
+    ),
+    project_id: int | None = Query(
+        None, description="Optional project ID to filter seq requests"
+    ),
+    name: str | None = Query(
+        None, description="Optional name search term to filter seq requests"
+    ),
+    group: str | None = Query(
+        None, description="Optional group name search term to filter seq requests"
+    ),
+    requestor: str | None = Query(
+        None, description="Optional requestor name search term to filter seq requests"
+    ),
+    status_in: list[C.SeqRequestStatus] | None = Depends(
+        dependencies.parse_enum_ids(
+            enum_type=C.SeqRequestStatus, query_param="status_in"
+        )
+    ),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_user),
-    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.SeqRequest, default=models.SeqRequest.timestamp_submitted_utc.desc())),
+    order_by: utils.OrderBy | None = Depends(
+        dependencies.parse_order_by(
+            model=models.SeqRequest,
+            default=models.SeqRequest.timestamp_submitted_utc.desc(),
+        )
+    ),
     session: AsyncSession = Depends(dependencies.db_session),
 ):
-    table = SeqRequestTable(route="render_seq_request_table", page=page, order_by=order_by)
+    table = SeqRequestTable(
+        route="render_seq_request_table", page=page, order_by=order_by
+    )
 
     if status_in:
         table.filter_values["status"] = status_in
-    
+
     stmt = Q.seq_request.select(
         requestor_id=user_id,
         group_id=group_id,
@@ -75,16 +138,35 @@ async def render_seq_request_table(
     )
 
     if user_id is not None:
-        if await session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ:
-            raise exc.NoPermissionsException("You do not have permission to view seq requests for this user.")
+        if (
+            await session.get_access_level(Q.user.permissions(user_id, current_user.id))
+            < C.AccessLevel.READ
+        ):
+            raise exc.NoPermissionsException(
+                "You do not have permission to view seq requests for this user."
+            )
         template = "components/tables/user-seq_request.html"
     elif group_id is not None:
-        if await session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
-            raise exc.NoPermissionsException("You do not have permission to view seq requests for this group.")
+        if (
+            await session.get_access_level(
+                Q.group.permissions(group_id, current_user.id)
+            )
+            < C.AccessLevel.READ
+        ):
+            raise exc.NoPermissionsException(
+                "You do not have permission to view seq requests for this group."
+            )
         template = "components/tables/group-seq_request.html"
     elif project_id is not None:
-        if await session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
-            raise exc.NoPermissionsException("You do not have permission to view seq requests for this project.")
+        if (
+            await session.get_access_level(
+                Q.project.permissions(project_id, current_user.id)
+            )
+            < C.AccessLevel.READ
+        ):
+            raise exc.NoPermissionsException(
+                "You do not have permission to view seq requests for this project."
+            )
         template = "components/tables/project-seq_request.html"
     else:
         if not current_user.is_insider():
@@ -93,57 +175,81 @@ async def render_seq_request_table(
         template = "components/tables/seq_request.html"
 
     seq_requests, count = await session.page(
-        stmt, page=page, order_by=order_by,
+        stmt,
+        page=page,
+        order_by=order_by,
         options=[
             orm.selectinload(models.SeqRequest.assignees),
-            orm.with_expression(models.SeqRequest._library_types, models.SeqRequest.library_types.expression),
-            orm.with_expression(models.SeqRequest._mux_types, models.SeqRequest.mux_types.expression),
+            orm.with_expression(
+                models.SeqRequest._library_types,
+                models.SeqRequest.library_types.expression,
+            ),
+            orm.with_expression(
+                models.SeqRequest._mux_types, models.SeqRequest.mux_types.expression
+            ),
             orm.selectinload(models.SeqRequest.requestor),
             orm.selectinload(models.SeqRequest.group),
-        ]
+        ],
     )
     table.set_num_pages(count)
-    return await responses.htmx_response(template=template, seq_requests=seq_requests, table=table)
+    return await responses.htmx_response(
+        template=template, seq_requests=seq_requests, table=table
+    )
+
 
 @router.get("/recent")
 async def recent_seq_requests(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_user),
-    session: AsyncSession = Depends(dependencies.db_session)
+    session: AsyncSession = Depends(dependencies.db_session),
 ):
     options = [
         orm.selectinload(models.SeqRequest.assignees),
         orm.selectinload(models.SeqRequest.requestor),
-        orm.with_expression(models.SeqRequest._num_libraries, models.SeqRequest.num_libraries.expression),
+        orm.with_expression(
+            models.SeqRequest._num_libraries, models.SeqRequest.num_libraries.expression
+        ),
     ]
-    if current_user.is_insider():        
+    if current_user.is_insider():
         query = Q.seq_request.select(
             status_in=[
-                C.SeqRequestStatus.SUBMITTED, C.SeqRequestStatus.ACCEPTED,
-                C.SeqRequestStatus.SAMPLES_RECEIVED, C.SeqRequestStatus.PREPARED,
-                C.SeqRequestStatus.DATA_PROCESSING
+                C.SeqRequestStatus.SUBMITTED,
+                C.SeqRequestStatus.ACCEPTED,
+                C.SeqRequestStatus.SAMPLES_RECEIVED,
+                C.SeqRequestStatus.PREPARED,
+                C.SeqRequestStatus.DATA_PROCESSING,
             ]
         ).order_by(
             models.SeqRequest.status_id,
-            models.SeqRequest.timestamp_submitted_utc.desc()
+            models.SeqRequest.timestamp_submitted_utc.desc(),
         )
-        
+
     else:
         query = Q.seq_request.select(
             status_in=[
-                C.SeqRequestStatus.SUBMITTED, C.SeqRequestStatus.ACCEPTED,
-                C.SeqRequestStatus.SAMPLES_RECEIVED, C.SeqRequestStatus.PREPARED,
-                C.SeqRequestStatus.DATA_PROCESSING
+                C.SeqRequestStatus.SUBMITTED,
+                C.SeqRequestStatus.ACCEPTED,
+                C.SeqRequestStatus.SAMPLES_RECEIVED,
+                C.SeqRequestStatus.PREPARED,
+                C.SeqRequestStatus.DATA_PROCESSING,
             ],
-            requestor_id=current_user.id
+            requestor_id=current_user.id,
         ).order_by(
             models.SeqRequest.status_id,
-            models.SeqRequest.timestamp_submitted_utc.desc()
+            models.SeqRequest.timestamp_submitted_utc.desc(),
         )
 
-    seq_requests, num_total = await session.page(query, limit=10, page=page, options=options)
+    seq_requests, num_total = await session.page(
+        query, limit=10, page=page, options=options
+    )
 
-    return await responses.htmx_response("components/dashboard/seq_requests-list.html", seq_requests=seq_requests, num_total=num_total, current_page=page, limit=10)
+    return await responses.htmx_response(
+        "components/dashboard/seq_requests-list.html",
+        seq_requests=seq_requests,
+        num_total=num_total,
+        current_page=page,
+        limit=10,
+    )
 
 
 @router.get("/create")
@@ -157,10 +263,11 @@ async def render_create_seq_request_form(
 
 
 @router.post("/create")
-async def create_seq_request(response = Depends(forms.models.SeqRequestForm.create)): return response
+async def create_seq_request(response=Depends(forms.models.SeqRequestForm.create)):
+    return response
 
 
-@router.get("/edit/{seq_request_id}")
+@router.get("/{seq_request_id}/edit")
 async def render_edit_seq_request(
     seq_request_id: int,
     request: Request,
@@ -170,21 +277,31 @@ async def render_edit_seq_request(
 ):
     """Render the edit SeqRequest form."""
     if access_level < C.AccessLevel.WRITE:
-        return await responses.htmx_response(redirect=responses.url_for("seq_requests_page"))
+        return await responses.htmx_response(
+            redirect=responses.url_for("seq_requests_page")
+        )
 
     seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    if seq_request.status_id != C.SeqRequestStatus.DRAFT.id and access_level < C.AccessLevel.INSIDER:
+    if (
+        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        and access_level < C.AccessLevel.INSIDER
+    ):
         return await responses.htmx_response(
-            redirect=responses.url_for("seq_request_page", seq_request_id=seq_request_id)
+            redirect=responses.url_for(
+                "seq_request_page", seq_request_id=seq_request_id
+            )
         )
 
-    form = forms.models.SeqRequestForm(request, form_type="edit", seq_request=seq_request)
+    form = forms.models.SeqRequestForm(
+        request, form_type="edit", seq_request=seq_request
+    )
     return await form.make_response()
 
 
-@router.post("/edit/{seq_request_id}")
-async def edit_seq_request(response = Depends(forms.models.SeqRequestForm.edit)): return response
+@router.post("/{seq_request_id}/edit")
+async def edit_seq_request(response=Depends(forms.models.SeqRequestForm.edit)):
+    return response
 
 
 @router.get("/{seq_request_id}/process-request")
@@ -197,22 +314,34 @@ async def render_process_seq_request(
 ):
     """Render the process SeqRequest form."""
     if access_level < C.AccessLevel.WRITE:
-        return await responses.htmx_response(redirect=responses.url_for("seq_requests_page"))
+        return await responses.htmx_response(
+            redirect=responses.url_for("seq_requests_page")
+        )
 
     seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    if seq_request.status_id != C.SeqRequestStatus.SUBMITTED.id and access_level < C.AccessLevel.INSIDER:
+    if (
+        seq_request.status_id != C.SeqRequestStatus.SUBMITTED.id
+        and access_level < C.AccessLevel.INSIDER
+    ):
         return await responses.htmx_response(
-            redirect=responses.url_for("seq_request_page", seq_request_id=seq_request_id)
+            redirect=responses.url_for(
+                "seq_request_page", seq_request_id=seq_request_id
+            )
         )
 
     form = forms.actions.ProcessSeqRequestForm(request, seq_request=seq_request)
     return await form.make_response()
 
-@router.get("/{seq_request_id}/process-request")
-async def process_request(response = Depends(forms.actions.ProcessSeqRequestForm.process_request)): return response
 
-@router.delete("/delete/{seq_request_id}")
+@router.post("/{seq_request_id}/process-request")
+async def process_request(
+    response=Depends(forms.actions.ProcessSeqRequestForm.process_request),
+):
+    return response
+
+
+@router.delete("/{seq_request_id}/delete")
 async def delete_seq_request(
     seq_request_id: int,
     request: Request,
@@ -224,18 +353,25 @@ async def delete_seq_request(
 
     seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    if seq_request.status_id != C.SeqRequestStatus.DRAFT.id and access_level < C.AccessLevel.INSIDER:
-        raise exc.NoPermissionsException("Only draft requests can be deleted by non-admins.")
+    if (
+        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        and access_level < C.AccessLevel.INSIDER
+    ):
+        raise exc.NoPermissionsException(
+            "Only draft requests can be deleted by non-admins."
+        )
 
     await session.delete(seq_request)
 
     return await responses.htmx_response(
         redirect=request.url_for("seq_requests_page"),
-        flash=responses.flash(f"Deleted sequencing request '{seq_request.name}'", "success"),
+        flash=responses.flash(
+            f"Deleted sequencing request '{seq_request.name}'", "success"
+        ),
     )
 
 
-@router.post("/archive/{seq_request_id}")
+@router.post("/{seq_request_id}/archive")
 async def archive_seq_request(
     seq_request_id: int,
     request: Request,
@@ -244,7 +380,10 @@ async def archive_seq_request(
 ):
     seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    if seq_request.status_id != C.SeqRequestStatus.DRAFT.id and access_level < C.AccessLevel.INSIDER:
+    if (
+        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        and access_level < C.AccessLevel.INSIDER
+    ):
         raise exc.NoPermissionsException()
 
     seq_request.status_id = C.SeqRequestStatus.ARCHIVED.id
@@ -252,11 +391,13 @@ async def archive_seq_request(
 
     return await responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
-        flash=responses.flash(f"Archived sequencing request '{seq_request.name}'", "success"),
+        flash=responses.flash(
+            f"Archived sequencing request '{seq_request.name}'", "success"
+        ),
     )
 
 
-@router.post("/unarchive/{seq_request_id}")
+@router.post("/{seq_request_id}/unarchive")
 async def unarchive_seq_request(
     seq_request_id: int,
     request: Request,
@@ -271,11 +412,13 @@ async def unarchive_seq_request(
 
     return await responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
-        flash=responses.flash(f"Unarchived sequencing request '{seq_request.name}'", "success"),
+        flash=responses.flash(
+            f"Unarchived sequencing request '{seq_request.name}'", "success"
+        ),
     )
 
 
-@router.get("/export/{seq_request_id}")
+@router.get("/{seq_request_id}/export")
 async def export_seq_request(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
@@ -308,7 +451,9 @@ async def export_seq_request(
 
     metadata_df = pd.DataFrame.from_records(metadata).T
 
-    libraries_df = await session.pd.get_seq_request_libraries(seq_request_id, include_indices=True)
+    libraries_df = await session.pd.get_seq_request_libraries(
+        seq_request_id, include_indices=True
+    )
     features_df = await session.pd.get_seq_request_features(seq_request_id)
 
     bytes_io = BytesIO()
@@ -321,11 +466,13 @@ async def export_seq_request(
     return Response(
         bytes_io,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename=request_{seq_request_id}.xlsx"},
+        headers={
+            "Content-Disposition": f"attachment; filename=request_{seq_request_id}.xlsx"
+        },
     )
 
 
-@router.get("/export-libraries/{seq_request_id}")
+@router.get("/{seq_request_id}/export-libraries")
 async def export_seq_request_libraries(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
@@ -335,16 +482,20 @@ async def export_seq_request_libraries(
         raise exc.NoPermissionsException()
 
     seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
-    libraries_df = await session.pd.get_seq_request_libraries(seq_request_id, include_indices=True)
+    libraries_df = await session.pd.get_seq_request_libraries(
+        seq_request_id, include_indices=True
+    )
 
     return Response(
         libraries_df.to_csv(sep="\t", index=False).encode("utf-8"),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=libraries_{seq_request.id}.tsv"},
+        headers={
+            "Content-Disposition": f"attachment; filename=libraries_{seq_request.id}.tsv"
+        },
     )
 
 
-@router.post("/clone/{seq_request_id}")
+@router.post("/{seq_request_id}/clone")
 async def clone_seq_request(
     seq_request_id: int,
     request: Request,
@@ -353,7 +504,9 @@ async def clone_seq_request(
     current_user: models.User = Depends(dependencies.require_insider),
 ):
     seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
-    cloned_request = actions.clone_seq_request(session=session.sync_session, seq_request=seq_request, method=method)
+    cloned_request = actions.clone_seq_request(
+        session=session.sync_session, seq_request=seq_request, method=method
+    )
 
     return await responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=cloned_request.id),
@@ -361,7 +514,7 @@ async def clone_seq_request(
     )
 
 
-@router.delete("/remove-all-libraries/{seq_request_id}")
+@router.delete("/{seq_request_id}/remove-all-libraries")
 async def remove_all_seq_request_libraries(
     seq_request_id: int,
     request: Request,
@@ -373,7 +526,10 @@ async def remove_all_seq_request_libraries(
 
     seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    if seq_request.status_id != C.SeqRequestStatus.DRAFT.id and access_level < C.AccessLevel.INSIDER:
+    if (
+        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        and access_level < C.AccessLevel.INSIDER
+    ):
         raise exc.NoPermissionsException()
 
     for library in seq_request.libraries:
@@ -381,11 +537,14 @@ async def remove_all_seq_request_libraries(
 
     return await responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
-        flash=responses.flash(f"Removed all libraries from sequencing request '{seq_request.name}'", "success"),
+        flash=responses.flash(
+            f"Removed all libraries from sequencing request '{seq_request.name}'",
+            "success",
+        ),
     )
 
 
-@router.get("/overview/{seq_request_id}")
+@router.get("/{seq_request_id}/overview")
 async def get_seq_request_overview(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
@@ -415,7 +574,11 @@ async def get_seq_request_overview(
 
     for sample in samples:
         if sample.project_id not in project_nodes:
-            project_node = {"node": idx, "name": sample.project.title, "id": f"project-{sample.project_id}"}
+            project_node = {
+                "node": idx,
+                "name": sample.project.title,
+                "id": f"project-{sample.project_id}",
+            }
             nodes.append(project_node)
             project_nodes[sample.project.id] = idx
             project_idx = idx
@@ -458,30 +621,44 @@ async def get_seq_request_overview(
                         else:
                             pool_idx = pool_nodes[link.library.pool.id]
 
-                        pool_link_widths[link.library.pool.id] += LINK_WIDTH_UNIT * link.library.num_samples
-                        links.append({
-                            "source": library_nodes[link.library.id],
-                            "target": pool_idx,
-                            "value": LINK_WIDTH_UNIT * link.library.num_samples,
-                        })
+                        pool_link_widths[link.library.pool.id] += (
+                            LINK_WIDTH_UNIT * link.library.num_samples
+                        )
+                        links.append(
+                            {
+                                "source": library_nodes[link.library.id],
+                                "target": pool_idx,
+                                "value": LINK_WIDTH_UNIT * link.library.num_samples,
+                            }
+                        )
                 else:
                     library_idx = library_nodes[link.library.id]
 
-                links.append({"source": sample_node["node"], "target": library_idx, "value": LINK_WIDTH_UNIT})
+                links.append(
+                    {
+                        "source": sample_node["node"],
+                        "target": library_idx,
+                        "value": LINK_WIDTH_UNIT,
+                    }
+                )
 
-        links.append({
-            "source": project_idx,
-            "target": sample_nodes[sample.id],
-            "value": LINK_WIDTH_UNIT * n_sample_links,
-        })
+        links.append(
+            {
+                "source": project_idx,
+                "target": sample_nodes[sample.id],
+                "value": LINK_WIDTH_UNIT * n_sample_links,
+            }
+        )
 
     return await responses.htmx_response(
         "components/plots/request_overview.html",
-        nodes=nodes, links=links, contains_pooled=contains_pooled,
+        nodes=nodes,
+        links=links,
+        contains_pooled=contains_pooled,
     )
 
 
-@router.get("/comments/{seq_request_id}")
+@router.get("/{seq_request_id}/comments")
 async def render_seq_request_comments(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
@@ -495,10 +672,12 @@ async def render_seq_request_comments(
         options=[orm.selectinload(models.SeqRequest.comments)],
     )
 
-    return await responses.htmx_response("components/comment-list.html", comments=seq_request.comments)
+    return await responses.htmx_response(
+        "components/comment-list.html", comments=seq_request.comments
+    )
 
 
-@router.get("/files/{seq_request_id}")
+@router.get("/{seq_request_id}/files")
 async def get_seq_request_files(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
@@ -521,7 +700,7 @@ async def get_seq_request_files(
     )
 
 
-@router.get("/assignees/{seq_request_id}")
+@router.get("/{seq_request_id}/assignees")
 async def render_seq_request_assignee_table(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
@@ -542,7 +721,7 @@ async def render_seq_request_assignee_table(
     )
 
 
-@router.delete("/assignees/{seq_request_id}/remove/{assignee_id}")
+@router.delete("/{seq_request_id}/remove-assignee/{assignee_id}")
 async def remove_seq_request_assignee(
     seq_request_id: int,
     assignee_id: int,
@@ -569,7 +748,7 @@ async def remove_seq_request_assignee(
     )
 
 
-@router.get("/submit-checklist/{seq_request_id}")
+@router.get("/{seq_request_id}/submit-checklist")
 async def get_seq_request_submit_checklist(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
@@ -581,6 +760,7 @@ async def get_seq_request_submit_checklist(
     seq_request = await session.get_one(
         Q.seq_request.select(id=seq_request_id).options(
             orm.selectinload(models.SeqRequest.seq_auth_form_file),
+            orm.selectinload(models.SeqRequest.contact_person),
             orm.with_expression(models.SeqRequest._num_samples, models.SeqRequest.num_samples.expression),
             orm.with_expression(models.SeqRequest._num_libraries, models.SeqRequest.num_libraries.expression),
             orm.with_expression(models.SeqRequest._library_types, models.SeqRequest.library_types.expression),
@@ -591,11 +771,12 @@ async def get_seq_request_submit_checklist(
 
     return await responses.htmx_response(
         "components/checklists/seq_request-submit.html",
-        seq_request=seq_request, **checklist,
+        seq_request=seq_request,
+        **checklist,
     )
 
 
-@router.get("/review-checklist/{seq_request_id}")
+@router.get("/{seq_request_id}/review-checklist")
 async def get_seq_request_review_checklist(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
@@ -607,20 +788,33 @@ async def get_seq_request_review_checklist(
     seq_request = await session.get_one(
         Q.seq_request.select(id=seq_request_id),
         options=[
-            orm.selectinload(models.SeqRequest.samples).selectinload(models.Sample.project),
-            orm.selectinload(models.SeqRequest.libraries).selectinload(models.Library.pool),
-            orm.selectinload(models.SeqRequest.sample_library_links).selectinload(models.links.SampleLibraryLink.library),
-            orm.selectinload(models.SeqRequest.sample_library_links).selectinload(models.links.SampleLibraryLink.sample),
+            orm.selectinload(models.SeqRequest.samples).selectinload(
+                models.Sample.project
+            ),
+            orm.selectinload(models.SeqRequest.libraries).selectinload(
+                models.Library.pool
+            ),
+            orm.selectinload(models.SeqRequest.sample_library_links).selectinload(
+                models.links.SampleLibraryLink.library
+            ),
+            orm.selectinload(models.SeqRequest.sample_library_links).selectinload(
+                models.links.SampleLibraryLink.sample
+            ),
         ],
     )
 
     checklist = seq_request.get_review_checklist()
-    contains_mux_samples = any(library.is_multiplexed() for library in seq_request.libraries)
+    contains_mux_samples = any(
+        library.is_multiplexed() for library in seq_request.libraries
+    )
 
     indices_checked = True
     for library in seq_request.libraries:
         for index in library.indices:
-            if index.orientation is None or index.orientation == C.BarcodeOrientation.FORWARD_NOT_VALIDATED:
+            if (
+                index.orientation is None
+                or index.orientation == C.BarcodeOrientation.FORWARD_NOT_VALIDATED
+            ):
                 indices_checked = False
                 break
         if not indices_checked:
@@ -635,7 +829,7 @@ async def get_seq_request_review_checklist(
     )
 
 
-@router.post("/review-check/{seq_request_id}/{step}")
+@router.post("/{seq_request_id}/review-check/{step}")
 async def check_seq_request_review_step(
     seq_request_id: int,
     step: str,
@@ -654,11 +848,13 @@ async def check_seq_request_review_step(
     await session.save(seq_request)
 
     return await responses.htmx_response(
-        redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id, tab="review-tab"),
+        redirect=request.url_for(
+            "seq_request_page", seq_request_id=seq_request.id, tab="review-tab"
+        ),
     )
 
 
-@router.post("/review-uncheck/{seq_request_id}/{step}")
+@router.post("/{seq_request_id}/review-uncheck/{step}")
 async def uncheck_seq_request_review_step(
     seq_request_id: int,
     step: str,
@@ -677,11 +873,13 @@ async def uncheck_seq_request_review_step(
     await session.save(seq_request)
 
     return await responses.htmx_response(
-        redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id, tab="review-tab"),
+        redirect=request.url_for(
+            "seq_request_page", seq_request_id=seq_request.id, tab="review-tab"
+        ),
     )
 
 
-@router.get("/sample-table/{seq_request_id}")
+@router.get("/{seq_request_id}/sample-table")
 async def get_seq_request_sample_table(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
@@ -693,7 +891,9 @@ async def get_seq_request_sample_table(
     seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
     df = await session.pd.get_seq_request_sample_table(seq_request_id=seq_request_id)
     df["project"] = df["project_identifier"]
-    df.loc[df["project"].isna(), "project"] = df.loc[df["project"].isna(), "project_title"]
+    df.loc[df["project"].isna(), "project"] = df.loc[
+        df["project"].isna(), "project_title"
+    ]
     df = df.drop(columns=["project_identifier", "project_title", "sample_id"])
 
     from ...components.tables.spreadsheet import TextColumn
@@ -702,7 +902,9 @@ async def get_seq_request_sample_table(
     columns: list = [TextColumn("sample_name", "Sample Name", width=300)]
     for column in df.columns:
         if column not in {"sample_name", "project"}:
-            columns.append(TextColumn(column, column.replace("_", " ").title(), width=200))
+            columns.append(
+                TextColumn(column, column.replace("_", " ").title(), width=200)
+            )
 
     spreadsheet = StaticSpreadsheet(df, columns=columns)
 
@@ -711,7 +913,7 @@ async def get_seq_request_sample_table(
     )
 
 
-@router.post("/confirm-barcodes/{seq_request_id}")
+@router.post("/{seq_request_id}/confirm-barcodes")
 async def confirm_seq_request_barcodes(
     seq_request_id: int,
     request: Request,
@@ -724,13 +926,18 @@ async def confirm_seq_request_barcodes(
     seq_request = await session.get_one(
         Q.seq_request.select(id=seq_request_id),
         options=[
-            orm.selectinload(models.SeqRequest.libraries).selectinload(models.Library.indices),
+            orm.selectinload(models.SeqRequest.libraries).selectinload(
+                models.Library.indices
+            ),
         ],
     )
 
     for library in seq_request.libraries:
         for index in library.indices:
-            if index.orientation is None or index.orientation == C.BarcodeOrientation.FORWARD_NOT_VALIDATED:
+            if (
+                index.orientation is None
+                or index.orientation == C.BarcodeOrientation.FORWARD_NOT_VALIDATED
+            ):
                 index.orientation = C.BarcodeOrientation.FORWARD
 
     await session.save(seq_request)
@@ -740,7 +947,7 @@ async def confirm_seq_request_barcodes(
     )
 
 
-@router.delete("/remove-share-email/{seq_request_id}/{email}")
+@router.delete("/{seq_request_id}/remove-share-email/{email}")
 async def remove_seq_request_share_email(
     seq_request_id: int,
     email: str,
@@ -760,7 +967,9 @@ async def remove_seq_request_share_email(
         raise exc.NoPermissionsException()
 
     share_email_link = await session.first(
-        Q.links.get_seq_request_delivery_email_link(seq_request_id=seq_request_id, email=email)
+        Q.links.get_seq_request_delivery_email_link(
+            seq_request_id=seq_request_id, email=email
+        )
     )
     if share_email_link is None:
         raise exc.ItemNotFoundException()
@@ -768,13 +977,16 @@ async def remove_seq_request_share_email(
     await session.delete(share_email_link)
 
     return await responses.htmx_response(
-        redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id, tab="request-share-tab"),
+        redirect=request.url_for(
+            "seq_request_page", seq_request_id=seq_request.id, tab="request-share-tab"
+        ),
         flash=responses.flash("Removed email!", "success"),
     )
 
-@router.post("/add-assignee")
+
+@router.post("/{seq_request_id}/add-assignee")
 async def add_assignee_to_seq_request(
-    seq_request_id: int = Query(...),
+    seq_request_id: int,
     assignee_id: int | None = Query(None),
     session: AsyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_insider),
@@ -801,4 +1013,440 @@ async def add_assignee_to_seq_request(
         flash=responses.flash("Assignee Added!", "success"),
     )
 
-    
+
+# ─────────────────────────────────────────────────────────────────────
+# File management routes
+# ─────────────────────────────────────────────────────────────────────
+
+
+@router.delete("/{seq_request_id}/delete-file/{file_id}")
+async def delete_file(
+    seq_request_id: int,
+    file_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+
+    if (
+        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        and access_level < C.AccessLevel.INSIDER
+    ):
+        raise exc.NoPermissionsException()
+
+    file = await session.get_one(Q.media_file.select(id=file_id))
+
+    if file not in seq_request.media_files:
+        raise exc.BadRequestException()
+
+    file_path = os.path.join(config.settings.app_config.media_folder, file.path)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    await session.delete(file)
+
+    return await responses.htmx_response(
+        redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
+        flash=responses.flash(f"Deleted file '{file.name}' from request.", "success"),
+    )
+
+
+@router.delete("/{seq_request_id}/remove-auth-form")
+async def remove_auth_form(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+    current_user: models.User = Depends(dependencies.require_user),
+):
+    seq_request = await session.get_one(
+        Q.seq_request.select(id=seq_request_id),
+        options=[orm.selectinload(models.SeqRequest.seq_auth_form_file)],
+    )
+
+    if seq_request.seq_auth_form_file is None:
+        raise exc.BadRequestException("No authorization form uploaded.")
+
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    if (
+        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        and access_level < C.AccessLevel.INSIDER
+    ):
+        raise exc.NoPermissionsException()
+
+    if (
+        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        and not current_user.is_insider()
+    ):
+        raise exc.NoPermissionsException()
+
+    file = seq_request.seq_auth_form_file
+    filepath = os.path.join(config.settings.app_config.media_folder, file.path)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+
+    await session.delete(file)
+
+    return await responses.htmx_response(
+        redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
+        flash=responses.flash("Authorization form removed!", "success"),
+    )
+
+
+@router.delete("/{seq_request_id}/remove-library/{library_id}")
+async def remove_library(
+    seq_request_id: int,
+    library_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+
+    if (
+        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        and access_level < C.AccessLevel.INSIDER
+    ):
+        raise exc.NoPermissionsException()
+
+    library = await session.get_one(Q.library.select(id=library_id))
+
+    if library.seq_request_id != seq_request.id:
+        raise exc.BadRequestException()
+
+    await session.delete(library)
+
+    return await responses.htmx_response(
+        redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
+        flash=responses.flash("Library removed!", "success"),
+    )
+
+
+@router.post("/{seq_request_id}/reseq-library/{library_id}")
+async def reseq_library(
+    seq_request_id: int,
+    library_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+
+    if (
+        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        and access_level < C.AccessLevel.INSIDER
+    ):
+        raise exc.NoPermissionsException()
+
+    library = await session.get_one(Q.library.select(id=library_id))
+
+    actions.clone_library(
+        session=session.sync_session,
+        library_id=library.id,
+        seq_request_id=seq_request.id,
+        status=C.LibraryStatus.PREPARING,
+        indexed=True,
+    )
+
+    return await responses.htmx_response(
+        redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
+        flash=responses.flash("Library cloned!", "success"),
+    )
+
+
+@router.delete("/{seq_request_id}/remove-sample/{sample_id}")
+async def remove_sample_from_seq_request(
+    seq_request_id: int,
+    sample_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+
+    if (
+        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
+        and access_level < C.AccessLevel.INSIDER
+    ):
+        raise exc.NoPermissionsException()
+
+    sample = await session.get_one(Q.sample.select(id=sample_id))
+
+    for library_link in sample.library_links:
+        if library_link.library.seq_request_id != seq_request_id:
+            continue
+        await session.delete(library_link.library)
+
+    return await responses.htmx_response(
+        redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
+        flash=responses.flash(
+            "Removed all libraries associated with the sample.", "success"
+        ),
+    )
+
+@router.get("/{seq_request_id}/submit-request")
+async def render_submit_request_form(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+
+    if seq_request.status_id != C.SeqRequestStatus.DRAFT.id:
+        raise exc.BadRequestException("Only draft requests can be submitted.")
+
+    if not seq_request.is_submittable() and not access_level >= C.AccessLevel.INSIDER:
+        raise exc.BadRequestException(
+            "Request is missing prerequisites for submission."
+        )
+
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    form = forms.actions.SubmitSeqRequestForm(request, seq_request=seq_request)
+    return await form.make_response()
+
+
+@router.post("/{seq_request_id}/submit-request")
+async def submit_request(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_user),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+
+    if seq_request.status_id != C.SeqRequestStatus.DRAFT.id:
+        raise exc.BadRequestException("Only draft requests can be submitted.")
+
+    if not seq_request.is_submittable() and not current_user.is_insider():
+        raise exc.BadRequestException(
+            "Request is missing prerequisites for submission."
+        )
+
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    form = forms.actions.SubmitSeqRequestForm(request, seq_request=seq_request)
+    await form.validate()
+
+    if form.sample_submission_time.data and form.samples_delivered_by_mail.data:
+        form.sample_submission_time.errors.append(
+            "Select sample submission time or delivery by mail."
+        )
+        form.samples_delivered_by_mail.errors.append(
+            "Select sample submission time or delivery by mail."
+        )
+        raise exc.FormValidationException(form)
+
+    if not form.sample_submission_time.data and not form.samples_delivered_by_mail.data:
+        form.sample_submission_time.errors.append(
+            "Select sample submission time or delivery by mail."
+        )
+        form.samples_delivered_by_mail.errors.append(
+            "Select sample submission time or delivery by mail."
+        )
+        raise exc.FormValidationException(form)
+
+    if form.comment.data and (comment := form.comment.data.strip()):
+        await session.save(
+            Q.comment.create(
+                seq_request=seq_request,
+                author=current_user,
+                text=f"Sample submission comment: {comment}",
+            )
+        )
+
+    seq_request = actions.submit_seq_request(
+        session=session.sync_session, seq_request=seq_request
+    )
+
+    return await responses.htmx_response(
+        redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
+        flash=responses.flash("Sequencing request submitted successfully.", "success"),
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Comment form
+# ─────────────────────────────────────────────────────────────────────
+
+
+@router.get("/{seq_request_id}/comment-form")
+async def render_comment_form(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    form = forms.actions.SeqRequestCommentForm(request, seq_request=seq_request)
+    return await form.make_response()
+
+
+@router.post("/{seq_request_id}/comment-form")
+async def add_comment(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_user),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    form = forms.actions.SeqRequestCommentForm(request, seq_request=seq_request)
+    await form.validate()
+
+    await session.save(
+        Q.comment.create(
+            text=form.comment.data,
+            author=current_user,
+            seq_request=seq_request,
+        )
+    )
+
+    return await responses.htmx_response(
+        redirect=request.url_for(
+            "seq_request_page",
+            seq_request_id=seq_request.id,
+            tab="request-comments-tab",
+        ),
+        flash=responses.flash("Comment added successfully.", "success"),
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Share email form
+# ─────────────────────────────────────────────────────────────────────
+
+
+@router.get("/{seq_request_id}/add-share-email")
+async def render_add_share_email_form(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    form = forms.actions.SeqRequestShareEmailForm(request, seq_request=seq_request)
+    return await form.make_response()
+
+
+@router.post("/{seq_request_id}/add-share-email")
+async def add_share_email(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    seq_request = await session.get_one(
+        Q.seq_request.select(id=seq_request_id),
+        options=[orm.selectinload(models.SeqRequest.delivery_email_links)],
+    )
+    form = forms.actions.SeqRequestShareEmailForm(request, seq_request=seq_request)
+    await form.validate()
+
+    email = form.email.data.strip()
+    if email in [link.email for link in seq_request.delivery_email_links]:
+        form.email.errors.append("This email address is already in the list.")
+        raise exc.FormValidationException(form)
+
+    seq_request.delivery_email_links.append(
+        models.links.SeqRequestDeliveryEmailLink(email=email)
+    )
+    await session.save(seq_request)
+
+    return await responses.htmx_response(
+        redirect=request.url_for(
+            "seq_request_page", seq_request_id=seq_request.id, tab="request-share-tab"
+        ),
+        flash=responses.flash("Email added to the list.", "success"),
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Assignee form
+# ─────────────────────────────────────────────────────────────────────
+
+
+@router.get("/{seq_request_id}/add-assignee-form")
+async def render_add_assignee_form(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_insider),
+):
+    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    form = forms.actions.AddSeqRequestAssigneeForm(
+        request, seq_request=seq_request, current_user=current_user
+    )
+    return await form.make_response()
+
+
+@router.post("/{seq_request_id}/add-assignee-form")
+async def add_assignee_from_form(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_insider),
+):
+    seq_request = await session.get_one(
+        Q.seq_request.select(id=seq_request_id),
+        options=[orm.selectinload(models.SeqRequest.assignees)],
+    )
+    form = forms.actions.AddSeqRequestAssigneeForm(
+        request, seq_request=seq_request, current_user=current_user
+    )
+    await form.validate()
+
+    assignee = await session.get_one(Q.user.select(id=int(form.user_id.data)))
+
+    if not assignee.is_insider():
+        form.user_id.errors.append("Only insider users can be assigned to requests.")
+        raise exc.FormValidationException(form)
+
+    if assignee in seq_request.assignees:
+        form.user_id.errors.append(
+            f"User {assignee.name} is already an assignee in this request."
+        )
+        raise exc.FormValidationException(form)
+
+    seq_request.assignees.append(assignee)
+    await session.save(seq_request)
+
+    return await responses.htmx_response(
+        redirect=request.url_for(
+            "seq_request_page",
+            seq_request_id=seq_request.id,
+            tab="request-assignees-tab",
+        ),
+        flash=responses.flash("Assignee added successfully.", "success"),
+    )

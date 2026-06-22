@@ -8,12 +8,12 @@ router = APIRouter(prefix="/libraries", tags=["libraries"])
 
 
 @router.get("/")
-async def libraries():
+async def libraries_page():
     return await responses.html_response("libraries_page.html", title="Libraries")
 
 
 @router.get("/{library_id}")
-async def library(
+async def library_page(
     library_id: int,
     current_user: models.User = Depends(dependencies.require_user),
 ):

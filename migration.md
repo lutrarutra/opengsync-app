@@ -15,7 +15,7 @@ Reference implementations: `projects.py`, `samples.py`, `seq_requests.py`, `user
 - Use `selectin()` for eager loading relationships.
 - Use `orm.with_expression(Model._hybrid_prop, Model.hybrid_prop.expression)` for hybrid properties (lazy loading is impossible with async sessions).
 
-### Forms: `forms/*_form.py` → `server/forms/*_form.py`
+### Forms: `forms/` → `server/forms/`
 
 WTForms → custom Pydantic `BaseModel`-based `HTMXForm`. Reference: `ProjectForm`, `LoginForm`, `SeqRequestForm`.
 
@@ -24,6 +24,8 @@ WTForms → custom Pydantic `BaseModel`-based `HTMXForm`. Reference: `ProjectFor
   - Two actions per form: static methods `FormClass.create()` and `FormClass.edit()`.
   - Validation errors raise `FormValidationException` → handled in `handlers.py` → re-renders form with errors.
 - Input field types: `StringInputField`, `EmailInputField`, `PasswordInputField`, `TextAreaInputField`, `SelectableInputField`, `SearchableInputField`.
+- File attachment forms (expriment, seq_request, lab_prep) -> MediaFileForm.py, same with comments
+- Small workflows, that have only one step/form, moved to forms/actions
 
 ### Page Routes: `routes/pages/*_page.py` → `server/routes/pages/*.py`
 
@@ -99,7 +101,7 @@ Started via `begin_<workflow_name>` route. Multi-step wizards with forms extendi
 | `pools_htmx` | `routes/htmx/pools_htmx.py` | **Not started** |
 | `auth_htmx` | `routes/htmx/auth_htmx.py` | Mostly done |
 | `barcodes_htmx` | `routes/htmx/barcodes_htmx.py` | **Not started** |
-| `seq_requests_htmx` | `routes/htmx/seq_requests_htmx.py` | Partial (table, create, edit, add-assignee) |
+| `seq_requests_htmx` | `routes/htmx/seq_requests_htmx.py` | Mostly done (all core routes except store_samples) |
 | `sequencers_htmx` | `routes/htmx/sequencers_htmx.py` | **Not started** |
 | `users_htmx` | `routes/htmx/users_htmx.py` | Mostly done |
 | `libraries_htmx` | `routes/htmx/libraries_htmx.py` | **Not started** |
@@ -139,6 +141,11 @@ Started via `begin_<workflow_name>` route. Multi-step wizards with forms extendi
 | `CompleteRegistrationForm` | `server/forms/auth/CompleteRegistrationForm.py` | Done |
 | `ChangePasswordForm` | `server/forms/auth/ChangePasswordForm.py` | Done |
 | `APITokenForm` | `server/forms/auth/APITokenForm.py` | Done |
+| `ProcessSeqRequestForm` | `server/forms/actions/ProcessSeqRequestForm.py` | Done |
+| `SeqRequestCommentForm` | `server/forms/actions/SeqRequestCommentForm.py` | Done |
+| `SeqRequestShareEmailForm` | `server/forms/actions/SeqRequestShareEmailForm.py` | Done |
+| `AddSeqRequestAssigneeForm` | `server/forms/actions/AddSeqRequestAssigneeForm.py` | Done |
+| `SubmitSeqRequestForm` | `server/forms/actions/SubmitSeqRequestForm.py` | Done |
 
 ### Not Yet Ported — Model Forms (16)
 
@@ -167,33 +174,28 @@ Started via `begin_<workflow_name>` route. Multi-step wizards with forms extendi
 |---|---|
 | `ResetPasswordForm` | `server/forms/auth/ResetPasswordForm.py` |
 
-### Not Yet Ported — Comment/File Forms (8)
+### Not Yet Ported — Comment/File Forms (7)
 
 | Flask | FastAPI target |
 |---|---|
 | `CommentForm` | `server/forms/CommentForm.py` |
 | `ExperimentCommentForm` | `server/forms/ExperimentCommentForm.py` |
-| `SeqRequestCommentForm` | `server/forms/SeqRequestCommentForm.py` |
 | `LabPrepCommentForm` | `server/forms/LabPrepCommentForm.py` |
 | `FileInputForm` | `server/forms/FileInputForm.py` |
 | `ExperimentAttachmentForm` | `server/forms/ExperimentAttachmentForm.py` |
 | `SeqRequestAttachmentForm` | `server/forms/SeqRequestAttachmentForm.py` |
 | `LabPrepAttachmentForm` | `server/forms/LabPrepAttachmentForm.py` |
 
-### Not Yet Ported — Misc/Specialty Forms (17)
+### Not Yet Ported — Misc/Specialty Forms (13)
 
 | Flask | FastAPI target |
 |---|---|
 | `MultiStepForm` | `server/forms/MultiStepForm.py` |
-| `SubmitSeqRequestForm` | `server/forms/SubmitSeqRequestForm.py` |
 | `SampleAttributeTableForm` | `server/forms/SampleAttributeTableForm.py` |
 | `SeqAuthForm` | `server/forms/SeqAuthForm.py` |
 | `LibraryFeaturesForm` | `server/forms/LibraryFeaturesForm.py` |
-| `AddSeqRequestAssigneeForm` | `server/forms/AddSeqRequestAssigneeForm.py` |
-| `ProcessRequestForm` | `server/forms/ProcessRequestForm.py` |
 | `SelectSamplesForm` | `server/forms/SelectSamplesForm.py` |
 | `AddUserToGroupForm` | `server/forms/AddUserToGroupForm.py` |
-| `SeqRequestShareEmailForm` | `server/forms/SeqRequestShareEmailForm.py` |
 | `AddProjectAssigneeForm` | `server/forms/AddProjectAssigneeForm.py` |
 | `EditKitFeaturesForm` | `server/forms/EditKitFeaturesForm.py` |
 | `QueryBarcodeSequencesForm` | `server/forms/QueryBarcodeSequencesForm.py` |
@@ -239,22 +241,28 @@ Organized under `server/forms/workflows/`:
 Frequently used entity routes. Each module needs both the form and the full HTMX route file.
 
 #### 1a. Pools
+
 - **Form:** `PoolForm` (create/edit)
 - **Routes:** table, search, create, edit, delete, clone, `get_form`, remove_libraries, plate, dilutions, browse, recent
 
 #### 1b. Libraries
+
 - **Form:** `LibraryForm`
 - **Routes:** table, search, edit, features, crispr_guides, reads, browse, select_all, remove_sample, mux_table, todo_libraries, properties, edit_properties, edit_features
 
 #### 1c. Experiments (complete routes)
+
 - **Missing routes:** create, edit, delete, search, set_cycles, lane_pool/unlane_pool, comment_form, file_form, delete_file, add_comment, remove_pool, overview, comments, files, stats, checklist, browse, dilutions, sequencer_loading_checklist, recent
 - **Forms needed:** `ExperimentForm`, `ExperimentCommentForm`, `ExperimentAttachmentForm`, `SequencerLoadingChecklistForm`, `EditExperimentCyclesForm`
 
 #### 1d. Seq Requests (complete routes)
-- **Missing routes:** search, export, delete, archive/unarchive, submit, upload_auth_form, comment_form, file_form, delete_file, remove_auth_form, remove_library, reseq_library, remove_sample, remove_all_libraries, process, add_share_email, remove_share_email, overview, comments, files, clone, store_samples, assignees (add/remove/form), submit_checklist, review_checklist, sample_table, confirm_barcodes
-- **Forms needed:** `SubmitSeqRequestForm`, `SeqAuthForm`, `SeqRequestCommentForm`, `SeqRequestAttachmentForm`, `SeqRequestShareEmailForm`, `AddSeqRequestAssigneeForm`, `ProcessRequestForm`
+
+- **Remaining:** `store_samples` (requires `SelectSamplesForm`/`MultiStepForm` porting)
+- **Forms ported:** `SubmitSeqRequestForm`, `SeqRequestCommentForm`, `SeqRequestShareEmailForm`, `AddSeqRequestAssigneeForm`, `ProcessSeqRequestForm`
+- **File upload:** handled by existing `MediaFileForm` + `files` router
 
 #### 1e. Projects (complete routes)
+
 - **Missing routes:** search, render_sample_table, edit_sample_attributes, get_recent, assignees (add/remove/form), remove_data_path
 - **Forms needed:** `SampleAttributeTableForm`, `AddProjectAssigneeForm`
 
@@ -263,24 +271,29 @@ Frequently used entity routes. Each module needs both the form and the full HTMX
 ### Phase 2 — Insider-Only HTMX CRUD (Priority: Medium)
 
 #### 2a. Seq Runs
+
 - **Form:** `SeqRunForm`
 - **Routes:** table, search, create, edit, delete
 
 #### 2b. Lab Preps (complete routes)
+
 - **Missing routes:** table, search, edit, delete, comment, files
 - **Forms needed:** `LabPrepCommentForm`, `LabPrepAttachmentForm`
 
 #### 2c. Kits / Index Kits / Feature Kits
+
 - **Forms:** `KitForm`, `IndexKitForm`, `FeatureKitForm`
 - **Routes:** table, search, create, edit, delete for each
 - **Extra forms:** `EditKitFeaturesForm`, `LibraryFeaturesForm`, `LibraryPropertyForm`, `LibraryPropertiesForm`
 
 #### 2d. Groups
+
 - **Form:** `GroupForm`
 - **Routes:** table, create, edit, delete, add/remove users
 - **Extra form:** `AddUserToGroupForm`
 
 #### 2e–2n. Remaining Modules
+
 | Module | Form | Notes |
 |---|---|---|
 | Sequencers | `SequencerForm` | Table, search, create, edit, delete |

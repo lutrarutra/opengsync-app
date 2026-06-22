@@ -43,8 +43,8 @@ def user(current_user: models.User, user_id: int | None = None):
             ]
         elif page == "project":
             path_list = [
-                ("Projects", url_for("projects_page.projects")),
-                (f"Project {id}", url_for("projects_page.project", project_id=id)),
+                ("Projects", url_for("project_pages")),
+                (f"Project {id}", url_for("project_page", project_id=id)),
                 (f"User {user_id}", ""),
             ]
         elif page == "sample":

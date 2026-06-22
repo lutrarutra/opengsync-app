@@ -21,7 +21,7 @@
                 {{ well_sample.name }}
             </a>
             {% elif well_sample.__tablename__ == "library" %}
-            <a href="{% if from_page %}{{ url_for('libraries_page.library', library_id=well_sample.id, from=from_page) }}{% else %}{{ url_for('libraries_page.library', library_id=well_sample.id) }}{% endif %}"
+            <a href="{% if from_page %}{{ url_for('library_page', library_id=well_sample.id, from=from_page) }}{% else %}{{ url_for('library_page', library_id=well_sample.id) }}{% endif %}"
                 class="plate-cell {% if well_sample %}filled{% else %}empty{% endif %} {% if sample is defined and well_sample == sample %}selected{% endif %}" id="plate-cell-{{row}}-{{col}}" col="{{col}}" row="{{row}}">
                 <div>{{ well_sample.sample_name }}</div>
                 <div>{{ well_sample.type.identifier}}</div>

@@ -34,8 +34,8 @@ def share_token(current_user: models.User, share_token_id: str):
             ]
         elif page == "project":
             path_list = [
-                ("Projects", url_for("projects_page.projects")),
-                (f"Project {id}", url_for("projects_page.project", project_id=id)),
+                ("Projects", url_for("project_pages")),
+                (f"Project {id}", url_for("project_page", project_id=id)),
                 (f"share_token {share_token_id}", ""),
             ]
         elif page == "seq_request":

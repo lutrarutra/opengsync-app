@@ -20,6 +20,9 @@ def format_datetime(value: datetime, format: str = "%Y-%m-%d %H:%M"):
     """Convert datetime to readable string"""
     return value.astimezone(settings.TIMEZONE).strftime(format)
 
+def weekday_name(value: int):
+    return ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][value]
+
 
 def filesize(value: int | float):
     """Convert bytes to human readable format"""
@@ -33,12 +36,13 @@ def filesize(value: int | float):
 
 def format_markdown(value: str) -> str:
     from markupsafe import Markup
-    import markdown
+    import markdown  #type: ignore
     return Markup(markdown.markdown(value))
 
 j2.env.filters["format_timestamp"] = format_timestamp
 j2.env.filters["format_datetime"] = format_datetime
 j2.env.filters["format_markdown"] = format_markdown
+j2.env.filters["weekday_name"] = weekday_name
 
 j2.env.filters["filesize"] = filesize
 

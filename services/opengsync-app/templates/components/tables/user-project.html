@@ -19,8 +19,8 @@
             {% for project in projects %}
             <tr>
                 <th scope="row">{{ project.id }}</th>
-                <td><a href="{{ url_for('projects_page.project', project_id=project.id, from='user@' + user.id | string) }}">{{ project.identifier or "" }}</a></td>
-                <td><a href="{{ url_for('projects_page.project', project_id=project.id, from='user@' + user.id | string) }}">{{ project.title }}</a></td>
+                <td><a href="{{ url_for('project_page', project_id=project.id, from='user@' + user.id | string) }}">{{ project.identifier or "" }}</a></td>
+                <td><a href="{{ url_for('project_page', project_id=project.id, from='user@' + user.id | string) }}">{{ project.title }}</a></td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(project.library_types) }}</td>
                 <td>{{ project.status.icon }} {{ project.status.label }}</td>
                 <td>{{ project.num_samples }}</td>

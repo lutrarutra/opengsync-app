@@ -80,7 +80,7 @@ def delete(current_user: models.User, project_id: int):
     
     db.session.delete(project)
     flash(f"Deleted project {project.title}.", "success")
-    return make_response(redirect=url_for("projects_page.projects"))
+    return make_response(redirect=url_for("project_pages"))
 
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
@@ -94,11 +94,11 @@ def complete(current_user: models.User, project_id: int):
     for library in project.libraries:
         if library.status not in {LibraryStatus.SHARED, LibraryStatus.FAILED, LibraryStatus.REJECTED, LibraryStatus.ARCHIVED}:
             flash(f"Cannot complete project {project.title} because some libraries are not shared/failed/rejected/archived.", "warning")
-            return make_response(redirect=url_for("projects_page.project", project_id=project_id))
+            return make_response(redirect=url_for("project_page", project_id=project_id))
             
     project.status = ProjectStatus.DELIVERED
     db.session.save(project)
-    return make_response(redirect=url_for("projects_page.project", project_id=project.id))
+    return make_response(redirect=url_for("project_page", project_id=project.id))
 
 
 @wrappers.htmx_route(projects_htmx, db=db)
@@ -353,7 +353,7 @@ def remove_data_path(current_user: models.User, project_id: int):
     db.session.delete(data_path)
 
     flash("Path Removed.", "success")
-    return make_response(redirect=url_for("projects_page.project", project_id=project.id, tab="project-data_paths-tab"))
+    return make_response(redirect=url_for("project_page", project_id=project.id, tab="project-data_paths-tab"))
 
         
 @wrappers.htmx_route(projects_htmx, db=db)

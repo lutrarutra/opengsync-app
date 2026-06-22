@@ -36,7 +36,7 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
 
     is_insider = sa.select(1).where(
         User.id == user_id,
-        User.role_id.isin([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id])
+        User.role_id.in_([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id])
     )
 
     is_owner = sa.select(1).where(

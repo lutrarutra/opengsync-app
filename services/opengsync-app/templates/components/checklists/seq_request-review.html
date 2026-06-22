@@ -329,7 +329,7 @@
                                 {% for sample in seq_request.samples %}
                                 <tr>
                                     <th scope="row">{{ sample.name }}</th>
-                                    <td><a href="{{ url_for('projects_page.project', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}" target="_blank">
+                                    <td><a href="{{ url_for('project_page', project_id=sample.project_id, from='seq_request@' + seq_request.id | string) }}" target="_blank">
                                         {{ sample.project.identifier or sample.project.title }}
                                     </a></td>
                                     <td class="x-scroll-cell">
@@ -337,7 +337,7 @@
                                             {% for library_link in sample.library_links %}
                                             {% set library = library_link.library %}
                                             {% if seq_request.id == library.seq_request_id %}
-                                            <span class="badge"><a href="{{ url_for('libraries_page.library', library_id=library.id, from='seq_request@' + seq_request.id | string) }}" target="_blank">{{ library.type.abbreviation }}</a></span>
+                                            <span class="badge"><a href="{{ url_for('library_page', library_id=library.id, from='seq_request@' + seq_request.id | string) }}" target="_blank">{{ library.type.abbreviation }}</a></span>
                                             {% endif %}
                                             {% endfor %}
                                         </div>
@@ -392,7 +392,7 @@
                                     <th scope="row">{{ link.sample.name }}</th>
                                     <td class="x-scroll-cell">
                                         <div class="scroll-container">
-                                            <a href="{{ url_for('libraries_page.library', library_id=link.library_id, from='seq_request@' + seq_request.id | string) }}" target="_blank">
+                                            <a href="{{ url_for('library_page', library_id=link.library_id, from='seq_request@' + seq_request.id | string) }}" target="_blank">
                                                 {{ link.library.sample_name }}{% if link.library.mux_type %}<sup class="mux-type">[{{ link.library.mux_type.abbreviation }}]</sup>{% endif %}
                                             </a>
                                             <span class="badge">

@@ -111,4 +111,4 @@ class SampleAttributeTableForm(HTMXFlaskForm):
                     sample.delete_sample_attribute(label)
 
         flash("Changes Saved!", "success")
-        return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-attributes-tab"))
+        return make_response(redirect=url_for("project_page", project_id=self.project.id, tab="project-attributes-tab"))

@@ -1,5 +1,6 @@
+from datetime import time
 from typing import Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, PrivateAttr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 import pytz
@@ -12,8 +13,8 @@ class Personalization(BaseModel):
 
 class SampleSubmissionWindow(BaseModel):
     weekday: int
-    start_time: str
-    end_time: str
+    start_time: time
+    end_time: time
 
 
 class DBConfig(BaseModel):
@@ -79,6 +80,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    _app_config: AppConfig | None = PrivateAttr(default=None)
 
     @property
     def TIMEZONE(self) -> pytz.BaseTzInfo:

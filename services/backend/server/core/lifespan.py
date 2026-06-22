@@ -11,7 +11,7 @@ from fastapi_cache.backends.redis import RedisBackend
 
 from opengsync_db import AsyncDBHandler
 
-from . import config, mailer, secrets
+from . import config, mailer, secrets, templates
 
 
 @asynccontextmanager
@@ -35,6 +35,7 @@ async def lifespan(app: FastAPI):
             raw = yaml.safe_load(f)
         app_config = config.AppConfig.model_validate(raw)
         config.settings.inject_app_config(app_config)
+        templates.j2.env.globals["sample_submission_windows"] = config.settings.app_config.sample_submission_windows
         logger.info("AppConfig injected from opengsync.yaml")
     else:
         logger.warning("opengsync.yaml not found, app_config unavailable")

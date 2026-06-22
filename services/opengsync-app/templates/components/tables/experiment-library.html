@@ -33,7 +33,7 @@
                         {"type": "copy", "value": library.name, "label": "Copy Name"},
                     ])
                 }}>
-                    <a href="{{ url_for('libraries_page.library', library_id=library.id, from='experiment@' + experiment.id | string) }}">
+                    <a href="{{ url_for('library_page', library_id=library.id, from='experiment@' + experiment.id | string) }}">
                     {{ library.name }}{% if library.clone_number > 0 %}<sup class="clone-number">(re:{{ library.clone_number }})</sup>{% endif %}
                     </a>
                 </td>

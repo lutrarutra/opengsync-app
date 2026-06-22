@@ -35,8 +35,8 @@ def sample(current_user: models.User, sample_id: int):
             ]
         elif page == "project":
             path_list = [
-                ("Projects", url_for("projects_page.projects")),
-                (f"Project {id}", url_for("projects_page.project", project_id=id)),
+                ("Projects", url_for("project_pages")),
+                (f"Project {id}", url_for("project_page", project_id=id)),
                 (f"Sample {sample_id}", ""),
             ]
         elif page == "seq_request":

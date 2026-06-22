@@ -13,7 +13,7 @@ hx-get="{{ url_for('render_project_table_recent', page=current_page + 1) }}" hx-
 {% endif %}
     <div class="row">
         <div class="col-6">
-            <a type="button" href="{{ url_for('projects_page.project', project_id=project.id) }}">{% if project.identifier %}{{ project.identifier }}{% else %}#{{ project.id }}{% endif %}</a> {% if project.assignees %} - {{ assignee_list(project.assignees, current_user=current_user) }}{% endif %}
+            <a type="button" href="{{ url_for('project_page', project_id=project.id) }}">{% if project.identifier %}{{ project.identifier }}{% else %}#{{ project.id }}{% endif %}</a> {% if project.assignees %} - {{ assignee_list(project.assignees, current_user=current_user) }}{% endif %}
         </div>
         <div class="col-6">
             {% if current_user.is_insider() and current_user not in project.assignees %}

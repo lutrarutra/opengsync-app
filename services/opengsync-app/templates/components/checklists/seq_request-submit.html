@@ -85,7 +85,7 @@
                         {{
                             modal_button(
                                 text="Submit", size="xl", color="success",
-                                url=url_for('seq_requests_htmx.submit_request', seq_request_id=seq_request.id),
+                                url=url_for('submit_request', seq_request_id=seq_request.id),
                                 disabled=not is_submittable and not current_user.is_insider(),
                             )
                         }} - Sequencing Request for Review
@@ -93,9 +93,9 @@
                 </ol>
                 <b>Sample Submission Windows: </b>
                 <ul>
-                    {% for window in current_app.sample_submission_windows %}
+                    {% for window in sample_submission_windows %}
                     <li>
-                        <span class="badge">{{ window.weekday }}</span> @ <span class="badge">
+                        <span class="badge">{{ window.weekday | weekday_name }}</span> @ <span class="badge">
                         {{ window.start_time.strftime("%H:%M") }}</span> - <span class="badge">{{ window.end_time.strftime("%H:%M") }}
                         </span>
                     </li>

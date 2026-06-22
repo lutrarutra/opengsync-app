@@ -517,7 +517,7 @@ class SeqRequest(Base):
 
         if self._library_type_counts is not None:
             for type_id, count in self._library_type_counts.items():
-                counts[LibraryType.get(type_id)] = count
+                counts[LibraryType.get(int(type_id))] = count
             return counts
 
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
@@ -545,20 +545,31 @@ class SeqRequest(Base):
     @library_type_counts.expression
     def library_type_counts(cls):
         from .Library import Library
-        from .. import queries as Q
-        return sa.select(
-            sa.func.coalesce(
-                sa.func.jsonb_object_agg(
-                    Library.type_id,
-                    sa.func.count(Library.id)
-                ),
-                sa.cast(sa.text("'{}'"), JSONB)
+
+        sr_alias = cls.__table__.alias("sr_inner")
+
+        count_subq = (
+            sa.select(
+                Library.type_id.label("type_id"),
+                sa.func.count(Library.id).label("cnt"),
             )
-        ).where(
-            *Q.library.where_clauses(seq_request_id=cls.id)
-        ).group_by(
-            Library.seq_request_id
-        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+            .where(Library.seq_request_id == sr_alias.c.id)
+            .group_by(Library.type_id)
+            .lateral("s")
+        )
+
+        return (
+            sa.select(
+                sa.func.coalesce(
+                    sa.func.jsonb_object_agg(count_subq.c.type_id, count_subq.c.cnt),
+                    sa.cast(sa.text("'{}'"), JSONB),
+                )
+            )
+            .select_from(sr_alias, count_subq)
+            .where(sr_alias.c.id == cls.id)
+            .correlate(cls)  # type: ignore[arg-type]
+            .scalar_subquery()
+        )
     
     @hybrid_property
     def num_delivery_email_links(self) -> int:  # type: ignore[override]

@@ -72,5 +72,5 @@ class MergeProjectsForm(HTMXFlaskForm):
                             return self.make_response()
         
         project = db.actions.merge_projects(project_dst, project_src)
-        return make_response(redirect=url_for("projects_page.project", project_id=project.id))
+        return make_response(redirect=url_for("project_page", project_id=project.id))
                     

@@ -209,7 +209,7 @@ async def delete_project(
 
     if (project.num_samples) > 0:
         return await responses.htmx_response(
-            redirect=ctx.request.url_for("projects_page.project", project_id=project_id),
+            redirect=ctx.request.url_for("project_page", project_id=project_id),
             flash=responses.flash("Cannot delete project non empty project.", "warning")
         )
     
@@ -231,13 +231,13 @@ async def complete_project(
     for library in project.libraries:
         if library.status not in {C.LibraryStatus.SHARED, C.LibraryStatus.FAILED, C.LibraryStatus.REJECTED, C.LibraryStatus.ARCHIVED}:
             return await responses.htmx_response(
-                redirect=ctx.request.url_for("projects_page.project", project_id=project_id),
+                redirect=ctx.request.url_for("project_page", project_id=project_id),
                 flash=responses.flash(f"Cannot complete project {project.title} because some libraries are not shared/failed/rejected/archived.", "warning")
             )
             
     project.status = C.ProjectStatus.DELIVERED
     return await responses.htmx_response(
-        redirect=ctx.request.url_for("projects_page.project", project_id=project.id),
+        redirect=ctx.request.url_for("project_page", project_id=project.id),
         flash=responses.flash("Project Completed!", "success")
     )
 

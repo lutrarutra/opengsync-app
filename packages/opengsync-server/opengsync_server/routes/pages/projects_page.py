@@ -24,7 +24,7 @@ def project(current_user: models.User, project_id: int):
         raise exceptions.NoPermissionsException()
 
     path_list = [
-        ("Projects", url_for("projects_page.projects")),
+        ("Projects", url_for("project_pages")),
         (f"Project {project_id}", ""),
     ]
 

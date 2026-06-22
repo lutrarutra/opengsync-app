@@ -121,7 +121,7 @@ class ShareProjectDataForm(HTMXFlaskForm):
                     db.session.save(seq_request)
 
         flash("Data Share Email Sent!", "success")
-        return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="project-data_paths-tab"))
+        return make_response(redirect=url_for("project_page", project_id=self.project.id, tab="project-data_paths-tab"))
 
 
 

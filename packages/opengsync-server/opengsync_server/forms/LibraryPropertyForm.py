@@ -121,7 +121,7 @@ class LibraryPropertyForm(HTMXFlaskForm):
 
         flash("Changes Saved!", "success")
         if self.project is not None:
-            return make_response(redirect=url_for("projects_page.project", project_id=self.project.id, tab="libraries-tab"))
+            return make_response(redirect=url_for("project_page", project_id=self.project.id, tab="libraries-tab"))
         elif self.seq_request is not None:
             return make_response(redirect=url_for("seq_request_page", seq_request_id=self.seq_request.id, tab="request-libraries-tab"))
         else:
