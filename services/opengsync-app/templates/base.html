@@ -125,7 +125,7 @@
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'browser-page' else ''}}" href="{{ url_for('browser_page', subpath='/') }}">Files</a>
             </div>
-            {% if user_role == UserRole.ADMIN  %}
+            {% if user_role == C.UserRole.ADMIN  %}
             <div class="nav-item nav-item-dropdown">
                 <p>
                     Admin&nbsp;
@@ -144,11 +144,11 @@
             {% if current_user %}
             <a type="button" class="btn btn-secondary login-btn user-btn" href="{{ url_for('user_page', user_id=current_user.id) }}">
                 <p>
-                    {% if user_role == UserRole.ADMIN %}
+                    {% if user_role == C.UserRole.ADMIN %}
                     <i class="bi bi-wrench-adjustable-circle"></i>
-                    {% elif user_role == UserRole.BIOINFORMATICIAN %}
+                    {% elif user_role == C.UserRole.BIOINFORMATICIAN %}
                     <i class="bi bi-cpu"></i>
-                    {% elif user_role == UserRole.TECHNICIAN %}
+                    {% elif user_role == C.UserRole.TECHNICIAN %}
                     <i class="bi bi-virus2"></i>
                     {% endif %}
                     {% if current_user.is_insider() %}

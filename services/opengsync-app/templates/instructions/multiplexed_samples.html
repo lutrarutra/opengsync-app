@@ -14,7 +14,7 @@
             <ul>
                 <li>Specifies the reference genome used in downstream</li>
                 <li>
-                    {% for genome_ref in GenomeRef.as_list() %}
+                    {% for genome_ref in C.GenomeRef.as_list() %}
                     <span {{ tooltip(genome_ref.organism_latin_name) }} style="cursor: help;" class="badge bg-cemm-blue">
                         {{ genome_ref.display_name }}
                     </span>

@@ -28,8 +28,8 @@
             <div class="tab-pane fade show active" id="form-tab" role="tabpanel" tabindex="0">
                 <div class="input-help">
                     <ul>
-                        <li><b>Indexed</b> [{{ LibraryStatus.STORED.display_name }}] <span class="desc">Selected libraries are indexed but not pooled.</span></li>
-                        <li><b>Raw</b> [{{ LibraryStatus.ACCEPTED.display_name }}] <span class="desc">Selected libraries need to be prepared from raw samples.</span></li>
+                        <li><b>Indexed</b> [{{ C.LibraryStatus.STORED.display_name }}] <span class="desc">Selected libraries are indexed but not pooled.</span></li>
+                        <li><b>Raw</b> [{{ C.LibraryStatus.ACCEPTED.display_name }}] <span class="desc">Selected libraries need to be prepared from raw samples.</span></li>
                     </ul>
                 </div>
                 {{ form.csrf_token() }}

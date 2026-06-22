@@ -72,7 +72,7 @@
                                 </thead>
                                 <tbody>
                                     {% for link in seq_request.delivery_email_links %}
-                                    <tr class="recipient-row{% if is_latest_seq_request and link.status == DeliveryStatus.PENDING and not form.errors %} selected{% endif %}" data-email="{{ link.email }}">
+                                    <tr class="recipient-row{% if is_latest_seq_request and link.status == C.DeliveryStatus.PENDING and not form.errors %} selected{% endif %}" data-email="{{ link.email }}">
                                         <th scope="row">{{ link.email }}</th>
                                         <th>{{ link.status.display_name }}</th>
                                     </tr>

@@ -64,7 +64,7 @@
                     display: "block",
                     left: x + 8, top: y + 8
                 }).empty().append([
-                    {% if library.status == LibraryStatus.DRAFT or current_user.is_insider() %}
+                    {% if library.status == C.LibraryStatus.DRAFT or current_user.is_insider() %}
                     `<li><a class='dropdown-item' onclick='remove_sample()'>Remove</a></li>`
                     {% else %}
                     `<li><a class='dropdown-item disabled' disabled>Remove</a></li>`

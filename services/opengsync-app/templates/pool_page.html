@@ -64,7 +64,7 @@
     </div>
 
     <ul class="nav nav-tabs page-tabs" role="tablist">
-        {% if pool.status == PoolStatus.REPOOLED %}
+        {% if pool.status == C.PoolStatus.REPOOLED %}
         <li class="nav-item" role="presentation">
             <button class="nav-link active" data-bs-toggle="tab"
             data-bs-target="#merged-pool-tab" type="button" role="tab"
@@ -125,7 +125,7 @@
 
 <div class="page-content">
     <div class="tab-content pt-3">
-        {% if pool.status == PoolStatus.REPOOLED %}
+        {% if pool.status == C.PoolStatus.REPOOLED %}
         <div class="tab-pane fade show active" id="merged-pool-tab" role="tabpanel" tabindex="0">
             <div>
                 {{                     

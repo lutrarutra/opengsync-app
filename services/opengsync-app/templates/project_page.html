@@ -12,7 +12,7 @@
             <h1>{% if project.identifier %}{{ project.identifier }}{% else %}<span class="text-secondary">#{{ project.id }}</span>{% endif %}</h1>
         </div>
         <div class="page-controls">
-            {% if current_user.is_insider() and project.status == ProjectStatus.PROCESSING %}
+            {% if current_user.is_insider() and project.status == C.ProjectStatus.PROCESSING %}
             {{
                 confirm_action_button(
                     text="Complete Project",
@@ -136,7 +136,7 @@
                     {{
                         modal_button(
                             "Edit Attributes", url=url_for('render_project_sample_attributes_form', project_id=project.id),
-                            disabled=not (current_user.is_insider() or project.status <= ProjectStatus.SEQUENCED),
+                            disabled=not (current_user.is_insider() or project.status <= C.ProjectStatus.SEQUENCED),
                             size="fullscreen",
                             disabled_tooltip="Only insiders can edit attributes of a completed project.",
                         )

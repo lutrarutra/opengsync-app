@@ -30,7 +30,7 @@
                 {{
                     context_menu([
                         {"type": "copy", "value": library.name, "label": "Copy Name"},
-                        {"type": "hxdelete", "label": "Remove Library", "disabled": false if current_user.is_admin() or (pool.status < PoolStatus.SEQUENCED and current_user.is_insider())  else true, "config": {
+                        {"type": "hxdelete", "label": "Remove Library", "disabled": false if current_user.is_admin() or (pool.status < C.PoolStatus.SEQUENCED and current_user.is_insider())  else true, "config": {
                             "url": url_for('pools_htmx.remove_library', library_id=library.id, **table.get_state()),
                             "target": "#pool-library-table",
                             "title": "Remove {library.name} from {pool.name}?".format(library=library, pool=pool)

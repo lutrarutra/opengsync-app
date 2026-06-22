@@ -4,12 +4,12 @@
     $(document).ready(function() {
         jspreadsheet(document.getElementById('example-spreadsheet'), {
             data: [
-                ["multiome_human_A", "{{ GenomeRef.HUMAN.name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "ACTTATCA", "ATCATAT"],
-                ["multiome_human_A", "{{ GenomeRef.HUMAN.name }}", "{{ LibraryType.TENX_SC_ATAC.name }}", "ACTTATCA", "ATCATAT"],
-                ["multiome_human_B", "{{ GenomeRef.HUMAN.name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "ACTTATCA", "ATCATAT"],
-                ["multiome_human_B", "{{ GenomeRef.HUMAN.name }}", "{{ LibraryType.TENX_SC_ATAC.name }}", "ACTTATCA", "ATCATAT"],
-                ["multiome_mouse", "{{ GenomeRef.MOUSE.name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "ACTTATCA", "ATCATAT"],
-                ["multiome_mouse", "{{ GenomeRef.MOUSE.name }}", "{{ LibraryType.TENX_SC_ATAC.name }}", "ACTTATCA", "ATCATAT"],
+                ["multiome_human_A", "{{ C.GenomeRef.HUMAN.name }}", "{{ C.LibraryType.TENX_SC_GEX_3PRIME.name }}", "ACTTATCA", "ATCATAT"],
+                ["multiome_human_A", "{{ C.GenomeRef.HUMAN.name }}", "{{ C.LibraryType.TENX_SC_ATAC.name }}", "ACTTATCA", "ATCATAT"],
+                ["multiome_human_B", "{{ C.GenomeRef.HUMAN.name }}", "{{ C.LibraryType.TENX_SC_GEX_3PRIME.name }}", "ACTTATCA", "ATCATAT"],
+                ["multiome_human_B", "{{ C.GenomeRef.HUMAN.name }}", "{{ C.LibraryType.TENX_SC_ATAC.name }}", "ACTTATCA", "ATCATAT"],
+                ["multiome_mouse", "{{ C.GenomeRef.MOUSE.name }}", "{{ C.LibraryType.TENX_SC_GEX_3PRIME.name }}", "ACTTATCA", "ATCATAT"],
+                ["multiome_mouse", "{{ C.GenomeRef.MOUSE.name }}", "{{ C.LibraryType.TENX_SC_ATAC.name }}", "ACTTATCA", "ATCATAT"],
             ],
             columns: [
                 {% for col in form.spreadsheet.columns.values() %}

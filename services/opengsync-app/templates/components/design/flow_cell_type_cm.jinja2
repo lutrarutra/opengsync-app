@@ -13,120 +13,120 @@ data-context-menu='{{ {"actions": [
     },
     {
         "type": "hxpost",
-        "label": FlowCellType.NOVASEQ_6K_SP.display_name_with_max_m_reads,
+        "label": C.FlowCellType.NOVASEQ_6K_SP.display_name_with_max_m_reads,
         "disabled": false,
-        "active": design.flow_cell_type_id == FlowCellType.NOVASEQ_6K_SP.id,
+        "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_6K_SP.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=FlowCellType.NOVASEQ_6K_SP.id),
+            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_SP.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
     },
     {
         "type": "hxpost",
-        "label": FlowCellType.NOVASEQ_6K_S1.display_name_with_max_m_reads,
+        "label": C.FlowCellType.NOVASEQ_6K_S1.display_name_with_max_m_reads,
         "disabled": false,
-        "active": design.flow_cell_type_id == FlowCellType.NOVASEQ_6K_S1.id,
+        "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_6K_S1.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=FlowCellType.NOVASEQ_6K_S1.id),
+            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S1.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
     },
     {
         "type": "hxpost",
-        "label": FlowCellType.NOVASEQ_6K_S2.display_name_with_max_m_reads,
+        "label": C.FlowCellType.NOVASEQ_6K_S2.display_name_with_max_m_reads,
         "disabled": false,
-        "active": design.flow_cell_type_id == FlowCellType.NOVASEQ_6K_S2.id,
+        "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_6K_S2.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=FlowCellType.NOVASEQ_6K_S2.id),
+            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S2.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
     },
     {
         "type": "hxpost",
-        "label": FlowCellType.NOVASEQ_6K_S4.display_name_with_max_m_reads,
+        "label": C.FlowCellType.NOVASEQ_6K_S4.display_name_with_max_m_reads,
         "disabled": false,
-        "active": design.flow_cell_type_id == FlowCellType.NOVASEQ_6K_S4.id,
+        "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_6K_S4.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=FlowCellType.NOVASEQ_6K_S4.id),
+            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S4.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
     },
     {
         "type": "hxpost",
-        "label": FlowCellType.NOVASEQ_X_1B_ILLUMINA.display_name_with_max_m_reads,
+        "label": C.FlowCellType.NOVASEQ_X_1B_ILLUMINA.display_name_with_max_m_reads,
         "disabled": false,
-        "active": design.flow_cell_type_id == FlowCellType.NOVASEQ_X_1B_ILLUMINA.id,
+        "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_X_1B_ILLUMINA.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=FlowCellType.NOVASEQ_X_1B_ILLUMINA.id),
+            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_1B_ILLUMINA.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
     },
     {
         "type": "hxpost",
-        "label": FlowCellType.NOVASEQ_X_10B_ILLUMINA.display_name_with_max_m_reads,
+        "label": C.FlowCellType.NOVASEQ_X_10B_ILLUMINA.display_name_with_max_m_reads,
         "disabled": false,
-        "active": design.flow_cell_type_id == FlowCellType.NOVASEQ_X_10B_ILLUMINA.id,
+        "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_X_10B_ILLUMINA.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=FlowCellType.NOVASEQ_X_10B_ILLUMINA.id),
+            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_10B_ILLUMINA.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
     },
     {
         "type": "hxpost",
-        "label": FlowCellType.NOVASEQ_X_25B_ILLUMINA.display_name_with_max_m_reads,
+        "label": C.FlowCellType.NOVASEQ_X_25B_ILLUMINA.display_name_with_max_m_reads,
         "disabled": false,
-        "active": design.flow_cell_type_id == FlowCellType.NOVASEQ_X_25B_ILLUMINA.id,
+        "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_X_25B_ILLUMINA.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=FlowCellType.NOVASEQ_X_25B_ILLUMINA.id),
+            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_25B_ILLUMINA.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
     },
     {
         "type": "hxpost",
-        "label": FlowCellType.MISEQ_V3.display_name_with_max_m_reads,
+        "label": C.FlowCellType.MISEQ_V3.display_name_with_max_m_reads,
         "disabled": false,
-        "active": design.flow_cell_type_id == FlowCellType.MISEQ_V3.id,
+        "active": design.flow_cell_type_id == C.FlowCellType.MISEQ_V3.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=FlowCellType.MISEQ_V3.id),
+            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_V3.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
     },
     {
         "type": "hxpost",
-        "label": FlowCellType.MISEQ_V2.display_name_with_max_m_reads,
+        "label": C.FlowCellType.MISEQ_V2.display_name_with_max_m_reads,
         "disabled": false,
-        "active": design.flow_cell_type_id == FlowCellType.MISEQ_V2.id,
+        "active": design.flow_cell_type_id == C.FlowCellType.MISEQ_V2.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=FlowCellType.MISEQ_V2.id),
+            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_V2.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
     },
     {
         "type": "hxpost",
-        "label": FlowCellType.MISEQ_MICRO_V2.display_name_with_max_m_reads,
+        "label": C.FlowCellType.MISEQ_MICRO_V2.display_name_with_max_m_reads,
         "disabled": false,
-        "active": design.flow_cell_type_id == FlowCellType.MISEQ_MICRO_V2.id,
+        "active": design.flow_cell_type_id == C.FlowCellType.MISEQ_MICRO_V2.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=FlowCellType.MISEQ_MICRO_V2.id),
+            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_MICRO_V2.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
     },
     {
         "type": "hxpost",
-        "label": FlowCellType.MISEQ_NANO_V2.display_name_with_max_m_reads,
+        "label": C.FlowCellType.MISEQ_NANO_V2.display_name_with_max_m_reads,
         "disabled": false,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=FlowCellType.MISEQ_NANO_V2.id),
+            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_NANO_V2.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }

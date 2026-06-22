@@ -2,7 +2,7 @@
 {% from "components/tooltip.jinja2" import tooltip %}
 <div id="assay-form-submission-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">{% if seq_request.submission_type == SubmissionType.POOLED_LIBRARIES %}Select Assay{% else %}Select Services{% endif %}</h1>
+        <h1 class="modal-title fs-5">{% if seq_request.submission_type == C.SubmissionType.POOLED_LIBRARIES %}Select Assay{% else %}Select Services{% endif %}</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
@@ -37,15 +37,15 @@
                 {{ form.additional_services.csrf_token() }}
                 <h5>Additional Options for 10X</h5>
                 <div class="d-flex justify-contents-evenly" style="gap: 20px;">
-                    {{ checkbox_input(form.optional_assays.vdj_b, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_VDJ_B.id | string) }}
-                    {{ checkbox_input(form.optional_assays.vdj_t, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_VDJ_T.id | string) }}
-                    {{ checkbox_input(form.optional_assays.vdj_t_gd, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_VDJ_T_GD.id | string) }}
-                    {{ checkbox_input(form.optional_assays.crispr_screening, class="opt-checkbox opt-checkbox-" + LibraryType.TENX_CRISPR_SCREENING.id | string) }}
+                    {{ checkbox_input(form.optional_assays.vdj_b, class="opt-checkbox opt-checkbox-" + C.LibraryType.TENX_VDJ_B.id | string) }}
+                    {{ checkbox_input(form.optional_assays.vdj_t, class="opt-checkbox opt-checkbox-" + C.LibraryType.TENX_VDJ_T.id | string) }}
+                    {{ checkbox_input(form.optional_assays.vdj_t_gd, class="opt-checkbox opt-checkbox-" + C.LibraryType.TENX_VDJ_T_GD.id | string) }}
+                    {{ checkbox_input(form.optional_assays.crispr_screening, class="opt-checkbox opt-checkbox-" + C.LibraryType.TENX_CRISPR_SCREENING.id | string) }}
                 </div>
                 <div class="d-flex align-items-center">
                     <div class="col-8 d-flex" style="gap: 20px;">
-                        {{ checkbox_input(form.optional_assays.antibody_capture, class="opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id)) }}
-                        {{ checkbox_input(form.optional_assays.antibody_multiplexing, class="opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(LibraryType.TENX_ANTIBODY_CAPTURE.id, LibraryType.TENX_SC_ABC_FLEX.id)) }}
+                        {{ checkbox_input(form.optional_assays.antibody_capture, class="opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(C.LibraryType.TENX_ANTIBODY_CAPTURE.id, C.LibraryType.TENX_SC_ABC_FLEX.id)) }}
+                        {{ checkbox_input(form.optional_assays.antibody_multiplexing, class="opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(C.LibraryType.TENX_ANTIBODY_CAPTURE.id, C.LibraryType.TENX_SC_ABC_FLEX.id)) }}
                     </div>
                     {{ form_group(form.optional_assays.antibody_capture_kit, class="col-4", placeholder="Kit Name", hide_label=true) }}
                 </div>
@@ -59,7 +59,7 @@
                     {{ checkbox_input(form.additional_services.oligo_multiplexing, class="col-8") }}
                     {{ form_group(form.additional_services.oligo_multiplexing_kit, class="col-4", placeholder="Kit Name", hide_label=true) }}
                 </div>
-                {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
+                {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
                 <div class="pb-3">
                     <div id="oligo-mux-warning" style="display: none;">
                         <p class="text-warning">
@@ -76,14 +76,14 @@
                 {{ checkbox_input(form.additional_services.ocm_multiplexing, class="opt-checkbox pb-2") }}
                 <h5>Additional Options for Parse Biosciences</h5>
                 <div class="d-flex">
-                    {{ select_input(form.optional_assays.parse_kit, class="col-6 opt-select opt-select-" + LibraryType.PARSE_SC_CRISPR.id | string) }}
-                    {{ select_input(form.optional_assays.parse_chemistry, class="col-6 opt-select opt-select-" + LibraryType.PARSE_SC_CRISPR.id | string) }}
+                    {{ select_input(form.optional_assays.parse_kit, class="col-6 opt-select opt-select-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
+                    {{ select_input(form.optional_assays.parse_chemistry, class="col-6 opt-select opt-select-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
                 </div>
                 <div class="d-flex justify-contents-evenly" style="gap: 20px;">
-                    {{ checkbox_input(form.optional_assays.parse_mux, class="opt-checkbox opt-checkbox-" + LibraryType.PARSE_SC_CRISPR.id | string) }}
-                    {{ checkbox_input(form.optional_assays.parse_crispr, class="opt-checkbox opt-checkbox-" + LibraryType.PARSE_SC_CRISPR.id | string) }}
-                    {{ checkbox_input(form.optional_assays.parse_tcr, class="opt-checkbox opt-checkbox-" + LibraryType.PARSE_EVERCODE_TCR.id | string) }}
-                    {{ checkbox_input(form.optional_assays.parse_bcr, class="opt-checkbox opt-checkbox-" + LibraryType.PARSE_EVERCODE_BCR.id | string) }}
+                    {{ checkbox_input(form.optional_assays.parse_mux, class="opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
+                    {{ checkbox_input(form.optional_assays.parse_crispr, class="opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
+                    {{ checkbox_input(form.optional_assays.parse_tcr, class="opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_EVERCODE_TCR.id | string) }}
+                    {{ checkbox_input(form.optional_assays.parse_bcr, class="opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_EVERCODE_BCR.id | string) }}
                 </div>
                 <h5>Additional Services</h5>
                 {{ checkbox_input(form.additional_services.nuclei_isolation, class="pb-2") }}
@@ -149,7 +149,7 @@
             </div>
             <div class="tab-pane fade" id="form-tab-form-assay" role="tabpanel" tabindex="2">
                 <ul>
-                    {% for service_type in ServiceType.as_list() %}
+                    {% for service_type in C.ServiceType.as_list() %}
                     <li><b>{{ service_type.label }}</b> {% if service_type.platform %}<span class="desc">{{ service_type.platform }}</span>{% endif %}</li>
                     Library Types:
                     <ul class="h-list" style="width: 60%; padding-left: 15px;">
@@ -196,7 +196,7 @@
                 oligo_multiplexing: false,
                 ocm_multiplexing: false
             },
-            {% for service_type in ServiceType.as_list() %}
+            {% for service_type in C.ServiceType.as_list() %}
             {{ service_type.id }}: {
                 optional_library_types: [
                     {% for library_type in service_type.optional_library_types %}
@@ -216,7 +216,7 @@
         function update_warnings_visibility() {
             var selected_assay_id = get_selected_assay_id();
             $("#abc-mux-warning").toggle($("#optional_assays-antibody_multiplexing").is(":checked"));
-            $("#multiome-mux-warning").toggle(selected_assay_id === {{ ServiceType.TENX_SC_MULTIOME.id }} && $("#additional_services-oligo_multiplexing").is(":checked"));
+            $("#multiome-mux-warning").toggle(selected_assay_id === {{ C.ServiceType.TENX_SC_MULTIOME.id }} && $("#additional_services-oligo_multiplexing").is(":checked"));
         }
         
         function update_optional_assays() {
@@ -224,10 +224,10 @@
             if (selected_assay_id === -1) {
                 return;
             }
-            const optional_library_types = assays[selected_assay_id].optional_library_types || selected_assay_id == {{ ServiceType.CUSTOM.id }};
-            const oligo_multiplexing = assays[selected_assay_id].oligo_multiplexing || selected_assay_id == {{ ServiceType.CUSTOM.id }};
-            const ocm_multiplexing = assays[selected_assay_id].ocm_multiplexing || selected_assay_id == {{ ServiceType.CUSTOM.id }};
-            const antibody_capture = assays[selected_assay_id].optional_library_types.includes({{LibraryType.TENX_ANTIBODY_CAPTURE.id}}) || assays[selected_assay_id].optional_library_types.includes({{LibraryType.TENX_SC_ABC_FLEX.id}}) || selected_assay_id == {{ ServiceType.CUSTOM.id }};
+            const optional_library_types = assays[selected_assay_id].optional_library_types || selected_assay_id == {{ C.ServiceType.CUSTOM.id }};
+            const oligo_multiplexing = assays[selected_assay_id].oligo_multiplexing || selected_assay_id == {{ C.ServiceType.CUSTOM.id }};
+            const ocm_multiplexing = assays[selected_assay_id].ocm_multiplexing || selected_assay_id == {{ C.ServiceType.CUSTOM.id }};
+            const antibody_capture = assays[selected_assay_id].optional_library_types.includes({{C.LibraryType.TENX_ANTIBODY_CAPTURE.id}}) || assays[selected_assay_id].optional_library_types.includes({{C.LibraryType.TENX_SC_ABC_FLEX.id}}) || selected_assay_id == {{ C.ServiceType.CUSTOM.id }};
         
             $(".opt-checkbox input").each(function() {
                 $(this).addClass("disabled");
@@ -282,7 +282,7 @@
                 $("#additional_services-ocm_multiplexing").prop("disabled", true);
                 $("#additional_services-ocm_multiplexing").prop("checked", false);
             }
-            if (selected_assay_id == {{ ServiceType.CUSTOM.id }}) {
+            if (selected_assay_id == {{ C.ServiceType.CUSTOM.id }}) {
                 $(".opt-checkbox input").each(function() {
                     $(this).removeClass("disabled");
                     $(this).prop("disabled", false);

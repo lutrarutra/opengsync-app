@@ -45,7 +45,7 @@
                 <b>Notes:</b>
                 <ul>
                     <li>Required only when multiple samples are multiplexed into a library</li>
-                    <li>If you want to remove sample from a library (e.g. sample failed), specify <span class="code-highlight">x</span> as the Pool for the failed/canceled sample. New 'dummy'-library named 'canceled_samples_' will be created for these samples with status {{ LibraryStatus.FAILED.display_name }}.</li>
+                    <li>If you want to remove sample from a library (e.g. sample failed), specify <span class="code-highlight">x</span> as the Pool for the failed/canceled sample. New 'dummy'-library named 'canceled_samples_' will be created for these samples with status {{ C.LibraryStatus.FAILED.display_name }}.</li>
                 </ul>
             </div>
         </div>
@@ -62,7 +62,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('begin_mux_prep_workflow', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_OLIGO.id) }}"
+                        hx-get="{{ url_for('begin_mux_prep_workflow', lab_prep_id=lab_prep.id, mux_type_id=C.MUXType.TENX_OLIGO.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML" {% if not oligo_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Oligo Multiplexing Prep' - Workflow
                     </li>
@@ -86,7 +86,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('begin_mux_prep_workflow', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_FLEX_PROBE.id) }}"
+                        hx-get="{{ url_for('begin_mux_prep_workflow', lab_prep_id=lab_prep.id, mux_type_id=C.MUXType.TENX_FLEX_PROBE.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML" {% if not flex_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'Flex Multiplexing Prep' - Workflow
                     </li>
@@ -111,7 +111,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('begin_mux_prep_workflow', lab_prep_id=lab_prep.id, mux_type_id=MUXType.TENX_ON_CHIP.id) }}"
+                        hx-get="{{ url_for('begin_mux_prep_workflow', lab_prep_id=lab_prep.id, mux_type_id=C.MUXType.TENX_ON_CHIP.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML" {% if not on_chip_mux_required or lab_prep_completed %}disabled{% endif %}>Begin</button> 'On-Chip Multiplexing Prep' - Workflow
                     </li>
@@ -132,7 +132,7 @@
         <div id="sops-accordiod-collapse-6" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
             <div class="accordion-body">
                 <select class="form-select" style="width: 250px;" id="checklist_id">
-                    {% for checklist in LabChecklistType.as_list() %}
+                    {% for checklist in C.LabChecklistType.as_list() %}
                     <option value="{{ checklist.id }}" {% if lab_prep.checklist_type.id == checklist.id %}selected{% endif %}>{{ checklist.name }}</option>
                     {% endfor %}
                 </select>

@@ -9,23 +9,23 @@
     <li>
         <div><span class="cm-callback" style="cursor: pointer;" {{
             context_menu([
-                {"type": "hxpost", "label": TaskStatus.IN_PROGRESS.icon + " In Progress", "disabled": false, "config": {
-                    "url": url_for('design_htmx.edit_comment_status', todo_comment_id=comment.id, new_status_id=TaskStatus.IN_PROGRESS.id),
+                {"type": "hxpost", "label": C.TaskStatus.IN_PROGRESS.icon + " In Progress", "disabled": false, "config": {
+                    "url": url_for('design_htmx.edit_comment_status', todo_comment_id=comment.id, new_status_id=C.TaskStatus.IN_PROGRESS.id),
                     "target": "#flow-cell-design-list",
                     "confirm": false,
                 },},
-                {"type": "hxpost", "label": TaskStatus.COMPLETED.icon + " Completed", "disabled": false, "config": {
-                    "url": url_for('design_htmx.edit_comment_status', todo_comment_id=comment.id, new_status_id=TaskStatus.COMPLETED.id),
+                {"type": "hxpost", "label": C.TaskStatus.COMPLETED.icon + " Completed", "disabled": false, "config": {
+                    "url": url_for('design_htmx.edit_comment_status', todo_comment_id=comment.id, new_status_id=C.TaskStatus.COMPLETED.id),
                     "target": "#flow-cell-design-list",
                     "confirm": false,
                 },},
-                {"type": "hxpost", "label": TaskStatus.CANCELLED.icon + " Cancelled", "disabled": false, "config": {
-                    "url": url_for('design_htmx.edit_comment_status', todo_comment_id=comment.id, new_status_id=TaskStatus.CANCELLED.id),
+                {"type": "hxpost", "label": C.TaskStatus.CANCELLED.icon + " Cancelled", "disabled": false, "config": {
+                    "url": url_for('design_htmx.edit_comment_status', todo_comment_id=comment.id, new_status_id=C.TaskStatus.CANCELLED.id),
                     "target": "#flow-cell-design-list",
                     "confirm": false,
                 },},
-                {"type": "hxpost", "label": TaskStatus.ARCHIVED.icon + " Archived", "disabled": false, "config": {
-                    "url": url_for('design_htmx.edit_comment_status', todo_comment_id=comment.id, new_status_id=TaskStatus.ARCHIVED.id),
+                {"type": "hxpost", "label": C.TaskStatus.ARCHIVED.icon + " Archived", "disabled": false, "config": {
+                    "url": url_for('design_htmx.edit_comment_status', todo_comment_id=comment.id, new_status_id=C.TaskStatus.ARCHIVED.id),
                     "target": "#flow-cell-design-list",
                     "confirm": false,
                 },},
@@ -36,7 +36,7 @@
                     "confirm": true,
                 },},
             ])
-        }}>{{ comment.task_status.icon }}</span> <span style="{% if comment.task_status >= TaskStatus.COMPLETED %}color: gray;{% if comment.task_status > TaskStatus.COMPLETED %}text-decoration: line-through;{% endif %}{% endif %}"><em>{{ comment.text }}</em></span></div>
+        }}>{{ comment.task_status.icon }}</span> <span style="{% if comment.task_status >= C.TaskStatus.COMPLETED %}color: gray;{% if comment.task_status > C.TaskStatus.COMPLETED %}text-decoration: line-through;{% endif %}{% endif %}"><em>{{ comment.text }}</em></span></div>
     </li>
     {% else %}
     <li><span class="cm-callback" style="cursor: pointer;" {{

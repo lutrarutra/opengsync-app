@@ -51,7 +51,7 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-crispr-tab" type="button" role="tab"
             aria-controls="library-crispr-tab" aria-selected="false"
-            {% if library.type != LibraryType.PARSE_SC_CRISPR %}disabled{% endif %}>
+            {% if library.type != C.LibraryType.PARSE_SC_CRISPR %}disabled{% endif %}>
             CRISPR</button>
         </li>
         <li class="nav-item" role="presentation">
@@ -65,15 +65,15 @@
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-abc-tab" type="button" role="tab"
             aria-controls="library-abc-tab" aria-selected="false"
-            {% if library.type not in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %}disabled{% endif %}>
-            Feature Capture{% if library.type in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %} ({{ library.num_features }}){% endif %}
+            {% if library.type not in [C.LibraryType.TENX_ANTIBODY_CAPTURE, C.LibraryType.TENX_SC_ABC_FLEX] %}disabled{% endif %}>
+            Feature Capture{% if library.type in [C.LibraryType.TENX_ANTIBODY_CAPTURE, C.LibraryType.TENX_SC_ABC_FLEX] %} ({{ library.num_features }}){% endif %}
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#library-abc-table-tab" type="button" role="tab"
             aria-controls="library-abc-table-tab" aria-selected="false"
-            {% if library.type not in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %}disabled{% endif %}>
+            {% if library.type not in [C.LibraryType.TENX_ANTIBODY_CAPTURE, C.LibraryType.TENX_SC_ABC_FLEX] %}disabled{% endif %}>
             Feature Table
             </button>
         </li>
@@ -239,7 +239,7 @@
                     {{
                         modal_button(
                             "Edit Properties", url=url_for('libraries_htmx.edit_properties', library_id=library.id),
-                            disabled=not (current_user.is_insider() or project.status <= ProjectStatus.SEQUENCED),
+                            disabled=not (current_user.is_insider() or project.status <= C.ProjectStatus.SEQUENCED),
                             size="fullscreen",
                             disabled_tooltip="Only insiders can edit properties of a completed project.",
                         )
@@ -268,7 +268,7 @@
                 {{ spinner() }}
             </div>
         </div>
-        {% if library.type == LibraryType.PARSE_SC_CRISPR %}
+        {% if library.type == C.LibraryType.PARSE_SC_CRISPR %}
         <div class="tab-pane fade" id="library-crispr-tab" role="tabpanel" tabindex="5">
             <div hx-get="{{ url_for('libraries_htmx.get_crispr_guides', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
@@ -289,7 +289,7 @@
             </div>
         </div>
         {% endif %}
-        {% if library.type in [LibraryType.TENX_ANTIBODY_CAPTURE, LibraryType.TENX_SC_ABC_FLEX] %}
+        {% if library.type in [C.LibraryType.TENX_ANTIBODY_CAPTURE, C.LibraryType.TENX_SC_ABC_FLEX] %}
         <div class="tab-pane fade" id="library-abc-tab" role="tabpanel" tabindex="7">
             <div hx-get="{{ url_for('feature_kits_htmx.get_features', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
@@ -302,7 +302,7 @@
                         "Edit",
                         url_for("libraries_htmx.edit_features", library_id=library.id),
                         size="fullscreen",
-                        disabled=(not current_user.is_insider()) and library.status != LibraryStatus.DRAFT
+                        disabled=(not current_user.is_insider()) and library.status != C.LibraryStatus.DRAFT
                     )
                 }}
             </div>

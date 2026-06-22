@@ -43,14 +43,14 @@
                         denyButtonText: 'No'
                     })
                     if result.isConfirmed issueRequest()"
-                    {% if (file.type == MediaFileType.SEQ_AUTH_FORM and seq_request.status != SeqRequestStatus.DRAFT) and not current_user.is_insider() %}disabled{% endif %}>
+                    {% if (file.type == C.MediaFileType.SEQ_AUTH_FORM and seq_request.status != C.SeqRequestStatus.DRAFT) and not current_user.is_insider() %}disabled{% endif %}>
                         Delete
                     </button>
                     
                 </div>
             </div>
             <div class="file-container">
-                {% if file.type == MediaFileType.LANE_POOLING_TABLE %}
+                {% if file.type == C.MediaFileType.LANE_POOLING_TABLE %}
                 <div hx-get="{{ url_for('experiments_htmx.render_lane_sample_pooling_tables', file_id=file.id, experiment_id=experiment.id) }}" hx-trigger="intersect once">
                     {{ spinner() }}
                 </div>

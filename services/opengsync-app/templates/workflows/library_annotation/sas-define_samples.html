@@ -53,7 +53,7 @@
     </div>
     <script>
         var assays = {
-            {% for service_type in ServiceType.as_list() %}
+            {% for service_type in C.ServiceType.as_list() %}
             {{ service_type.id }}: {
                 optional_library_types: [
                     {% for library_type in service_type.optional_library_types %}

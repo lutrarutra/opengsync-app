@@ -74,7 +74,7 @@
     </p>
     
     <ul>
-    {% for status in SampleStatus.as_list() %}
+    {% for status in C.SampleStatus.as_list() %}
         <li><b>{{ status.display_name }}</b>: {{ status.description }}</li>
     {% endfor %}
     </ul>
@@ -90,7 +90,7 @@
         hash-tag-oligos (HTOs).
     </p>
     <ul>
-    {% for status in LibraryStatus.as_list() %}
+    {% for status in C.LibraryStatus.as_list() %}
         <li><b>{{ status.display_name }}</b>: {{ status.description }}</li>
     {% endfor %}
     </ul>
@@ -101,7 +101,7 @@
         flowcell. Pool can be associated to only a single experiment; on re-sequencing, pool and libraries are cloned.
     </p>
     <ul>
-    {% for status in PoolStatus.as_list() %}
+    {% for status in C.PoolStatus.as_list() %}
         <li><b>{{ status.display_name }}</b>: {{ status.description }}</li>
     {% endfor %}
     </ul>

@@ -124,36 +124,8 @@ j2.env.globals["api_version"] = "dev"
 j2.env.globals["db_version"] = "dev"
 j2.env.globals["debug"] = settings.ENVIRONMENT == "dev"
 
-# Categories
-j2.env.globals["ExperimentStatus"] = C.ExperimentStatus
-j2.env.globals["SeqRequestStatus"] = C.SeqRequestStatus
-j2.env.globals["LibraryStatus"] = C.LibraryStatus
-j2.env.globals["UserRole"] = C.UserRole
-j2.env.globals["DataDeliveryMode"] = C.DataDeliveryMode
-j2.env.globals["GenomeRef"] = C.GenomeRef
-j2.env.globals["LibraryType"] = C.LibraryType
-j2.env.globals["PoolStatus"] = C.PoolStatus
-j2.env.globals["ServiceType"] = C.ServiceType
-j2.env.globals["SampleStatus"] = C.SampleStatus
-j2.env.globals["RunStatus"] = C.RunStatus
-j2.env.globals["SubmissionType"] = C.SubmissionType
-j2.env.globals["AttributeType"] = C.AttributeType
-j2.env.globals["IndexType"] = C.IndexType
-j2.env.globals["EventType"] = C.EventType
-j2.env.globals["PrepStatus"] = C.PrepStatus
-j2.env.globals["LabChecklistType"] = C.LabChecklistType
-j2.env.globals["PoolType"] = C.PoolType
-j2.env.globals["KitType"] = C.KitType
-j2.env.globals["AffiliationType"] = C.AffiliationType
-j2.env.globals["ProjectStatus"] = C.ProjectStatus
-j2.env.globals["MediaFileType"] = C.MediaFileType
-j2.env.globals["MUXType"] = C.MUXType
-j2.env.globals["DataPathType"] = C.DataPathType
-j2.env.globals["ExperimentWorkFlow"] = C.ExperimentWorkFlow
-j2.env.globals["DeliveryStatus"] = C.DeliveryStatus
-j2.env.globals["TaskStatus"] = C.TaskStatus
-j2.env.globals["FlowCellType"] = C.FlowCellType
-j2.env.globals["AccessLevel"] = C.AccessLevel
+# Categories — whole module injected so templates use C.EnumName
+j2.env.globals["C"] = C
 
 # Utilities
 j2.env.globals["isna"] = pd.isna

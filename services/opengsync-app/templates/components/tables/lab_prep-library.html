@@ -32,7 +32,7 @@
                     {{ context_menu([
                         {"type": "copy", "value": library.name, "label": "Copy Name"},
                         {"type": "hxdelete", "label": "Remove Library" ,
-                        "disabled": false if lab_prep.status == PrepStatus.PREPARING else true, "config": 
+                        "disabled": false if lab_prep.status == C.PrepStatus.PREPARING else true, "config": 
                         {
                             "url": url_for("lab_preps_htmx.remove_library", library_id=library.id, **table.get_state()),
                             "target": "#lab_prep-library-table", 

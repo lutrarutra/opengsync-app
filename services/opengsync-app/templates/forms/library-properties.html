@@ -11,7 +11,7 @@
             {{ form.spreadsheet.render() }}
         </div>
     </div>
-    {% if form.access_level >= AccessLevel.WRITE %}
+    {% if form.access_level >= C.AccessLevel.WRITE %}
     <div class="modal-footer" id="popup-footer">
         <div class="footer-id">
         </div>

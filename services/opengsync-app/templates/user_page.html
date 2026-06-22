@@ -54,7 +54,7 @@
                                 method="hx-post",
                                 url=url_for('activate_user', user_id=user.id),
                                 class="dropdown-item",
-                                disabled=(user.role != UserRole.DEACTIVATED) or not current_user.is_insider(),
+                                disabled=(user.role != C.UserRole.DEACTIVATED) or not current_user.is_insider(),
                             )
                         }}
                     </li>

@@ -179,14 +179,14 @@
             </div>
             <ol class="mt-2">
               {% for st in
-              SubmissionType.as_list(include_unpooled_libraries=False) %}
+              C.SubmissionType.as_list(include_unpooled_libraries=False) %}
               <li><b>{{ st.label }}</b>: <i>{{ st.description }}</i></li>
               {% endfor %}
             </ol>
             {{ form.technical_info.special_requirements.render() }} {{
             form.technical_info.data_delivery_mode.render() }}
             <ol>
-            {% for mode in DataDeliveryMode.as_list() %}
+            {% for mode in C.DataDeliveryMode.as_list() %}
                 <li><b>{{ mode.label }}</b>: <em>{{ mode.description }}</em></li>
             {% endfor %}
             </ol>

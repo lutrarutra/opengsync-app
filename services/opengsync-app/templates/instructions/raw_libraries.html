@@ -18,7 +18,7 @@
         <li>
             <b>Library type:</b>
             <div>
-                {% for library_type in LibraryType.as_list() %}
+                {% for library_type in C.LibraryType.as_list() %}
                 <span {{ tooltip(library_type.label) }} style="cursor: help;" class="badge bg-cemm-blue">{{ library_type.abbreviation }}</span>
                 {% endfor %}
             </div>
@@ -27,7 +27,7 @@
         <li>
             <b>Genome</b> <span class="desc">Specifies the reference genome used in downstream</span>:
             <div>
-                {% for genome_ref in GenomeRef.as_list() %}
+                {% for genome_ref in C.GenomeRef.as_list() %}
                 <span {{ tooltip(genome_ref.organism_latin_name) }} style="cursor: help;" class="badge bg-cemm-blue">
                     {{ genome_ref.display_name }}
                 </span>

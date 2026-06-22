@@ -22,9 +22,9 @@
                         {"type": "copy", "value": kit.identifier, "label": "Copy Identifier"},
                     ])
                 }}><a 
-                    {% if kit.kit_type == KitType.INDEX_KIT %}
+                    {% if kit.kit_type == C.KitType.INDEX_KIT %}
                     href="{{ url_for('kits_page.index_kit', index_kit_id=kit.id) }}"
-                    {% elif kit.kit_type == KitType.FEATURE_KIT %}
+                    {% elif kit.kit_type == C.KitType.FEATURE_KIT %}
                     href="{{ url_for('kits_page.feature_kit', feature_kit_id=kit.id) }}"
                     {% else %}
                     href="{{ url_for('kits_page.kit', kit_id=kit.id) }}"
@@ -35,9 +35,9 @@
                         {"type": "copy", "value": kit.name, "label": "Copy Name"},
                     ])
                 }}><a 
-                    {% if kit.kit_type == KitType.INDEX_KIT %}
+                    {% if kit.kit_type == C.KitType.INDEX_KIT %}
                     href="{{ url_for('kits_page.index_kit', index_kit_id=kit.id) }}"
-                    {% elif kit.kit_type == KitType.FEATURE_KIT %}
+                    {% elif kit.kit_type == C.KitType.FEATURE_KIT %}
                     href="{{ url_for('kits_page.feature_kit', feature_kit_id=kit.id) }}"
                     {% else %}
                     href="{{ url_for('kits_page.kit', kit_id=kit.id) }}"

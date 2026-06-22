@@ -6,12 +6,12 @@
     $(document).ready(function() {
         jspreadsheet(document.getElementById('multiome-example'), {
             data: [
-                ["sample_1", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "gex_pool"],
-                ["sample_1", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_ATAC.name }}", "atac_pool"],
-                ["sample_2", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "gex_pool"],
-                ["sample_2", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_ATAC.name }}", "atac_pool"],
-                ["sample_3", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_GEX_3PRIME.name }}", "gex_pool"],
-                ["sample_3", "{{ GenomeRef.MOUSE.display_name }}", "{{ LibraryType.TENX_SC_ATAC.name }}", "atac_pool"],
+                ["sample_1", "{{ C.GenomeRef.MOUSE.display_name }}", "{{ C.LibraryType.TENX_SC_GEX_3PRIME.name }}", "gex_pool"],
+                ["sample_1", "{{ C.GenomeRef.MOUSE.display_name }}", "{{ C.LibraryType.TENX_SC_ATAC.name }}", "atac_pool"],
+                ["sample_2", "{{ C.GenomeRef.MOUSE.display_name }}", "{{ C.LibraryType.TENX_SC_GEX_3PRIME.name }}", "gex_pool"],
+                ["sample_2", "{{ C.GenomeRef.MOUSE.display_name }}", "{{ C.LibraryType.TENX_SC_ATAC.name }}", "atac_pool"],
+                ["sample_3", "{{ C.GenomeRef.MOUSE.display_name }}", "{{ C.LibraryType.TENX_SC_GEX_3PRIME.name }}", "gex_pool"],
+                ["sample_3", "{{ C.GenomeRef.MOUSE.display_name }}", "{{ C.LibraryType.TENX_SC_ATAC.name }}", "atac_pool"],
             ],
             columns: [
                 {% for col in form.spreadsheet.columns.values() %}

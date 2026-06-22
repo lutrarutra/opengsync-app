@@ -30,7 +30,7 @@
                 <h4>Data Delivery</h4>
                 {{ metadata_group("Data Delivery Mode", seq_request.data_delivery_mode.label, class="col-4") }}
                 <ol>
-                    {% for mode in DataDeliveryMode.as_list() %}
+                    {% for mode in C.DataDeliveryMode.as_list() %}
                     <li><b>{{ mode.label }}</b>: <em>{{ mode.description }}</em></li>
                     {% endfor %}
                 </ol>
@@ -423,8 +423,8 @@
     </div>
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed" {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}disabled{% endif %} type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_barcodes" aria-expanded="false" aria-controls="request-review-accordion-check_barcodes">
-                {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
+            <button class="accordion-button collapsed" {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}disabled{% endif %} type="button" data-bs-toggle="collapse" data-bs-target="#request-review-accordion-check_barcodes" aria-expanded="false" aria-controls="request-review-accordion-check_barcodes">
+                {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
                 <b>🚫 Check Barcodes</b>
                 {% else %}
                 <b>{% if check_barcodes %}✅{% else %}⚠️{% endif %} Check Barcodes</b>
@@ -453,7 +453,7 @@
                         }}
                     </li>
                 </ul>
-                {% if seq_request.submission_type != SubmissionType.RAW_SAMPLES %}
+                {% if seq_request.submission_type != C.SubmissionType.RAW_SAMPLES %}
                 <div class="table-container">
                     <table class="table">
                         <thead>

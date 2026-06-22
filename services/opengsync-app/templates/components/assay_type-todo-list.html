@@ -33,11 +33,11 @@
                         {% endfor %}
                     </div>
                     <div class="col-6">
-                        {% if seq_request.submission_type == SubmissionType.RAW_SAMPLES %}
+                        {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
                         <span class="badge {% if row['num_waiting_samples'] == 0 %}badge-success{% else %}badge-warning{% endif %}">
                             Waiting Samples: {{ row["num_waiting_samples"] }}  📭
                         </span>
-                        {% elif seq_request.submission_type == SubmissionType.UNPOOLED_LIBRARIES %}
+                        {% elif seq_request.submission_type == C.SubmissionType.UNPOOLED_LIBRARIES %}
                         <span class="badge {% if row['num_waiting_libraries'] == 0 %}badge-success{% else %}badge-warning{% endif %}">
                             Waiting Libraries: {{ row["num_waiting_libraries"] }}  📭
                         </span>
@@ -47,10 +47,10 @@
                         </span>
                         {% endif %}
                         <span class="badge {% if row['num_preparing_libraries'] == 0 %}badge-success{% else %}badge-warning{% endif %}">
-                            Preparing Libraries: {{ row["num_preparing_libraries"] }} {{ LibraryStatus.PREPARING.icon }}
+                            Preparing Libraries: {{ row["num_preparing_libraries"] }} {{ C.LibraryStatus.PREPARING.icon }}
                         </span>
                         <span class="badge {% if row['num_pooled_libraries'] == seq_request.num_libraries %}badge-success{% else %}badge-warning{% endif %}">
-                            Pooled Libraries: {{ row["num_pooled_libraries"] }} {{ LibraryStatus.POOLED.icon }}
+                            Pooled Libraries: {{ row["num_pooled_libraries"] }} {{ C.LibraryStatus.POOLED.icon }}
                         </span>
                     </div>
                 </div>

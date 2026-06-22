@@ -43,7 +43,7 @@
                 {{ form.csrf_token() }}
                 <div class="row">
                     {{ select_input(form.i7_kit, class="col-6") }}
-                    {% if index_type == IndexType.DUAL_INDEX %}
+                    {% if index_type == C.IndexType.DUAL_INDEX %}
                     {{ select_input(form.i5_kit, class="col-6") }}
                     {% else %}
                     {{ select_input(form.i5_kit, class="col-6", disabled=true) }}
@@ -51,7 +51,7 @@
                 </div>
                 <div class="row">
                     {{ radio_input(form.i7_option, class="col-6") }}
-                    {% if index_type == IndexType.DUAL_INDEX %}
+                    {% if index_type == C.IndexType.DUAL_INDEX %}
                     {{ radio_input(form.i5_option, class="col-6") }}
                     {% else %}
                     {{ radio_input(form.i5_option, class="col-6", disabled=true) }}
@@ -59,7 +59,7 @@
                 </div>
                 <div class="row">
                     {{ form_group(form.i7_primer, class="col-6", placeholder="Required if Custom is selected") }}
-                    {% if index_type == IndexType.DUAL_INDEX %}
+                    {% if index_type == C.IndexType.DUAL_INDEX %}
                     {{ form_group(form.i5_primer, class="col-6", placeholder="Required if Custom is selected") }}
                     {% else %}
                     {{ form_group(form.i5_primer, class="col-6", disabled=true) }}
@@ -111,7 +111,7 @@
                 toggleRadios(i7_kit, "i7_option");
             });
 
-            {% if index_type == IndexType.DUAL_INDEX %}
+            {% if index_type == C.IndexType.DUAL_INDEX %}
             const i5_kit = $('[name="i5_kit"]');
             toggleRadios(i5_kit, "i5_option");
             i5_kit.on('change', function () {
