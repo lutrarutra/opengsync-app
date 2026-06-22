@@ -10,7 +10,7 @@
             <div class="col-3 d-flex gap-1">
                 {% if pool_design.pool_id %}
                 <b style="color: #00aecc;">{{ pool_design.name }}{% if pool_design.pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool_design.pool.clone_number }})</sup>{% endif %}</b>
-                <a href="{{ url_for('pools_page.pool', pool_id=pool_design.pool_id) }}" {{ tooltip('View Pool', position='top') }}><i class="bi bi-flask-florence"></i></a>
+                <a href="{{ url_for('pool_page', pool_id=pool_design.pool_id) }}" {{ tooltip('View Pool', position='top') }}><i class="bi bi-flask-florence"></i></a>
                 {% else %}
                 <b>{{ pool_design.name }}</b>
                 {% endif %}

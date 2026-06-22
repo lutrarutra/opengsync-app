@@ -1,9 +1,8 @@
 import os
-import shutil
 from io import BytesIO
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from sqlalchemy import orm
 import pandas as pd
@@ -73,24 +72,12 @@ class SeqRequestTable(HTMXTable):
 
 @router.get("/render-table-page")
 async def render_seq_request_table(
-    user_id: int | None = Query(
-        None, description="Optional user ID to filter seq requests"
-    ),
-    group_id: int | None = Query(
-        None, description="Optional group ID to filter seq requests"
-    ),
-    project_id: int | None = Query(
-        None, description="Optional project ID to filter seq requests"
-    ),
-    name: str | None = Query(
-        None, description="Optional name search term to filter seq requests"
-    ),
-    group: str | None = Query(
-        None, description="Optional group name search term to filter seq requests"
-    ),
-    requestor: str | None = Query(
-        None, description="Optional requestor name search term to filter seq requests"
-    ),
+    user_id: int | None = Query(None, description="Optional user ID to filter seq requests"),
+    group_id: int | None = Query(None, description="Optional group ID to filter seq requests"),
+    project_id: int | None = Query(None, description="Optional project ID to filter seq requests"),
+    name: str | None = Query(None, description="Optional name search term to filter seq requests"),
+    group: str | None = Query(None, description="Optional group name search term to filter seq requests"),
+    requestor: str | None = Query(None, description="Optional requestor name search term to filter seq requests"),
     status_in: list[C.SeqRequestStatus] | None = Depends(
         dependencies.parse_enum_ids(
             enum_type=C.SeqRequestStatus, query_param="status_in"
@@ -138,36 +125,20 @@ async def render_seq_request_table(
     )
 
     if user_id is not None:
-        if (
-            await session.get_access_level(Q.user.permissions(user_id, current_user.id))
-            < C.AccessLevel.READ
-        ):
-            raise exc.NoPermissionsException(
-                "You do not have permission to view seq requests for this user."
-            )
+        if (await session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ):
+            raise exc.NoPermissionsException("You do not have permission to view seq requests for this user.")
         template = "components/tables/user-seq_request.html"
+        table.url_params["user_id"] = user_id
     elif group_id is not None:
-        if (
-            await session.get_access_level(
-                Q.group.permissions(group_id, current_user.id)
-            )
-            < C.AccessLevel.READ
-        ):
-            raise exc.NoPermissionsException(
-                "You do not have permission to view seq requests for this group."
-            )
+        if await session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view seq requests for this group.")
         template = "components/tables/group-seq_request.html"
+        table.url_params["group_id"] = group_id
     elif project_id is not None:
-        if (
-            await session.get_access_level(
-                Q.project.permissions(project_id, current_user.id)
-            )
-            < C.AccessLevel.READ
-        ):
-            raise exc.NoPermissionsException(
-                "You do not have permission to view seq requests for this project."
-            )
+        if await session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view seq requests for this project.")
         template = "components/tables/project-seq_request.html"
+        table.url_params["project_id"] = project_id
     else:
         if not current_user.is_insider():
             stmt = Q.seq_request.select(viewer_id=current_user.id, statement=stmt)
@@ -1100,7 +1071,7 @@ async def remove_auth_form(
 
 
 @router.delete("/{seq_request_id}/remove-library/{library_id}")
-async def remove_library(
+async def remove_library_from_request(
     seq_request_id: int,
     library_id: int,
     request: Request,
@@ -1167,7 +1138,7 @@ async def reseq_library(
 
 
 @router.delete("/{seq_request_id}/remove-sample/{sample_id}")
-async def remove_sample_from_seq_request(
+async def remove_sample_from_request(
     seq_request_id: int,
     sample_id: int,
     request: Request,
@@ -1284,11 +1255,6 @@ async def submit_request(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────
-# Comment form
-# ─────────────────────────────────────────────────────────────────────
-
-
 @router.get("/{seq_request_id}/comment-form")
 async def render_comment_form(
     seq_request_id: int,
@@ -1335,12 +1301,6 @@ async def add_comment(
         ),
         flash=responses.flash("Comment added successfully.", "success"),
     )
-
-
-# ─────────────────────────────────────────────────────────────────────
-# Share email form
-# ─────────────────────────────────────────────────────────────────────
-
 
 @router.get("/{seq_request_id}/add-share-email")
 async def render_add_share_email_form(
@@ -1390,12 +1350,6 @@ async def add_share_email(
         ),
         flash=responses.flash("Email added to the list.", "success"),
     )
-
-
-# ─────────────────────────────────────────────────────────────────────
-# Assignee form
-# ─────────────────────────────────────────────────────────────────────
-
 
 @router.get("/{seq_request_id}/add-assignee-form")
 async def render_add_assignee_form(

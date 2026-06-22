@@ -8,12 +8,12 @@ router = APIRouter(prefix="/pools", tags=["pools"])
 
 
 @router.get("/")
-async def pools():
+async def pools_page():
     return await responses.html_response("pools_page.html", title="Pools")
 
 
 @router.get("/{pool_id}")
-async def pool(
+async def pool_page(
     pool_id: int,
     current_user: models.User = Depends(dependencies.require_user),
 ):

@@ -43,7 +43,7 @@
                     ])
                 }}{% endif %}>
                 {% if library.pool_id %}
-                    <a href="{{ url_for('pools_page.pool', pool_id=library.pool_id)}}">{{ library.pool.name }}</a>
+                    <a href="{{ url_for('pool_page', pool_id=library.pool_id)}}">{{ library.pool.name }}</a>
                 {% endif %}
                 </td>
                 <td>

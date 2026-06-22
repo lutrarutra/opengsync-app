@@ -1,12 +1,15 @@
 import json
 from starlette.datastructures import URL
+from fastapi import Response
 
 from opengsync_db import utils
 
 from .TableCol import TableCol
 from ...core.context import ctx
+from ...core import responses
 
 class HTMXTable:
+    template = ""
     columns: list[TableCol] = []
     def __init__(self, route: str, page: int | None = 0, order_by: utils.OrderBy | None = None):
         self.active_search_var: str | None = None
@@ -59,3 +62,8 @@ class HTMXTable:
 
     def set_num_pages(self, count: int, limit: int = 10) -> None:
         self.num_pages = (count + limit - 1) // limit
+
+    async def make_response(self, **kwargs) -> Response:
+        if not self.template:
+            raise ValueError("Template not set for HTMXTable.")
+        return await responses.htmx_response(template=self.template, table=self, **{**self.context, **kwargs})

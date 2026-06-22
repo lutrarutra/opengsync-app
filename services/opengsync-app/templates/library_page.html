@@ -165,7 +165,7 @@
                 {{ 
                     metadata_group_link(
                         "Pool", library.pool.name,
-                        url_for("pools_page.pool", pool_id=library.pool.id, from="library@" + library.id | string),
+                        url_for("pool_page", pool_id=library.pool.id, from="library@" + library.id | string),
                         class="col-4"
                     )
                 }}

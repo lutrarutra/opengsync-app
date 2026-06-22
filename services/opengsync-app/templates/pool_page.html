@@ -131,7 +131,7 @@
                 {{                     
                     metadata_group_link(
                         "Pool Merged to", pool.merged_to_pool.name,
-                        url_for("pools_page.pool", pool_id=pool.merged_to_pool_id, from='pool@' + pool.id | string),
+                        url_for("pool_page", pool_id=pool.merged_to_pool_id, from='pool@' + pool.id | string),
                         class="col-3"
                     )
                 }}
@@ -322,7 +322,7 @@
                         <tr>
                             <th scope="row">{{ merged_pool.id }}</th>
                             <td>
-                                <a href="{{ url_for('pools_page.pool', pool_id=merged_pool.id) }}">
+                                <a href="{{ url_for('pool_page', pool_id=merged_pool.id) }}">
                                     {{ merged_pool.name }}{% if merged_pool.clone_number > 0 %}<sup class="clone-number">(re:{{ merged_pool.clone_number }})</sup>{% endif %}
                                 </a>
                             </td>

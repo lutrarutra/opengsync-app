@@ -20,7 +20,7 @@
             <tr>
                 <th scope="row">{{ dilution.identifier }}</th>
                 <td>
-                    <a href="{{ url_for('pools_page.pool', pool_id=dilution.pool.id, from='experiment@' + experiment.id | string) }}">
+                    <a href="{{ url_for('pool_page', pool_id=dilution.pool.id, from='experiment@' + experiment.id | string) }}">
                         {{ dilution.pool.name }}{% if dilution.pool.clone_number > 0 %}<sup class="clone-number">(re:{{ dilution.pool.clone_number }})</sup>{% endif %}
                     </a></td>
                 <td>{{ dilution.operator.name }}</td>
