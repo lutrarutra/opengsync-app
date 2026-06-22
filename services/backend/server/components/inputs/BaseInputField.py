@@ -3,6 +3,7 @@ from abc import ABC
 from markupsafe import Markup
 
 from ...core.templates import render_template
+from ...core.responses import get_request_context
 
 
 class BaseInputField(ABC):
@@ -33,12 +34,14 @@ class BaseInputField(ABC):
         self.description = description
         self.read_only = read_only
 
-    async def render(self, container_class="", hide_label: bool = False) -> str:
+    async def render(self, container_class: str = "", hide_label: bool = False, **kwargs) -> str:
         return Markup(
             await render_template(
                 self.template,
                 field=self,
                 container_class=container_class,
                 hide_label=hide_label,
+                **kwargs,
+                **await get_request_context(),
             )
         )

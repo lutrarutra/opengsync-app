@@ -401,7 +401,7 @@
                 </div>
                 <div>
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-                    hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}">Properties</button>
+                    hx-get="{{ url_for('render_library_properties', seq_request_id=seq_request.id) }}">Properties</button>
                 </div>
             </div>
             <div hx-get="{{ url_for('render_library_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">

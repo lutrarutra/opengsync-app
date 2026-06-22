@@ -1,6 +1,6 @@
 from .BaseInputField import BaseInputField
 from .boolean import BooleanInputField, CheckboxInputField, SwitchInputField
-from . import string, numeric, selectable, searchable
+from . import string, numeric, selectable, searchable, spreadsheet
 
 __all__ = [
     "BaseInputField",
@@ -11,4 +11,5 @@ __all__ = [
     "numeric",
     "selectable",
     "searchable",
+    "spreadsheet",
 ]

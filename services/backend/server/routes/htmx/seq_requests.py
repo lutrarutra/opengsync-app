@@ -72,12 +72,24 @@ class SeqRequestTable(HTMXTable):
 
 @router.get("/render-table-page")
 async def render_seq_request_table(
-    user_id: int | None = Query(None, description="Optional user ID to filter seq requests"),
-    group_id: int | None = Query(None, description="Optional group ID to filter seq requests"),
-    project_id: int | None = Query(None, description="Optional project ID to filter seq requests"),
-    name: str | None = Query(None, description="Optional name search term to filter seq requests"),
-    group: str | None = Query(None, description="Optional group name search term to filter seq requests"),
-    requestor: str | None = Query(None, description="Optional requestor name search term to filter seq requests"),
+    user_id: int | None = Query(
+        None, description="Optional user ID to filter seq requests"
+    ),
+    group_id: int | None = Query(
+        None, description="Optional group ID to filter seq requests"
+    ),
+    project_id: int | None = Query(
+        None, description="Optional project ID to filter seq requests"
+    ),
+    name: str | None = Query(
+        None, description="Optional name search term to filter seq requests"
+    ),
+    group: str | None = Query(
+        None, description="Optional group name search term to filter seq requests"
+    ),
+    requestor: str | None = Query(
+        None, description="Optional requestor name search term to filter seq requests"
+    ),
     status_in: list[C.SeqRequestStatus] | None = Depends(
         dependencies.parse_enum_ids(
             enum_type=C.SeqRequestStatus, query_param="status_in"
@@ -125,18 +137,37 @@ async def render_seq_request_table(
     )
 
     if user_id is not None:
-        if (await session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ):
-            raise exc.NoPermissionsException("You do not have permission to view seq requests for this user.")
+        if (
+            await session.get_access_level(Q.user.permissions(user_id, current_user.id))
+            < C.AccessLevel.READ
+        ):
+            raise exc.NoPermissionsException(
+                "You do not have permission to view seq requests for this user."
+            )
         template = "components/tables/user-seq_request.html"
         table.url_params["user_id"] = user_id
     elif group_id is not None:
-        if await session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
-            raise exc.NoPermissionsException("You do not have permission to view seq requests for this group.")
+        if (
+            await session.get_access_level(
+                Q.group.permissions(group_id, current_user.id)
+            )
+            < C.AccessLevel.READ
+        ):
+            raise exc.NoPermissionsException(
+                "You do not have permission to view seq requests for this group."
+            )
         template = "components/tables/group-seq_request.html"
         table.url_params["group_id"] = group_id
     elif project_id is not None:
-        if await session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
-            raise exc.NoPermissionsException("You do not have permission to view seq requests for this project.")
+        if (
+            await session.get_access_level(
+                Q.project.permissions(project_id, current_user.id)
+            )
+            < C.AccessLevel.READ
+        ):
+            raise exc.NoPermissionsException(
+                "You do not have permission to view seq requests for this project."
+            )
         template = "components/tables/project-seq_request.html"
         table.url_params["project_id"] = project_id
     else:
@@ -732,10 +763,21 @@ async def get_seq_request_submit_checklist(
         Q.seq_request.select(id=seq_request_id).options(
             orm.selectinload(models.SeqRequest.seq_auth_form_file),
             orm.selectinload(models.SeqRequest.contact_person),
-            orm.with_expression(models.SeqRequest._num_samples, models.SeqRequest.num_samples.expression),
-            orm.with_expression(models.SeqRequest._num_libraries, models.SeqRequest.num_libraries.expression),
-            orm.with_expression(models.SeqRequest._library_types, models.SeqRequest.library_types.expression),
-            orm.with_expression(models.SeqRequest._library_type_counts, models.SeqRequest.library_type_counts.expression),
+            orm.with_expression(
+                models.SeqRequest._num_samples, models.SeqRequest.num_samples.expression
+            ),
+            orm.with_expression(
+                models.SeqRequest._num_libraries,
+                models.SeqRequest.num_libraries.expression,
+            ),
+            orm.with_expression(
+                models.SeqRequest._library_types,
+                models.SeqRequest.library_types.expression,
+            ),
+            orm.with_expression(
+                models.SeqRequest._library_type_counts,
+                models.SeqRequest.library_type_counts.expression,
+            ),
         )
     )
     checklist = seq_request.get_submit_checklist()
@@ -867,8 +909,8 @@ async def get_seq_request_sample_table(
     ]
     df = df.drop(columns=["project_identifier", "project_title", "sample_id"])
 
-    from ...components.tables.spreadsheet import TextColumn
     from ...components.tables import StaticSpreadsheet
+    from ...components.tables.spreadsheet import TextColumn
 
     columns: list = [TextColumn("sample_name", "Sample Name", width=300)]
     for column in df.columns:
@@ -983,11 +1025,6 @@ async def add_assignee_to_seq_request(
         redirect=responses.url_for("dashboard"),
         flash=responses.flash("Assignee Added!", "success"),
     )
-
-
-# ─────────────────────────────────────────────────────────────────────
-# File management routes
-# ─────────────────────────────────────────────────────────────────────
 
 
 @router.delete("/{seq_request_id}/delete-file/{file_id}")
@@ -1170,6 +1207,7 @@ async def remove_sample_from_request(
         ),
     )
 
+
 @router.get("/{seq_request_id}/submit-request")
 async def render_submit_request_form(
     seq_request_id: int,
@@ -1302,6 +1340,7 @@ async def add_comment(
         flash=responses.flash("Comment added successfully.", "success"),
     )
 
+
 @router.get("/{seq_request_id}/add-share-email")
 async def render_add_share_email_form(
     seq_request_id: int,
@@ -1350,6 +1389,7 @@ async def add_share_email(
         ),
         flash=responses.flash("Email added to the list.", "success"),
     )
+
 
 @router.get("/{seq_request_id}/add-assignee-form")
 async def render_add_assignee_form(
@@ -1404,3 +1444,43 @@ async def add_assignee_from_form(
         ),
         flash=responses.flash("Assignee added successfully.", "success"),
     )
+
+
+@router.get("/{seq_request_id}/library-properties")
+async def render_library_properties(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    seq_request = await session.get_one(
+        Q.seq_request.select(id=seq_request_id),
+        options=[orm.selectinload(models.SeqRequest.libraries)],
+    )
+
+    form = forms.LibraryPropertyForm(
+        request, access_level=access_level, seq_request=seq_request,
+    )
+    return await form.make_response()
+
+
+@router.post("/{seq_request_id}/library-properties")
+async def add_library_properties(
+    seq_request_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException()
+
+    seq_request = await session.get_one(
+        Q.seq_request.select(id=seq_request_id),
+        options=[orm.selectinload(models.SeqRequest.libraries)],
+    )
+
+    form = forms.LibraryPropertyForm(access_level=access_level, request=request, seq_request=seq_request)
+    return await form.save(session)

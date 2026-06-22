@@ -153,6 +153,7 @@ j2.env.globals["ExperimentWorkFlow"] = C.ExperimentWorkFlow
 j2.env.globals["DeliveryStatus"] = C.DeliveryStatus
 j2.env.globals["TaskStatus"] = C.TaskStatus
 j2.env.globals["FlowCellType"] = C.FlowCellType
+j2.env.globals["AccessLevel"] = C.AccessLevel
 
 # Utilities
 j2.env.globals["isna"] = pd.isna

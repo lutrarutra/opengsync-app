@@ -7,11 +7,11 @@
     </div>
     <div class="modal-body">
         <div id="library-properties-form">
-            {{ form.csrf_token() }}
-            {{ spreadsheet_input(form.spreadsheet, target_element_id="library-properties-container", submit_btn_id="submit-library-properties-btn") }}
+            {{ form.csrf_token.render() }}
+            {{ form.spreadsheet.render() }}
         </div>
     </div>
-    {% if form.editable %}
+    {% if form.access_level >= AccessLevel.WRITE %}
     <div class="modal-footer" id="popup-footer">
         <div class="footer-id">
         </div>
