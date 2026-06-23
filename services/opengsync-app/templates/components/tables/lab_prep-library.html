@@ -34,7 +34,7 @@
                         {"type": "hxdelete", "label": "Remove Library" ,
                         "disabled": false if lab_prep.status == C.PrepStatus.PREPARING else true, "config": 
                         {
-                            "url": url_for("lab_preps_htmx.remove_library", library_id=library.id, **table.get_state()),
+                            "url": url_for("remove_library_from_prep", library_id=library.id, **table.get_state()),
                             "target": "#lab_prep-library-table", 
                             "title": "Remove {library.name} from {lab_prep.name}?".format(library=library, lab_prep=lab_prep)
                         },}

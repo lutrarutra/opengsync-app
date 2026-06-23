@@ -7,7 +7,7 @@
     </div>
     <div class="modal-body">
         <div id="flow-cell-design-form">
-            {{ form.csrf_token() }}
+            {{ form.csrf_token.render() }}
             <div class="row">
                 <div class="col-6">{{ form_group(form.name) }}</div>
                 <div class="col-6">{{ select_input(form.flow_cell_type_id) }}</div>
@@ -22,7 +22,7 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-success"
-            hx-post="{{ url_for('design_htmx.edit_flow_cell_design', flow_cell_design_id=flow_cell_design.id) }}"
+            hx-post="{{ url_for('edit_flow_cell_design', flow_cell_design_id=flow_cell_design.id) }}"
             hx-include="#flow-cell-design-form"
             hx-target="#flow-cell-design-form-container"
             hx-swap="outerHTML">Submit</button>

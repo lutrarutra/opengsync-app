@@ -20,7 +20,7 @@
                 <ul class="dropdown-menu">
                     <li>
                         <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content"
-                        hx-get="{{ url_for('lab_preps_htmx.edit', lab_prep_id=lab_prep.id) }}"
+                        hx-get="{{ url_for('render_edit_lab_prep_form', lab_prep_id=lab_prep.id) }}"
                         hx-swap="innerHTML" hx-trigger="click">
                             Edit Prep
                         </button>
@@ -38,7 +38,7 @@
                                 title="Delete Library Prep?",
                                 body="You will not be able to undo this. Are you sure?",
                                 method="hx-delete",
-                                url=url_for('lab_preps_htmx.delete', lab_prep_id=lab_prep.id),
+                                url=url_for('delete_lab_prep', lab_prep_id=lab_prep.id),
                                 class="dropdown-item",
                                 disabled=lab_prep.status >= C.PrepStatus.COMPLETED,
                                 disabled_tooltip="Only preps that have not been completed can be deleted.",
@@ -54,7 +54,7 @@
                                 title="Undo Library Prep?",
                                 body="This will change the status of all 'Pooled' libraries to 'Preparing'. Are you sure?",
                                 method="hx-post",
-                                url=url_for('lab_preps_htmx.uncomplete', lab_prep_id=lab_prep.id),
+                                url=url_for('uncomplete_lab_prep', lab_prep_id=lab_prep.id),
                                 class="dropdown-item",
                                 disabled=lab_prep.status < C.PrepStatus.COMPLETED or not current_user.is_admin(),
                                 disabled_tooltip="Only preps that have not been completed can be deleted.",
@@ -66,7 +66,7 @@
                     <li>
                         <button type="button" class="dropdown-item" data-bs-toggle="modal"
                         data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-                        hx-get="{{ url_for('lab_preps_htmx.file_form', lab_prep_id=lab_prep.id) }}">
+                        hx-get="{{ url_for('render_upload_file_form', lab_prep_id=lab_prep.id) }}">
                             Attach File
                         </button>
                     </li>
@@ -147,7 +147,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('libraries_htmx.get', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_library_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -161,7 +161,7 @@
                     <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
                 </div>
             </div>
-            <div hx-get="{{ url_for('lab_preps_htmx.checklist', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_lab_prep_checklist', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -174,7 +174,7 @@
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('pools_htmx.get', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_pool_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -209,13 +209,13 @@
         </div>
 
         <div class="tab-pane fade" id="mux-tab" role="tabpanel" tabindex="6">
-            <div hx-get="{{ url_for('lab_preps_htmx.get_mux_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_lab_prep_mux_spreadsheet', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
 
         <div class="tab-pane fade" id="files-tab" role="tabpanel" tabindex="7">
-            <div hx-get="{{ url_for('lab_preps_htmx.get_files', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_media_file_table', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -227,12 +227,12 @@
                 </div>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-                hx-get="{{ url_for('lab_preps_htmx.comment_form', lab_prep_id=lab_prep.id) }}">
+                hx-get="{{ url_for('render_comment_form', lab_prep_id=lab_prep.id) }}">
                     Comment
                 </button>
             </div>
             
-            <div hx-get="{{ url_for('lab_preps_htmx.get_comments', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_comment_thread', lab_prep_id=lab_prep.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

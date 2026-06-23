@@ -7,12 +7,12 @@
 <div class="flow-cell-design-container" id="flow-cell-design-list">
     <em class="text-muted">
         Unassigned Pools
-        <a type="button" hx-get="{{ url_for('design_htmx.create_pool_design') }}" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content">
+        <a type="button" hx-get="{{ url_for('create_pool_design') }}" data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content">
             <i class="bi bi-plus-circle" {{ tooltip('New Pool') }}></i>
         </a>
     </em>
     <div class="orphan-pool-design-container">
-        <div hx-get="{{ url_for('design_htmx.render_pool_designs') }}" hx-trigger="intersect once" hx-swap="outerHTML">
+        <div hx-get="{{ url_for('render_pool_designs') }}" hx-trigger="intersect once" hx-swap="outerHTML">
             {{ spinner() }}
         </div>
     </div>
@@ -55,22 +55,22 @@
                     <div class="flow-cell-comment-container">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <a href="#" hx-trigger="click once" hx-get="{{ url_for('design_htmx.comment_form', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
+                                <a href="#" hx-trigger="click once" hx-get="{{ url_for('comment_form', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
                                 <em class="text-muted">Flow Cell Notes:</em>
                             </div>
                             <div>
                                 {{
                                     modal_button(
-                                        text='<i class="bi bi-pencil-square"></i>',
-                                        url=url_for('design_htmx.edit_flow_cell_design', flow_cell_design_id=design.id),
+                                        text='<i class="bi bi-pencil-square"></i>' | safe,
+                                        url=url_for('edit_flow_cell_design', flow_cell_design_id=design.id),
                                         container="a", class="", tooltip='Edit Design', size="sm"
                                     )
                                 }}
                                 {{
                                     confirm_action_button(
-                                        text='<i class="bi bi-archive"></i>',
+                                        text='<i class="bi bi-archive"></i>' | safe,
                                         title='Archive Flow Cell Design',
-                                        url=url_for('design_htmx.archive_flow_cell_design', flow_cell_design_id=design.id),
+                                        url=url_for('archive_flow_cell_design', flow_cell_design_id=design.id),
                                         container="a",
                                         class="",
                                         method="hx-post",
@@ -79,9 +79,9 @@
                                 }}
                                 {{
                                     confirm_action_button(
-                                        text='<i class="bi bi-trash"></i>',
+                                        text='<i class="bi bi-trash"></i>' | safe,
                                         title='Delete Flow Cell Design Permanently',
-                                        url=url_for('design_htmx.delete_flow_cell_design', flow_cell_design_id=design.id),
+                                        url=url_for('delete_flow_cell_design', flow_cell_design_id=design.id),
                                         container="a",
                                         class="",
                                         method="hx-delete",
@@ -94,7 +94,7 @@
                         {{ comment_list(design.comments) }}
                     </div>
                     <div class="pool-design-container" data-flow-cell-design-id="{{ design.id }}">
-                        <div hx-get="{{ url_for('design_htmx.render_pool_designs', flow_cell_design_id=design.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                        <div hx-get="{{ url_for('render_pool_designs', flow_cell_design_id=design.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                             {{ spinner() }}
                         </div>
                     </div>
@@ -231,7 +231,7 @@
                     const original_flow_cell_design_id = parseInt(dragged.getAttribute('data-original-flow-cell-design-id'));
 
                     if (flow_cell_design_id == -1) {
-                        htmx.ajax("POST", "{{ url_for('design_htmx.create_flow_cell_design') }}", {
+                        htmx.ajax("POST", "{{ url_for('create_flow_cell_design') }}", {
                             target: "#flow-cell-design-list",
                             swap: "outerHTML",
                             values: {
@@ -239,7 +239,7 @@
                             }
                         });
                     } else if (original_flow_cell_design_id !== flow_cell_design_id) {
-                        htmx.ajax("POST", "{{ url_for('design_htmx.move_pool_design') }}", {
+                        htmx.ajax("POST", "{{ url_for('move_pool_design') }}", {
                             target: "#flow-cell-design-list",
                             swap: "outerHTML",
                             values: {

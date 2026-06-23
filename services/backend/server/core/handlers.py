@@ -1,8 +1,10 @@
 from fastapi import Request, HTTPException
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from pydantic import ValidationError
 from loguru import logger
+
+from sqlalchemy.exc import MissingGreenlet
 
 from opengsync_db import exceptions as db_exc
 
@@ -49,3 +51,77 @@ async def UserNotAuthenticatedException_handler(request: Request, exc: Exception
 
 async def form_validation_exception_handler(request: Request, exc: exc.FormValidationException) -> Response:
     return await exc.form.make_response()
+
+
+async def missing_greenlet_handler(request: Request, exc: MissingGreenlet) -> Response:
+    model_name, attr_name = _extract_model_and_attr(exc)
+    short_tb = _format_short_traceback(exc)
+    logger.error(
+        f"MissingGreenlet: lazy loading '{attr_name}' on '{model_name}' is not possible "
+        f"with an async session. Use selectinload() or orm.with_expression(). "
+        f"URL: {request.url}\n{short_tb}"
+    )
+
+    message = (
+        f"Lazy loading '{attr_name}' on '{model_name}' is not supported with async sessions. "
+        "Use selectinload() or orm.with_expression() to eagerly load this attribute."
+    )
+
+    if request.headers.get("HX-Request") == "true":
+        return responses.HTMLResponse(
+            content=f"<div class='alert alert-danger'><pre>{message}\n\n{short_tb}</pre></div>",
+            status_code=500,
+        )
+    return JSONResponse(content={"detail": message, "traceback": short_tb}, status_code=500)
+
+
+def _extract_model_and_attr(exc: MissingGreenlet) -> tuple[str, str]:
+    """Walk the traceback to find the model class and attribute that triggered lazy loading."""
+    tb = exc.__traceback__
+    while tb is not None:
+        frame = tb.tb_frame
+        locals_ = frame.f_locals
+        if "instance" in locals_ and "self" in locals_:
+            instance = locals_["instance"]
+            descriptor = locals_["self"]
+            if hasattr(descriptor, "key") and hasattr(instance, "__class__"):
+                return instance.__class__.__name__, descriptor.key
+        tb = tb.tb_next
+    return "Unknown", "unknown"
+
+
+def _format_short_traceback(exc: MissingGreenlet) -> str:
+    """Format a short traceback showing the app frames around the lazy load."""
+    frames = []
+    tb = exc.__traceback__
+    while tb is not None:
+        frames.append(tb)
+        tb = tb.tb_next
+
+    if not frames:
+        return ""
+
+    # Find the first frame inside sqlalchemy/orm (the lazy-load trigger)
+    lazy_idx = len(frames) - 1
+    for i, f in enumerate(frames):
+        if "sqlalchemy/orm/" in (f.tb_frame.f_code.co_filename or ""):
+            lazy_idx = i
+            break
+
+    # Take 2 caller frames before + the lazy load frame + 1 after
+    start = max(0, lazy_idx - 2)
+    end = min(len(frames), lazy_idx + 2)
+    selected = frames[start:end]
+
+    lines = []
+    for f in selected:
+        fname = f.tb_frame.f_code.co_filename
+        parts = fname.split("/")
+        short_name = "/".join(parts[-3:]) if len(parts) > 3 else fname
+        lineno = f.tb_lineno
+        func = f.tb_frame.f_code.co_name
+        lines.append(f"  {short_name}:{lineno} in {func}()")
+
+    header = f"Traceback (most recent call last, showing {len(selected)} frames):"
+    return "\n".join([header] + lines)
+

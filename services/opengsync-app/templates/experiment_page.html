@@ -152,7 +152,7 @@
                     <h2>Pools <img {{ tooltip('Right click on a pool name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('pools_htmx.get', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_pool_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -175,7 +175,7 @@
                     <h2>Libraries <img {{ tooltip('Right click sample name to remove. Right click adapter to edit. ') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('libraries_htmx.get', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_library_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -243,7 +243,7 @@
                 </div>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-                hx-get="{{ url_for('experiments_htmx.comment_form', experiment_id=experiment.id) }}">
+                hx-get="{{ url_for('render_comment_form', experiment_id=experiment.id) }}">
                     Comment
                 </button>
             </div>

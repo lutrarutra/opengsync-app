@@ -7,8 +7,8 @@
     </div>
     <div class="modal-body">
         <div id="comment-form">
-            {{ comment_form.csrf_token() }}
-            {{ form_group(comment_form.comment) }}
+            {{ form.csrf_token.render() }}
+            {{ form_group(form.comment) }}
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">
@@ -16,7 +16,7 @@
         </div>
         <div class="footer-controls">
             <button class="btn btn-success" hx-include="#comment-form" hx-target="#comment-form-container" hx-swap="outerHTML"
-            hx-encoding="multipart/form-data" hx-post="{{ comment_form._post_url }}">
+            hx-post="{{ url_for('submit_comment_form', seq_request_id=form.seq_request_id, experiment_id=form.experiment_id, lab_prep_id=form.lab_prep_id) }}">
                 Submit
             </button>
         </div>

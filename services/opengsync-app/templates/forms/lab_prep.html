@@ -25,10 +25,10 @@
         <div class="footer-controls">
             {% if lab_prep_form.form_type == "edit" %}
             <button class="btn btn-success" hx-include="#lab_prep-form" hx-target="#lab_prep-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('lab_preps_htmx.edit', lab_prep_id=lab_prep.id) }}">Save</button>
+                hx-post="{{ url_for('edit_lab_prep', lab_prep_id=lab_prep.id) }}">Save</button>
             {% elif lab_prep_form.form_type == "create" %}
             <button class="btn btn-success" hx-include="#lab_prep-form" hx-target="#lab_prep-form-container"
-                hx-swap="outerHTML" hx-post="{{ url_for('lab_preps_htmx.create') }}">Create</button>
+                hx-swap="outerHTML" hx-post="{{ url_for('create_lab_prep') }}">Create</button>
             {% endif %}
         </div>
     </div>

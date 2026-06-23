@@ -51,22 +51,12 @@ class MediaFileTable(HTMXTable):
 
 @router.get("/render-table-page")
 async def render_media_file_table(
-    uploader_id: int | None = Query(
-        None, description="Filter files by uploader's user ID."
-    ),
-    seq_request_id: int | None = Query(
-        None, description="Filter files by sequencing request ID."
-    ),
-    experiment_id: int | None = Query(
-        None, description="Filter files by experiment ID."
-    ),
+    uploader_id: int | None = Query(None, description="Filter files by uploader's user ID."),
+    seq_request_id: int | None = Query(None, description="Filter files by sequencing request ID."),
+    experiment_id: int | None = Query(None, description="Filter files by experiment ID."),
     lab_prep_id: int | None = Query(None, description="Filter files by lab prep ID."),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(
-        dependencies.parse_order_by(
-            model=models.MediaFile, default=models.MediaFile.id.desc()
-        )
-    ),
+    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.MediaFile, default=models.MediaFile.id.desc())),
     current_user: models.User = Depends(dependencies.require_user),
     session: AsyncSession = Depends(dependencies.db_session),
 ):

@@ -117,7 +117,7 @@
                     {{ 
                         metadata_group_link(
                             "Lab Prep", pool.lab_prep.display_name,
-                            url_for("lab_preps_page.lab_prep", lab_prep_id=pool.lab_prep_id, from='pool@' + pool.id | string),
+                            url_for("lab_prep_page", lab_prep_id=pool.lab_prep_id, from='pool@' + pool.id | string),
                             class="col-3"
                         )
                     }}

@@ -123,37 +123,18 @@ async def render_seq_request_table(
     )
 
     if user_id is not None:
-        if (
-            await session.get_access_level(Q.user.permissions(user_id, current_user.id))
-            < C.AccessLevel.READ
-        ):
-            raise exc.NoPermissionsException(
-                "You do not have permission to view seq requests for this user."
-            )
+        if await session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view seq requests for this user.")
         table.template = "components/tables/user-seq_request.html"
         table.url_params["user_id"] = user_id
     elif group_id is not None:
-        if (
-            await session.get_access_level(
-                Q.group.permissions(group_id, current_user.id)
-            )
-            < C.AccessLevel.READ
-        ):
-            raise exc.NoPermissionsException(
-                "You do not have permission to view seq requests for this group."
-            )
+        if await session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view seq requests for this group.")
         table.template = "components/tables/group-seq_request.html"
         table.url_params["group_id"] = group_id
     elif project_id is not None:
-        if (
-            await session.get_access_level(
-                Q.project.permissions(project_id, current_user.id)
-            )
-            < C.AccessLevel.READ
-        ):
-            raise exc.NoPermissionsException(
-                "You do not have permission to view seq requests for this project."
-            )
+        if await session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view seq requests for this project.")
         table.template = "components/tables/project-seq_request.html"
         table.url_params["project_id"] = project_id
     else:
@@ -263,20 +244,13 @@ async def render_edit_seq_request(
 ):
     """Render the edit SeqRequest form."""
     if access_level < C.AccessLevel.WRITE:
-        return await responses.htmx_response(
-            redirect=responses.url_for("seq_requests_page")
-        )
+        return await responses.htmx_response(redirect=responses.url_for("seq_requests_page"))
 
     seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
 
-    if (
-        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
-        and access_level < C.AccessLevel.INSIDER
-    ):
+    if seq_request.status_id != C.SeqRequestStatus.DRAFT.id and access_level < C.AccessLevel.INSIDER:
         return await responses.htmx_response(
-            redirect=responses.url_for(
-                "seq_request_page", seq_request_id=seq_request_id
-            )
+            redirect=responses.url_for("seq_request_page", seq_request_id=seq_request_id)
         )
 
     form = forms.models.SeqRequestForm(
@@ -1220,54 +1194,6 @@ async def submit_request(
     return await responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
         flash=responses.flash("Sequencing request submitted successfully.", "success"),
-    )
-
-
-@router.get("/{seq_request_id}/comment-form")
-async def render_comment_form(
-    seq_request_id: int,
-    request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
-    form = forms.actions.SeqRequestCommentForm(request, seq_request=seq_request)
-    return await form.make_response()
-
-
-@router.post("/{seq_request_id}/comment-form")
-async def add_comment(
-    seq_request_id: int,
-    request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
-    current_user: models.User = Depends(dependencies.require_user),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
-    form = forms.actions.SeqRequestCommentForm(request, seq_request=seq_request)
-    await form.validate()
-
-    await session.save(
-        Q.comment.create(
-            text=form.comment.data,
-            author=current_user,
-            seq_request=seq_request,
-        )
-    )
-
-    return await responses.htmx_response(
-        redirect=request.url_for(
-            "seq_request_page",
-            seq_request_id=seq_request.id,
-            tab="request-comments-tab",
-        ),
-        flash=responses.flash("Comment added successfully.", "success"),
     )
 
 

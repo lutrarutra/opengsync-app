@@ -25,7 +25,7 @@ class LibraryTable(HTMXTable):
     ]
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    table = LibraryTable(route="libraries_htmx.get", page=request.args.get("page", 0, type=int))
+    table = LibraryTable(route="render_library_table", page=request.args.get("page", 0, type=int))
     stmt = sa.select(models.Library)
 
     if (status_in := request.args.get("status_in")):

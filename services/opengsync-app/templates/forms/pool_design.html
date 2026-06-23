@@ -8,7 +8,7 @@
     </div>
     <div class="modal-body">
         <div id="pool-design-form">
-            {{ form.csrf_token() }}
+            {{ form.csrf_token.render() }}
             <div class="row">
                 <div class="col-6">{{ form_group(form.pool_design_name) }}</div>
                 <div class="col-6">{{ form_group(form.num_m_requested_reads, unit="M") }}</div>
@@ -19,7 +19,7 @@
                 <div class="col-3">{{ form_group(form.i2_cycles) }}</div>
                 <div class="col-3">{{ form_group(form.r2_cycles) }}</div>
             </div>
-            {{ search_select_field(form.pool_id, url_for('pools_htmx.search'), "name") }}
+            {{ search_select_field(form.pool_id, url_for('search_pools'), "name") }}
         </div>
     </div>
     <div class="modal-footer" id="popup-footer">
@@ -30,9 +30,9 @@
         <div class="footer-controls">
             <button type="button" class="btn btn-success"
             {% if form.pool_design %}
-            hx-post="{{ url_for('design_htmx.edit_pool_design', pool_design_id=form.pool_design.id) }}"
+            hx-post="{{ url_for('edit_pool_design', pool_design_id=form.pool_design.id) }}"
             {% else %}
-            hx-post="{{ url_for('design_htmx.create_pool_design') }}"
+            hx-post="{{ url_for('create_pool_design') }}"
             {% endif %}
             hx-include="#pool-design-form"
             hx-target="#pool-design-form-container"

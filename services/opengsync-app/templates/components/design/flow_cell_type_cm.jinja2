@@ -6,7 +6,7 @@ data-context-menu='{{ {"actions": [
         "disabled": false,
         "active": false if design.flow_cell_type_id else true,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=-1),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=-1),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
@@ -17,7 +17,7 @@ data-context-menu='{{ {"actions": [
         "disabled": false,
         "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_6K_SP.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_SP.id),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_SP.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
@@ -28,7 +28,7 @@ data-context-menu='{{ {"actions": [
         "disabled": false,
         "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_6K_S1.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S1.id),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S1.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
@@ -39,7 +39,7 @@ data-context-menu='{{ {"actions": [
         "disabled": false,
         "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_6K_S2.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S2.id),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S2.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
@@ -50,7 +50,7 @@ data-context-menu='{{ {"actions": [
         "disabled": false,
         "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_6K_S4.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S4.id),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_6K_S4.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
@@ -61,7 +61,7 @@ data-context-menu='{{ {"actions": [
         "disabled": false,
         "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_X_1B_ILLUMINA.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_1B_ILLUMINA.id),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_1B_ILLUMINA.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
@@ -72,7 +72,7 @@ data-context-menu='{{ {"actions": [
         "disabled": false,
         "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_X_10B_ILLUMINA.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_10B_ILLUMINA.id),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_10B_ILLUMINA.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
@@ -83,7 +83,7 @@ data-context-menu='{{ {"actions": [
         "disabled": false,
         "active": design.flow_cell_type_id == C.FlowCellType.NOVASEQ_X_25B_ILLUMINA.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_25B_ILLUMINA.id),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.NOVASEQ_X_25B_ILLUMINA.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
@@ -94,7 +94,7 @@ data-context-menu='{{ {"actions": [
         "disabled": false,
         "active": design.flow_cell_type_id == C.FlowCellType.MISEQ_V3.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_V3.id),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_V3.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
@@ -105,7 +105,7 @@ data-context-menu='{{ {"actions": [
         "disabled": false,
         "active": design.flow_cell_type_id == C.FlowCellType.MISEQ_V2.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_V2.id),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_V2.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
@@ -116,7 +116,7 @@ data-context-menu='{{ {"actions": [
         "disabled": false,
         "active": design.flow_cell_type_id == C.FlowCellType.MISEQ_MICRO_V2.id,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_MICRO_V2.id),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_MICRO_V2.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }
@@ -126,7 +126,7 @@ data-context-menu='{{ {"actions": [
         "label": C.FlowCellType.MISEQ_NANO_V2.display_name_with_max_m_reads,
         "disabled": false,
         "config": {
-            "url": url_for('design_htmx.set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_NANO_V2.id),
+            "url": url_for('set_flow_cell_type', flow_cell_design_id=design.id, flow_cell_type_id=C.FlowCellType.MISEQ_NANO_V2.id),
             "target": "#flow-cell-design-list",
             "confirm": false,
         }

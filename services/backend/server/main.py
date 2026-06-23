@@ -9,6 +9,8 @@ from loguru import logger
 
 from opengsync_db import exceptions as db_exc, models
 
+from sqlalchemy.exc import MissingGreenlet
+
 from .core import lifespan, config, middleware, handlers, dependencies, exceptions as exc, context, responses
 from . import routes
 
@@ -28,6 +30,7 @@ app.exception_handler(RequestValidationError)(handlers.validation_exception_hand
 app.exception_handler(exc.UserNotAuthenticatedException)(handlers.UserNotAuthenticatedException_handler)
 app.exception_handler(exc.FormValidationException)(handlers.form_validation_exception_handler)
 app.exception_handler(db_exc.ElementDoesNotExist)(handlers.db_model_not_found_handler)
+app.exception_handler(MissingGreenlet)(handlers.missing_greenlet_handler)
 
 
 class ErrorResponse(BaseModel):

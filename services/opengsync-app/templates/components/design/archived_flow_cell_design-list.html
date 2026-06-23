@@ -37,15 +37,15 @@
                     <div class="flow-cell-comment-container">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <a href="#" hx-trigger="click once" hx-get="{{ url_for('design_htmx.comment_form', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
+                                <a href="#" hx-trigger="click once" hx-get="{{ url_for('comment_form', flow_cell_design_id=design.id) }}" data-bs-toggle="modal" data-bs-target="#sm-modal" hx-target="#sm-modal-content"><i class="bi bi-chat-right-text" {{ tooltip('Add Note') }}></i></a>
                                 <em class="text-muted">Flow Cell Notes:</em>
                             </div>
                             <div>
                                 {{
                                     confirm_action_button(
-                                        text='<i class="bi bi-arrow-counterclockwise"></i>',
+                                        text='<i class="bi bi-arrow-counterclockwise"></i>' | safe,
                                         title='Unarchive Flow Cell Design',
-                                        url=url_for('design_htmx.unarchive_flow_cell_design', flow_cell_design_id=design.id),
+                                        url=url_for('unarchive_flow_cell_design', flow_cell_design_id=design.id),
                                         container="a",
                                         class="",
                                         method="hx-post",
@@ -59,7 +59,7 @@
                         {{ comment_list(design.comments) }}
                     </div>
                     <div class="pool-design-container" data-flow-cell-design-id="{{ design.id }}">
-                        <div hx-get="{{ url_for('design_htmx.render_pool_designs', flow_cell_design_id=design.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                        <div hx-get="{{ url_for('render_pool_designs', flow_cell_design_id=design.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                             {{ spinner() }}
                         </div>
                     </div>

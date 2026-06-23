@@ -116,7 +116,7 @@
                 {{ 
                     metadata_group_link(
                         "Prep", library.lab_prep.name,
-                        url_for("lab_preps_page.lab_prep", lab_prep_id=library.lab_prep_id, from="library@" + library.id | string),
+                        url_for("lab_prep_page", lab_prep_id=library.lab_prep_id, from="library@" + library.id | string),
                         class="col-3"
                     )
                 }}
@@ -270,7 +270,7 @@
         </div>
         {% if library.type == C.LibraryType.PARSE_SC_CRISPR %}
         <div class="tab-pane fade" id="library-crispr-tab" role="tabpanel" tabindex="5">
-            <div hx-get="{{ url_for('libraries_htmx.get_crispr_guides', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_library_table_crispr_guides', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -284,7 +284,7 @@
                     Edit
                 </button>
             </div>
-            <div hx-get="{{ url_for('libraries_htmx.get_mux_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_library_table_mux_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

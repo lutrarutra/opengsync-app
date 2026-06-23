@@ -8,7 +8,7 @@
     </div>
     <div class="modal-body">
         <div id="todo-comment-form">
-            {{ form.csrf_token() }}
+            {{ form.csrf_token.render() }}
             {{ form_group(form.text) }}
             {{ select_input(form.status_id) }}
         </div>
@@ -19,9 +19,9 @@
         <div class="footer-info">
         </div>
         <div class="footer-controls">
-            <button type="button" class="btn btn-success"
-                hx-post="{{ form.post_url }}" hx-include="#todo-comment-form"
-                hx-target="#todo-comment-form-container" hx-swap="outerHTML">Add</button>
+<button type="button" class="btn btn-success"
+            hx-post="{{ form.post_url }}" hx-include="#todo-comment-form"
+            hx-target="#todo-comment-form-container" hx-swap="outerHTML">Add</button>
         </div>
     </div>
 </div>

@@ -106,8 +106,6 @@ class Project(Base):
         if self._library_types is not None:
             return [LibraryType.get(type_id) for type_id in self._library_types]
 
-        print(self._library_types)
-
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:

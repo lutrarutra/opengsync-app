@@ -25,6 +25,7 @@ WTForms → custom Pydantic `BaseModel`-based `HTMXForm`. Reference: `ProjectFor
   - Validation errors raise `FormValidationException` → handled in `handlers.py` → re-renders form with errors.
 - Input field types: `StringInputField`, `EmailInputField`, `PasswordInputField`, `TextAreaInputField`, `SelectableInputField`, `SearchableInputField`.
 - File attachment forms (expriment, seq_request, lab_prep) -> MediaFileForm.py, same with comments
+- Comment forms will be unified into a single `CommentForm` with query parameters for the context (seq_request, lab_prep, experiment, etc.)
 - Small workflows, that have only one step/form, moved to forms/actions
 
 ### Page Routes: `routes/pages/*_page.py` → `server/routes/pages/*.py`
@@ -358,3 +359,12 @@ Most complex workflows (ordered by effort):
 6. **Flash messages** — set via `flash=FlashMessage(...)` in `htmx_response()` or `html_response()`, not Flask's `flash()`.
 7. **Cache invalidation** — use `invalidate_cache()` dependency (appends keys, deleted after request), not Flask-Caching decorators.
 8. **Workflow prefix** — Flask: `routes/workflows/` → FastAPI: `server/routes/htmx/workflows/`.
+
+
+### Coding Style:
+- if request: Request is not used, it can be removed.
+- require_user or require_insider     
+    can be moved to the route decorator, e.g. router.get("...",                             
+    dependendcies=[Depends(dependencies.require_user)]) if the return value is not used
+    (it will raise error if the permissions are not sufficient). 
+- No unnecessary comments or code division comments. 

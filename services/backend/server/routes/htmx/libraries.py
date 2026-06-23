@@ -116,6 +116,7 @@ async def render_library_table(
             raise exc.NoPermissionsException("You do not have permission to view libraries for this lab prep.")
         table.template = "components/tables/lab_prep-library.html"
         table.url_params["lab_prep_id"] = lab_prep_id
+        table.context["lab_prep"] = await session.get_one(Q.lab_prep.select(id=lab_prep_id))
     elif seq_request_id is not None:
         if await session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this seq request.")

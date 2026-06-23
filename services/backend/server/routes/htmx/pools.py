@@ -129,3 +129,25 @@ async def render_pool_clone_form(
 
 @router.post("/{pool_id}/clone")
 async def clone_pool(response = Depends(forms.models.PoolForm.clone)): return response
+
+
+@router.get("/search")
+async def search_pools(
+    word: str | None = Query(None, description="Search word for pool name"),
+    selected_id: int | None = Query(None, description="Currently selected pool"),
+    current_user: models.User = Depends(dependencies.require_user),
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    session: AsyncSession = Depends(dependencies.db_session),
+):
+    stmt = Q.pool.select()
+
+    if selected_id is not None and not word:
+        stmt = Q.pool.select(id=selected_id, statement=stmt)
+    elif word is not None:
+        stmt = Q.pool.search(name=word, statement=stmt)
+
+    if not current_user.is_insider():
+        stmt = Q.pool.select(viewer_id=current_user.id, statement=stmt)
+
+    pools, count = await session.page(stmt, page=page)
+    return await responses.htmx_response(template="components/search/pool.html", pools=pools)
