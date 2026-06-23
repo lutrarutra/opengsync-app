@@ -19,7 +19,7 @@ class PoolTable(HTMXTable):
         TableCol(title="Library Types", label="library_types", col_size=2, choices=C.LibraryType.as_selectable()),
         TableCol(title="Status", label="status", col_size=1, sort_by="status_id", sortable=True, choices=C.PoolStatus.as_selectable()),
         TableCol(title="Type", label="type", col_size=1, sort_by="type_id", sortable=True, choices=C.PoolType.as_selectable()),
-        TableCol(title="Owner", label="owner_name", col_size=2, searchable=True),
+        TableCol(title="Owner", label="owner", col_size=2, searchable=True),
         TableCol(title="# Libraries", label="num_libraries", col_size=1, sortable=True),
     ]
 
@@ -52,12 +52,13 @@ async def render_pool_table(
     )
 
     if seq_request_id is not None:
-        if not current_user.is_insider():
-            raise exc.NoPermissionsException("You do not have permission to view pools for this seq request.")
-        template = "components/tables/seq_request-pool.html"
+        if await session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view this resource.")
+        table.template = "components/tables/seq_request-pool.html"
         table.url_params["seq_request_id"] = seq_request_id
+        table.context["seq_request_id"] = seq_request_id
     else:
-        template = "components/tables/pool.html"
+        table.template = "components/tables/pool.html"
         if not current_user.is_insider():
             stmt = Q.pool.select(viewer_id=current_user.id, statement=stmt)
 
@@ -71,7 +72,7 @@ async def render_pool_table(
     )
     table.set_num_pages(count)
 
-    return await responses.htmx_response(template=template, pools=pools, table=table)
+    return await table.make_response(pools=pools)
 
 
 @router.get("/create")

@@ -1,13 +1,11 @@
-{% from "components/search_select.jinja2" import search_select_field %}
-
 <div class="modal-content" id="add-seq_request-assignee-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Add Assignee</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body" id="add-seq_request-assignee-form">
-        {{ search_select_field(form.user, url_for('users_htmx.search', insiders=True), "name") }}
-        {{ form.csrf_token() }}
+        {{ form.user_id.render() }}
+        {{ form.csrf_token.render() }}
     </div>
     <div class="modal-footer">
         <div class="footer-id">
@@ -16,7 +14,7 @@
         </div>
         <div class="footer-controls">
             <button class="btn btn-success" hx-include="#add-seq_request-assignee-form" hx-target="#add-seq_request-assignee-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('add_assignee_to_seq_request_form', seq_request_id=seq_request.id) }}">Process</button>
+                hx-post="{{ url_for('add_assignee_to_seq_request_from_form', seq_request_id=seq_request.id) }}">Process</button>
         </div>
     </div>
 </div>

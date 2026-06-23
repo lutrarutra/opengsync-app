@@ -1,7 +1,7 @@
 from .HTMXForm import HTMXForm
 from .LibraryPropertyForm import LibraryPropertyForm
 from .SubHTMXForm import SubHTMXForm
-from . import auth, models, actions
+from . import auth, models, actions, workflows
 
 __all__ = [
     "HTMXForm",
@@ -10,4 +10,5 @@ __all__ = [
     "auth",
     "models",
     "actions",
+    "workflows",
 ]

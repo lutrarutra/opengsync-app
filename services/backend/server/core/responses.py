@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import quote
 
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
@@ -13,9 +13,9 @@ from .context import ctx
 
 class FlashMessage(BaseModel):
     message: str
-    category: str = "info"
+    category: Literal["info", "success", "warning", "error"] = "info"
 
-def flash(message: str, category: str = "info") -> FlashMessage:
+def flash(message: str, category: Literal["info", "success", "warning", "error"] = "info") -> FlashMessage:
     return FlashMessage(message=message, category=category)
 
 async def get_request_context() -> dict[str, Any]:

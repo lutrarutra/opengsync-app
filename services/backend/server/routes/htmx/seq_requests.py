@@ -72,24 +72,12 @@ class SeqRequestTable(HTMXTable):
 
 @router.get("/render-table-page")
 async def render_seq_request_table(
-    user_id: int | None = Query(
-        None, description="Optional user ID to filter seq requests"
-    ),
-    group_id: int | None = Query(
-        None, description="Optional group ID to filter seq requests"
-    ),
-    project_id: int | None = Query(
-        None, description="Optional project ID to filter seq requests"
-    ),
-    name: str | None = Query(
-        None, description="Optional name search term to filter seq requests"
-    ),
-    group: str | None = Query(
-        None, description="Optional group name search term to filter seq requests"
-    ),
-    requestor: str | None = Query(
-        None, description="Optional requestor name search term to filter seq requests"
-    ),
+    user_id: int | None = Query(None, description="Optional user ID to filter seq requests"),
+    group_id: int | None = Query(None, description="Optional group ID to filter seq requests"),
+    project_id: int | None = Query(None, description="Optional project ID to filter seq requests"),
+    name: str | None = Query(None, description="Optional name search term to filter seq requests"),
+    group: str | None = Query(None, description="Optional group name search term to filter seq requests"),
+    requestor: str | None = Query(None, description="Optional requestor name search term to filter seq requests"),
     status_in: list[C.SeqRequestStatus] | None = Depends(
         dependencies.parse_enum_ids(
             enum_type=C.SeqRequestStatus, query_param="status_in"
@@ -105,9 +93,7 @@ async def render_seq_request_table(
     ),
     session: AsyncSession = Depends(dependencies.db_session),
 ):
-    table = SeqRequestTable(
-        route="render_seq_request_table", page=page, order_by=order_by
-    )
+    table = SeqRequestTable(route="render_seq_request_table", page=page, order_by=order_by)
 
     if status_in:
         table.filter_values["status"] = status_in
@@ -144,7 +130,7 @@ async def render_seq_request_table(
             raise exc.NoPermissionsException(
                 "You do not have permission to view seq requests for this user."
             )
-        template = "components/tables/user-seq_request.html"
+        table.template = "components/tables/user-seq_request.html"
         table.url_params["user_id"] = user_id
     elif group_id is not None:
         if (
@@ -156,7 +142,7 @@ async def render_seq_request_table(
             raise exc.NoPermissionsException(
                 "You do not have permission to view seq requests for this group."
             )
-        template = "components/tables/group-seq_request.html"
+        table.template = "components/tables/group-seq_request.html"
         table.url_params["group_id"] = group_id
     elif project_id is not None:
         if (
@@ -168,13 +154,13 @@ async def render_seq_request_table(
             raise exc.NoPermissionsException(
                 "You do not have permission to view seq requests for this project."
             )
-        template = "components/tables/project-seq_request.html"
+        table.template = "components/tables/project-seq_request.html"
         table.url_params["project_id"] = project_id
     else:
         if not current_user.is_insider():
             stmt = Q.seq_request.select(viewer_id=current_user.id, statement=stmt)
 
-        template = "components/tables/seq_request.html"
+        table.template = "components/tables/seq_request.html"
 
     seq_requests, count = await session.page(
         stmt,
@@ -194,9 +180,7 @@ async def render_seq_request_table(
         ],
     )
     table.set_num_pages(count)
-    return await responses.htmx_response(
-        template=template, seq_requests=seq_requests, table=table
-    )
+    return await table.make_response(seq_requests=seq_requests)
 
 
 @router.get("/recent")
@@ -337,10 +321,7 @@ async def render_process_seq_request(
 
 
 @router.post("/{seq_request_id}/process-request")
-async def process_request(
-    response=Depends(forms.actions.ProcessSeqRequestForm.process_request),
-):
-    return response
+async def process_request(response=Depends(forms.actions.ProcessSeqRequestForm.process_request)): return response
 
 
 @router.delete("/{seq_request_id}/delete")
@@ -547,7 +528,7 @@ async def remove_all_seq_request_libraries(
 
 
 @router.get("/{seq_request_id}/overview")
-async def get_seq_request_overview(
+async def render_seq_request_overview(
     seq_request_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
@@ -557,7 +538,11 @@ async def get_seq_request_overview(
 
     seq_request = await session.get_one(
         Q.seq_request.select(id=seq_request_id),
-        options=[orm.selectinload(models.SeqRequest.samples)],
+        options=[
+            orm.selectinload(models.SeqRequest.samples).selectinload(models.Sample.project),
+            orm.selectinload(models.SeqRequest.samples).selectinload(models.Sample.library_links).selectinload(models.links.SampleLibraryLink.library).selectinload(models.Library.pool),
+            orm.selectinload(models.SeqRequest.samples).selectinload(models.Sample.library_links).selectinload(models.links.SampleLibraryLink.library).with_expression(models.Library._num_samples, models.Library.num_samples.expression),
+        ],
     )
 
     LINK_WIDTH_UNIT = 1
@@ -660,48 +645,6 @@ async def get_seq_request_overview(
     )
 
 
-@router.get("/{seq_request_id}/comments")
-async def render_seq_request_comments(
-    seq_request_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    if access_level < C.AccessLevel.READ:
-        raise exc.NoPermissionsException()
-
-    seq_request = await session.get_one(
-        Q.seq_request.select(id=seq_request_id),
-        options=[orm.selectinload(models.SeqRequest.comments)],
-    )
-
-    return await responses.htmx_response(
-        "components/comment-list.html", comments=seq_request.comments
-    )
-
-
-@router.get("/{seq_request_id}/files")
-async def get_seq_request_files(
-    seq_request_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    if access_level < C.AccessLevel.READ:
-        raise exc.NoPermissionsException()
-
-    seq_request = await session.get_one(
-        Q.seq_request.select(id=seq_request_id),
-        options=[orm.selectinload(models.SeqRequest.media_files)],
-    )
-
-    return await responses.htmx_response(
-        "components/file-list.html",
-        files=seq_request.media_files,
-        seq_request=seq_request,
-        delete="delete_file",
-        delete_context={"seq_request_id": seq_request_id},
-    )
-
-
 @router.get("/{seq_request_id}/assignees")
 async def render_seq_request_assignee_table(
     seq_request_id: int,
@@ -801,25 +744,23 @@ async def get_seq_request_review_checklist(
     seq_request = await session.get_one(
         Q.seq_request.select(id=seq_request_id),
         options=[
-            orm.selectinload(models.SeqRequest.samples).selectinload(
-                models.Sample.project
-            ),
-            orm.selectinload(models.SeqRequest.libraries).selectinload(
-                models.Library.pool
-            ),
-            orm.selectinload(models.SeqRequest.sample_library_links).selectinload(
-                models.links.SampleLibraryLink.library
-            ),
-            orm.selectinload(models.SeqRequest.sample_library_links).selectinload(
-                models.links.SampleLibraryLink.sample
-            ),
+            orm.selectinload(models.SeqRequest.requestor),
+            orm.selectinload(models.SeqRequest.contact_person),
+            orm.selectinload(models.SeqRequest.organization_contact),
+            orm.selectinload(models.SeqRequest.bioinformatician_contact),
+            orm.selectinload(models.SeqRequest.billing_contact),
+            orm.selectinload(models.SeqRequest.samples).selectinload(models.Sample.project),
+            orm.selectinload(models.SeqRequest.samples).selectinload(models.Sample.library_links).selectinload(models.links.SampleLibraryLink.library),
+            orm.selectinload(models.SeqRequest.libraries).selectinload(models.Library.pool),
+            orm.selectinload(models.SeqRequest.libraries).selectinload(models.Library.indices),
+            orm.selectinload(models.SeqRequest.sample_library_links).selectinload(models.links.SampleLibraryLink.library),
+            orm.selectinload(models.SeqRequest.sample_library_links).selectinload(models.links.SampleLibraryLink.sample),
+            orm.selectinload(models.SeqRequest.seq_auth_form_file)
         ],
     )
 
-    checklist = seq_request.get_review_checklist()
-    contains_mux_samples = any(
-        library.is_multiplexed() for library in seq_request.libraries
-    )
+    checklist: dict = seq_request.get_review_checklist()
+    contains_mux_samples = any(library.is_multiplexed() for library in seq_request.libraries)
 
     indices_checked = True
     for library in seq_request.libraries:
@@ -838,7 +779,7 @@ async def get_seq_request_review_checklist(
         seq_request=seq_request,
         contains_mux_samples=contains_mux_samples,
         indices_checked=indices_checked,
-        context=checklist,
+        **checklist,
     )
 
 
@@ -1021,10 +962,7 @@ async def add_assignee_to_seq_request(
     seq_request.assignees.append(assignee)
     await session.save(seq_request)
 
-    return await responses.htmx_response(
-        redirect=responses.url_for("dashboard"),
-        flash=responses.flash("Assignee Added!", "success"),
-    )
+    return await responses.htmx_response(redirect=responses.url_for("dashboard"), flash=responses.flash("Assignee Added!", "success"))
 
 
 @router.delete("/{seq_request_id}/delete-file/{file_id}")
@@ -1183,14 +1121,6 @@ async def remove_sample_from_request(
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
-
-    if (
-        seq_request.status_id != C.SeqRequestStatus.DRAFT.id
-        and access_level < C.AccessLevel.INSIDER
-    ):
         raise exc.NoPermissionsException()
 
     sample = await session.get_one(Q.sample.select(id=sample_id))
@@ -1398,89 +1328,14 @@ async def render_add_assignee_form(
     session: AsyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_insider),
 ):
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
-    form = forms.actions.AddSeqRequestAssigneeForm(
-        request, seq_request=seq_request, current_user=current_user
+    seq_request = await session.get_one(
+        Q.seq_request.select(id=seq_request_id).options(
+            orm.selectinload(models.SeqRequest.assignees)
+        ),
     )
+    form = forms.actions.AddSeqRequestAssigneeForm(request, seq_request=seq_request, current_user=current_user)
     return await form.make_response()
 
 
 @router.post("/{seq_request_id}/add-assignee-form")
-async def add_assignee_from_form(
-    seq_request_id: int,
-    request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
-    current_user: models.User = Depends(dependencies.require_insider),
-):
-    seq_request = await session.get_one(
-        Q.seq_request.select(id=seq_request_id),
-        options=[orm.selectinload(models.SeqRequest.assignees)],
-    )
-    form = forms.actions.AddSeqRequestAssigneeForm(
-        request, seq_request=seq_request, current_user=current_user
-    )
-    await form.validate()
-
-    assignee = await session.get_one(Q.user.select(id=int(form.user_id.data)))
-
-    if not assignee.is_insider():
-        form.user_id.errors.append("Only insider users can be assigned to requests.")
-        raise exc.FormValidationException(form)
-
-    if assignee in seq_request.assignees:
-        form.user_id.errors.append(
-            f"User {assignee.name} is already an assignee in this request."
-        )
-        raise exc.FormValidationException(form)
-
-    seq_request.assignees.append(assignee)
-    await session.save(seq_request)
-
-    return await responses.htmx_response(
-        redirect=request.url_for(
-            "seq_request_page",
-            seq_request_id=seq_request.id,
-            tab="request-assignees-tab",
-        ),
-        flash=responses.flash("Assignee added successfully.", "success"),
-    )
-
-
-@router.get("/{seq_request_id}/library-properties")
-async def render_library_properties(
-    seq_request_id: int,
-    request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    seq_request = await session.get_one(
-        Q.seq_request.select(id=seq_request_id),
-        options=[orm.selectinload(models.SeqRequest.libraries)],
-    )
-
-    form = forms.LibraryPropertyForm(
-        request, access_level=access_level, seq_request=seq_request,
-    )
-    return await form.make_response()
-
-
-@router.post("/{seq_request_id}/library-properties")
-async def add_library_properties(
-    seq_request_id: int,
-    request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    seq_request = await session.get_one(
-        Q.seq_request.select(id=seq_request_id),
-        options=[orm.selectinload(models.SeqRequest.libraries)],
-    )
-
-    form = forms.LibraryPropertyForm(access_level=access_level, request=request, seq_request=seq_request)
-    return await form.save(session)
+async def add_assignee_to_seq_request_from_form(response=Depends(forms.actions.AddSeqRequestAssigneeForm.add_assignee)): return response

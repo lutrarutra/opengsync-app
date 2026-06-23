@@ -13,7 +13,7 @@
     load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
         window.spread_sheet = window.jspreadsheet(document.getElementById("{{ field.id }}"), {
             worksheets: [{
-                data: {{ field.raw_data if field.raw_data else "[[null]]" }},
+                data: {{ field.raw_data | safe if field.raw_data else "[[null]]" }},
                 columns: [
                     {% for col in field.columns.values() %}
                     {%- if col.type == "text" or col.type == "numeric" -%}
@@ -48,9 +48,6 @@
                     "spreadsheet": JSON.stringify(data),
                     "csrf_token": "{{ field.csrf_token }}",
                     "columns": JSON.stringify(spread_sheet.getHeaders()),
-                    {% for key, val in post_request_kwargs.items() %}
-                    "{{ key }}": "{{ val }}"
-                    {% endfor %}
                 },
             });
 

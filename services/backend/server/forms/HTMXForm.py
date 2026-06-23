@@ -26,20 +26,17 @@ class HTMXForm(ABC):
         self._sub_forms_cache: Optional[list[SubHTMXForm]] = None
         self._pydantic_model: Optional[type[BaseModel]] = None
 
-        # Initialize all InputField instances
         for field_name in dir(self.__class__):
             if field_name.startswith("_"):
                 continue
 
             field = getattr(self.__class__, field_name)
             if isinstance(field, BaseInputField):
-                # Create a new instance for this form instance
                 field_instance = self._clone_field(field)
                 field_instance.name = field_name
                 field_instance.id = field_name
                 setattr(self, field_name, field_instance)
 
-        # Initialize all SubHTMXForm instances
         for field_name in dir(self.__class__):
             if field_name.startswith("_"):
                 continue
@@ -52,6 +49,13 @@ class HTMXForm(ABC):
                     if not attr_name.startswith("_") and not isinstance(attr_value, BaseInputField):
                         setattr(sub_form_instance, attr_name, attr_value)
                 setattr(self, field_name, sub_form_instance)
+
+        if self.request.method == "GET":
+            token = self._generate_csrf_token()
+            self.csrf_token.data = token
+            self._set_csrf_cookie(token)
+        else:
+            self.csrf_token.data = self._get_expected_csrf_token() or ""
 
     def _clone_field(self, field: BaseInputField) -> BaseInputField:
         """Clone a field instance to avoid shared state between form instances"""
@@ -91,6 +95,14 @@ class HTMXForm(ABC):
         Override in subclasses for custom validation logic.
         """
         self.raw_data = dict(await self.request.form())
+
+        if self.request.method != "GET":
+            submitted_token = self.raw_data.get("csrf_token")
+            expected_token = self._get_expected_csrf_token()
+            if not submitted_token or not expected_token or submitted_token != expected_token:
+                self.csrf_token.errors.append("Invalid or missing CSRF token.")
+            else:
+                self.csrf_token.data = submitted_token
 
         all_sub_forms_valid = True
         for sub_form in self.sub_forms:
@@ -134,7 +146,6 @@ class HTMXForm(ABC):
                             field.errors.append(msg)
                             break
 
-        # Raise exception if any validation failed
         if not all_sub_forms_valid or any(field.errors for field in self.input_fields):
             raise exc.FormValidationException(self)
 
@@ -192,12 +203,10 @@ class HTMXForm(ABC):
         """Get all errors from all fields and sub-forms"""
         all_errors = {}
 
-        # Direct field errors
         for field in self.input_fields:
             if field.errors:
                 all_errors[field.name] = field.errors
 
-        # Sub-form errors
         for sub_form in self.sub_forms:
             all_errors.update(sub_form.errors)
 
@@ -234,15 +243,10 @@ class HTMXForm(ABC):
 
     async def make_response(self, status_code: int = 200) -> Response:
         if self.request.method == "GET":
-            token = self._generate_csrf_token()
-            self.csrf_token.data = token
-            self._set_csrf_cookie(token)
             await self.prepare()
         elif self.raw_data:
-            # Re-populate sub-forms from raw_data for POST with errors
             for sub_form in self.sub_forms:
                 sub_form.populate_from_data(self.raw_data)
-            # Re-populate direct fields from raw_data
             for field in self.input_fields:
                 field.data = self.raw_data.get(field.name, field.default)
 
@@ -251,6 +255,12 @@ class HTMXForm(ABC):
             status_code=status_code,
             **(await self.get_context()),
         )
+
+    @property
+    def csrf_token_value(self) -> str:
+        if not self.csrf_token.data:
+            raise ValueError("CSRF token has not been generated yet.")
+        return self.csrf_token.data
 
     async def render_submit_button(
         self,

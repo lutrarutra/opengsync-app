@@ -49,41 +49,17 @@ class ProjectTable(HTMXTable):
 
 @router.get("/render-table-page")
 async def render_project_table(
-    user_id: int | None = Query(
-        None, description="Optional User ID for whom to render the project table"
-    ),
-    experiment_id: int | None = Query(
-        None, description="Optional experiment ID to filter projects"
-    ),
-    seq_request_id: int | None = Query(
-        None, description="Optional seq request ID to filter projects"
-    ),
-    group_id: int | None = Query(
-        None, description="Optional group ID to filter projects"
-    ),
-    title: str | None = Query(
-        None, description="Optional title to search for in project titles"
-    ),
-    identifier: str | None = Query(
-        None, description="Optional identifier to search for in project identifiers"
-    ),
-    owner_name: str | None = Query(
-        None, description="Optional owner name to search for in project owners"
-    ),
-    status_in: list[C.ProjectStatus] | None = Depends(
-        dependencies.parse_enum_ids(enum_type=C.ProjectStatus, query_param="status_in")
-    ),
-    library_types_in: list[C.LibraryType] | None = Depends(
-        dependencies.parse_enum_ids(
-            enum_type=C.LibraryType, query_param="library_types_in"
-        )
-    ),
+    user_id: int | None = Query(None, description="Optional User ID for whom to render the project table"),
+    experiment_id: int | None = Query(None, description="Optional experiment ID to filter projects"),
+    seq_request_id: int | None = Query(None, description="Optional seq request ID to filter projects"),
+    group_id: int | None = Query(None, description="Optional group ID to filter projects"),
+    title: str | None = Query(None, description="Optional title to search for in project titles"),
+    identifier: str | None = Query(None, description="Optional identifier to search for in project identifiers"),
+    owner_name: str | None = Query(None, description="Optional owner name to search for in project owners"),
+    status_in: list[C.ProjectStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ProjectStatus, query_param="status_in")),
+    library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    order_by: utils.OrderBy | None = Depends(
-        dependencies.parse_order_by(
-            model=models.Project, default=models.Project.id.desc()
-        )
-    ),
+    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Project, default=models.Project.id.desc())),
     current_user: models.User = Depends(dependencies.require_user),
     session: AsyncSession = Depends(dependencies.db_session),
 ):
@@ -128,41 +104,26 @@ async def render_project_table(
             raise exc.NoPermissionsException(
                 "You do not have permission to view projects for this user."
             )
-        template = "components/tables/user-project.html"
+        table.template = "components/tables/user-project.html"
         table.url_params["user_id"] = user_id
     elif experiment_id is not None:
         if not current_user.is_insider():
-            raise exc.NoPermissionsException(
-                "You do not have permission to view projects for this experiment."
-            )
-        template = "components/tables/experiment-project.html"
+            raise exc.NoPermissionsException("You do not have permission to view projects for this experiment.")
+        table.template = "components/tables/experiment-project.html"
         table.url_params["experiment_id"] = experiment_id
     elif seq_request_id is not None:
-        if (
-            await session.get_access_level(
-                Q.seq_request.permissions(seq_request_id, current_user.id)
-            )
-            < C.AccessLevel.READ
-        ):
-            raise exc.NoPermissionsException(
-                "You do not have permission to view projects for this seq request."
-            )
-        template = "components/tables/seq_request-project.html"
+        if await session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view projects for this seq request.")
+        table.template = "components/tables/seq_request-project.html"
         table.url_params["seq_request_id"] = seq_request_id
+        table.context["seq_request_id"] = seq_request_id
     elif group_id is not None:
-        if (
-            await session.get_access_level(
-                Q.group.permissions(group_id, current_user.id)
-            )
-            < C.AccessLevel.READ
-        ):
-            raise exc.NoPermissionsException(
-                "You do not have permission to view projects for this group."
-            )
-        template = "components/tables/group-project.html"
+        if await session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view projects for this group.")
+        table.template = "components/tables/group-project.html"
         table.url_params["group_id"] = group_id
     else:
-        template = "components/tables/project.html"
+        table.template = "components/tables/project.html"
         if not current_user.is_insider():
             stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
 
@@ -183,11 +144,34 @@ async def render_project_table(
         ],
     )
     table.set_num_pages(count)
+    return await table.make_response(projects=projects)
 
-    return await responses.htmx_response(
-        template=template, projects=projects, table=table
-    )
+@router.get("/search")
+async def search_projects(
+    word: str | None = Query(None, description="Search word for project title or identifier"),
+    group_id: int | None = Query(None, description="Optional group ID to filter projects"),
+    status_in: list[C.ProjectStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ProjectStatus, query_param="status_in")),
+    selected_id: int | None = Query(None, description="Currently selected project"),
+    current_user: models.User = Depends(dependencies.require_user),
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    session: AsyncSession = Depends(dependencies.db_session),
+):
+    stmt = Q.project.select(group_id=group_id, status_in=status_in)
 
+    if selected_id is not None and not word:
+        stmt = Q.project.select(id=selected_id, statement=stmt)
+    elif word is not None:
+        stmt = Q.project.search(title=word, identifier=word, statement=stmt)
+
+    if not current_user.is_insider():
+        if group_id is not None:
+            if await session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.READ:
+                raise exc.NoPermissionsException("You do not have permission to view this resource.")
+        else:    
+            stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
+
+    projects, count = await session.page(stmt, page=page)
+    return await responses.htmx_response(template="components/search/project.html", projects=projects)
 
 @router.get("/create")
 async def render_create_project_form(
@@ -519,23 +503,18 @@ async def render_project_overview(
 
     return await responses.htmx_response(
         template="components/plots/project_overview.html",
-        nodes=nodes,
-        links=links,
+        nodes=nodes, links=links,
     )
 
 
-@router.get(
-    "/{project_id}/assignee-form", dependencies=[Depends(dependencies.require_insider)]
-)
+@router.get("/{project_id}/assignee-form", dependencies=[Depends(dependencies.require_insider)])
 async def render_add_assignee_form(
     project_id: int,
 ):
     pass
 
 
-@router.get(
-    "/{project_id}/software", dependencies=[Depends(dependencies.project_permissions)]
-)
+@router.get("/{project_id}/software", dependencies=[Depends(dependencies.project_permissions)])
 async def render_project_software(
     project_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
@@ -547,43 +526,3 @@ async def render_project_software(
         software=project.software or {},
         project=project,
     )
-
-
-@router.get("/{project_id}/library-properties")
-async def render_project_library_properties(
-    project_id: int,
-    request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.project_permissions),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    project = await session.get_one(Q.project.select(id=project_id))
-
-    form = forms.LibraryPropertyForm(
-        request,
-        form_type="edit",
-        project=project,
-    )
-    return await form.make_response()
-
-
-@router.post("/{project_id}/library-properties")
-async def add_project_library_properties(
-    project_id: int,
-    request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.project_permissions),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    project = await session.get_one(Q.project.select(id=project_id))
-
-    form = forms.LibraryPropertyForm(
-        request,
-        form_type="edit",
-        project=project,
-    )
-    return await form.save(session)

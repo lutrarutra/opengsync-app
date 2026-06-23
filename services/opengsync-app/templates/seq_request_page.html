@@ -414,7 +414,7 @@
                     <h2>Pools</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_pool_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -517,7 +517,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="request-overview-tab" role="tabpanel" tabindex="7">
-            <div hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}" hx-trigger="intersect once">
+            <div hx-get="{{ url_for('render_seq_request_overview', seq_request_id=seq_request.id) }}" hx-trigger="intersect once">
                 {{ spinner() }}
             </div>
         </div>
@@ -538,7 +538,7 @@
                 </button>
             </div>
 
-            <div hx-get="{{ url_for('render_seq_request_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_comment_thread', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>  
@@ -587,7 +587,7 @@
                     <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
                 <div>
-                    <button hx-get="{{ url_for('add_assignee_to_seq_request', seq_request_id=seq_request.id) }}" class="btn btn-success"
+                    <button hx-get="{{ url_for('render_add_assignee_form', seq_request_id=seq_request.id) }}" class="btn btn-success"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click"
                         {% if not current_user.is_insider() %}disabled{% endif %}>

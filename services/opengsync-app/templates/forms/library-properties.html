@@ -8,7 +8,7 @@
     <div class="modal-body">
         <div id="library-properties-form">
             {{ form.csrf_token.render() }}
-            {{ form.spreadsheet.render() }}
+            {{ form.spreadsheet.render(submit_btn_id="submit-library-properties-btn", target_element_id="library-properties-container") }}
         </div>
     </div>
     {% if form.access_level >= C.AccessLevel.WRITE %}

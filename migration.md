@@ -35,6 +35,9 @@ Reference: `projects.py`, `seq_requests.py`, `groups.py`, `kits.py`, `libraries.
 - Use permission deps: `require_user`, `require_insider`, `require_admin`.
 - Access checks via `*_permissions()` deps (e.g. `project_permissions()`, `seq_request_permissions()`).
 
+### url_for
+- Since starlettes url_for works differently than flask url_for, move query parameters from url_for(..) to url_for(..).include_query_params(..). url_for should only contain path parameters.
+
 ### Dependencies (FastAPI DI)
 
 All in `server/core/dependencies.py`:

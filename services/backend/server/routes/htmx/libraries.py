@@ -1,11 +1,12 @@
 from contextlib import suppress
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import orm
 
 from opengsync_db import models, AsyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc
+from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
 router = APIRouter(prefix="/libraries", tags=["libraries"])
@@ -144,3 +145,38 @@ async def render_library_table(
     )
     table.set_num_pages(count)
     return await table.make_response(libraries=libraries)
+
+
+@router.get("/properties")
+async def render_library_properties(
+    request: Request,
+    seq_request_id: int | None = Query(None, description="Seq request ID to filter libraries"),
+    project_id: int | None = Query(None, description="Project ID to filter libraries"),
+    library_id: int | None = Query(None, description="Library ID to edit properties for"),
+    current_user: models.User = Depends(dependencies.require_user),
+    session: AsyncSession = Depends(dependencies.db_session),
+):
+    if seq_request_id is None and project_id is None and library_id is None:
+        raise exc.BadRequestException("Must provide at least one of seq_request_id, project_id, or library_id")
+    
+    access_level = C.AccessLevel.NONE
+    if seq_request_id is not None:
+        if (access_level := await session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view libraries for this seq request.")
+    elif project_id is not None:
+        if (access_level := await session.get_access_level(Q.project.permissions(project_id, current_user.id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view libraries for this project.")
+    elif library_id is not None:
+        if (access_level := await session.get_access_level(Q.library.permissions(library_id, current_user.id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view this library.")
+        
+    libraries = await session.get_all(Q.library.select(seq_request_id=seq_request_id, project_id=project_id, id=library_id).order_by(models.Library.id.asc()))
+
+    form = forms.LibraryPropertyForm(
+        request, access_level=access_level, libraries=libraries,
+        seq_request_id=seq_request_id, project_id=project_id, library_id=library_id
+    )
+    return await form.make_response()
+
+@router.post("/properties")
+async def edit_library_properties(response = Depends(forms.LibraryPropertyForm.edit)): return response

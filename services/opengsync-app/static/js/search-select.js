@@ -63,10 +63,7 @@ class SearchSelect {
     }
 
     _ajax(word) {
-        var payload = {
-            word: word,
-            field_name: this.field_name,
-        }
+        var payload = {word: word}
         if (this.$selected_input.val()) {
             payload.selected_id = this.$selected_input.val();
         }

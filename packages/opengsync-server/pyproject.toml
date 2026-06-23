@@ -73,7 +73,7 @@ dependencies = [
 root = "../.."
 
 [tool.flake8]
-max-line-length = 88
+max-line-length = 120
 exclude = [
     ".git",
     "__pycache__",

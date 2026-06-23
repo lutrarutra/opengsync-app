@@ -1,156 +1,137 @@
-import json
-
+from typing import Sequence
 import pandas as pd
-from fastapi import Request
+from fastapi import Request, Depends, Query
 from fastapi.responses import Response
 
 from opengsync_db import models, AsyncSession, queries as Q, categories as C
 
-from ..core import exceptions as exc, responses
+from ..core import exceptions as exc, responses, dependencies
 from ..components import inputs
-from ..components.tables.spreadsheet import IntegerColumn, TextColumn
+from ..components.tables import IntegerColumn, TextColumn
 from .HTMXForm import HTMXForm
 
 
 class LibraryPropertyForm(HTMXForm):
     template_path = "forms/library-properties.html"
 
-    spreadsheet = inputs.spreadsheet.SpreadsheetInputField()
+    spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
+        IntegerColumn("library_id", "ID", 50, read_only=True),
+        TextColumn("library_name", "Library Name", 200, read_only=True),
+    ])
 
     def __init__(
         self,
         request: Request,
         access_level: C.AccessLevel,
-        seq_request: models.SeqRequest | None = None,
-        project: models.Project | None = None,
-        df: pd.DataFrame | None = None,
+        seq_request_id: int | None,
+        project_id: int | None,
+        library_id: int | None,
+        libraries: Sequence[models.Library] | None = None,
     ) -> None:
         super().__init__(request)
-        self.seq_request = seq_request
-        self.project = project
-        self._df = df
         self._validated_df: pd.DataFrame | None = None
         self._to_delete: set[str] = set()
         self.access_level = access_level
+        self.libraries = libraries
+        query_params = {}
+        if seq_request_id is not None:
+            query_params["seq_request_id"] = seq_request_id
+        if project_id is not None:
+            query_params["project_id"] = project_id
+        if library_id is not None:
+            query_params["library_id"] = library_id
+        self.post_url = request.url_for("edit_library_properties").include_query_params(**query_params)
 
-    async def prepare(self):
-        """Configure the spreadsheet field before rendering."""
-        if self.seq_request is not None:
-            post_url = str(
-                self.request.url_for(
-                    "add_library_properties", seq_request_id=self.seq_request.id
-                )
-            )
-            async with self.request.app.state.db_handler.get_session() as session:
-                df = await session.pd.get_library_properties(
-                    seq_request_id=self.seq_request.id
-                )
-        elif self.project is not None:
-            post_url = str(
-                self.request.url_for(
-                    "add_project_library_properties", project_id=self.project.id
-                )
-            )
-            async with self.request.app.state.db_handler.get_session() as session:
-                df = await session.pd.get_library_properties(
-                    project_id=self.project.id
-                )
-        else:
-            raise exc.OpeNGSyncServerException(
-                "Either seq_request or project must be provided."
-            )
         editable = self.access_level >= C.AccessLevel.WRITE
 
-        predefined = [
-            IntegerColumn("library_id", "ID", 50, read_only=True),
-            TextColumn("library_name", "Library Name", 200, read_only=True),
-        ]
+        if self.libraries is not None:
+            all_property_keys: set[str] = set()
+            for library in self.libraries:
+                if library.properties:
+                    all_property_keys.update(library.properties.keys())
+
+            rows: list[dict] = []
+            for library in self.libraries:
+                row: dict = {
+                    "library_id": library.id,
+                    "library_name": library.name,
+                }
+                for key in all_property_keys:
+                    row[key] = library.properties.get(key) if library.properties else None
+                rows.append(row)
+
+            columns = ["library_id", "library_name", *sorted(all_property_keys)]
+            df = pd.DataFrame(rows, columns=columns)
+        else:
+            df = pd.DataFrame(columns=["library_id", "library_name"])
 
         self.spreadsheet.configure(
             df=df,
-            post_url=post_url,
-            csrf_token=self.csrf_token.data or "",
+            post_url=self.post_url,
+            csrf_token=self.csrf_token_value,
             editable=editable,
-            predefined_columns=predefined,
             allow_new_cols=editable,
             allow_col_rename=editable,
         )
 
     async def validate(self) -> bool:
-        """Parse spreadsheet JSON submitted by the JS Handsontable editor."""
+        """Validate the submitted spreadsheet via the SpreadsheetInputField."""
         await super().validate()
 
         form_data = await self.request.form()
-        spreadsheet_json_raw = form_data.get("spreadsheet")
-        columns_json_raw = form_data.get("columns")
+        spreadsheet_json = form_data.get("spreadsheet")
+        columns_json = form_data.get("columns")
 
-        spreadsheet_json = (
-            str(spreadsheet_json_raw) if spreadsheet_json_raw is not None else None
-        )
-        columns_json = str(columns_json_raw) if columns_json_raw is not None else None
+        spreadsheet_json = str(spreadsheet_json) if spreadsheet_json is not None else ""
+        columns_json = str(columns_json) if columns_json is not None else ""
 
-        if not spreadsheet_json or not columns_json:
+        if not self.spreadsheet.validate(spreadsheet_json, columns_json):
             return False
 
-        col_names = json.loads(columns_json)
-        data = json.loads(spreadsheet_json)
-
-        col_title_map = {
-            col.name: col.label for col in self.spreadsheet.columns.values()
-        }
-
-        df = pd.DataFrame(
-            data,
-            columns=[
-                col_title_map.get(c, c.lower().replace(" ", "_")) for c in col_names
-            ],
-        )
-        df = df.replace(r"^\s*$", "", regex=True)
-        df = df.dropna(how="all")
+        df = self.spreadsheet.data
 
         if "library_id" not in df.columns or "library_name" not in df.columns:
             self.spreadsheet._errors.append("Missing required columns.")
             return False
 
-        to_delete: set[str] = set()
-        for label, col in self.spreadsheet.columns.items():
-            if col.can_be_deleted and label not in df.columns:
-                to_delete.add(label)
-
-        for label, col in self.spreadsheet.columns.items():
-            if label not in df.columns:
-                continue
-            try:
-                col.validate(df[label].tolist(), df[label].tolist())
-            except Exception as e:
-                self.spreadsheet._errors.append(f"Validation error in '{label}': {e}")
-
-        if self.spreadsheet._errors:
-            return False
-
         self._validated_df = df
-        self._to_delete = to_delete
+        self._to_delete = self.spreadsheet.to_delete
         return True
 
-    async def save(self, session: AsyncSession) -> Response:
-        """Save the validated spreadsheet data."""
-        if not await self.validate():
-            return await self.make_response()
+    @staticmethod
+    async def edit(
+        request: Request,
+        project_id: int | None = Query(None),
+        seq_request_id: int | None = Query(None),
+        library_id: int | None = Query(None),
+        current_user: models.User = Depends(dependencies.require_user),
+        session: AsyncSession = Depends(dependencies.db_session),
+    ) -> Response:
+        access_level: C.AccessLevel = C.AccessLevel.NONE
 
-        df = self._validated_df
+        form = LibraryPropertyForm(request, access_level=access_level, seq_request_id=seq_request_id, project_id=project_id, library_id=library_id)
+        await form.validate()
+
+        df = form.spreadsheet.data
         assert df is not None
 
-        for label in self._to_delete:
+        flash = responses.flash("Changes Saved!", "success")
+
+        for label in form._to_delete:
             for library_id in df["library_id"]:
                 if library_id:
-                    library = await session.get_one(
-                        Q.library.select(id=int(library_id))
-                    )
+                    if await session.get_access_level(Q.library.permissions(library_id=int(library_id), user_id=current_user.id)) < C.AccessLevel.WRITE:
+                        flash = responses.flash("You do not have permission to edit some of the libraries..", "warning")
+                        continue
+                    library = await session.get_one(Q.library.select(id=int(library_id)))
                     if library.properties and label in library.properties:
                         library.properties.pop(label, None)
 
         for _, row in df.iterrows():
             library = await session.get_one(Q.library.select(id=int(row["library_id"])))
+            if await session.get_access_level(Q.library.permissions(library_id=int(row["library_id"]), user_id=current_user.id)) < C.AccessLevel.WRITE:
+                flash = responses.flash("You do not have permission to edit some of the libraries..", "warning")
+                continue
             if library.properties is None:
                 library.properties = {}
             for col in df.columns:
@@ -162,23 +143,17 @@ class LibraryPropertyForm(HTMXForm):
                 else:
                     library.properties[col] = None
 
-        if self.seq_request is not None:
+        if seq_request_id is not None:
             return await responses.htmx_response(
-                redirect=responses.url_for(
-                    "seq_request_page",
-                    seq_request_id=self.seq_request.id,
-                    tab="request-libraries-tab",
-                ),
-                flash=responses.flash("Changes Saved!", "success"),
+                redirect=responses.url_for("seq_request_page", seq_request_id=seq_request_id).include_query_params(tab="request-libraries-tab"),
+                flash=flash,
             )
-        elif self.project is not None:
+        elif project_id is not None:
             return await responses.htmx_response(
-                redirect=responses.url_for(
-                    "project_page",
-                    project_id=self.project.id,
-                    tab="libraries-tab",
-                ),
-                flash=responses.flash("Changes Saved!", "success"),
+                redirect=responses.url_for("project_page", project_id=project_id).include_query_params(tab="libraries-tab"),
+                flash=flash,
             )
+        elif library_id is not None:
+            return await responses.htmx_response(redirect=responses.url_for("library_page", library_id=library_id), flash=flash)
         else:
             raise exc.OpeNGSyncServerException("No seq_request or project provided.")

@@ -37,7 +37,7 @@ insider = [Depends(dependencies.require_insider)]
 
 router.include_router(add_kits_to_protocol.router, dependencies=insider)
 router.include_router(ba_report.router, dependencies=insider)
-router.include_router(check_barcode_clashes.router, dependencies=insider)
+router.include_router(check_barcode_clashes.router)
 router.include_router(check_barcode_constraints.router, dependencies=insider)
 router.include_router(dilute_pools.router, dependencies=insider)
 router.include_router(dist_reads.router, dependencies=insider)

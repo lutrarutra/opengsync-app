@@ -38,12 +38,12 @@
 
                 {% if not technical_requirements %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='technical_requirements') }}">
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='technical_requirements') }}">
                     Check
                 </button>
                 {% else %}
                 <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='technical_requirements') }}">
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='technical_requirements') }}">
                     Uncheck
                 </button>
                 {% endif %}
@@ -137,12 +137,12 @@
                 <hr>
                 {% if not check_contacts %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_contacts') }}">
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='check_contacts') }}">
                     Check
                 </button>
                 {% else %}
                 <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_contacts') }}">
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='check_contacts') }}">
                     Uncheck
                 </button>
                 {% endif %}
@@ -168,12 +168,12 @@
                 {% endif %}
                 {% if not auth_form_checked %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='auth_form_checked') }}">
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='auth_form_checked') }}">
                     Check
                 </button>
                 {% else %}
                 <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='auth_form_checked') }}">
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='auth_form_checked') }}">
                     Uncheck
                 </button>
                 {% endif %}
@@ -193,18 +193,18 @@
                     <li>Check any additional information provided in the comments.</li>
                 </ul>
                 <hr>
-                    <div hx-get="{{ url_for('render_seq_request_table_comments', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                    <div hx-get="{{ url_for('render_comment_thread', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                         {{ spinner() }}
                     </div>
                 <hr>
                 {% if not check_comments %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_comments') }}">
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='check_comments') }}">
                     Check
                 </button>
                 {% else %}
                 <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_comments') }}">
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='check_comments') }}">
                     Uncheck
                 </button>
                 {% endif %}
@@ -235,12 +235,12 @@
                 <hr>
                 {% if not check_submission_date %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_submission_date') }}">
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='check_submission_date') }}">
                     Check
                 </button>
                 {% else %}
                 <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_submission_date') }}">
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='check_submission_date') }}">
                     Uncheck
                 </button>
                 {% endif %}
@@ -263,12 +263,12 @@
                 <hr>
                 {% if not check_overview %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_overview') }}">
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='check_overview') }}">
                     Check
                 </button>
                 {% else %}
                 <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_overview') }}">
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='check_overview') }}">
                     Uncheck
                 </button>
                 {% endif %}
@@ -288,17 +288,17 @@
                     <li>Check sample names make sense.</li>
                     <li>Check sample attributes.</li>
                 </ul>
-                <div hx-get="{{ url_for('render_seq_request_table_sample_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                <div hx-get="{{ url_for('render_sample_attribute_spreadsheet', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                     {{ spinner() }}
                 </div>
                 {% if not samples_checked %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='samples_checked') }}">
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='samples_checked') }}">
                     Check
                 </button>
                 {% else %}
                 <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='samples_checked') }}">
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='samples_checked') }}">
                     Uncheck
                 </button>
                 {% endif %}
@@ -315,7 +315,7 @@
             <div class="accordion-body">
                 <b>What to look for?</b>:
                 <ul>
-
+                    <li>Make sure that each sample has all required libraries.</li>
                 </ul>
                 <hr>
                     <div class="table-container">
@@ -350,12 +350,12 @@
                 <hr>
                 {% if not check_libraries %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_libraries') }}">
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='check_libraries') }}">
                     Check
                 </button>
                 {% else %}
                 <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_libraries') }}">
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='check_libraries') }}">
                     Uncheck
                 </button>
                 {% endif %}
@@ -409,12 +409,12 @@
                 <hr>
                 {% if not check_multiplexing %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_multiplexing') }}">
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='check_multiplexing') }}">
                     Check
                 </button>
                 {% else %}
                 <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_multiplexing') }}">
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='check_multiplexing') }}">
                     Uncheck
                 </button>
                 {% endif %}
@@ -436,7 +436,7 @@
                 <b>What to look for?</b>:
                 <ul>
                     <li>Check Clashes: <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('check_barcode_clashes_workflow.check_seq_request_barcode_clashes', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('check_seq_request_barcode_clashes', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button></li>
                     <li>Reindex Libraries if required, e.g. kit not specified but exists or barcode is specified in wrong orientation: <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('begin_reindex_workflow', seq_request_id=seq_request.id) }}"
@@ -447,7 +447,7 @@
                             confirm_action_button(
                                 "Mark as Checked",
                                 title="This will mark all custom barcodes as checked (forward orientation), without changing their orientation. Use this if you have confirmed that the provided barcode sequences are correct and in the correct orientation, but they do not match any of our existing kits.", 
-                                url=url_for('seq_requests_htmx.confirm_barcodes', seq_request_id=seq_request.id),
+                                url=url_for('confirm_seq_request_barcodes', seq_request_id=seq_request.id),
                                 method="hx-post"
                             ) 
                         }}
@@ -482,7 +482,7 @@
                 {% if not check_barcodes %}
                 {% if indices_checked %}
                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_barcodes') }}">
+                    hx-post="{{ url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='check_barcodes') }}">
                     Check
                 </button>
                 {% else %}
@@ -490,7 +490,7 @@
                     confirm_action_button(
                         "Check ❗",
                         title="Some barcodes have not been validated yet. Are you sure you want to check this step without validating the barcode orientations? This may lead to issues during demultiplexing if the barcode orientations are incorrect.", 
-                        url=url_for('seq_requests_htmx.check_review_step', seq_request_id=seq_request.id, step='check_barcodes'),
+                        url=url_for('check_seq_request_review_step', seq_request_id=seq_request.id, step='check_barcodes'),
                         method="hx-post",
                         color="warning"
                     )
@@ -498,7 +498,7 @@
                 {% endif %}
                 {% else %}
                 <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                    hx-post="{{ url_for('seq_requests_htmx.uncheck_review_step', seq_request_id=seq_request.id, step='check_barcodes') }}">
+                    hx-post="{{ url_for('uncheck_seq_request_review_step', seq_request_id=seq_request.id, step='check_barcodes') }}">
                     Uncheck
                 </button>
                 {% endif %}
@@ -514,7 +514,7 @@
         <div id="request-review-accordion-submission_processed" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
             <div class="accordion-body">
                 <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                hx-get="{{ url_for('seq_requests_htmx.process_request', seq_request_id=seq_request.id) }}"
+                hx-get="{{ url_for('process_request', seq_request_id=seq_request.id) }}"
                 hx-target="#xl-modal-content" hx-swap="innerHTML">
                     Process Request
                 </button>

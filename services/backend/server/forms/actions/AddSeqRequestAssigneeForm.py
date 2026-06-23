@@ -1,17 +1,17 @@
-from fastapi import Request
+from fastapi import Request, Depends
+from sqlalchemy import orm
 
-from opengsync_db import models
+from opengsync_db import models, AsyncSession, queries as Q
 
 from ...components import inputs
+from ...core import dependencies, exceptions as exc, responses
 from ..HTMXForm import HTMXForm
 
 
 class AddSeqRequestAssigneeForm(HTMXForm):
     template_path = "forms/add-seq_request-assignee.html"
 
-    user_id = inputs.searchable.SearchableInputField(
-        "Select User", route="search_users", required=True
-    )
+    user_id = inputs.searchable.SearchableInputField("Select User", route="search_users", required=True)
 
     def __init__(
         self,
@@ -22,7 +22,42 @@ class AddSeqRequestAssigneeForm(HTMXForm):
         super().__init__(request)
         self.seq_request = seq_request
         self.current_user = current_user
+        self._context["seq_request"] = seq_request
 
     async def prepare(self) -> None:
         if self.current_user not in self.seq_request.assignees:
             self.user_id.data = str(self.current_user.id)
+
+    @staticmethod
+    async def add_assignee(
+        seq_request_id: int,
+        request: Request,
+        session: AsyncSession = Depends(dependencies.db_session),
+        current_user: models.User = Depends(dependencies.require_insider),
+    ):
+        seq_request = await session.get_one(
+            Q.seq_request.select(id=seq_request_id),
+            options=[orm.selectinload(models.SeqRequest.assignees)],
+        )
+        form = AddSeqRequestAssigneeForm(request, seq_request=seq_request, current_user=current_user)
+        await form.validate()
+
+        assignee = await session.get_one(Q.user.select(id=int(form.user_id.data)))
+
+        if not assignee.is_insider():
+            form.user_id.errors.append("Only insider users can be assigned to requests.")
+            raise exc.FormValidationException(form)
+
+        if assignee in seq_request.assignees:
+            form.user_id.errors.append(
+                f"User {assignee.name} is already an assignee in this request."
+            )
+            raise exc.FormValidationException(form)
+
+        seq_request.assignees.append(assignee)
+        await session.save(seq_request)
+
+        return await responses.htmx_response(
+            redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id).include_query_params(tab="request-assignees-tab"),
+            flash=responses.flash("Assignee added successfully.", "success"),
+        )

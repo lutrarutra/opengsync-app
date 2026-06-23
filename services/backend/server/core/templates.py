@@ -1,3 +1,4 @@
+from uuid import uuid4
 from pathlib import Path
 from datetime import datetime
 
@@ -43,7 +44,6 @@ j2.env.filters["format_timestamp"] = format_timestamp
 j2.env.filters["format_datetime"] = format_datetime
 j2.env.filters["format_markdown"] = format_markdown
 j2.env.filters["weekday_name"] = weekday_name
-
 j2.env.filters["filesize"] = filesize
 
 
@@ -131,6 +131,7 @@ j2.env.globals["C"] = C
 j2.env.globals["isna"] = pd.isna
 j2.env.globals["notna"] = pd.notna
 j2.env.globals["units"] = units
+j2.env.globals["uuid4"] = uuid4
 j2.env.globals["SpreadSheetErrors"] = [
     # ssc.InvalidCellValue(""),
     # ssc.MissingCellValue(""),
@@ -171,7 +172,7 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
             from urllib.parse import urlencode
             url = f"{url}?{urlencode(query_kwargs)}"
 
-        return url
+        return url.__str__()
     raise RuntimeError(f"Cannot generate URL for '{name}' without a request context")
 
 
