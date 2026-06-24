@@ -13,7 +13,7 @@
     load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
         window.spread_sheet = window.jspreadsheet(document.getElementById("{{ field.id }}"), {
             worksheets: [{
-                data: {{ field.raw_data | safe if field.raw_data else "[[null]]" }},
+                data: {{ field.table_data | safe if field.table_data else "[[null]]" }},
                 columns: [
                     {% for col in field.columns.values() %}
                     {%- if col.type == "text" or col.type == "numeric" -%}

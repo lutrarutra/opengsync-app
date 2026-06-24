@@ -59,7 +59,7 @@
                 {% elif file.extension in [".png", ".jpg", ".jpeg"] %}
                 <img src="{{ url_for('img_file',  file_id=file.id) }}" alt="{{file.name}}" loading="lazy">
                 {% elif file.extension == ".xlsx" %}
-                <div hx-get="{{ url_for('files_htmx.render_xlsx', file_id=file.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                <div hx-get="{{ url_for('render_xlsx_spreadsheet', media_file_id=file.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                     {{ spinner() }}
                 </div>
                 {% elif file.extension == ".md" %}

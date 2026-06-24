@@ -62,17 +62,23 @@ class HTMXForm(ABC):
         field_class = field.__class__
         new_field = object.__new__(field_class)
         new_field.__dict__.update(field.__dict__.copy())  # type: ignore
-        new_field.data = field.default
+        new_field._data = field.default
+        new_field._validated = False
+        new_field._self_validated = False
+        new_field.raw_data = None
         new_field.errors = []
         return new_field
 
-    def _build_pydantic_model(self) -> type[BaseModel]:
+    def _build_pydantic_model(self, fields: list[BaseInputField] | None = None) -> type[BaseModel]:
         """Dynamically build a Pydantic model from InputFields"""
-        if self._pydantic_model is not None:
+        if fields is None and self._pydantic_model is not None:
             return self._pydantic_model
 
+        if fields is None:
+            fields = self.input_fields
+
         field_definitions = {}
-        for field in self.input_fields:
+        for field in fields:
             if field.required:
                 default_value = ... if field.default is None else field.default
                 field_definitions[field.name] = (field.pydantic_type, default_value)
@@ -82,11 +88,15 @@ class HTMXForm(ABC):
                     field.default,
                 )
 
-        self._pydantic_model = create_model(
-            f"{self.__class__.__name__}Model", **field_definitions
-        )
+        if fields is self.input_fields or fields == self.input_fields:
+            self._pydantic_model = create_model(
+                f"{self.__class__.__name__}Model", **field_definitions
+            )
+            return self._pydantic_model
 
-        return self._pydantic_model
+        return create_model(
+            f"{self.__class__.__name__}PartialModel", **field_definitions
+        )
 
     async def validate(self):
         """
@@ -110,26 +120,39 @@ class HTMXForm(ABC):
                 all_sub_forms_valid = False
 
         for field in self.input_fields:
-            field.data = self.raw_data.get(field.name, field.default)
+            field.raw_data = self.raw_data.get(field.name, field.default)
             field.errors = []
             if field.required:
-                if field.data is None or (
-                    isinstance(field.data, str) and field.data.strip() == ""
+                if field.raw_data is None or (
+                    isinstance(field.raw_data, str) and field.raw_data.strip() == ""
                 ):
                     field.errors.append(f"{field.label} is required")
             else:
-                if isinstance(field.data, str) and field.data.strip() == "":
-                    field.data = None
+                if isinstance(field.raw_data, str) and field.raw_data.strip() == "":
+                    field.raw_data = None
                     self.raw_data[field.name] = None
 
-        PydanticModel = self._build_pydantic_model()
+        # Fields that implement their own validate() (e.g. SpreadsheetInputField)
+        # are validated here and excluded from Pydantic validation below.
+        pydantic_fields = []
+        for field in self.input_fields:
+            if field.validate(self.raw_data):
+                if not field._self_validated:
+                    pydantic_fields.append(field)
+            # If field.validate() returned False, errors are already recorded.
+
+        PydanticModel = self._build_pydantic_model(pydantic_fields)
 
         try:
-            validated_data = PydanticModel(**self.raw_data)
+            validated_data = PydanticModel(**{
+                field.name: self.raw_data.get(field.name, field.default)
+                for field in pydantic_fields
+            })
 
-            for field in self.input_fields:
+            for field in pydantic_fields:
                 if not field.errors:
-                    field.data = getattr(validated_data, field.name)
+                    field._data = getattr(validated_data, field.name)
+                    field._validated = True
 
         except ValidationError as e:
             for error in e.errors():
@@ -248,7 +271,7 @@ class HTMXForm(ABC):
             for sub_form in self.sub_forms:
                 sub_form.populate_from_data(self.raw_data)
             for field in self.input_fields:
-                field.data = self.raw_data.get(field.name, field.default)
+                field.raw_data = self.raw_data.get(field.name, field.default)
 
         return await responses.htmx_response(
             template=self.template_path,

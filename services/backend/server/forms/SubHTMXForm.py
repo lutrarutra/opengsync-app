@@ -44,7 +44,10 @@ class SubHTMXForm:
         new_field = object.__new__(field_class)
         for key, value in field.__dict__.items():
             setattr(new_field, key, value)
-        new_field.data = field.default
+        new_field._data = field.default
+        new_field._validated = False
+        new_field._self_validated = False
+        new_field.raw_data = None
         new_field.errors = []
         return new_field
 
@@ -84,7 +87,7 @@ class SubHTMXForm:
     def populate_from_data(self, data: dict[str, Any]) -> None:
         """Populate fields from a data dictionary"""
         for field in self.input_fields:
-            field.data = data.get(field.name, field.default)
+            field.raw_data = data.get(field.name, field.default)
 
     def populate_from_model(
         self, model: Any, field_mapping: dict[str, str] | None = None
@@ -107,15 +110,18 @@ class SubHTMXForm:
 
             value = getattr(model, attr_name, None)
             if value is not None:
-                field.data = value
+                field.raw_data = value
 
-    def _build_pydantic_model(self) -> type[BaseModel]:
+    def _build_pydantic_model(self, fields: list[inputs.BaseInputField] | None = None) -> type[BaseModel]:
         """Dynamically build a Pydantic model from InputFields"""
-        if self._pydantic_model is not None:
+        if fields is None and self._pydantic_model is not None:
             return self._pydantic_model
 
+        if fields is None:
+            fields = self.input_fields
+
         field_definitions = {}
-        for field in self.input_fields:
+        for field in fields:
             pydantic_key = field.name.replace("-", "_")
             if field.required:
                 default_value = ... if field.default is None else field.default
@@ -126,11 +132,15 @@ class SubHTMXForm:
                     field.default,
                 )
 
-        self._pydantic_model = create_model(
-            f"{self.__class__.__name__}Model", **field_definitions
-        )
+        if fields is self.input_fields or fields == self.input_fields:
+            self._pydantic_model = create_model(
+                f"{self.__class__.__name__}Model", **field_definitions
+            )
+            return self._pydantic_model
 
-        return self._pydantic_model
+        return create_model(
+            f"{self.__class__.__name__}PartialModel", **field_definitions
+        )
 
     async def validate(self, raw_data: dict[str, Any]) -> bool:
         """Validate the sub-form data.
@@ -143,18 +153,28 @@ class SubHTMXForm:
 
         for field in self.input_fields:
             value = raw_data.get(field.name)
+            field.raw_data = value
             if field.required and (
                 value is None or (isinstance(value, str) and value.strip() == "")
             ):
                 field.errors.append(f"{field.label} is required")
             elif not field.required and isinstance(value, str) and value.strip() == "":
                 raw_data[field.name] = None
+                field.raw_data = None
 
-        PydanticModel = self._build_pydantic_model()
+        # Fields that implement their own validate() (e.g. SpreadsheetInputField)
+        # are validated here and excluded from Pydantic validation below.
+        pydantic_fields = []
+        for field in self.input_fields:
+            if field.validate(raw_data):
+                if not field._self_validated:
+                    pydantic_fields.append(field)
+
+        PydanticModel = self._build_pydantic_model(pydantic_fields)
 
         try:
             mapped_data = {}
-            for field in self.input_fields:
+            for field in pydantic_fields:
                 pydantic_key = field.name.replace("-", "_")
                 raw_value = raw_data.get(field.name, field.default)
 
@@ -165,16 +185,17 @@ class SubHTMXForm:
 
             validated_data = PydanticModel(**mapped_data)
 
-            for field in self.input_fields:
+            for field in pydantic_fields:
                 if not field.errors:
                     pydantic_key = field.name.replace("-", "_")
-                    field.data = getattr(validated_data, pydantic_key)
+                    field._data = getattr(validated_data, pydantic_key)
+                    field._validated = True
 
         except ValidationError as e:
             for error in e.errors():
                 error_field_name = error["loc"][0] if error["loc"] else None
                 if error_field_name:
-                    for field in self.input_fields:
+                    for field in pydantic_fields:
                         pydantic_key = field.name.replace("-", "_")
                         if pydantic_key == error_field_name and not field.errors:
                             msg = error["msg"]

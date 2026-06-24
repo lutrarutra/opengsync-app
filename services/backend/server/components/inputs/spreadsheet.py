@@ -1,6 +1,7 @@
 import json
 import string
-from typing import Hashable, Generic, TypeVar
+import io
+from typing import Any, Hashable, Generic, Literal, TypeVar, overload
 
 import pandas as pd
 from loguru import logger
@@ -23,7 +24,27 @@ _DataT = TypeVar("_DataT", pd.DataFrame, pd.DataFrame | None, covariant=True)
 
 
 class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
-    data: _DataT
+    @overload
+    def __init__(
+        self: "SpreadsheetInputField[pd.DataFrame]",
+        *,
+        label: str = "Spreadsheet",
+        required: Literal[True] = True,
+        height: str | None = "600px",
+        style: dict[str, str] | None = None,
+        columns: list[SpreadSheetColumn] | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "SpreadsheetInputField[pd.DataFrame | None]",
+        *,
+        label: str = "Spreadsheet",
+        required: Literal[False] = False,
+        height: str | None = "600px",
+        style: dict[str, str] | None = None,
+        columns: list[SpreadSheetColumn] | None = None,
+    ) -> None: ...
 
     def __init__(
         self,
@@ -42,7 +63,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         self.height = height
         self.id = uuid7().__str__()
         self.columns: dict[str, SpreadSheetColumn] = {}
-        self.raw_data: list[list] = []
+        self.table_data: list[list] = []
         self.post_url: responses.URL | None = None
         self.csrf_token: str = ""
         self.editable: bool = False
@@ -58,6 +79,25 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
 
         for col in columns or []:
             self.add_column(col)
+
+    @property
+    def data(self) -> _DataT:
+        """Validated spreadsheet data as a DataFrame.
+
+        Returns the DataFrame if the spreadsheet has been validated.
+        Raises ``ValueError`` if accessed before validation.
+        """
+        if not self._validated:
+            raise ValueError(
+                "Spreadsheet has not been validated yet. "
+                "Call validate(raw_data) first."
+            )
+        return self._data  # type: ignore
+
+    @data.setter
+    def data(self, value: Any) -> None:
+        self._data = value
+        self._validated = True
 
     def add_column(self, column: SpreadSheetColumn) -> None:
         """Add a column to the spreadsheet.
@@ -78,9 +118,9 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
     def configure(
         self,
         df: pd.DataFrame,
-        post_url: responses.URL,
         csrf_token: str,
         editable: bool = False,
+        post_url: responses.URL | None = None,
         predefined_columns: list[SpreadSheetColumn] | None = None,
         allow_new_cols: bool = False,
         allow_new_rows: bool = False,
@@ -139,15 +179,14 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
                     row_data.append(str(val))
             raw_data.append(row_data)
 
-        self.raw_data = raw_data
+        self.table_data = raw_data
         self._configured = True
 
-    def validate(self, spreadsheet_json: str, columns_json: str) -> bool:
+    def validate(self, raw_data: dict[str, Any]) -> bool:
         """Parse and validate the spreadsheet data submitted from the frontend.
 
-        Args:
-            spreadsheet_json: JSON string of the 2D data array from jspreadsheet.
-            columns_json: JSON string of comma-separated column header names.
+        Reads ``spreadsheet`` (JSON 2D data array) and ``columns`` (JSON header
+        names) from ``raw_data``.
 
         Returns:
             True if validation succeeded, False otherwise. Errors are collected
@@ -157,11 +196,23 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         if not self._configured:
             raise ValueError("SpreadsheetInputField has not been configured — call configure() first.")
 
+        self._self_validated = True
         self._errors = []
+        self.errors = []
         self.style = {}
         self.to_delete = set()
-        self.data = None  # type: ignore
+        self._data = None
+        self._validated = False
 
+        spreadsheet_json = str(raw_data.get("spreadsheet", "") or "")
+        columns_json = str(raw_data.get("columns", "") or "")
+
+        result = self._do_validate(spreadsheet_json, columns_json)
+        self.errors = list(self._errors)
+        return result
+
+    def _do_validate(self, spreadsheet_json: str, columns_json: str) -> bool:
+        """Internal validation logic for JSON table data. Delegates to ``_validate_dataframe``."""
         if not spreadsheet_json or not columns_json:
             self._errors.append("Spreadsheet data or columns are missing.")
             return False
@@ -175,15 +226,24 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
             self._errors.append(f"Invalid JSON payload: {e}")
             return False
 
-        col_title_map = {
-            col.name: col.label for col in self.columns.values()
-        }
-
         try:
             df = pd.DataFrame(data)
         except ValueError as e:
             self._errors.append(f"Invalid input: {e}")
             return False
+
+        return self._validate_dataframe(df, col_names)
+
+    def _validate_dataframe(self, df: pd.DataFrame, col_names: list[str]) -> bool:
+        """Validate a DataFrame against the configured columns.
+
+        Shared validation logic used by both ``SpreadsheetInputField`` (JSON
+        table data from the frontend) and ``SpreadsheetFileField`` (uploaded
+        file). Populates ``self._errors``, ``self.style``, and ``self.to_delete``.
+        """
+        col_title_map = {
+            col.name: col.label for col in self.columns.values()
+        }
 
         # Normalize whitespace / nulls
         df = df.replace(r"^\s*$", None, regex=True).map(
@@ -220,7 +280,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
             if isinstance(column, CategoricalDropDown):
                 df[label] = df[label].astype(object)
             elif isinstance(column, TextColumn):
-                df[label] = df[label].astype(str)
+                df[label] = df[label].astype(pd.StringDtype())
             elif isinstance(column, DropdownColumn):
                 df[label] = df[label].astype(object)
 
@@ -271,13 +331,14 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
             if label not in df.columns:
                 continue
             if isinstance(column, TextColumn):
-                df[label] = df[label].astype(str)
+                df[label] = df[label].astype(pd.StringDtype())
             elif isinstance(column, IntegerColumn):
                 df[label] = df[label].astype(pd.Int64Dtype())
             elif isinstance(column, FloatColumn):
                 df[label] = df[label].astype(pd.Float64Dtype())
 
-        self.data = df  # type: ignore
+        self._data = df
+        self._validated = True
         return True
 
     def _add_error(self, idx: Hashable, column: str | list[str], exception: SpreadSheetException) -> None:
@@ -300,3 +361,184 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
 
     async def render(self, container_class: str = "", submit_btn_id: str | None = None, target_element_id: str | None = None, hide_label: bool = False) -> str:
         return await super().render(container_class=container_class, hide_label=hide_label, submit_btn_id=submit_btn_id, target_element_id=target_element_id)
+
+
+class SpreadsheetFileField(SpreadsheetInputField, Generic[_DataT]):
+    """A spreadsheet field that accepts an uploaded file (xlsx, csv, tsv) instead of
+    interactive table data from the frontend.
+
+    The file is parsed into a DataFrame and validated against the same column
+    definitions used by ``SpreadsheetInputField``.
+
+    Args:
+        label: Field label shown in the UI.
+        required: Whether the file is required.
+        columns: Predefined column definitions (same as ``SpreadsheetInputField``).
+        allowed_file_types: List of allowed file extensions (without dot), e.g.
+            ``["csv", "tsv", "xlsx"]``. Defaults to ``["csv", "tsv", "xlsx"]``.
+        sheet_name: Name or index of the sheet to read when ``xlsx`` is allowed.
+            **Required** if ``"xlsx"`` is in ``allowed_file_types``.
+        can_be_empty: Whether an empty spreadsheet (no data rows) is acceptable.
+        style: Optional CSS style dict (unused for file input rendering, but kept
+            for compatibility with the shared validation logic).
+    """
+
+    @overload
+    def __init__(
+        self: "SpreadsheetFileField[pd.DataFrame]",
+        *,
+        label: str = "Spreadsheet File",
+        required: Literal[True] = True,
+        columns: list[SpreadSheetColumn] | None = None,
+        allowed_file_types: list[str] | None = None,
+        sheet_name: str | int | None = None,
+        can_be_empty: bool = False,
+        style: dict[str, str] | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "SpreadsheetFileField[pd.DataFrame | None]",
+        *,
+        label: str = "Spreadsheet File",
+        required: Literal[False] = False,
+        columns: list[SpreadSheetColumn] | None = None,
+        allowed_file_types: list[str] | None = None,
+        sheet_name: str | int | None = None,
+        can_be_empty: bool = False,
+        style: dict[str, str] | None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        label: str = "Spreadsheet File",
+        required: bool = False,
+        columns: list[SpreadSheetColumn] | None = None,
+        allowed_file_types: list[str] | None = None,
+        sheet_name: str | int | None = None,
+        can_be_empty: bool = False,
+        style: dict[str, str] | None = None,
+    ):
+        super().__init__(
+            label=label,
+            required=required,
+            columns=columns,
+            style=style,
+        )
+        # Override template and type for file input rendering
+        self.template = "components/inputs/spreadsheet-file.html"
+        self.type = "file"
+
+        # File-specific configuration
+        self.allowed_file_types: list[str] = [
+            ft.lower().lstrip(".") for ft in (allowed_file_types or ["csv", "tsv", "xlsx"])
+        ]
+
+        if "xlsx" in self.allowed_file_types and sheet_name is None:
+            raise ValueError(
+                "sheet_name must be provided when 'xlsx' is in allowed_file_types."
+            )
+
+        self.sheet_name: str | int | None = sheet_name
+        self.can_be_empty = can_be_empty
+
+        # File fields don't need configure() — mark as ready for validation
+        self._configured = True
+
+        # Populated after validate() — raw bytes and metadata of the uploaded file
+        self.file_bytes: bytes = b""
+        self.file_filename: str = ""
+        self.file_extension: str = ""
+
+        # Comma-separated accept string for the HTML <input type="file">
+        self.accept_extensions: str = ", ".join(f".{ft}" for ft in self.allowed_file_types)
+
+    def validate(self, raw_data: dict[str, Any]) -> bool:
+        """Parse and validate an uploaded file against the configured columns.
+
+        Reads the file from ``raw_data[self.name]`` (a Starlette/FastAPI
+        ``UploadFile``), parses it into a DataFrame based on the extension,
+        and delegates to ``_validate_dataframe`` for column-level validation.
+        """
+        self._self_validated = True
+        self._errors = []
+        self.errors = []
+        self.style = {}
+        self.to_delete = set()
+        self.file_bytes = b""
+        self.file_filename = ""
+        self.file_extension = ""
+        self._data = None
+        self._validated = False
+
+        upload_file = raw_data.get(self.name)
+        from loguru import logger
+        logger.debug(upload_file)
+
+        # Handle missing or empty file upload
+        if upload_file is None or (hasattr(upload_file, "filename") and not upload_file.filename):
+            if self.required:
+                self._errors.append(f"{self.label} is required.")
+                self.errors = list(self._errors)
+                return False
+            # Optional and not provided — return empty DataFrame
+            self._data = pd.DataFrame()
+            self._validated = True
+            self.errors = []
+            return True
+
+        # Determine file extension
+        filename = upload_file.filename if hasattr(upload_file, "filename") else str(upload_file)
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+        if ext not in self.allowed_file_types:
+            self._errors.append(
+                f"File type '.{ext}' is not allowed. "
+                f"Allowed types: {', '.join(self.allowed_file_types)}."
+            )
+            self.errors = list(self._errors)
+            return False
+
+        # Read the file into a DataFrame based on extension
+        file_obj = upload_file.file if hasattr(upload_file, "file") else upload_file
+        try:
+            # Read raw bytes so we can store the original file and parse from a copy
+            if hasattr(file_obj, "read"):
+                self.file_bytes = file_obj.read()
+            self.file_filename = filename
+            self.file_extension = ext
+
+            data_stream = io.BytesIO(self.file_bytes)
+
+            if ext == "xlsx":
+                # sheet_name is guaranteed to be set when xlsx is allowed
+                df = pd.read_excel(data_stream, sheet_name=self.sheet_name)
+                if isinstance(df, dict):
+                    first_key = next(iter(df)) if df else None
+                    if first_key is None:
+                        self._errors.append(f"File '{filename}' has no sheets.")
+                        self.errors = list(self._errors)
+                        return False
+                    df = df[first_key]
+            elif ext == "csv":
+                df = pd.read_csv(data_stream)
+            elif ext == "tsv":
+                df = pd.read_csv(data_stream, sep="\t")
+            else:
+                self._errors.append(f"Unsupported file type: '.{ext}'.")
+                self.errors = list(self._errors)
+                return False
+        except Exception as e:
+            self._errors.append(f"Failed to read file '{filename}': {e}")
+            self.errors = list(self._errors)
+            return False
+
+        col_names = [str(c) for c in df.columns]
+        result = self._validate_dataframe(df, col_names)
+        self.errors = list(self._errors)
+        return result
+
+    async def render(self, container_class: str = "", hide_label: bool = False, **kwargs) -> str:
+        return await BaseInputField.render(
+            self, container_class=container_class, hide_label=hide_label, **kwargs
+        )

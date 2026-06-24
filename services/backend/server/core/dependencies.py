@@ -350,6 +350,22 @@ def parse_enum_ids(
             raise exc.BadRequestException()
     
     return dependency
+
+def parse_enum_id(
+    enum_type: type[E], query_param: str,        
+) -> Callable[[], E | None]:
+    def dependency(
+        id_in: int | None = Query(None, alias=query_param, description=f"{enum_type.__name__} ID to filter by")
+    ) -> E | None:
+        if id_in is None:
+            return None
+        
+        try:
+            return enum_type.get(int(id_in))
+        except ValueError:
+            raise exc.BadRequestException()
+    
+    return dependency
     
 def parse_order_by(
     model: type[utils.Base],

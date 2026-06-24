@@ -8,7 +8,7 @@ from ....core import dependencies, responses, exceptions as exc
 router = APIRouter(prefix="/mux_prep", tags=["mux_prep"])
 
 
-@router.get("/begin/{lab_prep_id}/{mux_type_id}")
+@router.get("/{lab_prep_id}/begin/{mux_type_id}")
 async def begin_mux_prep_workflow(
     request: Request,
     lab_prep_id: int,
@@ -33,4 +33,12 @@ async def begin_mux_prep_workflow(
     # else:
     #     raise NotImplementedError(f"Multiplexing type {mux_type} is not implemented.")
     # return await form.make_response()
+    pass
+
+
+@router.get("/{lab_prep_id}/sample-pooling")
+async def mux_sample_pooling(
+    lab_prep_id: int,
+    session: AsyncSession = Depends(dependencies.db_session),
+):
     pass

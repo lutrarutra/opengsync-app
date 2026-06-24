@@ -1,5 +1,6 @@
 import os
 import json
+import io
 from typing import Any, Literal
 from urllib.parse import quote
 
@@ -133,7 +134,25 @@ async def file_response(path: str, filename: str | None = None, content_type: st
         "Content-Disposition": f'attachment; filename="{filename}"'
     }
     response = Response(
-        content=open(path, "rb").read(),
+        content=open(path, "rb").read(),  # TODO: use nginx to serve files directly instead of reading them into memory
+        media_type=content_type or "application/octet-stream",
+        headers=headers,
+    )
+    return response
+
+
+async def bytes_response(data: bytes | io.BytesIO, filename: str, content_type: str | None = None) -> Response:
+    if isinstance(data, io.BytesIO):
+        data.seek(0)
+        raw = data.read()
+    else:
+        raw = data
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"'
+    }
+    response = Response(
+        content=raw,
         media_type=content_type or "application/octet-stream",
         headers=headers,
     )

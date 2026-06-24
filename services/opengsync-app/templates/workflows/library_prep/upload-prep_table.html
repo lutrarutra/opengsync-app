@@ -1,6 +1,5 @@
-{% from 'components/form_group.jinja2' import form_group, form_cell %}
+{% from 'components/spreadsheet.jinja2' import spreadsheet_input %}
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
-{% from 'components/spreadsheet.jinja2' import spreadsheet_file %}
 
 <div class="modal-content" id="prep_table-form-container">
     <div class="modal-header">
@@ -8,10 +7,8 @@
         <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body" id="prep_table-form" style="height: 100%; overflow-y: hidden;">
-        <div id="table-input-form">
-            {{ form.csrf_token() }}
-            {{ spreadsheet_file(form.table) }}
-        </div>
+        {{ form.csrf_token.render() }}
+        {{ form.spreadsheet.render() }}
     </div>
     <div class="modal-footer" id="popup-footer">
         <div class="footer-id">
@@ -21,9 +18,10 @@
             {{ spreadsheet_error_legend() }}
         </div>
         <div class="footer-controls">
-            <button type="button" id="parse-file-btn" class="btn btn-success submit-form-btn" hx-target="#prep_table-form-container"
-                hx-swap="outerHTML" hx-include="#table-input-form" hx-encoding="multipart/form-data"
-                hx-post="{{ url_for('lab_preps_htmx.prep_table_upload_form', lab_prep_id=lab_prep.id) }}"
+            <button type="button" class="btn btn-success submit-form-btn"
+                hx-post="{{ url_for('lab_prep_table_upload', lab_prep_id=lab_prep.id) }}"
+                hx-target="#prep_table-form-container" hx-swap="outerHTML"
+                hx-include="#prep_table-form-container" hx-encoding="multipart/form-data"
                 {% if lab_prep.prep_file %}
                 _="on htmx:confirm(issueRequest)
                     halt the event

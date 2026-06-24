@@ -1,6 +1,11 @@
+from typing import Literal
+import os
+import io
+
 import pandas as pd
 from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy import orm
+from loguru import logger
 
 from opengsync_db import models, AsyncSession, queries as Q, categories as C, utils
 
@@ -114,42 +119,6 @@ async def render_edit_lab_prep_form(
 @router.post("/{lab_prep_id}/edit")
 async def edit_lab_prep(response=Depends(forms.models.LabPrepForm.edit)) -> Response: return response
 
-@router.post("/{lab_prep_id}/complete")
-async def complete_lab_prep(
-    lab_prep_id: int,
-    request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
-):
-    """Mark a lab prep as completed."""
-    lab_prep = await session.get_one(
-        Q.lab_prep.select(id=lab_prep_id),
-        options=[
-            orm.selectinload(models.LabPrep.pools),
-            orm.selectinload(models.LabPrep.libraries).selectinload(
-                models.Library.seq_request
-            ).selectinload(models.SeqRequest.libraries),
-        ],
-    )
-
-    for pool in lab_prep.pools:
-        if pool.status < C.PoolStatus.STORED:
-            pool.status = C.PoolStatus.STORED
-
-    for library in lab_prep.libraries:
-        is_prepared = all(
-            sr_lib.status >= C.LibraryStatus.POOLED
-            for sr_lib in library.seq_request.libraries
-        )
-        if is_prepared:
-            library.seq_request.status = C.SeqRequestStatus.PREPARED
-
-    lab_prep.status_id = C.PrepStatus.COMPLETED.id
-
-    return await responses.htmx_response(
-        redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
-        flash=responses.flash("Lab prep completed!", "success"),
-    )
-
 
 @router.post("/{lab_prep_id}/uncomplete")
 async def uncomplete_lab_prep(
@@ -214,9 +183,14 @@ async def render_lab_prep_checklist(
     lab_prep_id: int,
     session: AsyncSession = Depends(dependencies.db_session),
 ):
-    lab_prep = await session.get_one(Q.lab_prep.select(id=lab_prep_id))
+    lab_prep = await session.get_one(
+        Q.lab_prep.select(id=lab_prep_id).options(
+            orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.sample_links),
+            orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.indices),
+        )
+    )
     checklist = lab_prep.get_checklist()
-    return responses.htmx_response(
+    return await responses.htmx_response(
         "components/checklists/lab_prep.html",
         lab_prep=lab_prep, **checklist
     )
@@ -281,3 +255,198 @@ async def render_lab_prep_mux_spreadsheet(
 
     spreadsheet = StaticSpreadsheet(df, columns=columns, id=f"lab_prep_mux_table-{lab_prep_id}")
     return await spreadsheet.render()
+
+
+@router.get("/{lab_prep_id}/prep-spreadsheet-template")
+async def download_lab_prep_spreadsheet_template(
+    lab_prep_id: int,
+    direction: str = Query("rows", description="Whether to return the template in rows or columns format"),
+    checklist: C.LabChecklistType | None = Depends(dependencies.parse_enum_id(enum_type=C.LabChecklistType, query_param="checklist_id")),
+    session: AsyncSession = Depends(dependencies.db_session),
+):
+    import openpyxl
+    from openpyxl import styles as openpyxl_styles
+    from openpyxl.utils import get_column_letter
+
+    if direction not in ("rows", "columns"):
+        raise exc.BadRequestException(f"Invalid direction: {direction}")
+    
+    lab_prep = await session.get_one(
+        Q.lab_prep.select(id=lab_prep_id).options(
+            orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.sample_links),
+            orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.indices),
+            orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.seq_request).selectinload(models.SeqRequest.requestor),
+        )
+    )
+
+    checklist = checklist or lab_prep.checklist_type
+
+    filepath = os.path.join("/static", "resources", "templates", "library_prep", checklist.prep_file_name)
+
+    if not os.path.exists(filepath):
+        logger.error(f"File not found: {filepath}")
+        raise FileNotFoundError(f"Template file not found: {filepath}")
+
+    template = openpyxl.load_workbook(filepath)
+
+    n = 12 if direction == "rows" else 8
+    pattern = [True] * n + [False] * n
+
+    def if_color(i):
+        return pattern[i]
+
+    prep_table = template["prep_table"]
+    column_mapping: dict[str, str] = {}
+    
+    for col_i in range(0, min(prep_table.max_column, 96)):
+        col = get_column_letter(col_i + 1)
+        column_name = prep_table[f"{col}1"].value
+        column_mapping[column_name] = col
+        
+        for row_idx, cell in enumerate(prep_table[col][1:]):
+            if if_color(row_idx % (n * 2)):
+                cell.fill = openpyxl_styles.PatternFill(start_color="ced4da", end_color="ced4da", fill_type="solid")
+            else:
+                cell.fill = openpyxl_styles.PatternFill(start_color="ffffff", end_color="ffffff", fill_type="solid")
+
+    for row_idx, cell in enumerate(prep_table[column_mapping["plate_well"]][1:]):
+        if row_idx > 95:
+            break
+        cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
+
+    for row_idx, cell in enumerate(prep_table[column_mapping["index_well"]][1:]):
+        if row_idx > 95:
+            break
+        cell.value = models.Plate.well_identifier(row_idx, num_cols=12, num_rows=8, flipped=direction == "columns")
+        
+    for i, library in enumerate(lab_prep.libraries):
+        library_id_cell = prep_table[f"{column_mapping['library_id']}{i + 2}"]
+        library_name_cell = prep_table[f"{column_mapping['library_name']}{i + 2}"]
+        requestor_cell = prep_table[f"{column_mapping['requestor']}{i + 2}"]
+        sequence_i7_cell = prep_table[f"{column_mapping['sequence_i7']}{i + 2}"]
+        sequence_i5_cell = prep_table[f"{column_mapping['sequence_i5']}{i + 2}"]
+        # kit_i7_cell = active_sheet[f"{column_mapping['kit_i7']}{i + 2}"]
+        # kit_i5_cell = active_sheet[f"{column_mapping['kit_i5']}{i + 2}"]
+        name_i7_cell = prep_table[f"{column_mapping['name_i7']}{i + 2}"]
+        name_i5_cell = prep_table[f"{column_mapping['name_i5']}{i + 2}"]
+        library_id_cell.value = library.id
+        library_name_cell.value = library.name
+        requestor_cell.value = library.seq_request.requestor.name
+        if len(library.indices) > 0:
+            name_i7_cell.value = library.indices[0].name_i7
+            name_i5_cell.value = library.indices[0].name_i5
+        sequence_i7_cell.value = library.sequences_i7_str(";")
+        sequence_i5_cell.value = library.sequences_i5_str(";")
+
+    if "FLEX_table" in template.sheetnames:
+        flex_table = template["FLEX_table"]
+        column_mapping: dict[str, str] = {}
+    
+        for col_i in range(0, min(flex_table.max_column, 96)):
+            col = get_column_letter(col_i + 1)
+            column_name = flex_table[f"{col}1"].value
+            column_mapping[column_name] = col
+
+        i = 2
+        for library in lab_prep.libraries:
+            if library.type == C.LibraryType.TENX_SC_GEX_FLEX:
+                for sample_link in library.sample_links:
+                    sample_num_cell = flex_table[f"{column_mapping['sample_num']}{i}"]
+                    sample_name_cell = flex_table[f"{column_mapping['sample_name']}{i}"]
+                    sample_num_cell.value = i - 1
+                    sample_name_cell.value = sample_link.sample.name
+                    i += 1
+
+    if "10X_table" in template.sheetnames:
+        tenx_table = template["10X_table"]
+        column_mapping: dict[str, str] = {}
+    
+        for col_i in range(0, min(tenx_table.max_column, 96)):
+            col = get_column_letter(col_i + 1)
+            column_name = tenx_table[f"{col}1"].value
+            column_mapping[column_name] = col
+
+        i = 2
+        for library in lab_prep.libraries:
+            if library.type in (C.LibraryType.TENX_SC_GEX_3PRIME, C.LibraryType.TENX_SC_GEX_5PRIME):
+                for sample_link in library.sample_links:
+                    sample_num_cell = tenx_table[f"{column_mapping['sample_num']}{i}"]
+                    sample_name_cell = tenx_table[f"{column_mapping['sample_name']}{i}"]
+                    library_name_cell = tenx_table[f"{column_mapping['library_name']}{i}"]
+                    library_id_cell = tenx_table[f"{column_mapping['library_id']}{i}"]
+                    requestor_cell = tenx_table[f"{column_mapping['requestor']}{i}"]
+
+                    sample_num_cell.value = i - 1
+                    sample_name_cell.value = sample_link.sample.name
+                    library_name_cell.value = library.name
+                    library_id_cell.value = library.id
+                    requestor_cell.value = library.seq_request.requestor.name
+                    i += 1
+            
+    bytes_io = io.BytesIO()
+    template.save(bytes_io)
+    bytes_io.seek(0)
+
+    return await responses.bytes_response(
+        bytes_io,
+        filename=f"{lab_prep.name}_{lab_prep.checklist_type.abbreviation}_{direction}.xlsx",
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@router.get("/{lab_prep_id}/prep-table-upload")
+async def render_lab_prep_table_upload_form(response=Depends(forms.actions.LibraryPrepTableForm.render)): return response
+
+@router.post("/{lab_prep_id}/prep-table-upload", name="lab_prep_table_upload")
+async def upload_lab_prep_table(response=Depends(forms.actions.LibraryPrepTableForm.upload)) -> Response: return response
+
+
+@router.post("/{lab_prep_id}/complete")
+async def complete_lab_prep(
+    lab_prep_id: int,
+    request: Request,
+    session: AsyncSession = Depends(dependencies.db_session),
+):
+    """Mark a lab prep as completed."""
+    lab_prep = await session.get_one(
+        Q.lab_prep.select(id=lab_prep_id),
+        options=[
+            orm.selectinload(models.LabPrep.pools),
+            orm.selectinload(models.LabPrep.libraries).selectinload(
+                models.Library.seq_request
+            ).selectinload(models.SeqRequest.libraries),
+        ],
+    )
+
+    for pool in lab_prep.pools:
+        if pool.status < C.PoolStatus.STORED:
+            pool.status = C.PoolStatus.STORED
+
+    for library in lab_prep.libraries:
+        is_prepared = all(
+            sr_lib.status >= C.LibraryStatus.POOLED
+            for sr_lib in library.seq_request.libraries
+        )
+        if is_prepared:
+            library.seq_request.status = C.SeqRequestStatus.PREPARED
+
+    lab_prep.status_id = C.PrepStatus.COMPLETED.id
+
+    return await responses.htmx_response(
+        redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
+        flash=responses.flash("Lab prep completed!", "success"),
+    )
+
+
+@router.get("/{lab_prep_id}/plates")
+async def render_lab_prep_plates(
+    lab_prep_id: int,
+    session: AsyncSession = Depends(dependencies.db_session),
+):
+    """Render the plates for a lab prep."""
+    plates = await session.get_all(
+        Q.plate.select(lab_prep_id=lab_prep_id).options(
+            orm.selectinload(models.Plate.sample_links)
+        ), limit=None
+    )
+    return await responses.htmx_response(template="components/plates.html", plates=plates)

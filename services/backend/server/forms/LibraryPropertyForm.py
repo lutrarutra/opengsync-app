@@ -77,17 +77,6 @@ class LibraryPropertyForm(HTMXForm):
     async def validate(self) -> bool:
         """Validate the submitted spreadsheet via the SpreadsheetInputField."""
         await super().validate()
-
-        form_data = await self.request.form()
-        spreadsheet_json = form_data.get("spreadsheet")
-        columns_json = form_data.get("columns")
-
-        spreadsheet_json = str(spreadsheet_json) if spreadsheet_json is not None else ""
-        columns_json = str(columns_json) if columns_json is not None else ""
-
-        if not self.spreadsheet.validate(spreadsheet_json, columns_json):
-            return False
-
         df = self.spreadsheet.data
 
         if "library_id" not in df.columns or "library_name" not in df.columns:

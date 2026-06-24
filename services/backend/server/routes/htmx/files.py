@@ -8,7 +8,7 @@ from sqlalchemy import orm
 from opengsync_db import models, AsyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc, config
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
 from ... import forms
 
 BROWSER_RENDERABLE_EXTENSIONS = {
@@ -156,3 +156,18 @@ async def serve_media_file(
             "Content-Disposition": f'{disposition}; filename="{filename}"',
         },
     )
+
+
+@router.get("/{media_file_id}/xlsx-spreadsheet", dependencies=[Depends(dependencies.media_file_permissions)])
+async def render_xlsx_spreadsheet(
+    media_file_id: int,
+    session: AsyncSession = Depends(dependencies.db_session),
+):
+    file = await session.get_one(Q.media_file.select(id=media_file_id))
+
+    filepath = os.path.join(config.settings.app_config.media_folder, file.path)
+    if not os.path.isfile(filepath):
+        raise exc.ItemNotFoundException("File not found on disk.")
+
+    spreadsheet = UniverSpreadsheet(path=filepath)
+    return await spreadsheet.make_response()

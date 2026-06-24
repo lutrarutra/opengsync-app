@@ -73,6 +73,10 @@ document.addEventListener("htmx:afterRequest", (event) => {
     // render_flash_messages();
 });
 
+document.addEventListener("htmx:responseError", (event) => {
+    showFlashToast({ category: 'error', message: 'Something went wrong. Please try again.' });
+});
+
 document.addEventListener("flash", (event) => {
     showFlashToast(event.detail);
 });
