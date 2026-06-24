@@ -1,4 +1,4 @@
-from typing import Any, Annotated, Generic, TypeVar
+from typing import Any, Annotated, Generic, Literal, TypeVar, overload
 from .BaseInputField import BaseInputField
 
 from pydantic import EmailStr, StringConstraints
@@ -8,6 +8,44 @@ _DataT = TypeVar("_DataT", str, str | None, covariant=True)
 
 class StringInputField(BaseInputField, Generic[_DataT]):
     data: _DataT
+
+    @overload
+    def __init__(
+        self: "StringInputField[str]",
+        label: str,
+        *,
+        template: str | None = None,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = None,
+        pydantic_type: Any = None,
+        required: Literal[True] = True,
+        type: str = "text",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "StringInputField[str | None]",
+        label: str,
+        *,
+        template: str | None = None,
+        placeholder: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
+        description: str | None = None,
+        default: str | None = None,
+        autocomplete: str | None = None,
+        pydantic_type: Any = None,
+        required: Literal[False],
+        type: str = "text",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
 
     def __init__(
         self,

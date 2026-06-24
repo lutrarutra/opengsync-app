@@ -10,7 +10,7 @@
     <div id="{{ field.id }}" class="spreadsheet-grid"></div>
 </div>
 <script>
-    load_jspreadsheet("{{ url_for('static', filename='js/jss-extended.js') }}").then(() => {
+    load_jspreadsheet().then(() => {
         window.spread_sheet = window.jspreadsheet(document.getElementById("{{ field.id }}"), {
             worksheets: [{
                 data: {{ field.table_data | safe if field.table_data else "[[null]]" }},

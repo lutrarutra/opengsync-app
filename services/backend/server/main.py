@@ -138,5 +138,48 @@ async def storage_availability_check():
         "percent_used": f"{(usage.used / usage.total) * 100:.1f}%"
     }
 
+if config.settings.ENVIRONMENT != "production":
+    @app.get("/test")
+    async def test_route():
+        from .components import inputs
+
+        text_field_required = inputs.string.StringInputField("Text Field", required=True)
+        text_field_required.data # should be str
+        text_field_optional = inputs.string.StringInputField("Text Field", required=False)
+        text_field_optional.data # should be str | None
+
+        int_field_required = inputs.numeric.IntInputField("Integer Field", required=True)
+        int_field_required.data # is correctly typed as int
+        int_field_optional = inputs.numeric.IntInputField("Integer Field", required=False)
+        int_field_optional.data # is correctly typed as int | None
+
+        float_field_required = inputs.numeric.FloatInputField("Float Field", required=True)
+        float_field_required.data # is correctly typed as float
+        float_field_optional = inputs.numeric.FloatInputField("Float Field", required=False)
+        float_field_optional.data # is correctly typed as float | None
+
+        selectable_required = inputs.selectable.SelectableInputField("File Field", options=[(1, "Option 1")], required=True)
+        selectable_required.data # is correctly typed as int
+        selectable_optional = inputs.selectable.SelectableInputField("File Field", options=[(1, "Option 1")], required=False)
+        selectable_optional.data # should be int | None instead of int
+
+        searchable_required = inputs.searchable.SearchableInputField("File Field", route="/search", required=True)
+        searchable_required.data # is correctly typed as int
+        searchable_optional = inputs.searchable.SearchableInputField("File Field", route="/search", required=False)
+        searchable_optional.data # should be int | None instead of int
+
+        spreadsheet_input_required = inputs.spreadsheet.SpreadsheetInputField(label="Spreadsheet Field", required=True)
+        spreadsheet_input_required.data # is correctly pd.DataFrame
+        spreadsheet_input_optional = inputs.spreadsheet.SpreadsheetInputField(label="Spreadsheet Field", required=False)
+        spreadsheet_input_optional.data # is correctly pd.DataFrame | None
+
+        spreadsheet_file_required = inputs.spreadsheet.SpreadsheetFileField(label="Spreadsheet Field")
+        spreadsheet_file_required.data # should be pd.DataFrame
+        spreadsheet_file_optional = inputs.spreadsheet.SpreadsheetFileField(label="Spreadsheet Field", required=False)
+        spreadsheet_file_optional.data # should be pd.DataFrame | None
+
+        return {"message": "This is a test route."}
+
+
 
 app.mount("/static", StaticFiles(directory="/static"), name="static")

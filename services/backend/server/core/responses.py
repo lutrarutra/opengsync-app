@@ -1,7 +1,7 @@
 import os
 import json
 import io
-from typing import Any, Literal
+from typing import Literal
 from urllib.parse import quote
 
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
@@ -9,7 +9,7 @@ from starlette.datastructures import URL
 from pydantic import BaseModel
 
 from .templates import render_template
-from . import utils, runtime
+from . import utils
 from .context import ctx
 
 class FlashMessage(BaseModel):
@@ -18,16 +18,6 @@ class FlashMessage(BaseModel):
 
 def flash(message: str, category: Literal["info", "success", "warning", "error"] = "info") -> FlashMessage:
     return FlashMessage(message=message, category=category)
-
-async def get_request_context() -> dict[str, Any]:
-    request = ctx.request
-    
-    if (current_user := getattr(request.state, "current_user", runtime.NOT_CHECKED)) == runtime.NOT_CHECKED:
-        current_user = None
-    return {
-        "request": request,
-        "current_user": current_user
-    }
 
 def raw_json_response(data: str | bytes, encapsulate: str | None = None) -> Response:
     if encapsulate:
@@ -48,7 +38,7 @@ async def html_response(
     else:
         content = ""
         if template is not None:
-            content = await render_template(template, **context | await get_request_context())
+            content = await render_template(template, **context)
         
         resp = HTMLResponse(
             content=content,
@@ -109,7 +99,7 @@ async def htmx_response(
         headers["HX-Redirect"] = redirect.__str__()
         resp = HTMLResponse(status_code=204, headers=headers)
     elif template is not None:
-        content = await render_template(template, **context | await get_request_context())
+        content = await render_template(template, **context)
         resp = HTMLResponse(content=content, status_code=status, headers=headers)
     elif content is not None:
         resp = HTMLResponse(content=content, status_code=status, headers=headers)

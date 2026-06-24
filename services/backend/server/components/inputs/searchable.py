@@ -1,15 +1,46 @@
-from typing import TypeVar, Generic
-
+from typing import Generic, Literal, TypeVar, overload
 from starlette.datastructures import URL
 
 from .BaseInputField import BaseInputField
 from ...core.context import ctx
 
-_T = TypeVar("_T", covariant=True)
+_SearchableDataT = TypeVar("_SearchableDataT", int, int | None, covariant=True)
 
 
-class SearchableInputField(BaseInputField, Generic[_T]):
-    data: _T
+class SearchableInputField(BaseInputField, Generic[_SearchableDataT]):
+    data: _SearchableDataT
+
+    @overload
+    def __init__(
+        self: "SearchableInputField[int]",
+        label: str,
+        *,
+        route: str,
+        placeholder: str | None = None,
+        required: Literal[True] = True,
+        pydantic_type: type = int,
+        default=None,
+        autocomplete: str | None = None,
+        type: str = "search",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "SearchableInputField[int | None]",
+        label: str,
+        *,
+        route: str,
+        placeholder: str | None = None,
+        required: Literal[False],
+        pydantic_type: type = int,
+        default=None,
+        autocomplete: str | None = None,
+        type: str = "search",
+        hidden: bool = False,
+        read_only: bool = False,
+    ) -> None: ...
 
     def __init__(
         self,

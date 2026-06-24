@@ -1,15 +1,10 @@
-from typing import Literal
-from uuid import uuid4
+from typing import Any
 
 from contextvars import ContextVar
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from opengsync_db import models
-from opengsync_db import AsyncSession
-
-# from ..core.cache import session_cache, flash_cache
-from ..core.config import settings
+from ..core import runtime
 
 _request_ctx_var: ContextVar[Request] = ContextVar("request")
 _response_ctx_var: ContextVar[Response] = ContextVar("response")
@@ -62,3 +57,14 @@ class ContextMiddleware(BaseHTTPMiddleware):
         finally:
             _request_ctx_var.reset(request_token)
             _response_ctx_var.reset(response_token)
+
+
+def get_request_context() -> dict[str, Any]:
+    request = ctx.request
+    
+    if (current_user := getattr(request.state, "current_user", runtime.NOT_CHECKED)) == runtime.NOT_CHECKED:
+        current_user = None
+    return {
+        "request": request,
+        "current_user": current_user
+    }

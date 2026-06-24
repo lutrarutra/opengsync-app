@@ -118,7 +118,7 @@ function load_interactjs() {
     return _interactjsLoadPromise;
 }
 
-async function load_jspreadsheet(src) {
+async function load_jspreadsheet() {
     if (window.jspreadsheet && window.jSuites) {
         return;
     }
@@ -127,10 +127,9 @@ async function load_jspreadsheet(src) {
     }
     console.log("Loading JSpreadsheet scripts and styles...");
     _jspreadsheetLoadPromise = (async () => {
-        // Load scripts in correct order
         const scripts = [
             'https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.min.js',
-            src // your extension as an argument
+            '/static/js/jss-extended.js'
         ];
         for (const src of scripts) {
             if (document.querySelector(`script[src="${src}"]`)) continue;
@@ -143,7 +142,7 @@ async function load_jspreadsheet(src) {
                 document.head.appendChild(script);
             });
         }
-        // Load all CSS in parallel
+
         const styles = [
             'https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.min.css',
             'https://cdn.jsdelivr.net/npm/jspreadsheet-ce@5/dist/jspreadsheet.min.css'

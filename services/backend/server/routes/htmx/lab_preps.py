@@ -254,7 +254,7 @@ async def render_lab_prep_mux_spreadsheet(
         )
 
     spreadsheet = StaticSpreadsheet(df, columns=columns, id=f"lab_prep_mux_table-{lab_prep_id}")
-    return await spreadsheet.render()
+    return await responses.htmx_response(content=await spreadsheet.render())
 
 
 @router.get("/{lab_prep_id}/prep-spreadsheet-template")

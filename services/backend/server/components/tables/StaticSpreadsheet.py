@@ -29,5 +29,5 @@ class StaticSpreadsheet():
 
         self._data = self.__df[[col.label for col in self.columns]].astype(object).replace(pd.NA, "").values.tolist()
 
-    async def render(self, **context) -> str:
-        return await render_template("components/itable.html", spreadsheet=self, **context)
+    async def render(self, **kwargs) -> str:
+        return await render_template("components/static-spreadsheet.html", spreadsheet=self, **kwargs)

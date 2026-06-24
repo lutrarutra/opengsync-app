@@ -3,7 +3,7 @@ from abc import ABC
 from markupsafe import Markup
 
 from ...core.templates import render_template
-from ...core.responses import get_request_context
+from ...core.context import get_request_context
 
 
 class BaseInputField(ABC):
@@ -79,6 +79,6 @@ class BaseInputField(ABC):
                 container_class=container_class,
                 hide_label=hide_label,
                 **kwargs,
-                **await get_request_context(),
+                **get_request_context(),
             )
         )

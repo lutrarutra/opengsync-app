@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 from opengsync_db import categories as C, models
 from opengsync_db import units
 
+from . import context
 from .config import settings
 
 j2 = Jinja2Templates(directory="/templates", enable_async=True, undefined=jinja2.StrictUndefined if settings.ENVIRONMENT != "prod" else jinja2.Undefined)
@@ -187,6 +188,8 @@ def _get_route_param_names(router, name: str) -> set:
 
 j2.env.globals["url_for"] = url_for
 
-async def render_template(template_name: str, **context) -> str:
+async def render_template(template_name: str, include_request_context: bool = True, **kwargs) -> str:
     template = j2.get_template(template_name)
-    return await template.render_async(**context)
+    if include_request_context:
+        kwargs |= context.get_request_context()
+    return await template.render_async(**kwargs)

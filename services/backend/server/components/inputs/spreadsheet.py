@@ -364,6 +364,8 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
 
 
 class SpreadsheetFileField(SpreadsheetInputField, Generic[_DataT]):
+    data: _DataT
+
     """A spreadsheet field that accepts an uploaded file (xlsx, csv, tsv) instead of
     interactive table data from the frontend.
 
