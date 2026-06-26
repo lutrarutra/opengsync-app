@@ -32,21 +32,20 @@ from . import (
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 
-# All workflow routes require insider access
 insider = [Depends(dependencies.require_insider)]
 
 router.include_router(add_kits_to_protocol.router, dependencies=insider)
 router.include_router(ba_report.router, dependencies=insider)
-router.include_router(check_barcode_clashes.router)
+router.include_router(check_barcode_clashes.router, dependencies=[Depends(dependencies.require_user)])
 router.include_router(check_barcode_constraints.router, dependencies=insider)
 router.include_router(dilute_pools.router, dependencies=insider)
 router.include_router(dist_reads.router, dependencies=insider)
 router.include_router(lane_pools.router, dependencies=insider)
 router.include_router(lane_qc.router, dependencies=insider)
-router.include_router(library_annotation.router)
+router.include_router(library_annotation.router, dependencies=[Depends(dependencies.require_user)])
 router.include_router(library_pooling.router, dependencies=insider)
 router.include_router(library_prep.router, dependencies=insider)
-router.include_router(library_remux.router)
+router.include_router(library_remux.router, dependencies=insider)
 router.include_router(load_flow_cell.router, dependencies=insider)
 router.include_router(merge_pools.router, dependencies=insider)
 router.include_router(merge_projects.router, dependencies=insider)
