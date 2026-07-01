@@ -1,6 +1,3 @@
-{% from "components/search_select.jinja2" import search_select_field %}
-{% from 'components/form_group.jinja2' import form_group, switch_input %}
-
 <div id="project-select-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5">Select Project</h1>
@@ -13,28 +10,26 @@
                 <li>Select an existing project or create a new project.</li>
                 <li>Samples associated to a same project are processed together.</li>
                 <li>Samples from different sequencing requests can be associated to a same project.</li>
-                {% if seq_request.group_id %}
-                <li>Only showing projects from group: '{{ seq_request.group.name }}'. <span class="desc">Since request is associated with it. You can change it in 'Manage' -> 'Edit' -> 'Group' on the request's page.</span></li>
+                {% if form.seq_request.group_id %}
+                <li>Only showing projects from group: '{{ form.seq_request.group.name }}'. <span class="desc">Since request is associated with it. You can change it in 'Manage' -> 'Edit' -> 'Group' on the request's page.</span></li>
                 {% endif %}
             </ul>
         </div>
         <div id="project-select-form">
             <div class="row">
-                {{ 
-                    search_select_field(form.existing_project, url_for('projects_htmx.search', group_id=seq_request.group_id), "identifier_title", class="col-5")
-                }}
+                {{ form.existing_project.render("col-5") }}
                 <div class="col-2 mapping-or">
                     or
                 </div>
-                {{ form_group(form.new_project, class="col-5", autocomplete="off") }}
+                {{ form.new_project.render("col-5") }}
             </div>
-            {{ form_group(form.project_description, placeholder="Describe the project with a few sentences. What samples are in the project? What is the hypothesis? What are the goals of the project?") }}
+            {{ form.project_description.render() }}
             {% if current_user.is_insider() %}
             <div class="row">
-                <div class="px-2">{{ form.set_requestor_as_owner() }} <label for="{{ form.set_requestor_as_owner.id }}">Set the Requestor ({{ seq_request.requestor.name }}) as Project Owner when creating a new project.</label></div>
+                <div class="px-2">{{ form.set_requestor_as_owner.render() }} <label for="{{ form.set_requestor_as_owner.id }}">Set the Requestor ({{ form.seq_request.requestor.name }}) as Project Owner when creating a new project.</label></div>
             </div>
             {% endif %}
-            {{ form.csrf_token() }}
+            {{ form.csrf_token.render() }}
         </div>
     </div>
     <div class="modal-footer">
@@ -43,7 +38,7 @@
         <div class="footer-controls">
             <button type="button" class="btn btn-primary"
                 hx-target="#project-select-form-container" hx-swap="outerHTML" hx-include="#project-select-form"
-                hx-post="{{ url_for('library_annotation_workflow.select_project', seq_request_id=seq_request.id) }}">
+                hx-post="{{ form.post_url }}">
                 Next
             </button>
         </div>

@@ -5,8 +5,7 @@ from fastapi import Response
 from opengsync_db import utils
 
 from .TableCol import TableCol
-from ...core.context import ctx
-from ...core import responses
+from ...core import responses, context
 
 class HTMXTable:
     template = ""
@@ -42,7 +41,7 @@ class HTMXTable:
     
     @property
     def url(self) -> URL:
-        return ctx.request.url_for(self.route).include_query_params(**self.url_params)
+        return context.ctx.request.url_for(self.route).include_query_params(**self.url_params)
     
     def get_state(self) -> dict:
         state = self.url_params.copy()
@@ -58,7 +57,7 @@ class HTMXTable:
         return state
     
     def page_url(self, page: int) -> URL:
-        return ctx.request.url_for(self.route).include_query_params(**{**self.url_params, "page": page})
+        return context.ctx.request.url_for(self.route).include_query_params(**{**self.url_params, "page": page})
 
     def set_num_pages(self, count: int, limit: int = 10) -> None:
         self.num_pages = (count + limit - 1) // limit

@@ -33,6 +33,10 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         height: str | None = "600px",
         style: dict[str, str] | None = None,
         columns: list[SpreadSheetColumn] | None = None,
+        allow_new_cols: bool = False,
+        allow_new_rows: bool = True,
+        allow_col_rename: bool = False,
+        can_be_empty: bool = False,
     ) -> None: ...
 
     @overload
@@ -44,6 +48,10 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         height: str | None = "600px",
         style: dict[str, str] | None = None,
         columns: list[SpreadSheetColumn] | None = None,
+        allow_new_cols: bool = False,
+        allow_new_rows: bool = True,
+        allow_col_rename: bool = False,
+        can_be_empty: bool = False,
     ) -> None: ...
 
     def __init__(
@@ -53,6 +61,10 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         height: str | None = "600px",
         style: dict[str, str] | None = None,
         columns: list[SpreadSheetColumn] | None = None,
+        allow_new_cols: bool = False,
+        allow_new_rows: bool = True,
+        allow_col_rename: bool = False,
+        can_be_empty: bool = False,
     ):
         super().__init__(
             label=label,
@@ -67,13 +79,13 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         self.post_url: responses.URL | None = None
         self.csrf_token: str = ""
         self.editable: bool = False
-        self.allow_new_cols: str = "false"
-        self.allow_new_rows: str = "false"
-        self.allow_col_rename: str = "false"
-        self.min_spare_rows: int = 0
+        self.allow_new_cols: str = "true" if allow_new_cols else "false"
+        self.allow_new_rows: str = "true" if allow_new_rows else "false"
+        self.allow_col_rename: str = "true" if allow_col_rename else "false"
+        self.min_spare_rows: int = 10 if allow_new_rows else 0
         self._errors: list[str] = []
         self.to_delete: set[str] = set()
-        self.can_be_empty: bool = False
+        self.can_be_empty: bool = can_be_empty
         self.style: dict[str, str] = style or {}
         self._configured: bool = False
 
@@ -100,18 +112,12 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         self._validated = True
 
     def add_column(self, column: SpreadSheetColumn) -> None:
-        """Add a column to the spreadsheet.
-
-        Can be called before or after ``configure()``. Column letters are
-        (re)assigned based on the current column order.
-        """
         if column.label in self.columns:
             raise ValueError(f"Column with label '{column.label}' already exists.")
         self.columns[column.label] = column
         self._reassign_letters()
 
     def _reassign_letters(self) -> None:
-        """Reassign spreadsheet column letters (A, B, C, ...) based on insertion order."""
         for i, col in enumerate(self.columns.values()):
             col.letter = string.ascii_uppercase[i]
 
@@ -119,29 +125,11 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         self,
         df: pd.DataFrame,
         csrf_token: str,
-        editable: bool = False,
         post_url: responses.URL | None = None,
         predefined_columns: list[SpreadSheetColumn] | None = None,
-        allow_new_cols: bool = False,
-        allow_new_rows: bool = False,
-        allow_col_rename: bool = False,
-        can_be_empty: bool = False,
     ):
-        """Build the spreadsheet data from a DataFrame and configuration.
-
-        Columns provided via the constructor or ``add_column()`` are preserved.
-        Any additional ``predefined_columns`` passed here are merged in (duplicates
-        by label are skipped). Columns from the DataFrame that are not already
-        defined are auto-created as ``TextColumn`` instances.
-        """
         self.post_url = post_url
         self.csrf_token = csrf_token
-        self.editable = editable
-        self.allow_new_cols = "true" if allow_new_cols else "false"
-        self.allow_new_rows = "true" if allow_new_rows else "false"
-        self.allow_col_rename = "true" if allow_col_rename else "false"
-        self.min_spare_rows = 10 if allow_new_rows else 0
-        self.can_be_empty = can_be_empty
         self._errors = []
         self.to_delete = set()
         self.style = {}
@@ -154,19 +142,6 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
             self.add_column(col)
 
         existing_labels = set(self.columns.keys())
-
-        for col_name in df.columns:
-            if col_name in existing_labels:
-                continue
-            col = TextColumn(
-                col_name,
-                col_name.replace("_", " ").title(),
-                200,
-                max_length=1000,
-                read_only=not editable,
-                can_be_deleted=editable,
-            )
-            self.add_column(col)
 
         raw_data = []
         for _, row in df.iterrows():
@@ -183,16 +158,6 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         self._configured = True
 
     def validate(self, raw_data: dict[str, Any]) -> bool:
-        """Parse and validate the spreadsheet data submitted from the frontend.
-
-        Reads ``spreadsheet`` (JSON 2D data array) and ``columns`` (JSON header
-        names) from ``raw_data``.
-
-        Returns:
-            True if validation succeeded, False otherwise. Errors are collected
-            in ``self._errors`` and cell-level styling in ``self.style``.
-            The validated DataFrame is stored in ``self.data``.
-        """
         if not self._configured:
             raise ValueError("SpreadsheetInputField has not been configured — call configure() first.")
 

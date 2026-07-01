@@ -9,7 +9,7 @@ from starlette.datastructures import URL
 from pydantic import BaseModel
 
 from .templates import render_template
-from . import utils
+from .. import utils
 from .context import ctx
 
 class FlashMessage(BaseModel):
@@ -21,7 +21,7 @@ def flash(message: str, category: Literal["info", "success", "warning", "error"]
 
 def raw_json_response(data: str | bytes, encapsulate: str | None = None) -> Response:
     if encapsulate:
-        data = utils.json_encapsulate(encapsulate, data)
+        data = utils.parsing.json_encapsulate(encapsulate, data)
 
     return JSONResponse(content=data, media_type="application/json")
     

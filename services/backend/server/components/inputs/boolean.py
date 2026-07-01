@@ -21,7 +21,7 @@ class BooleanInputField(BaseInputField):
     ):
         super().__init__(
             label=label,
-            template=template or "components/inputs/boolean.html",
+            template=template or "components/inputs/checkbox.html",
             default=default,
             pydantic_type=bool,
             type="checkbox",

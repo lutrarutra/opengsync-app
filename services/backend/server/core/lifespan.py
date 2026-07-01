@@ -57,6 +57,10 @@ async def lifespan(app: FastAPI):
     app.state.redis_pool = ConnectionPool.from_url(config.settings.REDIS_URL)
     app.state.bcrypt = secrets.BcryptCompat()
 
+    from .msf_cache import msf_cache
+    msf_cache.set_pool(app.state.redis_pool)
+    logger.info("MSF cache connected to Redis")
+
     from .templates import j2
     from .config import settings
     j2.env.globals["contact_email"] = settings.app_config.personalization.email

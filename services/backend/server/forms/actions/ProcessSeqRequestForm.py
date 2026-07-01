@@ -1,10 +1,10 @@
 from fastapi import Request, Depends
 from fastapi.responses import Response
+from sqlalchemy import orm
 
 from opengsync_db import queries as Q, AsyncSession, categories as C, models, actions
-from opengsync_db.categories import UserRole
 
-from ...core import responses, secrets, dependencies, exceptions as exc
+from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
 from ..HTMXForm import HTMXForm
 
@@ -30,7 +30,12 @@ class ProcessSeqRequestForm(HTMXForm):
         current_user: models.User = Depends(dependencies.require_insider),
         session: AsyncSession = Depends(dependencies.db_session),
     ) -> Response:
-        seq_request = await session.get_one(Q.seq_request.select(seq_request_id))
+        seq_request = await session.get_one(Q.seq_request.select(seq_request_id).options(
+            orm.selectinload(models.SeqRequest.samples),
+            orm.selectinload(models.SeqRequest.libraries),
+            orm.selectinload(models.SeqRequest.pools),
+            orm.selectinload(models.SeqRequest.comments),
+        ))
         form = ProcessSeqRequestForm(request, seq_request=seq_request)
         await form.validate()
 
@@ -67,6 +72,7 @@ class ProcessSeqRequestForm(HTMXForm):
             ))
 
         if form.assign_seq_request_to_me.data:
+            await session.refresh(current_user, attribute_names=["assigned_seq_requests"])
             if seq_request not in current_user.assigned_seq_requests:
                 current_user.assigned_seq_requests.append(seq_request)
 

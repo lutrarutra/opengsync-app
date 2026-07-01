@@ -1,18 +1,16 @@
-{% from "components/form_group.jinja2" import form_group, switch_input %}
-
 <div class="modal-content" id="process_request-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Process Sequencing Request</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body" id="process_request-form">
-        {{ switch_input(process_request_form.assign_seq_request_to_me, class="pb-3") }}
+        {{ form.assign_seq_request_to_me.render("pb-3") }}
         <div class="row">
-            {{ form_group(process_request_form.response_type, class="col-4") }}
-            {{ form_group(process_request_form.notification_receiver, class="col-8") }}
+            {{ form.response_type.render("col-4") }}
+            {{ form.notification_receiver.render("col-8") }}
         </div>
-        {{ form_group(process_request_form.notification_comment) }}
-        {{ process_request_form.csrf_token() }}
+        {{ form.notification_comment.render() }}
+        {{ form.csrf_token.render() }}
     </div>
     <div class="modal-footer">
         <div class="footer-id">
@@ -21,7 +19,7 @@
         </div>
         <div class="footer-controls">
             <button class="btn btn-success" hx-include="#process_request-form" hx-target="#process_request-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('process_request', seq_request_id=seq_request.id) }}">Process</button>
+                hx-post="{{ url_for('process_request', seq_request_id=form.seq_request.id) }}">Process</button>
         </div>
     </div>
 </div>

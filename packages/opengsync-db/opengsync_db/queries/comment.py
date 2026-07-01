@@ -7,17 +7,17 @@ def create(
     text: str,
     author: User,
     file: MediaFile | None = None,
-    seq_request: SeqRequest | None = None,
-    experiment: Experiment | None = None,
-    lab_prep: LabPrep | None = None,
+    seq_request_id: int | None = None,
+    experiment_id: int | None = None,
+    lab_prep_id: int | None = None,
 ) -> Comment:
     return Comment(
         text=text.strip()[:4096],
         author=author,
         file=file,
-        experiment=experiment,
-        seq_request=seq_request,
-        lab_prep=lab_prep
+        experiment_id=experiment_id,
+        seq_request_id=seq_request_id,
+        lab_prep_id=lab_prep_id
     )
 
 

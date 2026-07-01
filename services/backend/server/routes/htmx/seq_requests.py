@@ -265,7 +265,7 @@ async def edit_seq_request(response=Depends(forms.models.SeqRequestForm.edit)):
 
 
 @router.get("/{seq_request_id}/process-request")
-async def render_process_seq_request(
+async def render_process_seq_request_form(
     seq_request_id: int,
     request: Request,
     session: AsyncSession = Depends(dependencies.db_session),
@@ -278,7 +278,11 @@ async def render_process_seq_request(
             redirect=responses.url_for("seq_requests_page")
         )
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = await session.get_one(
+        Q.seq_request.select(id=seq_request_id).options(
+            orm.selectinload(models.SeqRequest.contact_person),
+        )
+    )
 
     if (
         seq_request.status_id != C.SeqRequestStatus.SUBMITTED.id
@@ -1181,7 +1185,7 @@ async def submit_request(
     if form.comment.data and (comment := form.comment.data.strip()):
         await session.save(
             Q.comment.create(
-                seq_request=seq_request,
+                seq_request_id=seq_request.id,
                 author=current_user,
                 text=f"Sample submission comment: {comment}",
             )

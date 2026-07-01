@@ -1,11 +1,12 @@
 from .HTMXTable import HTMXTable
 from .TableCol import TableCol
 from .StaticSpreadsheet import StaticSpreadsheet
-from .spreadsheet import SpreadSheetColumn, IntegerColumn, FloatColumn, DropdownColumn, TextColumn
+from .spreadsheet import SpreadSheetColumn, IntegerColumn, FloatColumn, DropdownColumn, TextColumn, CategoricalDropDown
 from .UniverSpreadsheet import UniverSpreadsheet
 
 __all__ = [
     "HTMXTable", "TableCol", "StaticSpreadsheet",
     "SpreadSheetColumn", "IntegerColumn", "FloatColumn",
-    "DropdownColumn", "TextColumn", "UniverSpreadsheet"
+    "DropdownColumn", "TextColumn", "UniverSpreadsheet",
+    "CategoricalDropDown",
 ]
