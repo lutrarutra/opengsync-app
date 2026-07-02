@@ -2,7 +2,7 @@ from typing import Any
 
 from fastapi import Request, Response
 from fastapi_cache.decorator import cache as decorator
-from redis.asyncio import ConnectionPool, Redis
+from redis import ConnectionPool, Redis
 from loguru import logger
 
 __all__ = ["decorator"]
@@ -34,15 +34,15 @@ def request_key_builder(
         
     return key
 
-async def scan_and_delete(pattern: str, redis_pool: ConnectionPool):
+def scan_and_delete(pattern: str, redis_pool: ConnectionPool):
     cursor = 0
 
     try:
-        async with Redis(connection_pool=redis_pool) as redis:
+        with Redis(connection_pool=redis_pool) as redis:
             while True:
-                cursor, keys = await redis.scan(cursor, match=pattern, count=100)
+                cursor, keys = redis.scan(cursor, match=pattern, count=100)
                 if keys:
-                    await redis.delete(*keys)
+                    redis.delete(*keys)
                 if cursor == 0:
                     break
     except Exception as e:

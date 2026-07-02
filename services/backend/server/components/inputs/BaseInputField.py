@@ -71,9 +71,9 @@ class BaseInputField(ABC):
         """
         return True
 
-    async def render(self, container_class: str = "", hide_label: bool = False, **kwargs) -> str:
+    def render(self, container_class: str = "", hide_label: bool = False, **kwargs) -> str:
         return Markup(
-            await render_template(
+            render_template(
                 self.template,
                 field=self,
                 container_class=container_class,

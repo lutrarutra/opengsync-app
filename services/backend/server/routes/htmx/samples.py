@@ -3,7 +3,7 @@ import pandas as pd
 from sqlalchemy import orm
 from fastapi import APIRouter, Depends, Query, Request, Response
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol, TextColumn, StaticSpreadsheet
@@ -27,7 +27,7 @@ class SampleTable(HTMXTable):
 
 
 @router.get("/render-table-page")
-async def render_sample_table(
+def render_sample_table(
     library_id: int | None = Query(None, description="Optional library ID to filter samples"),
     lab_prep_id: int | None = Query(None, description="Optional lab prep ID to filter samples"),
     project_id: int | None = Query(None, description="Optional project ID to filter samples"),
@@ -36,7 +36,7 @@ async def render_sample_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Sample, default=models.Sample.id.desc())),
     current_user: models.User = Depends(dependencies.require_user),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     table = SampleTable(route="render_sample_table", page=page, order_by=order_by)
 
@@ -52,35 +52,35 @@ async def render_sample_table(
     )
     
     if library_id is not None:
-        if await session.get_access_level(Q.library.permissions(library_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.library.permissions(library_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view samples for this library.")
         table.template = "components/tables/library-sample.html"
         table.url_params["library_id"] = library_id
-        table.context["library"] = await session.get_one(Q.library.select(id=library_id))
+        table.context["library"] = session.get_one(Q.library.select(id=library_id))
     elif project_id is not None:
-        if await session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view samples for this project.")
         table.template = "components/tables/project-sample.html"
         table.url_params["project_id"] = project_id
-        table.context["project"] = await session.get_one(Q.project.select(id=project_id))
+        table.context["project"] = session.get_one(Q.project.select(id=project_id))
     elif seq_request_id is not None:
-        if await session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view samples for this seq request.")
         table.template = "components/tables/seq_request-sample.html"
         table.url_params["seq_request_id"] = seq_request_id
-        table.context["seq_request"] = await session.get_one(Q.seq_request.select(id=seq_request_id))
+        table.context["seq_request"] = session.get_one(Q.seq_request.select(id=seq_request_id))
     elif lab_prep_id is not None:
         if not current_user.is_insider():
             raise exc.NoPermissionsException("You do not have permission to view samples for this lab prep.")
         table.template = "components/tables/lab_prep-sample.html"
         table.url_params["lab_prep_id"] = lab_prep_id
-        table.context["lab_prep"] = await session.get_one(Q.lab_prep.select(id=lab_prep_id))
+        table.context["lab_prep"] = session.get_one(Q.lab_prep.select(id=lab_prep_id))
     else:
         if not current_user.is_insider():
             stmt = Q.sample.select(viewer_id=current_user.id, statement=stmt)
         table.template = "components/tables/sample.html"
 
-    samples, count = await session.page(
+    samples, count = session.page(
         stmt, page=page, order_by=order_by,
         options=[
             orm.selectinload(models.Sample.library_links).selectinload(models.links.SampleLibraryLink.library),
@@ -89,23 +89,23 @@ async def render_sample_table(
         ]
     )
     table.set_num_pages(count)
-    return await table.make_response(samples=samples)
+    return table.make_response(samples=samples)
 
 
 @router.get("/sample-attribute-spreadsheet")
-async def render_sample_attribute_spreadsheet(
+def render_sample_attribute_spreadsheet(
     project_id: int | None = Query(None, description="Optional project ID to filter samples"),
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter samples"),
     current_user: models.User = Depends(dependencies.require_user),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
 
     if seq_request_id is not None:
-        if await session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        df = await session.pd.get_seq_request_sample_table(seq_request_id=seq_request_id)
+        df = session.pd.get_seq_request_sample_table(seq_request_id=seq_request_id)
     elif project_id is not None:
-        if await session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         raise NotImplementedError("Rendering sample attribute spreadsheet for a project is not yet implemented.")
     else:
@@ -125,4 +125,4 @@ async def render_sample_attribute_spreadsheet(
 
     spreadsheet = StaticSpreadsheet(df, columns=columns, )
 
-    return await spreadsheet.render()
+    return spreadsheet.render()

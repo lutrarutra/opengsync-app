@@ -9,51 +9,51 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.get("/login")
-async def get_login_form(
+def get_login_form(
     form: auth_forms.LoginForm = Depends(auth_forms.LoginForm),
     current_user: models.User | None = Depends(dependencies.get_user),
 ):
     if current_user:
         return responses.htmx_response(redirect=responses.url_for("dashboard"))
 
-    return await form.make_response()
+    return form.make_response()
 
     
 @router.post("/login")
-async def login_user(response = Depends(auth_forms.LoginForm.process_request)): return response
+def login_user(response = Depends(auth_forms.LoginForm.process_request)): return response
 
 @router.get("/register")
-async def get_register_form(
+def get_register_form(
     form: auth_forms.RegisterForm = Depends(auth_forms.RegisterForm),
     current_user: models.User | None = Depends(dependencies.get_user),
 ):
     if current_user:
         return responses.htmx_response(redirect=responses.url_for("dashboard"))
 
-    return await form.make_response()
+    return form.make_response()
 
 @router.post("/register")
-async def register_user(
+def register_user(
     response = Depends(auth_forms.RegisterForm.process_request),
 ):
     return response
 
 @router.get("/complete-registration/{token}")
-async def complete_registration_form(
+def complete_registration_form(
     form: auth_forms.CompleteRegistrationForm = Depends(auth_forms.CompleteRegistrationForm),
 ):
-    return await form.make_response()
+    return form.make_response()
 
 @router.post("/complete-registration/{token}")
-async def complete_registration(response = Depends(auth_forms.CompleteRegistrationForm.process_request)): return response
+def complete_registration(response = Depends(auth_forms.CompleteRegistrationForm.process_request)): return response
 
 
 @router.post("/logout")
-async def logout(
+def logout(
     request: Request,
     current_user: models.User = Depends(dependencies.require_user),
 ):
-    resp = await responses.htmx_response(
+    resp = responses.htmx_response(
         redirect=responses.url_for("login_page"),
         flash=responses.flash("Logged out successfully.", "success"),
     )

@@ -2,7 +2,7 @@ from fastapi import HTTPException, status, Request, Response
 
 from ..forms import HTMXForm
 
-async def generic_exception_handler(request: Request, exc: Exception) -> Response:
+def generic_exception_handler(request: Request, exc: Exception) -> Response:
     return Response(
         content=f"Internal server error: {str(exc)}",
         status_code=exc.status_code if isinstance(exc, HTTPException) else status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -10,8 +10,8 @@ async def generic_exception_handler(request: Request, exc: Exception) -> Respons
 
 class OpeNGSyncServerException(Exception):
     @staticmethod
-    async def handler(request: Request, _: Exception) -> Response:
-        return await generic_exception_handler(request, _)
+    def handler(request: Request, _: Exception) -> Response:
+        return generic_exception_handler(request, _)
     
 
 class FormValidationException(HTTPException):
@@ -56,5 +56,5 @@ class StepRequirementNotMetException(OpeNGSyncServerException):
 
 class DatasetNotLoadedException(StepRequirementNotMetException):
     @staticmethod
-    async def handler(request: Request, _: Exception) -> Response:
+    def handler(request: Request, _: Exception) -> Response:
         raise NotImplementedError("DatasetNotLoadedException handler is not implemented yet.")

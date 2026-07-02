@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from sqlalchemy import orm
 from loguru import logger
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 from ...core import exceptions as exc, responses, dependencies, config
 from ...components import inputs
@@ -90,13 +90,13 @@ class LibraryPrepTableForm(HTMXForm):
         )
 
     @staticmethod
-    async def upload(
+    def upload(
         lab_prep_id: int,
         request: Request,
         current_user: models.User = Depends(dependencies.require_insider),
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
     ):
-        lab_prep = await session.get_one(
+        lab_prep = session.get_one(
             Q.lab_prep.select(id=lab_prep_id),
             options=[
                 orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.indices),
@@ -106,7 +106,7 @@ class LibraryPrepTableForm(HTMXForm):
             ],
         )
         form = LibraryPrepTableForm(request, lab_prep=lab_prep)
-        await form.validate()
+        form.validate()
         df = form.spreadsheet.data
 
         cols = [col.label for col in form.spreadsheet.columns.values()]
@@ -171,7 +171,7 @@ class LibraryPrepTableForm(HTMXForm):
 
         for plate_name, _df in df.groupby("plate", dropna=False):
             if pd.isna(plate_name) or not str(plate_name).strip():
-                plate = await session.save(
+                plate = session.save(
                     Q.plate.create(
                         name=f"P-{form.lab_prep.name}",
                         num_cols=12, num_rows=8,
@@ -180,7 +180,7 @@ class LibraryPrepTableForm(HTMXForm):
                     flush=True,
                 )
             else:
-                plate = await session.save(
+                plate = session.save(
                     Q.plate.create(
                         name=f"P-{form.lab_prep.name}-{plate_name}",
                         num_cols=12, num_rows=8,
@@ -194,20 +194,20 @@ class LibraryPrepTableForm(HTMXForm):
                 if pd.isna(library_id):
                     continue
 
-                library = await session.get_one(Q.library.select(id=int(library_id)))
+                library = session.get_one(Q.library.select(id=int(library_id)))
 
                 # Mark as failed if pool == "x"
                 pool_val = row.get("pool")
                 pool_val = str(pool_val).strip().lower() if pd.notna(pool_val) else ""
                 if pool_val == "x":
                     library.status_id = C.LibraryStatus.FAILED.id
-                    await session.save(library)
+                    session.save(library)
 
                 # Update qubit concentration
                 lib_conc = row.get("lib_conc_ng_ul")
                 if pd.notna(lib_conc):
                     library.qubit_concentration = float(lib_conc)
-                    await session.save(library)
+                    session.save(library)
 
                 # Add library to plate well
                 plate_well = row.get("plate_well")
@@ -227,7 +227,7 @@ class LibraryPrepTableForm(HTMXForm):
             prep_file.uuid = hash
             prep_file.size_bytes = size_bytes
             prep_file.timestamp_utc = datetime.now(timezone.utc)
-            await session.save(prep_file)
+            session.save(prep_file)
         else:
             new_file = Q.media_file.create(
                 name=f"{form.lab_prep.name}_prep",
@@ -238,22 +238,22 @@ class LibraryPrepTableForm(HTMXForm):
                 uuid=hash,
                 lab_prep_id=form.lab_prep.id,
             )
-            await session.save(new_file)
+            session.save(new_file)
 
-        await session.save(form.lab_prep)
+        session.save(form.lab_prep)
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=responses.url_for("lab_prep_page", lab_prep_id=form.lab_prep.id),
             flash=responses.flash("Table saved!", "success"),
         )
     
     @staticmethod
-    async def render(
+    def render(
         lab_prep_id: int,
         request: Request,
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
     ):
-        lab_prep = await session.get_one(
+        lab_prep = session.get_one(
             Q.lab_prep.select(id=lab_prep_id),
             options=[
                 orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.indices),
@@ -262,4 +262,4 @@ class LibraryPrepTableForm(HTMXForm):
             ],
         )
         form = LibraryPrepTableForm(request, lab_prep=lab_prep)
-        return await form.make_response()
+        return form.make_response()

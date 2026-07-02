@@ -17,6 +17,8 @@ from . import routes
 
 app = FastAPI(lifespan=lifespan.lifespan)
 
+app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.csrf_middleware)  # type: ignore
+app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.parse_form_data)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.db_session_cleanup_middleware)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.state_initialization_middleware)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.audit_middleware)  # type: ignore
@@ -60,24 +62,24 @@ app.include_router(routes.pages.router)
 app.include_router(routes.htmx.router)
 
 @app.get("/")
-async def dashboard(
+def dashboard(
     current_user: models.User = Depends(dependencies.require_user)
 ):
     if current_user.is_insider():
-        return await responses.html_response(template="dashboard-insider.html")
-    return await responses.html_response(template="dashboard-user.html")
+        return responses.html_response(template="dashboard-insider.html")
+    return responses.html_response(template="dashboard-user.html")
     
 
 @app.get("/help")
-async def help():
-    return await responses.html_response(template="help.html")
+def help():
+    return responses.html_response(template="help.html")
 
 @app.get("/retrieve_flash_messages")
-async def retrieve_flash_messages():
+def retrieve_flash_messages():
     return {}, 204
 
 @app.get("/share-status")
-async def share_status_check():
+def share_status_check():
     if not config.settings.app_config.canary_files:
         return json.dumps({"status": "unknown", "details": "No canary files configured"}), 200
     
@@ -124,7 +126,7 @@ async def share_status_check():
     return json.dumps({"status": "degraded", "details": status_report}), 503
 
 @app.get("/storage-availability")
-async def storage_availability_check():
+def storage_availability_check():
     import shutil
     usage = shutil.disk_usage(config.settings.app_config.media_folder)
 
@@ -140,7 +142,7 @@ async def storage_availability_check():
 
 if config.settings.ENVIRONMENT != "production":
     @app.get("/test")
-    async def test_route():
+    def test_route():
         from .components import inputs
 
         text_field_required = inputs.string.StringInputField("Text Field", required=True)

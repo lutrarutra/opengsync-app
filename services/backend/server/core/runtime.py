@@ -1,16 +1,16 @@
 from typing import Literal
 
 from fastapi import Request as FastApiRequest, FastAPI as FastApiApp
-from starlette.datastructures import URL, State
-from redis.asyncio import ConnectionPool
+from starlette.datastructures import State
+from redis import ConnectionPool
 from typing import cast
 
-from opengsync_db import AsyncDBHandler, models
+from opengsync_db import SyncDBHandler, models
 
-from . import mailer, audit, secrets, config
+from . import mailer, audit, secrets
 
 class AppState(State):
-    db_handler: AsyncDBHandler
+    db_handler: SyncDBHandler
     mailer: mailer.Mailer
     redis_pool: ConnectionPool
     bcrypt: secrets.BcryptCompat
@@ -25,6 +25,7 @@ NOT_CHECKED: NotCheckedType = "NOT_CHECKED"
 
 class RequestState(State):
     current_user: models.User | None | NotCheckedType
+    form_data: dict | None
     audit: audit.AuditLogger | None
     cache_key: str | None
     cache_expire: int | None

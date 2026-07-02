@@ -1,8 +1,7 @@
 from abc import ABC
-from typing import Any, Optional
+from typing import Any, Optional, Callable, TypeVar, TypeAlias
 
-from fastapi import Request
-from fastapi.responses import Response
+from fastapi import Request, Cookie, Depends, Response
 from pydantic import BaseModel, ValidationError, create_model
 from markupsafe import Markup
 
@@ -13,18 +12,53 @@ from ..core.context import ctx
 from .SubHTMXForm import SubHTMXForm
 
 
+T = TypeVar("T", bound="HTMXForm")
+RouteFunc: TypeAlias = Callable[..., Response]
+FormFunc: TypeAlias = Callable[..., "HTMXForm"]
+
 class HTMXForm(ABC):
     template_path: str = ""
 
     csrf_token = inputs.string.StringInputField("csrf_token", hidden=True)
 
-    def __init__(self, request: Request):
-        self.request = request
+    @classmethod
+    def Open(cls):
+        form = cls()
+        form.prepare()
+        return form.make_response()
+    
+    @classmethod
+    def Submit(
+        cls,
+        **kwargs
+    ) -> FormFunc:
+        def route(
+            request: Request,
+            csrf_token: str | None = Cookie(default=None),
+            form: "HTMXForm" = Depends(cls.Init(**kwargs))
+        ) -> "HTMXForm":
+            if request.method not in ("POST", "PUT"):
+                raise exc.OpeNGSyncServerException("Form submission must be a POST or PUT request.")
+
+            form.validate(request.state.form_data, csrf_token=csrf_token)
+            return form
+
+        return route
+
+    @classmethod
+    def Init(cls: type[T], **kwargs) -> FormFunc:
+        def dependency(*args, **inner_kwargs) -> T:
+            return cls(**kwargs, **inner_kwargs)
+        return dependency
+        
+
+    def __init__(self):
         self.raw_data: dict[str, Any] = {}
         self._context: dict[str, Any] = {}
         self._fields_cache: Optional[list[BaseInputField]] = None
         self._sub_forms_cache: Optional[list[SubHTMXForm]] = None
         self._pydantic_model: Optional[type[BaseModel]] = None
+        self.validated = False
 
         for field_name in dir(self.__class__):
             if field_name.startswith("_"):
@@ -49,13 +83,6 @@ class HTMXForm(ABC):
                     if not attr_name.startswith("_") and not isinstance(attr_value, BaseInputField):
                         setattr(sub_form_instance, attr_name, attr_value)
                 setattr(self, field_name, sub_form_instance)
-
-        if self.request.method == "GET":
-            token = self._generate_csrf_token()
-            self.csrf_token.data = token
-            self._set_csrf_cookie(token)
-        else:
-            self.csrf_token.data = self._get_expected_csrf_token() or ""
 
     def _clone_field(self, field: BaseInputField) -> BaseInputField:
         """Clone a field instance to avoid shared state between form instances"""
@@ -98,25 +125,20 @@ class HTMXForm(ABC):
             f"{self.__class__.__name__}PartialModel", **field_definitions
         )
 
-    async def validate(self):
-        """
-        Base validation - processes form data and validates using Pydantic.
-        Also validates all SubHTMXForm instances.
-        Override in subclasses for custom validation logic.
-        """
-        self.raw_data = dict(await self.request.form())
+    def validate(self, formdata: dict[str, Any], csrf_token: str | None = None) -> None:
+        self.validated = True
+        self.raw_data = formdata
+        submitted_token = self.raw_data.get("csrf_token")
 
-        if self.request.method != "GET":
-            submitted_token = self.raw_data.get("csrf_token")
-            expected_token = self._get_expected_csrf_token()
-            if not submitted_token or not expected_token or submitted_token != expected_token:
-                self.csrf_token.errors.append("Invalid or missing CSRF token.")
-            else:
-                self.csrf_token.data = submitted_token
+        if not submitted_token or not csrf_token or submitted_token != csrf_token:
+            self.csrf_token.errors.append("Invalid or missing CSRF token.")
+            raise exc.FormValidationException(self)  # TODO: since the field is hidden, frontend needs to show flash message
+        else:
+            self.csrf_token.data = submitted_token
 
         all_sub_forms_valid = True
         for sub_form in self.sub_forms:
-            if not await sub_form.validate(self.raw_data):
+            if not sub_form.validate(self.raw_data):
                 all_sub_forms_valid = False
 
         for field in self.input_fields:
@@ -240,11 +262,11 @@ class HTMXForm(ABC):
         """Check if form and all sub-forms have no errors"""
         return len(self.errors) == 0
 
-    async def prepare(self):
+    def prepare(self):
         pass
 
-    async def get_context(self) -> dict:
-        return self._context | {"form": self, "request": self.request}
+    def get_context(self) -> dict:
+        return self._context | {"form": self}
 
     def _generate_csrf_token(self) -> str:
         return secrets.url_safe_token(32)
@@ -260,23 +282,24 @@ class HTMXForm(ABC):
             samesite="lax",
         )
 
-    def _get_expected_csrf_token(self) -> str | None:
-        """Retrieve the expected CSRF token from the cookie."""
-        return self.request.cookies.get("csrf_token")
+    def make_response(self, status_code: int = 200) -> Response:
+        if not self.csrf_token.data:
+            token = ctx.request.cookies.get("csrf_token") or getattr(ctx.request.state, "new_csrf_token", None)
+            if token:
+                self.csrf_token.data = token
 
-    async def make_response(self, status_code: int = 200) -> Response:
-        if self.request.method == "GET":
-            await self.prepare()
+        if not self.validated:
+            self.prepare()
         elif self.raw_data:
             for sub_form in self.sub_forms:
                 sub_form.populate_from_data(self.raw_data)
             for field in self.input_fields:
                 field.raw_data = self.raw_data.get(field.name, field.default)
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             template=self.template_path,
             status_code=status_code,
-            **(await self.get_context()),
+            **self.get_context()
         )
 
     @property
@@ -285,7 +308,7 @@ class HTMXForm(ABC):
             raise ValueError("CSRF token has not been generated yet.")
         return self.csrf_token.data
 
-    async def render_submit_button(
+    def render_submit_button(
         self,
         post_url: str,
         form_id: str,
@@ -295,7 +318,7 @@ class HTMXForm(ABC):
         class_name: str = "btn-success",
     ) -> str:
         return Markup(
-            await templates.render_template(
+            templates.render_template(
                 "components/inputs/submit-button.html",
                 form=self,
                 class_name=class_name,
@@ -306,3 +329,7 @@ class HTMXForm(ABC):
                 swap=swap,
             )
         )
+    
+    def invalid_response_handler(self, request: Request, exc: exc.FormValidationException) -> Response:
+        """Handle invalid form submissions by returning a response with errors."""
+        return self.make_response(status_code=200)

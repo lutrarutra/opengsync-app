@@ -4,38 +4,37 @@ from uuid import UUID
 import hashlib
 
 from fastapi import Depends, BackgroundTasks, Request, Header, Cookie, Query
-from redis.asyncio import Redis
 from fastapi_cache import FastAPICache
 from taskiq import TaskiqDepends
 
 from sqlalchemy.orm import make_transient_to_detached
 
-from opengsync_db import queries as Q, AsyncSession, exceptions as db_exc, models, categories as C, utils
+from opengsync_db import queries as Q, SyncSession, exceptions as db_exc, models, categories as C, utils
 
-from . import mailer, audit, auth, exceptions as exc, secrets, runtime, cache
+from . import mailer, audit, auth, exceptions as exc, secrets, runtime, cache, responses, redis as rds
 
 def get_runtime_request(request: Request = TaskiqDepends()) -> runtime.Request:
     return request  # type: ignore
 
-async def db_session(request: runtime.Request = Depends(get_runtime_request)):
+def db_session(request: runtime.Request = Depends(get_runtime_request)):
     request.state.db_session = request.app.state.db_handler.get_session()
     return request.state.db_session
 
-async def taskiq_session(request: runtime.Request = TaskiqDepends(get_runtime_request)):
-    async with request.app.state.db_handler.get_session() as session:
+def taskiq_session(request: runtime.Request = TaskiqDepends(get_runtime_request)):
+    with request.app.state.db_handler.get_session() as session:
         try:
             yield session
-            await session.commit()
+            session.commit()
         except Exception as e:
-            await session.rollback()
+            session.rollback()
             raise e
         
-async def authenticate(token: str = Depends(auth.oauth2_scheme)):
+def authenticate(token: str = Depends(auth.oauth2_scheme)):
     payload = secrets.validate_login_token(token)
     return payload
 
-async def __get_cached_user(key: str, r: Redis):
-    if (cached_user_str := await r.get(key)) is not None:
+def __get_cached_user(key: str, r: rds.RedisClient):
+    if (cached_user_str := r.get(key)) is not None:
         user_data = json.loads(cached_user_str)
         user_data["id"] = UUID(user_data["id"])
 
@@ -43,25 +42,25 @@ async def __get_cached_user(key: str, r: Redis):
         make_transient_to_detached(user)
         return user
     
-async def _resolve_user(
+def _resolve_user(
     auth_response: auth.AuthResponse,
     background_tasks: BackgroundTasks,
     request: runtime.Request,
-    session: AsyncSession,
+    session: SyncSession,
 ) -> models.User | None:
     """Shared helper to fetch user from cache or DB and schedule cache updates."""
-    async with Redis(connection_pool=request.app.state.redis_pool) as redis:
-        if (user := await __get_cached_user(f"user:{auth_response.id}", redis)) is not None:
+    with rds.RedisClient(pool=request.app.state.redis_pool) as redis:
+        if (user := __get_cached_user(f"user:{auth_response.id}", redis)) is not None:
             return user
 
-    if (user := await session.first(
+    if (user := session.first(
         Q.user.select(id=auth_response.id),
     )) is None:
         return None
     
-    # async def __cache_current_user(user_obj: models.User, pool: ConnectionPool):
-    #     async with Redis(connection_pool=pool) as r:
-    #         await r.set(f"user:{user_obj.id}", json.dumps(user_obj.to_dict()), ex=300)
+    # def __cache_current_user(user_obj: models.User, pool: ConnectionPool):
+    #     with Redis(connection_pool=pool) as r:
+    #         r.set(f"user:{user_obj.id}", json.dumps(user_obj.to_dict()), ex=300)
 
     # task = BackgroundTask(
     #     __cache_current_user,
@@ -71,24 +70,24 @@ async def _resolve_user(
     # background_tasks.add_task(task)
     return user
 
-async def _resolve_user_by_api_token(
+def _resolve_user_by_api_token(
     token: str,
     background_tasks: BackgroundTasks,
     request: runtime.Request,
-    session: AsyncSession,
+    session: SyncSession,
 ) -> models.User | None:
     token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
     cache_key = f"api_token:{token_hash}"
     
-    async with Redis(connection_pool=request.app.state.redis_pool) as redis:
-        if (cached_user_id := await redis.get(cache_key)) is not None:
+    with rds.RedisClient(pool=request.app.state.redis_pool) as redis:
+        if (cached_user_id := redis.get(cache_key)) is not None:
             user_id_str = cached_user_id.decode("utf-8")
-            if (user := await __get_cached_user(f"user:{user_id_str}", redis)) is not None:
+            if (user := __get_cached_user(f"user:{user_id_str}", redis)) is not None:
                 return user
             
     # hint = token[-models.APIToken.HINT_SIZE:]
     user = None
-    # for db_token in await session.get_all(
+    # for db_token in session.get_all(
     #     Q.api_token.select(hint=hint, is_valid=True),
     #     options=[joinedload(models.APIToken.user).joinedload(models.User.avatar)],
     #     limit=None
@@ -100,10 +99,10 @@ async def _resolve_user_by_api_token(
     if not user:
         return None
     
-    # async def __cache_api_token_mapping(user_obj: models.User, cached_key_name: str, pool: ConnectionPool):
-    #     async with Redis(connection_pool=pool) as r:
-    #         await r.set(cached_key_name, str(user_obj.id), ex=300)
-    #         await r.set(f"user:{user_obj.id}", json.dumps(user_obj.to_dict()), ex=300)
+    # def __cache_api_token_mapping(user_obj: models.User, cached_key_name: str, pool: ConnectionPool):
+    #     with Redis(connection_pool=pool) as r:
+    #         r.set(cached_key_name, str(user_obj.id), ex=300)
+    #         r.set(f"user:{user_obj.id}", json.dumps(user_obj.to_dict()), ex=300)
 
     # task = BackgroundTask(
     #     __cache_api_token_mapping,
@@ -115,10 +114,10 @@ async def _resolve_user_by_api_token(
     
     return user
 
-async def get_user(
+def get_user(
     background_tasks: BackgroundTasks,
     request: runtime.Request = TaskiqDepends(),
-    session: AsyncSession = Depends(db_session),
+    session: SyncSession = Depends(db_session),
     token: str | None = Depends(auth.optional_oauth2_scheme),
     api_token: str | None = Header(None, alias="X-API-Token"),
     access_token: str | None = Cookie(None)
@@ -138,12 +137,12 @@ async def get_user(
         except exc.HTTPException:
             request.state.current_user = None
             return None
-        user = await _resolve_user(auth_response, background_tasks, request, session)
+        user = _resolve_user(auth_response, background_tasks, request, session)
     elif api_token:        
         if not api_token.startswith("cf-"):
             raise exc.HTTPException(status_code=409, detail="Invalid API Token. API tokens must start with 'cf-'.")
         
-        user = await _resolve_user_by_api_token(api_token, background_tasks, request, session)
+        user = _resolve_user_by_api_token(api_token, background_tasks, request, session)
     else:
         user = None
 
@@ -158,21 +157,21 @@ async def get_user(
     return user
 
 
-async def require_user(
+def require_user(
     user: models.User | None = Depends(get_user),
 ) -> models.User:
     if not user:
         raise exc.UserNotAuthenticatedException()
     return user
 
-async def require_admin(
+def require_admin(
     user: models.User = Depends(require_user),
 ):
     if user.role < C.UserRole.ADMIN:
         raise exc.HTTPException(status_code=403, detail="Admin privileges required")
     return user
 
-async def require_insider(
+def require_insider(
     user: models.User = Depends(require_user),
 ):
     if not user.is_insider():
@@ -189,11 +188,11 @@ def audit_log(request: runtime.Request = TaskiqDepends(get_runtime_request)):
     request.state.audit = audit.AuditLogger(request)
     return request.state.audit
 
-async def redis(request: runtime.Request = TaskiqDepends(get_runtime_request)):
-    async with Redis(connection_pool=request.app.state.redis_pool) as redis:
+def redis(request: runtime.Request = TaskiqDepends(get_runtime_request)):
+    with rds.RedisClient(pool=request.app.state.redis_pool) as redis:
         yield redis
 
-async def invalidate_cache(request: runtime.Request):
+def invalidate_cache(request: runtime.Request):
     substrings: list[str] = []
     yield substrings
 
@@ -203,133 +202,133 @@ async def invalidate_cache(request: runtime.Request):
     prefix = FastAPICache.get_prefix()
     for substring in substrings:
         pattern = f"{prefix}:*:{substring}:*"
-        await cache.scan_and_delete(pattern=pattern, redis_pool=request.app.state.redis_pool)
+        cache.scan_and_delete(pattern=pattern, redis_pool=request.app.state.redis_pool)
 
 
-async def project_permissions(
+def project_permissions(
     project_id: int,
     user: models.User = Depends(require_user),
-    session: AsyncSession = Depends(db_session),
-    r: Redis = Depends(redis),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
 ):
     cache_key = f"access:project:{project_id}:user:{user.id}"
-    if (cached_access := await r.get(cache_key)) is not None:
+    if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))
     try:
-        if (access_level := await session.get_access_level(Q.project.permissions(project_id=project_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.project.permissions(project_id=project_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this project.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("Project not found.")
 
-    await r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=300)
     return access_level
 
-async def seq_request_permissions(
+def seq_request_permissions(
     seq_request_id: int,
     user: models.User = Depends(require_user),
-    session: AsyncSession = Depends(db_session),
-    r: Redis = Depends(redis),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
 ):
     cache_key = f"access:seq_request:{seq_request_id}:user:{user.id}"
-    if (cached_access := await r.get(cache_key)) is not None:
+    if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))
     try:
-        if (access_level := await session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this sequencing request.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("Sequencing request not found.")
 
-    await r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=300)
     return access_level
 
-async def sample_permissions(
+def sample_permissions(
     sample_id: int,
     user: models.User = Depends(require_user),
-    session: AsyncSession = Depends(db_session),
-    r: Redis = Depends(redis),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
 ):
     cache_key = f"access:sample:{sample_id}:user:{user.id}"
-    if (cached_access := await r.get(cache_key)) is not None:
+    if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))
     try:
-        if (access_level := await session.get_access_level(Q.sample.permissions(sample_id=sample_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.sample.permissions(sample_id=sample_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this sample.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("Sample not found.")
 
-    await r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=300)
     return access_level
 
-async def library_permissions(
+def library_permissions(
     library_id: int,
     user: models.User = Depends(require_user),
-    session: AsyncSession = Depends(db_session),
-    r: Redis = Depends(redis),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
 ):
     cache_key = f"access:library:{library_id}:user:{user.id}"
-    if (cached_access := await r.get(cache_key)) is not None:
+    if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))
     try:
-        if (access_level := await session.get_access_level(Q.library.permissions(library_id=library_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.library.permissions(library_id=library_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this library.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("Library not found.")
 
-    await r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=300)
     return access_level
 
-async def pool_permissions(
+def pool_permissions(
     pool_id: int,
     user: models.User = Depends(require_user),
-    session: AsyncSession = Depends(db_session),
-    r: Redis = Depends(redis),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
 ):
     cache_key = f"access:pool:{pool_id}:user:{user.id}"
-    if (cached_access := await r.get(cache_key)) is not None:
+    if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))
     try:
-        if (access_level := await session.get_access_level(Q.pool.permissions(pool_id=pool_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.pool.permissions(pool_id=pool_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this pool.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("Pool not found.")
 
-    await r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=300)
     return access_level
 
-async def media_file_permissions(
+def media_file_permissions(
     media_file_id: int,
     user: models.User = Depends(require_user),
-    session: AsyncSession = Depends(db_session),
-    r: Redis = Depends(redis),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
 ):
     cache_key = f"access:media_file:{media_file_id}:user:{user.id}"
-    if (cached_access := await r.get(cache_key)) is not None:
+    if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))
     try:
-        if (access_level := await session.get_access_level(Q.media_file.permissions(media_file_id=media_file_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.media_file.permissions(media_file_id=media_file_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this media file.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("Media file not found.")
 
-    await r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=300)
     return access_level
 
-async def user_permissions(
+def user_permissions(
     user_id: int,
     current_user: models.User = Depends(require_user),
-    session: AsyncSession = Depends(db_session),
-    r: Redis = Depends(redis),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
 ):
     cache_key = f"access:user:{user_id}:user:{current_user.id}"
-    if (cached_access := await r.get(cache_key)) is not None:
+    if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))
     try:
-        if (access_level := await session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=current_user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=current_user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this user.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("User not found.")
 
-    await r.set(cache_key, int(access_level), ex=300)
+    r.set(cache_key, int(access_level), ex=300)
     return access_level
     
 E = TypeVar("E", bound=C.ExtendedEnum)
@@ -385,3 +384,35 @@ def parse_order_by(
             raise exc.BadRequestException()
             
     return dependency
+
+def parse_from_page(
+    from_page: str | None = Query(None, alias="from", description="The page the user came from, in the format 'page_name@id'."),
+) -> list[tuple[str, responses.URL]] | None:
+    if from_page is None:
+        return None
+    
+    path_list = []
+    if from_page is not None:
+        page, id = from_page.split("@")
+        if page == "user":
+            path_list = [
+                ("Users", responses.url_for("users_page")),
+                (f"User {id}", responses.url_for("user_page", user_id=id)),
+            ]
+        elif page == "seq_request":
+            path_list = [
+                ("Requests", responses.url_for("seq_requests_page")),
+                (f"Request {id}", responses.url_for("seq_request_page", seq_request_id=id)),
+            ]
+        elif page == "project":
+            path_list = [
+                ("Projects", responses.url_for("projects_page")),
+                (f"Project {id}", responses.url_for("project_page", project_id=id)),
+            ]
+        elif page == "sample":
+            path_list = [
+                ("Samples", responses.url_for("samples_page")),
+                (f"Sample {id}", responses.url_for("sample_page", sample_id=id)),
+            ]
+
+    return path_list

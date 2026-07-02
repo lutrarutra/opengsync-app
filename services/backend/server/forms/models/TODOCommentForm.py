@@ -1,10 +1,10 @@
-from __future__ import annotations
+
 
 from sqlalchemy import select as sa_select
 
 from fastapi import Request, Query, Response, Depends
 
-from opengsync_db import models, AsyncSession, categories as C, queries as Q
+from opengsync_db import models, SyncSession, categories as C, queries as Q
 
 from ...core import dependencies, responses, exceptions as exc
 from ..HTMXForm import HTMXForm
@@ -53,23 +53,23 @@ class TODOCommentForm(HTMXForm):
 
         self.post_url = responses.url_for("comment_form", **url_kwargs)
 
-    async def prepare(self) -> None:
+    def prepare(self) -> None:
         if self.todo_comment is None:
             return
         self.text.data = self.todo_comment.text
 
     @staticmethod
-    async def check_permissions(current_user: models.User) -> None:
+    def check_permissions(current_user: models.User) -> None:
         if not current_user.is_insider():
             raise exc.NoPermissionsException(
                 "You do not have permission to manage TODO comments on design resources."
             )
 
     @staticmethod
-    async def submit_form(
+    def submit_form(
         request: Request,
         current_user: models.User = Depends(dependencies.require_insider),
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
         todo_comment_id: int | None = Query(None),
         flow_cell_design_id: int | None = Query(None),
         pool_design_id: int | None = Query(None),
@@ -78,7 +78,7 @@ class TODOCommentForm(HTMXForm):
 
         todo_comment: models.TODOComment | None = None
         if todo_comment_id is not None:
-            result = await session.execute(
+            result = session.execute(
                 sa_select(models.TODOComment).where(models.TODOComment.id == todo_comment_id)
             )
             todo_comment = result.scalar_one_or_none()
@@ -91,7 +91,7 @@ class TODOCommentForm(HTMXForm):
             flow_cell_design_id=flow_cell_design_id,
             pool_design_id=pool_design_id,
         )
-        await form.validate()
+        form.validate()
 
         new_comment = models.TODOComment(
             text=form.text.data,
@@ -104,7 +104,7 @@ class TODOCommentForm(HTMXForm):
         )
         session.add(new_comment)
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=responses.url_for("design"),
             flash=responses.flash("Comment added!", "success"),
         )

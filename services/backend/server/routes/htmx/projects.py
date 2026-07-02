@@ -3,7 +3,7 @@ import pandas as pd
 from sqlalchemy import orm
 from fastapi import APIRouter, Depends, Query, Request, Response
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
@@ -48,7 +48,7 @@ class ProjectTable(HTMXTable):
 
 
 @router.get("/render-table-page")
-async def render_project_table(
+def render_project_table(
     user_id: int | None = Query(None, description="Optional User ID for whom to render the project table"),
     experiment_id: int | None = Query(None, description="Optional experiment ID to filter projects"),
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter projects"),
@@ -61,7 +61,7 @@ async def render_project_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Project, default=models.Project.id.desc())),
     current_user: models.User = Depends(dependencies.require_user),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     table = ProjectTable(route="render_project_table", page=page, order_by=order_by)
 
@@ -98,7 +98,7 @@ async def render_project_table(
 
     if user_id is not None:
         if (
-            await session.get_access_level(Q.user.permissions(user_id, current_user.id))
+            session.get_access_level(Q.user.permissions(user_id, current_user.id))
             < C.AccessLevel.READ
         ):
             raise exc.NoPermissionsException(
@@ -112,13 +112,13 @@ async def render_project_table(
         table.template = "components/tables/experiment-project.html"
         table.url_params["experiment_id"] = experiment_id
     elif seq_request_id is not None:
-        if await session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view projects for this seq request.")
         table.template = "components/tables/seq_request-project.html"
         table.url_params["seq_request_id"] = seq_request_id
         table.context["seq_request_id"] = seq_request_id
     elif group_id is not None:
-        if await session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view projects for this group.")
         table.template = "components/tables/group-project.html"
         table.url_params["group_id"] = group_id
@@ -127,7 +127,7 @@ async def render_project_table(
         if not current_user.is_insider():
             stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
 
-    projects, count = await session.page(
+    projects, count = session.page(
         stmt,
         page=page,
         order_by=order_by,
@@ -144,17 +144,17 @@ async def render_project_table(
         ],
     )
     table.set_num_pages(count)
-    return await table.make_response(projects=projects)
+    return table.make_response(projects=projects)
 
 @router.get("/search")
-async def search_projects(
+def search_projects(
     word: str | None = Query(None, description="Search word for project title or identifier"),
     group_id: int | None = Query(None, description="Optional group ID to filter projects"),
     status_in: list[C.ProjectStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ProjectStatus, query_param="status_in")),
     selected_id: int | None = Query(None, description="Currently selected project"),
     current_user: models.User = Depends(dependencies.require_user),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     stmt = Q.project.select(group_id=group_id, status_in=status_in)
 
@@ -165,59 +165,39 @@ async def search_projects(
 
     if not current_user.is_insider():
         if group_id is not None:
-            if await session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.READ:
+            if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.READ:
                 raise exc.NoPermissionsException("You do not have permission to view this resource.")
         else:    
             stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
 
-    projects, count = await session.page(stmt, page=page)
-    return await responses.htmx_response(template="components/search/project.html", projects=projects)
+    projects, count = session.page(stmt, page=page)
+    return responses.htmx_response(template="components/search/project.html", projects=projects)
 
-@router.get("/create")
-async def render_create_project_form(
-    request: Request,
-):
-    """Render the create project form."""
-    form = forms.models.ProjectForm(request, form_type="create")
-    return await form.make_response()
+# @router.get("/create")
+# def render_create_project_form(r = Depends(forms.models.ProjectForm.Open(form_type="create"))): return r
 
 
-@router.post("/create")
-async def create_project(response=Depends(forms.models.ProjectForm.create)):
-    return response
+# @router.post("/create")
+# def create_project(r=Depends(forms.models.ProjectForm.Create())): return r
 
 
-@router.get("/{project_id}/edit")
-async def render_project_edit_form(
-    project_id: int,
-    request: Request,
-    access_level: C.AccessLevel = Depends(dependencies.project_permissions),
-    session: AsyncSession = Depends(dependencies.db_session),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException(
-            "You do not have permission to edit this project."
-        )
-
-    project = await session.get_one(Q.project.select(id=project_id))
-
-    form = forms.models.ProjectForm(request, form_type="edit", project=project)
-    return await form.make_response()
+# @router.get("/{project_id}/edit")
+# def render_project_edit_form(r = Depends(forms.models.ProjectForm.Open(form_type="edit"))): return r
 
 
-@router.post("/{project_id}/edit")
-async def edit_project(response=Depends(forms.models.ProjectForm.edit)):
-    return response
+# @router.post("/{project_id}/edit")
+# def edit_project(r=Depends(forms.models.ProjectForm.Edit())): return r
 
+router.include_router(forms.models.ProjectForm.Router())
 
 @router.get(
     "/{project_id}/export", dependencies=[Depends(dependencies.project_permissions)]
 )
-async def export_project_data(
+def export_project_data(
     project_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
-    project = await session.get_one(
+    project = session.get_one(
         Q.project.select(id=project_id).options(
             orm.selectinload(models.Project.libraries)
         )
@@ -236,10 +216,10 @@ async def export_project_data(
         }
     ).T
 
-    samples_df = await session.pd.get_project_samples(project_id=project.id)
-    libraries_df = await session.pd.get_project_libraries(project_id=project.id)
-    seq_requests_df = await session.pd.get_project_seq_requests(project_id=project.id)
-    library_properties_df = await session.pd.get_library_properties(
+    samples_df = session.pd.get_project_samples(project_id=project.id)
+    libraries_df = session.pd.get_project_libraries(project_id=project.id)
+    seq_requests_df = session.pd.get_project_seq_requests(project_id=project.id)
+    library_properties_df = session.pd.get_library_properties(
         project_id=project.id
     )
 
@@ -271,9 +251,9 @@ async def export_project_data(
 
 
 @router.delete("/{project_id}/delete")
-async def delete_project(
+def delete_project(
     project_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.project_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
@@ -281,7 +261,7 @@ async def delete_project(
             "You do not have permission to delete this project."
         )
 
-    project = await session.get_one(
+    project = session.get_one(
         Q.project.select(id=project_id).options(
             orm.with_expression(
                 models.Project._num_samples, models.Project.num_samples.expression
@@ -290,16 +270,16 @@ async def delete_project(
     )
 
     if (project.num_samples) > 0:
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=ctx.request.url_for("project_page", project_id=project_id),
             flash=responses.flash(
                 "Cannot delete project non empty project.", "warning"
             ),
         )
 
-    await session.delete(project, flush=True)
+    session.delete(project, flush=True)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=ctx.request.url_for("projects_page"),
         flash=responses.flash(
             f"Project '{project.title}' has been deleted.", "success"
@@ -310,11 +290,11 @@ async def delete_project(
 @router.post(
     "/{project_id}/complete", dependencies=[Depends(dependencies.require_insider)]
 )
-async def complete_project(
+def complete_project(
     project_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
-    project = await session.get_one(Q.project.select(id=project_id))
+    project = session.get_one(Q.project.select(id=project_id))
 
     for library in project.libraries:
         if library.status not in {
@@ -323,7 +303,7 @@ async def complete_project(
             C.LibraryStatus.REJECTED,
             C.LibraryStatus.ARCHIVED,
         }:
-            return await responses.htmx_response(
+            return responses.htmx_response(
                 redirect=ctx.request.url_for("project_page", project_id=project_id),
                 flash=responses.flash(
                     f"Cannot complete project {project.title} because some libraries are not shared/failed/rejected/archived.",
@@ -332,14 +312,14 @@ async def complete_project(
             )
 
     project.status = C.ProjectStatus.DELIVERED
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=ctx.request.url_for("project_page", project_id=project.id),
         flash=responses.flash("Project Completed!", "success"),
     )
 
 
 @router.get("/{project_id}/edit-sample-attributes")
-async def render_project_sample_attributes_form(
+def render_project_sample_attributes_form(
     access_level: C.AccessLevel = Depends(dependencies.project_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
@@ -354,15 +334,15 @@ async def render_project_sample_attributes_form(
     "/{project_id}/sample-attributes",
     dependencies=[Depends(dependencies.project_permissions)],
 )
-async def render_project_sample_attribute_spreadsheet(
+def render_project_sample_attribute_spreadsheet(
     project_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     from ...components.tables.spreadsheet import TextColumn
     from ...components.tables import StaticSpreadsheet
 
     df = (
-        (await session.pd.get_project_samples(project_id=project_id))
+        session.pd.get_project_samples(project_id=project_id)
         .sort_values("sample_id")
         .reset_index(drop=True)
         .rename(columns={"sample_id": "id", "sample_name": "name"})
@@ -381,18 +361,18 @@ async def render_project_sample_attribute_spreadsheet(
         )
 
     spreadsheet = StaticSpreadsheet(df, columns=columns, id="sample-attribute-table")
-    return await responses.htmx_response(content=await spreadsheet.render())
+    return responses.htmx_response(content=spreadsheet.render())
 
 
 @router.get(
     "/{project_id}/overview", dependencies=[Depends(dependencies.project_permissions)]
 )
-async def render_project_overview(
+def render_project_overview(
     project_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
 
-    df = await session.pd.get_project_libraries(project_id=project_id)
+    df = session.pd.get_project_libraries(project_id=project_id)
 
     LINK_WIDTH_UNIT = 1
 
@@ -501,27 +481,27 @@ async def render_project_overview(
                         }
                     )
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         template="components/plots/project_overview.html",
         nodes=nodes, links=links,
     )
 
 
 @router.get("/{project_id}/assignee-form", dependencies=[Depends(dependencies.require_insider)])
-async def render_add_assignee_form(
+def render_project_assignee_form(
     project_id: int,
 ):
     pass
 
 
 @router.get("/{project_id}/software", dependencies=[Depends(dependencies.project_permissions)])
-async def render_project_software(
+def render_project_software(
     project_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
-    project = await session.get_one(Q.project.select(id=project_id))
+    project = session.get_one(Q.project.select(id=project_id))
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         template="components/project-software.html",
         software=project.software or {},
         project=project,

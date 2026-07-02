@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
@@ -18,12 +18,12 @@ class AffiliationTable(HTMXTable):
 
 
 @router.get("/render-table-page")
-async def render_affiliation_table(
+def render_affiliation_table(
     user_id: int | None = Query(None, description="Optional user ID to filter affiliations"),
     group_id: int | None = Query(None, description="Optional group ID to filter affiliations"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_insider),
-    session: AsyncSession = Depends(dependencies.db_session)
+    session: SyncSession = Depends(dependencies.db_session)
 ):
     table = AffiliationTable(route="render_affiliation_table", page=page)
 
@@ -41,6 +41,6 @@ async def render_affiliation_table(
     else:
         raise exc.BadRequestException("Group or User context is required to render affiliation table.")
 
-    affiliations, count = await session.page(stmt, page=page)
+    affiliations, count = session.page(stmt, page=page)
 
-    return await responses.html_response(template, table=table, affiliations=affiliations, title="Affiliations")
+    return responses.html_response(template, table=table, affiliations=affiliations, title="Affiliations")

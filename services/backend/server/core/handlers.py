@@ -10,7 +10,7 @@ from opengsync_db import exceptions as db_exc
 
 from . import config, responses, exceptions as exc
 
-async def default_exception_handler(request: Request, e: Exception) -> JSONResponse:
+def default_exception_handler(request: Request, e: Exception) -> JSONResponse:
     logger.error(f"Unhandled exception {type(e)}: {e}")
     if config.settings.ENVIRONMENT != "production":
         return JSONResponse(content={"detail": str(e)}, status_code=500)
@@ -19,7 +19,7 @@ async def default_exception_handler(request: Request, e: Exception) -> JSONRespo
         content={"detail": "An unexpected error occurred. Please try again later."}, status_code=500,
     )
 
-async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     error_summary = [
         {"field": ".".join(map(str, err["loc"])), "msg": err["msg"]} 
         for err in exc.errors()
@@ -27,33 +27,35 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     logger.error(f"Validation error for request {request.url}: {error_summary}")
     return JSONResponse(content={"detail": error_summary}, status_code=422)
 
-async def db_model_not_found_handler(request: Request, exc: db_exc.ModelNotFoundException) -> JSONResponse:
+def db_model_not_found_handler(request: Request, exc: db_exc.ModelNotFoundException) -> JSONResponse:
     logger.debug(f"Database model not found: {exc.message}")
     return JSONResponse(content={"detail": exc.message}, status_code=404)
 
-async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
-async def response_validation_exception_handler(request: Request, exc: ResponseValidationError) -> JSONResponse:
+def response_validation_exception_handler(request: Request, exc: ResponseValidationError) -> JSONResponse:
     error_summary = [{"field": ".".join(map(str, err["loc"])), "msg": err["msg"]} for err in exc.errors()]
     logger.error(f"Response Validation Error: {error_summary}")
     return JSONResponse(content={"detail": "Internal Server Error."}, status_code=500)
 
-async def pydantic_validation_exception_handler(request: Request, exc: ValidationError) -> JSONResponse:
+def pydantic_validation_exception_handler(request: Request, exc: ValidationError) -> JSONResponse:
     error_summary = [{"field": ".".join(map(str, err["loc"])), "msg": err["msg"]} for err in exc.errors()]
     logger.error(f"Pydantic Validation Error: {error_summary}")
     return JSONResponse(content={"detail": "Internal Server Error."}, status_code=500)
 
-async def UserNotAuthenticatedException_handler(request: Request, exc: Exception) -> Response:
+def UserNotAuthenticatedException_handler(request: Request, exc: Exception) -> Response:
     if request.headers.get("HX-Request") == "true":
-        return await responses.htmx_response(redirect=responses.url_for("login_page"), status=303)
-    return await responses.html_response(redirect=responses.url_for("login_page"), status=303)
+        return responses.htmx_response(redirect=responses.url_for("login_page"), status=303)
+    return responses.html_response(redirect=responses.url_for("login_page"), status=303)
 
-async def form_validation_exception_handler(request: Request, exc: exc.FormValidationException) -> Response:
-    return await exc.form.make_response()
+def form_validation_exception_handler(request: Request, exc: exc.FormValidationException) -> Response:
+    logger.debug(f"Form validation failed: {exc.form.errors}")
+    logger.debug(request.state.form_data)
+    return exc.form.invalid_response_handler(request, exc)
 
 
-async def missing_greenlet_handler(request: Request, exc: MissingGreenlet) -> Response:
+def missing_greenlet_handler(request: Request, exc: MissingGreenlet) -> Response:
     model_name, attr_name = _extract_model_and_attr(exc)
     short_tb = _format_short_traceback(exc)
     logger.error(

@@ -8,18 +8,18 @@ router = APIRouter(prefix="/libraries", tags=["libraries"])
 
 
 @router.get("/")
-async def libraries_page():
-    return await responses.html_response("libraries_page.html", title="Libraries")
+def libraries_page():
+    return responses.html_response("libraries_page.html", title="Libraries")
 
 
 @router.get("/{library_id}")
-async def library_page(
+def library_page(
     library_id: int,
     current_user: models.User = Depends(dependencies.require_user),
 ):
     # NOTE: Library lookup, access checks, form generation, and
     # breadcrumb resolution are handled client-side via API calls.
-    return await responses.html_response(
+    return responses.html_response(
         "library_page.html",
         library_id=library_id,
         title=f"Library #{library_id:04d}",

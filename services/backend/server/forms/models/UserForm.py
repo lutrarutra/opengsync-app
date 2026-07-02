@@ -1,7 +1,7 @@
 from fastapi import Request, Depends
 from fastapi.responses import Response
 
-from opengsync_db import queries as Q, AsyncSession, models, categories as C
+from opengsync_db import queries as Q, SyncSession, models, categories as C
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -25,25 +25,25 @@ class UserForm(HTMXForm):
         super().__init__(request)
         self.user = user
 
-    async def prepare(self):
+    def prepare(self):
         self.first_name.data = self.user.first_name
         self.last_name.data = self.user.last_name
         self.email.data = self.user.email
         self.role.data = self.user.role.id
 
     @staticmethod
-    async def edit_user(
+    def edit_user(
         user_id: int,
         request: Request,
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
         access_level: C.AccessLevel = Depends(dependencies.user_permissions),
     ) -> Response:
         if access_level < C.AccessLevel.WRITE:
             raise exc.NoPermissionsException("You do not have permission to edit this user.")
         
-        user = await session.get_one(Q.user.select(id=user_id))
+        user = session.get_one(Q.user.select(id=user_id))
         form = UserForm(request, user=user)
-        await form.validate()
+        form.validate()
 
         if not form.validate():
             raise exc.FormValidationException(form)
@@ -54,13 +54,13 @@ class UserForm(HTMXForm):
         if access_level < C.AccessLevel.ADMIN and form.email.data != form.user.email:
             raise exc.NoPermissionsException("You do not have permission to change this user's email.")
 
-        user = await session.get_one(Q.user.select(id=user_id))
+        user = session.get_one(Q.user.select(id=user_id))
         user.first_name = form.first_name.data
         user.last_name = form.last_name.data
         user.email = form.email.data
         user.role = C.UserRole(form.role.data)
 
-        return await responses.html_response(
+        return responses.html_response(
             redirect=request.url_for("user_page", user_id=user.id),
             flash=responses.flash("Changes Saved!", "success"),
         )

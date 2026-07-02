@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from sqlalchemy import orm
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc, config
 from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
@@ -50,7 +50,7 @@ class MediaFileTable(HTMXTable):
 
 
 @router.get("/render-table-page")
-async def render_media_file_table(
+def render_media_file_table(
     uploader_id: int | None = Query(None, description="Filter files by uploader's user ID."),
     seq_request_id: int | None = Query(None, description="Filter files by sequencing request ID."),
     experiment_id: int | None = Query(None, description="Filter files by experiment ID."),
@@ -58,7 +58,7 @@ async def render_media_file_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.MediaFile, default=models.MediaFile.id.desc())),
     current_user: models.User = Depends(dependencies.require_user),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     table = MediaFileTable(
         route="render_media_file_table", page=page, order_by=order_by
@@ -73,7 +73,7 @@ async def render_media_file_table(
     if not current_user.is_insider():
         stmt = Q.media_file.select(viewer_id=current_user.id, statement=stmt)
 
-    files, count = await session.page(
+    files, count = session.page(
         stmt,
         page=page,
         order_by=order_by,
@@ -82,21 +82,21 @@ async def render_media_file_table(
         ],
     )
     table.set_num_pages(count)
-    return await responses.htmx_response(
+    return responses.htmx_response(
         template="components/tables/media_file.html", files=files, table=table
     )
 
 
 @router.get("/upload")
-async def render_upload_file_form(
+def render_upload_file_form(
     request: Request,
     seq_request_id: int | None = Query(None),
     experiment_id: int | None = Query(None),
     lab_prep_id: int | None = Query(None),
     current_user: models.User = Depends(dependencies.require_user),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
-    await forms.models.MediaFileForm.check_permissions(
+    forms.models.MediaFileForm.check_permissions(
         session=session,
         current_user=current_user,
         seq_request_id=seq_request_id,
@@ -105,25 +105,25 @@ async def render_upload_file_form(
     )
 
     form = forms.models.MediaFileForm(request, form_type="create")
-    return await form.make_response()
+    return form.make_response()
 
 
 @router.post("/upload")
-async def upload_file(response=Depends(forms.models.MediaFileForm.upload_file)):
+def upload_file(response=Depends(forms.models.MediaFileForm.upload_file)):
     return response
 
 
 @router.get("seq_auth_form_v2.pdf")
-async def download_seq_auth_form():
+def download_seq_auth_form():
     name = "seq_auth_form_v2.pdf"
     path = os.path.join("/static", "resources", "templates", name)
-    return await responses.file_response(path, filename=name)
+    return responses.file_response(path, filename=name)
 
 
 @router.get("/{media_file_id}")
-async def serve_media_file(
+def serve_media_file(
     media_file_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.media_file_permissions),
 ):
     """Serve a media file. Browser-renderable files are shown inline;
@@ -131,7 +131,7 @@ async def serve_media_file(
     if access_level < C.AccessLevel.READ:
         raise exc.NoPermissionsException()
 
-    file = await session.get_one(Q.media_file.select(id=media_file_id))
+    file = session.get_one(Q.media_file.select(id=media_file_id))
 
     filepath = os.path.join(config.settings.app_config.media_folder, file.path)
     if not os.path.isfile(filepath):
@@ -159,15 +159,15 @@ async def serve_media_file(
 
 
 @router.get("/{media_file_id}/xlsx-spreadsheet", dependencies=[Depends(dependencies.media_file_permissions)])
-async def render_xlsx_spreadsheet(
+def render_xlsx_spreadsheet(
     media_file_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
-    file = await session.get_one(Q.media_file.select(id=media_file_id))
+    file = session.get_one(Q.media_file.select(id=media_file_id))
 
     filepath = os.path.join(config.settings.app_config.media_folder, file.path)
     if not os.path.isfile(filepath):
         raise exc.ItemNotFoundException("File not found on disk.")
 
     spreadsheet = UniverSpreadsheet(path=filepath)
-    return await spreadsheet.make_response()
+    return spreadsheet.make_response()

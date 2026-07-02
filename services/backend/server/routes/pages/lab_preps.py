@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import orm
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 from ...core import dependencies, responses, exceptions
 
@@ -9,16 +9,16 @@ router = APIRouter(prefix="/lab_preps", tags=["lab_preps"])
 
 
 @router.get("/")
-async def lab_preps_page():
-    return await responses.html_response("lab_preps_page.html", title="Preps")
+def lab_preps_page():
+    return responses.html_response("lab_preps_page.html", title="Preps")
 
 
 @router.get("/{lab_prep_id}")
-async def lab_prep_page(
+def lab_prep_page(
     lab_prep_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
-    lab_prep = await session.get_one(
+    lab_prep = session.get_one(
         Q.lab_prep.select(id=lab_prep_id),
         options=[
             orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.sample_links),
@@ -60,7 +60,7 @@ async def lab_prep_page(
     ] 
     steps_completed = sum(1 for item in steps if item)
 
-    return await responses.html_response(
+    return responses.html_response(
         "lab_prep_page.html",
         lab_prep=lab_prep,
         title=f"Prep {lab_prep.display_name}",

@@ -1,10 +1,10 @@
-from __future__ import annotations
+
 
 import pandas as pd
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import orm
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 from ....core import dependencies, responses, exceptions as exc
 from ....forms.workflows import CheckBarcodeClashesForm
@@ -43,10 +43,10 @@ def _build_seq_request_barcode_data(seq_request: models.SeqRequest) -> pd.DataFr
 
 
 @router.get("/begin")
-async def begin_check_barcode_clashes_workflow(
+def begin_check_barcode_clashes_workflow(
     request: Request,
     current_user: models.User = Depends(dependencies.require_insider),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     seq_request_id: int | None = Query(None),
     experiment_id: int | None = Query(None),
 ):
@@ -59,9 +59,9 @@ async def begin_check_barcode_clashes_workflow(
     Otherwise returns a generic message (no pre-selected data).
     """
     if seq_request_id is not None:
-        if await session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        seq_request = await session.get_one(
+        seq_request = session.get_one(
             Q.seq_request.select(id=seq_request_id).options(
                 orm.selectinload(models.SeqRequest.pools)
                 .selectinload(models.Pool.libraries)
@@ -71,17 +71,17 @@ async def begin_check_barcode_clashes_workflow(
 
         library_df = _build_seq_request_barcode_data(seq_request)
         form = CheckBarcodeClashesForm(request, library_df, groupby="pool")
-        return await form.make_response()
+        return form.make_response()
 
     if experiment_id is not None:
         if not current_user.is_insider():
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        barcode_df = await session.pd.get_experiment_barcodes(experiment_id)
+        barcode_df = session.pd.get_experiment_barcodes(experiment_id)
         form = CheckBarcodeClashesForm(request, barcode_df, groupby="lane")
-        return await form.make_response()
+        return form.make_response()
 
     # No specific context — render a simple "select a seq request" message
-    return await responses.htmx_response(
+    return responses.htmx_response(
         template="workflows/check_barcode_clashes/clashes-1.html",
         df=pd.DataFrame(),
         groupby=None,
@@ -91,18 +91,18 @@ async def begin_check_barcode_clashes_workflow(
 
 
 @router.get("/check-seq-request")
-async def check_seq_request_barcode_clashes(
+def check_seq_request_barcode_clashes(
     request: Request,
     seq_request_id: int = Query(...),
     current_user: models.User = Depends(dependencies.require_user),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     """Check barcode clashes for a specific sequencing request."""
     if access_level < C.AccessLevel.READ:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id).options(
             orm.selectinload(models.SeqRequest.pools)
             .selectinload(models.Pool.libraries)
@@ -112,17 +112,17 @@ async def check_seq_request_barcode_clashes(
 
     library_df = _build_seq_request_barcode_data(seq_request)
     form = CheckBarcodeClashesForm(request, library_df, groupby="pool")
-    return await form.make_response()
+    return form.make_response()
 
 
 @router.get("/check-experiment")
-async def check_experiment_barcode_clashes(
+def check_experiment_barcode_clashes(
     request: Request,
     experiment_id: int = Query(...),
     current_user: models.User = Depends(dependencies.require_insider),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     """Check barcode clashes for a specific experiment."""
-    barcode_df = await session.pd.get_experiment_barcodes(experiment_id)
+    barcode_df = session.pd.get_experiment_barcodes(experiment_id)
     form = CheckBarcodeClashesForm(request, barcode_df, groupby="lane")
-    return await form.make_response()
+    return form.make_response()

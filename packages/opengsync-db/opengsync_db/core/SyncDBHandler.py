@@ -149,3 +149,7 @@ class SyncDBHandler:
 
     def __del__(self):
         self.close()
+
+    def get_session(self) -> SyncSession:
+        """Returns a new async session."""
+        return self.session_factory()

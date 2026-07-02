@@ -142,7 +142,7 @@ class SubHTMXForm:
             f"{self.__class__.__name__}PartialModel", **field_definitions
         )
 
-    async def validate(self, raw_data: dict[str, Any]) -> bool:
+    def validate(self, raw_data: dict[str, Any]) -> bool:
         """Validate the sub-form data.
 
         Returns True if valid, False otherwise.

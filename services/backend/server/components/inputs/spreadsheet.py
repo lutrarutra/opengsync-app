@@ -1,11 +1,12 @@
+from typing import Any, Hashable, Generic, Literal, TypeVar, overload
 import json
 import string
 import io
-from typing import Any, Hashable, Generic, Literal, TypeVar, overload
+from uuid6 import uuid7
 
+import numpy as np
 import pandas as pd
 from loguru import logger
-from uuid6 import uuid7
 
 from .BaseInputField import BaseInputField
 from ..tables.spreadsheet import (
@@ -177,7 +178,6 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         return result
 
     def _do_validate(self, spreadsheet_json: str, columns_json: str) -> bool:
-        """Internal validation logic for JSON table data. Delegates to ``_validate_dataframe``."""
         if not spreadsheet_json or not columns_json:
             self._errors.append("Spreadsheet data or columns are missing.")
             return False
@@ -193,6 +193,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
 
         try:
             df = pd.DataFrame(data)
+            self.table_data = df.replace(np.nan, "").values.tolist()
         except ValueError as e:
             self._errors.append(f"Invalid input: {e}")
             return False
@@ -200,12 +201,6 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         return self._validate_dataframe(df, col_names)
 
     def _validate_dataframe(self, df: pd.DataFrame, col_names: list[str]) -> bool:
-        """Validate a DataFrame against the configured columns.
-
-        Shared validation logic used by both ``SpreadsheetInputField`` (JSON
-        table data from the frontend) and ``SpreadsheetFileField`` (uploaded
-        file). Populates ``self._errors``, ``self.style``, and ``self.to_delete``.
-        """
         col_title_map = {
             col.name: col.label for col in self.columns.values()
         }
@@ -303,6 +298,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
                 df[label] = df[label].astype(pd.Float64Dtype())
 
         self._data = df
+        self.table_data = df.replace(np.nan, "").values.tolist()
         self._validated = True
         return True
 
@@ -324,8 +320,8 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         if message not in self._errors:
             self._errors.append(message)
 
-    async def render(self, container_class: str = "", submit_btn_id: str | None = None, target_element_id: str | None = None, hide_label: bool = False) -> str:
-        return await super().render(container_class=container_class, hide_label=hide_label, submit_btn_id=submit_btn_id, target_element_id=target_element_id)
+    def render(self, container_class: str = "", submit_btn_id: str | None = None, target_element_id: str | None = None, hide_label: bool = False) -> str:
+        return super().render(container_class=container_class, hide_label=hide_label, submit_btn_id=submit_btn_id, target_element_id=target_element_id)
 
 
 class SpreadsheetFileField(SpreadsheetInputField, Generic[_DataT]):
@@ -439,8 +435,6 @@ class SpreadsheetFileField(SpreadsheetInputField, Generic[_DataT]):
         self._validated = False
 
         upload_file = raw_data.get(self.name)
-        from loguru import logger
-        logger.debug(upload_file)
 
         # Handle missing or empty file upload
         if upload_file is None or (hasattr(upload_file, "filename") and not upload_file.filename):
@@ -505,7 +499,7 @@ class SpreadsheetFileField(SpreadsheetInputField, Generic[_DataT]):
         self.errors = list(self._errors)
         return result
 
-    async def render(self, container_class: str = "", hide_label: bool = False, **kwargs) -> str:
-        return await BaseInputField.render(
+    def render(self, container_class: str = "", hide_label: bool = False, **kwargs) -> str:
+        return BaseInputField.render(
             self, container_class=container_class, hide_label=hide_label, **kwargs
         )

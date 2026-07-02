@@ -30,11 +30,11 @@
             {% if form.form_type == "edit" %}
             <button id="submit-project-btn" class="btn btn-success"
             hx-include="#project-form" hx-target="#project-form-container" hx-swap="outerHTML"
-            hx-post="{{ url_for('edit_project', project_id=form.project.id) }}">Save</button>
+            hx-post="{{ url_for('ProjectForm.edit', project_id=form.project.id) }}">Save</button>
             {% else %}
             <button id="submit-project-btn" class="btn btn-success"
             hx-include="#project-form" hx-target="#project-form-container" hx-swap="outerHTML"
-            hx-post="{{ url_for('create_project') }}">Create</button>
+            hx-post="{{ url_for('ProjectForm.create') }}">Create</button>
             {% endif %}
         </div>
     </div>

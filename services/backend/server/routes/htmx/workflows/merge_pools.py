@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Request
 
-from opengsync_db import models, AsyncSession
+from opengsync_db import models, SyncSession
 from opengsync_db.categories import PoolStatus
 
 from ....core import dependencies, responses
@@ -9,10 +9,10 @@ router = APIRouter(prefix="/merge_pools", tags=["merge_pools"])
 
 
 @router.get("/begin")
-async def begin_merge_pools_workflow(
+def begin_merge_pools_workflow(
     request: Request,
     current_user: models.User = Depends(dependencies.require_insider),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     seq_request_id: int | None = Query(default=None),
     lab_prep_id: int | None = Query(default=None),
 ):
@@ -28,5 +28,5 @@ async def begin_merge_pools_workflow(
     #         PoolStatus.STORED, PoolStatus.PREPARING,
     #     ],
     # )
-    # return await form.make_response()
+    # return form.make_response()
     pass

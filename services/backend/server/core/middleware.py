@@ -6,16 +6,16 @@ from fastapi import Response
 from starlette.background import BackgroundTask, BackgroundTasks
 from loguru import logger
 
-from opengsync_db import models, AsyncSession
+from opengsync_db import models, SyncSession
 
-from . import audit, runtime
+from . import audit, runtime, secrets, config
 
 async def state_initialization_middleware(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
     runtime.RequestState.apply_defaults(request.state)
     response = await call_next(request)
     return response
 
-async def add_background_task(response: Response, task: BackgroundTask):
+def add_background_task(response: Response, task: BackgroundTask):
     if response.background is None:
         response.background = task
     elif isinstance(response.background, BackgroundTasks):
@@ -36,10 +36,10 @@ async def timing_middleware(request: runtime.Request, call_next: Callable[[runti
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
-async def __save_audit_log(request: runtime.Request, audit: audit.AuditLogger, user_id, ip: str, agent: str, status_code: int):
+def __save_audit_log(request: runtime.Request, audit: audit.AuditLogger, user_id, ip: str, agent: str, status_code: int):
     print(f"Audit Log - Route: {audit.route}, Method: {audit.method}, User ID: {user_id}, IP: {ip}, Agent: {agent}, Status Code: {status_code}", flush=True)
     # async with request.app.state.db_handler.get_session() as session:
-    #     await session.save(models.AuditLog(
+    #     session.save(models.AuditLog(
     #         user_id=user_id,
     #         method=audit.method,
     #         route=audit.route,
@@ -48,7 +48,7 @@ async def __save_audit_log(request: runtime.Request, audit: audit.AuditLogger, u
     #         status_code=status_code,
     #         agent=agent
     #     ))
-    #     await session.commit()
+    #     session.commit()
 
 async def audit_middleware(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
     response = await call_next(request)
@@ -65,7 +65,7 @@ async def audit_middleware(request: runtime.Request, call_next: Callable[[runtim
         ip = request.headers.get("cf-connecting-ip") or (request.client.host if request.client else "1.1.1.1")
         agent = request.headers.get("user-agent", "unknown")
         
-        await add_background_task(
+        add_background_task(
             response,
             BackgroundTask(
                 __save_audit_log, 
@@ -86,10 +86,45 @@ async def db_session_cleanup_middleware(request: runtime.Request, call_next: Cal
         response = await call_next(request)
         return response
     finally:
-        session: AsyncSession | None = getattr(request.state, "db_session", None)
+        session: SyncSession | None = getattr(request.state, "db_session", None)
         
         if session is not None:
             try:
-                await session.commit()
+                session.commit()
             finally:
-                await session.close()
+                session.close()
+
+
+async def parse_form_data(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
+    if request.method in ("POST", "PUT", "PATCH"):
+        form = await request.form()
+        request.state.form_data = dict(form)
+    else:
+        request.state.form_data = None
+    return await call_next(request)
+
+
+async def csrf_middleware(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
+    """Ensure a per-session CSRF token cookie exists for double-submit validation.
+    
+    Generates a token once per session (when the cookie is missing) and stashes
+    it on request.state so forms can read it during the same request (the cookie
+    won't be visible to request.cookies until the next request).
+    """
+    token = request.cookies.get("csrf_token")
+    if not token:
+        token = secrets.url_safe_token(32)
+        request.state.new_csrf_token = token
+    
+    response = await call_next(request)
+    
+    if getattr(request.state, "new_csrf_token", None):
+        response.set_cookie(
+            key="csrf_token",
+            value=request.state.new_csrf_token,
+            max_age=config.settings.SESSION_EXPIRE_SECONDS,
+            httponly=False,
+            secure=config.settings.ENVIRONMENT != "dev",
+            samesite="lax",
+        )
+    return response

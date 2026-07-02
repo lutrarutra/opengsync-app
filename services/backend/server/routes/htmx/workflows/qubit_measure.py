@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Request
 
-from opengsync_db import models, AsyncSession
+from opengsync_db import models, SyncSession
 from opengsync_db.categories import SampleStatus, LibraryStatus, PoolStatus
 
 from ....core import dependencies, responses
@@ -9,10 +9,10 @@ router = APIRouter(prefix="/qubit_measure", tags=["qubit_measure"])
 
 
 @router.get("/begin")
-async def begin_qubit_measure_workflow(
+def begin_qubit_measure_workflow(
     request: Request,
     current_user: models.User = Depends(dependencies.require_insider),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     seq_request_id: int | None = Query(default=None),
     experiment_id: int | None = Query(default=None),
     pool_id: int | None = Query(default=None),
@@ -31,5 +31,5 @@ async def begin_qubit_measure_workflow(
     #     select_libraries=True if entity is None or entity == "library" else False,
     #     select_samples=True if entity is None or entity == "sample" else False,
     # )
-    # return await form.make_response()
+    # return form.make_response()
     pass

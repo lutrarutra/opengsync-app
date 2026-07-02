@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from ....core import dependencies
+from ....forms import workflows as wf
 
 from . import (
     add_kits_to_protocol,
@@ -11,7 +12,6 @@ from . import (
     dist_reads,
     lane_pools,
     lane_qc,
-    library_annotation,
     library_pooling,
     library_prep,
     library_remux,
@@ -33,6 +33,7 @@ from . import (
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 
 insider = [Depends(dependencies.require_insider)]
+router.include_router(wf.library_annotation.LibraryAnnotationWorkflow.Router())
 
 router.include_router(add_kits_to_protocol.router, dependencies=insider)
 router.include_router(ba_report.router, dependencies=insider)
@@ -42,7 +43,7 @@ router.include_router(dilute_pools.router, dependencies=insider)
 router.include_router(dist_reads.router, dependencies=insider)
 router.include_router(lane_pools.router, dependencies=insider)
 router.include_router(lane_qc.router, dependencies=insider)
-router.include_router(library_annotation.router, dependencies=[Depends(dependencies.require_user)])
+# router.include_router(library_annotation.router, dependencies=[Depends(dependencies.require_user)])
 router.include_router(library_pooling.router, dependencies=insider)
 router.include_router(library_prep.router, dependencies=insider)
 router.include_router(library_remux.router, dependencies=insider)

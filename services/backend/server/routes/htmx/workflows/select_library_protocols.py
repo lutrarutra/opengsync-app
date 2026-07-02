@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 
-from opengsync_db import models, AsyncSession
+from opengsync_db import models, SyncSession
 
 from ....core import dependencies, responses, exceptions as exc
 
@@ -8,15 +8,15 @@ router = APIRouter(prefix="/select_library_protocols", tags=["select_library_pro
 
 
 @router.get("/begin/{lab_prep_id}")
-async def begin_select_library_protocols_workflow(
+def begin_select_library_protocols_workflow(
     request: Request,
     lab_prep_id: int,
     current_user: models.User = Depends(dependencies.require_insider),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     """Begin the select library protocols workflow."""
     # TODO: Port LibraryProtocolSelectForm to FastAPI HTMXForm
-    # lab_prep = await session.first(Q.lab_prep.select(id=lab_prep_id))
+    # lab_prep = session.first(Q.lab_prep.select(id=lab_prep_id))
     # if lab_prep is None:
     #     raise exc.NotFoundException()
     # if lab_prep.prep_file is None:
@@ -29,5 +29,5 @@ async def begin_select_library_protocols_workflow(
     # else:
     #     # ... read from file
     #     form = LibraryProtocolSelectForm(lab_prep=lab_prep, uuid=None, library_table=df)
-    # return await form.make_response()
+    # return form.make_response()
     pass

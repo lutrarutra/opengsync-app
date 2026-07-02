@@ -2,7 +2,7 @@ from fastapi import Request, Depends
 from fastapi.responses import Response
 from sqlalchemy import orm
 
-from opengsync_db import queries as Q, AsyncSession, categories as C, models, actions
+from opengsync_db import queries as Q, SyncSession, categories as C, models, actions
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -20,24 +20,24 @@ class ProcessSeqRequestForm(HTMXForm):
         super().__init__(request)
         self.seq_request = seq_request
 
-    async def prepare(self):
+    def prepare(self):
         self.notification_receiver.data = self.seq_request.contact_person.email or self.seq_request.requestor.email
 
     @staticmethod
-    async def process_request(
+    def process_request(
         request: Request,
         seq_request_id: int,
         current_user: models.User = Depends(dependencies.require_insider),
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
     ) -> Response:
-        seq_request = await session.get_one(Q.seq_request.select(seq_request_id).options(
+        seq_request = session.get_one(Q.seq_request.select(seq_request_id).options(
             orm.selectinload(models.SeqRequest.samples),
             orm.selectinload(models.SeqRequest.libraries),
             orm.selectinload(models.SeqRequest.pools),
             orm.selectinload(models.SeqRequest.comments),
         ))
         form = ProcessSeqRequestForm(request, seq_request=seq_request)
-        await form.validate()
+        form.validate()
 
         response_type = C.RequestResponse.get(form.response_type.data)
 
@@ -72,13 +72,13 @@ class ProcessSeqRequestForm(HTMXForm):
             ))
 
         if form.assign_seq_request_to_me.data:
-            await session.refresh(current_user, attribute_names=["assigned_seq_requests"])
+            session.refresh(current_user, attribute_names=["assigned_seq_requests"])
             if seq_request not in current_user.assigned_seq_requests:
                 current_user.assigned_seq_requests.append(seq_request)
 
         # TODO: send notification email if notification_comment is provided
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=responses.url_for("seq_request_page", seq_request_id=seq_request.id),
             flash=flash
         )

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
@@ -24,14 +24,14 @@ class ExperimentTable(HTMXTable):
 
 
 @router.get("/render-table-page")
-async def render_experiment_table(
+def render_experiment_table(
     project_id: int | None = Query(None, description="Optional project ID to filter experiments"),
     status_in: list[C.ExperimentStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ExperimentStatus, query_param="status_in")),
     workflow_in: list[C.ExperimentWorkFlow] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ExperimentWorkFlow, query_param="workflow_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_insider),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Experiment, default=models.Experiment.id.desc())),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     table = ExperimentTable(route="render_experiment_table", page=page, order_by=order_by)
 
@@ -52,7 +52,7 @@ async def render_experiment_table(
     else:
         template = "components/tables/experiment.html"
 
-    experiments, count = await session.page(
+    experiments, count = session.page(
         stmt, page=page, order_by=order_by,
         options=[
             orm.selectinload(models.Experiment.operator),
@@ -62,4 +62,4 @@ async def render_experiment_table(
     )
     table.set_num_pages(count)
 
-    return await responses.htmx_response(template=template, experiments=experiments, table=table)
+    return responses.htmx_response(template=template, experiments=experiments, table=table)

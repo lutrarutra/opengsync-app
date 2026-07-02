@@ -1,32 +1,57 @@
+from fastapi import Request, Response, Query, Depends, APIRouter
 
-from fastapi import Request, Response
+from opengsync_db import models, categories as C, SyncSession
 
-from opengsync_db import models
-
-from ... import MultiStepForm
+from ....core import dependencies, exceptions as exc, redis
+from ..HTMXWorkflow import HTMXWorkflow, WorkflowFunc
+from ..HTMXWorkflowStep import HTMXWorkflowStep
+from ...HTMXForm import HTMXForm, RouteFunc, FormFunc
 from .. import library_annotation as wf
 
-class LibraryAnnotationWorkflow(MultiStepForm):
-    _workflow_name = "library_annotation"
+class LibraryAnnotationWorkflow(HTMXWorkflow):
+    name = "library-annotation"
     
-    def __init__(self, seq_request: models.SeqRequest, request: Request, step_name: str, uuid: str | None = None):
-        MultiStepForm.__init__(
-            self, request=request, uuid=uuid, step_name=step_name,
-            workflow=LibraryAnnotationWorkflow._workflow_name, step_args={}
-        )
-        self.seq_request = seq_request
-        self._context["seq_request"] = seq_request
+    def __init__(self, r: redis.RedisClient, seq_request_id: int, uuid: str | None = None):
+        super().__init__(uuid=uuid, r=r)
+        self.seq_request_id = seq_request_id
 
-    async def begin(self, previous_form: MultiStepForm | None = None) -> Response:
-        await self._init_msf_state()
-        return await self.make_response()
+    @classmethod
+    def Init(
+        cls,
+    ) -> WorkflowFunc:
+        def dependency(
+            seq_request_id: int,
+            uuid: str | None = Query(None, description="The UUID of the workflow state."),
+            r: redis.RedisClient = Depends(dependencies.redis),
+        ) -> "LibraryAnnotationWorkflow":
+            return cls(uuid=uuid, r=r, seq_request_id=seq_request_id)
+        return dependency
+    
+    @classmethod
+    def Begin(cls) -> RouteFunc:
+        def route(
+            access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
+            form: wf.ProjectSelectForm = Depends(wf.ProjectSelectForm.Init()),
+        ):
+            if access_level < C.AccessLevel.WRITE:
+                raise exc.OpeNGSyncServerException("You do not have permission to begin this workflow.")
+            
+            return form.make_response()
+        return route
+            
+    @classmethod
+    def Router(cls) -> APIRouter:
+        router = APIRouter(prefix="/library-annotation/{seq_request_id}", tags=["library-annotation"], dependencies=[Depends(dependencies.seq_request_permissions)])
+        router.add_api_route("/begin", wf.LibraryAnnotationWorkflow.Begin(), methods=["GET"], name="LibraryAnnotationWorkflow.begin")
+        router.include_router(wf.ProjectSelectForm.Router("LibraryAnnotationWorkflow"))
+        return router
 
-    async def get_next_step(self) -> "LibraryAnnotationWorkflow":
-        match self.__class__:
-            case wf.ProjectSelectForm:
-                return wf.SampleAnnotationForm(seq_request=self.seq_request, request=self.request, uuid=self.uuid)
-            case wf.SampleAnnotationForm:
-                return wf.SampleAttributeAnnotationForm(seq_request=self.seq_request, request=self.request, uuid=self.uuid)
+    def get_next_step(self, current_step: str) -> "HTMXWorkflowStep":
+        match current_step:
+            case "project_select":
+                return wf.SampleAnnotationForm(request=request, workflow=self)
+            case "sample_annotation":
+                return wf.SampleAttributeAnnotationForm(request=self.request, workflow=self)
             # case wf.SampleAttributeAnnotationForm:
             #     return wf.SelectServiceForm(seq_request=self.seq_request, uuid=self.uuid)
             # case wf.SelectServiceForm:
@@ -217,4 +242,4 @@ class LibraryAnnotationWorkflow(MultiStepForm):
             #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
                     
 
-        raise ValueError(f"Could not infer next step for {self._step_name} ({self.__class__})")
+        raise ValueError(f"Could not infer next step for {self.step_name} ({self.__class__})")

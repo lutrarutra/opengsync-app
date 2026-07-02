@@ -8,5 +8,5 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get("/")
-async def admin_page():
-    return await responses.html_response("admin_page.html", title="Admin")
+def admin_page():
+    return responses.html_response("admin_page.html", title="Admin")

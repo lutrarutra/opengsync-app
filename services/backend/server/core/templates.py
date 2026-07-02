@@ -12,7 +12,7 @@ from opengsync_db import units
 from . import context
 from .config import settings
 
-j2 = Jinja2Templates(directory="/templates", enable_async=True, undefined=jinja2.StrictUndefined if settings.ENVIRONMENT != "prod" else jinja2.Undefined)
+j2 = Jinja2Templates(directory="/templates", undefined=jinja2.StrictUndefined if settings.ENVIRONMENT != "prod" else jinja2.Undefined)
 
 def format_timestamp(value: float, format: str = "%Y-%m-%d %H:%M"):
     """Convert timestamp to readable string"""
@@ -188,8 +188,8 @@ def _get_route_param_names(router, name: str) -> set:
 
 j2.env.globals["url_for"] = url_for
 
-async def render_template(template_name: str, include_request_context: bool = True, **kwargs) -> str:
-    template = j2.get_template(template_name)
+def render_template(template_name: str, include_request_context: bool = True, **kwargs) -> str:
+    template: jinja2.Template = j2.get_template(template_name)
     if include_request_context:
         kwargs |= context.get_request_context()
-    return await template.render_async(**kwargs)
+    return template.render(**kwargs)

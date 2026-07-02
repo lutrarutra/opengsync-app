@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Request
 
-from opengsync_db import models, AsyncSession
+from opengsync_db import models, SyncSession
 
 from ....core import dependencies, responses
 
@@ -8,10 +8,10 @@ router = APIRouter(prefix="/reindex", tags=["reindex"])
 
 
 @router.get("/begin")
-async def begin_reindex_workflow(
+def begin_reindex_workflow(
     request: Request,
     current_user: models.User = Depends(dependencies.require_insider),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     seq_request_id: int | None = Query(default=None),
     lab_prep_id: int | None = Query(default=None),
     pool_id: int | None = Query(default=None),
@@ -30,5 +30,5 @@ async def begin_reindex_workflow(
     #         "reindex", context=context,
     #         select_libraries=True,
     #     )
-    # return await form.make_response()
+    # return form.make_response()
     pass

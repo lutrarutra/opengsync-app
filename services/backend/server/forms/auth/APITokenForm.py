@@ -1,7 +1,7 @@
 from fastapi import Request, Depends
 from fastapi.responses import Response
 
-from opengsync_db import queries as Q, AsyncSession, models, categories as C
+from opengsync_db import queries as Q, SyncSession, models, categories as C
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -28,28 +28,28 @@ class APITokenForm(HTMXForm):
 
 
     @staticmethod
-    async def create_api_token(
+    def create_api_token(
         user_id: int,
         request: Request,
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
         current_user: models.User = Depends(dependencies.require_user),
         access_level: C.AccessLevel = Depends(dependencies.user_permissions),
     ) -> Response:
         if access_level < C.AccessLevel.WRITE:
             raise exc.NoPermissionsException("You do not have permission to edit this user.")
         
-        user = await session.get_one(Q.user.select(id=user_id))
+        user = session.get_one(Q.user.select(id=user_id))
         form = APITokenForm(request, user=user)
-        await form.validate()
+        form.validate()
 
         if not form.validate():
             raise exc.FormValidationException(form)
 
-        token = await session.save(Q.api_token.create(
+        token = session.save(Q.api_token.create(
             owner=user, time_valid_min=form.time_valid_min.data
         ))
 
-        return await responses.html_response(
+        return responses.html_response(
             template="forms/auth/api_token_complete.html",
             token=token,
             flash=responses.flash("API Token Created!", "success"),

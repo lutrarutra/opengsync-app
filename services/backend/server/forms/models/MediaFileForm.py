@@ -2,7 +2,7 @@ from typing import Literal
 
 from fastapi import Request, UploadFile, Query, Response, Depends
 
-from opengsync_db import queries as Q, AsyncSession, models, categories as C
+from opengsync_db import queries as Q, SyncSession, models, categories as C
 
 from ...core import responses, exceptions as exc, config, dependencies
 from ...components import inputs
@@ -42,15 +42,15 @@ class MediaFileForm(HTMXForm):
             raise ValueError("file must be provided when form_type is 'edit'")
 
     @staticmethod
-    async def check_permissions(
-        session: AsyncSession,
+    def check_permissions(
+        session: SyncSession,
         current_user: models.User,
         seq_request_id: int | None = None,
         experiment_id: int | None = None,
         lab_prep_id: int | None = None,
     ):
         if seq_request_id is not None:
-            if await session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.WRITE:
+            if session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to upload files to this sequencing request.")
         
         if experiment_id is not None or lab_prep_id is not None:
@@ -58,16 +58,16 @@ class MediaFileForm(HTMXForm):
                 raise exc.NoPermissionsException("You do not have permission to upload files to this resource.")
 
     @staticmethod
-    async def upload_file(
+    def upload_file(
         request: Request,
         seq_request_id: int | None = Query(None),
         experiment_id: int | None = Query(None),
         lab_prep_id: int | None = Query(None),
         current_user: models.User = Depends(dependencies.require_user),
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
     ) -> Response:
         
-        await MediaFileForm.check_permissions(
+        MediaFileForm.check_permissions(
             session=session,
             current_user=current_user,
             seq_request_id=seq_request_id,
@@ -75,9 +75,9 @@ class MediaFileForm(HTMXForm):
             lab_prep_id=lab_prep_id,
         )
         form = MediaFileForm(request, form_type="create")
-        await form.validate()
+        form.validate()
 
-        return await responses.htmx_response()
+        return responses.htmx_response()
 
 
 

@@ -3,7 +3,7 @@ import pandas as pd
 from fastapi import Request, Depends, Query
 from fastapi.responses import Response
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 from ..core import exceptions as exc, responses, dependencies
 from ..components import inputs
@@ -74,9 +74,9 @@ class LibraryPropertyForm(HTMXForm):
             allow_col_rename=editable,
         )
 
-    async def validate(self) -> bool:
+    def validate(self) -> bool:
         """Validate the submitted spreadsheet via the SpreadsheetInputField."""
-        await super().validate()
+        super().validate()
         df = self.spreadsheet.data
 
         if "library_id" not in df.columns or "library_name" not in df.columns:
@@ -88,18 +88,18 @@ class LibraryPropertyForm(HTMXForm):
         return True
 
     @staticmethod
-    async def edit(
+    def edit(
         request: Request,
         project_id: int | None = Query(None),
         seq_request_id: int | None = Query(None),
         library_id: int | None = Query(None),
         current_user: models.User = Depends(dependencies.require_user),
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
     ) -> Response:
         access_level: C.AccessLevel = C.AccessLevel.NONE
 
         form = LibraryPropertyForm(request, access_level=access_level, seq_request_id=seq_request_id, project_id=project_id, library_id=library_id)
-        await form.validate()
+        form.validate()
 
         df = form.spreadsheet.data
         assert df is not None
@@ -109,16 +109,16 @@ class LibraryPropertyForm(HTMXForm):
         for label in form._to_delete:
             for library_id in df["library_id"]:
                 if library_id:
-                    if await session.get_access_level(Q.library.permissions(library_id=int(library_id), user_id=current_user.id)) < C.AccessLevel.WRITE:
+                    if session.get_access_level(Q.library.permissions(library_id=int(library_id), user_id=current_user.id)) < C.AccessLevel.WRITE:
                         flash = responses.flash("You do not have permission to edit some of the libraries..", "warning")
                         continue
-                    library = await session.get_one(Q.library.select(id=int(library_id)))
+                    library = session.get_one(Q.library.select(id=int(library_id)))
                     if library.properties and label in library.properties:
                         library.properties.pop(label, None)
 
         for _, row in df.iterrows():
-            library = await session.get_one(Q.library.select(id=int(row["library_id"])))
-            if await session.get_access_level(Q.library.permissions(library_id=int(row["library_id"]), user_id=current_user.id)) < C.AccessLevel.WRITE:
+            library = session.get_one(Q.library.select(id=int(row["library_id"])))
+            if session.get_access_level(Q.library.permissions(library_id=int(row["library_id"]), user_id=current_user.id)) < C.AccessLevel.WRITE:
                 flash = responses.flash("You do not have permission to edit some of the libraries..", "warning")
                 continue
             if library.properties is None:
@@ -133,16 +133,16 @@ class LibraryPropertyForm(HTMXForm):
                     library.properties[col] = None
 
         if seq_request_id is not None:
-            return await responses.htmx_response(
+            return responses.htmx_response(
                 redirect=responses.url_for("seq_request_page", seq_request_id=seq_request_id).include_query_params(tab="request-libraries-tab"),
                 flash=flash,
             )
         elif project_id is not None:
-            return await responses.htmx_response(
+            return responses.htmx_response(
                 redirect=responses.url_for("project_page", project_id=project_id).include_query_params(tab="libraries-tab"),
                 flash=flash,
             )
         elif library_id is not None:
-            return await responses.htmx_response(redirect=responses.url_for("library_page", library_id=library_id), flash=flash)
+            return responses.htmx_response(redirect=responses.url_for("library_page", library_id=library_id), flash=flash)
         else:
             raise exc.OpeNGSyncServerException("No seq_request or project provided.")

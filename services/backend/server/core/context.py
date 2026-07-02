@@ -26,9 +26,9 @@ class Context:
     def sid(self) -> str | None:
         return self.request.cookies.get("session_id")
     
-    # async def flash(self, message: str, category: Literal["error", "warning", "info", "success"] = "info"):
+    # def flash(self, message: str, category: Literal["error", "warning", "info", "success"] = "info"):
     #     sid = self.sid or uuid4().hex
-    #     await flash_cache.add(sid, category=category, message=message)
+    #     flash_cache.add(sid, category=category, message=message)
     #     self.response.set_cookie(key="session_id", value=sid, max_age=settings.SESSION_EXPIRE_SECONDS, httponly=True)
     
 ctx = Context()

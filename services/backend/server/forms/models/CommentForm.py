@@ -1,11 +1,11 @@
-from __future__ import annotations
+
 
 from typing import Literal
 from fastapi import Request, Query, Depends
 from fastapi.responses import Response
 from sqlalchemy import select as sa_select
 
-from opengsync_db import queries as Q, AsyncSession, models, categories as C
+from opengsync_db import queries as Q, SyncSession, models, categories as C
 
 from ...core import responses, exceptions as exc, dependencies
 from ...components import inputs
@@ -31,16 +31,16 @@ class CommentForm(HTMXForm):
         self.lab_prep_id = lab_prep_id
 
     @staticmethod
-    async def check_permissions(
+    def check_permissions(
         current_user: models.User,
-        session: AsyncSession,
+        session: SyncSession,
         *,
         seq_request_id: int | None = None,
         experiment_id: int | None = None,
         lab_prep_id: int | None = None,
     ) -> None:
         if seq_request_id is not None:
-            if await session.get_access_level(
+            if session.get_access_level(
                 Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)
             ) < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to comment on this sequencing request.")
@@ -51,16 +51,16 @@ class CommentForm(HTMXForm):
             raise exc.BadRequestException("At least one of seq_request_id, experiment_id, or lab_prep_id must be provided.")
 
     @staticmethod
-    async def submit_form(
+    def submit_form(
         request: Request,
         current_user: models.User = Depends(dependencies.require_user),
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
         seq_request_id: int | None = Query(None),
         experiment_id: int | None = Query(None),
         lab_prep_id: int | None = Query(None),
     ) -> Response:
         """Process the comment form submission."""
-        await CommentForm.check_permissions(
+        CommentForm.check_permissions(
             current_user=current_user,
             session=session,
             seq_request_id=seq_request_id,
@@ -74,14 +74,14 @@ class CommentForm(HTMXForm):
             experiment_id=experiment_id,
             lab_prep_id=lab_prep_id,
         )
-        await form.validate()
+        form.validate()
 
         comment = Q.comment.create(
             text=form.comment.data,
             author=current_user,
-            seq_request=await session.get_one(Q.seq_request.select(id=seq_request_id)) if seq_request_id else None,
-            experiment=await session.get_one(Q.experiment.select(id=experiment_id)) if experiment_id else None,
-            lab_prep=await session.get_one(Q.lab_prep.select(id=lab_prep_id)) if lab_prep_id else None,
+            seq_request_id=seq_request_id,
+            experiment_id=experiment_id,
+            lab_prep_id=lab_prep_id,
         )
         session.add(comment)
 
@@ -95,7 +95,7 @@ class CommentForm(HTMXForm):
         else:
             redirect = responses.url_for("dashboard")
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=redirect,
             flash=responses.flash("Comment added successfully.", "success"),
         )

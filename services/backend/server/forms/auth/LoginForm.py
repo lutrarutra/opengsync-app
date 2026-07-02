@@ -1,7 +1,7 @@
 from fastapi import Request, Depends
 from fastapi.responses import Response
 
-from opengsync_db import queries as Q, AsyncSession
+from opengsync_db import queries as Q, SyncSession
 from opengsync_db.categories import UserRole
 
 from ...core import responses, secrets, dependencies, exceptions as exc
@@ -17,16 +17,16 @@ class LoginForm(HTMXForm):
     password = inputs.string.PasswordInputField("Password",  placeholder="Enter your password")
 
     @staticmethod
-    async def process_request(
+    def process_request(
         request: Request,
         response: Response,
-        session: AsyncSession = Depends(dependencies.db_session), 
+        session: SyncSession = Depends(dependencies.db_session), 
         bcrypt: secrets.BcryptCompat = Depends(dependencies.get_bcrypt),
     ) -> Response:
         form = LoginForm(request)
-        await form.validate()
+        form.validate()
         
-        if (user := await session.first(Q.user.select(email=form.email.data))) is None:
+        if (user := session.first(Q.user.select(email=form.email.data))) is None:
             form.email.errors.append("Invalid email or password.")
             form.password.errors.append("Invalid email or password.")
             raise exc.FormValidationException(form)
@@ -59,7 +59,7 @@ class LoginForm(HTMXForm):
             max_age=60 * 60 * 24 * 7,  # 7 days
         )
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=responses.url_for("dashboard"), response=response,
             flash=responses.flash(message="Logged In!", category="success")
         )

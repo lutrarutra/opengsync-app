@@ -9,7 +9,7 @@ import pandas as pd
 
 from opengsync_db import (
     models,
-    AsyncSession,
+    SyncSession,
     queries as Q,
     categories as C,
     actions,
@@ -71,7 +71,7 @@ class SeqRequestTable(HTMXTable):
 
 
 @router.get("/render-table-page")
-async def render_seq_request_table(
+def render_seq_request_table(
     user_id: int | None = Query(None, description="Optional user ID to filter seq requests"),
     group_id: int | None = Query(None, description="Optional group ID to filter seq requests"),
     project_id: int | None = Query(None, description="Optional project ID to filter seq requests"),
@@ -91,7 +91,7 @@ async def render_seq_request_table(
             default=models.SeqRequest.timestamp_submitted_utc.desc(),
         )
     ),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     table = SeqRequestTable(route="render_seq_request_table", page=page, order_by=order_by)
 
@@ -123,17 +123,17 @@ async def render_seq_request_table(
     )
 
     if user_id is not None:
-        if await session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view seq requests for this user.")
         table.template = "components/tables/user-seq_request.html"
         table.url_params["user_id"] = user_id
     elif group_id is not None:
-        if await session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view seq requests for this group.")
         table.template = "components/tables/group-seq_request.html"
         table.url_params["group_id"] = group_id
     elif project_id is not None:
-        if await session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view seq requests for this project.")
         table.template = "components/tables/project-seq_request.html"
         table.url_params["project_id"] = project_id
@@ -143,7 +143,7 @@ async def render_seq_request_table(
 
         table.template = "components/tables/seq_request.html"
 
-    seq_requests, count = await session.page(
+    seq_requests, count = session.page(
         stmt,
         page=page,
         order_by=order_by,
@@ -161,14 +161,14 @@ async def render_seq_request_table(
         ],
     )
     table.set_num_pages(count)
-    return await table.make_response(seq_requests=seq_requests)
+    return table.make_response(seq_requests=seq_requests)
 
 
 @router.get("/recent")
-async def recent_seq_requests(
+def recent_seq_requests(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_user),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     options = [
         orm.selectinload(models.SeqRequest.assignees),
@@ -206,11 +206,11 @@ async def recent_seq_requests(
             models.SeqRequest.timestamp_submitted_utc.desc(),
         )
 
-    seq_requests, num_total = await session.page(
+    seq_requests, num_total = session.page(
         query, limit=10, page=page, options=options
     )
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         "components/dashboard/seq_requests-list.html",
         seq_requests=seq_requests,
         num_total=num_total,
@@ -220,65 +220,65 @@ async def recent_seq_requests(
 
 
 @router.get("/create")
-async def render_create_seq_request_form(
+def render_create_seq_request_form(
     request: Request,
     current_user: models.User = Depends(dependencies.require_user),
 ):
     """Render the create SeqRequest form."""
     form = forms.models.SeqRequestForm(request, form_type="create")
-    return await form.make_response()
+    return form.make_response()
 
 
 @router.post("/create")
-async def create_seq_request(response=Depends(forms.models.SeqRequestForm.create)):
+def create_seq_request(response=Depends(forms.models.SeqRequestForm.create)):
     return response
 
 
 @router.get("/{seq_request_id}/edit")
-async def render_edit_seq_request(
+def render_edit_seq_request(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
     current_user: models.User = Depends(dependencies.require_user),
 ):
     """Render the edit SeqRequest form."""
     if access_level < C.AccessLevel.WRITE:
-        return await responses.htmx_response(redirect=responses.url_for("seq_requests_page"))
+        return responses.htmx_response(redirect=responses.url_for("seq_requests_page"))
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if seq_request.status_id != C.SeqRequestStatus.DRAFT.id and access_level < C.AccessLevel.INSIDER:
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=responses.url_for("seq_request_page", seq_request_id=seq_request_id)
         )
 
     form = forms.models.SeqRequestForm(
         request, form_type="edit", seq_request=seq_request
     )
-    return await form.make_response()
+    return form.make_response()
 
 
 @router.post("/{seq_request_id}/edit")
-async def edit_seq_request(response=Depends(forms.models.SeqRequestForm.edit)):
+def edit_seq_request(response=Depends(forms.models.SeqRequestForm.edit)):
     return response
 
 
 @router.get("/{seq_request_id}/process-request")
-async def render_process_seq_request_form(
+def render_process_seq_request_form(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_insider),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     """Render the process SeqRequest form."""
     if access_level < C.AccessLevel.WRITE:
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=responses.url_for("seq_requests_page")
         )
 
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id).options(
             orm.selectinload(models.SeqRequest.contact_person),
         )
@@ -288,31 +288,31 @@ async def render_process_seq_request_form(
         seq_request.status_id != C.SeqRequestStatus.SUBMITTED.id
         and access_level < C.AccessLevel.INSIDER
     ):
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=responses.url_for(
                 "seq_request_page", seq_request_id=seq_request_id
             )
         )
 
     form = forms.actions.ProcessSeqRequestForm(request, seq_request=seq_request)
-    return await form.make_response()
+    return form.make_response()
 
 
 @router.post("/{seq_request_id}/process-request")
-async def process_request(response=Depends(forms.actions.ProcessSeqRequestForm.process_request)): return response
+def process_request(response=Depends(forms.actions.ProcessSeqRequestForm.process_request)): return response
 
 
 @router.delete("/{seq_request_id}/delete")
-async def delete_seq_request(
+def delete_seq_request(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
         seq_request.status_id != C.SeqRequestStatus.DRAFT.id
@@ -322,9 +322,9 @@ async def delete_seq_request(
             "Only draft requests can be deleted by non-admins."
         )
 
-    await session.delete(seq_request)
+    session.delete(seq_request)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_requests_page"),
         flash=responses.flash(
             f"Deleted sequencing request '{seq_request.name}'", "success"
@@ -333,13 +333,13 @@ async def delete_seq_request(
 
 
 @router.post("/{seq_request_id}/archive")
-async def archive_seq_request(
+def archive_seq_request(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
         seq_request.status_id != C.SeqRequestStatus.DRAFT.id
@@ -348,9 +348,9 @@ async def archive_seq_request(
         raise exc.NoPermissionsException()
 
     seq_request.status_id = C.SeqRequestStatus.ARCHIVED.id
-    await session.save(seq_request)
+    session.save(seq_request)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
         flash=responses.flash(
             f"Archived sequencing request '{seq_request.name}'", "success"
@@ -359,19 +359,19 @@ async def archive_seq_request(
 
 
 @router.post("/{seq_request_id}/unarchive")
-async def unarchive_seq_request(
+def unarchive_seq_request(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_insider),
 ):
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     seq_request.status_id = C.SeqRequestStatus.DRAFT.id
     seq_request.timestamp_submitted_utc = None
-    await session.save(seq_request)
+    session.save(seq_request)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
         flash=responses.flash(
             f"Unarchived sequencing request '{seq_request.name}'", "success"
@@ -380,15 +380,15 @@ async def unarchive_seq_request(
 
 
 @router.get("/{seq_request_id}/export")
-async def export_seq_request(
+def export_seq_request(
     seq_request_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.READ:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     metadata = {
         "Name": [seq_request.name],
@@ -412,10 +412,10 @@ async def export_seq_request(
 
     metadata_df = pd.DataFrame.from_records(metadata).T
 
-    libraries_df = await session.pd.get_seq_request_libraries(
+    libraries_df = session.pd.get_seq_request_libraries(
         seq_request_id, include_indices=True
     )
-    features_df = await session.pd.get_seq_request_features(seq_request_id)
+    features_df = session.pd.get_seq_request_features(seq_request_id)
 
     bytes_io = BytesIO()
     with pd.ExcelWriter(bytes_io, engine="openpyxl") as writer:
@@ -434,16 +434,16 @@ async def export_seq_request(
 
 
 @router.get("/{seq_request_id}/export-libraries")
-async def export_seq_request_libraries(
+def export_seq_request_libraries(
     seq_request_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
-    libraries_df = await session.pd.get_seq_request_libraries(
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
+    libraries_df = session.pd.get_seq_request_libraries(
         seq_request_id, include_indices=True
     )
 
@@ -457,35 +457,35 @@ async def export_seq_request_libraries(
 
 
 @router.post("/{seq_request_id}/clone")
-async def clone_seq_request(
+def clone_seq_request(
     seq_request_id: int,
     request: Request,
     method: Literal["pooled", "indexed", "raw"] = Query(...),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_insider),
 ):
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
     cloned_request = actions.clone_seq_request(
         session=session.sync_session, seq_request=seq_request, method=method
     )
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=cloned_request.id),
         flash=responses.flash("Request cloned", "success"),
     )
 
 
 @router.delete("/{seq_request_id}/remove-all-libraries")
-async def remove_all_seq_request_libraries(
+def remove_all_seq_request_libraries(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
         seq_request.status_id != C.SeqRequestStatus.DRAFT.id
@@ -494,9 +494,9 @@ async def remove_all_seq_request_libraries(
         raise exc.NoPermissionsException()
 
     for library in seq_request.libraries:
-        await session.delete(library)
+        session.delete(library)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
         flash=responses.flash(
             f"Removed all libraries from sequencing request '{seq_request.name}'",
@@ -506,15 +506,15 @@ async def remove_all_seq_request_libraries(
 
 
 @router.get("/{seq_request_id}/overview")
-async def render_seq_request_overview(
+def render_seq_request_overview(
     seq_request_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.READ:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id),
         options=[
             orm.selectinload(models.SeqRequest.samples).selectinload(models.Sample.project),
@@ -615,7 +615,7 @@ async def render_seq_request_overview(
             }
         )
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         "components/plots/request_overview.html",
         nodes=nodes,
         links=links,
@@ -624,20 +624,20 @@ async def render_seq_request_overview(
 
 
 @router.get("/{seq_request_id}/assignees")
-async def render_seq_request_assignee_table(
+def render_seq_request_assignee_table(
     seq_request_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.READ:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id),
         options=[orm.selectinload(models.SeqRequest.assignees)],
     )
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         "components/tables/seq_request-assignee.html",
         assignees=seq_request.assignees,
         seq_request=seq_request,
@@ -645,26 +645,26 @@ async def render_seq_request_assignee_table(
 
 
 @router.delete("/{seq_request_id}/remove-assignee/{assignee_id}")
-async def remove_seq_request_assignee(
+def remove_seq_request_assignee(
     seq_request_id: int,
     assignee_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_insider),
 ):
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id),
         options=[orm.selectinload(models.SeqRequest.assignees)],
     )
 
-    assignee = await session.get_one(Q.user.select(id=assignee_id))
+    assignee = session.get_one(Q.user.select(id=assignee_id))
 
     if assignee not in seq_request.assignees:
         raise exc.BadRequestException()
 
     seq_request.assignees.remove(assignee)
-    await session.save(seq_request)
+    session.save(seq_request)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         "components/tables/seq_request-assignee.html",
         assignees=seq_request.assignees,
         seq_request=seq_request,
@@ -672,15 +672,15 @@ async def remove_seq_request_assignee(
 
 
 @router.get("/{seq_request_id}/submit-checklist")
-async def get_seq_request_submit_checklist(
+def get_seq_request_submit_checklist(
     seq_request_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.READ:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id).options(
             orm.selectinload(models.SeqRequest.seq_auth_form_file),
             orm.selectinload(models.SeqRequest.contact_person),
@@ -703,7 +703,7 @@ async def get_seq_request_submit_checklist(
     )
     checklist = seq_request.get_submit_checklist()
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         "components/checklists/seq_request-submit.html",
         seq_request=seq_request,
         **checklist,
@@ -711,15 +711,15 @@ async def get_seq_request_submit_checklist(
 
 
 @router.get("/{seq_request_id}/review-checklist")
-async def get_seq_request_review_checklist(
+def get_seq_request_review_checklist(
     seq_request_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.INSIDER:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id),
         options=[
             orm.selectinload(models.SeqRequest.requestor),
@@ -752,7 +752,7 @@ async def get_seq_request_review_checklist(
         if not indices_checked:
             break
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         "components/checklists/seq_request-review.html",
         seq_request=seq_request,
         contains_mux_samples=contains_mux_samples,
@@ -762,24 +762,24 @@ async def get_seq_request_review_checklist(
 
 
 @router.post("/{seq_request_id}/review-check/{step}")
-async def check_seq_request_review_step(
+def check_seq_request_review_step(
     seq_request_id: int,
     step: str,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.INSIDER:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if seq_request.review_checklist is None:
         seq_request.review_checklist = {}
     seq_request.review_checklist[step] = True
-    await session.save(seq_request)
+    session.save(seq_request)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for(
             "seq_request_page", seq_request_id=seq_request.id, tab="review-tab"
         ),
@@ -787,24 +787,24 @@ async def check_seq_request_review_step(
 
 
 @router.post("/{seq_request_id}/review-uncheck/{step}")
-async def uncheck_seq_request_review_step(
+def uncheck_seq_request_review_step(
     seq_request_id: int,
     step: str,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.INSIDER:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if seq_request.review_checklist is None:
         seq_request.review_checklist = {}
     seq_request.review_checklist[step] = False
-    await session.save(seq_request)
+    session.save(seq_request)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for(
             "seq_request_page", seq_request_id=seq_request.id, tab="review-tab"
         ),
@@ -812,16 +812,16 @@ async def uncheck_seq_request_review_step(
 
 
 @router.get("/{seq_request_id}/sample-table")
-async def get_seq_request_sample_table(
+def get_seq_request_sample_table(
     seq_request_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.READ:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
-    df = await session.pd.get_seq_request_sample_table(seq_request_id=seq_request_id)
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
+    df = session.pd.get_seq_request_sample_table(seq_request_id=seq_request_id)
     df["project"] = df["project_identifier"]
     df.loc[df["project"].isna(), "project"] = df.loc[
         df["project"].isna(), "project_title"
@@ -840,22 +840,22 @@ async def get_seq_request_sample_table(
 
     spreadsheet = StaticSpreadsheet(df, columns=columns)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         "components/itable.html", seq_request=seq_request, spreadsheet=spreadsheet
     )
 
 
 @router.post("/{seq_request_id}/confirm-barcodes")
-async def confirm_seq_request_barcodes(
+def confirm_seq_request_barcodes(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.INSIDER:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id),
         options=[
             orm.selectinload(models.SeqRequest.libraries).selectinload(
@@ -872,22 +872,22 @@ async def confirm_seq_request_barcodes(
             ):
                 index.orientation = C.BarcodeOrientation.FORWARD
 
-    await session.save(seq_request)
+    session.save(seq_request)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
     )
 
 
 @router.delete("/{seq_request_id}/remove-share-email/{email}")
-async def remove_seq_request_share_email(
+def remove_seq_request_share_email(
     seq_request_id: int,
     email: str,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id),
         options=[orm.selectinload(models.SeqRequest.delivery_email_links)],
     )
@@ -898,7 +898,7 @@ async def remove_seq_request_share_email(
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
 
-    share_email_link = await session.first(
+    share_email_link = session.first(
         Q.links.get_seq_request_delivery_email_link(
             seq_request_id=seq_request_id, email=email
         )
@@ -906,9 +906,9 @@ async def remove_seq_request_share_email(
     if share_email_link is None:
         raise exc.ItemNotFoundException()
 
-    await session.delete(share_email_link)
+    session.delete(share_email_link)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for(
             "seq_request_page", seq_request_id=seq_request.id, tab="request-share-tab"
         ),
@@ -917,17 +917,17 @@ async def remove_seq_request_share_email(
 
 
 @router.post("/{seq_request_id}/add-assignee")
-async def add_assignee_to_seq_request(
+def add_assignee_to_seq_request(
     seq_request_id: int,
     assignee_id: int | None = Query(None),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_insider),
 ):
     """Add an assignee to a SeqRequest."""
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if assignee_id is not None:
-        assignee = await session.get_one(Q.user.select(id=assignee_id))
+        assignee = session.get_one(Q.user.select(id=assignee_id))
     else:
         assignee = current_user
 
@@ -938,23 +938,23 @@ async def add_assignee_to_seq_request(
         raise exc.BadRequestException("User is already an assignee.")
 
     seq_request.assignees.append(assignee)
-    await session.save(seq_request)
+    session.save(seq_request)
 
-    return await responses.htmx_response(redirect=responses.url_for("dashboard"), flash=responses.flash("Assignee Added!", "success"))
+    return responses.htmx_response(redirect=responses.url_for("dashboard"), flash=responses.flash("Assignee Added!", "success"))
 
 
 @router.delete("/{seq_request_id}/delete-file/{file_id}")
-async def delete_file(
+def delete_file(
     seq_request_id: int,
     file_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
         seq_request.status_id != C.SeqRequestStatus.DRAFT.id
@@ -962,7 +962,7 @@ async def delete_file(
     ):
         raise exc.NoPermissionsException()
 
-    file = await session.get_one(Q.media_file.select(id=file_id))
+    file = session.get_one(Q.media_file.select(id=file_id))
 
     if file not in seq_request.media_files:
         raise exc.BadRequestException()
@@ -971,23 +971,23 @@ async def delete_file(
     if os.path.exists(file_path):
         os.remove(file_path)
 
-    await session.delete(file)
+    session.delete(file)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
         flash=responses.flash(f"Deleted file '{file.name}' from request.", "success"),
     )
 
 
 @router.delete("/{seq_request_id}/remove-auth-form")
-async def remove_auth_form(
+def remove_auth_form(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
     current_user: models.User = Depends(dependencies.require_user),
 ):
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id),
         options=[orm.selectinload(models.SeqRequest.seq_auth_form_file)],
     )
@@ -1015,26 +1015,26 @@ async def remove_auth_form(
     if os.path.exists(filepath):
         os.remove(filepath)
 
-    await session.delete(file)
+    session.delete(file)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
         flash=responses.flash("Authorization form removed!", "success"),
     )
 
 
 @router.delete("/{seq_request_id}/remove-library/{library_id}")
-async def remove_library_from_request(
+def remove_library_from_request(
     seq_request_id: int,
     library_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
         seq_request.status_id != C.SeqRequestStatus.DRAFT.id
@@ -1042,31 +1042,31 @@ async def remove_library_from_request(
     ):
         raise exc.NoPermissionsException()
 
-    library = await session.get_one(Q.library.select(id=library_id))
+    library = session.get_one(Q.library.select(id=library_id))
 
     if library.seq_request_id != seq_request.id:
         raise exc.BadRequestException()
 
-    await session.delete(library)
+    session.delete(library)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
         flash=responses.flash("Library removed!", "success"),
     )
 
 
 @router.post("/{seq_request_id}/reseq-library/{library_id}")
-async def reseq_library(
+def reseq_library(
     seq_request_id: int,
     library_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if (
         seq_request.status_id != C.SeqRequestStatus.DRAFT.id
@@ -1074,7 +1074,7 @@ async def reseq_library(
     ):
         raise exc.NoPermissionsException()
 
-    library = await session.get_one(Q.library.select(id=library_id))
+    library = session.get_one(Q.library.select(id=library_id))
 
     actions.clone_library(
         session=session.sync_session,
@@ -1084,31 +1084,31 @@ async def reseq_library(
         indexed=True,
     )
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
         flash=responses.flash("Library cloned!", "success"),
     )
 
 
 @router.delete("/{seq_request_id}/remove-sample/{sample_id}")
-async def remove_sample_from_request(
+def remove_sample_from_request(
     seq_request_id: int,
     sample_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
 
-    sample = await session.get_one(Q.sample.select(id=sample_id))
+    sample = session.get_one(Q.sample.select(id=sample_id))
 
     for library_link in sample.library_links:
         if library_link.library.seq_request_id != seq_request_id:
             continue
-        await session.delete(library_link.library)
+        session.delete(library_link.library)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
         flash=responses.flash(
             "Removed all libraries associated with the sample.", "success"
@@ -1117,13 +1117,13 @@ async def remove_sample_from_request(
 
 
 @router.get("/{seq_request_id}/submit-request")
-async def render_submit_request_form(
+def render_submit_request_form(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if seq_request.status_id != C.SeqRequestStatus.DRAFT.id:
         raise exc.BadRequestException("Only draft requests can be submitted.")
@@ -1137,18 +1137,18 @@ async def render_submit_request_form(
         raise exc.NoPermissionsException()
 
     form = forms.actions.SubmitSeqRequestForm(request, seq_request=seq_request)
-    return await form.make_response()
+    return form.make_response()
 
 
 @router.post("/{seq_request_id}/submit-request")
-async def submit_request(
+def submit_request(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_user),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
     if seq_request.status_id != C.SeqRequestStatus.DRAFT.id:
         raise exc.BadRequestException("Only draft requests can be submitted.")
@@ -1162,7 +1162,7 @@ async def submit_request(
         raise exc.NoPermissionsException()
 
     form = forms.actions.SubmitSeqRequestForm(request, seq_request=seq_request)
-    await form.validate()
+    form.validate()
 
     if form.sample_submission_time.data and form.samples_delivered_by_mail.data:
         form.sample_submission_time.errors.append(
@@ -1183,7 +1183,7 @@ async def submit_request(
         raise exc.FormValidationException(form)
 
     if form.comment.data and (comment := form.comment.data.strip()):
-        await session.save(
+        session.save(
             Q.comment.create(
                 seq_request_id=seq_request.id,
                 author=current_user,
@@ -1195,43 +1195,43 @@ async def submit_request(
         session=session.sync_session, seq_request=seq_request
     )
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
         flash=responses.flash("Sequencing request submitted successfully.", "success"),
     )
 
 
 @router.get("/{seq_request_id}/add-share-email")
-async def render_add_share_email_form(
+def render_add_share_email_form(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
     form = forms.actions.SeqRequestShareEmailForm(request, seq_request=seq_request)
-    return await form.make_response()
+    return form.make_response()
 
 
 @router.post("/{seq_request_id}/add-share-email")
-async def add_share_email(
+def add_share_email(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
     if access_level < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException()
 
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id),
         options=[orm.selectinload(models.SeqRequest.delivery_email_links)],
     )
     form = forms.actions.SeqRequestShareEmailForm(request, seq_request=seq_request)
-    await form.validate()
+    form.validate()
 
     email = form.email.data.strip()
     if email in [link.email for link in seq_request.delivery_email_links]:
@@ -1241,9 +1241,9 @@ async def add_share_email(
     seq_request.delivery_email_links.append(
         models.links.SeqRequestDeliveryEmailLink(email=email)
     )
-    await session.save(seq_request)
+    session.save(seq_request)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for(
             "seq_request_page", seq_request_id=seq_request.id, tab="request-share-tab"
         ),
@@ -1252,20 +1252,20 @@ async def add_share_email(
 
 
 @router.get("/{seq_request_id}/add-assignee-form")
-async def render_add_assignee_form(
+def render_add_assignee_form(
     seq_request_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
     current_user: models.User = Depends(dependencies.require_insider),
 ):
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id).options(
             orm.selectinload(models.SeqRequest.assignees)
         ),
     )
     form = forms.actions.AddSeqRequestAssigneeForm(request, seq_request=seq_request, current_user=current_user)
-    return await form.make_response()
+    return form.make_response()
 
 
 @router.post("/{seq_request_id}/add-assignee-form")
-async def add_assignee_to_seq_request_from_form(response=Depends(forms.actions.AddSeqRequestAssigneeForm.add_assignee)): return response
+def add_assignee_to_seq_request_from_form(response=Depends(forms.actions.AddSeqRequestAssigneeForm.add_assignee)): return response

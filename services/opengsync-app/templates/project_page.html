@@ -25,7 +25,7 @@
             }}
             {% endif %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                hx-get="{{ url_for('render_project_edit_form', project_id=project.id) }}"
+                hx-get="{{ url_for('ProjectForm.edit', project_id=project.id) }}"
                 hx-target="#xl-modal-content" data-bs-toggle="modal"
                 hx-swap="innerHTML" hx-trigger="click">
                 Edit Project
@@ -200,7 +200,7 @@
                     <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
                 <div>
-                    <button hx-get="{{ url_for('render_add_assignee_form', project_id=project.id) }}" class="btn btn-success"
+                    <button hx-get="{{ url_for('render_project_assignee_form', project_id=project.id) }}" class="btn btn-success"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click"
                         {% if not current_user.is_insider() %}disabled{% endif %}>

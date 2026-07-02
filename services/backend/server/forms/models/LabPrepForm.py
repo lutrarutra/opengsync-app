@@ -3,7 +3,7 @@ from fastapi import Request, Depends
 from fastapi.responses import Response
 from loguru import logger
 
-from opengsync_db import queries as Q, AsyncSession, models, categories as C
+from opengsync_db import queries as Q, SyncSession, models, categories as C
 
 from ...core import responses, dependencies, exceptions as exc, config
 from ...components import inputs
@@ -43,13 +43,13 @@ class LabPrepForm(HTMXForm):
             ct.id: ct.identifier for ct in C.LabChecklistType.as_list()
         }
 
-    async def prepare(self) -> None:
+    def prepare(self) -> None:
         if self.lab_prep is not None:
             self.checklist_type.data = self.lab_prep.checklist_type_id
             self.name.data = self.lab_prep.name
             self.service_type.data = self.lab_prep.service_type_id
 
-    async def _validate_types(self) -> tuple[C.LabChecklistType, C.ServiceType]:
+    def _validate_types(self) -> tuple[C.LabChecklistType, C.ServiceType]:
         try:
             checklist_type = C.LabChecklistType.get(self.checklist_type.data)
         except ValueError:
@@ -65,20 +65,20 @@ class LabPrepForm(HTMXForm):
         return checklist_type, service_type
 
     @staticmethod
-    async def create(
+    def create(
         request: Request,
         current_user: models.User = Depends(dependencies.require_insider),
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
     ) -> Response:
         form = LabPrepForm(request, form_type="create")
-        await form.validate()
+        form.validate()
 
-        checklist_type, service_type = await form._validate_types()
+        checklist_type, service_type = form._validate_types()
 
         if not checklist_type.identifier:
             raise ValueError("Checklist type must have an identifier.")
 
-        latest_prep = await session.first(
+        latest_prep = session.first(
             Q.lab_prep.select(
                 checklist_type=checklist_type
             ).order_by(models.LabPrep.prep_number.desc())
@@ -91,7 +91,7 @@ class LabPrepForm(HTMXForm):
         if not form.name.data:
             form.name.data = f"{checklist_type.identifier}{prep_number:04d}"
 
-        lab_prep = await session.save(
+        lab_prep = session.save(
             Q.lab_prep.create(
                 name=form.name.data.strip(),
                 checklist_type=checklist_type,
@@ -102,24 +102,24 @@ class LabPrepForm(HTMXForm):
             flush=True,
         )
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
             flash=responses.flash("Prep created!", "success"),
         )
 
     @staticmethod
-    async def edit(
+    def edit(
         request: Request,
         lab_prep_id: int,
         current_user: models.User = Depends(dependencies.require_insider),
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
     ) -> Response:
-        lab_prep = await session.get_one(Q.lab_prep.select(id=lab_prep_id))
+        lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
 
         form = LabPrepForm(request, form_type="edit", lab_prep=lab_prep)
-        await form.validate()
+        form.validate()
 
-        checklist_type, service_type = await form._validate_types()
+        checklist_type, service_type = form._validate_types()
 
         if not form.name.data:
             form.name.errors.append("Name is required")
@@ -132,7 +132,7 @@ class LabPrepForm(HTMXForm):
         lab_prep.name = form.name.data.strip()
         lab_prep.service_type = service_type
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
             flash=responses.flash("Changes saved!", "success"),
         )

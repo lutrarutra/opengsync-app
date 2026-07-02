@@ -1,9 +1,9 @@
-from __future__ import annotations
+
 
 from fastapi import Request
 from fastapi.responses import Response
 
-from opengsync_db import models, queries as Q, AsyncSession
+from opengsync_db import models, queries as Q, SyncSession
 
 from ...core import exceptions, responses
 from ..HTMXForm import HTMXForm
@@ -42,7 +42,7 @@ class PoolDesignForm(HTMXForm):
         self.pool_design = pool_design
         self._context["pool_design"] = pool_design
 
-    async def prepare(self) -> None:
+    def prepare(self) -> None:
         if not self.pool_design:
             return
         self.pool_design_name.data = self.pool_design.name
@@ -54,13 +54,13 @@ class PoolDesignForm(HTMXForm):
         if self.pool_design.pool:
             self.pool_id.data = self.pool_design.pool_id
 
-    async def _save(self) -> None:
-        session: AsyncSession = self.request.state.db_session
+    def _save(self) -> None:
+        session: SyncSession = self.request.state.db_session
 
         if self.pool_design is not None:
             pool_id = self.pool_id.data
             if pool_id:
-                pool = await session.get_one(Q.pool.select(id=pool_id))
+                pool = session.get_one(Q.pool.select(id=pool_id))
                 if pool.num_m_reads_requested:
                     self.pool_design.num_m_requested_reads = pool.num_m_reads_requested
                 else:
@@ -86,10 +86,10 @@ class PoolDesignForm(HTMXForm):
             )
             session.add(new_design)
 
-    async def process_request(self) -> Response:
-        await self.validate()
-        await self._save()
-        return await responses.htmx_response(
+    def process_request(self) -> Response:
+        self.validate()
+        self._save()
+        return responses.htmx_response(
             redirect=responses.url_for("design"),
             flash=responses.flash("Changes Saved!", "success"),
         )

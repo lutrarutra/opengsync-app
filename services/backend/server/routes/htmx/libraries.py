@@ -3,7 +3,7 @@ from contextlib import suppress
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import orm
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc
 from ... import forms
@@ -46,7 +46,7 @@ class LibraryTable(HTMXTable):
 
 
 @router.get("/render-table-page")
-async def render_library_table(
+def render_library_table(
     pool_id: int | None = Query(None, description="Filter libraries by pool ID"),
     experiment_id: int | None = Query(None, description="Filter libraries by experiment ID"),
     lab_prep_id: int | None = Query(None, description="Filter libraries by lab prep ID"),
@@ -68,7 +68,7 @@ async def render_library_table(
             model=models.Library, default=models.Library.id.desc()
         )
     ),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     table = LibraryTable(route="render_library_table", page=page, order_by=order_by)
 
@@ -102,7 +102,7 @@ async def render_library_table(
     stmt = Q.library.search(name=name, pool_name=pool_name, statement=stmt)
 
     if pool_id is not None:
-        if await session.get_access_level(Q.pool.permissions(pool_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.pool.permissions(pool_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this pool.")
         table.template = "components/tables/pool-library.html"
         table.url_params["pool_id"] = pool_id
@@ -116,15 +116,15 @@ async def render_library_table(
             raise exc.NoPermissionsException("You do not have permission to view libraries for this lab prep.")
         table.template = "components/tables/lab_prep-library.html"
         table.url_params["lab_prep_id"] = lab_prep_id
-        table.context["lab_prep"] = await session.get_one(Q.lab_prep.select(id=lab_prep_id))
+        table.context["lab_prep"] = session.get_one(Q.lab_prep.select(id=lab_prep_id))
     elif seq_request_id is not None:
-        if await session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this seq request.")
         table.template = "components/tables/seq_request-library.html"
         table.url_params["seq_request_id"] = seq_request_id
-        table.context["seq_request"] = await session.get_one(Q.seq_request.select(id=seq_request_id))
+        table.context["seq_request"] = session.get_one(Q.seq_request.select(id=seq_request_id))
     elif sample_id is not None:
-        if await session.get_access_level(Q.sample.permissions(sample_id, current_user.id)) < C.AccessLevel.READ:
+        if session.get_access_level(Q.sample.permissions(sample_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this sample.")
         table.template = "components/tables/sample-library.html"
         table.url_params["sample_id"] = sample_id
@@ -133,7 +133,7 @@ async def render_library_table(
         if not current_user.is_insider():
             stmt = Q.library.select(user_id=current_user.id, statement=stmt)
 
-    libraries, count = await session.page(
+    libraries, count = session.page(
         stmt,
         page=page,
         order_by=order_by,
@@ -145,39 +145,39 @@ async def render_library_table(
         ],
     )
     table.set_num_pages(count)
-    return await table.make_response(libraries=libraries)
+    return table.make_response(libraries=libraries)
 
 
 @router.get("/properties")
-async def render_library_properties(
+def render_library_properties(
     request: Request,
     seq_request_id: int | None = Query(None, description="Seq request ID to filter libraries"),
     project_id: int | None = Query(None, description="Project ID to filter libraries"),
     library_id: int | None = Query(None, description="Library ID to edit properties for"),
     current_user: models.User = Depends(dependencies.require_user),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     if seq_request_id is None and project_id is None and library_id is None:
         raise exc.BadRequestException("Must provide at least one of seq_request_id, project_id, or library_id")
     
     access_level = C.AccessLevel.NONE
     if seq_request_id is not None:
-        if (access_level := await session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this seq request.")
     elif project_id is not None:
-        if (access_level := await session.get_access_level(Q.project.permissions(project_id, current_user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.project.permissions(project_id, current_user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this project.")
     elif library_id is not None:
-        if (access_level := await session.get_access_level(Q.library.permissions(library_id, current_user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.library.permissions(library_id, current_user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this library.")
         
-    libraries = await session.get_all(Q.library.select(seq_request_id=seq_request_id, project_id=project_id, id=library_id).order_by(models.Library.id.asc()))
+    libraries = session.get_all(Q.library.select(seq_request_id=seq_request_id, project_id=project_id, id=library_id).order_by(models.Library.id.asc()))
 
     form = forms.LibraryPropertyForm(
         request, access_level=access_level, libraries=libraries,
         seq_request_id=seq_request_id, project_id=project_id, library_id=library_id
     )
-    return await form.make_response()
+    return form.make_response()
 
 @router.post("/properties")
-async def edit_library_properties(response = Depends(forms.LibraryPropertyForm.edit)): return response
+def edit_library_properties(response = Depends(forms.LibraryPropertyForm.edit)): return response

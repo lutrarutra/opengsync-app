@@ -4,7 +4,7 @@ Ported from packages/opengsync-server/opengsync_server/tools/utils.py
 with no Flask/SQLAlchemy dependencies.
 """
 
-from __future__ import annotations
+
 
 from typing import Literal, Sequence
 

@@ -62,7 +62,7 @@ class HTMXTable:
     def set_num_pages(self, count: int, limit: int = 10) -> None:
         self.num_pages = (count + limit - 1) // limit
 
-    async def make_response(self, **kwargs) -> Response:
+    def make_response(self, **kwargs) -> Response:
         if not self.template:
             raise ValueError("Template not set for HTMXTable.")
-        return await responses.htmx_response(template=self.template, table=self, **{**self.context, **kwargs})
+        return responses.htmx_response(template=self.template, table=self, **{**self.context, **kwargs})

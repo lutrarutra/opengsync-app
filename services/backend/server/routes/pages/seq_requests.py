@@ -8,17 +8,17 @@ from ...core import dependencies, responses
 router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
 
 @router.get("/")
-async def seq_requests_page():  
-    return await responses.html_response("seq_requests_page.html", title="Requests")
+def seq_requests_page():  
+    return responses.html_response("seq_requests_page.html", title="Requests")
 
 
 @router.get("/{seq_request_id}")
-async def seq_request_page(
+def seq_request_page(
     seq_request_id: int,
     current_user: models.User = Depends(dependencies.require_user),
-    session: dependencies.AsyncSession = Depends(dependencies.db_session),
+    session: dependencies.SyncSession = Depends(dependencies.db_session),
 ):
-    seq_request = await session.get_one(
+    seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id).options(
             orm.selectinload(models.SeqRequest.requestor),
             orm.selectinload(models.SeqRequest.group),
@@ -48,7 +48,7 @@ async def seq_request_page(
 
     review_checklist = seq_request.get_review_checklist()
 
-    return await responses.html_response(
+    return responses.html_response(
         "seq_request_page.html",
         seq_request=seq_request,
         submit_checklist_steps_completed=sum(1 for item in submit_steps if item),

@@ -23,7 +23,7 @@ class Mailer:
         self.j2_loader = j2.PackageLoader(package_name="server", package_path="/templates")
         self.j2_env = j2.Environment(loader=self.j2_loader, undefined=j2.StrictUndefined if settings.ENVIRONMENT != "prod" else j2.Undefined)
 
-    async def send_welcome_back(self, recipient_email: str):
+    def send_welcome_back(self, recipient_email: str):
         style = open("/static/style/compiled/email.css").read()
         self.__send_email(
             recipients=recipient_email,
@@ -32,7 +32,7 @@ class Mailer:
             mime_type="html"
         )
 
-    async def send_registration(self, recipient_email: str, verification_link: str | URL):
+    def send_registration(self, recipient_email: str, verification_link: str | URL):
         style = open("/static/style/compiled/email.css").read()
         self.__send_email(
             recipients=recipient_email,
@@ -41,7 +41,7 @@ class Mailer:
             mime_type="html"
         )
 
-    async def send_password_reset(self, recipient_email: str, reset_link: str | URL):
+    def send_password_reset(self, recipient_email: str, reset_link: str | URL):
         style = open("/static/style/compiled/email.css").read()
         self.__send_email(
             recipients=recipient_email,

@@ -1,4 +1,4 @@
-from __future__ import annotations
+
 
 from typing import Literal
 
@@ -30,7 +30,7 @@ class CheckBarcodeClashesForm(HTMXForm):
         self.groupby = groupby
         self._context["groupby"] = groupby
 
-    async def prepare(self) -> None:
+    def prepare(self) -> None:
         """Run the barcode clash check and store result in context."""
         if self.groupby is None:
             self.libraries_df = barcode_utils.check_indices(self.libraries_df)

@@ -228,6 +228,6 @@ class UniverSpreadsheet:
     def __init__(self, path: str):
         self.path = path
 
-    async def make_response(self):
+    def make_response(self):
         data, style = xlsx_to_univer_snapshot(self.path)
-        return await responses.htmx_response("components/univer-static.html", data=data, style=style)
+        return responses.htmx_response("components/univer-static.html", data=data, style=style)

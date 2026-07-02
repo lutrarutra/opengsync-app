@@ -26,7 +26,7 @@ def raw_json_response(data: str | bytes, encapsulate: str | None = None) -> Resp
     return JSONResponse(content=data, media_type="application/json")
     
 
-async def html_response(
+def html_response(
     template: str | None = None, 
     redirect: URL | None = None, 
     status: int = 200, 
@@ -38,7 +38,7 @@ async def html_response(
     else:
         content = ""
         if template is not None:
-            content = await render_template(template, **context)
+            content = render_template(template, **context)
         
         resp = HTMLResponse(
             content=content,
@@ -53,7 +53,7 @@ async def html_response(
     
     return resp
 
-async def htmx_response(
+def htmx_response(
     template: str | None = None,
     content: str | None = None,
     status: int = 200, 
@@ -99,7 +99,7 @@ async def htmx_response(
         headers["HX-Redirect"] = redirect.__str__()
         resp = HTMLResponse(status_code=204, headers=headers)
     elif template is not None:
-        content = await render_template(template, **context)
+        content = render_template(template, **context)
         resp = HTMLResponse(content=content, status_code=status, headers=headers)
     elif content is not None:
         resp = HTMLResponse(content=content, status_code=status, headers=headers)
@@ -113,7 +113,7 @@ async def htmx_response(
     
     return resp
 
-async def file_response(path: str, filename: str | None = None, content_type: str | None = None) -> Response:
+def file_response(path: str, filename: str | None = None, content_type: str | None = None) -> Response:
     if not os.path.isfile(path):
         return HTMLResponse(content="File not found", status_code=404)
 
@@ -131,7 +131,7 @@ async def file_response(path: str, filename: str | None = None, content_type: st
     return response
 
 
-async def bytes_response(data: bytes | io.BytesIO, filename: str, content_type: str | None = None) -> Response:
+def bytes_response(data: bytes | io.BytesIO, filename: str, content_type: str | None = None) -> Response:
     if isinstance(data, io.BytesIO):
         data.seek(0)
         raw = data.read()

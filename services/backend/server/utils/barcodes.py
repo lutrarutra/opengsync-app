@@ -3,7 +3,7 @@ import itertools
 
 import pandas as pd
 
-from opengsync_db import models, AsyncSession, queries as Q
+from opengsync_db import models, SyncSession, queries as Q
 
 
 def reverse_complement(seq: str | None) -> str:
@@ -109,7 +109,7 @@ def check_indices(df: pd.DataFrame, groupby: str | list[str] | None = None) -> p
     df.loc[df["min_hamming_bases"] < 3, "warning"] = "Small hamming distance between barcode combination in two or more libraries."
     return df
 
-async def get_barcode_table(session: AsyncSession, libraries: Sequence[models.Library]) -> pd.DataFrame:
+def get_barcode_table(session: AsyncSession, libraries: Sequence[models.Library]) -> pd.DataFrame:
     library_data = {
         "library_id": [],
         "library_name": [],
@@ -148,7 +148,7 @@ async def get_barcode_table(session: AsyncSession, libraries: Sequence[models.Li
 
             for (kit_i7_id, name_i7), seqs_i7 in library.adapters_i7().items():
                 if kit_i7_id is not None:
-                    kit_i7 = await session.get_one(Q.index_kit.select(id=kit_i7_id))
+                    kit_i7 = session.get_one(Q.index_kit.select(id=kit_i7_id))
                     kit_i7 = kit_i7.identifier
                 else:
                     kit_i7 = None
@@ -161,7 +161,7 @@ async def get_barcode_table(session: AsyncSession, libraries: Sequence[models.Li
             sequences_i5 = []
             for (kit_i5_id, name_i5), seqs_i5 in library.adapters_i5().items():
                 if kit_i5_id is not None:
-                    kit_i5 = await session.get_one(Q.index_kit.select(id=kit_i5_id))
+                    kit_i5 = session.get_one(Q.index_kit.select(id=kit_i5_id))
                     kit_i5 = kit_i5.identifier
                 else:
                     kit_i5 = None

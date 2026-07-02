@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy import orm
 from loguru import logger
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextColumn
@@ -30,7 +30,7 @@ class LabPrepTable(HTMXTable):
 
 
 @router.get("/render-table", name="render_lab_prep_table")
-async def render_lab_prep_table(
+def render_lab_prep_table(
     status_in: list[C.PrepStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PrepStatus, query_param="status_in")),
     checklist_in: list[C.LabChecklistType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LabChecklistType, query_param="checklist_in")),
     service_in: list[C.ServiceType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ServiceType, query_param="service_in")),
@@ -39,7 +39,7 @@ async def render_lab_prep_table(
     creator: str | None = Query(None, description="Optional creator name to search for"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.LabPrep, default=models.LabPrep.id.desc())),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     table = LabPrepTable(route="render_lab_prep_table", page=page, order_by=order_by)
     table.template = "components/tables/lab_prep.html"
@@ -76,7 +76,7 @@ async def render_lab_prep_table(
     if id is not None and not name and not creator:
         stmt = Q.lab_prep.select(id=id, statement=stmt)
 
-    lab_preps, count = await session.page(
+    lab_preps, count = session.page(
         stmt,
         page=page,
         order_by=order_by,
@@ -88,118 +88,118 @@ async def render_lab_prep_table(
         ],
     )
     table.set_num_pages(count)
-    return await table.make_response(lab_preps=lab_preps)
+    return table.make_response(lab_preps=lab_preps)
 
 
 @router.get("/create")
-async def render_create_lab_prep_form(
+def render_create_lab_prep_form(
     request: Request,
 ):
     """Render the create lab prep form."""
     form = forms.models.LabPrepForm(request, form_type="create")
-    return await form.make_response()
+    return form.make_response()
 
 
 @router.post("/create")
-async def create_lab_prep(response=Depends(forms.models.LabPrepForm.create)) -> Response: return response
+def create_lab_prep(response=Depends(forms.models.LabPrepForm.create)) -> Response: return response
 
 @router.get("/{lab_prep_id}/edit")
-async def render_edit_lab_prep_form(
+def render_edit_lab_prep_form(
     lab_prep_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     """Render the edit lab prep form."""
-    lab_prep = await session.get_one(Q.lab_prep.select(id=lab_prep_id))
+    lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
     form = forms.models.LabPrepForm(request, form_type="edit", lab_prep=lab_prep)
-    return await form.make_response()
+    return form.make_response()
 
 
 @router.post("/{lab_prep_id}/edit")
-async def edit_lab_prep(response=Depends(forms.models.LabPrepForm.edit)) -> Response: return response
+def edit_lab_prep(response=Depends(forms.models.LabPrepForm.edit)) -> Response: return response
 
 
 @router.post("/{lab_prep_id}/uncomplete")
-async def uncomplete_lab_prep(
+def uncomplete_lab_prep(
     lab_prep_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     """Revert a completed lab prep back to preparing."""
-    lab_prep = await session.get_one(Q.lab_prep.select(id=lab_prep_id))
+    lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
     lab_prep.status_id = C.PrepStatus.PREPARING.id
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
         flash=responses.flash("Lab prep reverted to preparing!", "success"),
     )
 
 @router.delete("/{lab_prep_id}/delete")
-async def delete_lab_prep(
+def delete_lab_prep(
     lab_prep_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     """Delete a lab prep (only if still in PREPARING status)."""
-    lab_prep = await session.get_one(Q.lab_prep.select(id=lab_prep_id))
+    lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
 
     if lab_prep.status_id != C.PrepStatus.PREPARING.id:
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
             flash=responses.flash("Cannot delete completed prep.", "warning"),
         )
 
-    await session.delete(lab_prep)
-    return await responses.htmx_response(
+    session.delete(lab_prep)
+    return responses.htmx_response(
         redirect=request.url_for("lab_preps"),
         flash=responses.flash("Lab prep deleted!", "success"),
     )
 
 @router.delete("/{lab_prep_id}/remove-library")
-async def remove_library_from_prep(
+def remove_library_from_prep(
     lab_prep_id: int,
     request: Request,
     library_id: int = Query(...),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     """Remove a library from a lab prep."""
-    lab_prep = await session.get_one(Q.lab_prep.select(id=lab_prep_id))
+    lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
 
     if lab_prep.status_id != C.PrepStatus.PREPARING.id:
         raise exc.BadRequestException("Cannot remove libraries from a completed prep.")
 
-    library = await session.get_one(Q.library.select(id=library_id))
+    library = session.get_one(Q.library.select(id=library_id))
     library.lab_prep = None
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
         flash=responses.flash("Library removed!", "success"),
     )
 
 
 @router.get("/{lab_prep_id}/checklist")
-async def render_lab_prep_checklist(
+def render_lab_prep_checklist(
     lab_prep_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
-    lab_prep = await session.get_one(
+    lab_prep = session.get_one(
         Q.lab_prep.select(id=lab_prep_id).options(
             orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.sample_links),
             orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.indices),
         )
     )
     checklist = lab_prep.get_checklist()
-    return await responses.htmx_response(
+    return responses.htmx_response(
         "components/checklists/lab_prep.html",
         lab_prep=lab_prep, **checklist
     )
 
 @router.get("/{lab_prep_id}/mux-spreadsheet")
-async def render_lab_prep_mux_spreadsheet(
+def render_lab_prep_mux_spreadsheet(
     lab_prep_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
-    df = await session.pd.get_lab_prep_pooling_table(lab_prep_id)
+    df = session.pd.get_lab_prep_pooling_table(lab_prep_id)
 
     df = df.sort_values(by=["library_name", "sample_pool", "sample_name"])
 
@@ -253,15 +253,15 @@ async def render_lab_prep_mux_spreadsheet(
         )
 
     spreadsheet = StaticSpreadsheet(df, columns=columns, id=f"lab_prep_mux_table-{lab_prep_id}")
-    return await responses.htmx_response(content=await spreadsheet.render())
+    return responses.htmx_response(content=spreadsheet.render())
 
 
 @router.get("/{lab_prep_id}/prep-spreadsheet-template")
-async def download_lab_prep_spreadsheet_template(
+def download_lab_prep_spreadsheet_template(
     lab_prep_id: int,
     direction: str = Query("rows", description="Whether to return the template in rows or columns format"),
     checklist: C.LabChecklistType | None = Depends(dependencies.parse_enum_id(enum_type=C.LabChecklistType, query_param="checklist_id")),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     import openpyxl
     from openpyxl import styles as openpyxl_styles
@@ -270,7 +270,7 @@ async def download_lab_prep_spreadsheet_template(
     if direction not in ("rows", "columns"):
         raise exc.BadRequestException(f"Invalid direction: {direction}")
     
-    lab_prep = await session.get_one(
+    lab_prep = session.get_one(
         Q.lab_prep.select(id=lab_prep_id).options(
             orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.sample_links),
             orm.selectinload(models.LabPrep.libraries).selectinload(models.Library.indices),
@@ -386,7 +386,7 @@ async def download_lab_prep_spreadsheet_template(
     template.save(bytes_io)
     bytes_io.seek(0)
 
-    return await responses.bytes_response(
+    return responses.bytes_response(
         bytes_io,
         filename=f"{lab_prep.name}_{lab_prep.checklist_type.abbreviation}_{direction}.xlsx",
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -394,20 +394,20 @@ async def download_lab_prep_spreadsheet_template(
 
 
 @router.get("/{lab_prep_id}/prep-table-upload")
-async def render_lab_prep_table_upload_form(response=Depends(forms.actions.LibraryPrepTableForm.render)): return response
+def render_lab_prep_table_upload_form(response=Depends(forms.actions.LibraryPrepTableForm.render)): return response
 
 @router.post("/{lab_prep_id}/prep-table-upload", name="lab_prep_table_upload")
-async def upload_lab_prep_table(response=Depends(forms.actions.LibraryPrepTableForm.upload)) -> Response: return response
+def upload_lab_prep_table(response=Depends(forms.actions.LibraryPrepTableForm.upload)) -> Response: return response
 
 
 @router.post("/{lab_prep_id}/complete")
-async def complete_lab_prep(
+def complete_lab_prep(
     lab_prep_id: int,
     request: Request,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     """Mark a lab prep as completed."""
-    lab_prep = await session.get_one(
+    lab_prep = session.get_one(
         Q.lab_prep.select(id=lab_prep_id),
         options=[
             orm.selectinload(models.LabPrep.pools),
@@ -431,21 +431,21 @@ async def complete_lab_prep(
 
     lab_prep.status_id = C.PrepStatus.COMPLETED.id
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
         flash=responses.flash("Lab prep completed!", "success"),
     )
 
 
 @router.get("/{lab_prep_id}/plates")
-async def render_lab_prep_plates(
+def render_lab_prep_plates(
     lab_prep_id: int,
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     """Render the plates for a lab prep."""
-    plates = await session.get_all(
+    plates = session.get_all(
         Q.plate.select(lab_prep_id=lab_prep_id).options(
             orm.selectinload(models.Plate.sample_links)
         ), limit=None
     )
-    return await responses.htmx_response(template="components/plates.html", plates=plates)
+    return responses.htmx_response(template="components/plates.html", plates=plates)

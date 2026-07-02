@@ -27,11 +27,11 @@ class SubmitSeqRequestForm(HTMXForm):
         super().__init__(request)
         self.seq_request = seq_request
 
-    async def prepare(self) -> None:
+    def prepare(self) -> None:
         pass
 
-    async def get_context(self) -> dict:
-        context = await super().get_context()
+    def get_context(self) -> dict:
+        context = super().get_context()
         context["seq_request"] = self.seq_request
         context["sample_submission_windows"] = (
             config.settings.app_config.sample_submission_windows

@@ -2,7 +2,7 @@ from fastapi import Request, Depends
 from fastapi.responses import Response
 from loguru import logger
 
-from opengsync_db import queries as Q, AsyncSession, models
+from opengsync_db import queries as Q, SyncSession, models
 from opengsync_db.categories import UserRole
 
 from ...core import responses, secrets, dependencies, exceptions as exc, config, mailer
@@ -19,14 +19,14 @@ class RegisterForm(HTMXForm):
     role = inputs.selectable.SelectableInputField("Role", options=UserRole.as_selectable(), default=UserRole.CLIENT.id)
 
     @staticmethod
-    async def process_request(
+    def process_request(
         request: Request,
         current_user: models.User | None = Depends(dependencies.get_user),
         mailer: mailer.Mailer = Depends(dependencies.mail_client),
-        session: AsyncSession = Depends(dependencies.db_session), 
+        session: SyncSession = Depends(dependencies.db_session), 
     ) -> Response:
         form = RegisterForm(request)
-        await form.validate()
+        form.validate()
         
         if current_user is None or not current_user.is_insider():
             if config.settings.app_config.email_domain_white_list:
@@ -54,22 +54,22 @@ class RegisterForm(HTMXForm):
             form.role.errors.append("Invalid role.")
             raise exc.FormValidationException(form)
         
-        if (user := await session.first(Q.user.select(email=form.email.data))) is None:
+        if (user := session.first(Q.user.select(email=form.email.data))) is None:
             try:
-                await mailer.send_welcome_back(form.email.data)
+                mailer.send_welcome_back(form.email.data)
             except Exception as e:
                 logger.error(f"Failed to send welcome back email to '{form.email.data}':", exception=e)
                 form.email.errors.append("Failed to send registration email. Please contact administrator.")
                 raise e
-            return await responses.htmx_response(redirect="login_page")
+            return responses.htmx_response(redirect="login_page")
 
         token = secrets.generate_registration_token(email=form.email.data, role=user.role)
         link = request.url_for("complete_registration_page", token=token)
         try:
-            await mailer.send_registration(form.email.data, link)
+            mailer.send_registration(form.email.data, link)
         except Exception as e:
             logger.error(f"Failed to send registration email to '{form.email.data}':", exception=e)
             form.email.errors.append("Failed to send registration email. Please contact administrator.")
             raise e
 
-        return await responses.htmx_response(redirect="login_page")
+        return responses.htmx_response(redirect="login_page")

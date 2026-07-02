@@ -5,14 +5,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from loguru import logger
 
-from redis.asyncio import ConnectionPool, Redis
+from redis import ConnectionPool
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.backends import redis as redis_backends
 
-from opengsync_db import AsyncDBHandler
+from opengsync_db import SyncDBHandler
 
 from . import config, mailer, secrets, templates
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,8 +39,8 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("opengsync.yaml not found, app_config unavailable")
 
-    app.state.db_handler = AsyncDBHandler(default_row_limit=None)
-    await app.state.db_handler.connect(
+    app.state.db_handler = SyncDBHandler(default_row_limit=None)
+    app.state.db_handler.connect(
         user=config.settings.POSTGRES_USER,
         password=config.settings.POSTGRES_PASSWORD,
         host=config.settings.POSTGRES_HOST,
@@ -57,20 +56,16 @@ async def lifespan(app: FastAPI):
     app.state.redis_pool = ConnectionPool.from_url(config.settings.REDIS_URL)
     app.state.bcrypt = secrets.BcryptCompat()
 
-    from .msf_cache import msf_cache
-    msf_cache.set_pool(app.state.redis_pool)
-    logger.info("MSF cache connected to Redis")
-
     from .templates import j2
     from .config import settings
     j2.env.globals["contact_email"] = settings.app_config.personalization.email
     j2.env.globals["organization_name"] = settings.app_config.personalization.organization
 
-    FastAPICache.init(RedisBackend(Redis(connection_pool=app.state.redis_pool)), prefix="fastapi-cache")
+    # FastAPICache.init(RedisBackend(Redis(connection_pool=app.state.redis_pool)), prefix="fastapi-cache")
     yield
 
-    await app.state.db_handler.close()
+    app.state.db_handler.close()
     if app.state.db_handler._engine:
-        await app.state.db_handler._engine.dispose()
+        app.state.db_handler._engine.dispose()
 
-    await app.state.redis_pool.disconnect()
+    app.state.redis_pool.disconnect()

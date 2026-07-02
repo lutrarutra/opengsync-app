@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import Depends, Request
 from fastapi.responses import Response
 
-from opengsync_db import AsyncSession, models, queries as Q, categories as C
+from opengsync_db import SyncSession, models, queries as Q, categories as C
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -16,8 +16,8 @@ class DisclaimerSubForm(SubHTMXForm):
 
     accepted = inputs.boolean.CheckboxInputField("I have read and understood the disclaimer")
 
-    async def validate(self, raw_data: dict) -> bool:
-        await super().validate(raw_data)
+    def validate(self, raw_data: dict) -> bool:
+        super().validate(raw_data)
         for field in self.input_fields:
             field.errors = []
 
@@ -124,7 +124,7 @@ class SeqRequestForm(HTMXForm):
                 "SeqRequest must be provided when form_type is 'edit'."
             )
 
-    async def prepare(self) -> None:
+    def prepare(self) -> None:
         current_user = self.request.state.current_user
 
         if self.form_type == "create":
@@ -207,17 +207,17 @@ class SeqRequestForm(HTMXForm):
             )
 
     @staticmethod
-    async def create(
+    def create(
         request: Request,
         current_user: models.User = Depends(dependencies.require_user),
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
     ) -> Response:
         form = SeqRequestForm(request, form_type="create")
-        await form.validate()
+        form.validate()
 
         SeqRequestForm._validate_bioinformatician(form)
 
-        if await session.exists(Q.seq_request.select(name=form.basic_info.name.data)):
+        if session.exists(Q.seq_request.select(name=form.basic_info.name.data)):
             form.basic_info.name.errors.append("A sequencing request with this name already exists.")
             raise exc.FormValidationException(form)
 
@@ -230,7 +230,7 @@ class SeqRequestForm(HTMXForm):
         current_user = request.state.current_user
 
         if form.user_selection.user_id.data:
-            selected_user = await session.first(Q.user.select(id=int(form.user_selection.user_id.data)))
+            selected_user = session.first(Q.user.select(id=int(form.user_selection.user_id.data)))
             if selected_user is None:
                 form.user_selection.user_id.errors.append("Selected user not found.")
                 raise exc.FormValidationException(form)
@@ -265,7 +265,7 @@ class SeqRequestForm(HTMXForm):
             form.billing.phone.data,
         )
 
-        seq_request = await session.save(
+        seq_request = session.save(
             Q.seq_request.create(
                 name=form.basic_info.name.data,
                 description=form.basic_info.description.data,
@@ -281,21 +281,21 @@ class SeqRequestForm(HTMXForm):
                 organization_contact=organization,
                 billing_contact=billing_contact,
                 requestor=current_user,
-                group=await session.get_one(Q.group.select(id=form.basic_info.group_id.data)) if form.basic_info.group_id.data else None,
+                group=session.get_one(Q.group.select(id=form.basic_info.group_id.data)) if form.basic_info.group_id.data else None,
             ),
             flush=True,
         )
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
             flash=responses.flash("Sequencing Request Created!", "success"),
         )
 
     @staticmethod
-    async def edit(
+    def edit(
         seq_request_id: int,
         request: Request,
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
         access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
     ) -> Response:
         if access_level < C.AccessLevel.WRITE:
@@ -303,7 +303,7 @@ class SeqRequestForm(HTMXForm):
                 "You do not have permission to edit this request."
             )
 
-        seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id))
+        seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
 
         # If not draft, only insiders can edit
         if (
@@ -315,7 +315,7 @@ class SeqRequestForm(HTMXForm):
             )
 
         form = SeqRequestForm(request, form_type="edit", seq_request=seq_request)
-        await form.validate()
+        form.validate()
 
         SeqRequestForm._validate_bioinformatician(form)
 
@@ -386,9 +386,9 @@ class SeqRequestForm(HTMXForm):
             form.organization.address.data
         )
 
-        await session.save(seq_request)
+        session.save(seq_request)
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
             flash=responses.flash("Changes Saved!", "success"),
         )

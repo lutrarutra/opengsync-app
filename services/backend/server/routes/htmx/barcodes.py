@@ -9,7 +9,7 @@ import pandas as pd
 
 from opengsync_db import (
     models,
-    AsyncSession,
+    SyncSession,
     queries as Q,
     categories as C,
     actions,

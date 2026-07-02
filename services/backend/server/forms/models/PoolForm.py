@@ -4,7 +4,7 @@ from fastapi import Depends, Request
 from fastapi.responses import Response
 from sqlalchemy import orm
 
-from opengsync_db import AsyncSession, models, queries as Q, categories as C
+from opengsync_db import SyncSession, models, queries as Q, categories as C
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
@@ -42,7 +42,7 @@ class PoolForm(HTMXForm):
                 "Pool must be None when form_type is 'create'."
             )
 
-    async def prepare(self) -> None:
+    def prepare(self) -> None:
         if self.form_type == "create":
             self.contact.data = self.request.state.current_user.id
             self._context["form_type"] = "create"
@@ -65,12 +65,12 @@ class PoolForm(HTMXForm):
             self._context["pool"] = self.pool
 
     @staticmethod
-    async def create(
+    def create(
         request: Request,
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
     ) -> Response:
         form = PoolForm(request, form_type="create")
-        await form.validate()
+        form.validate()
 
         if not form.contact_name.data and form.contact.data is None:
             form.contact_name.errors.append("Select an existing contact or provide a name.")
@@ -81,11 +81,11 @@ class PoolForm(HTMXForm):
         contact_id = form.contact.data
         contact_obj = None
         if contact_id is not None:
-            contact_obj = await session.first(Q.user.select(id=contact_id))
+            contact_obj = session.first(Q.user.select(id=contact_id))
 
         pool_type = C.PoolType.get(form.pool_type.data)
 
-        pool = await session.save(Q.pool.create(
+        pool = session.save(Q.pool.create(
             name=form.name.data,
             status=C.PoolStatus.get(form.status.data),
             num_m_reads_requested=form.num_m_reads_requested.data,
@@ -97,16 +97,16 @@ class PoolForm(HTMXForm):
             clone_number=0,
         ), flush=True)
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=request.url_for("pool_page", pool_id=pool.id),
             flash=responses.flash("Pool Created!", "success"),
         )
 
     @staticmethod
-    async def edit(
+    def edit(
         pool_id: int,
         request: Request,
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
         access_level: C.AccessLevel = Depends(dependencies.pool_permissions),
     ) -> Response:
         if access_level < C.AccessLevel.WRITE:
@@ -114,12 +114,12 @@ class PoolForm(HTMXForm):
                 "You do not have permission to edit this pool."
             )
 
-        pool = await session.get_one(Q.pool.select(id=pool_id).options(
+        pool = session.get_one(Q.pool.select(id=pool_id).options(
             orm.selectinload(models.Pool.contact),
         ))
 
         form = PoolForm(request, form_type="edit", pool=pool)
-        await form.validate()
+        form.validate()
 
         pool.name = form.name.data
         pool.status_id = form.status.data
@@ -129,26 +129,26 @@ class PoolForm(HTMXForm):
         pool.contact.email = form.contact_email.data
         pool.contact.phone = form.contact_phone.data
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=request.url_for("pool_page", pool_id=pool.id),
             flash=responses.flash("Changes Saved!", "success"),
         )
 
     @staticmethod
-    async def clone(
+    def clone(
         pool_id: int,
         request: Request,
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
         current_user: models.User = Depends(dependencies.require_insider),
     ) -> Response:
-        pool = await session.get_one(Q.pool.select(id=pool_id).options(
+        pool = session.get_one(Q.pool.select(id=pool_id).options(
             orm.selectinload(models.Pool.contact),
             orm.selectinload(models.Pool.libraries),
             orm.selectinload(models.Pool.dilutions),
         ))
 
         form = PoolForm(request, form_type="clone", pool=pool)
-        await form.validate()
+        form.validate()
 
         pool_type = C.PoolType.get(form.pool_type.data)
         if pool_type != pool.type:
@@ -156,7 +156,7 @@ class PoolForm(HTMXForm):
                 "Pool type cannot be changed. Please create a new pool instead."
             )
 
-        cloned_pool = await session.save(Q.pool.create(
+        cloned_pool = session.save(Q.pool.create(
             name=form.name.data,
             status=C.PoolStatus.STORED,
             num_m_reads_requested=form.num_m_reads_requested.data,
@@ -190,10 +190,10 @@ class PoolForm(HTMXForm):
                 timestamp_utc=dilution.timestamp_utc,
             ))
 
-        await session.flush()
+        session.flush()
 
         for library in pool.libraries:
-            cloned_lib = await session.save(Q.library.create(
+            cloned_lib = session.save(Q.library.create(
                 name=library.name,
                 sample_name=library.sample_name,
                 library_type=library.type,
@@ -215,7 +215,7 @@ class PoolForm(HTMXForm):
             ), flush=True)
             cloned_lib.pool_id = cloned_pool.id
 
-        return await responses.htmx_response(
+        return responses.htmx_response(
             redirect=request.url_for("pool_page", pool_id=cloned_pool.id),
             flash=responses.flash("Pool Cloned!", "success"),
         )

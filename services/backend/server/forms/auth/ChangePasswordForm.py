@@ -2,7 +2,7 @@ from typing import Literal
 from fastapi import Request, Depends
 from fastapi.responses import Response
 
-from opengsync_db import queries as Q, AsyncSession, models, categories as C
+from opengsync_db import queries as Q, SyncSession, models, categories as C
 
 from ...core import responses, dependencies, exceptions as exc, secrets
 from ...components import inputs
@@ -25,10 +25,10 @@ class ChangePasswordForm(HTMXForm):
         self.user = user
 
     @staticmethod
-    async def change_password(
+    def change_password(
         user_id: int,
         request: Request,
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession = Depends(dependencies.db_session),
         bcrypt: secrets.BcryptCompat = Depends(dependencies.get_bcrypt),
         current_user: models.User = Depends(dependencies.require_user),
         access_level: C.AccessLevel = Depends(dependencies.user_permissions),
@@ -36,9 +36,9 @@ class ChangePasswordForm(HTMXForm):
         if current_user.id != user_id and access_level < C.AccessLevel.ADMIN:
             raise exc.NoPermissionsException("You do not have permission to change this user's password.")
         
-        user = await session.get_one(Q.user.select(id=user_id))
+        user = session.get_one(Q.user.select(id=user_id))
         form = ChangePasswordForm(request, user=user)
-        await form.validate()
+        form.validate()
 
         if not bcrypt.check_password_hash(user.password, form.current_password.data):
             form.current_password.errors.append("Current password is incorrect.")
@@ -50,7 +50,7 @@ class ChangePasswordForm(HTMXForm):
 
         user.password = bcrypt.generate_password_hash(form.new_password.data)
 
-        return await responses.html_response(
+        return responses.html_response(
             redirect=request.url_for("user_page", user_id=user.id),
             flash=responses.flash("Password Changed!", "success"),
         )

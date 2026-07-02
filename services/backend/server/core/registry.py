@@ -29,7 +29,7 @@ def parse_image_name(full_image_name: str) -> Tuple[str, str, str]:
     return registry, repository, tag
 
 
-async def check_image_exists(
+def check_image_exists(
     full_image_name: str, 
     username: str | None = None, 
     password: str | None = None,
@@ -49,8 +49,8 @@ async def check_image_exists(
     
     auth = (username, password) if username and password else None
     
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.head(manifest_url, headers=headers, auth=auth or httpx.USE_CLIENT_DEFAULT)
+    with httpx.AsyncClient(timeout=10.0) as client:
+        response = client.head(manifest_url, headers=headers, auth=auth or httpx.USE_CLIENT_DEFAULT)
         
         if response.status_code == 200:
             return True
@@ -80,7 +80,7 @@ async def check_image_exists(
             else:
                 params["scope"] = f"repository:{repository}:pull"
                 
-            token_resp = await client.get(realm, params=params, auth=auth)
+            token_resp = client.get(realm, params=params, auth=auth)
             
             if token_resp.status_code != 200:
                 return False
@@ -92,13 +92,13 @@ async def check_image_exists(
                 return False
                 
             headers["Authorization"] = f"Bearer {token}"
-            retry_resp = await client.head(manifest_url, headers=headers)
+            retry_resp = client.head(manifest_url, headers=headers)
             
             return retry_resp.status_code == 200
             
         return False
 
-async def get_image_metadata(
+def get_image_metadata(
     full_image_name: str,
     username: str | None = None,
     password: str | None = None,
@@ -117,8 +117,8 @@ async def get_image_metadata(
     
     auth = (username, password) if username and password else None
     
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.get(manifest_url, headers=headers, auth=auth)
+    with httpx.AsyncClient(timeout=10.0) as client:
+        response = client.get(manifest_url, headers=headers, auth=auth)
         
         # Note: If your registry requires auth, you should reuse the 
         # bearer token logic from your check_image_exists function here.

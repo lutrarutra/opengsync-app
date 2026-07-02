@@ -2,15 +2,17 @@ import pandas as pd
 from fastapi import Request, Depends, Response, Query
 from sqlalchemy import orm
 
-from opengsync_db import models, queries as Q, AsyncSession, categories as C
+from opengsync_db import models, queries as Q, SyncSession, categories as C
 
 from ....core import responses, exceptions as exc, dependencies
 from .... import utils
 from ....components import inputs
 from ....components.tables import TextColumn, CategoricalDropDown
+from ..HTMXWorkflowStep import HTMXWorkflowStep
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 
-class SampleAnnotationForm(LibraryAnnotationWorkflow):
+
+class SampleAnnotationForm(HTMXWorkflowStep):
     _step_name = "sample_annotation"
 
     template_path = "workflows/library_annotation/sas-sample_annotation.html"
@@ -22,39 +24,33 @@ class SampleAnnotationForm(LibraryAnnotationWorkflow):
     def __init__(
         self,
         request: Request,
-        seq_request: models.SeqRequest,
-        uuid: str | None = None,
+        workflow: LibraryAnnotationWorkflow,
     ) -> None:
-        super().__init__(
-            seq_request=seq_request,
-            request=request,
-            uuid=uuid,
-            step_name=self._step_name,
-        )
-        self.seq_request = seq_request
-        self.post_url = responses.url_for("library_annotation_workflow_sample_annotation", seq_request_id=self.seq_request.id).include_query_params(uuid=self.uuid)
+        super().__init__(request)
+        self.workflow = workflow
+        self.post_url = responses.url_for("library_annotation_workflow_sample_annotation", seq_request_id=self.seq_request.id).include_query_params(uuid=self.workflow.uuid)
         self.spreadsheet.configure(pd.DataFrame(), csrf_token=self.csrf_token_value, post_url=self.post_url)
 
-    async def begin(self, previous_form: LibraryAnnotationWorkflow) -> Response:
-        form = SampleAnnotationForm(seq_request=previous_form.seq_request, request=previous_form.request, uuid=previous_form.uuid)
-        await form._init_msf_state()
-        return await form.make_response()
+    def begin(self, request: Request, workflow: LibraryAnnotationWorkflow) -> Response:
+        form = SampleAnnotationForm(request=request, workflow=workflow)
+        return form.make_response()
 
-    @staticmethod
-    async def process_request(
+    @classmethod
+    def Submit(
+        cls,
         request: Request,
         seq_request_id: int,
-        uuid: str = Query(..., description="The UUID of the workflow state."),
-        session: AsyncSession = Depends(dependencies.db_session),
+        session: SyncSession,
+        workflow: LibraryAnnotationWorkflow,
     ) -> Response:
-        seq_request = await session.get_one(Q.seq_request.select(id=seq_request_id).options(
+        seq_request = session.get_one(Q.seq_request.select(id=seq_request_id).options(
             orm.joinedload(models.SeqRequest.requestor),
         ))
-        form = SampleAnnotationForm(request=request, seq_request=seq_request, uuid=uuid)
-        await form._init_msf_state()
-        form.tables["sample_table"] = form.spreadsheet.data
-        next_form = await form.get_next_step()
-        return await next_form.begin(previous_form=form)
+        form = SampleAnnotationForm(request=request, workflow=workflow)
+        form.validate()
+        workflow.tables["sample_table"] = form.spreadsheet.data
+        next_form = workflow.get_next_step()
+        return next_form.begin(request=request, workflow=workflow)
 
 
         

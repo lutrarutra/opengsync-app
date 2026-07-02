@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
-from opengsync_db import models, AsyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
@@ -20,12 +20,12 @@ class ShareTokenTable(HTMXTable):
 
 
 @router.get("/render-table-page")
-async def render_share_token_table(
+def render_share_token_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     project_id: int = Query(..., description="Optional project ID to filter share tokens"),
     current_user: models.User = Depends(dependencies.require_insider),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.ShareToken, default=models.ShareToken.uuid.asc())),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     table = ShareTokenTable(route="render_share_token_table", page=page, order_by=order_by)
 
@@ -36,7 +36,7 @@ async def render_share_token_table(
         table.url_params["project_id"] = project_id
 
 
-    share_tokens, count = await session.page(
+    share_tokens, count = session.page(
         stmt, page=page, order_by=order_by,
         options=[
             orm.selectinload(models.ShareToken.owner),
@@ -46,7 +46,7 @@ async def render_share_token_table(
     )
     table.set_num_pages(count)
 
-    return await responses.htmx_response(
+    return responses.htmx_response(
         template="components/tables/share_token.html",
         share_tokens=share_tokens,
         table=table,
@@ -54,14 +54,14 @@ async def render_share_token_table(
 
 
 @router.get("/render-data-path-table-page", dependencies=[Depends(dependencies.require_insider)])
-async def render_data_path_table(
+def render_data_path_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     library_id: int | None = Query(None, description="Optional library ID to filter data paths"),
     project_id: int | None = Query(None, description="Optional project ID to filter data paths"),
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter data paths"),
     experiment_id: int | None = Query(None, description="Optional experiment ID to filter data paths"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.DataPath, default=models.DataPath.path.asc())),
-    session: AsyncSession = Depends(dependencies.db_session),
+    session: SyncSession = Depends(dependencies.db_session),
 ):
     table = HTMXTable(route="render_data_path_table", page=page, order_by=order_by)
 
@@ -87,7 +87,7 @@ async def render_data_path_table(
     else:
         raise exc.BadRequestException("At least one of library_id, project_id, seq_request_id, or experiment_id must be provided")
 
-    data_paths, count = await session.page(stmt, page=page, order_by=order_by)
+    data_paths, count = session.page(stmt, page=page, order_by=order_by)
     table.set_num_pages(count)
 
-    return await responses.htmx_response(template=template, data_paths=data_paths, table=table)
+    return responses.htmx_response(template=template, data_paths=data_paths, table=table)
