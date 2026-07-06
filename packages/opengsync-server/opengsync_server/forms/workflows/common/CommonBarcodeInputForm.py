@@ -12,7 +12,7 @@ from .... import logger, tools, db
 from ....tools import utils
 from ...MultiStepForm import MultiStepForm
 from ...SpreadsheetInput import SpreadsheetInput, SpreadSheetColumn
-from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, CategoricalDropDown
+from ....tools.spread_sheet_components import TextColumn, InvalidCellValue, MissingCellValue, CategoricalDropDown, DropdownColumn
 
 
 class CommonBarcodeInputForm(MultiStepForm):
@@ -70,7 +70,7 @@ class CommonBarcodeInputForm(MultiStepForm):
         self.i5_kit_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in db.index_kits.find(limit=None, sort_by="name", type_in=[IndexType.DUAL_INDEX, IndexType.COMBINATORIAL_DUAL_INDEX])[0]}
 
         columns = [
-            TextColumn("library_name", "Library Name", 250, required=True, read_only=True),
+            DropdownColumn("library_name", "Library Name", choices=[], width=250, required=True, read_only=False),
             TextColumn("index_well", "Index Well", 100, max_length=8),
             CategoricalDropDown("kit_i7", "i7 Kit", 200, categories=self.i7_kit_mapping, required=False),
             TextColumn("name_i7", "i7 Name", 150, max_length=models.LibraryIndex.name_i7.type.length),
@@ -105,7 +105,6 @@ class CommonBarcodeInputForm(MultiStepForm):
                 self.library_table["index_well"] = self.library_table["index_well"].apply(lambda x: x if pd.isna(x) else str(x).strip())
                 self.library_table["name_i7"] = self.library_table["name_i7"].apply(lambda x: x if pd.isna(x) else str(x).strip())
                 self.library_table["name_i5"] = self.library_table["name_i5"].apply(lambda x: x if pd.isna(x) else str(x).strip())
-                logger.debug(self.library_table)
             else:
                 self.library_table = library_table
         elif workflow == "reindex":
@@ -143,7 +142,6 @@ class CommonBarcodeInputForm(MultiStepForm):
                         library_table.at[idx, "name_i5"] = next(iter(prep_table[  # type: ignore
                             (prep_table["library_id"] == row["library_id"])
                         ]["name_i5"].values.tolist()), None)
-                    logger.debug(library_table)
                         
             self.library_table = library_table
         else:
@@ -177,8 +175,10 @@ class CommonBarcodeInputForm(MultiStepForm):
         self.spreadsheet = SpreadsheetInput(
             columns=self.columns,
             csrf_token=self._csrf_token,
-            post_url=self.post_url, formdata=formdata, df=self.barcode_table
+            post_url=self.post_url, formdata=formdata, df=self.barcode_table,
+            allow_new_rows=True
         )
+        self.spreadsheet.columns["library_name"].source = self.library_table["library_name"].tolist()
         self.kits = []
 
     def fill_previous_form(self):
@@ -286,6 +286,11 @@ class CommonBarcodeInputForm(MultiStepForm):
                         (self.df["name_i5"] == kit_row["name_i5"]), "sequence_i5"
                     ] = kit_row["sequence_i5"]
 
+        missing_library = self.library_table[~self.library_table["library_name"].isin(self.df["library_name"].values)]["library_name"].tolist()
+        if missing_library:
+            self.spreadsheet.add_general_error(f"Library names not found in the input: {', '.join(missing_library)}")
+            return False
+        
         for idx, row in self.df.iterrows():
             if pd.notna(row["index_well"]) and row["index_well"] == "del":
                 continue

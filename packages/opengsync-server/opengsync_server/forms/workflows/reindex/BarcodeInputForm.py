@@ -2,7 +2,7 @@ from flask import Response
 
 from opengsync_db import models
 
-from .... import logger, db
+from .... import db
 from ....tools.spread_sheet_components import InvalidCellValue, IntegerColumn
 from .TENXATACBarcodeInputForm import TENXATACBarcodeInputForm
 from ..common import CommonBarcodeInputForm
@@ -27,7 +27,7 @@ class BarcodeInputForm(CommonBarcodeInputForm):
             formdata=formdata,
             pool=pool, lab_prep=lab_prep, seq_request=seq_request,
             additional_columns=[
-                IntegerColumn("library_id", "Library ID", 100, required=True, read_only=True),
+                IntegerColumn("library_id", "Library ID", 100, required=True, read_only=False),
             ]
         )
 
