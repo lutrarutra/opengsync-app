@@ -6,21 +6,7 @@ from ...core import dependencies, responses
 from ...forms import auth as auth_forms
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-
-@router.get("/login")
-def get_login_form(
-    form: auth_forms.LoginForm = Depends(auth_forms.LoginForm),
-    current_user: models.User | None = Depends(dependencies.get_user),
-):
-    if current_user:
-        return responses.htmx_response(redirect=responses.url_for("dashboard"))
-
-    return form.make_response()
-
-    
-@router.post("/login")
-def login_user(response = Depends(auth_forms.LoginForm.process_request)): return response
+router.include_router(auth_forms.LoginForm.Router())
 
 @router.get("/register")
 def get_register_form(

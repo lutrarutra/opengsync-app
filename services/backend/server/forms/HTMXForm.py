@@ -1,7 +1,10 @@
+import re
 from abc import ABC
+import copy
+from dataclasses import dataclass
 from typing import Any, Optional, Callable, TypeVar, TypeAlias
 
-from fastapi import Request, Cookie, Depends, Response
+from fastapi import Request, Cookie, Depends, Response, APIRouter
 from pydantic import BaseModel, ValidationError, create_model
 from markupsafe import Markup
 
@@ -16,10 +19,105 @@ T = TypeVar("T", bound="HTMXForm")
 RouteFunc: TypeAlias = Callable[..., Response]
 FormFunc: TypeAlias = Callable[..., "HTMXForm"]
 
+
+@dataclass
+class _RouteDef:
+    """Metadata describing a single HTMX route, collected per form subclass."""
+    method: str
+    path: str
+    name: str
+    func_name: str
+
+
+def _class_name_to_path(name: str) -> str:
+    """Convert a class name to a URL path.
+
+    e.g. ``ProjectSelectForm`` -> ``/project-select``
+    """
+    if name.endswith("Form"):
+        name = name[:-len("Form")]
+    parts = re.findall(r"[A-Z][a-z]*", name)
+    return "/" + "-".join(p.lower() for p in parts)
+
+
+def htmx_route(
+    method: str,
+    path: str | None = None,
+    name: str | None = None,
+) -> Callable[[Callable], classmethod]:
+    def decorator(func: Callable) -> classmethod:
+        func._htmx_route = _RouteDef(  # type: ignore[attr-defined]
+            method=method, path=path or "", name=name or "", func_name=func.__name__,
+        )
+        return classmethod(func)
+    return decorator
+
+
 class HTMXForm(ABC):
     template_path: str = ""
 
+    # Collected per-subclass by `__init_subclass__`. Each entry is a `_RouteDef`.
+    _routes: list[_RouteDef] = []
+
     csrf_token = inputs.string.StringInputField("csrf_token", hidden=True)
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # Inherit routes from base classes (without mutating the base list).
+        inherited: dict[str, _RouteDef] = {}
+        for base in cls.__mro__[1:]:
+            base_routes = base.__dict__.get("_routes")
+            if not base_routes:
+                continue
+            for rd in base_routes:
+                inherited.setdefault(rd.func_name, rd)
+
+        # Collect routes declared directly on this subclass.
+        own: dict[str, _RouteDef] = {}
+        for attr_name, value in cls.__dict__.items():
+            raw = value.__func__ if isinstance(value, (classmethod, staticmethod)) else value
+            rd = getattr(raw, "_htmx_route", None)
+            if rd is None:
+                continue
+            # Resolve the default name now that `cls` is known.
+            route_name = f"{cls.__name__}.{rd.name}" if rd.name else f"{cls.__name__}.{attr_name}"
+            route_path = rd.path or _class_name_to_path(cls.__name__)
+            own[attr_name] = _RouteDef(
+                method=rd.method, path=route_path, name=route_name, func_name=attr_name,
+            )
+
+        # Subclass definitions override inherited ones with the same name.
+        merged = {**inherited, **own}
+        cls._routes = list(merged.values())
+
+    @classmethod
+    def Router(cls, prefix: str | None = None) -> APIRouter:
+        """Build an `APIRouter` from the routes registered via `@htmx_route`."""
+        router = APIRouter()
+        for rd in cls._routes:
+            endpoint = getattr(cls, rd.func_name)()
+            router.add_api_route(
+                rd.path, endpoint,
+                methods=[rd.method],
+                name=f"{prefix}.{rd.name}" if prefix else rd.name,
+            )
+        return router
+
+    @classmethod
+    def PostURL(
+        cls,
+        fnc: Callable[..., RouteFunc] | None = None,
+        prefix: str | None = None,
+        **path_params,
+    ) -> responses.URL:
+        name = "Submit"
+        if fnc is not None:
+            name = fnc.__name__
+        return responses.url_for(
+            f"{prefix}.{cls.__name__}.{name}" if prefix else f"{cls.__name__}.{name}",
+            **path_params,
+        )
 
     @classmethod
     def Open(cls):
@@ -28,10 +126,7 @@ class HTMXForm(ABC):
         return form.make_response()
     
     @classmethod
-    def Submit(
-        cls,
-        **kwargs
-    ) -> FormFunc:
+    def Validate(cls, **kwargs) -> FormFunc:
         def route(
             request: Request,
             csrf_token: str | None = Cookie(default=None),
@@ -47,11 +142,10 @@ class HTMXForm(ABC):
 
     @classmethod
     def Init(cls: type[T], **kwargs) -> FormFunc:
-        def dependency(*args, **inner_kwargs) -> T:
-            return cls(**kwargs, **inner_kwargs)
+        def dependency() -> T:
+            return cls(**kwargs)
         return dependency
         
-
     def __init__(self):
         self.raw_data: dict[str, Any] = {}
         self._context: dict[str, Any] = {}
@@ -88,7 +182,7 @@ class HTMXForm(ABC):
         """Clone a field instance to avoid shared state between form instances"""
         field_class = field.__class__
         new_field = object.__new__(field_class)
-        new_field.__dict__.update(field.__dict__.copy())  # type: ignore
+        new_field.__dict__.update(copy.deepcopy(field.__dict__))  # type: ignore
         new_field._data = field.default
         new_field._validated = False
         new_field._self_validated = False
@@ -304,9 +398,7 @@ class HTMXForm(ABC):
 
     @property
     def csrf_token_value(self) -> str:
-        if not self.csrf_token.data:
-            raise ValueError("CSRF token has not been generated yet.")
-        return self.csrf_token.data
+        return ctx.request.state.csrf_token  # from middleware
 
     def render_submit_button(
         self,

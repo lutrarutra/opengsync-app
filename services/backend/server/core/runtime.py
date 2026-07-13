@@ -29,6 +29,7 @@ class RequestState(State):
     audit: audit.AuditLogger | None
     cache_key: str | None
     cache_expire: int | None
+    csrf_token: str | None
     
     @classmethod
     def apply_defaults(cls, state: State):

@@ -212,3 +212,9 @@ class CategoricalDropDown(SpreadSheetColumn):
         if pd.isna(value):
             return None
         return self.rev_categories[value]
+
+    def to_display(self, value: Any) -> Any:
+        """Convert a stored key back to the human-readable display name."""
+        if pd.isna(value):
+            return value
+        return self.categories.get(value, value)

@@ -11,13 +11,9 @@ from opengsync_db import exceptions as db_exc
 from . import config, responses, exceptions as exc
 
 def default_exception_handler(request: Request, e: Exception) -> JSONResponse:
-    logger.error(f"Unhandled exception {type(e)}: {e}")
     if config.settings.ENVIRONMENT != "production":
         return JSONResponse(content={"detail": str(e)}, status_code=500)
-    
-    return JSONResponse(
-        content={"detail": "An unexpected error occurred. Please try again later."}, status_code=500,
-    )
+    return JSONResponse(content={"detail": "An unexpected error occurred. Please try again later."}, status_code=500)
 
 def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     error_summary = [
@@ -51,7 +47,6 @@ def UserNotAuthenticatedException_handler(request: Request, exc: Exception) -> R
 
 def form_validation_exception_handler(request: Request, exc: exc.FormValidationException) -> Response:
     logger.debug(f"Form validation failed: {exc.form.errors}")
-    logger.debug(request.state.form_data)
     return exc.form.invalid_response_handler(request, exc)
 
 

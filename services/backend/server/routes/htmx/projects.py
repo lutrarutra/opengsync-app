@@ -12,6 +12,7 @@ from ... import forms
 
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+router.include_router(forms.models.ProjectForm.Router())
 
 
 class ProjectTable(HTMXTable):

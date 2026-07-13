@@ -1,12 +1,12 @@
 from typing import Literal
 
-from fastapi import Depends, Response, APIRouter
+from fastapi import Depends, Response
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
-from ..HTMXForm import HTMXForm, RouteFunc, FormFunc
+from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 
 class ProjectForm(HTMXForm):
@@ -45,41 +45,43 @@ class ProjectForm(HTMXForm):
             project = None
             if project_id is not None:
                 project = session.get_one(Q.project.select(id=project_id))
-            return cls(form_type=form_type, project=project)
+            return ProjectForm(form_type=form_type, project=project)
         
         return dependency
 
-    @classmethod
-    def Open(
-        cls,
-        form_type: Literal["create", "edit"],
-    ) -> RouteFunc:
+    @htmx_route("GET", "/{project_id}/edit", name="Edit")
+    def RenderEdit(cls) -> RouteFunc:
         def route(
-            current_user: models.User = Depends(dependencies.require_user),
-            form: "ProjectForm" = Depends(ProjectForm.Init(form_type=form_type))
+            form: "ProjectForm" = Depends(ProjectForm.Init(form_type="edit"))
         ):
-            if form_type == "edit":
-                if form.project is None:
-                    raise exc.OpeNGSyncServerException("Project ID must be provided for edit form.")
-                
-                form.identifier.data = form.project.identifier
-                form.title.data = form.project.title
-                form.description.data = form.project.description
-                form.status.data = form.project.status.id
-                form.owner.data = form.project.owner_id
-                form.group.data = form.project.group_id
-            else:
-                form.owner.data = current_user.id
+            if form.project is None:
+                raise exc.OpeNGSyncServerException("Project ID must be provided for edit form.")
+            
+            form.identifier.data = form.project.identifier
+            form.title.data = form.project.title
+            form.description.data = form.project.description
+            form.status.data = form.project.status.id
+            form.owner.data = form.project.owner_id
+            form.group.data = form.project.group_id
             return form.make_response()
         return route
 
-    @classmethod
+    @htmx_route("GET", "/create", name="Create")
+    def RenderCreate(cls) -> RouteFunc:
+        def route(
+            current_user: models.User = Depends(dependencies.require_user),
+            form: "ProjectForm" = Depends(ProjectForm.Init(form_type="create"))
+        ):
+            form.owner.data = current_user.id
+            return form.make_response()
+        return route
+
+    @htmx_route("POST", "/{project_id}/edit", name="Edit")
     def Edit(cls) -> RouteFunc:
         def submit(
-            project_id: int,
             access_level: C.AccessLevel = Depends(dependencies.project_permissions),
             session: SyncSession = Depends(dependencies.db_session),
-            form: "ProjectForm" = Depends(ProjectForm.Submit(form_type="edit")),
+            form: "ProjectForm" = Depends(ProjectForm.Validate(form_type="edit")),
         ) -> Response:
             if form.project is None:
                 raise exc.OpeNGSyncServerException("Project ID must be provided for edit form.")
@@ -89,14 +91,14 @@ class ProjectForm(HTMXForm):
 
             if session.exists(
                 Q.project.select(title=form.title.data, owner_id=form.project.owner_id).where(
-                    models.Project.id != project_id
+                    models.Project.id != form.project.id
                 )
             ):
                 form.title.errors.append("You already have a project with this title.")
                 raise exc.FormValidationException(form)
 
             if form.identifier.data and session.exists(
-                Q.project.select(identifier=form.identifier.data).where(models.Project.id != project_id)
+                Q.project.select(identifier=form.identifier.data).where(models.Project.id != form.project.id)
             ):
                 form.identifier.errors.append("This identifier is already taken.")
                 raise exc.FormValidationException(form)
@@ -130,12 +132,12 @@ class ProjectForm(HTMXForm):
             )
         return submit
 
-    @classmethod
+    @htmx_route("POST", "/create", name="Create")
     def Create(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
             current_user: models.User = Depends(dependencies.require_user),                
-            form: "ProjectForm" = Depends(ProjectForm.Submit(form_type="create")),
+            form: "ProjectForm" = Depends(ProjectForm.Validate(form_type="create")),
         ) -> Response:
             if session.exists(
                 Q.project.select(title=form.title.data, owner_id=form.owner.data)
@@ -164,12 +166,3 @@ class ProjectForm(HTMXForm):
                 flash=responses.flash("Project Created!", "success"),
             )
         return submit
-    
-    @classmethod
-    def Router(cls) -> APIRouter:
-        router = APIRouter()
-        router.add_api_route("/create", cls.Open(form_type="create"),           methods=["GET"], name="ProjectForm.create")
-        router.add_api_route("/create", cls.Create(),                           methods=["POST"], name="ProjectForm.create")
-        router.add_api_route("/{project_id}/edit", cls.Open(form_type="edit"),  methods=["GET"], name="ProjectForm.edit")
-        router.add_api_route("/{project_id}/edit", cls.Edit(),                  methods=["POST"], name="ProjectForm.edit")
-        return router

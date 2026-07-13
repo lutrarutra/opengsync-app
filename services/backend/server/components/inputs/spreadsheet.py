@@ -122,41 +122,31 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         for i, col in enumerate(self.columns.values()):
             col.letter = string.ascii_uppercase[i]
 
+    def set_data(self, df: pd.DataFrame):
+        for col in self.columns.keys():
+            if col not in df.columns:
+                df[col] = None
+
+        for col in self.columns.values():
+            if isinstance(col, CategoricalDropDown):
+                if col.label in df.columns:
+                    df[col.label] = df[col.label].apply(lambda v, c=col: c.to_display(v))
+        self.table_data = df[[col.label for col in self.columns.values()]].replace(np.nan, "").values.tolist()
+
     def configure(
         self,
-        df: pd.DataFrame,
         csrf_token: str,
+        df: pd.DataFrame = pd.DataFrame(),
         post_url: responses.URL | None = None,
-        predefined_columns: list[SpreadSheetColumn] | None = None,
     ):
         self.post_url = post_url
         self.csrf_token = csrf_token
         self._errors = []
         self.to_delete = set()
         self.style = {}
-
-        existing_labels = set(self.columns.keys())
-
-        for col in predefined_columns or []:
-            if col.label in existing_labels:
-                continue
-            self.add_column(col)
-
-        existing_labels = set(self.columns.keys())
-
-        raw_data = []
-        for _, row in df.iterrows():
-            row_data = []
-            for col in self.columns.values():
-                val = row.get(col.label)
-                if pd.isna(val):
-                    row_data.append("")
-                else:
-                    row_data.append(str(val))
-            raw_data.append(row_data)
-
-        self.table_data = raw_data
+        self.set_data(df)
         self._configured = True
+
 
     def validate(self, raw_data: dict[str, Any]) -> bool:
         if not self._configured:

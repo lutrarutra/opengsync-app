@@ -58,3 +58,6 @@ class RedisClient(Redis):
     def delete_pattern(self, pattern: str) -> None:
         for key in self.scan_iter(match=pattern):
             self.delete(key)
+
+    def get_keys(self, pattern: str) -> list[str]:
+        return [key.decode("utf-8") for key in self.scan_iter(match=pattern)]

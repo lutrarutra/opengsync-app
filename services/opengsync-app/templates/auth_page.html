@@ -15,7 +15,7 @@
     </div>
 </div>
 <div class="page-content">
-    <div hx-get="{{ url_for('get_login_form') }}" hx-trigger="intersect once" hx-swap="outerHTML">
+    <div hx-get="{{ url_for('LoginForm.Render') }}" hx-trigger="intersect once" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

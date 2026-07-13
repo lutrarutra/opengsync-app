@@ -10,9 +10,14 @@ from .... import utils
 from ....components import inputs
 from ....components.tables import TextColumn
 from ...HTMXForm import HTMXForm
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
+from ...HTMXForm import RouteFunc, FormFunc, htmx_route
+from ..HTMXWorkflowStep import HTMXWorkflowStep
+from ....components.tables import MissingCellValue
 
-class SampleAttributeAnnotationForm(HTMXForm):
-    _step_name = "sample_attribute_annotation"
+class SampleAttributeAnnotationForm(HTMXWorkflowStep):
+    workflow: LibraryAnnotationWorkflow
+
     template_path = "workflows/library_annotation/sas-sample_attribute_annotation.html"
 
     predefined_columns: list = [
@@ -22,38 +27,73 @@ class SampleAttributeAnnotationForm(HTMXForm):
 
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=predefined_columns, allow_col_rename=True)
 
-    def __init__(
-        self,
-        request: Request,
-        seq_request: models.SeqRequest,
-        uuid: str | None = None,
-    ) -> None:
-        super().__init__(request)
-        self.seq_request = seq_request
-        self.post_url = responses.url_for("library_annotation_workflow_sample_attribute_annotation", seq_request_id=self.seq_request.id).include_query_params(uuid=self.uuid)
-        self.spreadsheet.configure(df=pd.DataFrame(), csrf_token=self.csrf_token_value, post_url=self.post_url)
+    def __init__(self, workflow: LibraryAnnotationWorkflow) -> None:
+        super().__init__(workflow)
+        self.workflow = workflow
+        self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
 
-    def begin(self):
-        sample_table = self.tables["sample_table"]
-        df = sample_table[["sample_name", "sample_id"]].copy()
-        df["sample_id"] = df["sample_id"].astype(pd.StringDtype())
-        df.loc[df["sample_id"].isna(), "sample_id"] = "new"
+    @property
+    def post_url(self) -> responses.URL:
+        return SampleAttributeAnnotationForm.PostURL(
+            SampleAttributeAnnotationForm.Submit, prefix="LibraryAnnotationWorkflow", seq_request_id=self.workflow.seq_request_id
+        ).include_query_params(uuid=self.workflow.uuid)
 
-        for col in SampleAttributeAnnotationForm.predefined_columns:
-            if col.label in df.columns:
-                continue
-            
-            df[col.label] = ""
+    @classmethod
+    def Init(cls) -> FormFunc:
+        def dependency(
+            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
+        ) -> SampleAttributeAnnotationForm:
+            return cls(workflow=workflow)
+        return dependency
 
-        for _, row in sample_table[sample_table["sample_id"].notna()].iterrows():
-            sample = session.get_one(Q.sample.select(id=int(row["sample_id"])))
-            
-            for attr in sample.attributes:
-                df.loc[df["sample_name"] == row["sample_name"], attr.name] = attr.value
+    @htmx_route("POST")
+    def Submit(cls) -> RouteFunc:
+        def route(
+            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
+            form: "SampleAttributeAnnotationForm" = Depends(SampleAttributeAnnotationForm.Validate()),
+        ) -> Response:
+            df = form.spreadsheet.data
+            sample_table = workflow.tables["sample_table"]
 
-        for col in df.columns:
-            if col not in [c.label for c in self.spreadsheet.columns.values()]:
-                self.spreadsheet.add_column(TextColumn(col, col.replace("_", " ").title(), 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH))
+            if df.columns.str.len().min() < 3:
+                shortest_col = df.columns[df.columns.str.len() == df.columns.str.len().min()].values[0]
+                form.spreadsheet._add_general_error(f"Column: '{shortest_col}', specify more descriptive column name by right-clicking column and 'Rename this column'",)
+                raise exc.FormValidationException(form)
+
+            missing_samples = sample_table.loc[~sample_table["sample_name"].isin(df["sample_name"]), "sample_name"].values.tolist()
+            if len(missing_samples) > 0:
+                form.spreadsheet.add_general_error(f"Sample(s) not found in the sample table: {', '.join(missing_samples)}")  # type: ignore
+
+            for col in df.columns:
+                if col not in form.spreadsheet.columns.keys():
+                    form.spreadsheet.add_column(TextColumn(label=col, name=col.replace("_", " ").title(), width=100, max_length=models.SampleAttribute.MAX_NAME_LENGTH))
+
+            for idx, row in df.iterrows():
+                for col in df.columns:
+                    if col == "sample_name":
+                        continue
+                    
+                    if pd.isna(df[col]).all():
+                        continue
+                    
+                    if pd.isna(row[col]):
+                        form.spreadsheet._add_error(idx, col, MissingCellValue("Missing value"))
+
+            if form.errors:
+                raise exc.FormValidationException(form)
+
+            df = df.dropna(how="all")
+
+            for idx, row in df.iterrows():
+                sample_name = row["sample_name"]
+                for col in df.columns:
+                    if col in ["sample_name", "sample_id"] or df[col].isna().all():
+                        continue
+                    sample_table.loc[sample_table["sample_name"] == sample_name, f"_attr_{col}"] = row[col]
+
+            workflow.tables["sample_table"] = sample_table
+            return workflow.get_next_step(form).make_response()
+        return route
 
 
 

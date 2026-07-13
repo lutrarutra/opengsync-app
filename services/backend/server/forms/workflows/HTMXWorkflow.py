@@ -1,81 +1,81 @@
-import json
 from uuid import uuid7
 from typing import TypeAlias, Callable
+from abc import ABC, abstractmethod
 
-from fastapi import Depends, Query
+from starlette.datastructures import URL
 
-from ...core import dependencies, msf_helpers, redis
+from ...core import msf_helpers, redis
 
 WorkflowFunc: TypeAlias = Callable[..., "HTMXWorkflow"]
 
-class HTMXWorkflow:
-    name: str
+class HTMXWorkflow(ABC):
     def __init__(
         self,
         uuid: str | None,
-        r: redis.RedisClient
+        r: redis.RedisClient,
+        step: str | None = None,
     ):
         self.uuid = uuid or uuid7().__str__()
         self.r = r
-        self.key_prefix = f"{self.name}:{self.uuid}"
-        self.__steps: list[str] | None = None
+        self.key_prefix = f"{self.__class__.__name__}:{self.uuid}"
+        self.step_tracker = msf_helpers.StepTracker(prefix=f"{self.key_prefix}:steps", r=r)
+        self.___current_step = step
 
-        self.header = msf_helpers.CachedDictionary(
-            template=f"{self.key_prefix}:{{step}}:header",
-            r=r, steps=self.steps
-        )
+        self.header = msf_helpers.CachedDictionary(prefix=f"{self.key_prefix}:header", r=r)
+        self.init_step(self.current_step)
 
-        self.tables = msf_helpers.MSFTableHandler(
-            template=f"{self.key_prefix}:{{step}}:tables:{{table}}",
-            r=r, steps=self.steps,
-        )
-
-        self.metadata = msf_helpers.CachedDictionary(
-            template=f"{self.key_prefix}:{{step}}:metadata",
-            r=r, steps=self.steps,
-        )
+        print(f"Initialized workflow {self.__class__.__name__} with UUID {self.uuid}, current step: {self.current_step}")
 
     @property
-    def steps(self) -> list[str]:
-        if self.__steps is None:
-            self.__steps = self.get_steps(f"{self.key_prefix}:steps")
-        return self.__steps
+    def previous_url(self) -> str | None:
+        return self.metadata.get("previous_url")
 
-    def get_steps(self, key: str) -> list[str]:
-        data = self.r.get(key)
-        if data is None:
-            return []
-        return json.loads(data.decode("utf-8"))  # type: ignore[no-any-return]
+    @previous_url.setter
+    def previous_url(self, value: str | URL | None) -> None:
+        if isinstance(value, URL):
+            value = value.__str__()
+        self.metadata["previous_url"] = value
 
-    def add(self, step_name: str) -> None:
-        if self.__steps is None:
-            self.__steps = self.get_steps(f"{self.key_prefix}:steps")
-        
-        if step_name in self.__steps:
-            return
-        
-        self.__steps.append(step_name)
-        self.set_steps(self.__steps)
+    def init_step(self, step_name: str) -> None:
+        """Initialize a new step in the workflow."""
+        self.tables = msf_helpers.CachedFrameContainer(prefix=f"{self.key_prefix}:{step_name}:tables", r=self.r)
+        self.metadata = msf_helpers.CachedDictionary(prefix=f"{self.key_prefix}:{step_name}:metadata", r=self.r)
 
-    def set_steps(self, steps: list[str]) -> None:        
-        self.r.set(f"{self.key_prefix}:steps", json.dumps(steps).encode('utf-8'), ex=self.r.ttl_hours * 3600)
+    @property
+    def current_step(self) -> str:
+        if self.___current_step is None:
+            steps = self.step_tracker.steps
+            self.___current_step = steps[-1] if steps else None
+        if self.___current_step is None:
+            raise ValueError("Current step is not set. Ensure that at least one step has been added to the workflow.")
+        return self.___current_step
 
-    def pop_last(self) -> str | None:
-        if not (steps := self.steps):
-            return None
-        last = steps.pop()
-        self.set_steps(steps)
-        self.__steps = steps
-        return last
+    @property
+    def previous_step(self) -> str | None:
+        steps = self.step_tracker.steps
+        return steps[-2] if len(steps) > 1 else None
+
+    def add_step(self, step_name: str) -> None:
+        self.step_tracker.add(step_name)
+        self.save()
+
+    def pop_step(self) -> str | None:
+        return self.step_tracker.pop()
+
+    def save(self) -> None:
+        self.header.save()
+        self.tables.save()
+        self.metadata.save()
 
     @classmethod
+    @abstractmethod
     def Init(
         cls,
     ) -> WorkflowFunc:
-        def dependency(
-            uuid: str | None = Query(None, description="The UUID of the workflow state."),
-            r: redis.RedisClient = Depends(dependencies.redis),
-        ) -> "HTMXWorkflow":
-            uuid = uuid or uuid7().__str__()
-            return cls(uuid=uuid, r=r)
-        return dependency
+        # def dependency(
+        #     uuid: str | None = Query(None, description="The UUID of the workflow state."),
+        #     r: redis.RedisClient = Depends(dependencies.redis),
+        # ) -> "HTMXWorkflow":
+        #     uuid = uuid or uuid7().__str__()
+        #     return cls(uuid=uuid, r=r)
+        ...

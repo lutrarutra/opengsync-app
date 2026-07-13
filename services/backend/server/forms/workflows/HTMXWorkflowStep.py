@@ -1,20 +1,17 @@
-from abc import ABC, abstractmethod
-from fastapi import Request, Depends, Response
-from sqlalchemy import orm
+from abc import ABC
 
-from opengsync_db import models, queries as Q, SyncSession, categories as C
-
-from ...core import responses, exceptions as exc, dependencies
-from ...components import inputs
 from ..HTMXForm import HTMXForm
 from .HTMXWorkflow import HTMXWorkflow
 
 class HTMXWorkflowStep(HTMXForm, ABC):
-    """
-    Abstract base class for HTMX workflow steps.
-    Each step in a workflow should inherit from this class and implement the required methods.
-    """
+    def __init__(self, workflow: "HTMXWorkflow") -> None:
+        super().__init__()
+        self.workflow = workflow
+        self.workflow.init_step(self.__class__.__name__)
 
-    def is_applicable(self, workflow: "HTMXWorkflow") -> bool:
+    @property
+    def previous_url(self) -> str | None:
+        return self.workflow.previous_url
+
+    def is_applicable(self) -> bool:
         return True
-    

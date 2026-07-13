@@ -115,6 +115,8 @@ async def csrf_middleware(request: runtime.Request, call_next: Callable[[runtime
     if not token:
         token = secrets.url_safe_token(32)
         request.state.new_csrf_token = token
+
+    request.state.csrf_token = token
     
     response = await call_next(request)
     

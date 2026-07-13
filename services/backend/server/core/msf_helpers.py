@@ -1,126 +1,156 @@
-import json
 from typing import Any, Hashable
+import json
 
 import pandas as pd
 
 from .redis import RedisClient
 
 
-class MSFTableHandler:
-    def __init__(self, template: str, r: RedisClient, steps: list[str]):
-        self.__tables: dict[str, pd.DataFrame] = {}
-        self.template = template
+class CachedFrameContainer:
+    def __init__(self, prefix: str, r: RedisClient):
+        self.__tables: dict[str, pd.DataFrame] = dict()
         self.r = r
-        self._steps_reversed = list(reversed(steps))  # oldest → newest
-        self.current_step = steps[-1] if steps else ""
-
-    def _key(self, step_name: str, table_name: str) -> str:
-        return self.template.format(step=step_name, table=table_name)
+        self.prefix = prefix
 
     def __getitem__(self, key: str) -> pd.DataFrame:
-        if key in self.__tables:
-            return self.__tables[key]
-
-        for step in self._steps_reversed:
-            table = self.r.get_table(self._key(step, key))
-            if table is not None:
-                self.__tables[key] = table
-                return table
-
-        raise KeyError(f"Table '{key}' not found in any step.")
+        if key not in self.__tables:
+            if (table := self.r.get_table(f"{self.prefix}:{key}")) is None:
+                raise KeyError(f"Table '{key}' not found in cache.")
+            self.__tables[key] = table
+            return table
+        return self.__tables[key]
 
     def __setitem__(self, key: str, table: pd.DataFrame) -> None:
         self.__tables[key] = table
-        self.r.set_table(self._key(self.current_step, key), table)
 
-    def get(self, key: str, step: str | None = None) -> pd.DataFrame | None:
-        if step is not None:
-            return self.r.get_table(self._key(step, key))
-        try:
-            return self[key]
-        except KeyError:
-            return None
+    def save(self) -> None:
+        for name, table in self.__tables.items():
+            self.r.set_table(f"{self.prefix}:{name}", table)
 
-    def set_steps(self, key: str, steps: list[str]) -> None:
-        self.r.set(key, json.dumps(steps).encode("utf-8"), ex=self.r.ttl_hours * 3600)
+    def get(self, key: str) -> pd.DataFrame | None:
+        if key not in self.__tables:
+            table = self.r.get_table(f"{self.prefix}:{key}")
+            if table is None:
+                return None
+            self.__tables[key] = table
+        return self.__tables.get(key)
 
     def keys(self) -> list[str]:
-        tables = list(self.__tables.keys())
-        for step in self._steps_reversed:
-            pattern = self.template.format(step=step, table="*")
-            for raw_key in self.r.scan_iter(match=pattern):
-                table_name = raw_key.decode("utf-8").split(":")[-1]
-                if table_name not in tables:
-                    tables.append(table_name)
-        return tables
+        cached_keys = self.r.get_keys(f"{self.prefix}:*")
+        local_keys = list(self.__tables.keys())
+        return list(set(cached_keys + local_keys))
+
+    def __repr__(self) -> str:
+        return f"CachedFrame(tables={self.keys()})"
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
 
 class CachedDictionary:
+    """Caches a single dictionary in memory and persists to Redis on ``save()``."""
 
-    def __init__(self, template: str, r: RedisClient, steps: list[str]):
-        self.__data: dict | None = None
-        self.template = template
+    def __init__(self, prefix: str, r: RedisClient):
+        self.prefix: str = prefix
         self.r = r
-        self._steps_reversed = list(reversed(steps))
-        self.current_step = steps[0] if steps else ""
+        self.__data: dict | None = None
 
-    def _key(self, step_name: str) -> str:
-        return self.template.format(step=step_name)
-
-    def _load(self) -> dict:
+    @property
+    def data(self):
         if self.__data is None:
-            for step in self._steps_reversed:
-                d = self.r.get_dict(self._key(step))
-                if d is not None:
-                    self.__data = d
-                    break
-            else:
-                self.__data = {}
+            self.__data = self.r.get_dict(self.prefix) or {}
         return self.__data
 
     def __getitem__(self, key: str) -> Any:
-        d = self._load()
-        return d[key]
+        return self.data[key]
 
     def __setitem__(self, key: Hashable, value: Any) -> None:
-        d = self._load()
-        d[key] = value
-        self.r.set_dict(self._key(self.current_step), d)
+        if self.__data is None:
+            self.__data = self.r.get_dict(self.prefix) or {}
+        self.__data[key] = value
+
+    def save(self) -> None:
+        self.r.set_dict(self.prefix, self.data)
 
     def get(self, key: str, default: Any = None) -> Any:
-        d = self._load()
-        return d.get(key, default)
-
-    def pop(self, key: str, default: Any = None) -> Any:
-        d = self._load()
-        value = d.pop(key, default)
-        self.r.set_dict(self._key(self.current_step), d)
-        return value
+        return self.data.get(key, default)
 
     def clear(self) -> None:
         self.__data = {}
-        self.r.set_dict(self._key(self.current_step), {})
 
     def update(self, other: dict) -> None:
-        d = self._load()
-        d.update(other)
-        self.r.set_dict(self._key(self.current_step), d)
+        if self.__data is None:
+            self.__data = self.r.get_dict(self.prefix) or {}
+        self.__data.update(other)
 
     def keys(self) -> list[str]:
-        d = self._load()
-        return list(d.keys())
+        if self.__data is None:
+            self.__data = self.r.get_dict(self.prefix) or {}
+        return list(self.__data.keys())
 
     def values(self) -> list[Any]:
-        d = self._load()
-        return list(d.values())
+        if self.__data is None:
+            self.__data = self.r.get_dict(self.prefix) or {}
+        return list(self.__data.values())
 
     def items(self) -> list[tuple[str, Any]]:
-        d = self._load()
-        return list(d.items())
+        if self.__data is None:
+            self.__data = self.r.get_dict(self.prefix) or {}
+        return list(self.__data.items())
 
     def __contains__(self, key: str) -> bool:
-        d = self._load()
-        return key in d
+        if self.__data is None:
+            self.__data = self.r.get_dict(self.prefix) or {}
+        return key in self.__data
 
     def __len__(self) -> int:
-        d = self._load()
-        return len(d)
+        return len(self.data)
+
+    def __repr__(self) -> str:
+        return f"CachedDictionary({self.data})"
+
+    def __str__(self) -> str:
+        return str(self.data)
+
+
+class StepTracker:
+    def __init__(self, prefix: str, r: RedisClient):
+        self.prefix = prefix
+        self.r = r
+        self.__steps: list[str] | None = None
+
+    @property
+    def steps(self) -> list[str]:
+        if self.__steps is None:
+            data = self.r.get(f"{self.prefix}:steps")
+            if data is None:
+                self.__steps = []
+            else:
+                self.__steps = json.loads(data.decode("utf-8"))  # type: ignore[no-any-return]
+        return self.__steps or []
+
+    def add(self, step_name: str) -> None:
+        steps = self.steps
+        if step_name in steps:
+            return
+        steps.append(step_name)
+        self.r.set(f"{self.prefix}:steps", json.dumps(steps).encode("utf-8"), ex=self.r.ttl_hours * 3600)
+        self.__steps = steps
+
+    def pop(self) -> str | None:
+        steps = self.steps
+        if not steps:
+            return None
+        last = steps.pop()
+        self.r.set(f"{self.prefix}:steps", json.dumps(steps).encode("utf-8"), ex=self.r.ttl_hours * 3600)
+        self.__steps = steps
+        return last
+
+    def last(self) -> str | None:
+        steps = self.steps
+        if not steps:
+            return None
+        return steps[-1]
+
+    def __repr__(self) -> str:
+        return f"StepTracker(steps={self.steps})"

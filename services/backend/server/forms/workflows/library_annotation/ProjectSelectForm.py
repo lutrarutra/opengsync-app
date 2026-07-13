@@ -1,16 +1,16 @@
-from fastapi import Request, Depends, Response, APIRouter
+from fastapi import Depends, Response
 from sqlalchemy import orm
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C
 
-from ....core import exceptions as exc, dependencies
+from ....core import exceptions as exc, dependencies, responses
 from ....components import inputs
 from ..HTMXWorkflowStep import HTMXWorkflowStep
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from ...HTMXForm import RouteFunc, FormFunc
+from ...HTMXForm import RouteFunc, FormFunc, htmx_route
 
 class ProjectSelectForm(HTMXWorkflowStep):
-    step_name = "project_select"
+    workflow: LibraryAnnotationWorkflow
 
     template_path = "workflows/library_annotation/sas-project_select.html"
 
@@ -39,40 +39,53 @@ class ProjectSelectForm(HTMXWorkflowStep):
     def __init__(
         self,
         seq_request: models.SeqRequest,
+        workflow: LibraryAnnotationWorkflow,
     ) -> None:
-        super().__init__()
+        super().__init__(workflow)
         self.seq_request = seq_request
+
+    @property
+    def post_url(self) -> responses.URL:
+        return ProjectSelectForm.PostURL(ProjectSelectForm.Submit, prefix="LibraryAnnotationWorkflow", seq_request_id=self.seq_request.id)
 
     @classmethod
     def Init(cls) -> FormFunc:
         def dependency(
             seq_request_id: int,
-            session: SyncSession = Depends(dependencies.db_session)
+            session: SyncSession = Depends(dependencies.db_session),
+            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
         ) -> ProjectSelectForm:
             seq_request = session.get_one(
                 Q.seq_request.select(id=seq_request_id).options(
                     orm.joinedload(models.SeqRequest.requestor)
                 )
             )
-            return cls(seq_request=seq_request)
+            return cls(seq_request=seq_request, workflow=workflow)
         return dependency
 
-    # def fill_previous_form(self) -> None:
-    #     project_id = self.metadata.get("project_id")
-    #     if project_id is not None:
-    #         self.existing_project.data = project_id
-    #     else:
-    #         self.new_project.data = self.metadata.get("project_title")
-    #         self.project_description.data = self.metadata.get("project_description")
+    @htmx_route("GET")
+    def Previous(cls) -> RouteFunc:
+        def route(
+            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
+            form: ProjectSelectForm = Depends(ProjectSelectForm.Init()),
+        ) -> Response:
+            project_id = workflow.metadata.get("project_id")
+            if project_id is not None:
+                form.existing_project.data = project_id
+            else:
+                form.new_project.data = workflow.metadata.get("project_title")
+                form.project_description.data = workflow.metadata.get("project_description")
+            return form.make_response()
+        return route
+        
 
-    @classmethod
+    @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
-            request: Request,
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init()),
+            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
             current_user: models.User = Depends(dependencies.require_user),
             session: SyncSession = Depends(dependencies.db_session),
-            form: ProjectSelectForm = Depends(ProjectSelectForm.Init()),
+            form: ProjectSelectForm = Depends(ProjectSelectForm.Validate()),
         ) -> Response:
             project: models.Project | None = None
             if not form.new_project.data and form.existing_project.data is None:
@@ -110,12 +123,6 @@ class ProjectSelectForm(HTMXWorkflowStep):
                 if form.set_requestor_as_owner.data and current_user.is_insider()
                 else current_user.id
             )
-            next_form = workflow.get_next_step(cls.step_name)
-            return next_form.begin(request=request, workflow=workflow)
+            next_form = workflow.get_next_step(form)
+            return next_form.make_response()
         return route
-
-    @classmethod
-    def Router(cls, prefix: str) -> APIRouter:
-        router = APIRouter()
-        router.add_api_route("/project-select", cls.Submit(), methods=["POST"], name=f"{prefix}.{cls.__name__}.submit")
-        return router

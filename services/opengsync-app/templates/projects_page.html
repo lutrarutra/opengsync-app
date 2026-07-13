@@ -8,7 +8,7 @@
         </div>
         <div class="page-controls">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                hx-get="{{ url_for('render_create_project_form') }}"
+                hx-get="{{ url_for('ProjectForm.Create') }}"
                 hx-target="#xl-modal-content" data-bs-toggle="modal"
                 hx-swap="innerHTML" hx-trigger="click">
                 New Project
