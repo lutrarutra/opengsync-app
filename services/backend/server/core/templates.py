@@ -5,9 +5,9 @@ from datetime import datetime
 import pandas as pd
 import jinja2
 from fastapi.templating import Jinja2Templates
+from starlette.datastructures import URL
 
-from opengsync_db import categories as C, models
-from opengsync_db import units
+from opengsync_db import categories as C, models, SyncSession, units
 
 from . import context
 from .config import settings
@@ -149,7 +149,7 @@ j2.env.filters["prioritize_current_user"] = prioritize_current_user
 
 
 @jinja2.pass_context
-def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
+def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> URL:
     """Custom url_for that handles static files without needing request.url_for.
     
     Unlike Flask, Starlette's url_for only substitutes path parameters and
@@ -166,16 +166,15 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
         except Exception:
             if name == "static":
                 filename = path_params.get("filename", "")
-                return f"/static/{filename.lstrip('/')}"
+                return URL(f"/static/{filename.lstrip('/')}")
             raise
 
         if query_kwargs:
             from urllib.parse import urlencode
-            url = f"{url}?{urlencode(query_kwargs)}"
+            url = URL(f"{url}?{urlencode(query_kwargs)}")
 
-        return url.__str__()
+        return url
     raise RuntimeError(f"Cannot generate URL for '{name}' without a request context")
-
 
 def _get_route_param_names(router, name: str) -> set:
     """Extract path parameter names from a route by its name."""

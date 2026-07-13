@@ -1,0 +1,163 @@
+{% from 'components/spinner.jinja2' import spinner %}
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div class="library-select-input {{ container_class }} {% if field.hidden %}d-none{% endif %}" id="{{ field.id }}-container">
+    <input
+        type="hidden"
+        name="{{ field.name }}"
+        id="{{ field.id }}"
+        value="{{ field.data | tojson if field.data else '[]' }}"
+    >
+    <div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">
+        {% for error in field.errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+    <div hx-get="{{ field.table_url }}" hx-trigger="load" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
+</div>
+
+{% if not field.read_only %}
+<script>
+    (function() {
+        const containerId = "{{ field.id }}";
+        const fieldId = "{{ field.id }}";
+        const selectAll = {{ "true" if field.select_all else "false" }};
+
+        // State
+        let selectedLibraries = {{ field.data | tojson if field.data else "[]" }};
+        let isMouseDown = false;
+        let dragging = false;
+        let hoveredLibrary = null;
+        let selecting = true; // true = selecting, false = unselecting
+
+        // DOM refs
+        const $container = $("#" + containerId + "-container");
+        const $hiddenInput = $("#" + fieldId);
+        const $selectedCount = $("#" + fieldId + "-selected-count");
+        const $selectedTableBody = $("#" + fieldId + "-selected-table-body");
+
+        function syncHiddenInput() {
+            $hiddenInput.val(JSON.stringify(selectedLibraries));
+        }
+
+        function updateCount() {
+            $selectedCount.text(selectedLibraries.length);
+            $("#" + fieldId + "-tab-btn").text("Selected Libraries (" + selectedLibraries.length + ")");
+        }
+
+        function addLibrary(libraryId, rowElement) {
+            libraryId = parseInt(libraryId);
+            if (selectedLibraries.includes(libraryId)) return;
+            selectedLibraries.push(libraryId);
+            $(rowElement).addClass("selected");
+
+            // Clone row into selected table
+            const $cloned = $(rowElement).clone();
+            $cloned.attr("id", "selected-library-row-" + libraryId);
+            $cloned.on("click", function() { removeLibrary(libraryId); });
+            $selectedTableBody.append($cloned);
+
+            syncHiddenInput();
+            updateCount();
+        }
+
+        function removeLibrary(libraryId) {
+            libraryId = parseInt(libraryId);
+            selectedLibraries = selectedLibraries.filter(function(v) { return v !== libraryId; });
+            $("#library-row-" + libraryId).removeClass("selected");
+            $("#selected-library-row-" + libraryId).remove();
+            syncHiddenInput();
+            updateCount();
+        }
+
+        function toggleLibrary(libraryId, rowElement) {
+            libraryId = parseInt(libraryId);
+            if (selectedLibraries.includes(libraryId)) {
+                removeLibrary(libraryId);
+            } else {
+                addLibrary(libraryId, rowElement);
+            }
+        }
+
+        // Delegate events on the browse table (which loads dynamically)
+        $container.on("mousedown", ".library-row", function(e) {
+            e.preventDefault();
+            isMouseDown = true;
+            const firstId = parseInt($(this).data("id"));
+            selecting = !selectedLibraries.includes(firstId);
+            if (selecting) {
+                addLibrary(firstId, this);
+            } else {
+                removeLibrary(firstId);
+            }
+            hoveredLibrary = firstId;
+        });
+
+        $container.on("mousemove", ".library-row", function(e) {
+            if (isMouseDown) {
+                dragging = true;
+                const currentId = parseInt($(this).data("id"));
+                if (hoveredLibrary !== currentId) {
+                    hoveredLibrary = currentId;
+                    if (selecting) {
+                        addLibrary(currentId, this);
+                    } else {
+                        removeLibrary(currentId);
+                    }
+                }
+            }
+        });
+
+        $(document).on("mouseup", function(e) {
+            isMouseDown = false;
+            dragging = false;
+        });
+
+        // Cmd+A / Ctrl+A to select all visible rows
+        $(document).on("keydown", function(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === "a") {
+                if ($container.find(".library-row:visible").length > 0) {
+                    e.preventDefault();
+                    $container.find(".library-row:visible").each(function() {
+                        const lid = parseInt($(this).data("id"));
+                        if (!selectedLibraries.includes(lid)) {
+                            addLibrary(lid, this);
+                        }
+                    });
+                }
+            }
+        });
+
+        // Select All button
+        if (selectAll) {
+            $container.on("click", "#" + fieldId + "-select-all-btn", function() {
+                $container.find(".library-row:visible").each(function() {
+                    const lid = parseInt($(this).data("id"));
+                    if (!selectedLibraries.includes(lid)) {
+                        addLibrary(lid, this);
+                    }
+                });
+            });
+        }
+
+        // Restore pre-selected libraries on load
+        $(document).ready(function() {
+            if (selectedLibraries.length > 0) {
+                updateCount();
+            }
+        });
+
+        // After HTMX swaps new browse content, re-highlight already-selected rows
+        $container.on("htmx:afterSettle", function() {
+            $container.find(".library-row").each(function() {
+                const lid = parseInt($(this).data("id"));
+                if (selectedLibraries.includes(lid)) {
+                    $(this).addClass("selected");
+                }
+            });
+        });
+    })();
+</script>
+{% endif %}

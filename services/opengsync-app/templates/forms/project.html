@@ -1,7 +1,3 @@
-{% from 'components/form_group.jinja2' import form_group, select_input %}
-{% from 'components/search_select.jinja2' import search_select_field %}
-
-
 <div class="modal-content" id="project-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >{% if form.form_type == "create" %}Create{% elif form.form_type == "edit" %}Edit{% endif %} Project</h1>

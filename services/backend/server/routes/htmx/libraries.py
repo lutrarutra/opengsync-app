@@ -55,6 +55,7 @@ def render_library_table(
     name: str | None = Query(None, description="Search by library name"),
     pool_name: str | None = Query(None, description="Search by pool name"),
     id_search: str | None = Query(None, alias="id", description="Search by library ID"),
+    browse: str | None = Query(None, description="Browse context for library selection component"),
     type_in: list[C.LibraryType] | None = Depends(
         dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="type_in")
     ),
@@ -128,6 +129,10 @@ def render_library_table(
             raise exc.NoPermissionsException("You do not have permission to view libraries for this sample.")
         table.template = "components/tables/sample-library.html"
         table.url_params["sample_id"] = sample_id
+    elif browse is not None:
+        table.template = "components/tables/browse-library.html"
+        table.context["browse_context"] = browse
+        table.url_params["browse"] = browse
     else:
         table.template = "components/tables/library.html"
         if not current_user.is_insider():

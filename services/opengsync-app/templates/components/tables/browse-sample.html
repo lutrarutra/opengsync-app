@@ -1,0 +1,50 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+<div id="select-samples-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("select-samples-table", table, "id") }}
+                {{ table_col("select-samples-table", table, "name") }}
+                {{ table_col("select-samples-table", table, "status") }}
+                {{ table_col("select-samples-table", table, "owner") }}
+                {% if browse_context == "qubit_measure" %}
+                <th class="col-2" scope="col">Qubit Conc.</th>
+                {% elif browse_context == "ba_report" %}
+                <th class="col-2" scope="col">Avg. Fragment Size</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for sample in samples %}
+            <tr id="sample-row-{{ sample.id }}" data-id="{{ sample.id }}" class="sample-row">
+                <th scope="row">{{ sample.id }}</th>
+                <td>{{ sample.name }}</td>
+                <td>{% if sample.status %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
+                <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
+                {% if browse_context == "qubit_measure" %}
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ sample.qubit_concentration or "" }}</div>
+                        <div class="unit">ng/μL</div>
+                    </div>
+                </td>
+                {% elif browse_context == "ba_report" %}
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ sample.avg_fragment_size or "" }}</div>
+                        <div class="unit">bp</div>
+                    </div>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("select-samples-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#select-samples-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

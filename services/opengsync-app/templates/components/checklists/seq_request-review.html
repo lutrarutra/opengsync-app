@@ -439,7 +439,7 @@
                     hx-get="{{ url_for('check_seq_request_barcode_clashes', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button></li>
                     <li>Reindex Libraries if required, e.g. kit not specified but exists or barcode is specified in wrong orientation: <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('begin_reindex_workflow', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('ReindexWorkflow.begin', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button></li>
                     <li>
                         Mark custom barcodes as <span class="badge">checked</span> after confirming barcode orientation:

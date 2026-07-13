@@ -69,7 +69,9 @@ class SelectSamplesForm(MultiStepForm):
         )
 
     def __init__(
-        self, workflow: str, formdata: dict | None = None, context: dict | None = None,
+        self, workflow: str,
+        formdata: dict | None = None,
+        context: dict | None = None,
         select_samples: bool = False,
         select_libraries: bool = False,
         select_pools: bool = False,

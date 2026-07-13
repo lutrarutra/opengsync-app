@@ -5,10 +5,10 @@ from fastapi.responses import Response
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ..core import exceptions as exc, responses, dependencies
-from ..components import inputs
-from ..components.tables import IntegerColumn, TextColumn
-from .HTMXForm import HTMXForm
+from ...core import exceptions as exc, responses, dependencies
+from ...components import inputs
+from ...components.tables import IntegerColumn, TextColumn
+from ..HTMXForm import HTMXForm
 
 
 class LibraryPropertyForm(HTMXForm):
@@ -21,14 +21,13 @@ class LibraryPropertyForm(HTMXForm):
 
     def __init__(
         self,
-        request: Request,
         access_level: C.AccessLevel,
         seq_request_id: int | None,
         project_id: int | None,
         library_id: int | None,
         libraries: Sequence[models.Library] | None = None,
     ) -> None:
-        super().__init__(request)
+        super().__init__()
         self._validated_df: pd.DataFrame | None = None
         self._to_delete: set[str] = set()
         self.access_level = access_level

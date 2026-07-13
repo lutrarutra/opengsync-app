@@ -1,0 +1,163 @@
+{% from 'components/spinner.jinja2' import spinner %}
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div class="sample-select-input {{ container_class }} {% if field.hidden %}d-none{% endif %}" id="{{ field.id }}-container">
+    <input
+        type="hidden"
+        name="{{ field.name }}"
+        id="{{ field.id }}"
+        value="{{ field.data | tojson if field.data else '[]' }}"
+    >
+    <div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">
+        {% for error in field.errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+    <div hx-get="{{ field.table_url }}" hx-trigger="load" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
+</div>
+
+{% if not field.read_only %}
+<script>
+    (function() {
+        const containerId = "{{ field.id }}";
+        const fieldId = "{{ field.id }}";
+        const selectAll = {{ "true" if field.select_all else "false" }};
+
+        // State
+        let selectedSamples = {{ field.data | tojson if field.data else "[]" }};
+        let isMouseDown = false;
+        let dragging = false;
+        let hoveredSample = null;
+        let selecting = true; // true = selecting, false = unselecting
+
+        // DOM refs
+        const $container = $("#" + containerId + "-container");
+        const $hiddenInput = $("#" + fieldId);
+        const $selectedCount = $("#" + fieldId + "-selected-count");
+        const $selectedTableBody = $("#" + fieldId + "-selected-table-body");
+
+        function syncHiddenInput() {
+            $hiddenInput.val(JSON.stringify(selectedSamples));
+        }
+
+        function updateCount() {
+            $selectedCount.text(selectedSamples.length);
+            $("#" + fieldId + "-tab-btn").text("Selected Samples (" + selectedSamples.length + ")");
+        }
+
+        function addSample(sampleId, rowElement) {
+            sampleId = parseInt(sampleId);
+            if (selectedSamples.includes(sampleId)) return;
+            selectedSamples.push(sampleId);
+            $(rowElement).addClass("selected");
+
+            // Clone row into selected table
+            const $cloned = $(rowElement).clone();
+            $cloned.attr("id", "selected-sample-row-" + sampleId);
+            $cloned.on("click", function() { removeSample(sampleId); });
+            $selectedTableBody.append($cloned);
+
+            syncHiddenInput();
+            updateCount();
+        }
+
+        function removeSample(sampleId) {
+            sampleId = parseInt(sampleId);
+            selectedSamples = selectedSamples.filter(function(v) { return v !== sampleId; });
+            $("#sample-row-" + sampleId).removeClass("selected");
+            $("#selected-sample-row-" + sampleId).remove();
+            syncHiddenInput();
+            updateCount();
+        }
+
+        function toggleSample(sampleId, rowElement) {
+            sampleId = parseInt(sampleId);
+            if (selectedSamples.includes(sampleId)) {
+                removeSample(sampleId);
+            } else {
+                addSample(sampleId, rowElement);
+            }
+        }
+
+        // Delegate events on the browse table (which loads dynamically)
+        $container.on("mousedown", ".sample-row", function(e) {
+            e.preventDefault();
+            isMouseDown = true;
+            const firstId = parseInt($(this).data("id"));
+            selecting = !selectedSamples.includes(firstId);
+            if (selecting) {
+                addSample(firstId, this);
+            } else {
+                removeSample(firstId);
+            }
+            hoveredSample = firstId;
+        });
+
+        $container.on("mousemove", ".sample-row", function(e) {
+            if (isMouseDown) {
+                dragging = true;
+                const currentId = parseInt($(this).data("id"));
+                if (hoveredSample !== currentId) {
+                    hoveredSample = currentId;
+                    if (selecting) {
+                        addSample(currentId, this);
+                    } else {
+                        removeSample(currentId);
+                    }
+                }
+            }
+        });
+
+        $(document).on("mouseup", function(e) {
+            isMouseDown = false;
+            dragging = false;
+        });
+
+        // Cmd+A / Ctrl+A to select all visible rows
+        $(document).on("keydown", function(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === "a") {
+                if ($container.find(".sample-row:visible").length > 0) {
+                    e.preventDefault();
+                    $container.find(".sample-row:visible").each(function() {
+                        const sid = parseInt($(this).data("id"));
+                        if (!selectedSamples.includes(sid)) {
+                            addSample(sid, this);
+                        }
+                    });
+                }
+            }
+        });
+
+        // Select All button
+        if (selectAll) {
+            $container.on("click", "#" + fieldId + "-select-all-btn", function() {
+                $container.find(".sample-row:visible").each(function() {
+                    const sid = parseInt($(this).data("id"));
+                    if (!selectedSamples.includes(sid)) {
+                        addSample(sid, this);
+                    }
+                });
+            });
+        }
+
+        // Restore pre-selected samples on load
+        $(document).ready(function() {
+            if (selectedSamples.length > 0) {
+                updateCount();
+            }
+        });
+
+        // After HTMX swaps new browse content, re-highlight already-selected rows
+        $container.on("htmx:afterSettle", function() {
+            $container.find(".sample-row").each(function() {
+                const sid = parseInt($(this).data("id"));
+                if (selectedSamples.includes(sid)) {
+                    $(this).addClass("selected");
+                }
+            });
+        });
+    })();
+</script>
+{% endif %}

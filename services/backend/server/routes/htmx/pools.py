@@ -30,6 +30,7 @@ def render_pool_table(
     status_in: list[C.PoolStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PoolStatus, query_param="status_in")),
     library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
     type_in: list[C.PoolType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PoolType, query_param="type_in")),
+    browse: str | None = Query(None, description="Browse context for pool selection component"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Pool, default=models.Pool.id.desc())),
     current_user: models.User = Depends(dependencies.require_user),
@@ -57,6 +58,10 @@ def render_pool_table(
         table.template = "components/tables/seq_request-pool.html"
         table.url_params["seq_request_id"] = seq_request_id
         table.context["seq_request_id"] = seq_request_id
+    elif browse is not None:
+        table.template = "components/tables/browse-pool.html"
+        table.context["browse_context"] = browse
+        table.url_params["browse"] = browse
     else:
         table.template = "components/tables/pool.html"
         if not current_user.is_insider():

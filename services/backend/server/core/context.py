@@ -64,7 +64,13 @@ def get_request_context() -> dict[str, Any]:
     
     if (current_user := getattr(request.state, "current_user", runtime.NOT_CHECKED)) == runtime.NOT_CHECKED:
         current_user = None
-    return {
+
+    context = {
         "request": request,
         "current_user": current_user
     }
+
+    if hasattr(request.state, "db_session"):
+        context["session"] = request.state.db_session
+
+    return context

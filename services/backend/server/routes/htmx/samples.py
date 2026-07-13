@@ -32,6 +32,8 @@ def render_sample_table(
     lab_prep_id: int | None = Query(None, description="Optional lab prep ID to filter samples"),
     project_id: int | None = Query(None, description="Optional project ID to filter samples"),
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter samples"),
+    browse: str | None = Query(None, description="Optional browse context to filter samples"),
+    name: str | None = Query(None, description="Optional sample name to search samples"),
     status_in: list[C.SampleStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.SampleStatus, query_param="status_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Sample, default=models.Sample.id.desc())),
@@ -49,6 +51,15 @@ def render_sample_table(
         project_id=project_id,
         seq_request_id=seq_request_id,
         status_in=status_in,
+    )
+
+    if name:
+        table.active_search_var = "name"
+        table.active_query_value = name
+
+    stmt = Q.sample.search(
+        name=name,
+        statement=stmt,
     )
     
     if library_id is not None:
@@ -75,6 +86,10 @@ def render_sample_table(
         table.template = "components/tables/lab_prep-sample.html"
         table.url_params["lab_prep_id"] = lab_prep_id
         table.context["lab_prep"] = session.get_one(Q.lab_prep.select(id=lab_prep_id))
+    elif browse is not None:
+        table.template = "components/tables/browse-sample.html"
+        table.context["browse_context"] = browse
+        table.url_params["browse"] = browse
     else:
         if not current_user.is_insider():
             stmt = Q.sample.select(viewer_id=current_user.id, statement=stmt)

@@ -153,6 +153,7 @@ class HTMXForm(ABC):
         self._sub_forms_cache: Optional[list[SubHTMXForm]] = None
         self._pydantic_model: Optional[type[BaseModel]] = None
         self.validated = False
+        self._general_errors: list[str] = []
 
         for field_name in dir(self.__class__):
             if field_name.startswith("_"):
@@ -338,13 +339,16 @@ class HTMXForm(ABC):
         return fields
 
     @property
-    def errors(self) -> dict[str, list[str]]:
+    def errors(self) -> dict[str | None, list[str]]:
         """Get all errors from all fields and sub-forms"""
         all_errors = {}
 
         for field in self.input_fields:
             if field.errors:
                 all_errors[field.name] = field.errors
+
+        if self._general_errors:
+            all_errors[None] = self._general_errors
 
         for sub_form in self.sub_forms:
             all_errors.update(sub_form.errors)
@@ -400,6 +404,9 @@ class HTMXForm(ABC):
     def csrf_token_value(self) -> str:
         return ctx.request.state.csrf_token  # from middleware
 
+    def add_general_error(self, error: str) -> None:
+        self._general_errors.append(error)
+
     def render_submit_button(
         self,
         post_url: str,
@@ -425,3 +432,14 @@ class HTMXForm(ABC):
     def invalid_response_handler(self, request: Request, exc: exc.FormValidationException) -> Response:
         """Handle invalid form submissions by returning a response with errors."""
         return self.make_response(status_code=200)
+
+    def render_general_errors(self) -> str:
+        """Render general (non-field-specific) errors for this form."""
+        if not self._general_errors:
+            return Markup("")
+        return Markup(
+            templates.render_template(
+                "components/inputs/general-errors.html",
+                errors=self._general_errors,
+            )
+        )
