@@ -45,7 +45,7 @@ class CommentForm(HTMXForm):
             ) < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to comment on this sequencing request.")
         elif experiment_id is not None or lab_prep_id is not None:
-            if not current_user.is_insider():
+            if not current_user.is_insider:
                 raise exc.NoPermissionsException("You do not have permission to comment on this resource.")
         else:
             raise exc.BadRequestException("At least one of seq_request_id, experiment_id, or lab_prep_id must be provided.")

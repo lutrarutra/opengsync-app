@@ -37,7 +37,7 @@ class AddSeqRequestAssigneeForm(HTMXFlaskForm):
 
         assignee = db.session.get_one(Q.user.select(id=self.user.selected.data))
 
-        if not assignee.is_insider():
+        if not assignee.is_insider:
             self.user.selected.errors = ("Only insider users can be assigned to requests.",)
             return False
         

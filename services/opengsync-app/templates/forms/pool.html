@@ -8,28 +8,28 @@
     </div>
     <div class="modal-body">
         <div id="pool-form">
-            {{ pool_form.csrf_token() }}
+            {{ form.csrf_token.render() }}
             <div class="row">
-                {{ form_group(pool_form.pool_type, class="col-3") }}
-                {{ form_group(pool_form.name, class="col-3") }}
-                {{ form_group(pool_form.num_m_reads_requested, class="col-3") }}
-                {{ select_input(pool_form.status, class="col-3") }}
+                {{ form_group(form.pool_type, class="col-3") }}
+                {{ form_group(form.name, class="col-3") }}
+                {{ form_group(form.num_m_reads_requested, class="col-3") }}
+                {{ select_input(form.status, class="col-3") }}
             </div>
             <div class="row">
-                {% if (form_type == "create" or form_type == "clone") and current_user.is_insider() %}
+                {% if (form.form_type == "create" or form.form_type == "clone") and current_user.is_insider %}
                 {{
                     search_select_field(
-                        pool_form.contact, url_for('users_htmx.search', insider=True), "name", class="col-4"
+                        form.contact, url_for('users_htmx.search', insider=True), "name", class="col-4"
                     )
                 }}
-                {{ form_group(pool_form.contact_name, class="col-2") }}
-                {{ form_group(pool_form.contact_email, class="col-3") }}
-                {{ form_group(pool_form.contact_phone, class="col-3") }}
+                {{ form_group(form.contact_name, class="col-2") }}
+                {{ form_group(form.contact_email, class="col-3") }}
+                {{ form_group(form.contact_phone, class="col-3") }}
                 {% else %}
-                {{ pool_form.contact.csrf_token() }}
-                {{ form_group(pool_form.contact_name, class="col-4") }}
-                {{ form_group(pool_form.contact_email, class="col-4") }}
-                {{ form_group(pool_form.contact_phone, class="col-4") }}
+                {{ form.contact.csrf_token() }}
+                {{ form_group(form.contact_name, class="col-4") }}
+                {{ form_group(form.contact_email, class="col-4") }}
+                {{ form_group(form.contact_phone, class="col-4") }}
                 {% endif %}
             </div>
         </div>
@@ -42,12 +42,12 @@
         </div>
         <div class="footer-controls">
             <button class="btn btn-success" hx-include="#pool-form" hx-target="#pool-form-container" hx-swap="outerHTML"
-                {% if form_type == "edit" %}
-                hx-post="{{ url_for('pools_htmx.edit', pool_id=pool.id) }}"
-                {% elif form_type == "create" %}
-                hx-post="{{ url_for('pools_htmx.create') }}"
-                {% elif form_type == 'clone' %}
-                hx-post="{{ url_for('pools_htmx.clone', pool_id=pool.id) }}"
+                {% if form.form_type == "edit" %}
+                hx-post="{{ url_for('PoolForm.Edit', pool_id=form.pool.id) }}"
+                {% elif form.form_type == "create" %}
+                hx-post="{{ url_for('PoolForm.Create') }}"
+                {% elif form.form_type == 'clone' %}
+                hx-post="{{ url_for('PoolForm.Clone', pool_id=form.pool.id) }}"
                 {% endif %}>
                 Complete
             </button>

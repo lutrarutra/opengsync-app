@@ -162,7 +162,7 @@
                     <li>Check cost and signature.</li>
                 </ul>
                 {% if seq_request.seq_auth_form_file %}
-                <embed src="{{ url_for('pdf_file',  file_id=seq_request.seq_auth_form_file.id) }}" type="application/pdf" width="100%" height="1000px"/>
+                <embed src="{{ url_for('serve_media_file',  media_file_id=seq_request.seq_auth_form_file.id) }}" type="application/pdf" width="100%" height="1000px"/>
                 {% else %}
                 <p class="text-danger">Sequencing Authorization not provided.</p>
                 {% endif %}
@@ -436,7 +436,7 @@
                 <b>What to look for?</b>:
                 <ul>
                     <li>Check Clashes: <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('check_seq_request_barcode_clashes', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('CheckBarcodeClashesAction.Render', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML">Begin</button></li>
                     <li>Reindex Libraries if required, e.g. kit not specified but exists or barcode is specified in wrong orientation: <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
                     hx-get="{{ url_for('ReindexWorkflow.begin', seq_request_id=seq_request.id) }}"

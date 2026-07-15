@@ -11,7 +11,7 @@ load_flow_cell_workflow = Blueprint("load_flow_cell_workflow", __name__, url_pre
 
 @wrappers.htmx_route(load_flow_cell_workflow, db=db)
 def begin(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -27,7 +27,7 @@ def begin(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(load_flow_cell_workflow, db=db, methods=["POST"])
 def load(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:

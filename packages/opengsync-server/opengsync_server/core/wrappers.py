@@ -93,7 +93,7 @@ def _route_decorator(
                 match limit_exempt:
                     case "insider":
                         def exempt_when() -> bool:
-                            return current_user.is_authenticated and current_user.is_insider()
+                            return current_user.is_authenticated and current_user.is_insider
                     case "user":
                         def exempt_when() -> bool:
                             return current_user.is_authenticated
@@ -117,7 +117,7 @@ def _route_decorator(
                 return key
             
             def insider_cache_key() -> str:
-                if current_user.is_authenticated and not current_user.is_insider():
+                if current_user.is_authenticated and not current_user.is_insider:
                     return user_cache_key()
                 query_string = ""
                 if cache_query_string and request.args:

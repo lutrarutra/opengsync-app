@@ -59,7 +59,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_sort_var = sort_by
         table.active_sort_descending = descending
 
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         stmt = Q.group.select(user_id=current_user.id, statement=stmt)
 
     groups, count = db.session.page(stmt, page=table.active_page or 0)
@@ -87,7 +87,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     else:
         raise exceptions.BadRequestException("No valid search parameters provided.")
 
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         stmt = Q.group.select(user_id=current_user.id, statement=stmt)
     
     groups, count = db.session.page(stmt, page=page)

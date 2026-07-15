@@ -57,7 +57,7 @@ class ReindexWorkflow(HTMXWorkflow):
                 pool = session.get_one(Q.pool.select(id=pool_id))
                 context["pool"] = pool
 
-            if not user.is_insider():
+            if not user.is_insider:
                 if "seq_request" not in context:
                     raise exc.NoPermissionsException()
 
@@ -65,7 +65,7 @@ class ReindexWorkflow(HTMXWorkflow):
                 form = SelectSamplesForm(
                     "reindex", context=context,
                     select_libraries=True,
-                    selected_libraries=[library for library in lab_prep.libraries if not library.is_indexed()]
+                    selected_libraries=[library for library in lab_prep.libraries if not library.is_indexed]
                 )
             else:
                 form = SelectSamplesForm(

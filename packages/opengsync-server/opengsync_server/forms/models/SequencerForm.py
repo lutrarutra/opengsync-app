@@ -79,7 +79,7 @@ class SequencerForm(HTMXFlaskForm):
         db.session.save(sequencer)
 
         flash("Sequencer updated.", "success")
-        return make_response(redirect=url_for("devices_page.sequencer", sequencer_id=sequencer.id))
+        return make_response(redirect=url_for("sequencer_page", sequencer_id=sequencer.id))
     
     def process_request(self, **context) -> Response:
         sequencer: Optional[models.Sequencer] = context.get("sequencer")

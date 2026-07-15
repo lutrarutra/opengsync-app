@@ -33,7 +33,7 @@ def get(current_user: models.User):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
@@ -45,7 +45,7 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -59,7 +59,7 @@ def edit(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def complete(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(
@@ -95,7 +95,7 @@ def complete(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -112,7 +112,7 @@ def delete(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["POST"])
 def uncomplete(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -127,7 +127,7 @@ def uncomplete(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"], arg_params=["library_id"])
 def remove_library(current_user: models.User, lab_prep_id: int, library_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -148,7 +148,7 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
     if direction not in ("rows", "columns"):
         raise exceptions.BadRequestException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -282,7 +282,7 @@ def download_template(current_user: models.User, lab_prep_id: int, direction: Li
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def prep_table_upload_form(current_user: models.User, lab_prep_id: int) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -298,7 +298,7 @@ def prep_table_upload_form(current_user: models.User, lab_prep_id: int) -> Respo
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def checklist(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -315,7 +315,7 @@ def checklist(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_files(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -332,7 +332,7 @@ def get_files(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["DELETE"])
 def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -356,7 +356,7 @@ def delete_file(current_user: models.User, lab_prep_id: int, file_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def file_form(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -374,7 +374,7 @@ def file_form(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def plates_tab(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -385,7 +385,7 @@ def plates_tab(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db, methods=["GET", "POST"])
 def comment_form(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -406,7 +406,7 @@ def get_comments(current_user: models.User, lab_prep_id: int):
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     return make_response(
@@ -419,7 +419,7 @@ def get_comments(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(lab_preps_htmx, db=db)
 def get_mux_table(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:

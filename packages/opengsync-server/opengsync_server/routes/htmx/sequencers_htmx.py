@@ -50,7 +50,7 @@ def delete(current_user: models.User, sequencer_id: int):
     except db_exc.ElementIsReferenced:
         flash("Sequencer is referenced by experiment(s) and cannot be deleted.", "error")
         return make_response(
-            redirect=url_for("devices_page.sequencer", sequencer_id=sequencer_id)
+            redirect=url_for("sequencer_page", sequencer_id=sequencer_id)
         )
 
     flash("Sequencer deleted.", "success")
@@ -61,7 +61,7 @@ def delete(current_user: models.User, sequencer_id: int):
 
 @wrappers.htmx_route(sequencers_htmx, db=db)
 def search(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     return make_response(render_template(**logic.sequencer.get_search_context(current_user=current_user, request=request)))

@@ -24,7 +24,7 @@ def search(current_user: models.User):
 
 @wrappers.htmx_route(pools_htmx, methods=["GET", "POST"], db=db)
 def create(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     form = forms.models.PoolForm("create", formdata=request.form, current_user=current_user)
@@ -34,7 +34,7 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(pools_htmx, db=db, methods=["GET", "POST"])
 def clone(current_user: models.User, pool_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
@@ -65,7 +65,7 @@ def get_form(current_user: models.User, form_type: Literal["create", "edit"], po
         if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
             raise exceptions.NotFoundException()
         
-        if not current_user.is_insider() and pool.owner_id != current_user.id:
+        if not current_user.is_insider and pool.owner_id != current_user.id:
             raise exceptions.NoPermissionsException()
         
         form = forms.models.PoolForm("edit", current_user=current_user, pool=pool)
@@ -90,7 +90,7 @@ def edit(current_user: models.User, pool_id: int):
 
 @wrappers.htmx_route(pools_htmx, methods=["DELETE"], db=db)
 def delete(current_user: models.User, pool_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
@@ -101,18 +101,18 @@ def delete(current_user: models.User, pool_id: int):
     
     db.session.delete(pool)
     flash("Pool deleted", "success")
-    return make_response(redirect=url_for("pools_page.pools"))
+    return make_response(redirect=url_for("pool_pages"))
 
 
 @wrappers.htmx_route(pools_htmx, methods=["DELETE"], db=db)
 def remove_libraries(current_user: models.User, pool_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
-    if pool.status != PoolStatus.DRAFT and not current_user.is_admin():
+    if pool.status != PoolStatus.DRAFT and not current_user.is_admin:
         raise exceptions.NoPermissionsException()
 
     for library in pool.libraries:
@@ -123,12 +123,12 @@ def remove_libraries(current_user: models.User, pool_id: int):
     db.session.save(pool)
     
     flash("Libraries removed from pool", "success")
-    return make_response(redirect=url_for("pools_page.pool", pool_id=pool_id))
+    return make_response(redirect=url_for("pool_page", pool_id=pool_id))
 
 
 @wrappers.htmx_route(pools_htmx, methods=["DELETE"], db=db)
 def remove_library(current_user: models.User, pool_id: int, library_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
@@ -166,7 +166,7 @@ def plate_pool(current_user: models.User, pool_id: int, form_type: Literal["crea
     if (pool := db.session.first(Q.pool.select(id=pool_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider() and pool.owner_id != current_user.id:
+    if not current_user.is_insider and pool.owner_id != current_user.id:
         raise exceptions.NoPermissionsException()
     
     form = forms.models.PlateForm(form_type=form_type, pool=pool, formdata=request.form)
@@ -192,7 +192,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
 def get_recent(current_user: models.User, page: int = 0):
     PAGE_LIMIT = 10
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     # pools, _ = db.pools.find(

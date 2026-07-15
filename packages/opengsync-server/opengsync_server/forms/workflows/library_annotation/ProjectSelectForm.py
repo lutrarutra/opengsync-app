@@ -67,7 +67,7 @@ class ProjectSelectForm(LibraryAnnotationWorkflow):
                 return False
             
         if self.new_project.data:
-            if user.is_insider():
+            if user.is_insider:
                 import sqlalchemy as sa
                 if db.session.query(models.Project.title).join(
                     models.User,
@@ -96,5 +96,5 @@ class ProjectSelectForm(LibraryAnnotationWorkflow):
         self.metadata["seq_request_id"] = self.seq_request.id
         self.metadata["user_id"] = user.id
         self.metadata["project_description"] = self.project_description.data
-        self.metadata["project_owner_id"] = self.seq_request.requestor.id if self.set_requestor_as_owner.data and user.is_insider() else user.id
+        self.metadata["project_owner_id"] = self.seq_request.requestor.id if self.set_requestor_as_owner.data and user.is_insider else user.id
         return self.get_next_step().make_response()

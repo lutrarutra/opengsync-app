@@ -20,7 +20,7 @@
                 <td class="user-cell cm-callback" id="user-cell-{{ user.id }}" data-id="{{ user.id }}"
                 {{
                     context_menu([
-                        {"type": "hxdelete", "label": "Remove Assignee", "disabled": false if current_user.is_insider() else true, "config": {
+                        {"type": "hxdelete", "label": "Remove Assignee", "disabled": false if current_user.is_insider else true, "config": {
                             "url": url_for('remove_seq_request_assignee', seq_request_id=seq_request.id, assignee_id=user.id),
                             "target": "#seq_request-assignee-table",
                             "title": "Remove {user.name} from {seq_request.name}?".format(user=user, seq_request=seq_request)

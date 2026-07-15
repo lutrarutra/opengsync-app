@@ -9,7 +9,7 @@
             <h1>{{ protocol.name }} <span class="desc">{{ protocol.service_type.abbreviation }}</span></h1>
         </div>
         <div class="page-controls">
-            {% if current_user.is_insider() %}
+            {% if current_user.is_insider %}
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Manage
@@ -32,7 +32,7 @@
                         </button>
                     </li>
                     <li>
-                        <span {% if not current_user.is_admin() %} {{ tooltip("Only admin can delete protocol.", "left", "warning") }} {% endif %}>
+                        <span {% if not current_user.is_admin %} {{ tooltip("Only admin can delete protocol.", "left", "warning") }} {% endif %}>
                             {{ 
                                 confirm_action_button(
                                     text="Delete",
@@ -40,7 +40,7 @@
                                     url=url_for('protocols_htmx.delete', protocol_id=protocol.id),
                                     method="hx-delete",
                                     class="dropdown-item",
-                                    disabled=not current_user.is_admin(),
+                                    disabled=not current_user.is_admin,
                                     disabled_tooltip="Only admin can delete protocol.",
                                     color="warning",
                                     tooltip_position="left"

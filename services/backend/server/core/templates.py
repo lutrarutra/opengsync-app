@@ -149,7 +149,7 @@ j2.env.filters["prioritize_current_user"] = prioritize_current_user
 
 
 @jinja2.pass_context
-def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> URL:
+def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
     """Custom url_for that handles static files without needing request.url_for.
     
     Unlike Flask, Starlette's url_for only substitutes path parameters and
@@ -166,12 +166,12 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> URL:
         except Exception:
             if name == "static":
                 filename = path_params.get("filename", "")
-                return URL(f"/static/{filename.lstrip('/')}")
+                return f"/static/{filename.lstrip('/')}"
             raise
 
         if query_kwargs:
             from urllib.parse import urlencode
-            url = URL(f"{url}?{urlencode(query_kwargs)}")
+            url = f"{url}?{urlencode(query_kwargs)}"
 
         return url
     raise RuntimeError(f"Cannot generate URL for '{name}' without a request context")

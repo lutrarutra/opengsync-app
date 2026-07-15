@@ -29,7 +29,7 @@ def get_context(current_user: models.User, args: dict) -> dict:
             raise exceptions.NotFoundException()
         context["lab_prep"] = lab_prep
 
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if "seq_request" not in context:
             raise exceptions.NoPermissionsException()
         
@@ -98,7 +98,7 @@ def select(current_user: models.User) -> Response:
     next_form.contact.selected.data = current_user.id
     next_form.contact.search_bar.data = current_user.name
 
-    if current_user.is_insider():
+    if current_user.is_insider:
         next_form.pool_type.data = PoolType.INTERNAL.id
     else:
         next_form.pool_type.data = PoolType.EXTERNAL.id

@@ -14,7 +14,6 @@ from ... import forms
 router = APIRouter(prefix="/projects", tags=["projects"])
 router.include_router(forms.models.ProjectForm.Router())
 
-
 class ProjectTable(HTMXTable):
     columns = [
         TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
@@ -108,7 +107,7 @@ def render_project_table(
         table.template = "components/tables/user-project.html"
         table.url_params["user_id"] = user_id
     elif experiment_id is not None:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view projects for this experiment.")
         table.template = "components/tables/experiment-project.html"
         table.url_params["experiment_id"] = experiment_id
@@ -125,7 +124,7 @@ def render_project_table(
         table.url_params["group_id"] = group_id
     else:
         table.template = "components/tables/project.html"
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
 
     projects, count = session.page(
@@ -164,7 +163,7 @@ def search_projects(
     elif word is not None:
         stmt = Q.project.search(title=word, identifier=word, statement=stmt)
 
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if group_id is not None:
             if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.READ:
                 raise exc.NoPermissionsException("You do not have permission to view this resource.")
@@ -174,26 +173,7 @@ def search_projects(
     projects, count = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/project.html", projects=projects)
 
-# @router.get("/create")
-# def render_create_project_form(r = Depends(forms.models.ProjectForm.Open(form_type="create"))): return r
-
-
-# @router.post("/create")
-# def create_project(r=Depends(forms.models.ProjectForm.Create())): return r
-
-
-# @router.get("/{project_id}/edit")
-# def render_project_edit_form(r = Depends(forms.models.ProjectForm.Open(form_type="edit"))): return r
-
-
-# @router.post("/{project_id}/edit")
-# def edit_project(r=Depends(forms.models.ProjectForm.Edit())): return r
-
-router.include_router(forms.models.ProjectForm.Router())
-
-@router.get(
-    "/{project_id}/export", dependencies=[Depends(dependencies.project_permissions)]
-)
+@router.get("/{project_id}/export", dependencies=[Depends(dependencies.project_permissions)])
 def export_project_data(
     project_id: int,
     session: SyncSession = Depends(dependencies.db_session),
@@ -241,15 +221,7 @@ def export_project_data(
         )
 
     bytes_io.seek(0)
-
-    return Response(
-        bytes_io,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": f"attachment; filename=project_{project.identifier or f'P_{project.id}'}.xlsx"
-        },
-    )
-
+    return responses.bytes_response(bytes_io.getvalue(), filename=f"project_{project.identifier or f'P_{project.id}'}.xlsx", content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 @router.delete("/{project_id}/delete")
 def delete_project(
@@ -288,9 +260,7 @@ def delete_project(
     )
 
 
-@router.post(
-    "/{project_id}/complete", dependencies=[Depends(dependencies.require_insider)]
-)
+@router.post("/{project_id}/complete", dependencies=[Depends(dependencies.require_insider)])
 def complete_project(
     project_id: int,
     session: SyncSession = Depends(dependencies.db_session),

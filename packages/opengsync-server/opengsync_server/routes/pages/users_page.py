@@ -10,7 +10,7 @@ users_page_bp = Blueprint("users_page", __name__)
 
 @wrappers.page_route(users_page_bp, db=db, cache_timeout_seconds=360)
 def users(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     return render_template("users_page.html", title="Users")
@@ -21,7 +21,7 @@ def user(current_user: models.User, user_id: int | None = None):
     if user_id is None:
         user_id = current_user.id
 
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if user_id != current_user.id:
             raise exceptions.NoPermissionsException()
         
@@ -55,8 +55,8 @@ def user(current_user: models.User, user_id: int | None = None):
             ]
         elif page == "pool":
             path_list = [
-                ("Pools", url_for("pools_page.pools")),
-                (f"Pool {id}", url_for("pools_page.pool", pool_id=id)),
+                ("Pools", url_for("pool_pages")),
+                (f"Pool {id}", url_for("pool_page", pool_id=id)),
                 (f"User {user_id}", ""),
             ]
         elif page == "group":

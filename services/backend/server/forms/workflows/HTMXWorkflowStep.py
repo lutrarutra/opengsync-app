@@ -13,5 +13,6 @@ class HTMXWorkflowStep(HTMXForm, ABC):
     def previous_url(self) -> str | None:
         return self.workflow.previous_url
 
-    def is_applicable(self) -> bool:
+    @classmethod
+    def is_applicable(cls, workflow: "HTMXWorkflow") -> bool:
         return True

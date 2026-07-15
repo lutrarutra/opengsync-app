@@ -27,7 +27,7 @@ def get_context(current_user: models.User, args: dict) -> dict:
             raise exceptions.NotFoundException()
         context["lab_prep"] = lab_prep
 
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if "seq_request" not in context:
             raise exceptions.NoPermissionsException()
         
@@ -36,7 +36,7 @@ def get_context(current_user: models.User, args: dict) -> dict:
 
 @wrappers.htmx_route(reseq_workflow, db=db)
 def begin(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     context = get_context(current_user, request.args)
         
@@ -49,7 +49,7 @@ def begin(current_user: models.User) -> Response:
 
 @wrappers.htmx_route(reseq_workflow, db=db, methods=["POST"])
 def select(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     context = get_context(current_user, request.args)
 
@@ -76,7 +76,7 @@ def select(current_user: models.User) -> Response:
 
 @wrappers.htmx_route(reseq_workflow, db=db, methods=["POST"])
 def reseq(current_user: models.User, uuid: str) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     return forms.ReseqLibrariesForm(uuid=uuid, formdata=request.form).process_request()

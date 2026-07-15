@@ -82,7 +82,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         stmt = Q.experiment.select(project_id=project.id, statement=stmt)
         table.url_params["project_id"] = project.id
     else:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
         template = "components/tables/experiment.html"
 
@@ -96,7 +96,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
     return context
 
 def get_search_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.BadRequestException("You do not have permission to view this resource.")
     
     context = parse_context(current_user, request) | kwargs
@@ -123,7 +123,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
 
 
 def get_browse_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     table = ExperimentTable(route="experiments_htmx.browse", page=request.args.get("page", 0, type=int))

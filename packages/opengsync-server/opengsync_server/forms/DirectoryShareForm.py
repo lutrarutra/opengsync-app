@@ -42,7 +42,7 @@ class DirectoryShareForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             return False
         
         if not self.recipients.data:
@@ -97,7 +97,7 @@ class DirectoryShareForm(HTMXFlaskForm):
 
         content = render_template(
             "email/share-directory.html", style=style, browse_link=browse_link,
-            author=None if self.anonymous_send.data else current_user if current_user.is_insider() else None,
+            author=None if self.anonymous_send.data else current_user if current_user.is_insider else None,
             share_token=share_token,
             sync_command=sync_command,
             http_command=http_command,

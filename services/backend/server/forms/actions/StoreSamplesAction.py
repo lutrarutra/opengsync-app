@@ -74,7 +74,7 @@ class StoreSamplesAction(HTMXForm):
                 if library.seq_request_id not in check_request_ids:
                     check_request_ids.add(library.seq_request_id)
                 
-                if library.is_pooled():
+                if library.is_pooled:
                     library.status = C.LibraryStatus.POOLED
                 else:
                     library.status = C.LibraryStatus.STORED

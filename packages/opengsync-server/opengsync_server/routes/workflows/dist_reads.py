@@ -11,7 +11,7 @@ dist_reads_workflow = Blueprint("dist_reads_workflow", __name__, url_prefix="/wo
 
 @wrappers.htmx_route(dist_reads_workflow, db=db)
 def begin(current_user: models.User, experiment_id: int) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -27,7 +27,7 @@ def begin(current_user: models.User, experiment_id: int) -> Response:
 
 @wrappers.htmx_route(dist_reads_workflow, db=db, methods=["POST"])
 def submit(current_user: models.User, experiment_id: int) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:

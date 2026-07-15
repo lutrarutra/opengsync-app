@@ -286,7 +286,7 @@ class SeqRequestForm(HTMXFlaskForm):
 
     def prepare(self):
         if self.form_type == "create":
-            self.disclaimer_form.disclaimer.data = self.current_user.is_insider()
+            self.disclaimer_form.disclaimer.data = self.current_user.is_insider
             self.contact_form.contact_person_name.data = self.current_user.name
             self.contact_form.contact_person_email.data = self.current_user.email
             self.contact_form.current_user_is_contact.data = True
@@ -297,7 +297,7 @@ class SeqRequestForm(HTMXFlaskForm):
     def validate(self, seq_request: Optional[models.SeqRequest] = None) -> bool:
         super().validate()
         
-        if self.current_user.is_insider():
+        if self.current_user.is_insider:
             assigned_user_id = self.user_select_form.user.selected.data
             assigned_user_email = self.user_select_form.email.data
             assigned_user_first_name = self.user_select_form.first_name.data
@@ -334,7 +334,7 @@ class SeqRequestForm(HTMXFlaskForm):
             self.technical_info_form.submission_type.errors = ("Submission type is required",)
         else:
             try:
-                if SubmissionType.get(self.technical_info_form.submission_type.data) == SubmissionType.UNPOOLED_LIBRARIES and not self.current_user.is_insider():
+                if SubmissionType.get(self.technical_info_form.submission_type.data) == SubmissionType.UNPOOLED_LIBRARIES and not self.current_user.is_insider:
                     self.technical_info_form.submission_type.errors = ("You can only submit raw samples or pooled libraries by default.",)
                     self.technical_info_form._validated = False
             except ValueError:
@@ -463,7 +463,7 @@ class SeqRequestForm(HTMXFlaskForm):
             ))
 
         user = self.current_user
-        if self.current_user.is_insider():
+        if self.current_user.is_insider:
             if (assigned_user_id := self.user_select_form.user.selected.data) is not None:
                 user = db.session.get_one(Q.user.select(id=assigned_user_id))
             elif (assigned_user_email := self.user_select_form.email.data):

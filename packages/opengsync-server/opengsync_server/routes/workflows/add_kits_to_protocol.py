@@ -9,7 +9,7 @@ add_kits_to_protocol_workflow = Blueprint("add_kits_to_protocol_workflow", __nam
 
 @wrappers.htmx_route(add_kits_to_protocol_workflow, db=db)
 def begin(current_user: models.User, protocol_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (protocol := db.session.first(Q.protocol.select(id=protocol_id))) is None:
@@ -20,7 +20,7 @@ def begin(current_user: models.User, protocol_id: int):
 
 @wrappers.htmx_route(add_kits_to_protocol_workflow, db=db, methods=["POST"])
 def add_kit_combinations(current_user: models.User, protocol_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (protocol := db.session.first(Q.protocol.select(id=protocol_id))) is None:

@@ -85,7 +85,7 @@ def delete(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["POST"])
 def complete(current_user: models.User, project_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (project := db.session.first(Q.project.select(id=project_id))) is None:
@@ -172,13 +172,13 @@ def edit_sample_attributes(current_user: models.User, project_id: int):
 def get_recent(current_user: models.User, page: int = 0):
     PAGE_LIMIT = 10
     status_in = None
-    if current_user.is_insider():
+    if current_user.is_insider:
         status_in = [
             ProjectStatus.PROCESSING, ProjectStatus.SEQUENCED,
         ]
 
     projects = db.session.get_all(Q.project.select(
-        user_id=current_user.id if not current_user.is_insider() else None,
+        user_id=current_user.id if not current_user.is_insider else None,
         status_in=status_in
     ), limit=PAGE_LIMIT, offset=PAGE_LIMIT * page, order_by=models.Project.id.desc())
 
@@ -330,7 +330,7 @@ def overview(current_user: models.User, project_id: int):
 
 @wrappers.htmx_route(projects_htmx, db=db, methods=["DELETE"])
 def remove_data_path(current_user: models.User, project_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (data_path_id := request.args.get("data_path_id", None)) is None:
@@ -378,7 +378,7 @@ def add_assignee(current_user: models.User, project_id: int, assignee_id: int | 
     if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if assignee_id is not None:
@@ -387,7 +387,7 @@ def add_assignee(current_user: models.User, project_id: int, assignee_id: int | 
     else:
         assignee = current_user
     
-    if not assignee.is_insider():
+    if not assignee.is_insider:
         raise exceptions.NoPermissionsException("Assignee must be an insider.")
     
     if assignee in project.assignees:
@@ -407,7 +407,7 @@ def add_assignee_form(current_user: models.User, project_id: int):
     if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
@@ -421,7 +421,7 @@ def remove_assignee(current_user: models.User, project_id: int, assignee_id: int
     if (project := db.session.first(Q.project.select(id=project_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (assignee := db.session.first(Q.user.select(id=assignee_id))) is None:

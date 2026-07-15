@@ -222,9 +222,9 @@ class ProjectBP(DBBlueprint):
     def get_access_type(self, project: models.Project, user: models.User) -> AccessType:
         if user.role == UserRole.DEACTIVATED:
             return AccessType.NONE
-        if user.is_admin():
+        if user.is_admin:
             return AccessType.ADMIN
-        if user.is_insider():
+        if user.is_insider:
             return AccessType.INSIDER
         if project.owner_id == user.id:
             return AccessType.OWNER

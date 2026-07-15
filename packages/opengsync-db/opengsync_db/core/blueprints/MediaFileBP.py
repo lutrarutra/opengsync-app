@@ -115,9 +115,9 @@ class MediaFileBP(DBBlueprint):
     def get_access_type(self, file: models.MediaFile, user: models.User) -> AccessType:
         if user.role == UserRole.DEACTIVATED:
             return AccessType.NONE
-        if user.is_admin():
+        if user.is_admin:
             return AccessType.ADMIN
-        if user.is_insider():
+        if user.is_insider:
             return AccessType.INSIDER
         if user == file.uploader:
             return AccessType.OWNER

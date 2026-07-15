@@ -21,7 +21,8 @@ from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
 router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
-
+router.include_router(forms.models.SeqRequestForm.Router())
+router.include_router(forms.actions.SubmitSeqRequestAction.Router())
 
 class SeqRequestTable(HTMXTable):
     columns = [
@@ -138,7 +139,7 @@ def render_seq_request_table(
         table.template = "components/tables/project-seq_request.html"
         table.url_params["project_id"] = project_id
     else:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.seq_request.select(viewer_id=current_user.id, statement=stmt)
 
         table.template = "components/tables/seq_request.html"
@@ -177,7 +178,7 @@ def recent_seq_requests(
             models.SeqRequest._num_libraries, models.SeqRequest.num_libraries.expression
         ),
     ]
-    if current_user.is_insider():
+    if current_user.is_insider:
         query = Q.seq_request.select(
             status_in=[
                 C.SeqRequestStatus.SUBMITTED,
@@ -217,51 +218,6 @@ def recent_seq_requests(
         current_page=page,
         limit=10,
     )
-
-
-@router.get("/create")
-def render_create_seq_request_form(
-    request: Request,
-    current_user: models.User = Depends(dependencies.require_user),
-):
-    """Render the create SeqRequest form."""
-    form = forms.models.SeqRequestForm(request, form_type="create")
-    return form.make_response()
-
-
-@router.post("/create")
-def create_seq_request(response=Depends(forms.models.SeqRequestForm.create)):
-    return response
-
-
-@router.get("/{seq_request_id}/edit")
-def render_edit_seq_request(
-    seq_request_id: int,
-    request: Request,
-    session: SyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-    current_user: models.User = Depends(dependencies.require_user),
-):
-    """Render the edit SeqRequest form."""
-    if access_level < C.AccessLevel.WRITE:
-        return responses.htmx_response(redirect=responses.url_for("seq_requests_page"))
-
-    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
-
-    if seq_request.status_id != C.SeqRequestStatus.DRAFT.id and access_level < C.AccessLevel.INSIDER:
-        return responses.htmx_response(
-            redirect=responses.url_for("seq_request_page", seq_request_id=seq_request_id)
-        )
-
-    form = forms.models.SeqRequestForm(
-        request, form_type="edit", seq_request=seq_request
-    )
-    return form.make_response()
-
-
-@router.post("/{seq_request_id}/edit")
-def edit_seq_request(response=Depends(forms.models.SeqRequestForm.edit)):
-    return response
 
 
 @router.get("/{seq_request_id}/process-request")
@@ -456,19 +412,16 @@ def export_seq_request_libraries(
     )
 
 
-@router.post("/{seq_request_id}/clone")
+@router.post("/{seq_request_id}/clone", dependencies=[Depends(dependencies.seq_request_permissions)])
 def clone_seq_request(
     seq_request_id: int,
     request: Request,
     method: Literal["pooled", "indexed", "raw"] = Query(...),
     session: SyncSession = Depends(dependencies.db_session),
-    current_user: models.User = Depends(dependencies.require_insider),
 ):
     seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
-    cloned_request = actions.clone_seq_request(
-        session=session.sync_session, seq_request=seq_request, method=method
-    )
-
+    cloned_request = actions.clone_seq_request(session=session, seq_request=seq_request, method=method)
+    cloned_request.status = C.SeqRequestStatus.DRAFT
     return responses.htmx_response(
         redirect=request.url_for("seq_request_page", seq_request_id=cloned_request.id),
         flash=responses.flash("Request cloned", "success"),
@@ -931,7 +884,7 @@ def add_assignee_to_seq_request(
     else:
         assignee = current_user
 
-    if not assignee.is_insider():
+    if not assignee.is_insider:
         raise exc.NoPermissionsException("Assignee must be an insider.")
 
     if assignee in seq_request.assignees:
@@ -1006,7 +959,7 @@ def remove_auth_form(
 
     if (
         seq_request.status_id != C.SeqRequestStatus.DRAFT.id
-        and not current_user.is_insider()
+        and not current_user.is_insider
     ):
         raise exc.NoPermissionsException()
 
@@ -1077,7 +1030,7 @@ def reseq_library(
     library = session.get_one(Q.library.select(id=library_id))
 
     actions.clone_library(
-        session=session.sync_session,
+        session=session,
         library_id=library.id,
         seq_request_id=seq_request.id,
         status=C.LibraryStatus.PREPARING,
@@ -1114,92 +1067,6 @@ def remove_sample_from_request(
             "Removed all libraries associated with the sample.", "success"
         ),
     )
-
-
-@router.get("/{seq_request_id}/submit-request")
-def render_submit_request_form(
-    seq_request_id: int,
-    request: Request,
-    session: SyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
-
-    if seq_request.status_id != C.SeqRequestStatus.DRAFT.id:
-        raise exc.BadRequestException("Only draft requests can be submitted.")
-
-    if not seq_request.is_submittable() and not access_level >= C.AccessLevel.INSIDER:
-        raise exc.BadRequestException(
-            "Request is missing prerequisites for submission."
-        )
-
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    form = forms.actions.SubmitSeqRequestForm(request, seq_request=seq_request)
-    return form.make_response()
-
-
-@router.post("/{seq_request_id}/submit-request")
-def submit_request(
-    seq_request_id: int,
-    request: Request,
-    session: SyncSession = Depends(dependencies.db_session),
-    current_user: models.User = Depends(dependencies.require_user),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
-
-    if seq_request.status_id != C.SeqRequestStatus.DRAFT.id:
-        raise exc.BadRequestException("Only draft requests can be submitted.")
-
-    if not seq_request.is_submittable() and not current_user.is_insider():
-        raise exc.BadRequestException(
-            "Request is missing prerequisites for submission."
-        )
-
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    form = forms.actions.SubmitSeqRequestForm(request, seq_request=seq_request)
-    form.validate()
-
-    if form.sample_submission_time.data and form.samples_delivered_by_mail.data:
-        form.sample_submission_time.errors.append(
-            "Select sample submission time or delivery by mail."
-        )
-        form.samples_delivered_by_mail.errors.append(
-            "Select sample submission time or delivery by mail."
-        )
-        raise exc.FormValidationException(form)
-
-    if not form.sample_submission_time.data and not form.samples_delivered_by_mail.data:
-        form.sample_submission_time.errors.append(
-            "Select sample submission time or delivery by mail."
-        )
-        form.samples_delivered_by_mail.errors.append(
-            "Select sample submission time or delivery by mail."
-        )
-        raise exc.FormValidationException(form)
-
-    if form.comment.data and (comment := form.comment.data.strip()):
-        session.save(
-            Q.comment.create(
-                seq_request_id=seq_request.id,
-                author=current_user,
-                text=f"Sample submission comment: {comment}",
-            )
-        )
-
-    seq_request = actions.submit_seq_request(
-        session=session.sync_session, seq_request=seq_request
-    )
-
-    return responses.htmx_response(
-        redirect=request.url_for("seq_request_page", seq_request_id=seq_request.id),
-        flash=responses.flash("Sequencing request submitted successfully.", "success"),
-    )
-
 
 @router.get("/{seq_request_id}/add-share-email")
 def render_add_share_email_form(

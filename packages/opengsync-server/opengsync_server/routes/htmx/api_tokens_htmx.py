@@ -15,10 +15,10 @@ def create(current_user: models.User, user_id: int):
     if (user := db.session.first(Q.user.select(id=user_id))) is None:
         raise exceptions.NotFoundException(f"User with ID '{user_id}' not found.")
     
-    if not current_user.is_admin() and current_user.id != user.id:
+    if not current_user.is_admin and current_user.id != user.id:
         raise exceptions.NoPermissionsException("You do not have permission to create API tokens for this user.")
 
-    if not user.is_insider():
+    if not user.is_insider:
         raise exceptions.NoPermissionsException("API tokens can only be created for insider users.")
     
     form = forms.models.APITokenForm(user=user, formdata=request.form if request.method == "POST" else None)
@@ -32,7 +32,7 @@ def deactivate(current_user: models.User, token_id: int):
     if (token := db.session.first(Q.api_token.select(id=token_id))) is None:
         raise exceptions.NotFoundException(f"API Token with ID '{token_id}' not found.")
     
-    if token.owner_id != current_user.id and not current_user.is_admin():
+    if token.owner_id != current_user.id and not current_user.is_admin:
         raise exceptions.NoPermissionsException("You do not have permission to inactivate this API token.")
     
     token._expired = True

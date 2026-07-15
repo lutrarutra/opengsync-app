@@ -121,7 +121,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def select_all(current_user: models.User, workflow: str):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     context = {}
@@ -279,7 +279,7 @@ def get_mux_table(current_user: models.User, library_id: int):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_todo_libraries(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     df = db.pd.query(
@@ -302,7 +302,7 @@ def get_todo_libraries(current_user: models.User):
 
 @wrappers.htmx_route(libraries_htmx, db=db)
 def get_service_type_todo_libraries(current_user: models.User, service_type_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     try:

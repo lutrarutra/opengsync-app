@@ -39,7 +39,7 @@
             {% elif form.form_type == "edit" %}
             <button class="btn btn-success"
                 hx-include="#experiment-form" hx-target="#experiment-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('experiments_htmx.edit', experiment_id=experiment.id) }}">Submit</button>
+                hx-post="{{ url_for('ExperimentForm.Edit', experiment_id=experiment.id) }}">Submit</button>
             {% endif %}
         </div>
     </div>

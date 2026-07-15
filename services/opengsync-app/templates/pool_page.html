@@ -15,18 +15,18 @@
             {{ tooltip("You can no longer edit pool after it is submitted.") }}
             {% endif %}>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                hx-get="{{ url_for('pools_htmx.get_form', form_type='edit', pool_id=pool.id)}}"
-                hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click" {% if not is_editable and not current_user.is_insider() %}disabled{% endif %}>
+                hx-get="{{ url_for('PoolForm.Edit', pool_id=pool.id)}}"
+                hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click" {% if not is_editable and not current_user.is_insider %}disabled{% endif %}>
                     Edit Pool
                 </button>
             </span>
-            {% if current_user.is_insider() %}
-            <button type="button" class="btn btn-primary" hx-get="{{ url_for('pools_htmx.clone', pool_id=pool.id) }}"
+            {% if current_user.is_insider %}
+            <button type="button" class="btn btn-primary" hx-get="{{ url_for('PoolForm.Clone', pool_id=pool.id) }}"
             data-bs-toggle="modal" data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML">Clone Pool</button>
             {% endif %}
             <span {% if not is_editable %} {{ tooltip("You can only edit draft pools.", "left", "warning") }} {% endif %}>
                 <button type="button" class="btn btn-danger"
-                hx-delete="{{ url_for('pools_htmx.remove_libraries', pool_id=pool.id) }}"
+                hx-delete="{{ url_for('remove_libraries_from_pool', pool_id=pool.id) }}"
                 _="on htmx:confirm(issueRequest)
                 halt the event
                 call Swal.fire({
@@ -42,7 +42,7 @@
             </span>
             <span {% if pool.libraries | length > 0 %} {{ tooltip("You can only delete empty pools", "left", "warning") }} {% endif %}>
                 <button type="button" class="btn btn-danger"
-                hx-delete="{{ url_for('pools_htmx.delete', pool_id=pool.id) }}"
+                hx-delete="{{ url_for('delete_pool', pool_id=pool.id) }}"
                 _="on htmx:confirm(issueRequest)
                 halt the event
                 call Swal.fire({
@@ -85,7 +85,7 @@
             aria-controls="workflow-tab" aria-selected="false">
             Workflows</button>
         </li>
-        {% if current_user.is_insider() %}
+        {% if current_user.is_insider %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab"
             data-bs-target="#plate-tab" type="button" role="tab"
@@ -158,10 +158,10 @@
                 </div>
             </div>
             <div class="workflow-container">
-                {% if current_user.is_insider() %}
+                {% if current_user.is_insider %}
                 <div class="flip-card card"
                     data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                    hx-get="{{ url_for('begin_select_pool_libraries_workflow', pool_id=pool.id) }}"
+                    hx-get="{{ url_for('SelectPoolLibrariesAction.Begin', pool_id=pool.id) }}"
                     hx-target="#xl-modal-content" data-bs-toggle="modal"
                     hx-swap="innerHTML" hx-trigger="click">
                     <div class="flip-card-container">
@@ -204,7 +204,7 @@
                 {% endif %}
             </div>
         </div>
-        {% if current_user.is_insider() %}
+        {% if current_user.is_insider %}
         <div class="tab-pane fade" id="plate-tab" role="tabpanel" tabindex="2">
             {% if pool.plate_id %}
             <div hx-get="{{ url_for('plates_htmx.plate_tab', plate_id=pool.plate_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
@@ -230,7 +230,7 @@
                     <h2>Dilutions</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('pools_htmx.get_dilutions', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_dilution_table', pool_id=pool.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -261,11 +261,11 @@
                 {{ metadata_group("Lab Prep", "", class="col-3") }}
                 {% endif %}
                 {% if pool.experiment_id %}
-                {% if current_user.is_insider() %}
+                {% if current_user.is_insider %}
                 {{                     
                     metadata_group_link(
                         "Experiment", pool.experiment.name,
-                        url_for("experiments_page.experiment", experiment_id=pool.experiment_id, from='pool@' + pool.id | string),
+                        url_for("experiment_page", experiment_id=pool.experiment_id, from='pool@' + pool.id | string),
                         class="col-2"
                     )
                 }}

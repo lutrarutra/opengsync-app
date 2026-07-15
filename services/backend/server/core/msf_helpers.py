@@ -36,9 +36,16 @@ class CachedFrameContainer:
         return self.__tables.get(key)
 
     def keys(self) -> list[str]:
-        cached_keys = self.r.get_keys(f"{self.prefix}:*")
+        prefix_len = len(self.prefix) + 1  # +1 for the colon separator
+        cached_keys = [
+            k[prefix_len:] for k in self.r.get_keys(f"{self.prefix}:*")
+        ]
         local_keys = list(self.__tables.keys())
         return list(set(cached_keys + local_keys))
+
+    def items(self) -> list[tuple[str, pd.DataFrame]]:
+        """Return (key, DataFrame) pairs from in-memory cache using short keys."""
+        return list(self.__tables.items())
 
     def __repr__(self) -> str:
         return f"CachedFrame(tables={self.keys()})"

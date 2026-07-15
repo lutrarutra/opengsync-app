@@ -113,7 +113,7 @@ def htmx_response(
     
     return resp
 
-def file_response(path: str, filename: str | None = None, content_type: str | None = None) -> Response:
+def file_response(path: str, filename: str | None = None, content_type: str | None = None, disposition: Literal["inline", "attachment"] = "attachment") -> Response:
     if not os.path.isfile(path):
         return HTMLResponse(content="File not found", status_code=404)
 
@@ -121,7 +121,7 @@ def file_response(path: str, filename: str | None = None, content_type: str | No
         filename = os.path.basename(path)
 
     headers = {
-        "Content-Disposition": f'attachment; filename="{filename}"'
+        "Content-Disposition": f'{disposition}; filename="{filename}"'
     }
     response = Response(
         content=open(path, "rb").read(),  # TODO: use nginx to serve files directly instead of reading them into memory
@@ -131,7 +131,7 @@ def file_response(path: str, filename: str | None = None, content_type: str | No
     return response
 
 
-def bytes_response(data: bytes | io.BytesIO, filename: str, content_type: str | None = None) -> Response:
+def bytes_response(data: bytes | io.BytesIO, filename: str, content_type: str | None = None, disposition: Literal["inline", "attachment"] = "attachment") -> Response:
     if isinstance(data, io.BytesIO):
         data.seek(0)
         raw = data.read()
@@ -139,7 +139,7 @@ def bytes_response(data: bytes | io.BytesIO, filename: str, content_type: str | 
         raw = data
 
     headers = {
-        "Content-Disposition": f'attachment; filename="{filename}"'
+        "Content-Disposition": f'{disposition}; filename="{filename}"'
     }
     response = Response(
         content=raw,

@@ -9,7 +9,7 @@ devices_page_bp = Blueprint("devices_page", __name__)
 
 @wrappers.page_route(devices_page_bp, db=db)
 def devices(current_user: models.User):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     sequencer_form = forms.models.SequencerForm()
@@ -18,7 +18,7 @@ def devices(current_user: models.User):
 
 @wrappers.page_route(devices_page_bp, db=db)
 def sequencer(current_user: models.User, sequencer_id: int):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if (sequencer := db.session.first(Q.sequencer.select(id=sequencer_id))) is None:

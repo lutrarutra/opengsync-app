@@ -24,7 +24,7 @@
                 {{ form.new_project.render("col-5") }}
             </div>
             {{ form.project_description.render() }}
-            {% if current_user.is_insider() %}
+            {% if current_user.is_insider %}
             <div class="row">
                 <div class="px-2">{{ form.set_requestor_as_owner.render() }} <label for="{{ form.set_requestor_as_owner.id }}">Set the Requestor ({{ form.seq_request.requestor.name }}) as Project Owner when creating a new project.</label></div>
             </div>

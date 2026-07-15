@@ -1,5 +1,3 @@
-{% from 'components/form_group.jinja2' import checkbox_input, datepicker, form_group %}
-
 <div id="submit-seq_request-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5">Submit Sequencing Request for Validation</h1>
@@ -21,13 +19,13 @@
             {% endif %}
         </div>
         <div id="submit-seq_request-form">
-            {{ submit_seq_request_form.csrf_token() }}
-            {{ checkbox_input(submit_seq_request_form.samples_delivered_by_mail) }}
-            {{ datepicker(submit_seq_request_form.sample_submission_time) }}
-            {% if submit_seq_request_form.sample_submission_time.errors and not submit_seq_request_form.samples_delivered_by_mail.errors %}
-            {{ checkbox_input(submit_seq_request_form.custom_sample_submission_time) }}
+            {{ form.csrf_token.render() }}
+            {{ form.samples_delivered_by_mail.render() }}
+            {{ form.sample_submission_time.render() }}
+            {% if form.sample_submission_time.errors and not form.samples_delivered_by_mail.errors %}
+            {{ form.custom_sample_submission_time.render() }}
             {% endif %}
-            {{ form_group(submit_seq_request_form.comment) }}
+            {{ form.comment.render() }}
         </div>
     </div>
     <div class="modal-footer">
@@ -37,11 +35,11 @@
             <button type="button" class="btn btn-success"
                 hx-target="#submit-seq_request-form-container" hx-swap="outerHTML"
                 hx-include="#submit-seq_request-form"
-                hx-post="{{ url_for('seq_requests_htmx.submit_request', seq_request_id=seq_request.id) }}"
+                hx-post="{{ url_for('SubmitSeqRequestAction.Submit', seq_request_id=form.seq_request.id) }}"
                 _="on htmx:confirm(issueRequest)
                     halt the event
                     call Swal.fire({
-                        title: 'Submit request \'{{ seq_request.name }}\'',
+                        title: 'Submit request \'{{ form.seq_request.name }}\'',
                         showDenyButton: true,
                         icon: 'warning',
                         text: 'You can no longer edit the sequencing request after it is submitted. Do you want to proceed?',

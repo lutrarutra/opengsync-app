@@ -25,11 +25,11 @@ class RegisterUserForm(HTMXFlaskForm):
         super().__init__(formdata)
         self.current_user = current_user
     
-        if self.current_user is None or not self.current_user.is_insider():
+        if self.current_user is None or not self.current_user.is_insider:
             self.role.choices = [(UserRole.CLIENT.id, UserRole.CLIENT.display_name)]
             self.role.data = UserRole.CLIENT.id
 
-        elif not self.current_user.is_admin():
+        elif not self.current_user.is_admin:
             allowed_roles = [UserRole.CLIENT, UserRole.DEACTIVATED]
             self.role.choices = [(-1, "Select Role")] + [(role.id, role.display_name) for role in allowed_roles]  # type: ignore
 
@@ -45,7 +45,7 @@ class RegisterUserForm(HTMXFlaskForm):
             self.role.errors = ("Role is required.",)
             return False
         
-        if self.current_user is None or not self.current_user.is_insider():
+        if self.current_user is None or not self.current_user.is_insider:
             if runtime.app.email_domain_white_list is not None:
                 if self.email.data.split("@")[-1].lower() not in [domain.lower() for domain in runtime.app.email_domain_white_list]:
                     self.email.errors = ("Specified email domain is not found in white-list. Please contact us.",)
@@ -60,7 +60,7 @@ class RegisterUserForm(HTMXFlaskForm):
                 self.role.errors = ("Invalid role.",)
                 return False
             
-            if self.current_user is None or not self.current_user.is_insider():
+            if self.current_user is None or not self.current_user.is_insider:
                 if user_role != UserRole.CLIENT:
                     self.role.errors = ("You don't have permissions to create user with this role",)
                     return False

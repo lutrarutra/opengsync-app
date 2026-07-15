@@ -20,7 +20,7 @@
                 <td class="user-cell cm-callback" id="user-cell-{{ user.id }}" data-id="{{ user.id }}"
                 {{
                     context_menu([
-                        {"type": "hxdelete", "label": "Remove Assignee", "disabled": false if current_user.is_insider() else true, "config": {
+                        {"type": "hxdelete", "label": "Remove Assignee", "disabled": false if current_user.is_insider else true, "config": {
                             "url": url_for('projects_htmx.remove_assignee', project_id=project.id, assignee_id=user.id),
                             "target": "#project-assignee-table",
                             "title": "Remove assignee {user.name}?".format(user=user)

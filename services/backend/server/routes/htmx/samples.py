@@ -81,7 +81,7 @@ def render_sample_table(
         table.url_params["seq_request_id"] = seq_request_id
         table.context["seq_request"] = session.get_one(Q.seq_request.select(id=seq_request_id))
     elif lab_prep_id is not None:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view samples for this lab prep.")
         table.template = "components/tables/lab_prep-sample.html"
         table.url_params["lab_prep_id"] = lab_prep_id
@@ -91,7 +91,7 @@ def render_sample_table(
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse
     else:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.sample.select(viewer_id=current_user.id, statement=stmt)
         table.template = "components/tables/sample.html"
 

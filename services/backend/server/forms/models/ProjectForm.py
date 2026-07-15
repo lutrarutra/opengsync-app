@@ -149,7 +149,7 @@ class ProjectForm(HTMXForm):
                 form.identifier.errors.append("This identifier is already taken.")
                 raise exc.FormValidationException(form)
 
-            if form.identifier.data and not current_user.is_insider():
+            if form.identifier.data and not current_user.is_insider:
                 form.identifier.errors.append("Only insiders can set a project identifier.")
                 raise exc.FormValidationException(form)
 

@@ -54,7 +54,7 @@ class MergePoolsWorkflow(HTMXWorkflow):
                 lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
                 context["lab_prep"] = lab_prep
 
-            if not user.is_insider():
+            if not user.is_insider:
                 if "seq_request" not in context:
                     raise exc.NoPermissionsException()
 

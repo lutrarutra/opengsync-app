@@ -59,6 +59,7 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
         router.include_router(wf.ProjectSelectForm.Router(cls.__name__))
         router.include_router(wf.SampleAnnotationForm.Router(cls.__name__))
         router.include_router(wf.SampleAttributeAnnotationForm.Router(cls.__name__))
+        router.include_router(wf.SelectServiceForm.Router(cls.__name__))
         return router
     
     def get_next_step(self, form: "HTMXWorkflowStep") -> "HTMXWorkflowStep":
@@ -67,6 +68,10 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                 next_form = wf.SampleAnnotationForm(workflow=self)
             case wf.SampleAnnotationForm:
                 next_form = wf.SampleAttributeAnnotationForm(workflow=self)
+            case wf.SampleAttributeAnnotationForm:
+                next_form = wf.SelectServiceForm(workflow=self)
+            case wf.SelectServiceForm:
+                raise NotImplementedError()
             case _:
                 raise ValueError(f"Unknown form type: {form.__class__.__name__}")
 
@@ -74,8 +79,6 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
         self.add_step(form.__class__.__name__)
         self.add_step(next_form.__class__.__name__)
         return next_form
-        # case wf.SampleAttributeAnnotationForm:
-        #     return wf.SelectServiceForm(seq_request=self.seq_request, uuid=self.uuid)
         # case wf.SelectServiceForm:
             #     if self.seq_request.submission_type.id == C.SubmissionType.POOLED_LIBRARIES.id:
             #         return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
@@ -265,3 +268,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                     
 
         raise ValueError(f"Could not infer next step for ({self.__class__})")
+
+    def add_comment(self, context: str, text: str) -> None:
+        if "comments" not in self.metadata:
+            self.metadata["comments"] = []
+        self.metadata["comments"].append({"context": context, "comment": text})

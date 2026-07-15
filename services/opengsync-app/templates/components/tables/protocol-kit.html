@@ -22,7 +22,7 @@
                 {{
                     context_menu([
                         {"type": "copy", "value": kit.identifier, "label": "Copy Identifier"},
-                        {"type": "hxdelete", "label": "Remove Kit", "disabled": false if current_user.is_insider() else true, "config": {
+                        {"type": "hxdelete", "label": "Remove Kit", "disabled": false if current_user.is_insider else true, "config": {
                             "url": url_for('protocols_htmx.remove_kit', kit_id=kit.id, **table.get_state()),
                             "target": "#protocol-kit-table",
                             "title": "Remove '{kit.name}' from '{protocol.name}'?".format(kit=kit, protocol=protocol),
@@ -55,7 +55,7 @@
                     {% if link.protocol_id == protocol.id %}
                     <span class="badge cm-callback" {{
                         context_menu([
-                            {"type": "hxdelete", "label": "Remove Combination", "disabled": false if current_user.is_insider() else true, "config": {
+                            {"type": "hxdelete", "label": "Remove Combination", "disabled": false if current_user.is_insider else true, "config": {
                                 "url": url_for('protocols_htmx.remove_kit_combination', kit_id=kit.id, combination_num=link.combination_num, **table.get_state()),
                                 "target": "#protocol-kit-table",
                                 "title": "Remove combination '{link.combination_num}' ({kit.name}) from {protocol.name}?".format(link=link, kit=kit, protocol=protocol)

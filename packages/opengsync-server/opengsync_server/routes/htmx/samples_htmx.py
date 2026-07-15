@@ -83,7 +83,7 @@ def browse(current_user: models.User, workflow: str):
 
 @wrappers.htmx_route(samples_htmx, db=db)
 def select_all(current_user: models.User, workflow: str):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     context = {}

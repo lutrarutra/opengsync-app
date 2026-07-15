@@ -9,7 +9,7 @@ seq_runs_page_bp = Blueprint("seq_runs_page", __name__)
 
 @wrappers.page_route(seq_runs_page_bp, db=db, cache_timeout_seconds=60)
 def seq_runs(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     return render_template("seq_runs_page.html")
@@ -17,7 +17,7 @@ def seq_runs(current_user: models.User):
 
 @wrappers.page_route(seq_runs_page_bp, "seq_runs", db=db, cache_timeout_seconds=60)
 def seq_run(current_user: models.User, seq_run_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (seq_run := db.session.first(Q.seq_run.select(id=seq_run_id))) is None:
@@ -25,7 +25,7 @@ def seq_run(current_user: models.User, seq_run_id: int):
     
     experiment = db.session.first(Q.experiment.select(name=seq_run.experiment_name))
     path_list = [
-        ("Runs", url_for("seq_runs_page.seq_runs")),
+        ("Runs", url_for("seq_run_pages")),
         (f"Run {seq_run.id}", ""),
     ]
     if (_from := request.args.get("from", None)) is not None:

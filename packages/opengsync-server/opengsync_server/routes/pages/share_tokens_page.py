@@ -14,7 +14,7 @@ def share_tokens():
 
 @wrappers.page_route(share_tokens_page_bp, "share_tokens", db=db, cache_timeout_seconds=360)
 def share_token(current_user: models.User, share_token_id: str):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (share_token := db.session.first(Q.share_token.select(uuid=share_token_id))) is None:

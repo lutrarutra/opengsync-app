@@ -56,7 +56,7 @@ def complete_registration(token: str):
 
 @wrappers.htmx_route(auth_htmx, methods=["GET", "POST"], db=db)
 def change_password(current_user: models.User, user_id: int):
-    if current_user.id != user_id and not current_user.is_admin():
+    if current_user.id != user_id and not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if (user := db.session.first(Q.user.select(id=user_id))) is None:
@@ -100,7 +100,7 @@ def reset_password_email(current_user: models.User, user_id: int):
 
 @wrappers.htmx_route(auth_htmx, db=db, methods=["POST"])
 def activate_account(current_user: models.User, user_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (user := db.session.first(Q.user.select(id=user_id))) is None:
@@ -148,7 +148,7 @@ def reset_password(token: str):
 
 @wrappers.htmx_route(auth_htmx, methods=["POST"], db=db, login_required=True)
 def delete_user_sessions(current_user: models.User, user_id: int):
-    if current_user.id != user_id and not current_user.is_admin():
+    if current_user.id != user_id and not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if (user := db.session.first(Q.user.select(id=user_id))) is None:
@@ -165,7 +165,7 @@ def delete_user_sessions(current_user: models.User, user_id: int):
 # Admin tool to start a session as another user without needing their password. This is useful for troubleshooting user issues.
 @wrappers.htmx_route(auth_htmx, methods=["POST"], db=db, login_required=True)
 def start_user_session(current_user: models.User, user_id: int):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if (user := db.session.first(Q.user.select(id=user_id))) is None:

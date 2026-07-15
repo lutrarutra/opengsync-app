@@ -25,7 +25,7 @@
             hx-target="#file-input-form-container"
             hx-swap="outerHTML"
             hx-encoding="multipart/form-data"
-            hx-post="{{ url_for('upload_file', **{form.entity_type.query_param: form.entity_id}) }}">
+            hx-post="{{ url_for('MediaFileForm.Upload', seq_request_id=form.seq_request_id, experiment_id=form.experiment_id, lab_prep_id=form.lab_prep_id) }}">
             Submit
         </button>
     </div>

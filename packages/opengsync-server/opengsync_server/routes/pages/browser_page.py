@@ -11,7 +11,7 @@ browser_page_bp = Blueprint("browser_page", __name__, url_prefix="/browser")
 
 @wrappers.page_route(browser_page_bp, db=db, login_required=True, cache_timeout_seconds=None)
 def files(current_user: models.User, subpath: Path = Path()):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if isinstance(subpath, str):

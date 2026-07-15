@@ -30,9 +30,9 @@ class UserForm(HTMXFlaskForm):
         self.current_user = current_user
         logger.debug(formdata)
 
-        if self.current_user.is_admin() or (self.current_user.id == self.user.id and self.user.is_insider()):
+        if self.current_user.is_admin or (self.current_user.id == self.user.id and self.user.is_insider):
             self.role.choices = UserRole.as_selectable()  # type: ignore
-        elif self.current_user.is_insider():
+        elif self.current_user.is_insider:
             allowed_roles = [UserRole.CLIENT, UserRole.DEACTIVATED]
             self.role.choices = [(role.id, role.display_name) for role in allowed_roles]  # type: ignore
         else:
@@ -48,12 +48,12 @@ class UserForm(HTMXFlaskForm):
         if not super().validate():
             return False
         
-        if not self.current_user.is_insider():
+        if not self.current_user.is_insider:
             if self.role.data != UserRole.CLIENT.id:
                 self.role.errors = ("You do not have permission to set this role.",)
                 return False
             
-        elif not self.current_user.is_admin():
+        elif not self.current_user.is_admin:
             if self.role.data not in [UserRole.CLIENT.id, UserRole.DEACTIVATED.id] and self.current_user.role != self.user.role:
                 self.role.errors = ("You do not have permission to set this role.",)
                 return False
@@ -69,7 +69,7 @@ class UserForm(HTMXFlaskForm):
         if (role := UserRole.get(self.role.data)) is None:
             self.role.errors = ("Invalid role.",)
             return self.make_response()
-        if self.current_user.is_admin():
+        if self.current_user.is_admin:
             self.user.role = role
 
         flash("User updated successfully.", "success")

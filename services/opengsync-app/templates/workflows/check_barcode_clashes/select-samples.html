@@ -1,0 +1,66 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+{% set selected_libraries = form.library_ids.get_selected_libraries(session) %}
+<div id="barcode-check-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Check Barcode Clashes</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div> 
+    <div class="modal-body tab-body">
+        {{ form.csrf_token.render() }}
+        {{ form.render_general_errors() }}
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#barcode-check-clashes-libraries-tab"
+                    type="button" role="tab" aria-controls="barcode-check-clashes-libraries-tab" aria-selected="false">
+                    Libraries
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#barcode-check-clashes-selected-libraries-tab"
+                    type="button" role="tab" aria-controls="barcode-check-clashes-selected-libraries-tab" aria-selected="false">
+                    Selected Libraries ({{ selected_libraries | length }})
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="barcode-check-clashes-libraries-tab" role="tabpanel" tabindex="2">
+                {{ form.library_ids.render() }}
+            </div>
+            <div class="tab-pane fade" id="barcode-check-clashes-selected-libraries-tab" role="tabpanel" tabindex="3">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">ID</th>
+                            <th scope="col" class="col-4">Name</th>
+                            <th scope="col" class="col-2">Type</th>
+                            <th scope="col" class="col-2">Status</th>
+                            <th scope="col" class="col-2">Owner</th>
+                        </tr>
+                    </thead>
+                    <tbody id="{{ form.library_ids.id }}-selected-table-body">
+                        {% for library in selected_libraries %}
+                        <tr id="selected-library-row-{{ library.id }}" class="library-row selected">
+                            <th scope="row">{{ library.id }}</th>
+                            <td>{{ library.name }}</td>
+                            <td>{{ library.type.abbreviation }}</td>
+                            <td>{% if library.status %}{{ library.status.label }} {{ library.status.icon }}{% endif %}</td>
+                            <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-store-samples-btn" class="btn btn-success"
+                hx-include="#barcode-check-form-container" hx-target="#barcode-check-form-container" hx-swap="outerHTML"
+                hx-post="{{ url_for('CheckBarcodeClashesAction.SelectSamples') }}">Submit</button>
+        </div>
+    </div>
+</div>

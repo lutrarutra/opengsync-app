@@ -67,7 +67,7 @@ def retrieve_flash_messages():
 
 @wrappers.page_route(runtime.app, db=db, route="/", cache_timeout_seconds=360, cache_type="user")
 def dashboard(current_user: models.User):
-    if current_user.is_insider():
+    if current_user.is_insider:
         return render_template("dashboard-insider.html")
     return render_template("dashboard-user.html")
 
@@ -77,7 +77,7 @@ def pdf_file(file_id: int, current_user: models.User):
     if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
 
-    if file.uploader_id != current_user.id and not current_user.is_insider():
+    if file.uploader_id != current_user.id and not current_user.is_insider:
         if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 
@@ -103,7 +103,7 @@ def img_file(current_user: models.User, file_id: int):
     if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
 
-    if file.uploader_id != current_user.id and not current_user.is_insider():
+    if file.uploader_id != current_user.id and not current_user.is_insider:
         if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 
@@ -129,7 +129,7 @@ def download_file(file_id: int, current_user: models.User):
     if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
 
-    if file.uploader_id != current_user.id and not current_user.is_insider():
+    if file.uploader_id != current_user.id and not current_user.is_insider:
         if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 
@@ -151,7 +151,7 @@ def xlsx_data(current_user: models.User, file_id: int):
     if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
     
-    if file.uploader_id != current_user.id and not current_user.is_insider():
+    if file.uploader_id != current_user.id and not current_user.is_insider:
         if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 

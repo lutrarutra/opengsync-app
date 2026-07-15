@@ -81,7 +81,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.url_params["lab_prep_id"] = lab_prep.id
     else:
         template = "components/tables/sample.html"
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.sample.select(user_id=current_user.id, statement=stmt)
 
     samples, count = db.session.page(stmt, page=table.active_page or 0)
@@ -96,7 +96,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
 
 
 def get_browse_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     table = SampleTable(route="samples_htmx.browse", page=request.args.get("page", 0, type=int))

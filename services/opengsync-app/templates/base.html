@@ -45,7 +45,7 @@
     {% else %}
         {% set user_role = none %}
     {% endif %}
-    <nav id="navbar" {% if current_user and current_user.is_admin() %}class="admin"{% endif %}>
+    <nav id="navbar" {% if current_user and current_user.is_admin %}class="admin"{% endif %}>
         <div class="nav-left">
             <div id="burger">
                 <div class="line1"></div>
@@ -69,7 +69,7 @@
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'seq_requests-page' else ''}}" href="{{ url_for('seq_requests_page') }}">Requests</a>
             </div>
-            {% if current_user and current_user.is_insider() %}
+            {% if current_user and current_user.is_insider %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'design-page' else ''}}" href="{{ url_for('design') }}">Design</a>
             </div>
@@ -77,7 +77,7 @@
                 <a class="nav-link {{'active' if active_page == 'lab_preps-page' else ''}}" href="{{ url_for('lab_preps_page') }}">Preps</a>
             </div>
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'experiments-page' else ''}}" href="{{ url_for('experiments') }}">Experiments</a>
+                <a class="nav-link {{'active' if active_page == 'experiments-page' else ''}}" href="{{ url_for('experiments_page') }}">Experiments</a>
             </div>
             <div class="nav-item nav-item-dropdown">
                 <p>
@@ -100,7 +100,7 @@
                     <i class="bi bi-caret-down-fill" style="font-size: 10px;"></i>
                 </p>
                 <ul>
-                    {% if current_user and current_user.is_insider() %}
+                    {% if current_user and current_user.is_insider %}
                     <li><a class="nav-link {{'active' if active_page == 'kits-page' else ''}}" href="{{ url_for('kits') }}">Kits</a></li>
                     <li><a class="nav-link {{'active' if active_page == 'protocols-page' else ''}}" href="{{ url_for('protocols') }}">Protocols</a></li>
                     {% endif %}
@@ -113,14 +113,14 @@
                 <a class="nav-link {{'active' if active_page == 'groups-page' else ''}}" href="{{ url_for('groups_page') }}">Groups</a>
             </div>
             {% endif %}
-            {% if current_user and not current_user.is_insider() %}
+            {% if current_user and not current_user.is_insider %}
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'help-page' else ''}}" href="{{ url_for('help') }}">Help</a>
             </div>
             {% endif %}
-            {% if current_user and current_user.is_insider() %}
+            {% if current_user and current_user.is_insider %}
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'seq_run-page' else ''}}" href="{{ url_for('seq_runs') }}">Runs</a>
+                <a class="nav-link {{'active' if active_page == 'seq_run-page' else ''}}" href="{{ url_for('seq_runs_page') }}">Runs</a>
             </div>
             <div class="nav-item">
                 <a class="nav-link {{'active' if active_page == 'browser-page' else ''}}" href="{{ url_for('browser_page', subpath='/') }}">Files</a>
@@ -133,7 +133,7 @@
                 </p>
                 <ul>
                     <li><a class="nav-link {{'active' if active_page == 'share_token-page' else ''}}" href="{{ url_for('share_tokens') }}">Share</a></li>
-                    <li><a class="nav-link {{'active' if active_page == 'devices-page' else ''}}" href="{{ url_for('devices') }}">Devices</a></li>
+                    <li><a class="nav-link {{'active' if active_page == 'devices-page' else ''}}" href="{{ url_for('sequencers_page') }}">Sequencers</a></li>
                     <li><a class="nav-link {{'active' if active_page == 'admin-page' else ''}}" href="{{ url_for('admin_page') }}">Admin</a></li>
                 </ul>
             </div>
@@ -151,7 +151,7 @@
                     {% elif user_role == C.UserRole.TECHNICIAN %}
                     <i class="bi bi-virus2"></i>
                     {% endif %}
-                    {% if current_user.is_insider() %}
+                    {% if current_user.is_insider %}
                     {{ current_user.last_name }}
                     {% else %}
                     <i class="bi bi-person-fill"></i>

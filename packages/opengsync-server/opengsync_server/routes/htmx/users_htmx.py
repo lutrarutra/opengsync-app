@@ -16,7 +16,7 @@ def get(current_user: models.User):
 
 @wrappers.htmx_route(users_htmx, db=db)
 def search(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     return make_response(render_template(**logic.user.get_search_context(current_user=current_user, request=request)))
 
@@ -34,7 +34,7 @@ def get_api_tokens(current_user: models.User, user_id: int):
 
 @wrappers.htmx_route(users_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, user_id: int):
-    if current_user.id != user_id and not current_user.is_admin():
+    if current_user.id != user_id and not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if (user := db.session.first(Q.user.select(id=user_id))) is None:

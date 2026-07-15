@@ -101,7 +101,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.url_params["group_id"] = group.id
     else:
         template = "components/tables/project.html"
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.project.select(user_id=current_user.id, statement=stmt)
 
     projects, count = db.session.page(stmt, page=table.active_page or 0)
@@ -146,7 +146,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     if (group := context.get("group")) is not None:
         stmt = Q.project.select(group_id=group.id, statement=stmt)
     else:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.project.select(user_id=current_user.id, statement=stmt)
     
     projects, _ = db.session.page(stmt, page=page)

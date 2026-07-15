@@ -1,7 +1,7 @@
 import os
 import mimetypes
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from sqlalchemy import orm
 
@@ -9,7 +9,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 
 from ...core import dependencies, responses, exceptions as exc, config
 from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
-from ... import forms
+from ...forms.models import MediaFileForm
 
 BROWSER_RENDERABLE_EXTENSIONS = {
     ".pdf",
@@ -28,7 +28,7 @@ BROWSER_RENDERABLE_EXTENSIONS = {
 }
 
 router = APIRouter(prefix="/files", tags=["files"])
-
+router.include_router(MediaFileForm.Router())
 
 class MediaFileTable(HTMXTable):
     columns = [
@@ -70,7 +70,7 @@ def render_media_file_table(
         uploader_id=uploader_id,
     )
 
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         stmt = Q.media_file.select(viewer_id=current_user.id, statement=stmt)
 
     files, count = session.page(
@@ -85,33 +85,6 @@ def render_media_file_table(
     return responses.htmx_response(
         template="components/tables/media_file.html", files=files, table=table
     )
-
-
-@router.get("/upload")
-def render_upload_file_form(
-    request: Request,
-    seq_request_id: int | None = Query(None),
-    experiment_id: int | None = Query(None),
-    lab_prep_id: int | None = Query(None),
-    current_user: models.User = Depends(dependencies.require_user),
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    forms.models.MediaFileForm.check_permissions(
-        session=session,
-        current_user=current_user,
-        seq_request_id=seq_request_id,
-        experiment_id=experiment_id,
-        lab_prep_id=lab_prep_id,
-    )
-
-    form = forms.models.MediaFileForm(request, form_type="create")
-    return form.make_response()
-
-
-@router.post("/upload")
-def upload_file(response=Depends(forms.models.MediaFileForm.upload_file)):
-    return response
-
 
 @router.get("seq_auth_form_v2.pdf")
 def download_seq_auth_form():
@@ -144,18 +117,7 @@ def serve_media_file(
     renderable = file.extension.lower() in BROWSER_RENDERABLE_EXTENSIONS
     disposition = "inline" if renderable else "attachment"
     filename = f"{file.name}{file.extension}"
-
-    with open(filepath, "rb") as f:
-        data = f.read()
-
-    # TODO: Mount the media folder to nginx and serve files directly from there instead of through FastAPI.
-    return Response(
-        content=data,
-        media_type=content_type,
-        headers={
-            "Content-Disposition": f'{disposition}; filename="{filename}"',
-        },
-    )
+    return responses.file_response(filepath, filename, content_type, disposition=disposition)
 
 
 @router.get("/{media_file_id}/xlsx-spreadsheet", dependencies=[Depends(dependencies.media_file_permissions)])

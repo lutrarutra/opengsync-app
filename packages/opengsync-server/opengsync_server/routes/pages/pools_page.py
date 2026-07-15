@@ -22,7 +22,7 @@ def pool(current_user: models.User, pool_id: int):
          raise exceptions.NoPermissionsException()
 
     path_list = [
-        ("Pools", url_for("pools_page.pools")),
+        ("Pools", url_for("pool_pages")),
         (f"Pool {pool.id}", ""),
     ]
     if (_from := request.args.get("from", None)) is not None:
@@ -52,10 +52,10 @@ def pool(current_user: models.User, pool_id: int):
                 (f"Pool {pool_id}", ""),
             ]
 
-    is_editable = pool.status == PoolStatus.DRAFT or current_user.is_insider()
+    is_editable = pool.status == PoolStatus.DRAFT or current_user.is_insider
     is_indexed = True and len(pool.libraries) > 0
     for library in pool.libraries:
-        if not library.is_indexed():
+        if not library.is_indexed:
             is_indexed = False
             break
 

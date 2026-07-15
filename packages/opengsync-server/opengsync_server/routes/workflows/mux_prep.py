@@ -12,7 +12,7 @@ mux_prep_workflow = Blueprint("mux_prep_workflow", __name__, url_prefix="/workfl
 
 @wrappers.htmx_route(mux_prep_workflow, db=db)
 def begin(current_user: models.User, lab_prep_id: int, mux_type_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if not (mux_type := MUXType.get(mux_type_id)):

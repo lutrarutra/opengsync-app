@@ -13,6 +13,7 @@ from . import (
     experiments,
     share_tokens,
     users,
+    sequencers,
     affiliations,
     pools,
     groups,
@@ -21,6 +22,7 @@ from . import (
     comments,
     flow_cell_design,
     pool_design,
+    dilutions,
 )
 
 router = APIRouter(prefix="/htmx", tags=["pages", "htmx"])
@@ -35,6 +37,7 @@ router.include_router(projects.router, dependencies=[Depends(auth.dependencies.r
 router.include_router(pools.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(samples.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(experiments.router, dependencies=[Depends(auth.dependencies.require_insider)])
+router.include_router(sequencers.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(share_tokens.router, dependencies=[Depends(auth.dependencies.require_insider)])
 router.include_router(users.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(affiliations.router, dependencies=[Depends(auth.dependencies.require_insider)])
@@ -43,3 +46,4 @@ router.include_router(libraries.router, dependencies=[Depends(auth.dependencies.
 router.include_router(comments.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(flow_cell_design.router, dependencies=[Depends(auth.dependencies.require_insider)])
 router.include_router(pool_design.router, dependencies=[Depends(auth.dependencies.require_insider)])
+router.include_router(dilutions.router, dependencies=[Depends(auth.dependencies.require_user)])

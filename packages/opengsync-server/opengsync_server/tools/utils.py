@@ -522,7 +522,7 @@ def render_share_project_data_email(
     content = render_template(
         "email/share-project-data.html", style=style, browse_link=browse_link,
         project=project, library_types=library_types,
-        author=None if anonymous else current_user if current_user.is_insider() else None,
+        author=None if anonymous else current_user if current_user.is_insider else None,
         experiments=project.experiments, seq_requests=project.seq_requests,
         share_token=share_token,
         sync_command=sync_command,

@@ -1,0 +1,153 @@
+{% from 'components/spinner.jinja2' import spinner %}
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+<div class="experiment-select-input {{ container_class }} {% if field.hidden %}d-none{% endif %}" id="{{ field.id }}-container">
+    <input
+        type="hidden"
+        name="{{ field.name }}"
+        id="{{ field.id }}"
+        value="{{ field.data | tojson if field.data else '[]' }}"
+    >
+    <div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">
+        {% for error in field.errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+    <div hx-get="{{ field.table_url }}" hx-trigger="load" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
+</div>
+
+{% if not field.read_only %}
+<script>
+    (function() {
+        const containerId = "{{ field.id }}";
+        const fieldId = "{{ field.id }}";
+        const selectAll = {{ "true" if field.select_all else "false" }};
+
+        // State
+        let selectedExperiments = {{ field.data | tojson if field.data else "[]" }};
+        let isMouseDown = false;
+        let dragging = false;
+        let hoveredExperiment = null;
+        let selecting = true; // true = selecting, false = unselecting
+
+        // DOM refs
+        const $container = $("#" + containerId + "-container");
+        const $hiddenInput = $("#" + fieldId);
+        const $selectedCount = $("#" + fieldId + "-selected-count");
+        const $selectedTableBody = $("#" + fieldId + "-selected-table-body");
+
+        function syncHiddenInput() {
+            $hiddenInput.val(JSON.stringify(selectedExperiments));
+        }
+
+        function updateCount() {
+            $selectedCount.text(selectedExperiments.length);
+            $("#" + fieldId + "-tab-btn").text("Selected Experiments (" + selectedExperiments.length + ")");
+        }
+
+        function addExperiment(experimentId, rowElement) {
+            experimentId = parseInt(experimentId);
+            if (selectedExperiments.includes(experimentId)) return;
+            selectedExperiments.push(experimentId);
+            $(rowElement).addClass("selected");
+
+            // Clone row into selected table
+            const $cloned = $(rowElement).clone();
+            $cloned.attr("id", "selected-experiment-row-" + experimentId);
+            $cloned.on("click", function() { removeExperiment(experimentId); });
+            $selectedTableBody.append($cloned);
+
+            syncHiddenInput();
+            updateCount();
+        }
+
+        function removeExperiment(experimentId) {
+            experimentId = parseInt(experimentId);
+            selectedExperiments = selectedExperiments.filter(function(v) { return v !== experimentId; });
+            $("#experiment-row-" + experimentId).removeClass("selected");
+            $("#selected-experiment-row-" + experimentId).remove();
+            syncHiddenInput();
+            updateCount();
+        }
+
+        function toggleExperiment(experimentId, rowElement) {
+            experimentId = parseInt(experimentId);
+            if (selectedExperiments.includes(experimentId)) {
+                removeExperiment(experimentId);
+            } else {
+                addExperiment(experimentId, rowElement);
+            }
+        }
+
+        // Delegate events on the browse table (which loads dynamically)
+        $container.on("mousedown", ".experiment-row", function(e) {
+            e.preventDefault();
+            isMouseDown = true;
+            const firstId = parseInt($(this).data("id"));
+            selecting = !selectedExperiments.includes(firstId);
+            if (selecting) {
+                addExperiment(firstId, this);
+            } else {
+                removeExperiment(firstId);
+            }
+            hoveredExperiment = firstId;
+        });
+
+        $container.on("mousemove", ".experiment-row", function(e) {
+            if (isMouseDown) {
+                dragging = true;
+                const currentId = parseInt($(this).data("id"));
+                if (hoveredExperiment !== currentId) {
+                    hoveredExperiment = currentId;
+                    if (selecting) {
+                        addExperiment(currentId, this);
+                    } else {
+                        removeExperiment(currentId);
+                    }
+                }
+            }
+        });
+
+        $(document).on("mouseup", function(e) {
+            isMouseDown = false;
+            dragging = false;
+        });
+
+        // Cmd+A / Ctrl+A to select all visible rows
+        $(document).on("keydown", function(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === "a") {
+                const $focused = $(document.activeElement);
+                if ($focused.closest("#" + containerId + "-container").length) {
+                    e.preventDefault();
+                    $container.find(".experiment-row").each(function() {
+                        addExperiment($(this).data("id"), this);
+                    });
+                }
+            }
+        });
+
+        // Select All button
+        if (selectAll) {
+            $(document).on("click", "#" + fieldId + "-select-all", function(e) {
+                $container.find(".experiment-row").each(function() {
+                    addExperiment($(this).data("id"), this);
+                });
+            });
+        }
+
+        // Re-highlight selected rows after HTMX settles
+        $(document).on("htmx:afterSettle", function(e) {
+            if ($(e.target).closest("#" + containerId + "-container").length) {
+                $container.find(".experiment-row").each(function() {
+                    const id = parseInt($(this).data("id"));
+                    if (selectedExperiments.includes(id)) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
+        });
+    })();
+</script>
+{% endif %}

@@ -196,5 +196,5 @@ class PoolForm(HTMXFlaskForm):
             logger.error(f"Unknown form type {self.form_type}")
             raise ValueError(f"Unknown form type {self.form_type}")
         
-        return make_response(redirect=url_for("pools_page.pool", pool_id=pool.id))
+        return make_response(redirect=url_for("pool_page", pool_id=pool.id))
         

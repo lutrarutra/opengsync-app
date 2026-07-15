@@ -62,6 +62,8 @@ def render_library_table(
     status_in: list[C.LibraryStatus] | None = Depends(
         dependencies.parse_enum_ids(enum_type=C.LibraryStatus, query_param="status_in")
     ),
+    indexed: bool | None = Query(None, description="Filter libraries by whether they are indexed"),
+    pooled: bool | None = Query(None, description="Filter libraries by whether they are pooled"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_user),
     order_by: utils.OrderBy | None = Depends(
@@ -86,6 +88,8 @@ def render_library_table(
         sample_id=sample_id,
         status_in=status_in,
         type_in=type_in,
+        indexed=indexed,
+        pooled=pooled,
     )
 
     if name:
@@ -107,13 +111,14 @@ def render_library_table(
             raise exc.NoPermissionsException("You do not have permission to view libraries for this pool.")
         table.template = "components/tables/pool-library.html"
         table.url_params["pool_id"] = pool_id
+        table.context["pool"] = session.get_one(Q.pool.select(id=pool_id))
     elif experiment_id is not None:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this experiment.")
         table.template = "components/tables/experiment-library.html"
         table.url_params["experiment_id"] = experiment_id
     elif lab_prep_id is not None:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this lab prep.")
         table.template = "components/tables/lab_prep-library.html"
         table.url_params["lab_prep_id"] = lab_prep_id
@@ -135,8 +140,8 @@ def render_library_table(
         table.url_params["browse"] = browse
     else:
         table.template = "components/tables/library.html"
-        if not current_user.is_insider():
-            stmt = Q.library.select(user_id=current_user.id, statement=stmt)
+        if not current_user.is_insider:
+            stmt = Q.library.select(viewer_id=current_user.id, statement=stmt)
 
     libraries, count = session.page(
         stmt,
@@ -155,7 +160,6 @@ def render_library_table(
 
 @router.get("/properties")
 def render_library_properties(
-    request: Request,
     seq_request_id: int | None = Query(None, description="Seq request ID to filter libraries"),
     project_id: int | None = Query(None, description="Project ID to filter libraries"),
     library_id: int | None = Query(None, description="Library ID to edit properties for"),
@@ -179,7 +183,7 @@ def render_library_properties(
     libraries = session.get_all(Q.library.select(seq_request_id=seq_request_id, project_id=project_id, id=library_id).order_by(models.Library.id.asc()))
 
     form = forms.LibraryPropertyForm(
-        request, access_level=access_level, libraries=libraries,
+        access_level=access_level, libraries=libraries,
         seq_request_id=seq_request_id, project_id=project_id, library_id=library_id
     )
     return form.make_response()

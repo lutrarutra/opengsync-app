@@ -1,15 +1,12 @@
 import pandas as pd
-from fastapi import Request, Depends, Response, Query
-from sqlalchemy import orm
+from fastapi import Depends, Response
 from loguru import logger
 
-from opengsync_db import models, queries as Q, SyncSession, categories as C
+from opengsync_db import models, categories as C
 
 from ....core import responses, exceptions as exc, dependencies
-from .... import utils
 from ....components import inputs
 from ....components.tables import TextColumn
-from ...HTMXForm import HTMXForm
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
 from ..HTMXWorkflowStep import HTMXWorkflowStep
@@ -25,12 +22,14 @@ class SampleAttributeAnnotationForm(HTMXWorkflowStep):
         TextColumn("sample_id", "Sample ID", 170, required=True, read_only=True),
     ] + [TextColumn(t.label, t.label.replace("_", " ").title(), 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH) for t in C.AttributeType.as_list()[1:]]
 
-    spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=predefined_columns, allow_col_rename=True)
+    spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=predefined_columns, allow_col_rename=True, allow_new_cols=True, allow_new_rows=False)
 
     def __init__(self, workflow: LibraryAnnotationWorkflow) -> None:
         super().__init__(workflow)
         self.workflow = workflow
-        self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
+        sample_table = workflow.tables["sample_table"].copy()
+        sample_table["sample_id"] = sample_table["sample_id"].astype(object).replace(pd.NA, "(new)")
+        self.spreadsheet.configure(df=sample_table, csrf_token=self.csrf_token_value, post_url=self.post_url)
 
     @property
     def post_url(self) -> responses.URL:
@@ -45,6 +44,16 @@ class SampleAttributeAnnotationForm(HTMXWorkflowStep):
         ) -> SampleAttributeAnnotationForm:
             return cls(workflow=workflow)
         return dependency
+
+    @htmx_route("GET")
+    def Previous(cls) -> RouteFunc:
+        def route(
+            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
+            form: SampleAttributeAnnotationForm = Depends(SampleAttributeAnnotationForm.Init()),
+        ) -> Response:
+            # form.spreadsheet.set_data(workflow.tables["sample_table"])
+            return form.make_response()
+        return route
 
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:

@@ -28,7 +28,7 @@ class RegisterForm(HTMXForm):
         form = RegisterForm(request)
         form.validate()
         
-        if current_user is None or not current_user.is_insider():
+        if current_user is None or not current_user.is_insider:
             if config.settings.app_config.email_domain_white_list:
                 if form.email.data.split("@")[-1].lower() not in [domain.lower() for domain in config.settings.app_config.email_domain_white_list]:
                     form.email.errors.append("Specified email domain is not found in white-list. Please contact us.")
@@ -40,7 +40,7 @@ class RegisterForm(HTMXForm):
 
                 raise exc.FormValidationException(form)
             
-            if current_user is None or not current_user.is_insider():
+            if current_user is None or not current_user.is_insider:
                 if user_role != UserRole.CLIENT:
                     form.role.errors.append("You don't have permissions to create user with this role")
                     raise exc.FormValidationException(form)

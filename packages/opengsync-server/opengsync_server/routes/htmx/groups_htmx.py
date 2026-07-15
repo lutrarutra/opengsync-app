@@ -32,7 +32,7 @@ def edit(current_user: models.User, group_id: int):
     if (group := db.session.first(Q.group.select(id=group_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if (access_level := db.session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id))) < AccessLevel.WRITE:
             raise exceptions.NoPermissionsException()
 
@@ -50,7 +50,7 @@ def remove_user(current_user: models.User, group_id: int, user_id: int):
     if (_ := db.session.first(Q.group.select(id=group_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if (access_level := db.session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id))) < AccessLevel.WRITE:
             raise exceptions.NoPermissionsException()
     
@@ -77,7 +77,7 @@ def make_owner(current_user: models.User, group_id: int, user_id: int):
     if (owner_affiliation := db.session.first(Q.affiliation.select(group_id=group_id, user_id=group.owner.id))) is None:
         raise exceptions.NotFoundException("Current owner affiliation not found")
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if (access_level := db.session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id))) < AccessLevel.WRITE:
             raise exceptions.NoPermissionsException()
     
@@ -98,7 +98,7 @@ def add_user(current_user: models.User, group_id: int):
     if (group := db.session.first(Q.group.select(id=group_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if (affiliation := db.session.first(Q.affiliation.select(group_id=group_id, user_id=current_user.id))) is None:
             raise exceptions.NoPermissionsException()
         if affiliation.affiliation_type not in (AffiliationType.OWNER, AffiliationType.MANAGER):

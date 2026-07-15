@@ -12,12 +12,12 @@
         <div class="page-controls">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal"
             data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-            hx-get="{{ url_for('experiments_htmx.file_form', experiment_id=experiment.id) }}">
+            hx-get="{{ url_for('MediaFileForm.Upload', experiment_id=experiment.id) }}">
                 Attach File
             </button>
             <button type="button" class="btn btn-primary"
                 data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                hx-get="{{ url_for('experiments_htmx.edit', experiment_id=experiment.id) }}"
+                hx-get="{{ url_for('ExperimentForm.Edit', experiment_id=experiment.id) }}"
                 hx-target="#xl-modal-content" data-bs-toggle="modal"
                 hx-swap="innerHTML" hx-trigger="click">
                 Edit Experiment
@@ -27,7 +27,7 @@
             {{ tooltip("Only draft experiments can be deleted.", category="danger") }}
             {% endif %}>
                 <button type="button" class="btn btn-danger"
-                    hx-delete="{{ url_for('experiments_htmx.delete', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
+                    hx-delete="{{ url_for('delete_experiment', experiment_id=experiment.id) }}" _="on htmx:confirm(issueRequest)
                     halt the event
                     call Swal.fire({
                         title: 'Delete Experiment \'{{ experiment.name }}\'',
@@ -165,7 +165,7 @@
                     <p>✅: Completed ⚠️: Incomplete ❗: Missing prerequisites 🔘: Optional 🚫: Not Relevant</p>
                 </div>
             </div>
-            <div hx-get="{{ url_for('experiments_htmx.checklist', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('experiment_checklist', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -185,7 +185,7 @@
                     <h2>Dilutions</h2>
                 </div>
             </div>
-            <div hx-get="{{ url_for('render_experiment_table_dilutions', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_dilution_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -210,7 +210,7 @@
                 {{
                     metadata_group_link(
                         "Sequencer", experiment.sequencer.name,
-                        url_for("devices_page.sequencer", sequencer_id=experiment.sequencer.id),
+                        url_for("sequencer_page", sequencer_id=experiment.sequencer.id),
                         class="col-3"
                     )
                 }}
@@ -226,13 +226,13 @@
             </div>
         </div>
         <div class="tab-pane fade" id="experiment-overview-tab" role="tabpanel" tabindex="5">
-            <div hx-get="{{ url_for('experiments_htmx.overview', experiment_id=experiment.id) }}"
+            <div hx-get="{{ url_for('experiment_overview', experiment_id=experiment.id) }}"
                 hx-trigger="intersect once">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="experiment-files-tab" role="tabpanel" tabindex="6">
-            <div hx-get="{{ url_for('render_experiment_table_files', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_media_file_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -248,7 +248,7 @@
                 </button>
             </div>
 
-            <div hx-get="{{ url_for('render_experiment_table_comments', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_comment_thread', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>  
@@ -262,7 +262,7 @@
                 {{
                     metadata_group_link(
                         "Run", experiment.seq_run.id,
-                        url_for("seq_runs_page.seq_run", seq_run_id=experiment.seq_run.id, from="experiment@" + experiment.id | string),
+                        url_for("seq_run_page", seq_run_id=experiment.seq_run.id, from="experiment@" + experiment.id | string),
                         class="col-3"
                     )
                 }}
@@ -305,12 +305,12 @@
             </div>
         </div>
         <div class="tab-pane fade" id="experiment-data_paths-tab" role="tabpanel" tabindex="10">
-            <div hx-get="{{ url_for('share_htmx.get_data_paths', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_data_path_table', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
         <div class="tab-pane fade" id="experiment-stats-tab" role="tabpanel" tabindex="11">
-            <div hx-get="{{ url_for('experiments_htmx.render_stats_tab', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('experiment_stats', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

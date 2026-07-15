@@ -55,7 +55,7 @@ def render_table(index_kit_id: int):
 
 @wrappers.htmx_route(index_kits_htmx, db=db)
 def get_form(current_user: models.User, form_type: str):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     if form_type == "edit":
         if (index_kit_id := request.args.get("index_kit_id")) is None:
@@ -80,7 +80,7 @@ def get_form(current_user: models.User, form_type: str):
 
 @wrappers.htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
@@ -94,7 +94,7 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, index_kit_id: int):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     if (index_kit := db.session.first(Q.index_kit.select(id=index_kit_id))) is None:
         raise exceptions.NotFoundException()
@@ -110,7 +110,7 @@ def edit(current_user: models.User, index_kit_id: int):
 
 @wrappers.htmx_route(index_kits_htmx, db=db, methods=["GET", "POST"])
 def edit_barcodes(current_user: models.User, index_kit_id: int):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if (index_kit := db.session.first(Q.index_kit.select(id=index_kit_id))) is None:

@@ -21,7 +21,7 @@ def search_groups(
     if selected_id is not None and not word:
         stmt = Q.group.select(id=selected_id, statement=stmt)
 
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         stmt = Q.group.select(user_id=current_user.id, statement=stmt)
 
     groups, count = session.page(stmt, page=page)

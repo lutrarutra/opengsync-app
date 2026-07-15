@@ -47,7 +47,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.route = "groups_htmx.get_affiliations"
         affiliation = db.session.first(Q.affiliation.select(user_id=current_user.id, group_id=group.id))
         stmt = Q.affiliation.select(group_id=group.id, statement=stmt)
-        context["can_add_users"] = current_user.is_insider() or affiliation is not None and affiliation.affiliation_type in (C.AffiliationType.OWNER, C.AffiliationType.MANAGER)
+        context["can_add_users"] = current_user.is_insider or affiliation is not None and affiliation.affiliation_type in (C.AffiliationType.OWNER, C.AffiliationType.MANAGER)
         table.url_params["group_id"] = group.id
     elif (user := context.get("user")) is not None:
         template = "components/tables/user-affiliation.html"

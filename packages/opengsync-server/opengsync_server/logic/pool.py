@@ -97,12 +97,12 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.active_page = None
         context["can_edit_pooling"] = (
             (
-                current_user.is_insider() and
+                current_user.is_insider and
                 experiment.status == C.ExperimentStatus.DRAFT and 
                 not experiment.workflow.combined_lanes
             ) or 
             (
-                current_user.is_admin() and not experiment.workflow.combined_lanes
+                current_user.is_admin and not experiment.workflow.combined_lanes
             )
         )
     elif (lab_prep := context.get("lab_prep")) is not None:
@@ -111,7 +111,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.url_params["lab_prep_id"] = lab_prep.id
     else:
         template = "components/tables/pool.html"
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.pool.select(user_id=current_user.id, statement=stmt)
 
     pools, count = db.session.page(stmt, page=table.active_page or 0)
@@ -147,7 +147,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     elif (lab_prep := context.get("lab_prep")) is not None:
         stmt = Q.pool.select(lab_prep_id=lab_prep.id, statement=stmt)
     else:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.pool.select(user_id=current_user.id, statement=stmt)
     
     pools, count = db.session.page(stmt, page=page)
@@ -242,7 +242,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     elif (lab_prep := context.get("lab_prep")) is not None:
         stmt = Q.pool.select(lab_prep_id=lab_prep.id, statement=stmt)
     else:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.pool.select(user_id=current_user.id, statement=stmt)
 
     if kwargs["workflow"] == "select_experiment_pools":

@@ -128,6 +128,8 @@ class LibrarySelectTableField(SelectTableField):
         *,
         status_in: list[C.LibraryStatus] | None = None,
         type_in: list[C.LibraryType] | None = None,
+        indexed: bool | None = None,
+        pooled: bool | None = None,
         select_all: bool = False,
         required: bool = True,
         default: list[int] | None = None,
@@ -151,6 +153,10 @@ class LibrarySelectTableField(SelectTableField):
             self.query_params["status_in"] = json.dumps([s.id for s in status_in])
         if type_in:
             self.query_params["type_in"] = json.dumps([t.id for t in type_in])
+        if indexed is not None:
+            self.query_params["indexed"] = json.dumps(indexed)
+        if pooled is not None:
+            self.query_params["pooled"] = json.dumps(pooled)
 
     @property
     def table_url(self) -> responses.URL:
@@ -206,3 +212,48 @@ class PoolSelectTableField(SelectTableField):
         if not self.data:
             return []
         return [session.get_one(Q.pool.select(id=pid), options=options) for pid in self.data]
+
+
+class ExperimentSelectTable(SelectTableField):
+    """A reusable input component for selecting multiple experiments."""
+
+    def __init__(
+        self,
+        label: str,
+        browse_context: str,
+        *,
+        status_in: list[C.ExperimentStatus] | None = None,
+        workflow_in: list[C.ExperimentWorkFlow] | None = None,
+        select_all: bool = False,
+        required: bool = True,
+        default: list[int] | None = None,
+        hidden: bool = False,
+        read_only: bool = False,
+    ):
+        super().__init__(
+            label=label,
+            template="components/inputs/experiment-table-select.html",
+            type="experiment-select",
+            required=required,
+            default=json.dumps(default) if default else "",
+            pydantic_type=str,
+            hidden=hidden,
+            read_only=read_only,
+        )
+        self.select_all = select_all
+        self.query_params: dict[str, Any] = {"browse": browse_context}
+        self.browse_context = browse_context
+        if status_in:
+            self.query_params["status_in"] = json.dumps([s.id for s in status_in])
+        if workflow_in:
+            self.query_params["workflow_in"] = json.dumps([w.id for w in workflow_in])
+
+    @property
+    def table_url(self) -> responses.URL:
+        return responses.url_for('render_experiment_table').include_query_params(**self.query_params)
+
+    def get_selected_experiments(self, session: SyncSession, options: db_utils.QueryOptions = None) -> list[models.Experiment]:
+        """Query the database for the selected :class:`Experiment` objects."""
+        if not self.data:
+            return []
+        return [session.get_one(Q.experiment.select(id=eid), options=options) for eid in self.data]

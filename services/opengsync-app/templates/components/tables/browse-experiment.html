@@ -1,0 +1,38 @@
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
+{% from "components/tooltip.jinja2" import tooltip %}
+<div id="select-experiments-table" class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                {{ table_col("select-experiments-table", table, "id") }}
+                {{ table_col("select-experiments-table", table, "name") }}
+                {{ table_col("select-experiments-table", table, "workflow") }}
+                {{ table_col("select-experiments-table", table, "status") }}
+                {{ table_col("select-experiments-table", table, "library_types") }}
+                {{ table_col("select-experiments-table", table, "operator") }}
+                {{ table_col("select-experiments-table", table, "timestamp_created") }}
+            </tr>
+        </thead>
+        <tbody>
+            {% for experiment in experiments %}
+            <tr id="experiment-row-{{ experiment.id }}" data-id="{{ experiment.id }}" class="experiment-row">
+                <th scope="row">{{ experiment.id }}</th>
+                <td>{{ experiment.name }}</td>
+                <td>{{ experiment.workflow.display_name }}</td>
+                <td>{{ experiment.status.icon | safe }} {{ experiment.status.label }}</td>
+                <td class="x-scroll-cell">{{ library_type_badge_list(experiment.library_types) }}</td>
+                <td>{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></td>
+                <td>{{ experiment.timestamp_created_str("%Y-%m-%d") }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ pagination("select-experiments-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#select-experiments-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
+</div>

@@ -1,8 +1,7 @@
-{% from 'components/form_group.jinja2' import form_group, checkbox_input, select_input %}
 {% from "components/tooltip.jinja2" import tooltip %}
 <div id="assay-form-submission-container" class="modal-content" style="height: 100%;">
     <div class="modal-header">
-        <h1 class="modal-title fs-5">{% if seq_request.submission_type == C.SubmissionType.POOLED_LIBRARIES %}Select Assay{% else %}Select Services{% endif %}</h1>
+        <h1 class="modal-title fs-5">{% if form.submission_type == C.SubmissionType.POOLED_LIBRARIES %}Select Assay{% else %}Select Services{% endif %}</h1>
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
     </div>
     <div class="modal-body tab-body">
@@ -30,24 +29,22 @@
             </li>
         </ul>
         <div class="tab-content">
-            <div class="tab-pane fade show active form-container" id="form-tab-form" role="tabpanel" tabindex="0">
-                {{ select_input(form.service_type) }}
-                {{ form.csrf_token() }}
-                {{ form.optional_assays.csrf_token() }}
-                {{ form.additional_services.csrf_token() }}
+            <div class="tab-pane fade show active form-container" role="tabpanel" tabindex="0">
+                {{ form.csrf_token.render() }}
+                {{ form.service_type.render() }}
                 <h5>Additional Options for 10X</h5>
                 <div class="d-flex justify-contents-evenly" style="gap: 20px;">
-                    {{ checkbox_input(form.optional_assays.vdj_b, class="opt-checkbox opt-checkbox-" + C.LibraryType.TENX_VDJ_B.id | string) }}
-                    {{ checkbox_input(form.optional_assays.vdj_t, class="opt-checkbox opt-checkbox-" + C.LibraryType.TENX_VDJ_T.id | string) }}
-                    {{ checkbox_input(form.optional_assays.vdj_t_gd, class="opt-checkbox opt-checkbox-" + C.LibraryType.TENX_VDJ_T_GD.id | string) }}
-                    {{ checkbox_input(form.optional_assays.crispr_screening, class="opt-checkbox opt-checkbox-" + C.LibraryType.TENX_CRISPR_SCREENING.id | string) }}
+                    {{ form.optional_assays.vdj_b.render("opt-checkbox opt-checkbox-" + C.LibraryType.TENX_VDJ_B.id | string) }}
+                    {{ form.optional_assays.vdj_t.render("opt-checkbox opt-checkbox-" + C.LibraryType.TENX_VDJ_T.id | string) }}
+                    {{ form.optional_assays.vdj_t_gd.render("opt-checkbox opt-checkbox-" + C.LibraryType.TENX_VDJ_T_GD.id | string) }}
+                    {{ form.optional_assays.crispr_screening.render("opt-checkbox opt-checkbox-" + C.LibraryType.TENX_CRISPR_SCREENING.id | string) }}
                 </div>
                 <div class="d-flex align-items-center">
                     <div class="col-8 d-flex" style="gap: 20px;">
-                        {{ checkbox_input(form.optional_assays.antibody_capture, class="opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(C.LibraryType.TENX_ANTIBODY_CAPTURE.id, C.LibraryType.TENX_SC_ABC_FLEX.id)) }}
-                        {{ checkbox_input(form.optional_assays.antibody_multiplexing, class="opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(C.LibraryType.TENX_ANTIBODY_CAPTURE.id, C.LibraryType.TENX_SC_ABC_FLEX.id)) }}
+                        {{ form.optional_assays.antibody_capture.render("opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(C.LibraryType.TENX_ANTIBODY_CAPTURE.id, C.LibraryType.TENX_SC_ABC_FLEX.id)) }}
+                        {{ form.optional_assays.antibody_multiplexing.render("opt-checkbox opt-checkbox-{} opt-checkbox-{}".format(C.LibraryType.TENX_ANTIBODY_CAPTURE.id, C.LibraryType.TENX_SC_ABC_FLEX.id)) }}
                     </div>
-                    {{ form_group(form.optional_assays.antibody_capture_kit, class="col-4", placeholder="Kit Name", hide_label=true) }}
+                    {{ form.optional_assays.antibody_capture_kit.render("col-4") }}
                 </div>
                 <div id="abc-mux-warning" style="display: none;">
                     <p class="text-warning">
@@ -56,10 +53,10 @@
                     </p>
                 </div>
                 <div class="d-flex align-items-center">
-                    {{ checkbox_input(form.additional_services.oligo_multiplexing, class="col-8") }}
-                    {{ form_group(form.additional_services.oligo_multiplexing_kit, class="col-4", placeholder="Kit Name", hide_label=true) }}
+                    {{ form.additional_services.oligo_multiplexing.render("col-8") }}
+                    {{ form.additional_services.oligo_multiplexing_kit.render("col-4") }}
                 </div>
-                {% if seq_request.submission_type == C.SubmissionType.RAW_SAMPLES %}
+                {% if form.submission_type == C.SubmissionType.RAW_SAMPLES %}
                 <div class="pb-3">
                     <div id="oligo-mux-warning" style="display: none;">
                         <p class="text-warning">
@@ -73,21 +70,21 @@
                     </div>
                 </div>
                 {% endif %}
-                {{ checkbox_input(form.additional_services.ocm_multiplexing, class="opt-checkbox pb-2") }}
+                {{ form.additional_services.ocm_multiplexing.render("opt-checkbox pb-2") }}
                 <h5>Additional Options for Parse Biosciences</h5>
                 <div class="d-flex">
-                    {{ select_input(form.optional_assays.parse_kit, class="col-6 opt-select opt-select-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
-                    {{ select_input(form.optional_assays.parse_chemistry, class="col-6 opt-select opt-select-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
+                    {{ form.optional_assays.parse_kit.render("col-6 opt-select opt-select-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
+                    {{ form.optional_assays.parse_chemistry.render("col-6 opt-select opt-select-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
                 </div>
                 <div class="d-flex justify-contents-evenly" style="gap: 20px;">
-                    {{ checkbox_input(form.optional_assays.parse_mux, class="opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
-                    {{ checkbox_input(form.optional_assays.parse_crispr, class="opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
-                    {{ checkbox_input(form.optional_assays.parse_tcr, class="opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_EVERCODE_TCR.id | string) }}
-                    {{ checkbox_input(form.optional_assays.parse_bcr, class="opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_EVERCODE_BCR.id | string) }}
+                    {{ form.optional_assays.parse_mux.render("opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
+                    {{ form.optional_assays.parse_crispr.render("opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_SC_CRISPR.id | string) }}
+                    {{ form.optional_assays.parse_tcr.render("opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_EVERCODE_TCR.id | string) }}
+                    {{ form.optional_assays.parse_bcr.render("opt-checkbox opt-checkbox-" + C.LibraryType.PARSE_EVERCODE_BCR.id | string) }}
                 </div>
                 <h5>Additional Services</h5>
-                {{ checkbox_input(form.additional_services.nuclei_isolation, class="pb-2") }}
-                {{ form_group(form.additional_info) }}
+                {{ form.additional_services.nuclei_isolation.render("pb-2") }}
+                {{ form.additional_info.render() }}
             </div>
             <div class="tab-pane fade show" id="form-tab-form-help" role="tabpanel" tabindex="1">
                 <ol>
@@ -172,19 +169,18 @@
     </div>
     <div class="modal-footer">
         <div class="footer-id">
-            {{ form.uuid }}
+            {{ form.workflow.uuid }}
         </div>
         <div class="footer-info">
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-warning submit-form-btn"
             hx-target="#assay-form-submission-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('library_annotation_workflow.previous', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+            hx-get="{{ form.previous_url }}">
                 Back
             </button>
-            <button type="button" class="btn btn-primary submit-form-btn"
-            hx-target="#assay-form-submission-container" hx-swap="outerHTML" hx-include="#form-tab-form"
-            hx-post="{{ url_for('library_annotation_workflow.parse_assay_form', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+            <button class="btn btn-primary" type="button" hx-target="#assay-form-submission-container" hx-swap="outerHTML" hx-include="#assay-form-submission-container"
+                hx-post="{{ form.post_url }}">
                 Next
             </button>
         </div>

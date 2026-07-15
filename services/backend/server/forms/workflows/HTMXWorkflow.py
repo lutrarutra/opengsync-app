@@ -37,9 +37,34 @@ class HTMXWorkflow(ABC):
         self.metadata["previous_url"] = value
 
     def init_step(self, step_name: str) -> None:
-        """Initialize a new step in the workflow."""
+        """Initialize a new step in the workflow.
+
+        When switching to a new step that has no existing data in Redis,
+        the current step's tables and metadata are copied forward so that
+        each step inherits all accumulated data from previous steps.
+        """
+        # Save the current step's data before switching away from it
+        if hasattr(self, 'tables'):
+            self.tables.save()
+        if hasattr(self, 'metadata'):
+            self.metadata.save()
+
+        # Keep references to the current step's data for copying forward
+        old_tables = getattr(self, 'tables', None)
+        old_metadata = getattr(self, 'metadata', None)
+
         self.tables = msf_helpers.CachedFrameContainer(prefix=f"{self.key_prefix}:{step_name}:tables", r=self.r)
         self.metadata = msf_helpers.CachedDictionary(prefix=f"{self.key_prefix}:{step_name}:metadata", r=self.r)
+
+        # If the new step has no existing data, inherit from the previous step.
+        # Use items() which returns short keys from in-memory cache (unlike keys()
+        # which may return full Redis keys with prefix).
+        if old_tables is not None and len(self.tables.keys()) == 0:
+            for key, df in old_tables.items():
+                self.tables[key] = df.copy()
+
+        if old_metadata is not None and len(self.metadata) == 0:
+            self.metadata.update(dict(old_metadata.items()))
 
     @property
     def current_step(self) -> str:

@@ -11,7 +11,7 @@ dilute_pools_workflow = Blueprint("dilute_pools_workflow", __name__, url_prefix=
 
 @wrappers.htmx_route(dilute_pools_workflow, db=db)
 def begin(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -23,7 +23,7 @@ def begin(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(dilute_pools_workflow, db=db, methods=["POST"])
 def dilute(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:

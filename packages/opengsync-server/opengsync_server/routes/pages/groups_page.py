@@ -47,7 +47,7 @@ def group(current_user: models.User, group_id: int):
     affiliation = db.session.first(Q.affiliation.select(user_id=current_user.id, group_id=group_id))
 
     can_edit = current_user.role == UserRole.ADMIN or (affiliation is not None and affiliation.affiliation_type == AffiliationType.OWNER)
-    can_add_users = current_user.is_insider() or (affiliation is not None and affiliation.affiliation_type in (AffiliationType.OWNER, AffiliationType.MANAGER))
+    can_add_users = current_user.is_insider or (affiliation is not None and affiliation.affiliation_type in (AffiliationType.OWNER, AffiliationType.MANAGER))
     
     if can_edit:
         group_form = forms.models.GroupForm(group=group)

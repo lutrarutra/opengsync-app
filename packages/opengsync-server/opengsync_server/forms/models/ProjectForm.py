@@ -77,7 +77,7 @@ class ProjectForm(HTMXFlaskForm):
                 self.status.errors = (f"You can only create a project with status {ProjectStatus.DRAFT.name}.",)
                 return False
         else:
-            if not current_user.is_insider():
+            if not current_user.is_insider:
                 if status != self.project.status:
                     self.status.errors = ("You don't have permissions to edit the status.",)
                     return False
@@ -111,11 +111,11 @@ class ProjectForm(HTMXFlaskForm):
                         self.identifier.errors = ("Project with this identifier already exists.",)
                         return False
                     
-            if self.project.identifier and self.identifier.data and self.project.identifier != self.identifier.data and not current_user.is_insider():
+            if self.project.identifier and self.identifier.data and self.project.identifier != self.identifier.data and not current_user.is_insider:
                 self.identifier.errors = ("You don't have permissions to change the identifier.",)
                 return False
                     
-            if self.project.status != status and not current_user.is_insider():
+            if self.project.status != status and not current_user.is_insider:
                 self.status.errors = ("You don't have permissions to change the status.",)
                 return False
                     
@@ -123,7 +123,7 @@ class ProjectForm(HTMXFlaskForm):
             self.owner.selected.errors = ("Selected user does not exist.",)
             return False
         
-        if not current_user.is_insider() and user.id != current_user.id:
+        if not current_user.is_insider and user.id != current_user.id:
             self.owner.selected.errors = ("You don't have permissions to set this user as owner.",)
             return False
                     
@@ -132,22 +132,22 @@ class ProjectForm(HTMXFlaskForm):
                 logger.error(f"Group with id {self.group.selected.data} does not exist.")
                 raise ValueError(f"Group with id {self.group.selected.data} does not exist.")
             
-            if not user.is_insider():
+            if not user.is_insider:
                 if db.session.first(Q.affiliation.select(user_id=user.id, group_id=group.id)) is None:
                     self.owner.selected.errors = ("Selected user must be part of the selected group.",)
                     return False
             
             if self.project is not None:
-                if not self.project.owner.is_insider() and db.session.first(Q.affiliation.select(user_id=self.project.owner_id, group_id=group.id)) is None:
+                if not self.project.owner.is_insider and db.session.first(Q.affiliation.select(user_id=self.project.owner_id, group_id=group.id)) is None:
                     self.group.selected.errors = ("Project owner must be part of the group.",)
                     return False
             else:
-                if not current_user.is_insider() and db.session.first(Q.affiliation.select(user_id=current_user.id, group_id=group.id)) is None:
+                if not current_user.is_insider and db.session.first(Q.affiliation.select(user_id=current_user.id, group_id=group.id)) is None:
                     self.group.selected.errors = ("You must be part of the group.",)
                     return False
                 
         if self.title.data:
-            if current_user.is_insider():
+            if current_user.is_insider:
                 import sqlalchemy as sa
                 if db.session.query(models.Project.title).join(
                     models.User,

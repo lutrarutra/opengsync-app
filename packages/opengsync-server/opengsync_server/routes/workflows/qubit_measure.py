@@ -50,7 +50,7 @@ def get_context(request: Request) -> dict:
 
 @wrappers.htmx_route(qubit_measure_workflow, db=db)
 def begin(current_user: models.User, entity: str | None = None):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     context = get_context(request)
@@ -69,7 +69,7 @@ def begin(current_user: models.User, entity: str | None = None):
 
 @wrappers.htmx_route(qubit_measure_workflow, db=db, methods=["POST"])
 def select(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     context = get_context(request)
@@ -94,6 +94,6 @@ def select(current_user: models.User):
 
 @wrappers.htmx_route(qubit_measure_workflow, db=db, methods=["POST"])
 def complete(current_user: models.User, uuid: str):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     return wff.CompleteQubitMeasureForm(uuid=uuid, formdata=request.form).process_request()

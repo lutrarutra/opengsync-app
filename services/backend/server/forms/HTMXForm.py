@@ -2,7 +2,7 @@ import re
 from abc import ABC
 import copy
 from dataclasses import dataclass
-from typing import Any, Optional, Callable, TypeVar, TypeAlias
+from typing import Any, Optional, Callable, TypeVar, TypeAlias, Literal
 
 from fastapi import Request, Cookie, Depends, Response, APIRouter
 from pydantic import BaseModel, ValidationError, create_model
@@ -23,7 +23,7 @@ FormFunc: TypeAlias = Callable[..., "HTMXForm"]
 @dataclass
 class _RouteDef:
     """Metadata describing a single HTMX route, collected per form subclass."""
-    method: str
+    method: Literal["GET", "POST", "PUT", "DELETE"]
     path: str
     name: str
     func_name: str
@@ -41,7 +41,7 @@ def _class_name_to_path(name: str) -> str:
 
 
 def htmx_route(
-    method: str,
+    method: Literal["GET", "POST", "PUT", "DELETE"],
     path: str | None = None,
     name: str | None = None,
 ) -> Callable[[Callable], classmethod]:
@@ -380,7 +380,7 @@ class HTMXForm(ABC):
             samesite="lax",
         )
 
-    def make_response(self, status_code: int = 200) -> Response:
+    def make_response(self, status_code: int = 200, **kwargs) -> Response:
         if not self.csrf_token.data:
             token = ctx.request.cookies.get("csrf_token") or getattr(ctx.request.state, "new_csrf_token", None)
             if token:
@@ -397,7 +397,8 @@ class HTMXForm(ABC):
         return responses.htmx_response(
             template=self.template_path,
             status_code=status_code,
-            **self.get_context()
+            **self.get_context(),
+            **kwargs
         )
 
     @property

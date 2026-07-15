@@ -18,7 +18,7 @@ billing_workflow = Blueprint("billing_workflow", __name__, url_prefix="/workflow
 
 @wrappers.htmx_route(billing_workflow, db=db)
 def begin(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     return wff.SelectExperimentsForm().make_response()
@@ -26,7 +26,7 @@ def begin(current_user: models.User) -> Response:
 
 @wrappers.htmx_route(billing_workflow, db=db, methods=["POST"])
 def select(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     form = wff.SelectExperimentsForm(formdata=request.form)
@@ -39,7 +39,7 @@ def select(current_user: models.User) -> Response:
 
 @wrappers.resource_route(billing_workflow, methods=["GET"], db=db)
 def download(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     experiment_ids = request.args.get("experiment_ids")

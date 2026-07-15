@@ -37,7 +37,7 @@ def lab_prep_page(
     can_be_completed = len(lab_prep.libraries) > 0
     contains_mux_libraries = False
     for library in lab_prep.libraries:
-        if library.status.id < C.LibraryStatus.POOLED.id or not library.is_indexed():
+        if library.status.id < C.LibraryStatus.POOLED.id or not library.is_indexed:
             can_be_completed = False
         
         if library.mux_type is not None:

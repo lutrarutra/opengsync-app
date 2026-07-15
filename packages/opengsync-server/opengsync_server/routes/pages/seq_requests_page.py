@@ -47,8 +47,8 @@ def seq_request(current_user: models.User, seq_request_id: int):
             ]
         elif page == "pool":
             path_list = [
-                ("Pools", url_for("pools_page.pools")),
-                (f"Pool {id}", url_for("pools_page.pool", pool_id=id)),
+                ("Pools", url_for("pool_pages")),
+                (f"Pool {id}", url_for("pool_page", pool_id=id)),
                 (f"Request {seq_request_id}", ""),
             ]
         elif page == "group":

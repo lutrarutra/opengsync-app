@@ -18,7 +18,7 @@ class LaneTable(HTMXTable):
 
 
 def get_browse_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     table = LaneTable(route="lanes_htmx.browse", page=request.args.get("page", 0, type=int))

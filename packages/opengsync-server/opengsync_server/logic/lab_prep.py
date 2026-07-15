@@ -26,7 +26,7 @@ class LabPrepTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
     
     table = LabPrepTable(route="lab_preps_htmx.get", page=request.args.get("page", 0, type=int))

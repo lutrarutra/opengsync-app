@@ -104,7 +104,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.url_params["sample_id"] = sample.id
     else:
         template = "components/tables/library.html"
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.library.select(user_id=current_user.id, statement=stmt)
 
     libraries, count = db.session.page(stmt, page=table.active_page or 0)
@@ -143,7 +143,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     elif (sample := context.get("sample")) is not None:
         stmt = Q.library.select(sample_id=sample.id, statement=stmt)
     else:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.library.select(user_id=current_user.id, statement=stmt)
     
     libraries, num_pages = db.session.page(stmt, page=page)
@@ -168,7 +168,7 @@ def get_properties_form(current_user: models.User, request: Request, **kwargs) -
         raise exceptions.BadRequestException("No sequence request context provided.")
     
     form = forms.LibraryPropertyForm(
-        editable=current_user.is_insider(),
+        editable=current_user.is_insider,
         seq_request=context.get("seq_request"),
         project=context.get("project"),
         formdata=request.form if request.method == "POST" else None,
@@ -176,7 +176,7 @@ def get_properties_form(current_user: models.User, request: Request, **kwargs) -
     return form
 
 def get_browse_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     table = LibraryTable(route="libraries_htmx.browse", page=request.args.get("page", 0, type=int))
@@ -246,7 +246,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     elif (sample := context.get("sample")) is not None:
         stmt = Q.library.select(sample_id=sample.id, statement=stmt)
     else:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.library.select(user_id=current_user.id, statement=stmt)
 
     libraries, count = db.session.page(stmt, page=table.active_page or 0)

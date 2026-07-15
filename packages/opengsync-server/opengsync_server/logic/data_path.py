@@ -21,7 +21,7 @@ class DataPathTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    table = DataPathTable(route="share_htmx.get_data_paths", page=request.args.get("page", 0, type=int))
+    table = DataPathTable(route="render_data_path_table", page=request.args.get("page", 0, type=int))
     stmt = sa.select(models.DataPath)
 
     if (path := request.args.get("path")):

@@ -1,0 +1,23 @@
+{% from 'components/tooltip.jinja2' import tooltip %}
+<div class="form-group {{ container_class }} {% if field.hidden %}d-none{% endif %}">
+    {% if not hide_label %}
+    <a {% if field.description %}
+    {{ tooltip(field.description, "top") }}
+    {% endif %}>
+        {{ field.label }}
+    </a>
+    {% endif %}
+    <input
+    type="{% if field.hidden %}hidden{% else %}datetime-local{% endif %}"
+    class="form-control{% if field.errors %} is-invalid{% endif %}"
+    placeholder="{% if field.placeholder %}{{ field.placeholder }}{% else %}{% if field.required %}Required{% else %}Optional{% endif %}{% endif %}"
+    aria-label="{{ field.label }}" aria-describedby="{{ field.id }}"
+    id="{{ field.id }}" value="{{ field.data or '' }}" name="{{ field.name }}"
+    {% if field.required %}required{% endif %}
+    {%if field.read_only %}readonly{% endif %}>
+    <div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">
+        {% for error in field.errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+</div>

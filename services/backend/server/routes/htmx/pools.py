@@ -6,10 +6,11 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
 from ...core.context import ctx
-from ... import forms
+from ...forms.models import PoolForm
 
 
 router = APIRouter(prefix="/pools", tags=["pools"])
+router.include_router(PoolForm.Router())
 
 
 class PoolTable(HTMXTable):
@@ -64,7 +65,7 @@ def render_pool_table(
         table.url_params["browse"] = browse
     else:
         table.template = "components/tables/pool.html"
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.pool.select(viewer_id=current_user.id, statement=stmt)
 
     pools, count = session.page(
@@ -78,62 +79,6 @@ def render_pool_table(
     table.set_num_pages(count)
 
     return table.make_response(pools=pools)
-
-
-@router.get("/create")
-def render_create_pool_form(
-    request: Request,
-):
-    """Render the create pool form."""
-    form = forms.models.PoolForm(request, form_type="create")
-    return form.make_response()
-
-
-@router.post("/create")
-def create_pool(response = Depends(forms.models.PoolForm.create)): return response
-
-
-@router.get("/{pool_id}/edit")
-def render_pool_edit_form(
-    pool_id: int,
-    request: Request,
-    access_level: C.AccessLevel = Depends(dependencies.pool_permissions),
-    session: SyncSession = Depends(dependencies.db_session)
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException("You do not have permission to edit this pool.")
-
-    pool = session.get_one(Q.pool.select(id=pool_id).options(
-        orm.selectinload(models.Pool.contact),
-    ))
-
-    form = forms.models.PoolForm(request, form_type="edit", pool=pool)
-    return form.make_response()
-
-
-@router.post("/{pool_id}/edit")
-def edit_pool(response = Depends(forms.models.PoolForm.edit)): return response
-
-
-@router.get("/{pool_id}/clone")
-def render_pool_clone_form(
-    pool_id: int,
-    request: Request,
-    current_user: models.User = Depends(dependencies.require_insider),
-    session: SyncSession = Depends(dependencies.db_session)
-):
-    pool = session.get_one(Q.pool.select(id=pool_id).options(
-        orm.selectinload(models.Pool.contact),
-        orm.selectinload(models.Pool.libraries),
-        orm.selectinload(models.Pool.dilutions),
-    ))
-
-    form = forms.models.PoolForm(request, form_type="clone", pool=pool)
-    return form.make_response()
-
-
-@router.post("/{pool_id}/clone")
-def clone_pool(response = Depends(forms.models.PoolForm.clone)): return response
 
 
 @router.get("/search")
@@ -151,8 +96,83 @@ def search_pools(
     elif word is not None:
         stmt = Q.pool.search(name=word, statement=stmt)
 
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         stmt = Q.pool.select(viewer_id=current_user.id, statement=stmt)
 
     pools, count = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/pool.html", pools=pools)
+
+@router.delete("/{pool_id}/remove-library/{library_id}")
+def remove_library_from_pool(
+    pool_id: int,
+    library_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_insider)
+):
+    pool = session.get_one(Q.pool.select(id=pool_id).options(
+        orm.selectinload(models.Pool.libraries),
+    ))
+
+    library = session.get_one(Q.library.select(id=library_id))
+
+    if pool.status != C.PoolStatus.DRAFT and not current_user.is_admin:
+        raise exc.NoPermissionsException()
+
+    pool.libraries.remove(library)
+    if library.status == C.LibraryStatus.POOLED:
+        library.status = C.LibraryStatus.STORED
+
+    if library.experiment_id == pool.experiment_id:
+        library.experiment_id = None
+
+    session.save(pool)
+    return responses.htmx_response(
+        redirect=responses.url_for("pool_page", pool_id=pool_id),
+        flash=responses.flash(f"Library {library.name} removed from pool", "success")
+    )
+
+@router.delete("/{pool_id}/remove-libraries")
+def remove_libraries_from_pool(
+    pool_id: int,
+    current_user: models.User = Depends(dependencies.require_insider),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    pool = session.get_one(Q.pool.select(id=pool_id).options(
+        orm.selectinload(models.Pool.libraries),
+    ))
+
+    if pool.status != C.PoolStatus.DRAFT and not current_user.is_admin:
+        raise exc.NoPermissionsException()
+
+    for library in pool.libraries:
+        library.pool_id = None
+        if library.status == C.LibraryStatus.POOLED:
+            library.status = C.LibraryStatus.STORED
+
+    
+    session.save(pool)
+    
+    
+    return responses.htmx_response(
+        redirect=responses.url_for("pool_page", pool_id=pool_id),
+        flash=responses.flash("Libraries removed from pool", "success")
+    )
+
+@router.delete("/{pool_id}/delete", dependencies=[Depends(dependencies.require_insider)])
+def delete_pool(
+    pool_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    pool = session.get_one(Q.pool.select(id=pool_id).options(
+        orm.with_expression(models.Pool._num_libraries, models.Pool.num_libraries.expression)
+    ))
+
+    if pool.num_libraries > 0:
+        raise exc.NoPermissionsException("Cannot delete a pool that has libraries.")
+
+    session.delete(pool)
+    
+    return responses.htmx_response(
+        redirect=responses.url_for("pool_pages"),
+        flash=responses.flash("Pool deleted", "success")
+    )

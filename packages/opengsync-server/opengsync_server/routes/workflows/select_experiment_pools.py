@@ -13,7 +13,7 @@ select_experiment_pools_workflow = Blueprint("select_experiment_pools_workflow",
 
 @wrappers.htmx_route(select_experiment_pools_workflow, db=db)
 def begin(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id), options=orm.selectinload(models.Experiment.pools))) is None:
@@ -26,7 +26,7 @@ def begin(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(select_experiment_pools_workflow, db=db, methods=["POST"])
 def select(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     context = {}

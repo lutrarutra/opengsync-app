@@ -9,7 +9,7 @@
         </div>
         <div class="page-controls">
             <a type="button" class="btn btn-primary" href="{{ url_for('kits_page.export_features', feature_kit_id=feature_kit.id) }}">Export</a>
-            {% if current_user.is_insider() %}
+            {% if current_user.is_insider %}
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Manage
@@ -32,9 +32,9 @@
                         </button>
                     </li>
                     <li>
-                        <span {% if not current_user.is_admin() %} {{ tooltip("Only admin can delete kit.", "left", "warning") }} {% endif %}>
+                        <span {% if not current_user.is_admin %} {{ tooltip("Only admin can delete kit.", "left", "warning") }} {% endif %}>
                             <button type="button" class="dropdown-item"
-                                {% if current_user.is_admin() %}
+                                {% if current_user.is_admin %}
                                 hx-delete="{{ url_for('feature_kits_htmx.delete', feature_kit_id=feature_kit.id) }}"
                                 _="on htmx:confirm(issueRequest)
                                 halt the event

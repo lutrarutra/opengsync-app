@@ -115,7 +115,7 @@ class CompleteQubitMeasureForm(MultiStepForm):
 
             if pool.qubit_concentration is not None:
                 for library in pool.libraries:
-                    if library.is_pooled():
+                    if library.is_pooled:
                         library.status = LibraryStatus.POOLED
 
             if pool.status == PoolStatus.ACCEPTED:

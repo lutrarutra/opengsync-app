@@ -19,7 +19,7 @@ def archived_flow_cells(current_user: models.User):
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["pool_design_id"])
 def create_flow_cell_design(current_user: models.User, pool_design_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (pool_design := db.session.first(Q.pool_design.select(id=pool_design_id))) is None:
@@ -37,7 +37,7 @@ def create_flow_cell_design(current_user: models.User, pool_design_id: int):
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["GET", "POST"])
 def create_pool_design(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     form = forms.models.PoolDesignForm(pool_design=None, formdata=request.form)
@@ -49,7 +49,7 @@ def create_pool_design(current_user: models.User):
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["DELETE"])
 def delete_pool_design(current_user: models.User, pool_design_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (pool_design := db.session.first(Q.pool_design.select(id=pool_design_id))) is None:
@@ -63,7 +63,7 @@ def delete_pool_design(current_user: models.User, pool_design_id: int):
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["DELETE"])
 def remove_pool_design(current_user: models.User, pool_design_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (pool_design := db.session.first(Q.pool_design.select(id=pool_design_id))) is None:
@@ -76,7 +76,7 @@ def remove_pool_design(current_user: models.User, pool_design_id: int):
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["DELETE"])
 def delete_flow_cell_design(current_user: models.User, flow_cell_design_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (flow_cell_design := db.session.first(Q.flow_cell_design.select(id=flow_cell_design_id))) is None:
@@ -92,7 +92,7 @@ def delete_flow_cell_design(current_user: models.User, flow_cell_design_id: int)
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["pool_design_id", "new_flow_cell_design_id"])
 def move_pool_design(current_user: models.User, pool_design_id: int, new_flow_cell_design_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (pool_design := db.session.first(Q.pool_design.select(id=pool_design_id))) is None:
@@ -108,7 +108,7 @@ def move_pool_design(current_user: models.User, pool_design_id: int, new_flow_ce
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["GET", "POST"], arg_params=["todo_comment_id", "flow_cell_design_id", "pool_design_id"])
 def comment_form(current_user: models.User, todo_comment_id: int | None = None, flow_cell_design_id: int | None = None, pool_design_id: int | None = None):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     todo_comment = None
@@ -142,7 +142,7 @@ def comment_form(current_user: models.User, todo_comment_id: int | None = None, 
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["todo_comment_id", "new_status_id"])
 def edit_comment_status(current_user: models.User, todo_comment_id: int, new_status_id: int | None):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (todo_comment := db.session.first(Q.todo_comment.select(id=todo_comment_id))) is None:
@@ -161,7 +161,7 @@ def render_pool_designs(current_user: models.User, flow_cell_design_id: int | No
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["DELETE"], arg_params=["todo_comment_id"])
 def delete_comment(current_user: models.User, todo_comment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (todo_comment := db.session.first(Q.todo_comment.select(id=todo_comment_id))) is None:
@@ -175,7 +175,7 @@ def delete_comment(current_user: models.User, todo_comment_id: int):
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["flow_cell_design_id", "flow_cell_type_id"])
 def set_flow_cell_type(current_user: models.User, flow_cell_design_id: int, flow_cell_type_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (flow_cell_design := db.session.first(Q.flow_cell_design.select(id=flow_cell_design_id))) is None:
@@ -193,7 +193,7 @@ def set_flow_cell_type(current_user: models.User, flow_cell_design_id: int, flow
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["flow_cell_design_id"])
 def archive_flow_cell_design(current_user: models.User, flow_cell_design_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (flow_cell_design := db.session.first(Q.flow_cell_design.select(id=flow_cell_design_id))) is None:
@@ -206,7 +206,7 @@ def archive_flow_cell_design(current_user: models.User, flow_cell_design_id: int
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["POST"], arg_params=["flow_cell_design_id"])
 def unarchive_flow_cell_design(current_user: models.User, flow_cell_design_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (flow_cell_design := db.session.first(Q.flow_cell_design.select(id=flow_cell_design_id))) is None:
@@ -220,7 +220,7 @@ def unarchive_flow_cell_design(current_user: models.User, flow_cell_design_id: i
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["GET", "POST"])
 def edit_flow_cell_design(current_user: models.User, flow_cell_design_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (flow_cell_design := db.session.first(Q.flow_cell_design.select(id=flow_cell_design_id))) is None:
@@ -236,7 +236,7 @@ def edit_flow_cell_design(current_user: models.User, flow_cell_design_id: int):
 
 @wrappers.htmx_route(design_htmx, db=db, methods=["GET", "POST"])
 def edit_pool_design(current_user: models.User, pool_design_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (pool_design := db.session.first(Q.pool_design.select(id=pool_design_id))) is None:

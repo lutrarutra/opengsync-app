@@ -11,7 +11,7 @@ lane_qc_workflow = Blueprint("lane_qc_workflow", __name__, url_prefix="/workflow
 
 @wrappers.htmx_route(lane_qc_workflow, db=db)
 def begin(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -26,7 +26,7 @@ def begin(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(lane_qc_workflow, db=db, methods=["POST"])
 def qc(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:

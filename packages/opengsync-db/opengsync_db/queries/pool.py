@@ -42,15 +42,8 @@ def create(
 
 
 def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
-    is_admin = sa.select(1).where(
-        User.id == user_id,
-        User.role_id == UserRole.ADMIN.id
-    )
-
-    is_insider = sa.select(1).where(
-        User.id == user_id,
-        User.role_id.in_([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id])
-    )
+    is_admin = sa.select(1).where(User.id == user_id, User.is_admin)
+    is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
 
     # TODO: This is not entirely correct, as it doesn't account for users having access to the pool through their projects
     # has_write_access = sa.select(1).where(

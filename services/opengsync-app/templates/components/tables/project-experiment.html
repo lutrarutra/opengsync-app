@@ -12,7 +12,7 @@
                 {{ table_col("project-experiment-table", table, "name") }}
                 {{ table_col("project-experiment-table", table, "status") }}
                 {{ table_col("project-experiment-table", table, "workflow") }}
-                {% if current_user.is_insider() %}
+                {% if current_user.is_insider %}
                 {{ table_col("project-experiment-table", table, "operator") }}
                 {% endif %}
                 {{ table_col("project-experiment-table", table, "timestamp_completed") }}
@@ -22,18 +22,18 @@
             {% for experiment in experiments %}
             <tr>
                 <th scope="row">{{ experiment.id }}</th>
-                {% if current_user.is_insider() %}
+                {% if current_user.is_insider %}
                 <td class="cm-callback" {{
                     context_menu([
                         {"type": "copy", "value": experiment.name, "label": "Copy Name"},
                     ])
-                }}><a href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}">{{ experiment.name }}</a></td>
+                }}><a href="{{ url_for('experiment_page', experiment_id=experiment.id) }}">{{ experiment.name }}</a></td>
                 {% else %}
                 <td>{{ experiment.name }}</td>
                 {% endif %}
                 <td>{{ experiment.status.label }} {{ experiment.status.icon | safe }}</td>
                 <td>{{ experiment.workflow.display_name }}</td>
-                {% if current_user.is_insider() %}
+                {% if current_user.is_insider %}
                 <td><a href="{{ url_for('user_page', user_id=experiment.operator_id) }}">{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></a></td>
                 {% endif %}
                 <td>{% if experiment.seq_run %}{{ experiment.seq_run.get_timestamp("completed") | format_datetime }}{% endif %}</td>

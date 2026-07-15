@@ -22,15 +22,8 @@ def create(
 
 
 def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
-    is_admin = sa.select(1).where(
-        User.id == user_id,
-        User.role_id == UserRole.ADMIN.id
-    )
-
-    is_insider = sa.select(1).where(
-        User.id == user_id,
-        User.role_id.in_([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id])
-    )
+    is_admin = sa.select(1).where(User.id == user_id, User.is_admin)
+    is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
 
     has_write_access = sa.select(1).where(
         links.SampleLibraryLink.sample_id == Sample.id,
@@ -107,6 +100,7 @@ def search(
 
 def select(
     id: int | None = None,
+    name: str | None = None,
     user_id: int | None = None,
     project_id: int | None = None,
     library_id: int | None = None,
@@ -120,6 +114,7 @@ def select(
 ) -> sa.Select[tuple[Sample]]:
     return statement.where(*where_clauses(
         id=id,
+        name=name,
         user_id=user_id,
         project_id=project_id,
         library_id=library_id,
@@ -138,6 +133,7 @@ def permissions(sample_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
 
 def where_clauses(
     id: int | None = None,
+    name: str | None = None,
     user_id: int | None = None,
     project_id: int | None = None,
     library_id: int | None = None,
@@ -155,6 +151,9 @@ def where_clauses(
 
     if id is not None:
         clauses.append(Sample.id == id)
+
+    if name is not None:
+        clauses.append(Sample.name == name)
 
     if user_id is not None:
         clauses.append(Sample.owner_id == user_id)

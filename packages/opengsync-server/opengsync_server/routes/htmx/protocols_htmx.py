@@ -20,7 +20,7 @@ def get(current_user: models.User):
 
 @wrappers.htmx_route(protocols_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     form = forms.models.ProtocolForm(form_type="create", formdata=request.form)
@@ -32,7 +32,7 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(protocols_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, protocol_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (protocol := db.session.first(Q.protocol.select(id=protocol_id))) is None:
@@ -46,7 +46,7 @@ def edit(current_user: models.User, protocol_id: int):
 
 @wrappers.htmx_route(protocols_htmx, db=db, methods=["DELETE"])
 def remove_kit(current_user: models.User, protocol_id: int, kit_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (protocol := db.session.first(Q.protocol.select(id=protocol_id), options=[
@@ -68,7 +68,7 @@ def remove_kit(current_user: models.User, protocol_id: int, kit_id: int):
 
 @wrappers.htmx_route(protocols_htmx, db=db, methods=["DELETE"])
 def remove_kit_combination(current_user: models.User, protocol_id: int, kit_id: int, combination_num: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (protocol := db.session.first(Q.protocol.select(id=protocol_id))) is None:
@@ -89,7 +89,7 @@ def remove_kit_combination(current_user: models.User, protocol_id: int, kit_id: 
 
 @wrappers.htmx_route(protocols_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, protocol_id: int):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if (protocol := db.session.first(Q.protocol.select(id=protocol_id))) is None:

@@ -13,7 +13,7 @@ events_htmx = Blueprint("events_htmx", __name__, url_prefix="/htmx/events/")
 
 @wrappers.htmx_route(events_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def render_calendar_month(current_user: models.User, year: int | None = None, month: int | None = None):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     try:
         if month is None:
@@ -57,7 +57,7 @@ def render_calendar_month(current_user: models.User, year: int | None = None, mo
 
 @wrappers.htmx_route(events_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def render_calendar_week(current_user: models.User, year: int | None = None, week: int | None = None):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     try:
         if week is None:
@@ -106,7 +106,7 @@ def render_calendar_week(current_user: models.User, year: int | None = None, wee
 
 @wrappers.htmx_route(events_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def render_calendar_day(current_user: models.User, year: int | None = None, month: int | None = None, day: int | None = None):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     try:
         if day is None:

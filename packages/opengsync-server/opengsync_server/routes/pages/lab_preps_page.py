@@ -10,7 +10,7 @@ lab_preps_page_bp = Blueprint("lab_preps_page", __name__)
 
 @wrappers.page_route(lab_preps_page_bp, db=db, cache_timeout_seconds=360)
 def lab_preps(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     return render_template("lab_preps_page.html", title="Preps")
@@ -18,7 +18,7 @@ def lab_preps(current_user: models.User):
 
 @wrappers.page_route(lab_preps_page_bp, "lab_preps", db=db, cache_timeout_seconds=360)
 def lab_prep(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -27,7 +27,7 @@ def lab_prep(current_user: models.User, lab_prep_id: int):
     can_be_completed = len(lab_prep.libraries) > 0
     contains_mux_libraries = False
     for library in lab_prep.libraries:
-        if library.status.id < LibraryStatus.POOLED.id or not library.is_indexed():
+        if library.status.id < LibraryStatus.POOLED.id or not library.is_indexed:
             can_be_completed = False
         
         if library.mux_type is not None:

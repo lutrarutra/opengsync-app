@@ -8,14 +8,12 @@ router = APIRouter(prefix="/devices", tags=["devices"])
 
 
 @router.get("/")
-def devices():
+def sequencers_page():
     return responses.html_response("devices_page.html", title="Devices")
 
 
 @router.get("/{sequencer_id}")
-def sequencer(sequencer_id: int):
-    # NOTE: Sequencer lookup and form generation are handled client-side
-    # via API calls. The page renders with the sequencer_id for the frontend.
+def sequencer_page(sequencer_id: int):
     return responses.html_response(
         "device_page.html",
         sequencer_id=sequencer_id,

@@ -56,7 +56,7 @@
                                 method="hx-post",
                                 url=url_for('uncomplete_lab_prep', lab_prep_id=lab_prep.id),
                                 class="dropdown-item",
-                                disabled=lab_prep.status < C.PrepStatus.COMPLETED or not current_user.is_admin(),
+                                disabled=lab_prep.status < C.PrepStatus.COMPLETED or not current_user.is_admin,
                                 disabled_tooltip="Only preps that have not been completed can be deleted.",
                                 color="warning",
                                 tooltip_position="left"

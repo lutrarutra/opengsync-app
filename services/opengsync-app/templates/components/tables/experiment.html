@@ -28,7 +28,7 @@
                         {"type": "copy", "value": experiment.name, "label": "Copy Name"},
                     ])
                 }}>
-                    <a href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}" {% if cycle_mismatch %}{{ tooltip("Experiment config (num. cycles) does not match the associated run config. Please update the experiment or run config to match.", category="danger") }}{% endif %}>
+                    <a href="{{ url_for('experiment_page', experiment_id=experiment.id) }}" {% if cycle_mismatch %}{{ tooltip("Experiment config (num. cycles) does not match the associated run config. Please update the experiment or run config to match.", category="danger") }}{% endif %}>
                         {% if cycle_mismatch %}❗{% endif %}{{ experiment.name }}
                     </a></td>
                 <td>{{ experiment.status.icon | safe }} {{ experiment.status.label }}</td>

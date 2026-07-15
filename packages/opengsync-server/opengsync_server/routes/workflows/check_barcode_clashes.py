@@ -14,7 +14,7 @@ check_barcode_clashes_workflow = Blueprint("check_barcode_clashes_workflow", __n
 
 @wrappers.htmx_route(check_barcode_clashes_workflow, db=db)
 def begin(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     form = SelectSamplesForm(
@@ -95,7 +95,7 @@ def select():
 
 @wrappers.htmx_route(check_barcode_clashes_workflow, db=db)
 def check_experiment_barcode_clashes(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:

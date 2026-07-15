@@ -17,7 +17,7 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         if (group := db.session.first(Q.group.select(id=group_id))) is None:
             raise exceptions.NotFoundException()
         
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             if db.session.first(Q.affiliation.select(group_id=group.id, user_id=current_user.id)) is None:
                 raise exceptions.NoPermissionsException()
         
@@ -54,7 +54,7 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         context["seq_request"] = seq_request
 
     if (experiment_id := request.args.get("experiment_id", None)) is not None:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             raise exceptions.NoPermissionsException()
         try:
             experiment_id = int(experiment_id)
@@ -67,7 +67,7 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         context["experiment"] = experiment
 
     if (lab_prep_id := request.args.get("lab_prep_id", None)) is not None:
-        if not current_user.is_insider():   
+        if not current_user.is_insider:   
             raise exceptions.NoPermissionsException()
         try:
             lab_prep_id = int(lab_prep_id)
@@ -85,7 +85,7 @@ def parse_context(current_user: models.User, request: Request) -> dict:
         except ValueError:
             raise exceptions.BadRequestException()
         
-        if not current_user.is_insider() and user_id != current_user.id:
+        if not current_user.is_insider and user_id != current_user.id:
             raise exceptions.NoPermissionsException()
         
         if (user := db.session.first(Q.user.select(id=user_id))) is None:

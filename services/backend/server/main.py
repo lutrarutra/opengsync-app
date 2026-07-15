@@ -65,7 +65,7 @@ app.include_router(routes.htmx.router)
 def dashboard(
     current_user: models.User = Depends(dependencies.require_user)
 ):
-    if current_user.is_insider():
+    if current_user.is_insider:
         return responses.html_response(template="dashboard-insider.html")
     return responses.html_response(template="dashboard-user.html")
     

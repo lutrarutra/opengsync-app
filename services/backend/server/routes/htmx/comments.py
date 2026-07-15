@@ -59,11 +59,11 @@ def render_comment_thread(
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         comments = session.get_all(Q.comment.select(seq_request_id=seq_request_id))
     elif experiment_id is not None:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         comments = session.get_all(Q.comment.select(experiment_id=experiment_id))
     elif lab_prep_id is not None:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         comments = session.get_all(Q.comment.select(lab_prep_id=lab_prep_id))
     else:

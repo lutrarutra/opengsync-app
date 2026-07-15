@@ -16,7 +16,7 @@ class APITokenTable(HTMXTable):
     ]    
 
 def get_table_context(current_user: models.User, request: Request, user: models.User, **kwargs) -> dict:
-    if user.id != current_user.id and not current_user.is_insider():
+    if user.id != current_user.id and not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     table = APITokenTable(route="users_htmx.get_api_tokens", page=request.args.get("page", 0, type=int))

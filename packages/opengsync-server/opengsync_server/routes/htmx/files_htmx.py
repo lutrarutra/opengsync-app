@@ -23,7 +23,7 @@ def render_xlsx(current_user: models.User, file_id: int):
     if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
     
-    if file.uploader_id != current_user.id and not current_user.is_insider():
+    if file.uploader_id != current_user.id and not current_user.is_insider:
         if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 
@@ -40,7 +40,7 @@ def render_data_file(current_user: models.User, data_path_id: int):
     if (data_path := db.session.first(Q.data_path.select(id=data_path_id))) is None:
         raise exceptions.NotFoundException("DataPath not found")
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if data_path.project is not None:
             if not db.session.get_access_level(Q.project.permissions(data_path.project.id, current_user.id)) < AccessLevel.READ:
                 raise exceptions.NoPermissionsException()
@@ -77,7 +77,7 @@ def render_markdown_file(current_user: models.User, file_id: int):
     if (file := db.session.first(Q.media_file.select(id=file_id))) is None:
         raise exceptions.NotFoundException()
     
-    if file.uploader_id != current_user.id and not current_user.is_insider():
+    if file.uploader_id != current_user.id and not current_user.is_insider:
         if (_ := db.session.get_access_level(Q.media_file.permissions(file.id, current_user.id))) < AccessLevel.READ:
             raise exceptions.NoPermissionsException()
 
@@ -108,7 +108,7 @@ def render_markdown_file(current_user: models.User, file_id: int):
 
 @wrappers.htmx_route(files_htmx, db=db, login_required=True, methods=["GET", "POST"])
 def associate_path(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     from ...forms.workflows.share.AssociatePathForm import AssociatePathForm
@@ -127,7 +127,7 @@ def associate_path(current_user: models.User):
 
 @wrappers.htmx_route(files_htmx, db=db, login_required=True, methods=["GET", "POST"])
 def share_directory(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     from ...forms.DirectoryShareForm import DirectoryShareForm
@@ -145,7 +145,7 @@ def share_directory(current_user: models.User):
 
 @wrappers.htmx_route(files_htmx, db=db, login_required=True)
 def files(current_user: models.User, subpath: Path = Path(), page: int = 0):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if isinstance(subpath, str):

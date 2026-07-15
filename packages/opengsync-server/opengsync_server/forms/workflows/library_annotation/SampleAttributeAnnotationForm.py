@@ -42,7 +42,7 @@ class SampleAttributeAnnotationForm(LibraryAnnotationWorkflow):
             df[col.label] = ""
 
         for _, row in sample_table[sample_table["sample_id"].notna()].iterrows():
-            if (sample := db.session.first(Q.sample.select(sample_id=int(row["sample_id"])))) is None:
+            if (sample := db.session.first(Q.sample.select(id=int(row["sample_id"])))) is None:
                 logger.warning(f"Sample with ID {row['sample_id']} not found in the database.")
                 raise ValueError(f"Sample with ID {row['sample_id']} not found in the database.")
             

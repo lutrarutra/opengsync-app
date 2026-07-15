@@ -35,7 +35,7 @@ def get_context(current_user: models.User, args: dict) -> dict:
             raise exceptions.NotFoundException()
         context["pool"] = pool
 
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if "seq_request" not in context:
             raise exceptions.NoPermissionsException()
         
@@ -77,7 +77,7 @@ def begin(current_user: models.User) -> Response:
         form = SelectSamplesForm(
             "reindex", context=context,
             select_libraries=True,
-            selected_libraries=[library for library in lab_prep.libraries if not library.is_indexed()]
+            selected_libraries=[library for library in lab_prep.libraries if not library.is_indexed]
         )
     else:
         form = SelectSamplesForm(

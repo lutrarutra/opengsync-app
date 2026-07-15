@@ -131,7 +131,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
             if isinstance(col, CategoricalDropDown):
                 if col.label in df.columns:
                     df[col.label] = df[col.label].apply(lambda v, c=col: c.to_display(v))
-        self.table_data = df[[col.label for col in self.columns.values()]].replace(np.nan, "").values.tolist()
+        self.table_data = df[[col.label for col in self.columns.values()]].astype(object).replace(np.nan, "").values.tolist()
 
     def configure(
         self,

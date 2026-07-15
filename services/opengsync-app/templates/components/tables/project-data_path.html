@@ -32,7 +32,7 @@
             const table = new HTMXTable("#project-data_path-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
         });
 
-        {% if current_user.is_insider() %}
+        {% if current_user.is_insider %}
         window.selected_path_id = null;
 
         function remove_path() {

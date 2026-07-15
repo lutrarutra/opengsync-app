@@ -60,7 +60,7 @@ class TODOCommentForm(HTMXForm):
 
     @staticmethod
     def check_permissions(current_user: models.User) -> None:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             raise exc.NoPermissionsException(
                 "You do not have permission to manage TODO comments on design resources."
             )

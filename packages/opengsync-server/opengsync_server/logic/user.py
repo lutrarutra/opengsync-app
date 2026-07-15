@@ -23,7 +23,7 @@ class UserTable(HTMXTable):
 
 
 def get_table_context(current_user: models.User, request: Request, **kwargs) -> dict:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException("You do not have permission to view this resource.")
 
     table = UserTable(route="users_htmx.get", page=request.args.get("page", 0, type=int))
@@ -65,7 +65,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         
 
     template = "components/tables/user.html"
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         # fnc_context["user_id"] = current_user.id
         stmt = Q.user.select(id=current_user.id, statement=stmt)
 
@@ -103,7 +103,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     if (group := context.get("group")) is not None:
         stmt = Q.user.select(group_id=group.id, statement=stmt)
     else:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.user.select(id=current_user.id, statement=stmt)
     
     users, count = db.session.page(stmt, page=page)

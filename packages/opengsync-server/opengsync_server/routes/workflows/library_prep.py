@@ -21,7 +21,7 @@ args: dict = dict(
 
 @wrappers.htmx_route(library_prep_workflow, db=db)
 def begin(current_user: models.User, lab_prep_id: int) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -39,7 +39,7 @@ def begin(current_user: models.User, lab_prep_id: int) -> Response:
 
 @wrappers.htmx_route(library_prep_workflow, db=db, methods=["POST"])
 def select(current_user: models.User, lab_prep_id: int) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:

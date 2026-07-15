@@ -11,7 +11,7 @@ experiments_page_bp = Blueprint("experiments_page", __name__)
 
 @wrappers.page_route(experiments_page_bp, db=db, cache_timeout_seconds=360)
 def experiments(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     return render_template("experiments_page.html", title="Experiments")
@@ -19,7 +19,7 @@ def experiments(current_user: models.User):
 
 @wrappers.page_route(experiments_page_bp, "experiments", db=db, cache_timeout_seconds=360)
 def experiment(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     if (experiment := db.session.first(
@@ -47,8 +47,8 @@ def experiment(current_user: models.User, experiment_id: int):
         page, id = _from.split("@")
         if page == "seq_run":
             path_list = [
-                ("Runs", url_for("seq_runs_page.seq_runs")),
-                (f"Run {id}", url_for("seq_runs_page.seq_run", seq_run_id=id)),
+                ("Runs", url_for("seq_run_pages")),
+                (f"Run {id}", url_for("seq_run_page", seq_run_id=id)),
                 (f"Experiment {experiment_id}", ""),
             ]
         elif page == "library":

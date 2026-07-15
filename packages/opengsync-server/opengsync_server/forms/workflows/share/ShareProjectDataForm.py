@@ -46,11 +46,11 @@ class ShareProjectDataForm(HTMXFlaskForm):
         if not super().validate():
             return False
 
-        if not current_user.is_insider() and self.time_valid_min.data > self.time_valid_min.default:
+        if not current_user.is_insider and self.time_valid_min.data > self.time_valid_min.default:
             self.error_dummy.errors = (f"You don't have permissions to create that lasts more than {self.time_valid_min.default}",)
             return False
         
-        if not current_user.is_insider() and self.custom_email.data:
+        if not current_user.is_insider and self.custom_email.data:
             self.error_dummy.errors = ("You don't have permissions to send to custom email addresses.",)
             return False
 

@@ -6,7 +6,7 @@ from ..import db
 from ..core import exceptions
 
 def get_flow_cell_list_context(current_user: models.User, request: Request, archived: bool = False, **kwargs) -> dict:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if not archived:
@@ -24,7 +24,7 @@ def get_flow_cell_list_context(current_user: models.User, request: Request, arch
     }
 
 def get_pool_list_context(current_user: models.User, request: Request, flow_cell_design_id: int | None = None, **kwargs) -> dict:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     orphan_pool_only = None

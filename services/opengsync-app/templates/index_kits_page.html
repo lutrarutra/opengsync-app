@@ -14,7 +14,7 @@
                 hx-target="#xl-modal-content" data-bs-toggle="modal" hx-swap="innerHTML">
                 Query Barcodes <i class="bi bi-search"></i>
             </button>
-            {% if current_user.is_admin() %}
+            {% if current_user.is_admin %}
             <button type="button" class="btn btn-primary"  data-bs-toggle="modal" data-bs-target="#xl-modal" 
                 hx-get="{{ url_for('index_kits_htmx.create') }}"
                 hx-target="#xl-modal-content" data-bs-toggle="modal" hx-swap="innerHTML">

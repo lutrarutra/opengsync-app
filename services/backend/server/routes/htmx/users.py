@@ -51,7 +51,7 @@ def render_user_table(
         template = "components/tables/project-assignee.html"
         table.url_params["project_id"] = project_id
     else:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         template = "components/tables/user.html"
 
@@ -85,7 +85,7 @@ def search_users(
     elif word is not None:
         stmt = Q.user.search(name=word, statement=stmt)
         
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if group_id is not None:
             if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.READ:
                 raise exc.NoPermissionsException("You do not have permission to view this resource.")

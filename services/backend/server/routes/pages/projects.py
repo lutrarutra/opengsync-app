@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy import orm
 
 from opengsync_db import categories as C, queries as Q, SyncSession, models

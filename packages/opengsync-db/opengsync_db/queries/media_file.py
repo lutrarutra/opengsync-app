@@ -29,19 +29,9 @@ def create(
     )
 
 def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
-    is_admin = sa.select(1).where(
-        User.id == user_id,
-        User.role_id == UserRole.ADMIN.id
-    )
-
-    is_insider = sa.select(1).where(
-        User.id == user_id,
-        User.role_id.in_([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id])
-    )
-
-    is_owner = sa.select(1).where(
-        MediaFile.uploader_id == user_id
-    )
+    is_admin = sa.select(1).where(User.id == user_id, User.is_admin)
+    is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
+    is_owner = sa.select(1).where(MediaFile.uploader_id == user_id)
 
     has_read_access = sa.select(1).where(
         (MediaFile.seq_request_id == SeqRequest.id) &

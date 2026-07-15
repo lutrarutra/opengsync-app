@@ -43,7 +43,7 @@ class ReseqWorkflow(HTMXWorkflow):
             seq_request_id: int | None = Query(None),
             lab_prep_id: int | None = Query(None),
         ):
-            if not user.is_insider():
+            if not user.is_insider:
                 raise exc.NoPermissionsException()
 
             context: dict = {}
@@ -56,7 +56,7 @@ class ReseqWorkflow(HTMXWorkflow):
                 lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
                 context["lab_prep"] = lab_prep
 
-            if not user.is_insider():
+            if not user.is_insider:
                 if "seq_request" not in context:
                     raise exc.NoPermissionsException()
 

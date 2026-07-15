@@ -44,7 +44,7 @@ class AddSeqRequestAssigneeForm(HTMXForm):
 
         assignee = session.get_one(Q.user.select(id=int(form.user_id.data)))
 
-        if not assignee.is_insider():
+        if not assignee.is_insider:
             form.user_id.errors.append("Only insider users can be assigned to requests.")
             raise exc.FormValidationException(form)
 

@@ -28,19 +28,19 @@
                     <div style="display: flex; gap: 10px;" class="col-6">
                         {{ switch_input(form.send_to_owner) }} {{ project.owner.email }}
                     </div>
-                    {% if current_user.is_insider() %}
+                    {% if current_user.is_insider %}
                     {{ switch_input(form.anonymous_send, class="col-3") }}
                     {{ switch_input(form.internal_share, class="col-3") }}
                     {% endif %}
                 </div>
-                {% if current_user.is_insider() %}
+                {% if current_user.is_insider %}
                 <div class="pb-3">
                     {{ switch_input(form.mark_project_delivered, class="col-6") }}
                 </div>
                 {% endif %}
                 <div class="row">
                     {{ select_input(form.time_valid_min, class="col-6") }}
-                    {{ form_group(form.custom_email, class="col-6", disabled=not current_user.is_insider()) }}
+                    {{ form_group(form.custom_email, class="col-6", disabled=not current_user.is_insider) }}
                 </div>
 
                 <div class="pt-1">

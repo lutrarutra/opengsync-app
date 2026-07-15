@@ -163,7 +163,7 @@ def unarchive(current_user: models.User, seq_request_id: int):
     if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     seq_request.status = SeqRequestStatus.DRAFT
@@ -186,7 +186,7 @@ def submit_request(current_user: models.User, seq_request_id: int):
     if seq_request.status != SeqRequestStatus.DRAFT:
         raise exceptions.BadRequestException("Only draft requests can be submitted.")
     
-    if not seq_request.is_submittable() and not current_user.is_insider():
+    if not seq_request.is_submittable() and not current_user.is_insider:
         raise exceptions.BadRequestException("Request is missing prerequisites for submission.")
 
     access_level = db.session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id))
@@ -313,7 +313,7 @@ def remove_auth_form(current_user: models.User, seq_request_id: int):
         raise exceptions.NoPermissionsException()
         
     if seq_request.status != SeqRequestStatus.DRAFT:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             raise exceptions.NoPermissionsException()
         
     file = seq_request.seq_auth_form_file
@@ -344,7 +344,7 @@ def remove_library(current_user: models.User, seq_request_id: int, library_id: i
     if seq_request.status != SeqRequestStatus.DRAFT and access_level < AccessLevel.INSIDER:
         raise exceptions.NoPermissionsException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if seq_request.status != SeqRequestStatus.DRAFT:
             raise exceptions.NoPermissionsException()
 
@@ -379,7 +379,7 @@ def reseq_library(current_user: models.User, seq_request_id: int, library_id: in
     if seq_request.status != SeqRequestStatus.DRAFT and access_level < AccessLevel.INSIDER:
         raise exceptions.NoPermissionsException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         if seq_request.status != SeqRequestStatus.DRAFT:
             raise exceptions.NoPermissionsException()
     
@@ -443,7 +443,7 @@ def remove_all_libraries(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["GET", "POST"])
 def process_request(current_user: models.User, seq_request_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
@@ -641,7 +641,7 @@ def get_files(current_user: models.User, seq_request_id: int):
 
 @wrappers.htmx_route(seq_requests_htmx, db=db, methods=["POST"])
 def clone(current_user: models.User, seq_request_id: int, method: Literal["pooled", "indexed", "raw"]):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
@@ -658,7 +658,7 @@ def clone(current_user: models.User, seq_request_id: int, method: Literal["poole
 
 @wrappers.htmx_route(seq_requests_htmx, db=db)
 def store_samples(current_user: models.User, seq_request_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
@@ -696,7 +696,7 @@ def store_samples(current_user: models.User, seq_request_id: int):
 def get_recent(current_user: models.User, page: int = 0):
     PAGE_LIMIT = 10
     
-    if current_user.is_insider():
+    if current_user.is_insider:
         seq_requests = db.session.get_all(
             Q.seq_request.select(
                 status_in=[SeqRequestStatus.SUBMITTED, SeqRequestStatus.ACCEPTED, SeqRequestStatus.SAMPLES_RECEIVED, SeqRequestStatus.PREPARED, SeqRequestStatus.DATA_PROCESSING]
@@ -742,7 +742,7 @@ def add_assignee(current_user: models.User, seq_request_id: int, assignee_id: in
     if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if assignee_id is not None:
@@ -751,7 +751,7 @@ def add_assignee(current_user: models.User, seq_request_id: int, assignee_id: in
     else:
         assignee = current_user
     
-    if not assignee.is_insider():
+    if not assignee.is_insider:
         raise exceptions.NoPermissionsException("Assignee must be an insider.")
     
     if assignee in seq_request.assignees:
@@ -767,7 +767,7 @@ def add_assignee_form(current_user: models.User, seq_request_id: int):
     if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
@@ -781,7 +781,7 @@ def remove_assignee(current_user: models.User, seq_request_id: int, assignee_id:
     if (seq_request := db.session.first(Q.seq_request.select(id=seq_request_id))) is None:
         raise exceptions.NotFoundException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (assignee := db.session.first(Q.user.select(id=assignee_id))) is None:

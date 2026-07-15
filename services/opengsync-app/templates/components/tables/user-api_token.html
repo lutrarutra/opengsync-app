@@ -16,7 +16,7 @@
             <tr>
                 <th scope="row" class="cm-callback" {{
                     context_menu([
-                        {"type": "hxpost", "label": "Deactivate", "disabled": false if current_user.is_admin() or current_user.id == user.id else true, "config": {
+                        {"type": "hxpost", "label": "Deactivate", "disabled": false if current_user.is_admin or current_user.id == user.id else true, "config": {
                             "url": url_for('api_tokens_htmx.deactivate', token_id=token.id, user_id=user.id, page=active_page, sort_by=sort_by, sort_order=sort_order),
                             "target": "#user-api_token-table",
                             "title": "Do you want to deactivate this token?"

@@ -12,7 +12,7 @@ check_barcode_constraints_workflow = Blueprint("check_barcode_constraints_workfl
 
 @wrappers.htmx_route(check_barcode_constraints_workflow, db=db)
 def begin(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     from ...forms.workflows.BarcodeConstraintsForm import BarcodeConstraintsForm
@@ -22,7 +22,7 @@ def begin(current_user: models.User):
 
 @wrappers.htmx_route(check_barcode_constraints_workflow, db=db, methods=["POST"])
 def check(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     from ...forms.workflows.BarcodeConstraintsForm import BarcodeConstraintsForm

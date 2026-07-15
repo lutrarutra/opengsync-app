@@ -25,7 +25,7 @@
                 {{
                     context_menu([
                         {"type": "copy", "value": sample.name, "label": "Copy Name"},
-                        {"type": "hxdelete", "label": "Remove Sample", "disabled": false if seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_admin() else true, "config": {
+                        {"type": "hxdelete", "label": "Remove Sample", "disabled": false if seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_admin else true, "config": {
                             "url": url_for("remove_sample_from_request", sample_id=sample.id, **table.get_state()),
                             "target": "#seq_request-sample-table",
                             "text": "This will remove all libraries associated with the sample. If sample is multiplexed, all other multiplexed samples in the associated libraries will be removed. Are you sure?",

@@ -297,17 +297,76 @@ class Library(Base):
     def timestamp_stored_str(self) -> str:
         return self.timestamp_stored_utc.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp_stored_utc is not None else ""
     
-    def is_multiplexed(self) -> bool:
+    @hybrid_property
+    def is_multiplexed(self) -> bool:  # type: ignore[override]
+        if self._is_multiplexed is not None:
+            return self._is_multiplexed
         return self.mux_type_id is not None
-    
-    def is_editable(self) -> bool:
+
+    @is_multiplexed.expression
+    def is_multiplexed(cls) -> sa.ColumnElement[bool]:
+        return cls.mux_type_id.isnot(None)  # type: ignore[union-attr]
+
+    _is_multiplexed: Mapped[bool | None] = orm.query_expression()
+
+    @hybrid_property
+    def is_editable(self) -> bool:  # type: ignore[override]
+        if self._is_editable is not None:
+            return self._is_editable
         return self.status == LibraryStatus.DRAFT
-    
-    def is_indexed(self) -> bool:
-        return len(self.indices) > 0
-    
-    def is_pooled(self) -> bool:
+
+    @is_editable.expression
+    def is_editable(cls) -> sa.ColumnElement[bool]:
+        return cls.status_id == LibraryStatus.DRAFT.id  # type: ignore[return-value]
+
+    _is_editable: Mapped[bool | None] = orm.query_expression()
+
+    @hybrid_property
+    def is_indexed(self) -> bool:  # type: ignore[override]
+        if self._is_indexed is not None:
+            return self._is_indexed
+
+        if "indices" not in orm.attributes.instance_state(self).unloaded:
+            return len(self.indices) > 0
+
+        if (session := orm.object_session(self)) is None:
+            raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'is_indexed' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_is_indexed was not populated via with_expression. "
+                "Use orm.with_expression(Library._is_indexed, Library.is_indexed.expression) "
+                "in your query options."
+            )
+
+        from .. import queries as Q
+        result = session.scalar(sa.select(sa.func.count()).select_from(
+            Q.library_index.select(library_id=self.id).subquery()
+        ))
+        return result is not None and result > 0
+
+    @is_indexed.expression
+    def is_indexed(cls) -> sa.ScalarSelect[bool]:
+        from .LibraryIndex import LibraryIndex
+        return sa.select(
+            sa.func.count(LibraryIndex.id) > 0
+        ).where(
+            LibraryIndex.library_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _is_indexed: Mapped[bool | None] = orm.query_expression()
+
+    @hybrid_property
+    def is_pooled(self) -> bool:  # type: ignore[override]
+        if self._is_pooled is not None:
+            return self._is_pooled
         return self.status == LibraryStatus.POOLED
+
+    @is_pooled.expression
+    def is_pooled(cls) -> sa.ColumnElement[bool]:
+        return cls.status_id == LibraryStatus.POOLED.id  # type: ignore[return-value]
+
+    _is_pooled: Mapped[bool | None] = orm.query_expression()
     
     def __str__(self) -> str:
         return f"Library(id: {self.id}, name: {self.name}, type: {self.type})"

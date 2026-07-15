@@ -2,7 +2,7 @@ import time
 
 from typing import Callable, Awaitable
 from sqlalchemy import inspect
-from fastapi import Response
+from fastapi import Response, UploadFile
 from starlette.background import BackgroundTask, BackgroundTasks
 from loguru import logger
 
@@ -98,7 +98,17 @@ async def db_session_cleanup_middleware(request: runtime.Request, call_next: Cal
 async def parse_form_data(request: runtime.Request, call_next: Callable[[runtime.Request], Awaitable[Response]]):
     if request.method in ("POST", "PUT", "PATCH"):
         form = await request.form()
-        request.state.form_data = dict(form)
+        raw: dict[str, str | dict] = {}
+        for key, value in form.items():
+            if isinstance(value, UploadFile):
+                raw[key] = {
+                    "filename": value.filename,
+                    "content": await value.read(),
+                    "content_type": value.content_type,
+                }
+            else:
+                raise NotImplementedError("Only file uploads are supported in form data.")
+        request.state.form_data = raw
     else:
         request.state.form_data = None
     return await call_next(request)

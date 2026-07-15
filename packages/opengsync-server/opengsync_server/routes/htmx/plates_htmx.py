@@ -12,7 +12,7 @@ plates_htmx = Blueprint("plates_htmx", __name__, url_prefix="/htmx/plates/")
 
 @wrappers.htmx_route(plates_htmx, db=db)
 def plate_tab(current_user: models.User, plate_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (plate := db.session.first(Q.plate.select(id=plate_id))) is None:

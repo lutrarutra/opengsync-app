@@ -78,7 +78,7 @@ def get_table_context(current_user: models.User, request: Request, **kwargs) -> 
         table.url_params["project_id"] = project.id
     else:
         template = "components/tables/seq_request.html"
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.seq_request.select(requestor_id=current_user.id, statement=stmt)
 
     if (name := request.args.get("name")):
@@ -146,7 +146,7 @@ def get_search_context(current_user: models.User, request: Request, **kwargs) ->
     elif (project := context.get("project")) is not None:
         stmt = Q.seq_request.select(project_id=project.id, statement=stmt)
     else:
-        if not current_user.is_insider():
+        if not current_user.is_insider:
             stmt = Q.seq_request.select(requestor_id=current_user.id, statement=stmt)
     
     seq_requests, count = db.session.page(stmt, page=page)

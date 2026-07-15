@@ -43,7 +43,7 @@ def get_features(current_user: models.User):
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if request.method == "GET":
@@ -57,7 +57,7 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def edit(current_user: models.User, feature_kit_id: int):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     if (feature_kit := db.session.first(Q.feature_kit.select(id=feature_kit_id))) is None:
         raise exceptions.NotFoundException()
@@ -73,7 +73,7 @@ def edit(current_user: models.User, feature_kit_id: int):
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["GET", "POST"])
 def edit_features(current_user: models.User, feature_kit_id: int):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if (feature_kit := db.session.first(Q.feature_kit.select(id=feature_kit_id))) is None:
@@ -93,7 +93,7 @@ def edit_features(current_user: models.User, feature_kit_id: int):
 
 @wrappers.htmx_route(feature_kits_htmx, db=db, methods=["DELETE"])
 def delete(current_user: models.User, feature_kit_id: int):
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         raise exceptions.NoPermissionsException()
     
     if (kit := db.session.first(Q.feature_kit.select(id=feature_kit_id))) is None:

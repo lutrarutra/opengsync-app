@@ -25,7 +25,7 @@ def get(current_user: models.User):
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
 def create(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
 
     if request.method == "GET":
@@ -35,7 +35,7 @@ def create(current_user: models.User):
 
 @wrappers.htmx_route(experiments_htmx, methods=["GET", "POST"], db=db)
 def edit(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -49,7 +49,7 @@ def edit(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, methods=["GET", "POST"], db=db)
 def set_cycles(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -63,7 +63,7 @@ def set_cycles(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, methods=["DELETE"], db=db)
 def delete(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -84,7 +84,7 @@ def delete(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def search(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     return make_response(render_template(**logic.experiment.get_search_context(current_user=current_user, request=request)))
@@ -92,7 +92,7 @@ def search(current_user: models.User):
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: int, file_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
         
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -128,7 +128,7 @@ def render_lane_sample_pooling_tables(current_user: models.User, experiment_id: 
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
 def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_num: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -151,7 +151,7 @@ def lane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
 def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lane_num: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -173,7 +173,7 @@ def unlane_pool(current_user: models.User, experiment_id: int, pool_id: int, lan
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
 def comment_form(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -191,7 +191,7 @@ def comment_form(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
 def file_form(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -209,7 +209,7 @@ def file_form(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"])
 def delete_file(current_user: models.User, experiment_id: int, file_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -233,7 +233,7 @@ def delete_file(current_user: models.User, experiment_id: int, file_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["POST"])
 def add_comment(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -244,7 +244,7 @@ def add_comment(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["DELETE"], arg_params=["pool_id"])
 def remove_pool(current_user: models.User, experiment_id: int, pool_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -260,7 +260,7 @@ def remove_pool(current_user: models.User, experiment_id: int, pool_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def overview(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (_ := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -355,7 +355,7 @@ def overview(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_comments(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -371,7 +371,7 @@ def get_comments(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db)
 def get_files(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -389,7 +389,7 @@ def get_files(current_user: models.User, experiment_id: int):
 def get_recent(current_user: models.User, page: int = 0):
     PAGE_LIMIT = 10
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (sort_by := request.args.get("sort_by", "name")) is not None:
@@ -411,7 +411,7 @@ def get_recent(current_user: models.User, page: int = 0):
 
 @wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def render_stats_tab(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -458,14 +458,14 @@ def render_stats_tab(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(experiments_htmx, db=db, cache_timeout_seconds=60, cache_type="insider")
 def checklist(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
         raise exceptions.NotFoundException()
     
     checklist = experiment.get_checklist()
-    can_be_edited = (experiment.status < ExperimentStatus.SEQUENCING) or current_user.is_admin()
+    can_be_edited = (experiment.status < ExperimentStatus.SEQUENCING) or current_user.is_admin
     
     return make_response(
         render_template(
@@ -482,7 +482,7 @@ def browse(current_user: models.User, workflow: str, page: int = 0):
 
 @wrappers.htmx_route(experiments_htmx, db=db, methods=["GET", "POST"])
 def sequencer_loading_checklist(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:

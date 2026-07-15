@@ -35,7 +35,7 @@ def authenticate(token: str = Depends(auth.oauth2_scheme)):
 
 def __get_cached_user(key: str, r: rds.RedisClient):
     if (cached_user_str := r.get(key)) is not None:
-        user_data = json.loads(cached_user_str)
+        user_data = json.loads(cached_user_str)  #type: ignore
         user_data["id"] = UUID(user_data["id"])
 
         user = models.User(**user_data)
@@ -81,7 +81,7 @@ def _resolve_user_by_api_token(
     
     with rds.RedisClient(pool=request.app.state.redis_pool) as redis:
         if (cached_user_id := redis.get(cache_key)) is not None:
-            user_id_str = cached_user_id.decode("utf-8")
+            user_id_str = cached_user_id.decode("utf-8")  #type: ignore
             if (user := __get_cached_user(f"user:{user_id_str}", redis)) is not None:
                 return user
             
@@ -174,7 +174,7 @@ def require_admin(
 def require_insider(
     user: models.User = Depends(require_user),
 ):
-    if not user.is_insider():
+    if not user.is_insider:
         raise exc.NoPermissionsException()
     return user
 
@@ -213,7 +213,7 @@ def project_permissions(
 ):
     cache_key = f"access:project:{project_id}:user:{user.id}"
     if (cached_access := r.get(cache_key)) is not None:
-        return C.AccessLevel(int(cached_access))
+        return C.AccessLevel(int(cached_access))  #type: ignore
     try:
         if (access_level := session.get_access_level(Q.project.permissions(project_id=project_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this project.")
@@ -231,7 +231,7 @@ def seq_request_permissions(
 ):
     cache_key = f"access:seq_request:{seq_request_id}:user:{user.id}"
     if (cached_access := r.get(cache_key)) is not None:
-        return C.AccessLevel(int(cached_access))
+        return C.AccessLevel(int(cached_access))  #type: ignore
     try:
         if (access_level := session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this sequencing request.")
@@ -249,7 +249,7 @@ def sample_permissions(
 ):
     cache_key = f"access:sample:{sample_id}:user:{user.id}"
     if (cached_access := r.get(cache_key)) is not None:
-        return C.AccessLevel(int(cached_access))
+        return C.AccessLevel(int(cached_access))  #type: ignore
     try:
         if (access_level := session.get_access_level(Q.sample.permissions(sample_id=sample_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this sample.")
@@ -267,7 +267,7 @@ def library_permissions(
 ):
     cache_key = f"access:library:{library_id}:user:{user.id}"
     if (cached_access := r.get(cache_key)) is not None:
-        return C.AccessLevel(int(cached_access))
+        return C.AccessLevel(int(cached_access))  #type: ignore
     try:
         if (access_level := session.get_access_level(Q.library.permissions(library_id=library_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this library.")
@@ -285,7 +285,7 @@ def pool_permissions(
 ):
     cache_key = f"access:pool:{pool_id}:user:{user.id}"
     if (cached_access := r.get(cache_key)) is not None:
-        return C.AccessLevel(int(cached_access))
+        return C.AccessLevel(int(cached_access))  #type: ignore
     try:
         if (access_level := session.get_access_level(Q.pool.permissions(pool_id=pool_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this pool.")
@@ -303,7 +303,7 @@ def media_file_permissions(
 ):
     cache_key = f"access:media_file:{media_file_id}:user:{user.id}"
     if (cached_access := r.get(cache_key)) is not None:
-        return C.AccessLevel(int(cached_access))
+        return C.AccessLevel(int(cached_access))  #type: ignore
     try:
         if (access_level := session.get_access_level(Q.media_file.permissions(media_file_id=media_file_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this media file.")
@@ -321,7 +321,7 @@ def user_permissions(
 ):
     cache_key = f"access:user:{user_id}:user:{current_user.id}"
     if (cached_access := r.get(cache_key)) is not None:
-        return C.AccessLevel(int(cached_access))
+        return C.AccessLevel(int(cached_access))  #type: ignore
     try:
         if (access_level := session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=current_user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this user.")

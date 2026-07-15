@@ -28,7 +28,7 @@ def _add_traces(to_figure, from_figure):
 
 @wrappers.htmx_route(plots_api, db=db, methods=["GET", "POST"])
 def experiment_library_reads(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.BadRequestException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -91,7 +91,7 @@ def experiment_library_reads(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(plots_api, db=db, methods=["GET", "POST"])
 def experiment_pool_reads(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.BadRequestException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -121,7 +121,7 @@ def experiment_pool_reads(current_user: models.User, experiment_id: int):
     )
 
     df["y_ticks"] = df.apply(
-        lambda row: f"<a href='{url_for('pools_page.pool', pool_id=row['pool_id'])}?from=experiment@{experiment.id}' target='_self'>{row['pool_name']}</a>"
+        lambda row: f"<a href='{url_for('pool_page', pool_id=row['pool_id'])}?from=experiment@{experiment.id}' target='_self'>{row['pool_name']}</a>"
         if pd.notna(row["pool_id"]) else "", axis=1  # type: ignore
     )
     df.loc[df["pool_name"].isna(), "y_ticks"] = "Undetermined"
@@ -154,7 +154,7 @@ def experiment_pool_reads(current_user: models.User, experiment_id: int):
 
 @wrappers.htmx_route(plots_api, db=db, methods=["GET", "POST"])
 def experiment_pool_per_library_reads(current_user: models.User, experiment_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.BadRequestException()
     
     if (experiment := db.session.first(Q.experiment.select(id=experiment_id))) is None:
@@ -182,7 +182,7 @@ def experiment_pool_per_library_reads(current_user: models.User, experiment_id: 
     df["pool_reads"] = df.groupby("pool_id")["num_reads"].transform("sum")
 
     df["y_ticks"] = df.apply(
-        lambda row: f"<a href='{url_for('pools_page.pool', pool_id=row['pool_id'])}?from=experiment@{experiment.id}' target='_self'>{row['pool_name']}</a>"
+        lambda row: f"<a href='{url_for('pool_page', pool_id=row['pool_id'])}?from=experiment@{experiment.id}' target='_self'>{row['pool_name']}</a>"
         if pd.notna(row["pool_id"]) else "", axis=1  # type: ignore
     )
     df.loc[df["pool_name"].isna(), "y_ticks"] = "Undetermined"

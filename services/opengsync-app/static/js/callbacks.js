@@ -74,7 +74,37 @@ document.addEventListener("htmx:afterRequest", (event) => {
 });
 
 document.addEventListener("htmx:responseError", (event) => {
-    showFlashToast({ category: 'error', message: 'Something went wrong. Please try again.' });
+    const xhr = event.detail.xhr;
+    const status = xhr ? xhr.status : 0;
+
+    if (status >= 500) {
+        showFlashToast({ category: 'error', message: 'Something went wrong. Please try again later.' });
+        return;
+    }
+
+    const statusLabels = {
+        400: 'Bad Request',
+        401: 'Unauthorized',
+        403: 'Forbidden',
+        404: 'Not Found',
+        409: 'Conflict',
+        422: 'Validation Error',
+        429: 'Too Many Requests',
+    };
+
+    let detail = '';
+    if (xhr && xhr.responseText) {
+        try {
+            const body = JSON.parse(xhr.responseText);
+            if (body.detail) {
+                detail = typeof body.detail === 'string' ? body.detail : body.detail.map(e => e.msg || e).join(', ');
+            }
+        } catch (e) {}
+    }
+
+    const label = statusLabels[status] || 'Error';
+    const message = detail ? `${label}: ${detail}` : `${label}. Something went wrong.`;
+    showFlashToast({ category: 'error', message });
 });
 
 document.addEventListener("flash", (event) => {

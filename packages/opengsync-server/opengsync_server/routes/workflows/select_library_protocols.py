@@ -17,10 +17,10 @@ select_library_protocols_workflow = Blueprint("select_library_protocols_workflow
 
 @wrappers.htmx_route(select_library_protocols_workflow, db=db)
 def begin(current_user: models.User, lab_prep_id: int):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -61,10 +61,10 @@ def begin(current_user: models.User, lab_prep_id: int):
 
 @wrappers.htmx_route(select_library_protocols_workflow, db=db, methods=["POST"])
 def map_protocols(current_user: models.User, lab_prep_id: int, uuid: str):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
@@ -75,10 +75,10 @@ def map_protocols(current_user: models.User, lab_prep_id: int, uuid: str):
 
 @wrappers.htmx_route(select_library_protocols_workflow, db=db, methods=["POST"])
 def submit(current_user: models.User, lab_prep_id: int, uuid: str):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     if (lab_prep := db.session.first(Q.lab_prep.select(id=lab_prep_id))) is None:

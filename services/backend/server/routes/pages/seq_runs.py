@@ -8,12 +8,12 @@ router = APIRouter(prefix="/seq_runs", tags=["seq_runs"])
 
 
 @router.get("/")
-def seq_runs():
+def seq_runs_page():
     return responses.html_response("seq_runs_page.html")
 
 
 @router.get("/{seq_run_id}")
-def seq_run(seq_run_id: int):
+def seq_run_page(seq_run_id: int):
     # NOTE: Seq run lookup, experiment lookup, and breadcrumb resolution
     # are handled client-side via API calls.
     return responses.html_response(

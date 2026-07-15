@@ -1,6 +1,5 @@
 import pandas as pd
 from fastapi import Depends, Response
-from sqlalchemy import orm
 
 from opengsync_db import models, categories as C, SyncSession, queries as Q
 
@@ -61,10 +60,14 @@ class SampleAnnotationForm(HTMXWorkflowStep):
             df["sample_id"] = df["sample_id"].astype(pd.Int64Dtype())
 
             if (project_id := workflow.metadata.get("project_id")) is not None:
-                project = session.get_one(Q.project.select(id=project_id).options(orm.selectinload(models.Project.samples)))
+                for idx, row in df.iterrows():
+                    if (sample := session.first(Q.sample.select(name=row["sample_name"], project_id=project_id))) is not None:
+                        df.loc[idx, "sample_id"] = sample.id
 
-                for sample in project.samples:
-                    df.loc[df["sample_name"] == sample.name, "sample_id"] = sample.id
+                        for attr in sample.attributes:
+                            if attr.name not in df.columns:
+                                df[attr.name] = None
+                            df.loc[df["sample_name"] == sample.name, attr.name] = attr.value
 
             # for col in SampleAttributeAnnotationForm.predefined_columns:
             #     if col.label in df.columns:
@@ -77,10 +80,6 @@ class SampleAnnotationForm(HTMXWorkflowStep):
                 
                 for attr in sample.attributes:
                     df.loc[df["sample_name"] == row["sample_name"], attr.name] = attr.value
-
-            for col in df.columns:
-                if col not in [c.label for c in form.spreadsheet.columns.values()]:
-                    form.spreadsheet.add_column(TextColumn(col, col.replace("_", " ").title(), 100, max_length=models.SampleAttribute.MAX_NAME_LENGTH))
 
             workflow.tables["sample_table"] = df
             next_form = workflow.get_next_step(form)

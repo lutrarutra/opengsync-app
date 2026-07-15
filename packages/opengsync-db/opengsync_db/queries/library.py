@@ -49,15 +49,8 @@ def create(
 
 
 def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
-    is_admin = sa.select(1).where(
-        User.id == user_id,
-        User.role_id == UserRole.ADMIN.id
-    )
-
-    is_insider = sa.select(1).where(
-        User.id == user_id,
-        User.role_id.in_([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id])
-    )
+    is_admin = sa.select(1).where(User.id == user_id, User.is_admin)
+    is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
 
     has_write_access = sa.select(1).where(
         Library.seq_request_id == SeqRequest.id,
@@ -121,6 +114,7 @@ def search(
 
 def select(
     id: int | None = None,
+    ids: list[int] | None = None,
     user_id: int | None = None,
     sample_id: int | None = None,
     experiment_id: int | None = None,
@@ -132,11 +126,15 @@ def select(
     project_id: int | None = None,
     type_in: list[LibraryType] | None = None,
     status_in: list[LibraryStatus] | None = None,
-    pooled: bool | None = None, status: LibraryStatus | None = None,
+    pooled: bool | None = None,
+    indexed: bool | None = None,
+    status: LibraryStatus | None = None,
+    viewer_id: int | None = None,
     statement: sa.Select[tuple[Library]] = sa.select(Library),
 ) -> sa.Select[tuple[Library]]:
     return statement.where(*where_clauses(
         id=id,
+        ids=ids,
         user_id=user_id,
         sample_id=sample_id,
         experiment_id=experiment_id,
@@ -150,6 +148,8 @@ def select(
         status_in=status_in,
         pooled=pooled,
         status=status,
+        indexed=indexed,
+        viewer_id=viewer_id,
     ))
 
 def permissions(library_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
@@ -158,6 +158,7 @@ def permissions(library_id: int, user_id: int) -> sa.Select[tuple[AccessLevel]]:
 
 def where_clauses(
     id: int | None = None,
+    ids: list[int] | None = None,
     user_id: int | None = None,
     sample_id: int | None = None,
     experiment_id: int | None = None,
@@ -170,7 +171,9 @@ def where_clauses(
     type_in: list[LibraryType] | None = None,
     status_in: list[LibraryStatus] | None = None,
     pooled: bool | None = None,
+    indexed: bool | None = None,
     status: LibraryStatus | None = None,
+    viewer_id: int | None = None,
 ) -> list[sa.ColumnElement[bool]]:
     """Return WHERE clauses for filtering libraries.
     Reusable in correlated subqueries where .subquery() would break correlation.
@@ -179,6 +182,8 @@ def where_clauses(
 
     if id is not None:
         clauses.append(Library.id == id)
+    if ids:
+        clauses.append(Library.id.in_(ids))
     if user_id is not None:
         clauses.append(Library.owner_id == user_id)
     if seq_request_id is not None:
@@ -205,6 +210,11 @@ def where_clauses(
             clauses.append(Library.pool_id.is_not(None))
         else:
             clauses.append(Library.pool_id.is_(None))
+    if indexed is not None:
+        if indexed:
+            clauses.append(Library.is_indexed.is_(True))
+        else:
+            clauses.append(Library.is_indexed.is_(False))
     if status is not None:
         clauses.append(Library.status_id == status.id)
     if pool_id is not None:
@@ -222,5 +232,6 @@ def where_clauses(
         clauses.append(Library.type_id.in_([t.id for t in type_in]))
     if status_in is not None:
         clauses.append(Library.status_id.in_([s.id for s in status_in]))
-
+    if viewer_id is not None:
+        clauses.append(access_level(viewer_id) >= AccessLevel.READ)
     return clauses

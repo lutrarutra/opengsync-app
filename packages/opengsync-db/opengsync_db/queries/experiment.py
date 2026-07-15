@@ -11,9 +11,9 @@ def create(
     workflow: ExperimentWorkFlow,
     status: ExperimentStatus,
     sequencer_id: int,
-    r1_cycles: int,
-    i1_cycles: int,
     operator_id: int,
+    r1_cycles: int | None,
+    i1_cycles: int | None,
     r2_cycles: int | None = None,
     i2_cycles: int | None = None,
 ) -> Experiment:

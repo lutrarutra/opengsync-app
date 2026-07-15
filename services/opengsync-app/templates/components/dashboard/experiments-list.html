@@ -7,7 +7,7 @@
 hx-get="{{ url_for('render_experiment_table_recent', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#experiments-htmx-indicator" hx-swap="outerHTML" hx-indicator="#experiments-htmx-indicator"
 {% endif %}>
     <div class="row pb-1">
-        <div class="title col-4"><a href="{{ url_for('experiments_page.experiment', experiment_id=experiment.id) }}">{{ experiment.name }}</a></div>
+        <div class="title col-4"><a href="{{ url_for('experiment_page', experiment_id=experiment.id) }}">{{ experiment.name }}</a></div>
         <div class="description col-4">{{ experiment.operator.name }}</span></div>
         <div class="col-4">{{ experiment.timestamp_created_str("%-d. %b. @ %-H:%M") }}</div>
     </div>

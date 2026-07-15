@@ -66,7 +66,7 @@ class DistributeReadsSeparateForm(HTMXFlaskForm):
             return False
         
         if self.experiment.status != ExperimentStatus.DRAFT:
-            if not self.current_user.is_admin():
+            if not self.current_user.is_admin:
                 flash("Only admin can edit non-draft experiments", "danger")
                 return False
         
@@ -137,7 +137,7 @@ class DistributeReadsCombinedForm(HTMXFlaskForm):
             return False
         
         if self.experiment.status != ExperimentStatus.DRAFT:
-            if not self.current_user.is_admin():
+            if not self.current_user.is_admin:
                 flash("Only admin can edit non-draft experiments", "danger")
                 return False
         

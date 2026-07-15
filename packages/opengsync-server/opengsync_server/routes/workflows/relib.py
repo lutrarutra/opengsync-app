@@ -31,7 +31,7 @@ def get_context(args: dict) -> dict:
 
 @wrappers.htmx_route(relib_workflow, db=db)
 def begin(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     context = get_context(request.args)
         
@@ -41,7 +41,7 @@ def begin(current_user: models.User) -> Response:
 
 @wrappers.htmx_route(relib_workflow, db=db, methods=["POST"])
 def select(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     context = get_context(request.args)
 
@@ -90,7 +90,7 @@ def select(current_user: models.User) -> Response:
 
 @wrappers.htmx_route(relib_workflow, db=db, methods=["POST"])
 def parse_library_type_form(current_user: models.User, uuid: str) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     context = get_context(request.args)
 

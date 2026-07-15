@@ -15,7 +15,7 @@ store_samples_workflow = Blueprint("store_samples_workflow", __name__, url_prefi
 
 @wrappers.htmx_route(store_samples_workflow, db=db)
 def begin(current_user: models.User) -> Response:
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     context = {}
@@ -34,7 +34,7 @@ def begin(current_user: models.User) -> Response:
 
 @wrappers.htmx_route(store_samples_workflow, db=db, methods=["POST"])
 def select(current_user: models.User):
-    if not current_user.is_insider():
+    if not current_user.is_insider:
         raise exceptions.NoPermissionsException()
     
     context = {}
@@ -67,7 +67,7 @@ def select(current_user: models.User):
         if library.seq_request_id not in check_request_ids:
             check_request_ids.add(library.seq_request_id)
         
-        if library.is_pooled():
+        if library.is_pooled:
             library.status = LibraryStatus.POOLED
         else:
             library.status = LibraryStatus.STORED

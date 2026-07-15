@@ -274,11 +274,21 @@ class User(Base, UserMixin):
             links.UserAffiliation.user_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
-    def is_insider(self) -> bool:
+    @hybrid_property
+    def is_insider(self) -> bool:  # type: ignore[override]
         return self.role.insider
-    
-    def is_admin(self) -> bool:
+
+    @is_insider.expression
+    def is_insider(cls) -> sa.ColumnElement[bool]:
+        return cls.role_id.in_([UserRole.BIOINFORMATICIAN.id, UserRole.TECHNICIAN.id, UserRole.ADMIN.id])  # type: ignore[arg-type]
+
+    @hybrid_property
+    def is_admin(self) -> bool:  # type: ignore[override]
         return self.role == UserRole.ADMIN
+
+    @is_admin.expression
+    def is_admin(cls) -> sa.ColumnElement[bool]:
+        return cls.role_id == UserRole.ADMIN.id  # type: ignore[arg-type]
 
     @property
     def role(self) -> UserRole:

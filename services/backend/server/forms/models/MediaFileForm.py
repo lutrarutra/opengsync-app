@@ -1,44 +1,45 @@
+import os
+import uuid as uuid_lib
 from typing import Literal
 
-from fastapi import Request, UploadFile, Query, Response, Depends
+from fastapi import Depends, Response, Query
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
 
-from ...core import responses, exceptions as exc, config, dependencies
+from ...core import responses, dependencies, exceptions as exc, config
 from ...components import inputs
-from ..HTMXForm import HTMXForm
-
+from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 
 class MediaFileForm(HTMXForm):
     template_path = "forms/file-upload.html"
+    MAX_SIZE_MBYTES: int = 5
 
     file_type = inputs.selectable.SelectableInputField(
-        "File Type",
-        options=C.MediaFileType.as_selectable(),
-        description="Select the type of file you are uploading.",
+        "File Type", options=C.MediaFileType.as_selectable(), description="Select the type of file you are uploading.",
     )
     comment = inputs.string.TextAreaInputField(
-        "Comment",
-        max_length=4096,
-        required=False,
-        description="Provide a brief description of the file.",
+        "Comment", max_length=4096, required=False, description="Provide a brief description of the file.",
     )
-
-    MAX_SIZE_MBYTES: int = 5
+    file = inputs.file.FileInputField("File", max_size=MAX_SIZE_MBYTES, allowed_extensions=["tsv", "xlsx", "csv", "pdf", "png", "jpg", "jpeg"])
 
     def __init__(
         self,
-        request: Request,
         form_type: Literal["create", "edit"],
         file: models.MediaFile | None = None,
+        seq_request_id: int | None = None,
+        experiment_id: int | None = None,
+        lab_prep_id: int | None = None,
     ) -> None:
-        super().__init__(request)
-        self.file = file
+        super().__init__()
+        self.media_file = file
         self.form_type = form_type
-        if self.form_type == "create" and self.file is not None:
+        self.seq_request_id = seq_request_id
+        self.experiment_id = experiment_id
+        self.lab_prep_id = lab_prep_id
+        if self.form_type == "create" and self.media_file is not None:
             raise ValueError("file must be None when form_type is 'create'")
-        if self.form_type == "edit" and self.file is None:
+        if self.form_type == "edit" and self.media_file is None:
             raise ValueError("file must be provided when form_type is 'edit'")
 
     @staticmethod
@@ -52,32 +53,111 @@ class MediaFileForm(HTMXForm):
         if seq_request_id is not None:
             if session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.WRITE:
                 raise exc.NoPermissionsException("You do not have permission to upload files to this sequencing request.")
-        
+
         if experiment_id is not None or lab_prep_id is not None:
-            if not current_user.is_insider():
+            if not current_user.is_insider:
                 raise exc.NoPermissionsException("You do not have permission to upload files to this resource.")
 
-    @staticmethod
-    def upload_file(
-        request: Request,
-        seq_request_id: int | None = Query(None),
-        experiment_id: int | None = Query(None),
-        lab_prep_id: int | None = Query(None),
-        current_user: models.User = Depends(dependencies.require_user),
-        session: SyncSession = Depends(dependencies.db_session),
-    ) -> Response:
-        
-        MediaFileForm.check_permissions(
-            session=session,
-            current_user=current_user,
-            seq_request_id=seq_request_id,
-            experiment_id=experiment_id,
-            lab_prep_id=lab_prep_id,
-        )
-        form = MediaFileForm(request, form_type="create")
-        form.validate()
+    @classmethod
+    def Init(cls, form_type: Literal["create", "edit"]) -> FormFunc:
+        def dependency(
+            seq_request_id: int | None = None,
+            experiment_id: int | None = None,
+            lab_prep_id: int | None = None,
+            session: SyncSession = Depends(dependencies.db_session),
+            current_user: models.User = Depends(dependencies.require_user),
+        ) -> "MediaFileForm":
+            MediaFileForm.check_permissions(
+                session=session,
+                current_user=current_user,
+                seq_request_id=seq_request_id,
+                experiment_id=experiment_id,
+                lab_prep_id=lab_prep_id,
+            )
 
-        return responses.htmx_response()
+            return MediaFileForm(
+                form_type=form_type,
+                seq_request_id=seq_request_id,
+                experiment_id=experiment_id,
+                lab_prep_id=lab_prep_id,
+            )
+
+        return dependency
+
+    @htmx_route("GET", "/upload", name="Upload")
+    def RenderUpload(cls) -> RouteFunc:
+        def route(
+            form: "MediaFileForm" = Depends(MediaFileForm.Init(form_type="create")),
+        ):
+            return form.make_response()
+        return route
+
+    @htmx_route("POST", "/upload", name="Upload")
+    def Upload(cls) -> RouteFunc:
+        def submit(
+            form: MediaFileForm = Depends(MediaFileForm.Validate(form_type="create")),
+            session: SyncSession = Depends(dependencies.db_session),
+            current_user: models.User = Depends(dependencies.require_user),
+            seq_request_id: int | None = Query(None),
+            experiment_id: int | None = Query(None),
+            lab_prep_id: int | None = Query(None),
+        ) -> Response:
+            MediaFileForm.check_permissions(
+                session=session,
+                current_user=current_user,
+                seq_request_id=seq_request_id,
+                experiment_id=experiment_id,
+                lab_prep_id=lab_prep_id,
+            )
+
+            if not form.file.filename:
+                raise exc.BadRequestException("No file was uploaded.")
+
+            try:
+                file_type = C.MediaFileType.get(int(str(form.file_type.data)))
+            except (ValueError, TypeError):
+                raise exc.BadRequestException("Invalid file type.")
+
+            filename = form.file.filename
+            _, ext = os.path.splitext(filename)
+            if file_type.extensions and ext.lower() not in file_type.extensions:
+                raise exc.BadRequestException(f"File type '{file_type.label}' does not support '{ext}' files.")
+
+            content = form.file.content
+            if content is None:
+                raise exc.BadRequestException("No file was uploaded.")
+            size_bytes = len(content)
+            if size_bytes > MediaFileForm.MAX_SIZE_MBYTES * 1024 * 1024:
+                raise exc.BadRequestException(f"File size exceeds {MediaFileForm.MAX_SIZE_MBYTES} MB limit.")
+
+            file_uuid = str(uuid_lib.uuid4())
+            file_ext = ext.lower()
+            file_name = filename.rsplit(".", 1)[0][:64]
+
+            media_dir = config.settings.app_config.media_folder
+            file_dir = os.path.join(media_dir, file_type.dir)
+            os.makedirs(file_dir, exist_ok=True)
+            file_path = os.path.join(file_dir, f"{file_uuid}{file_ext}")
+
+            with open(file_path, "wb") as f:
+                f.write(content)
+
+            session.save(Q.media_file.create(
+                name=file_name,
+                type=file_type,
+                uploader_id=current_user.id,
+                extension=file_ext,
+                size_bytes=size_bytes,
+                uuid=file_uuid,
+                seq_request_id=seq_request_id,
+                experiment_id=experiment_id,
+                lab_prep_id=lab_prep_id,
+            ), flush=True)
+
+            return responses.htmx_response(
+                flash=responses.flash("File uploaded successfully!", "success"),
+            )
+        return submit
 
 
 
