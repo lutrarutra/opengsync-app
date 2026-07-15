@@ -891,6 +891,7 @@ def lab_prep_libraries(lab_prep_id: int) -> sa.Select:
         Library.name.label("library_name"),
         Library.status_id.label("status_id"),
         Library.type_id.label("library_type_id"),
+        Library.seq_request_id.label("seq_request_id"),
         Library.genome_ref_id.label("genome_ref_id"),
         Pool.id.label("pool_id"), Pool.name.label("pool"),
         Library.index_type_id.label("index_type_id"),

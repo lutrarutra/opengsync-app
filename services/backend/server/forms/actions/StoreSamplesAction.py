@@ -39,7 +39,6 @@ class StoreSamplesAction(HTMXForm):
         def route(
             seq_request_id: int | None = Query(None),
             form: "StoreSamplesAction" = Depends(StoreSamplesAction.Init()),
-            session: SyncSession = Depends(dependencies.db_session),
         ):
             if seq_request_id is not None:
                 form.selected_sample_ids.query_params["seq_request_id"] = seq_request_id

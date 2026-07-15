@@ -10,11 +10,7 @@
             {{ form.csrf_token.render() }}
             <div class="row">
                 {{ form.file_type.render("col-6") }}
-                <div class="col-6">
-                    <label for="file" class="form-label">File</label>
-                    <input type="file" class="form-control" name="file" id="file"
-                        accept=".tsv,.xlsx,.csv,.pdf,.png,.jpg,.jpeg">
-                </div>
+                {{ form.file.render("col-6") }}
             </div>
             {{ form.comment.render() }}
         </div>
@@ -25,7 +21,7 @@
             hx-target="#file-input-form-container"
             hx-swap="outerHTML"
             hx-encoding="multipart/form-data"
-            hx-post="{{ url_for('MediaFileForm.Upload', seq_request_id=form.seq_request_id, experiment_id=form.experiment_id, lab_prep_id=form.lab_prep_id) }}">
+            hx-post="{{ form.post_url }}">
             Submit
         </button>
     </div>

@@ -1,0 +1,65 @@
+{% set selected_libraries = form.selected_library_ids.get_selected_libraries(session) %}
+<div class="modal-content" id="library-prep-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Add Libraries to Prep</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body tab-body" id="library-prep-form">
+        {{ form.csrf_token.render() }}
+        {{ form.render_general_errors() }}
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#library-prep-browse-tab"
+                    type="button" role="tab" aria-controls="library-prep-browse-tab" aria-selected="true">
+                    Browse Libraries
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button id="{{ form.selected_library_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#library-prep-selected-tab"
+                    type="button" role="tab" aria-controls="library-prep-selected-tab" aria-selected="false">
+                    Selected ({{ selected_libraries | length }})
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="library-prep-browse-tab" role="tabpanel" tabindex="0">
+                {{ form.selected_library_ids.render() }}
+            </div>
+            <div class="tab-pane fade" id="library-prep-selected-tab" role="tabpanel" tabindex="1">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-1">ID</th>
+                            <th scope="col" class="col-4">Name</th>
+                            <th scope="col" class="col-2">Type</th>
+                            <th scope="col" class="col-2">Status</th>
+                            <th scope="col" class="col-2">Owner</th>
+                        </tr>
+                    </thead>
+                    <tbody id="{{ form.selected_library_ids.id }}-selected-table-body">
+                        {% for library in selected_libraries %}
+                        <tr id="selected-library-row-{{ library.id }}" class="library-row selected">
+                            <th scope="row">{{ library.id }}</th>
+                            <td>{{ library.name }}</td>
+                            <td>{{ library.type.abbreviation }}</td>
+                            <td>{% if library.status %}{{ library.status.label }} {{ library.status.icon }}{% endif %}</td>
+                            <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-library-prep-btn" class="btn btn-success"
+            hx-include="#library-prep-form" hx-target="#library-prep-form-container" hx-swap="outerHTML"
+            hx-post="{{ url_for('LibraryPrepAction.Submit', lab_prep_id=form.lab_prep_id) }}">Add Libraries</button>
+        </div>
+    </div>
+</div>

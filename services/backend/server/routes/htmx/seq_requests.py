@@ -691,7 +691,7 @@ def get_seq_request_review_checklist(
     )
 
     checklist: dict = seq_request.get_review_checklist()
-    contains_mux_samples = any(library.is_multiplexed() for library in seq_request.libraries)
+    contains_mux_samples = any(library.is_multiplexed for library in seq_request.libraries)
 
     indices_checked = True
     for library in seq_request.libraries:

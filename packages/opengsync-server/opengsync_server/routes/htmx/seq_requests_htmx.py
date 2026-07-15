@@ -841,7 +841,7 @@ def review_checklist(current_user: models.User, seq_request_id: int):
         raise exceptions.NoPermissionsException()
     
     checklist = seq_request.get_review_checklist()
-    contains_mux_samples = any(library.is_multiplexed() for library in seq_request.libraries)
+    contains_mux_samples = any(library.is_multiplexed for library in seq_request.libraries)
 
     indices_checked = True
     for library in seq_request.libraries:

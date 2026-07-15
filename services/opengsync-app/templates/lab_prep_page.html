@@ -26,7 +26,7 @@
                         </button>
                     </li>
                         <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                                hx-get="{{ url_for('begin_reseq_workflow', lab_prep_id=lab_prep.id) }}"
+                                hx-get="{{ url_for('ReseqAction.Begin', lab_prep_id=lab_prep.id) }}"
                                 hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                                 hx-swap="innerHTML">
                             Re-Sequence Libraries
@@ -66,7 +66,7 @@
                     <li>
                         <button type="button" class="dropdown-item" data-bs-toggle="modal"
                         data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-                        hx-get="{{ url_for('render_upload_file_form', lab_prep_id=lab_prep.id) }}">
+                        hx-get="{{ url_for('MediaFileForm.Upload', lab_prep_id=lab_prep.id) }}">
                             Attach File
                         </button>
                     </li>

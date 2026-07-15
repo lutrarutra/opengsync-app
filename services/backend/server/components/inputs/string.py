@@ -97,7 +97,7 @@ class EmailInputField(StringInputField[_DataT]):
     ):
         super().__init__(
             label=label,
-            required=required,
+            required=required,  # type: ignore
             placeholder=placeholder,
             description=description,
             default=default,
@@ -129,7 +129,7 @@ class PasswordInputField(StringInputField[_DataT]):
     ):
         super().__init__(
             label=label,
-            required=required,
+            required=required,  # type: ignore
             placeholder=placeholder,
             description=description,
             default=default,
@@ -159,7 +159,7 @@ class TextAreaInputField(StringInputField[_DataT]):
     ):
         super().__init__(
             label=label,
-            required=required,
+            required=required,  # type: ignore
             placeholder=placeholder,
             description=description,
             default=default,

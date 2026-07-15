@@ -115,7 +115,7 @@ class LabPrep(Base):
         libraries_pooled = all(
             library.pool_id is not None or library.status >= LibraryStatus.SEQUENCED
             for library in self.libraries
-        ) if (libraries_added and libraries_indexed) else None
+        ) if (libraries_added and libraries_indexed and samples_muxed) else None
 
         lab_prep_completed = self.status >= PrepStatus.COMPLETED if (libraries_added and libraries_pooled) else None
 

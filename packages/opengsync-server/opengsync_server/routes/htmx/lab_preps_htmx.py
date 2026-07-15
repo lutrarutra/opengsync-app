@@ -479,6 +479,5 @@ def get_mux_table(current_user: models.User, lab_prep_id: int):
         )
 
     spreadsheet = StaticSpreadSheet(df, columns=columns, id=f"lab_prep_mux_table-{lab_prep_id}")
-
     return make_response(render_template("components/itable.html", spreadsheet=spreadsheet))
 

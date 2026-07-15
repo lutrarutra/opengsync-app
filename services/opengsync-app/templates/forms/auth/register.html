@@ -7,19 +7,19 @@
         <form>
             {{ form.csrf_token.render() }}
             {{ form.email.render("col-12") }}
-            {{ form.role.render("col-12") }}
-        </form>
-        {% if current_user.is_authenticated and current_user.is_insider %}
+        {% if current_user and current_user.is_insider %}
+        {{ form.role.render("col-12") }}
         <ul>
             <li>Select <b>{{ C.UserRole.DEACTIVATED.display_name }}</b> if the user did not request an account. This will create account "silently", i.e. no registration email is sent.</li>
         </ul>
         {% endif %}
+        </form>
     </div>
     <div class="modal-footer">
         <div class="footer-controls">
             <button type="button"  class="btn btn-success"
             hx-include="#register-form" hx-target="#register-form" hx-swap="outerHTML"
-            hx-post="{{ url_for('register_user') }}">Register</button>
+            hx-post="{{ url_for('RegisterForm.Register') }}">Register</button>
         </div>
     </div>
 </div>

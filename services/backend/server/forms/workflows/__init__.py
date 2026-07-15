@@ -7,11 +7,9 @@ from . import lane_qc
 from . import load_flow_cell
 from . import qubit_measure
 from . import library_pooling
-from . import library_prep
 from . import mux_prep
 from . import dist_reads
 from . import reindex
-from . import reseq
 from . import merge_pools
 from . import library_remux
 from . import relib
@@ -31,11 +29,9 @@ __all__ = [
     "load_flow_cell",
     "qubit_measure",
     "library_pooling",
-    "library_prep",
     "mux_prep",
     "dist_reads",
     "reindex",
-    "reseq",
     "merge_pools",
     "library_remux",
     "relib",

@@ -449,3 +449,20 @@ def render_lab_prep_plates(
         ), limit=None
     )
     return responses.htmx_response(template="components/plates.html", plates=plates)
+
+
+@router.get("/{lab_prep_id}/mux-prep")
+def lab_prep_mux_prep(
+    lab_prep_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+    mux_type: C.MUXType | None = Depends(dependencies.parse_enum_id(enum_type=C.MUXType, query_param="mux_type")),
+):
+    if mux_type is None:
+        raise exc.BadRequestException("Missing mux_type query parameter.")
+
+    if mux_type == C.MUXType.TENX_FLEX_PROBE:
+        form = forms.actions.FlexMuxPrepAction.Init()(lab_prep_id=lab_prep_id, session=session)
+    else:
+        raise NotImplementedError(f"Multiplexing type {mux_type} is not implemented.")
+    
+    return form.make_response()

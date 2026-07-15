@@ -41,6 +41,15 @@ class MediaFileForm(HTMXForm):
             raise ValueError("file must be None when form_type is 'create'")
         if self.form_type == "edit" and self.media_file is None:
             raise ValueError("file must be provided when form_type is 'edit'")
+        
+        url_context = {}
+        if self.seq_request_id is not None:
+            url_context["seq_request_id"] = self.seq_request_id
+        if self.experiment_id is not None:
+            url_context["experiment_id"] = self.experiment_id
+        if self.lab_prep_id is not None:
+            url_context["lab_prep_id"] = self.lab_prep_id
+        self.post_url = responses.url_for("MediaFileForm.Upload").include_query_params(**url_context)
 
     @staticmethod
     def check_permissions(
@@ -102,6 +111,15 @@ class MediaFileForm(HTMXForm):
             experiment_id: int | None = Query(None),
             lab_prep_id: int | None = Query(None),
         ) -> Response:
+            if seq_request_id is not None:
+                redirect = responses.url_for("seq_request_page", seq_request_id=seq_request_id)
+            elif experiment_id is not None:
+                redirect = responses.url_for("experiment_page", experiment_id=experiment_id)
+            elif lab_prep_id is not None:
+                redirect = responses.url_for("lab_prep_page", lab_prep_id=lab_prep_id)
+            else:
+                raise exc.BadRequestException("At least one of seq_request_id, experiment_id, or lab_prep_id must be provided.")
+            
             MediaFileForm.check_permissions(
                 session=session,
                 current_user=current_user,
@@ -110,7 +128,7 @@ class MediaFileForm(HTMXForm):
                 lab_prep_id=lab_prep_id,
             )
 
-            if not form.file.filename:
+            if not form.file.data.filename:
                 raise exc.BadRequestException("No file was uploaded.")
 
             try:
@@ -118,16 +136,17 @@ class MediaFileForm(HTMXForm):
             except (ValueError, TypeError):
                 raise exc.BadRequestException("Invalid file type.")
 
-            filename = form.file.filename
+            filename = form.file.data.filename
             _, ext = os.path.splitext(filename)
             if file_type.extensions and ext.lower() not in file_type.extensions:
                 raise exc.BadRequestException(f"File type '{file_type.label}' does not support '{ext}' files.")
 
-            content = form.file.content
+            content = form.file.data.content
             if content is None:
                 raise exc.BadRequestException("No file was uploaded.")
-            size_bytes = len(content)
-            if size_bytes > MediaFileForm.MAX_SIZE_MBYTES * 1024 * 1024:
+            
+            size_bytes = form.file.data.size
+            if size_bytes and size_bytes > MediaFileForm.MAX_SIZE_MBYTES * 1024 * 1024:
                 raise exc.BadRequestException(f"File size exceeds {MediaFileForm.MAX_SIZE_MBYTES} MB limit.")
 
             file_uuid = str(uuid_lib.uuid4())
@@ -152,11 +171,8 @@ class MediaFileForm(HTMXForm):
                 seq_request_id=seq_request_id,
                 experiment_id=experiment_id,
                 lab_prep_id=lab_prep_id,
-            ), flush=True)
-
-            return responses.htmx_response(
-                flash=responses.flash("File uploaded successfully!", "success"),
-            )
+            ))
+            return responses.htmx_response(redirect=redirect, flash=responses.flash("File uploaded successfully!", "success"))
         return submit
 
 
