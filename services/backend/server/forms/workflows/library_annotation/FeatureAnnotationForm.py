@@ -55,13 +55,26 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
             return form
         return dependency
 
+    @classmethod
+    def PreviousStep(cls) -> FormFunc:
+        def dependency(
+            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
+            session: SyncSession = Depends(dependencies.db_session),
+        ) -> FeatureAnnotationForm:
+            form = cls(workflow=workflow)
+            kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in session.get_all(Q.feature_kit.select(type=C.FeatureType.ANTIBODY).order_by(models.FeatureKit.name.asc()), limit=None)}
+            abc_samples = form.abc_libraries["sample_name"].tolist()
+            form.spreadsheet.columns["sample_name"].choices = abc_samples  # type: ignore
+            form.spreadsheet.columns["kit"].set_categories(kits_mapping)
+            return form
+        return dependency
+
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
-            form: FeatureAnnotationForm = Depends(FeatureAnnotationForm.Init()),
+            form: FeatureAnnotationForm = Depends(FeatureAnnotationForm.PreviousStep()),
         ) -> Response:
-            feature_table = workflow.tables["feature_table"]
+            feature_table = form.workflow.tables["feature_table"]
             form.spreadsheet.set_data(feature_table)
             return form.make_response()
         return route
@@ -69,7 +82,6 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
             form: FeatureAnnotationForm = Depends(FeatureAnnotationForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
@@ -193,18 +205,18 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
             df["library_name"] = df["sample_name"].map(library_sample_map)
             feature_table = form.get_feature_table(df, kits)
         
-            if (kit_table := workflow.tables.get("kit_table")) is None:  # type: ignore
+            if (kit_table := form.workflow.tables.get("kit_table")) is None:  # type: ignore
                 kit_table = feature_table.loc[feature_table["kit"].notna(), ["kit", "kit_id"]].drop_duplicates().copy().rename(columns={"kit": "name"})
                 kit_table["type_id"] = C.FeatureType.ANTIBODY.id
-                workflow.tables["kit_table"] = kit_table
+                form.workflow.tables["kit_table"] = kit_table
             else:
                 _kit_table = feature_table.loc[feature_table["kit"].notna(), ["kit", "kit_id"]].drop_duplicates().copy().rename(columns={"kit": "name"})
                 _kit_table["type_id"] = C.FeatureType.ANTIBODY.id
                 kit_table = pd.concat([kit_table[kit_table["type_id"] != C.FeatureType.ANTIBODY.id], _kit_table])
-                workflow.tables["kit_table"] = kit_table
+                form.workflow.tables["kit_table"] = kit_table
 
-            workflow.tables["feature_table"] = feature_table
-            return workflow.get_next_step(form).make_response()
+            form.workflow.tables["feature_table"] = feature_table
+            return form.workflow.get_next_step(form).make_response()
         return route
     
 

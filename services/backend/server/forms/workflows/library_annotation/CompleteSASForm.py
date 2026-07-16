@@ -1,5 +1,3 @@
-import os
-
 import pandas as pd
 from fastapi import Depends, Response
 from loguru import logger
@@ -172,14 +170,13 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
             form: CompleteSASForm = Depends(CompleteSASForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
             current_user: models.User = Depends(dependencies.require_user),
             _ = Depends(dependencies.audit_log),
         ) -> Response:
             
-            seq_request = session.get_one(Q.seq_request.select(id=workflow.seq_request_id))
+            seq_request = session.get_one(Q.seq_request.select(id=form.workflow.seq_request_id))
 
             if (project_id := form.workflow.metadata.get("project_id")) is not None:
                 if (project := session.first(Q.project.select(id=project_id))) is None:
@@ -432,7 +429,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
                                 feature_id=feature_id
                             ), flush=True)
                 
-            for comment in workflow.get_comments():
+            for comment in form.workflow.get_comments():
                 context = comment["context"]
                 text = comment["comment"]
 
@@ -468,7 +465,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
 
             # newdir = os.path.join("/media", C.MediaFileType.LIBRARY_ANNOTATION.dir, str(seq_request.id))
             # os.makedirs(newdir, exist_ok=True)
-            workflow.complete()
+            form.workflow.complete()
             return responses.htmx_response(
                 redirect=responses.url_for("seq_request_page", seq_request_id=seq_request.id),
                 flash=responses.flash(f"Added {form.library_table.shape[0]} libraries to sequencing request.", "success")

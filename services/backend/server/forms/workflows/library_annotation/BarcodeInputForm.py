@@ -69,9 +69,8 @@ class BarcodeInputForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
+            form: BarcodeInputForm = Depends(BarcodeInputForm.PreviousStep()),
         ) -> Response:
-            form = BarcodeInputForm(workflow=workflow)
             barcode_table = form.workflow.tables["barcode_table"]
             barcode_table = barcode_table[barcode_table["index_type_id"] != C.IndexType.TENX_ATAC_INDEX.id].copy()
             form.spreadsheet.set_data(barcode_table)

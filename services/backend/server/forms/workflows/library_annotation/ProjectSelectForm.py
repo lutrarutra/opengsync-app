@@ -5,11 +5,11 @@ from opengsync_db import models, queries as Q, SyncSession, categories as C
 
 from ....core import exceptions as exc, dependencies, responses
 from ....components import inputs
-from ..HTMXWorkflowStep import HTMXWorkflowStep
+from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
 
-class ProjectSelectForm(HTMXWorkflowStep):
+class ProjectSelectForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
 
     template_path = "workflows/library_annotation/sas-project_select.html"
@@ -66,15 +66,14 @@ class ProjectSelectForm(HTMXWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
-            form: ProjectSelectForm = Depends(ProjectSelectForm.Init()),
+            form: ProjectSelectForm = Depends(ProjectSelectForm.PreviousStep()),
         ) -> Response:
-            project_id = workflow.metadata.get("project_id")
+            project_id = form.workflow.metadata.get("project_id")
             if project_id is not None:
                 form.existing_project.data = project_id
             else:
-                form.new_project.data = workflow.metadata.get("project_title")
-                form.project_description.data = workflow.metadata.get("project_description")
+                form.new_project.data = form.workflow.metadata.get("project_title")
+                form.project_description.data = form.workflow.metadata.get("project_description")
             return form.make_response()
         return route
         
@@ -82,7 +81,6 @@ class ProjectSelectForm(HTMXWorkflowStep):
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
             current_user: models.User = Depends(dependencies.require_user),
             session: SyncSession = Depends(dependencies.db_session),
             form: ProjectSelectForm = Depends(ProjectSelectForm.Validate()),
@@ -98,7 +96,7 @@ class ProjectSelectForm(HTMXWorkflowStep):
                 if session.get_access_level(Q.project.permissions(project.id, current_user.id)) < C.AccessLevel.WRITE:
                     form.existing_project.errors.append("You do not have permission to select this project.")
                     raise exc.FormValidationException(form)
-                workflow.metadata["project_id"] = project.id
+                form.workflow.metadata["project_id"] = project.id
             else:
                 if form.new_project.data and not form.project_description.data:
                     form.project_description.errors.append("Please, provide brief description of the project.")
@@ -113,23 +111,23 @@ class ProjectSelectForm(HTMXWorkflowStep):
                     form.new_project.errors.append("You already have a project with this title.")
                     raise exc.FormValidationException(form)
 
-                workflow.metadata["project_title"] = form.new_project.data
-                workflow.metadata["project_description"] = form.project_description.data
+                form.workflow.metadata["project_title"] = form.new_project.data
+                form.workflow.metadata["project_description"] = form.project_description.data
 
-            workflow.metadata["seq_request_id"] = form.seq_request.id
-            workflow.metadata["user_id"] = current_user.id
-            workflow.metadata["project_owner_id"] = (
+            form.workflow.metadata["seq_request_id"] = form.seq_request.id
+            form.workflow.metadata["user_id"] = current_user.id
+            form.workflow.metadata["project_owner_id"] = (
                 form.seq_request.requestor.id
                 if form.set_requestor_as_owner.data and current_user.is_insider
                 else current_user.id
             )
-            workflow.header["submission_type_id"] = form.seq_request.submission_type.id
-            workflow.header["submitter"] = {
+            form.workflow.header["submission_type_id"] = form.seq_request.submission_type.id
+            form.workflow.header["submitter"] = {
                 "id": form.seq_request.requestor.id if form.set_requestor_as_owner.data and current_user.is_insider else current_user.id,
                 "name": form.seq_request.requestor.name if form.set_requestor_as_owner.data and current_user.is_insider else current_user.name,
                 "email": form.seq_request.requestor.email if form.set_requestor_as_owner.data and current_user.is_insider else current_user.email,
             }
 
-            next_form = workflow.get_next_step(form)
+            next_form = form.workflow.get_next_step(form)
             return next_form.make_response()
         return route

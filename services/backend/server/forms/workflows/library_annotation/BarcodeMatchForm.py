@@ -92,9 +92,8 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
+            form: BarcodeMatchForm = Depends(BarcodeMatchForm.PreviousStep()),
         ) -> Response:
-            form = BarcodeMatchForm(workflow=workflow)
             d = form.workflow.metadata.get("barcode_match_form", {})
             form.i7_kit.data = d.get("i7_kit", -1)
             form.i5_kit.data = d.get("i5_kit", -1)

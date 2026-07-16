@@ -43,10 +43,9 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
+            form: DefineMultiplexedSamplesForm = Depends(DefineMultiplexedSamplesForm.PreviousStep()),
         ) -> Response:
-            form = DefineMultiplexedSamplesForm(workflow)
-            sample_pooling_table = workflow.tables["sample_pooling_table"].rename(
+            sample_pooling_table = form.workflow.tables["sample_pooling_table"].rename(
                 columns={"sample_pool": "pool"}
             )
             sample_pooling_table = sample_pooling_table.drop_duplicates(subset=["sample_name", "pool"])
@@ -58,12 +57,11 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
             form: "DefineMultiplexedSamplesForm" = Depends(DefineMultiplexedSamplesForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
             df = form.spreadsheet.data
-            seq_request_samples = session.pd.get_seq_request_samples(workflow.seq_request_id)
+            seq_request_samples = session.pd.get_seq_request_samples(form.workflow.seq_request_id)
 
             selected_library_types = [t.abbreviation for t in form.service_type.library_types]
             if form.antibody_capture:
@@ -123,8 +121,8 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
                     sample_pooling_table["sample_name"].append(sample_name)
                     
                 sample_pooling_table = pd.DataFrame(sample_pooling_table)
-                workflow.tables["sample_pooling_table"] = sample_pooling_table
-                next_form = CustomAssayAnnotationForm(workflow)
+                form.workflow.tables["sample_pooling_table"] = sample_pooling_table
+                next_form = CustomAssayAnnotationForm(form.workflow)
                 return next_form.make_response()
 
             library_table_data = {
@@ -216,7 +214,7 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
             sample_pooling_table["mux_type_id"] = form.mux_type.id
             sample_pooling_table["mux_barcode"] = None
 
-            workflow.tables["library_table"] = library_table
-            workflow.tables["sample_pooling_table"] = sample_pooling_table
-            return workflow.get_next_step(form).make_response()
+            form.workflow.tables["library_table"] = library_table
+            form.workflow.tables["sample_pooling_table"] = sample_pooling_table
+            return form.workflow.get_next_step(form).make_response()
         return route

@@ -55,41 +55,39 @@ class SelectServiceForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
-            form: SelectServiceForm = Depends(SelectServiceForm.Init()),
+            form: SelectServiceForm = Depends(SelectServiceForm.PreviousStep()),
         ) -> Response:
-            form.service_type.data = workflow.metadata.get("service_type_id")
-            form.additional_services.nuclei_isolation.data = workflow.metadata.get("nuclei_isolation", False)
-            form.optional_assays.antibody_capture.data = workflow.metadata.get("antibody_capture", False)
-            form.optional_assays.vdj_b.data = workflow.metadata.get("vdj_b", False)
-            form.optional_assays.vdj_t.data = workflow.metadata.get("vdj_t", False)
-            form.optional_assays.vdj_t_gd.data = workflow.metadata.get("vdj_t_gd", False)
-            form.optional_assays.crispr_screening.data = workflow.metadata.get("crispr_screening", False)
-            form.optional_assays.antibody_multiplexing.data = workflow.metadata.get("antibody_multiplexing", False)
+            form.service_type.data = form.workflow.metadata.get("service_type_id")
+            form.additional_services.nuclei_isolation.data = form.workflow.metadata.get("nuclei_isolation", False)
+            form.optional_assays.antibody_capture.data = form.workflow.metadata.get("antibody_capture", False)
+            form.optional_assays.vdj_b.data = form.workflow.metadata.get("vdj_b", False)
+            form.optional_assays.vdj_t.data = form.workflow.metadata.get("vdj_t", False)
+            form.optional_assays.vdj_t_gd.data = form.workflow.metadata.get("vdj_t_gd", False)
+            form.optional_assays.crispr_screening.data = form.workflow.metadata.get("crispr_screening", False)
+            form.optional_assays.antibody_multiplexing.data = form.workflow.metadata.get("antibody_multiplexing", False)
 
-            form.optional_assays.parse_kit.data = workflow.metadata.get("parse_kit", -1)
-            form.optional_assays.parse_chemistry.data = workflow.metadata.get("parse_chemistry", -1)
-            form.optional_assays.parse_crispr.data = workflow.metadata.get("parse_crispr", False)
-            form.optional_assays.parse_mux.data = workflow.metadata["mux_type_id"] == C.MUXType.PARSE_WELLS.id
-            form.optional_assays.parse_tcr.data = workflow.metadata.get("parse_tcr", False)
-            form.optional_assays.parse_bcr.data = workflow.metadata.get("parse_bcr", False)
+            form.optional_assays.parse_kit.data = form.workflow.metadata.get("parse_kit", -1)
+            form.optional_assays.parse_chemistry.data = form.workflow.metadata.get("parse_chemistry", -1)
+            form.optional_assays.parse_crispr.data = form.workflow.metadata.get("parse_crispr", False)
+            form.optional_assays.parse_mux.data = form.workflow.metadata["mux_type_id"] == C.MUXType.PARSE_WELLS.id
+            form.optional_assays.parse_tcr.data = form.workflow.metadata.get("parse_tcr", False)
+            form.optional_assays.parse_bcr.data = form.workflow.metadata.get("parse_bcr", False)
 
-            form.optional_assays.antibody_capture_kit.data = workflow.metadata.get("antibody_capture_kit", "")
+            form.optional_assays.antibody_capture_kit.data = form.workflow.metadata.get("antibody_capture_kit", "")
             
-            if workflow.metadata.get("mux_type_id") == C.MUXType.TENX_OLIGO.id:
+            if form.workflow.metadata.get("mux_type_id") == C.MUXType.TENX_OLIGO.id:
                 form.additional_services.oligo_multiplexing.data = True
-                form.additional_services.oligo_multiplexing_kit.data = workflow.metadata.get("oligo_multiplexing_kit", "")
-            elif workflow.metadata.get("mux_type_id") == C.MUXType.TENX_ON_CHIP.id:
+                form.additional_services.oligo_multiplexing_kit.data = form.workflow.metadata.get("oligo_multiplexing_kit", "")
+            elif form.workflow.metadata.get("mux_type_id") == C.MUXType.TENX_ON_CHIP.id:
                 form.additional_services.ocm_multiplexing.data = True
 
-            form.additional_info.data = workflow.metadata.get("additional_info", "")
+            form.additional_info.data = form.workflow.metadata.get("additional_info", "")
             return form.make_response()
         return route
 
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def dependency(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
             form: SelectServiceForm = Depends(SelectServiceForm.Validate()),
         ) -> Response:
             try:
@@ -142,58 +140,58 @@ class SelectServiceForm(LibraryAnnotationWorkflowStep):
             flex_barcode_multiplexing = service_type in [C.ServiceType.TENX_SC_4_PLEX_FLEX, C.ServiceType.TENX_SC_16_PLEX_FLEX, C.ServiceType.TENX_SC_FLEX_V2]
             parse_multiplexing = form.optional_assays.parse_mux.data
             
-            workflow.metadata["service_type_id"] = service_type.id
-            workflow.metadata["mux_type_id"] = None
-            workflow.metadata["oligo_multiplexing_kit"] = form.additional_services.oligo_multiplexing_kit.data
-            workflow.metadata["antibody_capture_kit"] = form.optional_assays.antibody_capture_kit.data
-            workflow.metadata["antibody_multiplexing"] = form.optional_assays.antibody_multiplexing.data
+            form.workflow.metadata["service_type_id"] = service_type.id
+            form.workflow.metadata["mux_type_id"] = None
+            form.workflow.metadata["oligo_multiplexing_kit"] = form.additional_services.oligo_multiplexing_kit.data
+            form.workflow.metadata["antibody_capture_kit"] = form.optional_assays.antibody_capture_kit.data
+            form.workflow.metadata["antibody_multiplexing"] = form.optional_assays.antibody_multiplexing.data
 
             if oligo_multiplexing:
-                workflow.metadata["mux_type_id"] = C.MUXType.TENX_OLIGO.id
+                form.workflow.metadata["mux_type_id"] = C.MUXType.TENX_OLIGO.id
             elif ocm_multiplexing:
-                workflow.metadata["mux_type_id"] = C.MUXType.TENX_ON_CHIP.id
+                form.workflow.metadata["mux_type_id"] = C.MUXType.TENX_ON_CHIP.id
             elif flex_barcode_multiplexing:
-                workflow.metadata["mux_type_id"] = C.MUXType.TENX_FLEX_PROBE.id
+                form.workflow.metadata["mux_type_id"] = C.MUXType.TENX_FLEX_PROBE.id
             elif antibody_multiplexing:
-                workflow.metadata["mux_type_id"] = C.MUXType.TENX_ABC_HASH.id
+                form.workflow.metadata["mux_type_id"] = C.MUXType.TENX_ABC_HASH.id
             elif parse_multiplexing:
-                workflow.metadata["mux_type_id"] = C.MUXType.PARSE_WELLS.id
+                form.workflow.metadata["mux_type_id"] = C.MUXType.PARSE_WELLS.id
                 
-            workflow.metadata["nuclei_isolation"] = form.additional_services.nuclei_isolation.data
-            workflow.metadata["antibody_capture"] = form.optional_assays.antibody_capture.data
+            form.workflow.metadata["nuclei_isolation"] = form.additional_services.nuclei_isolation.data
+            form.workflow.metadata["antibody_capture"] = form.optional_assays.antibody_capture.data
 
-            workflow.metadata["vdj_b"] = form.optional_assays.vdj_b.data
-            workflow.metadata["vdj_t"] = form.optional_assays.vdj_t.data
-            workflow.metadata["vdj_t_gd"] = form.optional_assays.vdj_t_gd.data
-            workflow.metadata["crispr_screening"] = form.optional_assays.crispr_screening.data
-            workflow.metadata["additional_info"] = form.additional_info.data
+            form.workflow.metadata["vdj_b"] = form.optional_assays.vdj_b.data
+            form.workflow.metadata["vdj_t"] = form.optional_assays.vdj_t.data
+            form.workflow.metadata["vdj_t_gd"] = form.optional_assays.vdj_t_gd.data
+            form.workflow.metadata["crispr_screening"] = form.optional_assays.crispr_screening.data
+            form.workflow.metadata["additional_info"] = form.additional_info.data
 
-            workflow.metadata["parse_kit"] = form.optional_assays.parse_kit.data
-            workflow.metadata["parse_chemistry"] = form.optional_assays.parse_chemistry.data
-            workflow.metadata["parse_crispr"] = form.optional_assays.parse_crispr.data
-            workflow.metadata["parse_tcr"] = form.optional_assays.parse_tcr.data
-            workflow.metadata["parse_bcr"] = form.optional_assays.parse_bcr.data
+            form.workflow.metadata["parse_kit"] = form.optional_assays.parse_kit.data
+            form.workflow.metadata["parse_chemistry"] = form.optional_assays.parse_chemistry.data
+            form.workflow.metadata["parse_crispr"] = form.optional_assays.parse_crispr.data
+            form.workflow.metadata["parse_tcr"] = form.optional_assays.parse_tcr.data
+            form.workflow.metadata["parse_bcr"] = form.optional_assays.parse_bcr.data
 
             if form.additional_services.oligo_multiplexing_kit.data:
-                workflow.add_comment(context="oligo_multiplexing_kit", text=form.additional_services.oligo_multiplexing_kit.data)
+                form.workflow.add_comment(context="oligo_multiplexing_kit", text=form.additional_services.oligo_multiplexing_kit.data)
 
             if form.optional_assays.antibody_capture_kit.data:
-                workflow.add_comment(context="antibody_capture_kit", text=form.optional_assays.antibody_capture_kit.data)
+                form.workflow.add_comment(context="antibody_capture_kit", text=form.optional_assays.antibody_capture_kit.data)
 
             if form.additional_info.data:
-                workflow.add_comment(context="assay_tech_selection", text=form.additional_info.data)
+                form.workflow.add_comment(context="assay_tech_selection", text=form.additional_info.data)
             
             if (parse_chemistry := form.optional_assays.parse_chemistry.value) is not None:
-                workflow.add_comment(context="parse_chemistry", text=parse_chemistry)
+                form.workflow.add_comment(context="parse_chemistry", text=parse_chemistry)
 
             if (parse_kit := form.optional_assays.parse_kit.value) is not None:
-                workflow.add_comment(context="parse_kit", text=parse_kit)
+                form.workflow.add_comment(context="parse_kit", text=parse_kit)
 
-            if DefineMultiplexedSamplesForm.is_applicable(workflow):
-                next_form = DefineMultiplexedSamplesForm(workflow)
+            if DefineMultiplexedSamplesForm.is_applicable(form.workflow):
+                next_form = DefineMultiplexedSamplesForm(form.workflow)
                 return next_form.make_response()
 
-            sample_table = workflow.tables["sample_table"]
+            sample_table = form.workflow.tables["sample_table"]
             
             if service_type == C.ServiceType.CUSTOM:
                 sample_pooling_table = {
@@ -205,8 +203,8 @@ class SelectServiceForm(LibraryAnnotationWorkflowStep):
                     sample_pooling_table["sample_name"].append(sample_name)
                     
                 sample_pooling_table = pd.DataFrame(sample_pooling_table)
-                workflow.tables["sample_pooling_table"] = sample_pooling_table
-                next_form = CustomAssayAnnotationForm(workflow)
+                form.workflow.tables["sample_pooling_table"] = sample_pooling_table
+                next_form = CustomAssayAnnotationForm(form.workflow)
                 return next_form.make_response()
             
             library_table_data = {
@@ -273,7 +271,7 @@ class SelectServiceForm(LibraryAnnotationWorkflowStep):
             sample_pooling_table = pd.DataFrame(sample_pooling_table)
             sample_pooling_table["mux_type_id"] = None
 
-            workflow.tables["sample_pooling_table"] = sample_pooling_table
-            workflow.tables["library_table"] = library_table
-            return workflow.get_next_step(form).make_response()
+            form.workflow.tables["sample_pooling_table"] = sample_pooling_table
+            form.workflow.tables["library_table"] = library_table
+            return form.workflow.get_next_step(form).make_response()
         return dependency

@@ -38,9 +38,9 @@ class ParseMuxAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: ParseMuxAnnotationForm = Depends(ParseMuxAnnotationForm.Init()),
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
+            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
         ) -> Response:
+            form = ParseMuxAnnotationForm(workflow)
             df = workflow.tables["sample_pooling_table"]
             df["well"] = df["mux_well"]
             form.spreadsheet.set_data(df.drop_duplicates(subset=["sample_name", "sample_pool"]))
@@ -51,7 +51,6 @@ class ParseMuxAnnotationForm(LibraryAnnotationWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def route(
             form: ParseMuxAnnotationForm = Depends(ParseMuxAnnotationForm.Validate()),
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
         ) -> Response:
             df = form.spreadsheet.data
             duplicate_annotation = df.duplicated(subset=["sample_pool", "well"], keep=False)
@@ -64,7 +63,7 @@ class ParseMuxAnnotationForm(LibraryAnnotationWorkflowStep):
             
             
             form.sample_pooling_table["mux_barcode"] = parsing.map_columns(form.sample_pooling_table, df, idx_columns=["sample_name", "sample_pool"], col="well")
-            workflow.tables["sample_pooling_table"] = form.sample_pooling_table
+            form.workflow.tables["sample_pooling_table"] = form.sample_pooling_table
 
             library_table_data = {
                 "library_name": [],
@@ -73,7 +72,7 @@ class ParseMuxAnnotationForm(LibraryAnnotationWorkflowStep):
                 "library_type_id": [],
             }
 
-            service_type_enum = C.ServiceType.get(workflow.metadata["service_type_id"])
+            service_type_enum = C.ServiceType.get(form.workflow.metadata["service_type_id"])
 
             def add_library(sample_pool: str, library_type: C.LibraryType):
                 library_table_data["library_name"].append(f"{sample_pool}_{library_type.identifier}")
@@ -85,34 +84,34 @@ class ParseMuxAnnotationForm(LibraryAnnotationWorkflowStep):
                 for library_type in service_type_enum.library_types:
                     add_library(sample_pool, library_type)  # type: ignore
 
-                if workflow.metadata["antibody_capture"]:
+                if form.workflow.metadata["antibody_capture"]:
                     if service_type_enum in C.ServiceType.get_flex_services():
                         add_library(sample_pool, C.LibraryType.TENX_SC_ABC_FLEX)  # type: ignore
                     else:
                         add_library(sample_pool, C.LibraryType.TENX_ANTIBODY_CAPTURE)  # type: ignore
 
-                if workflow.metadata["vdj_b"]:
+                if form.workflow.metadata["vdj_b"]:
                     add_library(sample_pool, C.LibraryType.TENX_VDJ_B)  # type: ignore
 
-                if workflow.metadata["vdj_t"]:
+                if form.workflow.metadata["vdj_t"]:
                     add_library(sample_pool, C.LibraryType.TENX_VDJ_T)  # type: ignore
 
-                if workflow.metadata["vdj_t_gd"]:
+                if form.workflow.metadata["vdj_t_gd"]:
                     add_library(sample_pool, C.LibraryType.TENX_VDJ_T_GD)  # type: ignore
 
-                if workflow.metadata["crispr_screening"]:
+                if form.workflow.metadata["crispr_screening"]:
                     add_library(sample_pool, C.LibraryType.TENX_CRISPR_SCREENING)  # type: ignore
 
-                if workflow.metadata.get("parse_crispr", False):
+                if form.workflow.metadata.get("parse_crispr", False):
                     add_library(sample_pool, C.LibraryType.PARSE_SC_CRISPR)  # type: ignore
                 
-                if workflow.metadata.get("parse_tcr", False):
+                if form.workflow.metadata.get("parse_tcr", False):
                     add_library(sample_pool, C.LibraryType.PARSE_EVERCODE_TCR)  # type: ignore
 
-                if workflow.metadata.get("parse_bcr", False):
+                if form.workflow.metadata.get("parse_bcr", False):
                     add_library(sample_pool, C.LibraryType.PARSE_EVERCODE_BCR)  # type: ignore
             
-            workflow.tables["library_table"] = pd.DataFrame(library_table_data)
-            return workflow.get_next_step(form).make_response()
+            form.workflow.tables["library_table"] = pd.DataFrame(library_table_data)
+            return form.workflow.get_next_step(form).make_response()
         return route
 

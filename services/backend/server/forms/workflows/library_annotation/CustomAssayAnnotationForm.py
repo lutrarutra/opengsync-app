@@ -3,10 +3,9 @@ from fastapi import Depends, Response
 
 from opengsync_db import categories as C
 
-from ....core import responses, exceptions as exc
 from ....components import inputs
 from ....components.tables import DropdownColumn, CategoricalDropDown, DuplicateCellValue, InvalidCellValue
-from ...HTMXForm import RouteFunc, FormFunc, htmx_route
+from ...HTMXForm import RouteFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
 
@@ -30,10 +29,9 @@ class CustomAssayAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: CustomAssayAnnotationForm = Depends(CustomAssayAnnotationForm.Init()),
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
+            form: CustomAssayAnnotationForm = Depends(CustomAssayAnnotationForm.PreviousStep()),
         ) -> Response:
-            df = workflow.tables["library_table"].rename(columns={"sample_name": "sample_pool"})
+            df = form.workflow.tables["library_table"].rename(columns={"sample_name": "sample_pool"})
             df = df[["sample_pool", "library_type_id"]].drop_duplicates()
             form.spreadsheet.set_data(df)
             return form.make_response()
@@ -43,10 +41,9 @@ class CustomAssayAnnotationForm(LibraryAnnotationWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def route(
             form: CustomAssayAnnotationForm = Depends(CustomAssayAnnotationForm.Validate()),
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
         ) -> Response:
             df = form.spreadsheet.data
-            workflow.tables["library_table"] = df.rename(columns={"sample_pool": "sample_name"})
+            form.workflow.tables["library_table"] = df.rename(columns={"sample_pool": "sample_name"})
             for sample_pool in form.sample_pools:
                 if sample_pool not in df["sample_pool"].values:
                     form.spreadsheet.add_general_error(f"No library type(s) specified for '{sample_pool}'")           
@@ -98,8 +95,8 @@ class CustomAssayAnnotationForm(LibraryAnnotationWorkflowStep):
             form.sample_pooling_table["mux_type_id"] = form.mux_type.id if form.mux_type else None
             form.sample_pooling_table["mux_barcode"] = None
 
-            workflow.tables["library_table"] = library_table
-            workflow.tables["sample_pooling_table"] = form.sample_pooling_table
-            return workflow.get_next_step(form).make_response()
+            form.workflow.tables["library_table"] = library_table
+            form.workflow.tables["sample_pooling_table"] = form.sample_pooling_table
+            return form.workflow.get_next_step(form).make_response()
         return route
 

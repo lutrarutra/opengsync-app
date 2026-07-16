@@ -38,10 +38,9 @@ class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: FlexAnnotationForm = Depends(FlexAnnotationForm.Init()),
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
+            form: FlexAnnotationForm = Depends(FlexAnnotationForm.PreviousStep()),
         ) -> Response:
-            mux_table = workflow.tables["sample_pooling_table"][["sample_name", "sample_pool", "mux_barcode"]].drop_duplicates(["sample_name", "sample_pool"])
+            mux_table = form.workflow.tables["sample_pooling_table"][["sample_name", "sample_pool", "mux_barcode"]].drop_duplicates(["sample_name", "sample_pool"])
             mux_table["barcode_id"] = mux_table["mux_barcode"].str.replace("AB", "BC").values
             form.spreadsheet.set_data(mux_table)
             return form.make_response()
@@ -51,7 +50,6 @@ class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def route(
             form: FlexAnnotationForm = Depends(FlexAnnotationForm.Validate()),
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
         ) -> Response:
             df = form.spreadsheet.data
 
@@ -62,7 +60,7 @@ class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
                     
             form.assert_valid()
             
-            sample_pooling_table = workflow.tables["sample_pooling_table"]
+            sample_pooling_table = form.workflow.tables["sample_pooling_table"]
         
             if form.flex_table is None:
                 logger.error(f"{form.workflow.uuid}: Flex table is None.")
@@ -70,10 +68,10 @@ class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
             
             sample_pooling_table["mux_barcode"] = parsing.map_columns(sample_pooling_table, df, idx_columns=["sample_name", "sample_pool"], col="barcode_id")
 
-            library_table = workflow.tables["library_table"]
+            library_table = form.workflow.tables["library_table"]
             abc_libraries = library_table.loc[library_table["library_type_id"] == C.LibraryType.TENX_SC_ABC_FLEX.id, "library_name"].values.tolist()
             sample_pooling_table.loc[sample_pooling_table["library_name"].isin(abc_libraries), "mux_barcode"] = sample_pooling_table.loc[sample_pooling_table["library_name"].isin(abc_libraries), "mux_barcode"].str.replace("BC", "AB")
-            workflow.tables["sample_pooling_table"] = sample_pooling_table
+            form.workflow.tables["sample_pooling_table"] = sample_pooling_table
 
             library_table_data = {
                 "library_name": [],
@@ -91,11 +89,11 @@ class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
             for (sample_pool,), _ in sample_pooling_table.groupby(["sample_pool"], sort=False):
                 add_library(sample_pool, C.LibraryType.TENX_SC_GEX_FLEX)  # type: ignore
 
-                if workflow.metadata["antibody_capture"]:
+                if form.workflow.metadata["antibody_capture"]:
                     add_library(sample_pool, C.LibraryType.TENX_SC_ABC_FLEX)  # type: ignore
 
             library_table = pd.DataFrame(library_table_data)
-            workflow.tables["library_table"] = library_table
-            return workflow.get_next_step(form).make_response()
+            form.workflow.tables["library_table"] = library_table
+            return form.workflow.get_next_step(form).make_response()
         return route
 

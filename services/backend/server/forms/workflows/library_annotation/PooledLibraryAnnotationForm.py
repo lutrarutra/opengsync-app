@@ -2,9 +2,8 @@ from fastapi import Depends, Response
 
 from opengsync_db import models, categories as C
 
-from ....core import responses
 from ....components import inputs
-from ...HTMXForm import FormFunc, RouteFunc, htmx_route
+from ...HTMXForm import RouteFunc, htmx_route
 from ....components.tables import TextColumn
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
@@ -31,8 +30,10 @@ class PooledLibraryAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: PooledLibraryAnnotationForm = Depends(PooledLibraryAnnotationForm.Init()),
+            form: PooledLibraryAnnotationForm = Depends(PooledLibraryAnnotationForm.PreviousStep()),
         ) -> Response:
+            df = form.library_table
+            form.spreadsheet.set_data(df)
             return form.make_response()
         return route
         
@@ -40,7 +41,6 @@ class PooledLibraryAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
             form: PooledLibraryAnnotationForm = Depends(PooledLibraryAnnotationForm.Validate()),
         ) -> Response:
             df = form.spreadsheet.data
@@ -50,10 +50,7 @@ class PooledLibraryAnnotationForm(LibraryAnnotationWorkflowStep):
             for _, row in df.iterrows():
                 form.library_table.loc[(form.library_table["library_name"] == row["library_name"]), "pool"] = row["pool"]
 
-            workflow.tables["library_table"] = form.library_table
-            from loguru import logger
-            logger.debug(form.library_table)
-            next_form = workflow.get_next_step(form)
-            logger.debug(next_form.workflow.tables["library_table"])
+            form.workflow.tables["library_table"] = form.library_table
+            next_form = form.workflow.get_next_step(form)
             return next_form.make_response()
         return route

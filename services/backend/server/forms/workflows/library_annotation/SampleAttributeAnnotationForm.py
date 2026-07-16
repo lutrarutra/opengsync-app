@@ -34,21 +34,33 @@ class SampleAttributeAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
-            form: SampleAttributeAnnotationForm = Depends(SampleAttributeAnnotationForm.Init()),
+            form: SampleAttributeAnnotationForm = Depends(SampleAttributeAnnotationForm.PreviousStep()),
         ) -> Response:
-            # form.spreadsheet.set_data(workflow.tables["sample_table"])
+            df = form.workflow.tables["sample_table"]
+            df["sample_id"] = df["sample_id"].astype(pd.StringDtype())
+            df.loc[df["sample_id"].isna(), "sample_id"] = "new"
+            for col in df.columns:
+                if col.startswith("_attr_"):
+                    col = col.removeprefix("_attr_")
+                    if col not in form.spreadsheet.columns.keys():
+                        form.spreadsheet.add_column(
+                            column=TextColumn(
+                                label=col, name=col.replace("_", " ").title(),
+                                width=100, max_length=models.SampleAttribute.MAX_NAME_LENGTH
+                            )
+                        )
+            df.columns = df.columns.str.removeprefix("_attr_")
+            form.spreadsheet.set_data(df)
             return form.make_response()
         return route
 
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
             form: "SampleAttributeAnnotationForm" = Depends(SampleAttributeAnnotationForm.Validate()),
         ) -> Response:
             df = form.spreadsheet.data
-            sample_table = workflow.tables["sample_table"]
+            sample_table = form.workflow.tables["sample_table"]
 
             if df.columns.str.len().min() < 3:
                 shortest_col = df.columns[df.columns.str.len() == df.columns.str.len().min()].values[0]
@@ -85,8 +97,8 @@ class SampleAttributeAnnotationForm(LibraryAnnotationWorkflowStep):
                         continue
                     sample_table.loc[sample_table["sample_name"] == sample_name, f"_attr_{col}"] = row[col]
 
-            workflow.tables["sample_table"] = sample_table
-            return workflow.get_next_step(form).make_response()
+            form.workflow.tables["sample_table"] = sample_table
+            return form.workflow.get_next_step(form).make_response()
         return route
 
 

@@ -165,9 +165,8 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
+            form: TENXATACBarcodeInputForm = Depends(TENXATACBarcodeInputForm.PreviousStep()),
         ) -> Response:
-            form = TENXATACBarcodeInputForm(workflow=workflow)
             barcode_table = form.workflow.tables["tenx_atac_barcode_table"]
             form.spreadsheet.set_data(barcode_table)
             return form.make_response()

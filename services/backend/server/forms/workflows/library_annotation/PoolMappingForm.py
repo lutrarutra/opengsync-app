@@ -32,8 +32,6 @@ class PoolMappingForm(LibraryAnnotationWorkflowStep):
     def __init__(self, workflow: LibraryAnnotationWorkflow) -> None:
         super().__init__(workflow)
         self.library_table = workflow.tables["library_table"]
-        from loguru import logger
-        logger.debug(self.library_table[["library_name", "pool"]])
         self.raw_pool_labels = self.library_table["pool"].unique().tolist()
 
     def prepare(self) -> None:
@@ -64,14 +62,12 @@ class PoolMappingForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
+            form: PoolMappingForm = Depends(PoolMappingForm.PreviousStep()),
         ) -> Response:
-            form = PoolMappingForm(workflow=workflow)
-
-            pool_table = workflow.tables["pool_table"]
-            form.contact_name.data = workflow.metadata.get("pool_contact_name")
-            form.contact_email.data = workflow.metadata.get("pool_contact_email")
-            form.contact_phone.data = workflow.metadata.get("pool_contact_phone")
+            pool_table = form.workflow.tables["pool_table"]
+            form.contact_name.data = form.workflow.metadata.get("pool_contact_name")
+            form.contact_email.data = form.workflow.metadata.get("pool_contact_email")
+            form.contact_phone.data = form.workflow.metadata.get("pool_contact_phone")
 
             form.pool_forms.entries.clear()
             for _, row in pool_table.iterrows():

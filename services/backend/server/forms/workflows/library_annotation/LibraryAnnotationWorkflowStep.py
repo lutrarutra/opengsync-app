@@ -34,3 +34,27 @@ class LibraryAnnotationWorkflowStep(HTMXWorkflowStep):
             return cls(workflow=workflow)
 
         return dependency
+
+    @classmethod
+    def PreviousStep(cls: type[T]) -> FormFunc:
+        """Get the previous step from the workflow state for an endpoint dependency."""
+        def dependency(
+            form: T = Depends(super(LibraryAnnotationWorkflowStep, cls).Init()),
+        ) -> T:
+            return form
+
+        return dependency
+
+    @classmethod
+    def Validate(cls: type[T], **kwargs) -> FormFunc:
+        """Validate this step from the workflow state for an endpoint dependency."""
+        def dependency(
+            workflow: LibraryAnnotationWorkflow = Depends(
+                LibraryAnnotationWorkflow.Init(cls.__name__),
+                **kwargs
+            ),
+            form: T = Depends(super(LibraryAnnotationWorkflowStep, cls).Validate()),
+        ) -> T:
+            return form
+
+        return dependency

@@ -77,13 +77,24 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
             return form
         return dependency
     
+    @classmethod
+    def PreviousStep(cls) -> FormFunc:
+        def dependency(
+            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
+            session: SyncSession = Depends(dependencies.db_session)
+        ) -> OligoMuxAnnotationForm:
+            kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in session.get_all(Q.feature_kit.select(type=C.FeatureType.CMO).order_by(models.FeatureKit.name.asc()), limit=None)}
+            form = cls(workflow=workflow)
+            form.spreadsheet.columns["kit"].set_categories(kits_mapping)
+            return form
+        return dependency
+    
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: OligoMuxAnnotationForm = Depends(OligoMuxAnnotationForm.Init()),
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
+            form: OligoMuxAnnotationForm = Depends(OligoMuxAnnotationForm.PreviousStep()),
         ) -> Response:
-            df = workflow.tables["sample_pooling_table"]
+            df = form.workflow.tables["sample_pooling_table"]
             df = df.drop_duplicates(subset=["sample_name"]).rename(columns={"sample_name": "sample_name"})
             form.spreadsheet.set_data(df)
             return form.make_response()
@@ -93,7 +104,6 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def route(
             form: OligoMuxAnnotationForm = Depends(OligoMuxAnnotationForm.Validate()),
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
             session: SyncSession = Depends(dependencies.db_session)
         ) -> Response:
             df = form.spreadsheet.data
@@ -193,7 +203,7 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
                 sample_pooling_table.loc[(sample_pooling_table["sample_name"] == sample_name) & (sample_pooling_table["sample_pool"] == sample_pool), "mux_kit"] = row["kit"]
                 sample_pooling_table.loc[(sample_pooling_table["sample_name"] == sample_name) & (sample_pooling_table["sample_pool"] == sample_pool), "mux_feature"] = row["feature"]
 
-            if OligoMuxAnnotationForm.is_abc_hashed(workflow):
+            if OligoMuxAnnotationForm.is_abc_hashed(form.workflow):
                 sample_pooling_table["mux_type_id"] = C.MUXType.TENX_ABC_HASH.id
             else:
                 sample_pooling_table["mux_type_id"] = C.MUXType.TENX_OLIGO.id
@@ -205,7 +215,7 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
                 "library_type_id": [],
             }
 
-            service_type_enum = C.ServiceType.get(workflow.metadata["service_type_id"])
+            service_type_enum = C.ServiceType.get(form.workflow.metadata["service_type_id"])
 
             def add_library(sample_pool: str, library_type: C.LibraryType):
                 library_table_data["library_name"].append(f"{sample_pool}_{library_type.identifier}")
@@ -217,22 +227,22 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
                 for library_type in service_type_enum.library_types:
                     add_library(sample_pool, library_type)  # type: ignore
 
-                if workflow.metadata["antibody_capture"]:
+                if form.workflow.metadata["antibody_capture"]:
                     if service_type_enum in C.ServiceType.get_flex_services():
                         add_library(sample_pool, C.LibraryType.TENX_SC_ABC_FLEX)  # type: ignore
                     else:
                         add_library(sample_pool, C.LibraryType.TENX_ANTIBODY_CAPTURE)  # type: ignore
 
-                if workflow.metadata["vdj_b"]:
+                if form.workflow.metadata["vdj_b"]:
                     add_library(sample_pool, C.LibraryType.TENX_VDJ_B)  # type: ignore
 
-                if workflow.metadata["vdj_t"]:
+                if form.workflow.metadata["vdj_t"]:
                     add_library(sample_pool, C.LibraryType.TENX_VDJ_T)  # type: ignore
 
-                if workflow.metadata["vdj_t_gd"]:
+                if form.workflow.metadata["vdj_t_gd"]:
                     add_library(sample_pool, C.LibraryType.TENX_VDJ_T_GD)  # type: ignore
 
-                if workflow.metadata["crispr_screening"]:
+                if form.workflow.metadata["crispr_screening"]:
                     add_library(sample_pool, C.LibraryType.TENX_CRISPR_SCREENING)  # type: ignore
 
             library_table = pd.DataFrame(library_table_data)
@@ -243,13 +253,13 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
             kit_table["kit_id"] = None
 
             if kit_table.shape[0] > 0:
-                if (existing_kit_table := workflow.tables.get("kit_table")) is None:  # type: ignore
-                    workflow.tables["kit_table"] = kit_table
+                if (existing_kit_table := form.workflow.tables.get("kit_table")) is None:  # type: ignore
+                    form.workflow.tables["kit_table"] = kit_table
                 else:
                     kit_table = pd.concat([kit_table[kit_table["type_id"] != C.FeatureType.CMO.id], existing_kit_table])
-                    workflow.tables["kit_table"] = kit_table
+                    form.workflow.tables["kit_table"] = kit_table
             
-            workflow.tables["sample_pooling_table"] = sample_pooling_table
-            return workflow.get_next_step(form).make_response()
+            form.workflow.tables["sample_pooling_table"] = sample_pooling_table
+            return form.workflow.get_next_step(form).make_response()
         return route
 

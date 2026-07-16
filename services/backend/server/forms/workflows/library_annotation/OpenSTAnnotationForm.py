@@ -52,19 +52,17 @@ class OpenSTAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: OpenSTAnnotationForm = Depends(OpenSTAnnotationForm.Init()),
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
+            form: OpenSTAnnotationForm = Depends(OpenSTAnnotationForm.PreviousStep()),
         ) -> Response:
-            library_properties_table = workflow.tables["library_properties_table"]
+            library_properties_table = form.workflow.tables["library_properties_table"]
             form.spreadsheet.set_data(library_properties_table)
-            form.instructions.data = workflow.metadata["visium_annotation_instructions"]
+            form.instructions.data = form.workflow.metadata["visium_annotation_instructions"]
             return form.make_response()
         return route
     
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
             form: OpenSTAnnotationForm = Depends(OpenSTAnnotationForm.Validate()),
         ) -> Response:
             df = form.spreadsheet.data
@@ -78,10 +76,10 @@ class OpenSTAnnotationForm(LibraryAnnotationWorkflowStep):
             library_sample_map = form.openst_libraries.set_index("sample_name").to_dict()["library_name"]
             df["library_name"] = df["sample_name"].map(library_sample_map)
 
-            workflow.add_comment(context="open_st_annotation", text=f"Images: {form.instructions.data}")
-            workflow.metadata["visium_annotation_instructions"] = form.instructions.data
+            form.workflow.add_comment(context="open_st_annotation", text=f"Images: {form.instructions.data}")
+            form.workflow.metadata["visium_annotation_instructions"] = form.instructions.data
 
-            if (library_properties_table := workflow.tables.get("library_properties_table")) is None:
+            if (library_properties_table := form.workflow.tables.get("library_properties_table")) is None:
                 library_properties_table = df[["library_name", "sample_name"]].copy()
 
             library_properties_table["image"] = None
@@ -89,9 +87,9 @@ class OpenSTAnnotationForm(LibraryAnnotationWorkflowStep):
             for _, row in df.iterrows():
                 library_properties_table.loc[library_properties_table["library_name"] == row["library_name"], "image"] = row["image"]
         
-            workflow.tables["library_properties_table"] = library_properties_table
-            workflow.metadata["visium_annotation_instructions"] = form.instructions.data
-            return workflow.get_next_step(form).make_response()
+            form.workflow.tables["library_properties_table"] = library_properties_table
+            form.workflow.metadata["visium_annotation_instructions"] = form.instructions.data
+            return form.workflow.get_next_step(form).make_response()
         return route
 
 
