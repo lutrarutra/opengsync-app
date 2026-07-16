@@ -1,5 +1,3 @@
-{% from "components/spreadsheet.jinja2" import spreadsheet_input, static_spreadsheet %}
-{% from 'components/form_group.jinja2' import form_group %}
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
 
 <div id="visium_annotation-form-container" class="modal-content">
@@ -30,7 +28,7 @@
             </li>
         </ul>
         <div class="tab-content" id="visium_annotation-form">
-            {{ form_group(form.instructions) }}
+            {{ form.instructions.render() }}
 
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                 <div style="display: flex; gap: 10px;">
@@ -41,7 +39,11 @@
                         {% endfor %}
                     </div>
                 </div>
-                {{ spreadsheet_input(element=form.spreadsheet) }}
+                {{ spreadsheet_input(
+                    element=form.spreadsheet,
+                    target_element_id="visium_annotation-form-container",
+                    submit_btn_id="submit-spreadsheet-btn",
+                ) }}
             </div>
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="1">
                 {% include "instructions/visium_annotation.html" %}
@@ -53,7 +55,7 @@
     </div>
     <div class="modal-footer">
         <div class="footer-id">
-            {{ form.uuid }}
+            {{ form.workflow.uuid }}
         </div>
         <div class="footer-info">
             {{ spreadsheet_error_legend() }}
@@ -61,7 +63,7 @@
         <div class="footer-controls">
             <button type="button" class="btn btn-warning submit-form-btn"
             hx-target="#visium_annotation-form-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('library_annotation_workflow.previous', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+            hx-get="{{ form.previous_url }}">
                 Back
             </button>
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">

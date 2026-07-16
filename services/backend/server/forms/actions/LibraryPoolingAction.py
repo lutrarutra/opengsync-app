@@ -106,29 +106,29 @@ class LibraryPoolingAction(HTMXForm):
                     continue
                 if pd.notna(row["pool"]) and str(row["pool"]).strip().lower() == "t":
                     if row["library_id"]:
-                        form.spreadsheet._add_error(idx, "pool", InvalidCellValue("Requested library cannot be marked as control"))
+                        form.spreadsheet.add_error(idx, "pool", InvalidCellValue("Requested library cannot be marked as control"))
                     else:
                         continue
 
                 if row["library_id"] not in form.library_table["library_id"].values:
-                    form.spreadsheet._add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
+                    form.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
                 else:
                     try:
                         _id = int(row["library_id"])
                     except ValueError:
-                        form.spreadsheet._add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
+                        form.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
                         _id = None
 
                     if _id is not None:
                         if (library := session.first(Q.library.select(id=_id))) is None:
-                            form.spreadsheet._add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
+                            form.spreadsheet.add_error(idx, "library_id", InvalidCellValue("invalid 'library_id'"))
                         elif library.name != row["library_name"]:
-                            form.spreadsheet._add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))
+                            form.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))
                         elif library.lab_prep_id != form.lab_prep.id:
-                            form.spreadsheet._add_error(idx, "library_id", InvalidCellValue("Library is not part of this lab prep"))
+                            form.spreadsheet.add_error(idx, "library_id", InvalidCellValue("Library is not part of this lab prep"))
 
                 if form.library_table[form.library_table["library_id"] == row["library_id"]]["library_name"].isin([row["library_name"]]).all() == 0:
-                    form.spreadsheet._add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))
+                    form.spreadsheet.add_error(idx, "library_name", InvalidCellValue("invalid 'library_name' for 'library_id'"))
 
             pooling_table = df.copy()
             pooling_table["old_pool_id"] = parsing.map_columns(pooling_table, form.library_table, "library_id", "pool_id")

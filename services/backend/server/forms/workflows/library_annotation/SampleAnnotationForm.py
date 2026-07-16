@@ -7,12 +7,12 @@ from ....core import responses, dependencies
 from .... import utils
 from ....components import inputs
 from ....components.tables import TextColumn, CategoricalDropDown
-from ..HTMXWorkflowStep import HTMXWorkflowStep
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
+from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
 
 
-class SampleAnnotationForm(HTMXWorkflowStep):
+class SampleAnnotationForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
     template_path = "workflows/library_annotation/sas-sample_annotation.html"
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
@@ -24,20 +24,6 @@ class SampleAnnotationForm(HTMXWorkflowStep):
         super().__init__(workflow)
         self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
 
-    @classmethod
-    def Init(cls) -> FormFunc:
-        def dependency(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
-        ) -> SampleAnnotationForm:
-            return cls(workflow=workflow)
-        return dependency
-
-    @property
-    def post_url(self) -> responses.URL:
-        return SampleAnnotationForm.PostURL(
-            SampleAnnotationForm.Submit, prefix="LibraryAnnotationWorkflow", seq_request_id=self.workflow.seq_request_id
-        ).include_query_params(uuid=self.workflow.uuid)
-        
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(

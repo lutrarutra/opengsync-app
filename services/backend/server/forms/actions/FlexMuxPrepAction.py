@@ -69,7 +69,7 @@ class FlexMuxPrepAction(HTMXForm):
         
             for idx, row in df.iterrows():
                 if pd.notna(row["barcode_id"]) and duplicate_barcode.at[idx]:
-                    form.table._add_error(idx, "barcode_id", DuplicateCellValue("'Barcode ID' is duplicated in library."))
+                    form.table.add_error(idx, "barcode_id", DuplicateCellValue("'Barcode ID' is duplicated in library."))
 
             if len(form.errors):
                 raise exceptions.FormValidationException(form)

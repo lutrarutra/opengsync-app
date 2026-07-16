@@ -9,10 +9,10 @@ from ....components import inputs
 from ....components.tables import TextColumn
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
-from ..HTMXWorkflowStep import HTMXWorkflowStep
 from ....components.tables import MissingCellValue
+from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
 
-class SampleAttributeAnnotationForm(HTMXWorkflowStep):
+class SampleAttributeAnnotationForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
 
     template_path = "workflows/library_annotation/sas-sample_attribute_annotation.html"
@@ -30,20 +30,6 @@ class SampleAttributeAnnotationForm(HTMXWorkflowStep):
         sample_table = workflow.tables["sample_table"].copy()
         sample_table["sample_id"] = sample_table["sample_id"].astype(object).replace(pd.NA, "(new)")
         self.spreadsheet.configure(df=sample_table, csrf_token=self.csrf_token_value, post_url=self.post_url)
-
-    @property
-    def post_url(self) -> responses.URL:
-        return SampleAttributeAnnotationForm.PostURL(
-            SampleAttributeAnnotationForm.Submit, prefix="LibraryAnnotationWorkflow", seq_request_id=self.workflow.seq_request_id
-        ).include_query_params(uuid=self.workflow.uuid)
-
-    @classmethod
-    def Init(cls) -> FormFunc:
-        def dependency(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__)),
-        ) -> SampleAttributeAnnotationForm:
-            return cls(workflow=workflow)
-        return dependency
 
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
@@ -66,7 +52,7 @@ class SampleAttributeAnnotationForm(HTMXWorkflowStep):
 
             if df.columns.str.len().min() < 3:
                 shortest_col = df.columns[df.columns.str.len() == df.columns.str.len().min()].values[0]
-                form.spreadsheet._add_general_error(f"Column: '{shortest_col}', specify more descriptive column name by right-clicking column and 'Rename this column'",)
+                form.spreadsheet.add_general_error(f"Column: '{shortest_col}', specify more descriptive column name by right-clicking column and 'Rename this column'",)
                 raise exc.FormValidationException(form)
 
             missing_samples = sample_table.loc[~sample_table["sample_name"].isin(df["sample_name"]), "sample_name"].values.tolist()
@@ -86,10 +72,9 @@ class SampleAttributeAnnotationForm(HTMXWorkflowStep):
                         continue
                     
                     if pd.isna(row[col]):
-                        form.spreadsheet._add_error(idx, col, MissingCellValue("Missing value"))
+                        form.spreadsheet.add_error(idx, col, MissingCellValue("Missing value"))
 
-            if form.errors:
-                raise exc.FormValidationException(form)
+            form.assert_valid()
 
             df = df.dropna(how="all")
 

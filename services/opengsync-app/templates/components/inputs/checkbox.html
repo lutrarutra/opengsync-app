@@ -6,18 +6,8 @@
     id="{{ field.id }}"
     name="{{ field.name }}"
     value="true"
-    {%
-    if
-    field.data
-    %}checked{%
-    endif
-    %}
-    {%
-    if
-    field.read_only
-    %}disabled{%
-    endif
-    %}
+    {% if field.data %}checked{%endif%}
+    {% if field.read_only %}readonly{%endif%}
   />
   <label class="form-check-label" for="{{ field.id }}"{% if field.description %}
     {{ tooltip(field.description, "top") }}

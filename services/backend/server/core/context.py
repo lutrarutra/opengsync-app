@@ -4,6 +4,8 @@ from contextvars import ContextVar
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from opengsync_db import SyncSession
+
 from ..core import runtime
 
 _request_ctx_var: ContextVar[Request] = ContextVar("request")
@@ -25,6 +27,16 @@ class Context:
     @property
     def sid(self) -> str | None:
         return self.request.cookies.get("session_id")
+
+    @property
+    def session(self) -> SyncSession:
+        request = ctx.request
+
+        if (session := getattr(request.state, "db_session", None)) is None:
+            session = request.app.state.db_handler.get_session()
+            request.state.db_session = session
+
+        return session
     
 ctx = Context()
 

@@ -8,12 +8,12 @@ router = APIRouter(prefix="/protocols", tags=["protocols"])
 
 
 @router.get("/")
-def protocols():
+def protocols_page():
     return responses.html_response("protocols_page.html", title="Protocols")
 
 
 @router.get("/{protocol_id}")
-def protocol(protocol_id: int):
+def protocol_page(protocol_id: int):
     # NOTE: Protocol lookup and breadcrumb resolution handled client-side.
     return responses.html_response(
         "protocol_page.html",

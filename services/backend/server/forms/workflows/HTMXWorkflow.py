@@ -24,8 +24,6 @@ class HTMXWorkflow(ABC):
         self.header = msf_helpers.CachedDictionary(prefix=f"{self.key_prefix}:header", r=r)
         self.init_step(self.current_step)
 
-        print(f"Initialized workflow {self.__class__.__name__} with UUID {self.uuid}, current step: {self.current_step}")
-
     @property
     def previous_url(self) -> str | None:
         return self.metadata.get("previous_url")
@@ -57,13 +55,18 @@ class HTMXWorkflow(ABC):
         self.metadata = msf_helpers.CachedDictionary(prefix=f"{self.key_prefix}:{step_name}:metadata", r=self.r)
 
         # If the new step has no existing data, inherit from the previous step.
-        # Use items() which returns short keys from in-memory cache (unlike keys()
-        # which may return full Redis keys with prefix).
-        if old_tables is not None and len(self.tables.keys()) == 0:
-            for key, df in old_tables.items():
-                self.tables[key] = df.copy()
+        # If we are moving forward (POST/PUT request), always copy and overwrite to propagate changes.
+        from ...core.context import ctx
+        try:
+            is_forward = ctx.request.method in ("POST", "PUT")
+        except Exception:
+            is_forward = False
 
-        if old_metadata is not None and len(self.metadata) == 0:
+        if old_tables is not None and (len(self.tables.keys()) == 0 or is_forward):
+            for key in old_tables.keys():
+                self.tables[key] = old_tables[key].copy()
+
+        if old_metadata is not None and (len(self.metadata) == 0 or is_forward):
             self.metadata.update(dict(old_metadata.items()))
 
     @property
@@ -91,6 +94,10 @@ class HTMXWorkflow(ABC):
         self.header.save()
         self.tables.save()
         self.metadata.save()
+
+    def complete(self) -> None:
+        # delete all keys associated with this workflow in Redis
+        self.r.delete_pattern(f"{self.key_prefix}:*")
 
     @classmethod
     @abstractmethod

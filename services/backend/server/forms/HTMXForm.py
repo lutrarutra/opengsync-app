@@ -147,6 +147,8 @@ class HTMXForm(ABC):
         return dependency
         
     def __init__(self):
+        from ..components.inputs.dynamic import SubFormList
+
         self.raw_data: dict[str, Any] = {}
         self._context: dict[str, Any] = {}
         self._fields_cache: Optional[list[BaseInputField]] = None
@@ -178,6 +180,16 @@ class HTMXForm(ABC):
                     if not attr_name.startswith("_") and not isinstance(attr_value, BaseInputField):
                         setattr(sub_form_instance, attr_name, attr_value)
                 setattr(self, field_name, sub_form_instance)
+
+        for field_name in dir(self.__class__):
+            if field_name.startswith("_"):
+                continue
+
+            field = getattr(self.__class__, field_name)
+            if isinstance(field, SubFormList):
+                sub_form_list = SubFormList.__class_getitem__(field.resolve_sub_form_class())(min_elements=field.min_elements)
+                sub_form_list.name = field_name
+                setattr(self, field_name, sub_form_list)
 
     def _clone_field(self, field: BaseInputField) -> BaseInputField:
         """Clone a field instance to avoid shared state between form instances"""
@@ -236,13 +248,15 @@ class HTMXForm(ABC):
             if not sub_form.validate(self.raw_data):
                 all_sub_forms_valid = False
 
+        for sub_form_list in self.sub_form_lists:
+            if not sub_form_list.validate(self.raw_data):
+                all_sub_forms_valid = False
+
         for field in self.input_fields:
             field.raw_data = self.raw_data.get(field.name, field.default)
             field.errors = []
             if field.required:
-                if field.raw_data is None or (
-                    isinstance(field.raw_data, str) and field.raw_data.strip() == ""
-                ):
+                if field.raw_data is None or (isinstance(field.raw_data, str) and field.raw_data.strip() == ""):
                     field.errors.append(f"{field.label} is required")
             else:
                 if isinstance(field.raw_data, str) and field.raw_data.strip() == "":
@@ -326,6 +340,17 @@ class HTMXForm(ABC):
         return sub_forms
 
     @property
+    def sub_form_lists(self) -> list:
+        """Get all SubFormList instances in this form"""
+        from ..components.inputs.dynamic import SubFormList
+
+        lists = []
+        for field_name, field_value in self.__dict__.items():
+            if not field_name.startswith("_") and isinstance(field_value, SubFormList):
+                lists.append(field_value)
+        return lists
+
+    @property
     def sub_form_dict(self) -> dict[str, SubHTMXForm]:
         """Get sub-forms as a dict mapping field_name to sub_form"""
         result = {}
@@ -340,15 +365,17 @@ class HTMXForm(ABC):
 
     @property
     def all_fields(self) -> list[BaseInputField]:
-        """Get ALL fields including those from sub-forms"""
+        """Get ALL fields including those from sub-forms and dynamic lists"""
         fields = list(self.input_fields)
         for sub_form in self.sub_forms:
             fields.extend(sub_form.input_fields)
+        for sub_form_list in self.sub_form_lists:
+            fields.extend(sub_form_list.input_fields)
         return fields
 
     @property
     def errors(self) -> dict[str | None, list[str]]:
-        """Get all errors from all fields and sub-forms"""
+        """Get all errors from all fields, sub-forms, and dynamic lists"""
         all_errors = {}
 
         for field in self.input_fields:
@@ -361,12 +388,20 @@ class HTMXForm(ABC):
         for sub_form in self.sub_forms:
             all_errors.update(sub_form.errors)
 
+        for sub_form_list in self.sub_form_lists:
+            all_errors.update(sub_form_list.errors)
+
         return all_errors
 
     @property
     def is_valid(self) -> bool:
         """Check if form and all sub-forms have no errors"""
         return len(self.errors) == 0
+
+    def assert_valid(self) -> None:
+        """Raise FormValidationException if the form is not valid"""
+        if not self.is_valid:
+            raise exc.FormValidationException(self)
 
     def prepare(self):
         pass
@@ -399,6 +434,8 @@ class HTMXForm(ABC):
         elif self.raw_data:
             for sub_form in self.sub_forms:
                 sub_form.populate_from_data(self.raw_data)
+            for sub_form_list in self.sub_form_lists:
+                sub_form_list.hydrate_from_data(self.raw_data)
             for field in self.input_fields:
                 field.raw_data = self.raw_data.get(field.name, field.default)
 

@@ -219,7 +219,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
                 to_delete.add(label)
             elif label not in df.columns:
                 if column.required:
-                    self._add_general_error(f"Missing required column: '{label}'")
+                    self.add_general_error(f"Missing required column: '{label}'")
         self.to_delete = to_delete
 
         # Type coercion + per-column validation
@@ -240,7 +240,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
                     raise ValueError(f"Column '{label}' has no choices defined.")
                 for opt in column.source:
                     if opt not in df[label].unique():
-                        self._add_general_error(
+                        self.add_general_error(
                             f"Column '{label}' has missing option '{opt}'. "
                             "You must use all options at least once."
                         )
@@ -253,7 +253,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
                         )
                     column.validate(value, column_values=df[label].tolist())
                 except SpreadSheetException as e:
-                    self._add_error(idx, label, e)
+                    self.add_error(idx, label, e)
                     continue
 
             if isinstance(column, IntegerColumn):
@@ -288,11 +288,20 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
                 df[label] = df[label].astype(pd.Float64Dtype())
 
         self._data = df
-        self.table_data = df.replace(np.nan, "").values.tolist()
+        # Build table_data with display values for CategoricalDropDown columns
+        # so the frontend dropdown cells show the human-readable label, not the key.
+        table_df = df.copy()
+        for col in self.columns.values():
+            if isinstance(col, CategoricalDropDown):
+                if col.label in table_df.columns:
+                    table_df[col.label] = table_df[col.label].apply(
+                        lambda v, c=col: c.to_display(v)
+                    )
+        self.table_data = table_df.replace(np.nan, "").values.tolist()
         self._validated = True
         return True
 
-    def _add_error(self, idx: Hashable, column: str | list[str], exception: SpreadSheetException) -> None:
+    def add_error(self, idx: Hashable, column: str | list[str], exception: SpreadSheetException) -> None:
         """Record a cell-level error with styling and a human-readable message."""
         message = exception.message
         row_num = idx + 1  # type: ignore
@@ -304,11 +313,15 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         message = f"Row {row_num}: {message}"
         if message not in self._errors:
             self._errors.append(message)
+        if message not in self.errors:
+            self.errors.append(message)
 
-    def _add_general_error(self, message: str) -> None:
+    def add_general_error(self, message: str) -> None:
         """Record a form-level error message."""
         if message not in self._errors:
             self._errors.append(message)
+        if message not in self.errors:
+            self.errors.append(message)
 
     def render(self, container_class: str = "", submit_btn_id: str | None = None, target_element_id: str | None = None, hide_label: bool = False) -> str:
         return super().render(container_class=container_class, hide_label=hide_label, submit_btn_id=submit_btn_id, target_element_id=target_element_id)

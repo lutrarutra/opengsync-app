@@ -1,6 +1,12 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from fastapi import HTTPException, status, Request, Response
 
-from ..forms import HTMXForm
+if TYPE_CHECKING:
+    from ..forms import HTMXForm
+
 
 def generic_exception_handler(request: Request, exc: Exception) -> Response:
     return Response(
@@ -15,7 +21,7 @@ class OpeNGSyncServerException(Exception):
     
 
 class FormValidationException(HTTPException):
-    def __init__(self, form: HTMXForm, status_code: int = status.HTTP_409_CONFLICT):
+    def __init__(self, form: "HTMXForm", status_code: int = status.HTTP_409_CONFLICT):
         super().__init__(status_code=status_code)
         self.form = form
 

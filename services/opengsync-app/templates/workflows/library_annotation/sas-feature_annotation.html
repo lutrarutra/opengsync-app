@@ -1,6 +1,4 @@
-{% from "components/spreadsheet.jinja2" import spreadsheet_input, static_spreadsheet %}
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
-
 <div id="feature_reference-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Feature Reference Input Form</h1>
@@ -33,8 +31,7 @@
                     </div>
                 </div>
                 {{ 
-                    spreadsheet_input(
-                        element=form.spreadsheet,
+                    form.spreadsheet(
                         target_element_id="feature_reference-form-container",
                         submit_btn_id="submit-spreadsheet-btn",
                     )
@@ -47,7 +44,7 @@
     </div>
     <div class="modal-footer">
         <div class="footer-id">
-            {{ form.uuid }}
+            {{ form.workflow.uuid }}
         </div>
         <div class="footer-info">
             {{ spreadsheet_error_legend() }}
@@ -55,7 +52,7 @@
         <div class="footer-controls">
             <button type="button" class="btn btn-warning submit-form-btn"
             hx-target="#feature_reference-form-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('library_annotation_workflow.previous', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+            hx-get="{{ form.previous_url }}">
                 Back
             </button>
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">

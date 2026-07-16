@@ -48,10 +48,6 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
             return form.make_response()
         return route
 
-    # @property
-    # def previous_url(self) -> responses.URL:
-    #     return responses.url_for("LibraryAnnotationWorkflow.previous", seq_request_id=self.seq_request_id).include_query_params(uuid=self.uuid)
-            
     @classmethod
     def Router(cls) -> APIRouter:
         router = APIRouter(prefix="/library-annotation/{seq_request_id}", tags=["library-annotation"], dependencies=[Depends(dependencies.seq_request_permissions)])
@@ -60,18 +56,220 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
         router.include_router(wf.SampleAnnotationForm.Router(cls.__name__))
         router.include_router(wf.SampleAttributeAnnotationForm.Router(cls.__name__))
         router.include_router(wf.SelectServiceForm.Router(cls.__name__))
+        router.include_router(wf.PoolMappingForm.Router(cls.__name__))
+        router.include_router(wf.PooledLibraryAnnotationForm.Router(cls.__name__))
+        router.include_router(wf.FeatureAnnotationForm.Router(cls.__name__))
+        router.include_router(wf.OpenSTAnnotationForm.Router(cls.__name__))
+        router.include_router(wf.VisiumAnnotationForm.Router(cls.__name__))
+        router.include_router(wf.ParseCRISPRGuideAnnotationForm.Router(cls.__name__))
+        router.include_router(wf.CustomAssayAnnotationForm.Router(cls.__name__))
+        router.include_router(wf.OCMAnnotationForm.Router(cls.__name__))
+        router.include_router(wf.OligoMuxAnnotationForm.Router(cls.__name__))
+        router.include_router(wf.FlexAnnotationForm.Router(cls.__name__))
+        router.include_router(wf.ParseMuxAnnotationForm.Router(cls.__name__))
+        router.include_router(wf.DefineMultiplexedSamplesForm.Router(cls.__name__))
+        router.include_router(wf.BarcodeInputForm.Router(cls.__name__))
+        router.include_router(wf.TENXATACBarcodeInputForm.Router(cls.__name__))
+        router.include_router(wf.BarcodeMatchForm.Router(cls.__name__))
+        router.include_router(wf.CompleteSASForm.Router(cls.__name__))
         return router
     
     def get_next_step(self, form: "HTMXWorkflowStep") -> "HTMXWorkflowStep":
         match form.__class__:
             case wf.ProjectSelectForm:
-                next_form = wf.SampleAnnotationForm(workflow=self)
+                next_form = wf.SampleAnnotationForm(self)
             case wf.SampleAnnotationForm:
-                next_form = wf.SampleAttributeAnnotationForm(workflow=self)
+                next_form = wf.SampleAttributeAnnotationForm(self)
             case wf.SampleAttributeAnnotationForm:
-                next_form = wf.SelectServiceForm(workflow=self)
+                next_form = wf.SelectServiceForm(self)
             case wf.SelectServiceForm:
-                raise NotImplementedError()
+                if wf.PooledLibraryAnnotationForm.is_applicable(self):
+                    next_form = wf.PooledLibraryAnnotationForm(self)
+                elif wf.FeatureAnnotationForm.is_applicable(self):
+                    next_form = wf.FeatureAnnotationForm(self)
+                elif wf.OpenSTAnnotationForm.is_applicable(self):
+                    next_form = wf.OpenSTAnnotationForm(self)
+                elif wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.CustomAssayAnnotationForm:
+                if wf.OCMAnnotationForm.is_applicable(self):
+                    next_form = wf.OCMAnnotationForm(self)
+                elif wf.OligoMuxAnnotationForm.is_applicable(self):
+                    next_form = wf.OligoMuxAnnotationForm(self)
+                elif wf.FlexAnnotationForm.is_applicable(self):
+                    next_form = wf.FlexAnnotationForm(self)
+                elif wf.ParseMuxAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseMuxAnnotationForm(self)
+                elif wf.PooledLibraryAnnotationForm.is_applicable(self):
+                    next_form = wf.PooledLibraryAnnotationForm(self)
+                elif wf.FeatureAnnotationForm.is_applicable(self):
+                    next_form = wf.FeatureAnnotationForm(self)
+                elif wf.OpenSTAnnotationForm.is_applicable(self):
+                    next_form = wf.OpenSTAnnotationForm(self)
+                elif wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.DefineMultiplexedSamplesForm:
+                if wf.OligoMuxAnnotationForm.is_applicable(self):
+                    next_form = wf.OligoMuxAnnotationForm(self)
+                elif wf.OCMAnnotationForm.is_applicable(self):
+                    next_form = wf.OCMAnnotationForm(self)
+                elif wf.FlexAnnotationForm.is_applicable(self):
+                    next_form = wf.FlexAnnotationForm(self)
+                elif wf.ParseMuxAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseMuxAnnotationForm(self)
+                elif wf.FeatureAnnotationForm.is_applicable(self):
+                    next_form = wf.FeatureAnnotationForm(self)
+                elif wf.OpenSTAnnotationForm.is_applicable(self):
+                    next_form = wf.OpenSTAnnotationForm(self)
+                elif wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.PooledLibraryAnnotationForm:
+                next_form = wf.PoolMappingForm(self)
+            case wf.PoolMappingForm:
+                if wf.BarcodeInputForm.is_applicable(self):
+                    next_form = wf.BarcodeInputForm(self,)
+                elif wf.TENXATACBarcodeInputForm.is_applicable(self):
+                    next_form = wf.TENXATACBarcodeInputForm(self)
+                else:
+                    raise exc.OpeNGSyncServerException("No applicable next step found after PoolMappingForm.")
+            case wf.BarcodeInputForm:
+                if wf.BarcodeMatchForm.is_applicable(self):
+                    next_form = wf.BarcodeMatchForm(self)
+                elif wf.TENXATACBarcodeInputForm.is_applicable(self):
+                    next_form = wf.TENXATACBarcodeInputForm(self)
+                elif wf.FeatureAnnotationForm.is_applicable(self):
+                    next_form = wf.FeatureAnnotationForm(self)
+                elif wf.OpenSTAnnotationForm.is_applicable(self):
+                    next_form = wf.OpenSTAnnotationForm(self)
+                elif wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.TENXATACBarcodeInputForm:
+                if wf.BarcodeMatchForm.is_applicable(self):
+                    next_form = wf.BarcodeMatchForm(self)
+                elif wf.FeatureAnnotationForm.is_applicable(self):
+                    next_form = wf.FeatureAnnotationForm(self)
+                elif wf.OpenSTAnnotationForm.is_applicable(self):
+                    next_form = wf.OpenSTAnnotationForm(self)
+                elif wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.FeatureAnnotationForm:
+                if wf.OpenSTAnnotationForm.is_applicable(self):
+                    next_form = wf.OpenSTAnnotationForm(self)
+                elif wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.VisiumAnnotationForm:
+                if wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.ParseCRISPRGuideAnnotationForm:
+                next_form = wf.CompleteSASForm(self)
+            case wf.OpenSTAnnotationForm:
+                if wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.BarcodeMatchForm:
+                if wf.FeatureAnnotationForm.is_applicable(self):
+                    next_form = wf.FeatureAnnotationForm(self)
+                elif wf.OpenSTAnnotationForm.is_applicable(self):
+                    next_form = wf.OpenSTAnnotationForm(self)
+                elif wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.FlexAnnotationForm:
+                if self.submission_type == C.SubmissionType.POOLED_LIBRARIES:
+                    next_form = wf.PooledLibraryAnnotationForm(self)
+                elif wf.ParseMuxAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseMuxAnnotationForm(self)
+                elif wf.FeatureAnnotationForm.is_applicable(self):
+                    next_form = wf.FeatureAnnotationForm(self)
+                elif wf.OpenSTAnnotationForm.is_applicable(self):
+                    next_form = wf.OpenSTAnnotationForm(self)
+                elif wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.OCMAnnotationForm:
+                if wf.FlexAnnotationForm.is_applicable(self):
+                    next_form = wf.FlexAnnotationForm(self)
+                elif wf.ParseMuxAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseMuxAnnotationForm(self)
+                elif self.submission_type == C.SubmissionType.POOLED_LIBRARIES:
+                    next_form = wf.PooledLibraryAnnotationForm(self)
+                elif wf.FeatureAnnotationForm.is_applicable(self):
+                    next_form = wf.FeatureAnnotationForm(self)
+                elif wf.OpenSTAnnotationForm.is_applicable(self):
+                    next_form = wf.OpenSTAnnotationForm(self)
+                elif wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.OligoMuxAnnotationForm:
+                if self.submission_type == C.SubmissionType.POOLED_LIBRARIES:
+                    next_form = wf.PooledLibraryAnnotationForm(self)
+                elif wf.OCMAnnotationForm.is_applicable(self):
+                    next_form = wf.OCMAnnotationForm(self)
+                elif wf.FlexAnnotationForm.is_applicable(self):
+                    next_form = wf.FlexAnnotationForm(self)
+                elif wf.ParseMuxAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseMuxAnnotationForm(self)
+                elif wf.FeatureAnnotationForm.is_applicable(self):
+                    next_form = wf.FeatureAnnotationForm(self)
+                elif wf.OpenSTAnnotationForm.is_applicable(self):
+                    next_form = wf.OpenSTAnnotationForm(self)
+                elif wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
+            case wf.ParseMuxAnnotationForm:
+                if self.submission_type == C.SubmissionType.POOLED_LIBRARIES:
+                    next_form = wf.PooledLibraryAnnotationForm(self)
+                elif wf.FeatureAnnotationForm.is_applicable(self):
+                    next_form = wf.FeatureAnnotationForm(self)
+                elif wf.OpenSTAnnotationForm.is_applicable(self):
+                    next_form = wf.OpenSTAnnotationForm(self)
+                elif wf.VisiumAnnotationForm.is_applicable(self):
+                    next_form = wf.VisiumAnnotationForm(self)
+                elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
+                    next_form = wf.ParseCRISPRGuideAnnotationForm(self)
+                else:
+                    next_form = wf.CompleteSASForm(self)
             case _:
                 raise ValueError(f"Unknown form type: {form.__class__.__name__}")
 
@@ -79,197 +277,15 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
         self.add_step(form.__class__.__name__)
         self.add_step(next_form.__class__.__name__)
         return next_form
-        # case wf.SelectServiceForm:
-            #     if self.seq_request.submission_type.id == C.SubmissionType.POOLED_LIBRARIES.id:
-            #         return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FeatureAnnotationForm.is_applicable(self):
-            #         return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OpenSTAnnotationForm.is_applicable(self):
-            #         return wf.OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.CustomAssayAnnotationForm:
-            #     if wf.OCMAnnotationForm.is_applicable(self):
-            #         return wf.OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OligoMuxAnnotationForm.is_applicable(self):
-            #         return wf.OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FlexAnnotationForm.is_applicable(self):
-            #         return wf.FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseMuxAnnotationForm.is_applicable(self):
-            #         return wf.ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.PooledLibraryAnnotationForm.is_applicable(self):
-            #         return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FeatureAnnotationForm.is_applicable(self):
-            #         return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OpenSTAnnotationForm.is_applicable(self):
-            #         return wf.OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.DefineMultiplexedSamplesForm:
-            #     if wf.OligoMuxAnnotationForm.is_applicable(self):
-            #         return wf.OligoMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OCMAnnotationForm.is_applicable(self):
-            #         return wf.OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FlexAnnotationForm.is_applicable(self):
-            #         return wf.FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseMuxAnnotationForm.is_applicable(self):
-            #         return wf.ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FeatureAnnotationForm.is_applicable(self):
-            #         return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OpenSTAnnotationForm.is_applicable(self):
-            #         return wf.OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.PooledLibraryAnnotationForm:
-            #     return wf.PoolMappingForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.PoolMappingForm:
-            #     if wf.BarcodeInputForm.is_applicable(self):
-            #         return wf.BarcodeInputForm(seq_request=self.seq_request, uuid=self.uuid,)
-            #     elif wf.TENXATACBarcodeInputForm.is_applicable(self):
-            #         return wf.TENXATACBarcodeInputForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.BarcodeInputForm:
-            #     if wf.BarcodeMatchForm.is_applicable(self):
-            #         return wf.BarcodeMatchForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.TENXATACBarcodeInputForm.is_applicable(self):
-            #         return wf.TENXATACBarcodeInputForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FeatureAnnotationForm.is_applicable(self):
-            #         return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OpenSTAnnotationForm.is_applicable(self):
-            #         return wf.OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.TENXATACBarcodeInputForm:
-            #     if wf.BarcodeMatchForm.is_applicable(self):
-            #         return wf.BarcodeMatchForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FeatureAnnotationForm.is_applicable(self):
-            #         return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OpenSTAnnotationForm.is_applicable(self):
-            #         return wf.OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.FeatureAnnotationForm:
-            #     if wf.OpenSTAnnotationForm.is_applicable(self):
-            #         return wf.OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.VisiumAnnotationForm:
-            #     if wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.ParseCRISPRGuideAnnotationForm:
-            #     return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.OpenSTAnnotationForm:
-            #     if wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.BarcodeMatchForm:
-            #     if wf.FeatureAnnotationForm.is_applicable(self):
-            #         return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OpenSTAnnotationForm.is_applicable(self):
-            #         return wf.OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.FlexAnnotationForm:
-            #     if self.seq_request.submission_type.id == C.SubmissionType.POOLED_LIBRARIES.id:
-            #         return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseMuxAnnotationForm.is_applicable(self):
-            #         return wf.ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FeatureAnnotationForm.is_applicable(self):
-            #         return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OpenSTAnnotationForm.is_applicable(self):
-            #         return wf.OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.OCMAnnotationForm:
-            #     if wf.FlexAnnotationForm.is_applicable(self):
-            #         return wf.FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseMuxAnnotationForm.is_applicable(self):
-            #         return wf.ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif self.seq_request.submission_type.id == C.SubmissionType.POOLED_LIBRARIES.id:
-            #         return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FeatureAnnotationForm.is_applicable(self):
-            #         return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OpenSTAnnotationForm.is_applicable(self):
-            #         return wf.OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.OligoMuxAnnotationForm:
-            #     if self.seq_request.submission_type.id == C.SubmissionType.POOLED_LIBRARIES.id:
-            #         return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OCMAnnotationForm.is_applicable(self):
-            #         return wf.OCMAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FlexAnnotationForm.is_applicable(self):
-            #         return wf.FlexAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseMuxAnnotationForm.is_applicable(self):
-            #         return wf.ParseMuxAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FeatureAnnotationForm.is_applicable(self):
-            #         return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OpenSTAnnotationForm.is_applicable(self):
-            #         return wf.OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-            # case wf.ParseMuxAnnotationForm:
-            #     if self.seq_request.submission_type.id == C.SubmissionType.POOLED_LIBRARIES.id:
-            #         return wf.PooledLibraryAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.FeatureAnnotationForm.is_applicable(self):
-            #         return wf.FeatureAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.OpenSTAnnotationForm.is_applicable(self):
-            #         return wf.OpenSTAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.VisiumAnnotationForm.is_applicable(self):
-            #         return wf.VisiumAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     elif wf.ParseCRISPRGuideAnnotationForm.is_applicable(self):
-            #         return wf.ParseCRISPRGuideAnnotationForm(seq_request=self.seq_request, uuid=self.uuid)
-            #     else:
-            #         return wf.CompleteSASForm(seq_request=self.seq_request, uuid=self.uuid)
-                    
-
-        raise ValueError(f"Could not infer next step for ({self.__class__})")
 
     def add_comment(self, context: str, text: str) -> None:
         if "comments" not in self.metadata:
             self.metadata["comments"] = []
         self.metadata["comments"].append({"context": context, "comment": text})
+
+    def get_comments(self) -> list[dict[str, str]]:
+        return self.metadata.get("comments", [])
+
+    @property
+    def submission_type(self) -> C.SubmissionType:
+        return C.SubmissionType.get(self.header["submission_type_id"])

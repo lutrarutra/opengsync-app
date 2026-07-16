@@ -1,6 +1,4 @@
-{% from 'components/form_group.jinja2' import form_group, select_input, radio_input %}
 {% from 'components/spinner.jinja2' import spinner %}
-
 <div id="barcode-match-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Match Barcodes</h1>
@@ -40,29 +38,29 @@
                         unsure which kit it is, select "Custom" and specify the primer sequence in the field below. 
                     </p>
                 </div>
-                {{ form.csrf_token() }}
+                {{ form.csrf_token.render() }}
                 <div class="row">
-                    {{ select_input(form.i7_kit, class="col-6") }}
+                    {{ form.i7_kit.render("col-6") }}
                     {% if index_type == C.IndexType.DUAL_INDEX %}
-                    {{ select_input(form.i5_kit, class="col-6") }}
+                    {{ form.i5_kit.render("col-6") }}
                     {% else %}
-                    {{ select_input(form.i5_kit, class="col-6", disabled=true) }}
+                    {{ form.i5_kit.render("col-6", disabled=true) }}
                     {% endif %}
                 </div>
                 <div class="row">
-                    {{ radio_input(form.i7_option, class="col-6") }}
+                    {{ form.i7_option.render("col-6") }}
                     {% if index_type == C.IndexType.DUAL_INDEX %}
-                    {{ radio_input(form.i5_option, class="col-6") }}
+                    {{ form.i5_option.render("col-6") }}
                     {% else %}
-                    {{ radio_input(form.i5_option, class="col-6", disabled=true) }}
+                    {{ form.i5_option.render("col-6", disabled=true) }}
                     {% endif %}
                 </div>
                 <div class="row">
-                    {{ form_group(form.i7_primer, class="col-6", placeholder="Required if Custom is selected") }}
+                    {{ form.i7_primer.render("col-6") }}
                     {% if index_type == C.IndexType.DUAL_INDEX %}
-                    {{ form_group(form.i5_primer, class="col-6", placeholder="Required if Custom is selected") }}
+                    {{ form.i5_primer.render("col-6") }}
                     {% else %}
-                    {{ form_group(form.i5_primer, class="col-6", disabled=true) }}
+                    {{ form.i5_primer.render("col-6", disabled=true) }}
                     {% endif %}
                 </div>
             </div>
@@ -77,18 +75,18 @@
     </div>
     <div class="modal-footer">
         <div class="text-nowrap text-muted footer-id">
-            {{ form.uuid }}
+            {{ form.workflow.uuid }}
         </div>
         <div class="footer-info"></div>
         <div class="footer-controls">
             <button type="button" class="btn btn-warning submit-form-btn"
             hx-target="#barcode-match-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('library_annotation_workflow.previous', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+            hx-get="{{ form.previous_url }}">
                 Back
             </button>
             <button type="button" class="btn btn-primary"
                 hx-target="#barcode-match-container" hx-swap="outerHTML" hx-include="#barcode-match-form-container"
-                hx-post="{{ form.post_url | safe }}">
+                hx-post="{{ form.post_url }}">
                 Next
             </button>
         </div>

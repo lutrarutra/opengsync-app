@@ -126,10 +126,10 @@ class LibraryPrepTableForm(HTMXForm):
                 continue
 
             if pd.notna(row.get("library_id")) and pd.isna(row.get("library_name")):
-                form.spreadsheet._add_error(idx, "library_name", MissingCellValue("Library Name is required when Library ID is provided"))
+                form.spreadsheet.add_error(idx, "library_name", MissingCellValue("Library Name is required when Library ID is provided"))
 
             if duplicate_plate_well.at[idx]:
-                form.spreadsheet._add_error(
+                form.spreadsheet.add_error(
                     idx, ["plate_well", "plate"],
                     DuplicateCellValue(f"Plate Well '{row['plate_well']}' is duplicated.")
                 )
@@ -141,13 +141,13 @@ class LibraryPrepTableForm(HTMXForm):
                 library_id = int(row["library_id"])
             except ValueError:
                 logger.error(f"Invalid library_id '{row['library_id']}' at row {idx}.")
-                form.spreadsheet._add_error(idx, "library_id", InvalidCellValue(f"Invalid library_id '{row['library_id']}'"))
+                form.spreadsheet.add_error(idx, "library_id", InvalidCellValue(f"Invalid library_id '{row['library_id']}'"))
                 continue
 
             if library_id not in libraries:
-                form.spreadsheet._add_error(idx, "library_id", InvalidCellValue(f"Library ID '{library_id}' is not part of this prep."))
+                form.spreadsheet.add_error(idx, "library_id", InvalidCellValue(f"Library ID '{library_id}' is not part of this prep."))
             elif libraries[library_id] != row["library_name"]:
-                form.spreadsheet._add_error(
+                form.spreadsheet.add_error(
                     idx, ["library_name", "library_id"],
                     InvalidCellValue(f"Library Name '{row['library_name']}' does not match the existing library name '{libraries[library_id]}'")
                 )

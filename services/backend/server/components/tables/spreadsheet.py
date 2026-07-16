@@ -80,6 +80,13 @@ class SpreadSheetColumn:
             if column_values.count(self.clean_up(value, ignore_missing=True)) > 1:
                 raise DuplicateCellValue(f"Value '{value}' for '{self.label}' is not unique. It appears multiple times in the column.")
 
+    def set_choices(self, choices: list[Any]) -> None:
+        raise NotImplementedError("set_choices must be implemented in subclasses that support choices.")
+
+    def set_categories(self, categories: dict[Any, str]) -> None:
+        """Update dropdown categories. Override in subclasses with category logic."""
+        raise NotImplementedError("set_categories must be implemented in subclasses that support categories.")
+
 class TextColumn(SpreadSheetColumn):
     def __init__(
         self, label: str, name: str, width: float, max_length: int = 1024, min_length: int = 0,
@@ -177,6 +184,10 @@ class DropdownColumn(SpreadSheetColumn):
         )
         self.all_options_required = all_options_required
 
+    def set_choices(self, choices: list[Any]) -> None:
+        """Update the dropdown choices after construction."""
+        self.source = choices
+
     def validate(self, value: Any, column_values: Sequence[Any]):
         super().validate(value, column_values)
 
@@ -200,6 +211,17 @@ class CategoricalDropDown(SpreadSheetColumn):
         )
         self.categories = categories
         self.rev_categories = {v: k for k, v in categories.items()}
+
+    def set_categories(self, categories: dict[Any, str]) -> None:
+        """Update the dropdown categories after construction.
+
+        Updates ``categories``, ``rev_categories``, and ``source`` together
+        so that the frontend dropdown, validation, and display all stay
+        consistent.
+        """
+        self.categories = categories
+        self.rev_categories = {v: k for k, v in categories.items()}
+        self.source = list(categories.values())
 
     def validate(self, value: Any, column_values: Sequence[Any]):
         super().validate(value, column_values)

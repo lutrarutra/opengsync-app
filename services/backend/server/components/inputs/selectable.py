@@ -58,3 +58,11 @@ class SelectableInputField(BaseInputField, Generic[T_int]):
             read_only=read_only,
         )
         self.options: list[tuple[int, str]] = options
+        self._mapping = dict(options)
+
+    @property
+    def value(self) -> str | None:
+        """Get the string representation of the selected value"""
+        if self.data is None:
+            return None
+        return self._mapping[self.data]

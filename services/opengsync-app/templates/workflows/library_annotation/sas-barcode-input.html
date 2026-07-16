@@ -1,7 +1,5 @@
-{% from 'components/form_group.jinja2' import form_group %}
 {% from 'components/spinner.jinja2' import spinner %}
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
-{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
 <div id="barcode-input-container" class="modal-content">
     <div class="modal-header">
@@ -36,8 +34,7 @@
         <div class="tab-content">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                 {{ 
-                    spreadsheet_input(
-                        element=form.spreadsheet,
+                    form.spreadsheet.render(
                         submit_btn_id="submit-spreadsheet-btn",
                         target_element_id="barcode-input-container",
                     )
@@ -59,7 +56,7 @@
     </div>
     <div class="modal-footer">
         <div class="footer-id">
-            {{ form.uuid }}
+            {{ form.workflow.uuid }}
         </div>
         <div class="footer-info">
             {{ spreadsheet_error_legend() }}
@@ -67,7 +64,7 @@
         <div class="footer-controls">
             <button type="button" class="btn btn-warning submit-form-btn"
             hx-target="#barcode-input-container" hx-swap="outerHTML"
-            hx-get="{{ url_for('library_annotation_workflow.previous', seq_request_id=seq_request.id, uuid=form.uuid) }}">
+            hx-get="{{ form.previous_url }}">
                 Back
             </button>
             <button class="btn btn-primary submit-form-btn" type="button" id="submit-spreadsheet-btn">

@@ -1,19 +1,19 @@
 import pandas as pd
 from fastapi import Depends, Response
 
-from opengsync_db import models, categories as C, SyncSession, queries as Q
+from opengsync_db import models, categories as C, SyncSession
 
-from ....core import responses, dependencies, exceptions as exc
+from ....core import dependencies
 from .... import utils
 from ....components import inputs
 from ....components.tables import TextColumn, DropdownColumn, DuplicateCellValue, MissingCellValue, InvalidCellValue
 from ..HTMXWorkflowStep import HTMXWorkflowStep
-from ...HTMXForm import RouteFunc, FormFunc, htmx_route
-from ...SubHTMXForm import SubHTMXForm
+from ...HTMXForm import RouteFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
+from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
 from .CustomAssayAnnotationForm import CustomAssayAnnotationForm
 
-class DefineMultiplexedSamplesForm(HTMXWorkflowStep):
+class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
     template_path = "workflows/library_annotation/sas-define_mux_samples.html"
 
@@ -36,12 +36,6 @@ class DefineMultiplexedSamplesForm(HTMXWorkflowStep):
         self.parse_crispr = workflow.metadata.get("parse_crispr", False)
         self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
 
-    @property
-    def post_url(self) -> responses.URL:
-        return DefineMultiplexedSamplesForm.PostURL(
-            DefineMultiplexedSamplesForm.Submit, prefix="LibraryAnnotationWorkflow", seq_request_id=self.workflow.seq_request_id
-        ).include_query_params(uuid=self.workflow.uuid)
-
     @classmethod
     def is_applicable(cls, workflow: LibraryAnnotationWorkflow) -> bool:
         return workflow.metadata["mux_type_id"] is not None
@@ -50,9 +44,13 @@ class DefineMultiplexedSamplesForm(HTMXWorkflowStep):
     def Previous(cls) -> RouteFunc:
         def route(
             workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
-            form: DefineMultiplexedSamplesForm = Depends(DefineMultiplexedSamplesForm.Init()),
         ) -> Response:
-            # form.spreadsheet.set_data(workflow.tables["sample_table"])
+            form = DefineMultiplexedSamplesForm(workflow)
+            sample_pooling_table = workflow.tables["sample_pooling_table"].rename(
+                columns={"sample_pool": "pool"}
+            )
+            sample_pooling_table = sample_pooling_table.drop_duplicates(subset=["sample_name", "pool"])
+            form.spreadsheet.set_data(sample_pooling_table)
             return form.make_response()
         return route
 
@@ -99,29 +97,28 @@ class DefineMultiplexedSamplesForm(HTMXWorkflowStep):
 
             for idx, row in df.iterrows():
                 if duplicate_definition.at[idx]:
-                    form.spreadsheet._add_error(idx, "pool", DuplicateCellValue(f"Sample '{row['sample_name']}' is assigned to pool '{row['pool']}' multiple times."))
+                    form.spreadsheet.add_error(idx, "pool", DuplicateCellValue(f"Sample '{row['sample_name']}' is assigned to pool '{row['pool']}' multiple times."))
 
                 duplicate_library = (seq_request_samples["sample_name"] == row["sample_name"]) & (seq_request_samples["library_type"].apply(lambda x: x.abbreviation).isin(selected_library_types))
                 if (duplicate_library).any():
                     library_type = seq_request_samples.loc[duplicate_library, "library_type"].iloc[0]  # type: ignore
-                    form.spreadsheet._add_error(idx, "sample_name", DuplicateCellValue(f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request"))
+                    form.spreadsheet.add_error(idx, "sample_name", DuplicateCellValue(f"You already have '{library_type.abbreviation}'-library from sample {row['sample_name']} in the request"))
 
                 if not df["pool"].isna().all():
                     if pd.isna(row["pool"]):
-                        form.spreadsheet._add_error(idx, "pool", MissingCellValue("missing 'Pool'"))
+                        form.spreadsheet.add_error(idx, "pool", MissingCellValue("missing 'Pool'"))
 
                 if pd.notna(row["pool"]) and len(str(row["pool"])) < 4:
-                    form.spreadsheet._add_error(idx, "pool", InvalidCellValue("Pool must be at least 4 characters long"))
+                    form.spreadsheet.add_error(idx, "pool", InvalidCellValue("Pool must be at least 4 characters long"))
 
-            if form.errors:
-                raise exc.FormValidationException(form)
+            form.assert_valid()
                 
             if form.service_type == C.ServiceType.CUSTOM:
                 sample_pooling_table = {
                     "sample_pool": [],
                     "sample_name": [],
                 }
-                for (sample_name, sample_pool), _ in form.df.groupby(["sample_name", "pool"], sort=False):  # type: ignore
+                for (sample_name, sample_pool), _ in df.groupby(["sample_name", "pool"], sort=False):  # type: ignore
                     sample_pooling_table["sample_pool"].append(sample_pool)
                     sample_pooling_table["sample_name"].append(sample_name)
                     
@@ -157,7 +154,7 @@ class DefineMultiplexedSamplesForm(HTMXWorkflowStep):
                 sample_pooling_table["library_name"].append(f"{sample_pool}_{library_type.identifier}")
 
             sample_pool: str
-            for (sample_pool,), _df in form.df.groupby(["pool"], sort=False):  # type: ignore
+            for (sample_pool,), _df in df.groupby(["pool"], sort=False):  # type: ignore
                 for library_type in form.service_type.library_types:
                     add_library(sample_pool, library_type)
                 

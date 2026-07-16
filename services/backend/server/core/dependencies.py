@@ -17,8 +17,10 @@ def get_runtime_request(request: Request = TaskiqDepends()) -> runtime.Request:
     return request  # type: ignore
 
 def db_session(request: runtime.Request = Depends(get_runtime_request)):
-    request.state.db_session = request.app.state.db_handler.get_session()
-    return request.state.db_session
+    if (session := getattr(request.state, "db_session", None)) is None:
+        session = request.app.state.db_handler.get_session()
+        request.state.db_session = session
+    return session
 
 def taskiq_session(request: runtime.Request = TaskiqDepends(get_runtime_request)):
     with request.app.state.db_handler.get_session() as session:

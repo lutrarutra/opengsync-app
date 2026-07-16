@@ -87,7 +87,10 @@ class SubHTMXForm:
     def populate_from_data(self, data: dict[str, Any]) -> None:
         """Populate fields from a data dictionary"""
         for field in self.input_fields:
-            field.raw_data = data.get(field.name, field.default)
+            value = data.get(field.name, field.default)
+            field.raw_data = value
+            field._data = value
+            field._validated = True
 
     def populate_from_model(
         self, model: Any, field_mapping: dict[str, str] | None = None
@@ -152,7 +155,7 @@ class SubHTMXForm:
             field.errors = []
 
         for field in self.input_fields:
-            value = raw_data.get(field.name)
+            value = raw_data.get(field.name, field.default)
             field.raw_data = value
             if field.required and (
                 value is None or (isinstance(value, str) and value.strip() == "")
@@ -178,7 +181,7 @@ class SubHTMXForm:
                 pydantic_key = field.name.replace("-", "_")
                 raw_value = raw_data.get(field.name, field.default)
 
-                if isinstance(field, inputs.BooleanInputField):
+                if isinstance(field, inputs.boolean.BooleanInputField):
                     raw_value = field.validate_value(raw_value)
 
                 mapped_data[pydantic_key] = raw_value

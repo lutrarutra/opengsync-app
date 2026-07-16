@@ -124,6 +124,12 @@ class ProjectSelectForm(HTMXWorkflowStep):
                 else current_user.id
             )
             workflow.header["submission_type_id"] = form.seq_request.submission_type.id
+            workflow.header["submitter"] = {
+                "id": form.seq_request.requestor.id if form.set_requestor_as_owner.data and current_user.is_insider else current_user.id,
+                "name": form.seq_request.requestor.name if form.set_requestor_as_owner.data and current_user.is_insider else current_user.name,
+                "email": form.seq_request.requestor.email if form.set_requestor_as_owner.data and current_user.is_insider else current_user.email,
+            }
+
             next_form = workflow.get_next_step(form)
             return next_form.make_response()
         return route
