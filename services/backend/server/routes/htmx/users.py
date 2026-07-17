@@ -27,6 +27,7 @@ class UserTable(HTMXTable):
 def render_user_table(
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter projects"),
     project_id: int | None = Query(None, description="Optional project ID to filter projects"),
+    group_id: int | None = Query(None, description="Optional group ID to filter users"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_insider),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.User, default=models.User.id.desc())),
@@ -39,6 +40,7 @@ def render_user_table(
         assignees_seq_request_id=seq_request_id,
         assignees_project_id=project_id,
         role_in=role_in,
+        group_id=group_id,
     )
 
     if role_in:
@@ -50,6 +52,12 @@ def render_user_table(
     elif project_id is not None:
         template = "components/tables/project-assignee.html"
         table.url_params["project_id"] = project_id
+    elif group_id is not None:
+        if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view this resource.")
+        template = "components/tables/group-user.html"
+        table.url_params["group_id"] = group_id
+        table.context["group"] = session.get_one(Q.group.select(id=group_id))
     else:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")

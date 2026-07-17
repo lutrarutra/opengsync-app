@@ -225,6 +225,24 @@ def project_permissions(
     r.set(cache_key, int(access_level), ex=300)
     return access_level
 
+def group_permissions(
+    group_id: int,
+    user: models.User = Depends(require_user),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+):
+    cache_key = f"access:group:{group_id}:user:{user.id}"
+    if (cached_access := r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))  #type: ignore
+    try:
+        if (access_level := session.get_access_level(Q.group.permissions(group_id=group_id, user_id=user.id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this group.")
+    except db_exc.ModelNotFoundException:
+        raise exc.ItemNotFoundException("Group not found.")
+
+    r.set(cache_key, int(access_level), ex=300)
+    return access_level
+
 def seq_request_permissions(
     seq_request_id: int,
     user: models.User = Depends(require_user),
@@ -329,6 +347,24 @@ def user_permissions(
             raise exc.NoPermissionsException("You do not have permission to access this user.")
     except db_exc.ModelNotFoundException:
         raise exc.ItemNotFoundException("User not found.")
+
+    r.set(cache_key, int(access_level), ex=300)
+    return access_level
+
+def group_permissions(
+    group_id: int,
+    user: models.User = Depends(require_user),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+):
+    cache_key = f"access:group:{group_id}:user:{user.id}"
+    if (cached_access := r.get(cache_key)) is not None:
+        return C.AccessLevel(int(cached_access))  #type: ignore
+    try:
+        if (access_level := session.get_access_level(Q.group.permissions(group_id=group_id, user_id=user.id))) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to access this group.")
+    except db_exc.ModelNotFoundException:
+        raise exc.ItemNotFoundException("Group not found.")
 
     r.set(cache_key, int(access_level), ex=300)
     return access_level

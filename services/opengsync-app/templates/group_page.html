@@ -85,31 +85,4 @@
         </div>
     </div>
 </div>
-
-{% if can_edit %}
-<div class="modal fade" id="group-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
-        <div class="modal-content">
-        <div class="modal-header">
-            <h1 class="modal-title fs-5" >Edit Group</h1>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-            {% include group_form._template_path %}
-        </div>
-        <div class="modal-footer" id="popup-footer">
-            <div class="footer-id">
-            </div>
-            <div class="footer-info">
-            </div>
-            <div class="footer-controls">
-                <button id="submit-group-btn" class="btn btn-success"
-                hx-include="#group-form" hx-target="#group-form" hx-swap="outerHTML"
-                hx-post="{{ url_for('groups_htmx.edit', group_id=group.id) }}">Submit</button>
-            </div>
-        </div>
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %}

@@ -10,6 +10,7 @@ from .PoolDesignForm import PoolDesignForm
 from .TODOCommentForm import TODOCommentForm
 from .CommentForm import CommentForm
 from .ProtocolForm import ProtocolForm
+from .GroupForm import GroupForm
 
 __all__ = [
     "SeqRequestForm",
@@ -18,6 +19,7 @@ __all__ = [
     "ExperimentForm",
     "UserForm",
     "PoolForm",
+    "GroupForm",
     "MediaFileForm",
     "FlowCellDesignForm",
     "PoolDesignForm",

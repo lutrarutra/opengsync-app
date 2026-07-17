@@ -2,11 +2,13 @@ from fastapi import APIRouter, Depends, Query
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
+from ... import forms
 from ...core import dependencies, responses
 from ...components.tables import HTMXTable, TableCol
 
 
 router = APIRouter(prefix="/groups", tags=["groups"])
+router.include_router(forms.models.GroupForm.Router())
 
 class GroupTable(HTMXTable):
     columns = [
