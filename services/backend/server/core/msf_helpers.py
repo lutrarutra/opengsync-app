@@ -27,6 +27,21 @@ class CachedFrameContainer:
         for name, table in self.__tables.items():
             self.r.set_table(f"{self.prefix}:{name}", table)
 
+    def clear(self) -> None:
+        self.r.delete_pattern(f"{self.prefix}:*")
+        self.__tables.clear()
+
+    def copy_from(self, src_prefix: str) -> None:
+        """Copy all Redis keys from ``src_prefix`` to this container's prefix.
+
+        Uses Redis ``COPY`` internally — no serialization/deserialization.
+        Clears the local in-memory cache so subsequent reads hit Redis.
+        """
+        if src_prefix == self.prefix:
+            return
+        self.r.copy_pattern(src_prefix, self.prefix)
+        self.__tables.clear()
+
     def get(self, key: str) -> pd.DataFrame | None:
         if key not in self.__tables:
             table = self.r.get_table(f"{self.prefix}:{key}")
@@ -83,7 +98,19 @@ class CachedDictionary:
         return self.data.get(key, default)
 
     def clear(self) -> None:
+        self.r.delete(self.prefix)
         self.__data = {}
+
+    def copy_from(self, src_prefix: str) -> None:
+        """Copy the Redis key from ``src_prefix`` to this dictionary's prefix.
+
+        Uses Redis ``COPY`` internally — no serialization/deserialization.
+        Resets the local cache so the next access re-reads from Redis.
+        """
+        if src_prefix == self.prefix:
+            return
+        self.r.copy(src_prefix, self.prefix)
+        self.__data = None
 
     def update(self, other: dict) -> None:
         if self.__data is None:

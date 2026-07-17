@@ -249,6 +249,7 @@ class HTMXForm(ABC):
                 all_sub_forms_valid = False
 
         for sub_form_list in self.sub_form_lists:
+            sub_form_list.hydrate_from_data(self.raw_data)
             if not sub_form_list.validate(self.raw_data):
                 all_sub_forms_valid = False
 

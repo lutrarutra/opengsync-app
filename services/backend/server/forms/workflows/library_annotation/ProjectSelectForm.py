@@ -66,7 +66,7 @@ class ProjectSelectForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: ProjectSelectForm = Depends(ProjectSelectForm.PreviousStep()),
+            form: ProjectSelectForm = Depends(ProjectSelectForm.Init()),
         ) -> Response:
             project_id = form.workflow.metadata.get("project_id")
             if project_id is not None:
@@ -97,6 +97,7 @@ class ProjectSelectForm(LibraryAnnotationWorkflowStep):
                     form.existing_project.errors.append("You do not have permission to select this project.")
                     raise exc.FormValidationException(form)
                 form.workflow.metadata["project_id"] = project.id
+                form.workflow.metadata["project_title"] = project.title
             else:
                 if form.new_project.data and not form.project_description.data:
                     form.project_description.errors.append("Please, provide brief description of the project.")

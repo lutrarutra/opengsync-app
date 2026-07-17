@@ -30,7 +30,7 @@ class PooledLibraryAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: PooledLibraryAnnotationForm = Depends(PooledLibraryAnnotationForm.PreviousStep()),
+            form: PooledLibraryAnnotationForm = Depends(PooledLibraryAnnotationForm.Init()),
         ) -> Response:
             df = form.library_table
             form.spreadsheet.set_data(df)

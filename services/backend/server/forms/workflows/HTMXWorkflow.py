@@ -19,10 +19,14 @@ class HTMXWorkflow(ABC):
         self.r = r
         self.key_prefix = f"{self.__class__.__name__}:{self.uuid}"
         self.step_tracker = msf_helpers.StepTracker(prefix=f"{self.key_prefix}:steps", r=r)
-        self.___current_step = step
+        self._active_step: str | None = None
 
         self.header = msf_helpers.CachedDictionary(prefix=f"{self.key_prefix}:header", r=r)
-        self.init_step(self.current_step)
+        self.init_step(step or self.step_tracker.last() or self.__class__.__name__)
+
+    def _step_prefix(self, step_name: str) -> str:
+        """Return the Redis key prefix for a given step's data."""
+        return f"{self.key_prefix}:{step_name}"
 
     @property
     def previous_url(self) -> str | None:
@@ -34,54 +38,74 @@ class HTMXWorkflow(ABC):
             value = value.__str__()
         self.metadata["previous_url"] = value
 
-    def init_step(self, step_name: str) -> None:
-        """Initialize a new step in the workflow.
+    # ── Step lifecycle ─────────────────────────────────────────────────
 
-        When switching to a new step that has no existing data in Redis,
-        the current step's tables and metadata are copied forward so that
-        each step inherits all accumulated data from previous steps.
+    def init_step(self, step_name: str) -> None:
+        """Initialize (or switch to) a workflow step.
+
+        Behaviour:
+        - If already on ``step_name``, this is a no-op (prevents double-init
+          from ``HTMXWorkflow.__init__`` + ``HTMXWorkflowStep.__init__``).
+        - The current step's data is saved to Redis before switching.
+        - If the destination step has **no existing data** in Redis, or if
+          the request is a forward navigation (POST/PUT), data from the
+          **previous step** (the last tracker entry that is not the current
+          step) is copied to the destination via Redis-native ``COPY``.
+        - On forward navigation, the destination is cleared first so that
+          edits made in the current step propagate to the next step.
         """
-        # Save the current step's data before switching away from it
-        if hasattr(self, 'tables'):
+        if self._active_step == step_name:
+            return
+
+        # Save current step's data before switching
+        if self._active_step is not None:
             self.tables.save()
-        if hasattr(self, 'metadata'):
             self.metadata.save()
 
-        # Keep references to the current step's data for copying forward
-        old_tables = getattr(self, 'tables', None)
-        old_metadata = getattr(self, 'metadata', None)
+        # Determine the previous step *before* switching
+        prev_step = self._active_step
 
-        self.tables = msf_helpers.CachedFrameContainer(prefix=f"{self.key_prefix}:{step_name}:tables", r=self.r)
-        self.metadata = msf_helpers.CachedDictionary(prefix=f"{self.key_prefix}:{step_name}:metadata", r=self.r)
+        # Switch to the new step
+        sp = self._step_prefix(step_name)
+        self.tables = msf_helpers.CachedFrameContainer(prefix=f"{sp}:tables", r=self.r)
+        self.metadata = msf_helpers.CachedDictionary(prefix=f"{sp}:metadata", r=self.r)
+        self._active_step = step_name
 
-        # If the new step has no existing data, inherit from the previous step.
-        # If we are moving forward (POST/PUT request), always copy and overwrite to propagate changes.
+        # Decide whether to copy data from the previous step
         from ...core.context import ctx
         try:
             is_forward = ctx.request.method in ("POST", "PUT")
         except Exception:
             is_forward = False
 
-        if old_tables is not None and (len(self.tables.keys()) == 0 or is_forward):
-            for key in old_tables.keys():
-                self.tables[key] = old_tables[key].copy()
+        dest_empty = len(self.tables.keys()) == 0 and len(self.metadata) == 0
+        should_copy = prev_step is not None and (dest_empty or is_forward)
 
-        if old_metadata is not None and (len(self.metadata) == 0 or is_forward):
-            self.metadata.update(dict(old_metadata.items()))
+        if should_copy:
+            assert prev_step is not None  # guaranteed by should_copy guard
+            prev_sp = self._step_prefix(prev_step)
+            if is_forward:
+                self.tables.clear()
+                self.metadata.clear()
+            self.tables.copy_from(f"{prev_sp}:tables")
+            self.metadata.copy_from(f"{prev_sp}:metadata")
 
     @property
     def current_step(self) -> str:
-        if self.___current_step is None:
-            steps = self.step_tracker.steps
-            self.___current_step = steps[-1] if steps else None
-        if self.___current_step is None:
-            raise ValueError("Current step is not set. Ensure that at least one step has been added to the workflow.")
-        return self.___current_step
+        if self._active_step is not None:
+            return self._active_step
+        last = self.step_tracker.last()
+        if last is not None:
+            return last
+        raise ValueError("Current step is not set. Ensure that at least one step has been added to the workflow.")
 
     @property
     def previous_step(self) -> str | None:
-        steps = self.step_tracker.steps
-        return steps[-2] if len(steps) > 1 else None
+        """Return the most recent step in the tracker that is not the current step."""
+        for step in reversed(self.step_tracker.steps):
+            if step != self._active_step:
+                return step
+        return None
 
     def add_step(self, step_name: str) -> None:
         self.step_tracker.add(step_name)

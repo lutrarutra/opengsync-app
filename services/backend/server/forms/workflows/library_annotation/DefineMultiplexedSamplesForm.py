@@ -43,7 +43,7 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: DefineMultiplexedSamplesForm = Depends(DefineMultiplexedSamplesForm.PreviousStep()),
+            form: DefineMultiplexedSamplesForm = Depends(DefineMultiplexedSamplesForm.Init()),
         ) -> Response:
             sample_pooling_table = form.workflow.tables["sample_pooling_table"].rename(
                 columns={"sample_pool": "pool"}

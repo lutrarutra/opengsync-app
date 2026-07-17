@@ -62,7 +62,7 @@ class PoolMappingForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: PoolMappingForm = Depends(PoolMappingForm.PreviousStep()),
+            form: PoolMappingForm = Depends(PoolMappingForm.Init()),
         ) -> Response:
             pool_table = form.workflow.tables["pool_table"]
             form.contact_name.data = form.workflow.metadata.get("pool_contact_name")
@@ -86,8 +86,6 @@ class PoolMappingForm(LibraryAnnotationWorkflowStep):
             current_user: models.User = Depends(dependencies.require_user),
             form: PoolMappingForm = Depends(PoolMappingForm.Validate()),
         ) -> Response:
-            workflow = form.workflow
-
             # Build pool table from validated entries
             pool_table_data = {
                 "pool_name": [],
@@ -95,6 +93,9 @@ class PoolMappingForm(LibraryAnnotationWorkflowStep):
                 "pool_id": [],
                 "num_m_reads_requested": [],
             }
+            from loguru import logger
+            logger.debug(form.raw_data)
+            logger.debug(form.pool_forms.entries)
 
             def add_pool(name: str, label: str, pool_id: int | None, num_m_reads_requested: float | None) -> None:
                 pool_table_data["pool_name"].append(name)
@@ -135,12 +136,12 @@ class PoolMappingForm(LibraryAnnotationWorkflowStep):
             pool_table = pd.DataFrame(pool_table_data)
 
             # Persist to workflow state
-            workflow.metadata["pool_contact_name"] = form.contact_name.data
-            workflow.metadata["pool_contact_email"] = form.contact_email.data
-            workflow.metadata["pool_contact_phone"] = form.contact_phone.data
-            workflow.tables["pool_table"] = pool_table
+            form.workflow.metadata["pool_contact_name"] = form.contact_name.data
+            form.workflow.metadata["pool_contact_email"] = form.contact_email.data
+            form.workflow.metadata["pool_contact_phone"] = form.contact_phone.data
+            form.workflow.tables["pool_table"] = pool_table
             from loguru import logger
             logger.debug(pool_table)
-            return workflow.get_next_step(form).make_response()
+            return form.workflow.get_next_step(form).make_response()
         return route
 

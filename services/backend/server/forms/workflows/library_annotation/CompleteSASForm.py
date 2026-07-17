@@ -21,6 +21,7 @@ class CompleteSASForm(LibraryAnnotationWorkflowStep):
         self.sample_pooling_table = self.workflow.tables["sample_pooling_table"]
         self.barcode_table = self.workflow.tables.get("barcode_table")
         self.pool_table = self.workflow.tables.get("pool_table")
+        logger.debug(self.pool_table)
         self.feature_table = self.workflow.tables.get("feature_table")
         self.library_properties_table = self.workflow.tables.get("library_properties_table")
         self.mux_type = C.MUXType.get(self.workflow.metadata["mux_type_id"]) if self.workflow.metadata["mux_type_id"] is not None else None

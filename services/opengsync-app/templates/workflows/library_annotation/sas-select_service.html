@@ -25,11 +25,11 @@
                 id="form-tab-form-assay-btn"
                 data-bs-target="#form-tab-form-assay" type="button" role="tab"
                 aria-controls="form-tab-form-assay" aria-selected="true">
-                Assay Types</button>
+                Services</button>
             </li>
         </ul>
         <div class="tab-content">
-            <div class="tab-pane fade show active form-container" role="tabpanel" tabindex="0">
+            <div class="tab-pane fade show active" id="form-tab-form" role="tabpanel" tabindex="0">
                 {{ form.csrf_token.render() }}
                 {{ form.service_type.render() }}
                 <h5>Additional Options for 10X</h5>

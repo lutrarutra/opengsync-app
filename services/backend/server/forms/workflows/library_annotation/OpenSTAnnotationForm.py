@@ -52,7 +52,7 @@ class OpenSTAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: OpenSTAnnotationForm = Depends(OpenSTAnnotationForm.PreviousStep()),
+            form: OpenSTAnnotationForm = Depends(OpenSTAnnotationForm.Init()),
         ) -> Response:
             library_properties_table = form.workflow.tables["library_properties_table"]
             form.spreadsheet.set_data(library_properties_table)

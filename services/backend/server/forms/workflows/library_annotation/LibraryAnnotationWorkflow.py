@@ -1,30 +1,21 @@
+from typing import TYPE_CHECKING
+
 from fastapi import Query, Depends, APIRouter
 
 from opengsync_db import categories as C
 
 from ....core import dependencies, exceptions as exc, redis, responses
 from ..HTMXWorkflow import HTMXWorkflow, WorkflowFunc
-from ..HTMXWorkflowStep import HTMXWorkflowStep
 from ...HTMXForm import RouteFunc
 from .. import library_annotation as wf
+
+if TYPE_CHECKING:
+    from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
 
 class LibraryAnnotationWorkflow(HTMXWorkflow):    
     def __init__(self, step: str, seq_request_id: int, r: redis.RedisClient, uuid: str | None = None) -> None:
         super().__init__(uuid=uuid, r=r, step=step)
         self.seq_request_id = seq_request_id
-
-    @classmethod
-    def Previous(cls, step: str) -> WorkflowFunc:
-        def dependency(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(step)),
-        ) -> "LibraryAnnotationWorkflow":
-            if workflow.pop_step() is None:
-                raise exc.OpeNGSyncServerException("No previous step found in the workflow.")
-            if (current := workflow.step_tracker.last()) is None:
-                raise exc.OpeNGSyncServerException("No previous step found in the workflow.")
-            workflow.init_step(current)
-            return workflow
-        return dependency
 
     @classmethod
     def Init(cls, step: str) -> WorkflowFunc:
@@ -74,7 +65,8 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
         router.include_router(wf.CompleteSASForm.Router(cls.__name__))
         return router
     
-    def get_next_step(self, form: "HTMXWorkflowStep") -> "HTMXWorkflowStep":
+    def get_next_step(self, form: "LibraryAnnotationWorkflowStep") -> "LibraryAnnotationWorkflowStep":
+        self.add_step(form.__class__.__name__)
         match form.__class__:
             case wf.ProjectSelectForm:
                 next_form = wf.SampleAnnotationForm(self)
@@ -274,7 +266,6 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
                 raise ValueError(f"Unknown form type: {form.__class__.__name__}")
 
         self.previous_url = responses.url_for(f"{self.__class__.__name__}.{form.__class__.__name__}.Previous", seq_request_id=self.seq_request_id).include_query_params(uuid=self.uuid)
-        self.add_step(form.__class__.__name__)
         self.add_step(next_form.__class__.__name__)
         return next_form
 

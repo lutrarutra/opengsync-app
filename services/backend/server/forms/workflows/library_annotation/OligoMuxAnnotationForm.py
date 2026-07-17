@@ -77,22 +77,10 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
             return form
         return dependency
     
-    @classmethod
-    def PreviousStep(cls) -> FormFunc:
-        def dependency(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
-            session: SyncSession = Depends(dependencies.db_session)
-        ) -> OligoMuxAnnotationForm:
-            kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in session.get_all(Q.feature_kit.select(type=C.FeatureType.CMO).order_by(models.FeatureKit.name.asc()), limit=None)}
-            form = cls(workflow=workflow)
-            form.spreadsheet.columns["kit"].set_categories(kits_mapping)
-            return form
-        return dependency
-    
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: OligoMuxAnnotationForm = Depends(OligoMuxAnnotationForm.PreviousStep()),
+            form: OligoMuxAnnotationForm = Depends(OligoMuxAnnotationForm.Init()),
         ) -> Response:
             df = form.workflow.tables["sample_pooling_table"]
             df = df.drop_duplicates(subset=["sample_name"]).rename(columns={"sample_name": "sample_name"})

@@ -53,7 +53,26 @@ class RedisClient(Redis):
         self.set(key, json.dumps(data).encode("utf-8"), ex=self.ttl_hours * 3600)
 
     def delete(self, key: str) -> None:
-        self.delete(key)
+        super().delete(key)
+
+    def copy(self, src: str, dst: str) -> bool:
+        """Atomically copy a key. Returns True on success."""
+        return bool(self.execute_command("COPY", src, dst))
+
+    def copy_pattern(self, src_prefix: str, dst_prefix: str) -> int:
+        """Copy all keys matching ``{src_prefix}:*`` to ``{dst_prefix}:{suffix}``.
+
+        Uses Redis ``COPY`` internally so no serialization/deserialization occurs.
+        Returns the number of keys copied.
+        """
+        count = 0
+        for key in self.scan_iter(match=f"{src_prefix}:*"):
+            key_str = key.decode("utf-8")
+            suffix = key_str[len(src_prefix) + 1:]  # +1 for the colon
+            dst_key = f"{dst_prefix}:{suffix}"
+            if self.copy(key_str, dst_key):
+                count += 1
+        return count
 
     def delete_pattern(self, pattern: str) -> None:
         for key in self.scan_iter(match=pattern):

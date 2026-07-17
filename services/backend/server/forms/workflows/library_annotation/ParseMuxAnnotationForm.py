@@ -38,10 +38,9 @@ class ParseMuxAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
+            form: ParseMuxAnnotationForm = Depends(ParseMuxAnnotationForm.Init()),
         ) -> Response:
-            form = ParseMuxAnnotationForm(workflow)
-            df = workflow.tables["sample_pooling_table"]
+            df = form.workflow.tables["sample_pooling_table"]
             df["well"] = df["mux_well"]
             form.spreadsheet.set_data(df.drop_duplicates(subset=["sample_name", "sample_pool"]))
             return form.make_response()

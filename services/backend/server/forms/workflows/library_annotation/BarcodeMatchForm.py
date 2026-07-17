@@ -92,7 +92,7 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: BarcodeMatchForm = Depends(BarcodeMatchForm.PreviousStep()),
+            form: BarcodeMatchForm = Depends(BarcodeMatchForm.Init()),
         ) -> Response:
             d = form.workflow.metadata.get("barcode_match_form", {})
             form.i7_kit.data = d.get("i7_kit", -1)
@@ -109,8 +109,6 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
         def route(
             form: BarcodeMatchForm = Depends(BarcodeMatchForm.Validate()),
         ) -> Response:
-            workflow = form.workflow
-
             if form.i7_kit.data == -1:
                 form.i7_kit.errors.append("Please select an i7 kit or choose Custom.")
             if form.i5_kit.data == -1 and form.index_type in [C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX]:
@@ -192,7 +190,7 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
             elif form.i5_option.data == "forward":
                 barcode_table["orientation_i5_id"] = C.BarcodeOrientation.FORWARD_NOT_VALIDATED.id
 
-            workflow.metadata["barcode_match_form"] = {
+            form.workflow.metadata["barcode_match_form"] = {
                 "i7_kit": kit_i7_id,
                 "i5_kit": kit_i5_id,
                 "i7_option": form.i7_option.data,
@@ -202,11 +200,11 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
             }
 
             if form.i7_primer.data:
-                workflow.add_comment(context="i7_primer", text=form.i7_primer.data)
+                form.workflow.add_comment(context="i7_primer", text=form.i7_primer.data)
             if form.i5_primer.data:
-                workflow.add_comment(context="i5_primer", text=form.i5_primer.data)
+                form.workflow.add_comment(context="i5_primer", text=form.i5_primer.data)
 
-            workflow.tables["barcode_table"] = barcode_table
+            form.workflow.tables["barcode_table"] = barcode_table
 
-            return workflow.get_next_step(form).make_response()
+            return form.workflow.get_next_step(form).make_response()
         return route

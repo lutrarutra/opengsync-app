@@ -27,7 +27,7 @@ class SampleAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: SampleAnnotationForm = Depends(SampleAnnotationForm.PreviousStep()),
+            form: SampleAnnotationForm = Depends(SampleAnnotationForm.Init()),
         ) -> Response:
             form.spreadsheet.set_data(form.workflow.tables["sample_table"])
             return form.make_response()

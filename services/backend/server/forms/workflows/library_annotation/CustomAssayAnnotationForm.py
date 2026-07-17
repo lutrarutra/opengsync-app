@@ -29,7 +29,7 @@ class CustomAssayAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: CustomAssayAnnotationForm = Depends(CustomAssayAnnotationForm.PreviousStep()),
+            form: CustomAssayAnnotationForm = Depends(CustomAssayAnnotationForm.Init()),
         ) -> Response:
             df = form.workflow.tables["library_table"].rename(columns={"sample_name": "sample_pool"})
             df = df[["sample_pool", "library_type_id"]].drop_duplicates()

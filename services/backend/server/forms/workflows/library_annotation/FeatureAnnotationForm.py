@@ -55,24 +55,10 @@ class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):
             return form
         return dependency
 
-    @classmethod
-    def PreviousStep(cls) -> FormFunc:
-        def dependency(
-            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Previous(cls.__name__)),
-            session: SyncSession = Depends(dependencies.db_session),
-        ) -> FeatureAnnotationForm:
-            form = cls(workflow=workflow)
-            kits_mapping = {kit.identifier: f"[{kit.identifier}] {kit.name}" for kit in session.get_all(Q.feature_kit.select(type=C.FeatureType.ANTIBODY).order_by(models.FeatureKit.name.asc()), limit=None)}
-            abc_samples = form.abc_libraries["sample_name"].tolist()
-            form.spreadsheet.columns["sample_name"].choices = abc_samples  # type: ignore
-            form.spreadsheet.columns["kit"].set_categories(kits_mapping)
-            return form
-        return dependency
-
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: FeatureAnnotationForm = Depends(FeatureAnnotationForm.PreviousStep()),
+            form: FeatureAnnotationForm = Depends(FeatureAnnotationForm.Init()),
         ) -> Response:
             feature_table = form.workflow.tables["feature_table"]
             form.spreadsheet.set_data(feature_table)

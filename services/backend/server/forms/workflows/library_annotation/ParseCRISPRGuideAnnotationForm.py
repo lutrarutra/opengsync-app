@@ -33,7 +33,7 @@ class ParseCRISPRGuideAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: ParseCRISPRGuideAnnotationForm = Depends(ParseCRISPRGuideAnnotationForm.PreviousStep()),
+            form: ParseCRISPRGuideAnnotationForm = Depends(ParseCRISPRGuideAnnotationForm.Init()),
         ) -> Response:
             crispr_guide_table = form.workflow.tables["crispr_guide_table"]
             form.spreadsheet.set_data(crispr_guide_table)

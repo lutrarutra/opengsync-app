@@ -165,7 +165,7 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: TENXATACBarcodeInputForm = Depends(TENXATACBarcodeInputForm.PreviousStep()),
+            form: TENXATACBarcodeInputForm = Depends(TENXATACBarcodeInputForm.Init()),
         ) -> Response:
             barcode_table = form.workflow.tables["tenx_atac_barcode_table"]
             form.spreadsheet.set_data(barcode_table)
@@ -178,7 +178,6 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
             form: TENXATACBarcodeInputForm = Depends(TENXATACBarcodeInputForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
-            workflow = form.workflow
             df = form.spreadsheet.data
 
             df.loc[df["kit"].notna(), "kit"] = df.loc[df["kit"].notna(), "kit"].astype(str)
@@ -251,10 +250,9 @@ class TENXATACBarcodeInputForm(LibraryAnnotationWorkflowStep):
 
             form.spreadsheet.set_data(df)
 
-            workflow.metadata["index_col"] = "library_name"
-            workflow.tables["tenx_atac_barcode_table"] = df
+            form.workflow.metadata["index_col"] = "library_name"
+            form.workflow.tables["tenx_atac_barcode_table"] = df
             barcode_table = form._get_barcode_table()
-            workflow.tables["barcode_table"] = barcode_table
-
-            return workflow.get_next_step(form).make_response()
+            form.workflow.tables["barcode_table"] = barcode_table
+            return form.workflow.get_next_step(form).make_response()
         return route

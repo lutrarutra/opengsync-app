@@ -55,7 +55,7 @@ class SelectServiceForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: SelectServiceForm = Depends(SelectServiceForm.PreviousStep()),
+            form: SelectServiceForm = Depends(SelectServiceForm.Init()),
         ) -> Response:
             form.service_type.data = form.workflow.metadata.get("service_type_id")
             form.additional_services.nuclei_isolation.data = form.workflow.metadata.get("nuclei_isolation", False)

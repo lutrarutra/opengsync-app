@@ -38,7 +38,7 @@ class OCMAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: OCMAnnotationForm = Depends(OCMAnnotationForm.PreviousStep()),
+            form: OCMAnnotationForm = Depends(OCMAnnotationForm.Init()),
         ) -> Response:
             df = form.workflow.tables["sample_pooling_table"]
             df["barcode_id"] = df["mux_barcode"]

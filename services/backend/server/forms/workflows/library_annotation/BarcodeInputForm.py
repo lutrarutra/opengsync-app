@@ -69,7 +69,7 @@ class BarcodeInputForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: BarcodeInputForm = Depends(BarcodeInputForm.PreviousStep()),
+            form: BarcodeInputForm = Depends(BarcodeInputForm.Init()),
         ) -> Response:
             barcode_table = form.workflow.tables["barcode_table"]
             barcode_table = barcode_table[barcode_table["index_type_id"] != C.IndexType.TENX_ATAC_INDEX.id].copy()
@@ -83,8 +83,6 @@ class BarcodeInputForm(LibraryAnnotationWorkflowStep):
             form: BarcodeInputForm = Depends(BarcodeInputForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
-            workflow = form.workflow
-
             df = form.spreadsheet.data
 
             df.loc[df["name_i7"].notna(), "name_i7"] = df.loc[df["name_i7"].notna(), "name_i7"].astype(str).str.strip()
@@ -262,7 +260,6 @@ class BarcodeInputForm(LibraryAnnotationWorkflowStep):
             df["index_well"] = df["index_well"].astype(pd.StringDtype())
             df["name_i7"] = df["name_i7"].astype(pd.StringDtype())
             df["name_i5"] = df["name_i5"].astype(pd.StringDtype())
-            workflow.tables["barcode_table"] = df
-
-            return workflow.get_next_step(form).make_response()
+            form.workflow.tables["barcode_table"] = df
+            return form.workflow.get_next_step(form).make_response()
         return route

@@ -38,7 +38,7 @@ class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: FlexAnnotationForm = Depends(FlexAnnotationForm.PreviousStep()),
+            form: FlexAnnotationForm = Depends(FlexAnnotationForm.Init()),
         ) -> Response:
             mux_table = form.workflow.tables["sample_pooling_table"][["sample_name", "sample_pool", "mux_barcode"]].drop_duplicates(["sample_name", "sample_pool"])
             mux_table["barcode_id"] = mux_table["mux_barcode"].str.replace("AB", "BC").values

@@ -1,14 +1,13 @@
 import pandas as pd
 from fastapi import Depends, Response
-from loguru import logger
 
 from opengsync_db import models, categories as C
 
-from ....core import responses, exceptions as exc, dependencies
+from ....core import exceptions as exc
 from ....components import inputs
 from ....components.tables import TextColumn
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from ...HTMXForm import RouteFunc, FormFunc, htmx_route
+from ...HTMXForm import RouteFunc, htmx_route
 from ....components.tables import MissingCellValue
 from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
 
@@ -34,7 +33,7 @@ class SampleAttributeAnnotationForm(LibraryAnnotationWorkflowStep):
     @htmx_route("GET")
     def Previous(cls) -> RouteFunc:
         def route(
-            form: SampleAttributeAnnotationForm = Depends(SampleAttributeAnnotationForm.PreviousStep()),
+            form: SampleAttributeAnnotationForm = Depends(SampleAttributeAnnotationForm.Init()),
         ) -> Response:
             df = form.workflow.tables["sample_table"]
             df["sample_id"] = df["sample_id"].astype(pd.StringDtype())
