@@ -239,7 +239,7 @@
                 </div>
                 <div style="height: 100%; display: flex; align-items: center;">
                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                    hx-get="{{ url_for('render_process_seq_request_form', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('ProcessSeqRequestAction.Begin', seq_request_id=seq_request.id) }}"
                     hx-target="#xl-modal-content" hx-swap="innerHTML">
                         Process Request
                     </button>
@@ -533,7 +533,7 @@
                 </div>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                 data-bs-target="#xl-modal" hx-target="#xl-modal-content" hx-swap="innerHTML"
-                hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}">
+                hx-get="{{ url_for('CommentForm.Begin', seq_request_id=seq_request.id) }}">
                     Comment
                 </button>
             </div>
@@ -587,7 +587,7 @@
                     <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
                 <div>
-                    <button hx-get="{{ url_for('render_add_assignee_form', seq_request_id=seq_request.id) }}" class="btn btn-success"
+                    <button hx-get="{{ url_for('AddSeqRequestAssigneeAction.Begin', seq_request_id=seq_request.id) }}" class="btn btn-success"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click"
                         {% if not current_user.is_insider %}disabled{% endif %}>

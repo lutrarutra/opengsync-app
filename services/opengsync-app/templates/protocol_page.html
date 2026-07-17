@@ -17,7 +17,7 @@
                 <ul class="dropdown-menu">
                     <li>
                         <button type="button" class="dropdown-item"  data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                            hx-get="{{ url_for('protocols_htmx.edit', protocol_id=protocol.id) }}"
+                            hx-get="{{ url_for('ProtocolForm.Edit', protocol_id=protocol.id) }}"
                             hx-target="#xl-modal-content" data-bs-toggle="modal"
                             hx-swap="innerHTML">
                             Edit
@@ -25,7 +25,7 @@
                     </li>
                     <li>
                         <button type="button" class="dropdown-item"  data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                            hx-get="{{ url_for('begin_add_kits_to_protocol_workflow', protocol_id=protocol.id) }}"
+                            hx-get="{{ url_for('AddKitsToProtocolAction.Begin', protocol_id=protocol.id) }}"
                             hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                             hx-swap="innerHTML">
                             Edit Combinations
@@ -37,7 +37,7 @@
                                 confirm_action_button(
                                     text="Delete",
                                     title="Delete Protocol " + protocol.name,
-                                    url=url_for('protocols_htmx.delete', protocol_id=protocol.id),
+                                    url=url_for('delete_protocol', protocol_id=protocol.id),
                                     method="hx-delete",
                                     class="dropdown-item",
                                     disabled=not current_user.is_admin,
@@ -66,7 +66,7 @@
 <div class="page-content">
     <div class="tab-content pt-3">
         <div class="tab-pane fade show active" id="protocol-kits-tab" role="tabpanel" tabindex="0">
-            <div hx-get="{{ url_for('kits_htmx.get', protocol_id=protocol.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_kit_table', protocol_id=protocol.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

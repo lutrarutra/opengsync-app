@@ -23,6 +23,8 @@ from . import (
     flow_cell_design,
     pool_design,
     dilutions,
+    protocols,
+    kits,
 )
 
 router = APIRouter(prefix="/htmx", tags=["pages", "htmx"])
@@ -47,3 +49,5 @@ router.include_router(comments.router, dependencies=[Depends(auth.dependencies.r
 router.include_router(flow_cell_design.router, dependencies=[Depends(auth.dependencies.require_insider)])
 router.include_router(pool_design.router, dependencies=[Depends(auth.dependencies.require_insider)])
 router.include_router(dilutions.router, dependencies=[Depends(auth.dependencies.require_user)])
+router.include_router(protocols.router, dependencies=[Depends(auth.dependencies.require_user)])
+router.include_router(kits.router, dependencies=[Depends(auth.dependencies.require_user)])

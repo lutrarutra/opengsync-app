@@ -1,7 +1,7 @@
-from .AddSeqRequestAssigneeForm import AddSeqRequestAssigneeForm
-from .LibraryPrepTableForm import LibraryPrepTableForm
-from .ProcessSeqRequestForm import ProcessSeqRequestForm
-from .SeqRequestShareEmailForm import SeqRequestShareEmailForm
+from .AddSeqRequestAssigneeAction import AddSeqRequestAssigneeAction
+from .UploadLibraryPrepSpreadsheetAction import UploadLibraryPrepSpreadsheetAction
+from .ProcessSeqRequestAction import ProcessSeqRequestAction
+from .AddSeqRequestShareEmailAction import AddSeqRequestShareEmailAction
 from .SubmitSeqRequestAction import SubmitSeqRequestAction
 from .StoreSamplesAction import StoreSamplesAction
 from .CheckBarcodeClashesAction import CheckBarcodeClashesAction
@@ -12,12 +12,13 @@ from .ReseqAction import ReseqAction
 from .FlexMuxPrepAction import FlexMuxPrepAction
 from .SamplePoolingAction import SamplePoolingAction
 from .LibraryPoolingAction import LibraryPoolingAction
+from .AddKitsToProtocolAction import AddKitsToProtocolAction
 
 __all__ = [
-    "AddSeqRequestAssigneeForm",
-    "LibraryPrepTableForm",
-    "ProcessSeqRequestForm",
-    "SeqRequestShareEmailForm",
+    "AddSeqRequestAssigneeAction",
+    "UploadLibraryPrepSpreadsheetAction",
+    "ProcessSeqRequestAction",
+    "AddSeqRequestShareEmailAction",
     "SubmitSeqRequestAction",
     "StoreSamplesAction",
     "CheckBarcodeClashesAction",
@@ -28,4 +29,5 @@ __all__ = [
     "FlexMuxPrepAction",
     "SamplePoolingAction",
     "LibraryPoolingAction",
+    "AddKitsToProtocolAction",
 ]

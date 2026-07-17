@@ -118,12 +118,12 @@ class HTMXForm(ABC):
             f"{prefix}.{cls.__name__}.{name}" if prefix else f"{cls.__name__}.{name}",
             **path_params,
         )
-
+    
     @classmethod
-    def Open(cls):
-        form = cls()
-        form.prepare()
-        return form.make_response()
+    def Init(cls: type[T], **kwargs) -> FormFunc:
+        def dependency() -> T:
+            return cls(**kwargs)
+        return dependency
     
     @classmethod
     def Validate(cls, **kwargs) -> FormFunc:
@@ -139,12 +139,6 @@ class HTMXForm(ABC):
             return form
 
         return route
-
-    @classmethod
-    def Init(cls: type[T], **kwargs) -> FormFunc:
-        def dependency() -> T:
-            return cls(**kwargs)
-        return dependency
         
     def __init__(self):
         from ..components.inputs.dynamic import SubFormList

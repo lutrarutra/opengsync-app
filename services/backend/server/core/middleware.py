@@ -88,10 +88,14 @@ async def db_session_cleanup_middleware(request: runtime.Request, call_next: Cal
         return response
     finally:
         session: SyncSession | None = getattr(request.state, "db_session", None)
-        
+        rollback = getattr(request.state, "rollback", False)
+
         if session is not None:
             try:
-                session.commit()
+                if not rollback and response is not None and 200 <= response.status_code < 300:
+                    session.commit()
+                else:
+                    session.rollback()
             finally:
                 session.close()
 

@@ -7,7 +7,7 @@ from loguru import logger
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ...core import dependencies, exceptions as exc, responses
+from ...core import dependencies, responses
 from ...components import inputs
 from ...components.tables.spreadsheet import TextColumn, IntegerColumn, InvalidCellValue
 from ...utils import parsing

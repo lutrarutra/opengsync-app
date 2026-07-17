@@ -514,7 +514,7 @@
         <div id="request-review-accordion-submission_processed" class="accordion-collapse collapse collapsed" data-bs-parent="#request-review-accordion">
             <div class="accordion-body">
                 <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                hx-get="{{ url_for('render_process_seq_request_form', seq_request_id=seq_request.id) }}"
+                hx-get="{{ url_for('ProcessSeqRequestAction.Begin', seq_request_id=seq_request.id) }}"
                 hx-target="#xl-modal-content" hx-swap="innerHTML">
                     Process Request
                 </button>

@@ -19,7 +19,7 @@
         </div>
         <div class="footer-controls">
             <button type="button" class="btn btn-success submit-form-btn"
-                hx-post="{{ url_for('lab_prep_table_upload', lab_prep_id=lab_prep.id) }}"
+                hx-post="{{ form.post_url }}"
                 hx-target="#prep_table-form-container" hx-swap="outerHTML"
                 hx-include="#prep_table-form-container" hx-encoding="multipart/form-data"
                 {% if lab_prep.prep_file %}

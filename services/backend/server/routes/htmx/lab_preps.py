@@ -13,6 +13,7 @@ from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextCol
 from ... import forms
 
 router = APIRouter(prefix="/lab_preps", tags=["lab_preps"])
+router.include_router(forms.actions.UploadLibraryPrepSpreadsheetAction.Router())
 
 
 class LabPrepTable(HTMXTable):
@@ -391,14 +392,6 @@ def download_lab_prep_spreadsheet_template(
         filename=f"{lab_prep.name}_{lab_prep.checklist_type.abbreviation}_{direction}.xlsx",
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-
-
-@router.get("/{lab_prep_id}/prep-table-upload")
-def render_lab_prep_table_upload_form(response=Depends(forms.actions.LibraryPrepTableForm.render)): return response
-
-@router.post("/{lab_prep_id}/prep-table-upload", name="lab_prep_table_upload")
-def upload_lab_prep_table(response=Depends(forms.actions.LibraryPrepTableForm.upload)) -> Response: return response
-
 
 @router.post("/{lab_prep_id}/complete")
 def complete_lab_prep(

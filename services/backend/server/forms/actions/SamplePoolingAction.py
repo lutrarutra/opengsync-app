@@ -1,4 +1,3 @@
-import pandas as pd
 from fastapi import Depends, Response
 from loguru import logger
 

@@ -47,8 +47,8 @@ def UserNotAuthenticatedException_handler(request: Request, exc: Exception) -> R
 
 def form_validation_exception_handler(request: Request, exc: exc.FormValidationException) -> Response:
     logger.debug(f"Form validation failed: {exc.form.errors}")
+    request.state.rollback = True
     return exc.form.invalid_response_handler(request, exc)
-
 
 def missing_greenlet_handler(request: Request, exc: MissingGreenlet) -> Response:
     model_name, attr_name = _extract_model_and_attr(exc)

@@ -20,7 +20,7 @@
                 <td class="cm-callback" {{
                     context_menu([{"type": "copy", "value": protocol.name, "label": "Copy Name"}])
                 }}>
-                    <a href="{{ url_for('protocols_page.protocol', protocol_id=protocol.id) }}">
+                    <a href="{{ url_for('protocol_page', protocol_id=protocol.id) }}">
                         {{ protocol.name }}
                     </a>
                 </td>

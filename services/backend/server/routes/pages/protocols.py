@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 
-from opengsync_db import models
+from opengsync_db import SyncSession, queries as Q
 
-from ...core import dependencies, responses, exceptions
+from ...core import dependencies, responses
 
 router = APIRouter(prefix="/protocols", tags=["protocols"])
 
@@ -13,10 +13,13 @@ def protocols_page():
 
 
 @router.get("/{protocol_id}")
-def protocol_page(protocol_id: int):
-    # NOTE: Protocol lookup and breadcrumb resolution handled client-side.
+def protocol_page(
+    protocol_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    protocol = session.get_one(Q.protocol.select(id=protocol_id))
     return responses.html_response(
         "protocol_page.html",
-        protocol_id=protocol_id,
-        title=f"Protocol {protocol_id}",
+        protocol=protocol,
+        title=f"Protocol {protocol.name}",
     )

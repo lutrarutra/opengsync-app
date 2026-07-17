@@ -23,6 +23,9 @@ from ...components.tables import HTMXTable, TableCol
 router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
 router.include_router(forms.models.SeqRequestForm.Router())
 router.include_router(forms.actions.SubmitSeqRequestAction.Router())
+router.include_router(forms.actions.AddSeqRequestAssigneeAction.Router())
+router.include_router(forms.actions.AddSeqRequestShareEmailAction.Router())
+router.include_router(forms.actions.ProcessSeqRequestAction.Router())
 
 class SeqRequestTable(HTMXTable):
     columns = [
@@ -218,45 +221,6 @@ def recent_seq_requests(
         current_page=page,
         limit=10,
     )
-
-
-@router.get("/{seq_request_id}/process-request")
-def render_process_seq_request_form(
-    seq_request_id: int,
-    request: Request,
-    session: SyncSession = Depends(dependencies.db_session),
-    current_user: models.User = Depends(dependencies.require_insider),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    """Render the process SeqRequest form."""
-    if access_level < C.AccessLevel.WRITE:
-        return responses.htmx_response(
-            redirect=responses.url_for("seq_requests_page")
-        )
-
-    seq_request = session.get_one(
-        Q.seq_request.select(id=seq_request_id).options(
-            orm.selectinload(models.SeqRequest.contact_person),
-        )
-    )
-
-    if (
-        seq_request.status_id != C.SeqRequestStatus.SUBMITTED.id
-        and access_level < C.AccessLevel.INSIDER
-    ):
-        return responses.htmx_response(
-            redirect=responses.url_for(
-                "seq_request_page", seq_request_id=seq_request_id
-            )
-        )
-
-    form = forms.actions.ProcessSeqRequestForm(request, seq_request=seq_request)
-    return form.make_response()
-
-
-@router.post("/{seq_request_id}/process-request")
-def process_request(response=Depends(forms.actions.ProcessSeqRequestForm.process_request)): return response
-
 
 @router.delete("/{seq_request_id}/delete")
 def delete_seq_request(
@@ -1067,72 +1031,3 @@ def remove_sample_from_request(
             "Removed all libraries associated with the sample.", "success"
         ),
     )
-
-@router.get("/{seq_request_id}/add-share-email")
-def render_add_share_email_form(
-    seq_request_id: int,
-    request: Request,
-    session: SyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    seq_request = session.get_one(Q.seq_request.select(id=seq_request_id))
-    form = forms.actions.SeqRequestShareEmailForm(request, seq_request=seq_request)
-    return form.make_response()
-
-
-@router.post("/{seq_request_id}/add-share-email")
-def add_share_email(
-    seq_request_id: int,
-    request: Request,
-    session: SyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException()
-
-    seq_request = session.get_one(
-        Q.seq_request.select(id=seq_request_id),
-        options=[orm.selectinload(models.SeqRequest.delivery_email_links)],
-    )
-    form = forms.actions.SeqRequestShareEmailForm(request, seq_request=seq_request)
-    form.validate()
-
-    email = form.email.data.strip()
-    if email in [link.email for link in seq_request.delivery_email_links]:
-        form.email.errors.append("This email address is already in the list.")
-        raise exc.FormValidationException(form)
-
-    seq_request.delivery_email_links.append(
-        models.links.SeqRequestDeliveryEmailLink(email=email)
-    )
-    session.save(seq_request)
-
-    return responses.htmx_response(
-        redirect=request.url_for(
-            "seq_request_page", seq_request_id=seq_request.id, tab="request-share-tab"
-        ),
-        flash=responses.flash("Email added to the list.", "success"),
-    )
-
-
-@router.get("/{seq_request_id}/add-assignee-form")
-def render_add_assignee_form(
-    seq_request_id: int,
-    request: Request,
-    session: SyncSession = Depends(dependencies.db_session),
-    current_user: models.User = Depends(dependencies.require_insider),
-):
-    seq_request = session.get_one(
-        Q.seq_request.select(id=seq_request_id).options(
-            orm.selectinload(models.SeqRequest.assignees)
-        ),
-    )
-    form = forms.actions.AddSeqRequestAssigneeForm(request, seq_request=seq_request, current_user=current_user)
-    return form.make_response()
-
-
-@router.post("/{seq_request_id}/add-assignee-form")
-def add_assignee_to_seq_request_from_form(response=Depends(forms.actions.AddSeqRequestAssigneeForm.add_assignee)): return response

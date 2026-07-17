@@ -175,9 +175,9 @@ if config.settings.ENVIRONMENT != "production":
         spreadsheet_input_optional = inputs.spreadsheet.SpreadsheetInputField(label="Spreadsheet Field", required=False)
         spreadsheet_input_optional.data # is correctly pd.DataFrame | None
 
-        spreadsheet_file_required = inputs.spreadsheet.SpreadsheetFileField(label="Spreadsheet Field")
+        spreadsheet_file_required = inputs.file.SpreadsheetFileField(label="Spreadsheet Field")
         spreadsheet_file_required.data # should be pd.DataFrame
-        spreadsheet_file_optional = inputs.spreadsheet.SpreadsheetFileField(label="Spreadsheet Field", required=False)
+        spreadsheet_file_optional = inputs.file.SpreadsheetFileField(label="Spreadsheet Field", required=False)
         spreadsheet_file_optional.data # should be pd.DataFrame | None
 
         return {"message": "This is a test route."}

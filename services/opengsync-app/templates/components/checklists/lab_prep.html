@@ -145,8 +145,8 @@
                         <a class="btn btn-primary" onclick="download_template()" data-url="{{ url_for('download_lab_prep_spreadsheet_template', lab_prep_id=lab_prep.id, direction='columns') }}">Columns</a>
                     </li>
                     <li>
-                        Fill the template as required and <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('render_lab_prep_table_upload_form', lab_prep_id=lab_prep.id) }}"
+                        Fill the template as required and <button class="btn-success btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('UploadLibraryPrepSpreadsheetAction.Begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Upload</button> the completed prep-table.
                     </li>

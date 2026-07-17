@@ -21,13 +21,11 @@ def search(
     name: str | None = None,
     statement: sa.Select[tuple[Protocol]] = sa.select(Protocol),
 ) -> sa.Select[tuple[Protocol]]:
-    if name is None:
-        return statement
-    return (
-        statement
-        .where(utils.safe_trgm_search(Protocol.name, name))
-        .order_by(sa.nulls_last(sa.func.similarity(Protocol.name, name).desc()))
-    )
+    if name is not None:
+        statement = statement.where(
+            utils.safe_trgm_search(Protocol.name, name)
+        ).order_by(sa.nulls_last(sa.func.similarity(Protocol.name, name).desc()))
+    return statement
 
 
 def select(

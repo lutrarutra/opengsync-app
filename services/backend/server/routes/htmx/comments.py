@@ -4,45 +4,14 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ...core import dependencies, responses, exceptions as exc, config
-from ...components.tables import HTMXTable, TableCol
+from ...core import dependencies, responses, exceptions as exc
 from ... import forms
 
 
 router = APIRouter(prefix="/comments", tags=["comments"])
-
-@router.get("/form")
-def render_comment_form(
-    request: Request,
-    seq_request_id: int | None = Query(None),
-    experiment_id: int | None = Query(None),
-    lab_prep_id: int | None = Query(None),
-    current_user: models.User = Depends(dependencies.require_user),
-    session: SyncSession = Depends(dependencies.db_session),
-) -> Response:
-    """Render the comment form for a seq request, experiment, or lab prep."""
-    forms.models.CommentForm.check_permissions(
-        current_user=current_user,
-        session=session,
-        seq_request_id=seq_request_id,
-        experiment_id=experiment_id,
-        lab_prep_id=lab_prep_id,
-    )
-    form = forms.models.CommentForm(
-        request,
-        seq_request_id=seq_request_id,
-        experiment_id=experiment_id,
-        lab_prep_id=lab_prep_id,
-    )
-    return form.make_response()
-
-
-@router.post("/form")
-def submit_comment_form(response: Response = Depends(forms.models.CommentForm.submit_form)) -> Response:
-    """Process the comment form submission."""
-    return response
+router.include_router(forms.models.CommentForm.Router())
 
 
 @router.get("/render-thread")

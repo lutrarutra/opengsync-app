@@ -1,5 +1,4 @@
 from fastapi import Depends, Response, Query
-from loguru import logger
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, actions
 

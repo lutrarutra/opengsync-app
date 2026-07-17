@@ -14,7 +14,7 @@
         </div>
         <div class="footer-controls">
             <button class="btn btn-success" hx-include="#add-seq_request-assignee-form" hx-target="#add-seq_request-assignee-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('add_assignee_to_seq_request_from_form', seq_request_id=seq_request.id) }}">Process</button>
+                hx-post="{{ form.post_url }}">Process</button>
         </div>
     </div>
 </div>

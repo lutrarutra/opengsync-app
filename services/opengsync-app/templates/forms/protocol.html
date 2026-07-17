@@ -11,7 +11,7 @@
     </div>
 
     <div class="modal-body" id="protocol-form">
-        {{ protocol_form.csrf_token() }}
+        {{ protocol_form.csrf_token.render() }}
         <div class="row">
             {{ form_group(protocol_form.name, class="col-6") }}
             {{ select_input(protocol_form.service_type, class="col-3") }}
@@ -27,10 +27,10 @@
         <div class="footer-controls">
             {% if protocol_form.form_type == "edit" %}
             <button class="btn btn-success" hx-include="#protocol-form" hx-target="#protocol-form-container" hx-swap="outerHTML"
-                hx-post="{{ url_for('protocols_htmx.edit', protocol_id=protocol.id) }}">Submit</button>
+                hx-post="{{ url_for('ProtocolForm.Edit', protocol_id=protocol.id) }}">Submit</button>
             {% elif protocol_form.form_type == "create" %}
             <button class="btn btn-success" hx-include="#protocol-form" hx-target="#protocol-form-container"
-                hx-swap="outerHTML" hx-post="{{ url_for('protocols_htmx.create') }}">Create</button>
+                hx-swap="outerHTML" hx-post="{{ url_for('ProtocolForm.Create') }}">Create</button>
             {% endif %}
         </div>
     </div>

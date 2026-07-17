@@ -2,7 +2,7 @@ import json
 
 from fastapi import Depends, Response
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C
+from opengsync_db import SyncSession, queries as Q, categories as C
 from opengsync_db.categories import LibraryStatus, LibraryType, LabChecklistType
 
 from ...core import dependencies, exceptions as exc, responses

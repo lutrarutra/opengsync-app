@@ -13,7 +13,7 @@
     </div>
     <div class="modal-footer" id="popup-footer">
         <button class="btn btn-success" hx-include="#seq_request_share_email_form-form" hx-target="#seq_request_share_email_form-form-container" hx-swap="outerHTML"
-        hx-post="{{ url_for('seq_requests_htmx.add_share_email', seq_request_id=form.seq_request.id) }}">
+        hx-post="{{ form.post_url }}">
             Submit
         </button>
     </div>

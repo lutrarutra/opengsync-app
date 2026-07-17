@@ -1,5 +1,5 @@
-from .AddKitsToProtocolWorkflow import AddKitsToProtocolWorkflow
+from ...actions.AddKitsToProtocolAction import AddKitsToProtocolAction
 
 __all__ = [
-    "AddKitsToProtocolWorkflow",
+    "AddKitsToProtocolAction",
 ]
