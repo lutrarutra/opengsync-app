@@ -117,6 +117,7 @@ def render_library_table(
             raise exc.NoPermissionsException("You do not have permission to view libraries for this experiment.")
         table.template = "components/tables/experiment-library.html"
         table.url_params["experiment_id"] = experiment_id
+        table.context["experiment_id"] = experiment_id
     elif lab_prep_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view libraries for this lab prep.")

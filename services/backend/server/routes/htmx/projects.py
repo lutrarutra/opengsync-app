@@ -122,6 +122,7 @@ def render_project_table(
             raise exc.NoPermissionsException("You do not have permission to view projects for this group.")
         table.template = "components/tables/group-project.html"
         table.url_params["group_id"] = group_id
+        table.context["group_id"] = group_id
     else:
         table.template = "components/tables/project.html"
         if not current_user.is_insider:

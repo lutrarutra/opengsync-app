@@ -2,8 +2,9 @@ import os
 import mimetypes
 
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import Response
 from sqlalchemy import orm
+from loguru import logger
+import markdown
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
@@ -133,3 +134,34 @@ def render_xlsx_spreadsheet(
 
     spreadsheet = UniverSpreadsheet(path=filepath)
     return spreadsheet.make_response()
+
+@router.get("/{media_file_id}/markdown", dependencies=[Depends(dependencies.media_file_permissions)])
+def render_markdown_file(
+    media_file_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    file = session.get_one(Q.media_file.select(id=media_file_id))
+
+    filepath = os.path.join("/media", file.path)
+    if not os.path.exists(filepath):
+        logger.error(f"File not found: {filepath}")
+        raise exc.ItemNotFoundException("File not found on disk.")
+    
+    with open(filepath, "r") as f:
+        content = f.read()
+    
+    return responses.htmx_response(
+        content=markdown.markdown(
+            content,
+            extensions=[
+                'tables',
+                'pymdownx.tasklist'
+            ],
+            extension_configs={
+                'pymdownx.tasklist': {
+                    'custom_checkbox': True,
+                    'clickable_checkbox': True
+                }
+            }
+        )
+    )

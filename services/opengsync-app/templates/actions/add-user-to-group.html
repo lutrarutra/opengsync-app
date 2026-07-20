@@ -9,9 +9,9 @@
     </div>
     <div class="modal-body">
         <div id="add_user_to_group-form">
-            {{ form.csrf_token() }}
-            {{ form_group(form.email) }}
-            {{ select_input(form.affiliation_type) }}
+            {{ form.csrf_token.render() }}
+            {{ form.email.render() }}
+            {{ form.affiliation_type.render() }}
         </div>
     </div>
     <div class="modal-footer">
@@ -22,7 +22,7 @@
         </div>
         <div class="footer-controls">
             <button class="btn btn-success" type="button"
-                hx-post="{{ url_for('groups_htmx.add_user', group_id=group.id) }}"
+                hx-post="{{ form.post_url }}"
                 hx-include="#add_user_to_group-form" hx-swap="outerHTML" hx-target="#add_user_to_group-form-container">
                 Submit
             </button>

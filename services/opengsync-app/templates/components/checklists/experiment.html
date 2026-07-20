@@ -17,7 +17,7 @@
                         {{
                             modal_button(
                                 "Begin", 
-                                url_for('begin_select_experiment_pools_workflow', experiment_id=experiment.id), 
+                                url_for('SelectExperimentPoolsAction.Begin', experiment_id=experiment.id), 
                                 size="xl",
                                 disabled=not can_be_edited
                             )
@@ -68,7 +68,7 @@
                         {{
                             modal_button(
                                 "Check Clashes", 
-                                url_for('check_experiment_barcode_clashes', experiment_id=experiment.id), 
+                                url_for('CheckBarcodeClashesAction.Render', experiment_id=experiment.id), 
                                 size="fullscreen",
                                 disabled=lanes_assigned is none
                             )
@@ -89,14 +89,25 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
+                        {% if experiment.workflow.combined_lanes %}
                         {{
                             modal_button(
                                 "Assign", 
-                                url_for('begin_dist_reads_workflow', experiment_id=experiment.id), 
+                                url_for('DistributeReadsCombinedAction.Begin', experiment_id=experiment.id), 
                                 size="xl",
                                 disabled=not can_be_edited or reads_assigned is none
                             )
                         }} reads to each pool
+                        {% else %}
+                        {{
+                            modal_button(
+                                "Assign", 
+                                url_for('DistributeReadsSeparateAction.Begin', experiment_id=experiment.id), 
+                                size="xl",
+                                disabled=not can_be_edited or reads_assigned is none
+                            )
+                        }} reads to each pool
+                        {% endif %}
                     </li>
                 </ol>
                 <div class="table-container">
@@ -219,7 +230,7 @@
                                     </div>
                                 </td>
                                 <td class="x-scroll-cell">
-                                    <span class="scroll-container">{% if pool.ba_report_id %}<span class="desc">{{ pool.ba_report.timestamp | format_datetime }}</span> <a href="{{ url_for('pdf_file', file_id=pool.ba_report_id) }}" target="_blank">{{ pool.ba_report.name }}</a></span>{% endif %}
+                                    <span class="scroll-container">{% if pool.ba_report_id %}<span class="desc">{{ pool.ba_report.timestamp | format_datetime }}</span> <a href="{{ url_for('serve_media_file', media_file_id=pool.ba_report_id) }}" target="_blank">{{ pool.ba_report.name }}</a></span>{% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -242,7 +253,7 @@
                     <li>
                         <button class="btn-primary btn"
                         data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('begin_dilute_pools_workflow', experiment_id=experiment.id) }}"
+                        hx-get="{{ url_for('DilutePoolsAction.Begin', experiment_id=experiment.id) }}"
                         hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if lanes_assigned is none %}disabled{% endif %} {% if not can_be_edited %}disabled{% endif %}>Begin</button> 'Dilute Pools' - Workflow.
                     </li>
                 </ol>
@@ -265,7 +276,11 @@
                     <li>
                         <button class="btn-primary btn"
                         data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('begin_lane_pools_workflow', experiment_id=experiment.id) }}"
+                        {% if experiment.workflow.combined_lanes %}
+                        hx-get="{{ url_for('LanePoolsCombinedAction.Begin', experiment_id=experiment.id) }}"
+                        {% else %}
+                        hx-get="{{ url_for('LanePoolsSeparateAction.Begin', experiment_id=experiment.id) }}"
+                        {% endif %}
                         hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if laning_completed is none %}disabled{% endif %} {% if not can_be_edited %}disabled{% endif %}>Begin</button> 'Lane Pools' - Workflow.
                     </li>
                 </ol>
@@ -275,7 +290,7 @@
                 </ul>
                 {% if experiment.lane_pooling_table %}
                 <div class="file-container">
-                    <div hx-get="{{ url_for('experiments_htmx.render_lane_sample_pooling_tables', file_id=experiment.lane_pooling_table.id, experiment_id=experiment.id) }}" hx-trigger="intersect once">
+                    <div hx-get="{{ url_for('render_experiment_sample_pooling_table', file_id=experiment.lane_pooling_table.id, experiment_id=experiment.id) }}" hx-trigger="intersect once">
                         {{ spinner() }}
                     </div>
                 </div>
@@ -386,7 +401,7 @@
                                     {% if lane.ba_report %}
                                     <span class="scroll-container">
                                         <span class="desc">{{ lane.ba_report.timestamp | format_datetime }}</span>
-                                        <a href="{{ url_for('pdf_file', file_id=lane.ba_report.id) }}" target="_blank">{{ lane.ba_report.name }}</a>
+                                        <a href="{{ url_for('serve_media_file', media_file_id=lane.ba_report.id) }}" target="_blank">{{ lane.ba_report.name }}</a>
                                     </span>
                                     {% endif %}
                                 </td>
@@ -411,7 +426,11 @@
                     <li>
                         <button class="btn-primary btn"
                         data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('begin_load_flow_cell_workflow', experiment_id=experiment.id) }}"
+                        {% if experiment.workflow.combined_lanes %}
+                        hx-get="{{ url_for('LoadFlowCellCombinedAction.Begin', experiment_id=experiment.id) }}"
+                        {% else %}
+                        hx-get="{{ url_for('LoadFlowCellSeparateAction.Begin', experiment_id=experiment.id) }}"
+                        {% endif %}
                         hx-target="#fullscreen-modal-content" hx-swap="innerHTML" {% if flowcell_loaded is none %}disabled{% endif %} {% if not can_be_edited %}disabled{% endif %}>Begin</button> 'Load Flow Cell' - Workflow.
                     </li>
                 </ol>
@@ -475,7 +494,7 @@
         </h2>
         <div id="sops-accordiod-collapse-12" class="accordion-collapse collapse collapsed" data-bs-parent="#sops-accordion">
             <div class="accordion-body">
-                <div hx-get="{{ url_for('experiments_htmx.set_cycles', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                <div hx-get="{{ url_for('SetExperimentCyclesAction.Begin', experiment_id=experiment.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                     {{ spinner() }}
                 </div>
             </div>
@@ -500,7 +519,7 @@
                     <li>
                         {{ 
                             modal_button(
-                                "Begin", url_for('experiments_htmx.sequencer_loading_checklist', experiment_id=experiment.id),
+                                "Begin", url_for('GenerateSequencerLoadingChecklistAction.Begin', experiment_id=experiment.id),
                                 disabled=not can_be_edited,
                             )
                         }} Workflow
@@ -516,7 +535,7 @@
                     </li>
                 </ol>
                 {% if experiment.sequencer_loading_checklist %}
-                <div id="loading-checklist-container" hx-get="{{ url_for('files_htmx.render_markdown_file', file_id=experiment.sequencer_loading_checklist.id) }}" hx-trigger="intersect once" hx-swap="innerHTML">
+                <div id="loading-checklist-container" hx-get="{{ url_for('render_markdown_file', media_file_id=experiment.sequencer_loading_checklist.id) }}" hx-trigger="intersect once" hx-swap="innerHTML">
                     {{ spinner() }}
                 </div>
                 {% endif %}

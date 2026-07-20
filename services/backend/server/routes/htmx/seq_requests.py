@@ -136,6 +136,7 @@ def render_seq_request_table(
             raise exc.NoPermissionsException("You do not have permission to view seq requests for this group.")
         table.template = "components/tables/group-seq_request.html"
         table.url_params["group_id"] = group_id
+        table.context["group_id"] = group_id
     elif project_id is not None:
         if session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view seq requests for this project.")

@@ -28,6 +28,7 @@ class PoolTable(HTMXTable):
 @router.get("/render-table-page")
 def render_pool_table(
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter pools"),
+    experiment_id: int | None = Query(None, description="Optional experiment ID to filter pools"),
     status_in: list[C.PoolStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PoolStatus, query_param="status_in")),
     library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
     type_in: list[C.PoolType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PoolType, query_param="type_in")),
@@ -48,6 +49,7 @@ def render_pool_table(
 
     stmt = Q.pool.select(
         seq_request_id=seq_request_id,
+        experiment_id=experiment_id,
         status_in=status_in,
         library_types_in=library_types_in,
         type_in=type_in,
@@ -63,6 +65,16 @@ def render_pool_table(
         table.template = "components/tables/browse-pool.html"
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse
+    elif experiment_id is not None:
+        if not current_user.is_insider:
+            raise exc.NoPermissionsException("You do not have permission to view pools for this experiment.")
+        table.template = "components/tables/experiment-pool.html"
+        table.url_params["experiment_id"] = experiment_id
+        experiment = session.get_one(Q.experiment.select(id=experiment_id).options(
+            orm.selectinload(models.Experiment.lanes).selectinload(models.Lane.pool_links),
+        ))
+        table.context["experiment"] = experiment
+        table.context["can_edit_pooling"] = (experiment.status == C.ExperimentStatus.DRAFT or current_user.is_admin) and not experiment.workflow.combined_lanes
     else:
         table.template = "components/tables/pool.html"
         if not current_user.is_insider:

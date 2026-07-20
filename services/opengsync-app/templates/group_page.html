@@ -9,14 +9,14 @@
             <h1>{{ group.name }} <span {{ tooltip(group.type.label, position="right") }}>{{ group.type.icon }}</span></h1>
         </div>
         <div class="page-controls">
-            {% if can_add_users %}
+            {% if access_level >= C.AccessLevel.WRITE %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                hx-get="{{ url_for('groups_htmx.add_user', group_id=group.id) }}"
+                hx-get="{{ url_for('AddUserToGroupAction.Begin', group_id=group.id) }}"
                 hx-swap="innerHTML" hx-target="#xl-modal-content">
                 Add Member
             </button>
             {% endif %}
-            {% if can_edit %}
+            {% if access_level >= C.AccessLevel.WRITE %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#group-form-popup">
                 Edit Group
             </button>
@@ -50,12 +50,12 @@
         <div class="tab-pane fade show active" id="group-members-tab" role="tabpanel" tabindex="0">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h2>Members {% if can_add_users %}<img {{ tooltip('Right click on a user\'s name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;">{% endif %}</h2>
+                    <h2>Members {% if access_level >= C.AccessLevel.WRITE %}<img {{ tooltip('Right click on a user\'s name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;">{% endif %}</h2>
                 </div>
                 <div>
                 </div>
             </div>
-            <div hx-get="{{ url_for('groups_htmx.get_affiliations', group_id=group.id) }}" hx-trigger="load" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_affiliation_table', group_id=group.id) }}" hx-trigger="load" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

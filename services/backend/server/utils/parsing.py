@@ -3,9 +3,11 @@ import re
 import json
 import unicodedata
 import difflib
+from collections.abc import Generator, Hashable
 from typing import Union, TypeVar, Optional
 
 import pandas as pd
+from pydantic import BaseModel, TypeAdapter
 
 from opengsync_db.categories.ExtendedEnum import DBEnum
 
@@ -84,6 +86,8 @@ def parse_int(val: Union[int, str, None]) -> int | None:
 
 
 T = TypeVar('T')
+M = TypeVar('M', bound=BaseModel)
+I = TypeVar('I', default=Hashable)
 
 
 def mapstr(
@@ -243,3 +247,91 @@ def is_valid_email(email: str | None) -> bool:
         return False
     # basic check for email validity
     return "@" in email and "." in email.split("@")[-1]
+
+
+def safe_iter(
+    df: pd.DataFrame,
+    model: type[M],
+    index_type: type[I] = Hashable,
+) -> Generator[tuple[I, M], None, None]:
+    """Iterate over DataFrame rows, validating each against a Pydantic model.
+
+    For each row, only columns matching ``model`` fields are included.
+    NaN/NaT values are converted to ``None``, and numpy scalars are
+    unwrapped to native Python types before validation.
+
+    Args:
+        df: Source DataFrame.
+        model: Pydantic model class to validate each row against.
+        index_type: Expected type of the DataFrame index. Defaults to
+            ``Hashable`` (no validation). Pass ``int`` or ``str`` to
+            validate each index value with Pydantic's ``TypeAdapter``.
+
+    Yields:
+        Tuples of ``(index, model_instance)`` where ``index`` is the
+        DataFrame row index (validated if ``index_type`` is specified)
+        and ``model_instance`` is the validated Pydantic model.
+
+    Raises:
+        pydantic.ValidationError: Immediately on the first row or index
+            that fails validation.
+    """
+    model_fields = set(model.model_fields.keys())
+    columns = [col for col in df.columns if col in model_fields]
+
+    _validate_index = index_type is not Hashable
+    if _validate_index:
+        index_adapter = TypeAdapter(index_type)
+
+    for idx, row in df.iterrows():
+        if _validate_index:
+            idx = index_adapter.validate_python(idx)  # type: ignore[assignment]
+
+        row_dict: dict[str, object] = {}
+        for col in columns:
+            val = row[col]
+            if pd.isna(val):
+                row_dict[col] = None
+            elif hasattr(val, 'item'):
+                row_dict[col] = val.item()  # type: ignore[union-attr]
+            else:
+                row_dict[col] = val
+
+        yield idx, model.model_validate(row_dict)  # type: ignore[return-type]
+
+
+def safe_groupby(
+    df: pd.DataFrame,
+    by: str | list[str],
+    key_model: type[M],
+) -> Generator[tuple[M, pd.DataFrame], None, None]:
+    """Group DataFrame rows by column(s), validating the group key against a Pydantic model.
+
+    Works like :func:`pandas.DataFrame.groupby`, but the group key is
+    validated through ``key_model``.  The group DataFrame is returned
+    unchanged.
+
+    Args:
+        df: Source DataFrame.
+        by: Column name(s) to group by (passed to ``df.groupby(by)``).
+        key_model: Pydantic model class to validate each group key against.
+            The model's field names must match the ``by`` column names.
+
+    Yields:
+        Tuples of ``(key, group_df)`` where ``key`` is the validated
+        Pydantic model instance and ``group_df`` is the raw subset
+        DataFrame for that group.
+
+    Raises:
+        pydantic.ValidationError: Immediately on the first group key that
+            fails validation.
+    """
+    by_cols = [by] if isinstance(by, str) else by
+
+    for group_key, group_df in df.groupby(by):
+        if isinstance(group_key, tuple):
+            key_dict = dict(zip(by_cols, group_key))
+        else:
+            key_dict = {by_cols[0]: group_key}
+
+        yield key_model.model_validate(key_dict), group_df

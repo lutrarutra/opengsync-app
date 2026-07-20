@@ -1,5 +1,4 @@
-<div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
-    <div class="modal-content">
+<div class="modal-content" id="group-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Group</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -16,7 +15,7 @@
         </div>
         <div class="footer-controls">
             <button id="submit-group-btn" class="btn btn-success"
-            hx-include="#group-form" hx-target="#group-form" hx-swap="outerHTML"
+            hx-include="#group-form-container" hx-target="#group-form-container" hx-swap="outerHTML"
             hx-post="{{ form.post_url }}">Submit</button>
         </div>
     </div>

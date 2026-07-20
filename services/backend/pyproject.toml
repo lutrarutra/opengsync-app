@@ -32,7 +32,8 @@ dependencies = [
     "proxmoxer",
     "fastapi-cache2",
     "openpyxl",
-    "pyarrow"
+    "pyarrow",
+    "markdown",
 ]
 
 [tool.setuptools_scm]

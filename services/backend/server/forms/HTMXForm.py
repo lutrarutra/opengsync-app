@@ -295,13 +295,12 @@ class HTMXForm(ABC):
                             field.errors.append(msg)
                             break
 
-            # Mark fields without errors as validated so their submitted
+            # Mark all fields as validated so their submitted
             # values are preserved on re-render (instead of falling back to
             # the default).
             for field in pydantic_fields:
-                if not field.errors:
-                    field._data = self.raw_data.get(field.name, field.default)
-                    field._validated = True
+                field._data = self.raw_data.get(field.name, field.default)
+                field._validated = True
 
         if not all_sub_forms_valid or any(field.errors for field in self.input_fields):
             raise exc.FormValidationException(self)

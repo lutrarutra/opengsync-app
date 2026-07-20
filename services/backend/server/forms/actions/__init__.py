@@ -13,6 +13,13 @@ from .FlexMuxPrepAction import FlexMuxPrepAction
 from .SamplePoolingAction import SamplePoolingAction
 from .LibraryPoolingAction import LibraryPoolingAction
 from .AddKitsToProtocolAction import AddKitsToProtocolAction
+from .AddUserToGroupAction import AddUserToGroupAction
+from .SelectExperimentPoolsAction import SelectExperimentPoolsAction
+from .DilutePoolsAction import DilutePoolsAction
+from .SetExperimentCyclesAction import SetExperimentCyclesAction
+from .GenerateSequencerLoadingChecklistAction import GenerateSequencerLoadingChecklistAction
+
+from . import dist_reads, lane_pools, load_flowcell
 
 __all__ = [
     "AddSeqRequestAssigneeAction",
@@ -30,4 +37,12 @@ __all__ = [
     "SamplePoolingAction",
     "LibraryPoolingAction",
     "AddKitsToProtocolAction",
+    "AddUserToGroupAction",
+    "SelectExperimentPoolsAction",
+    "DilutePoolsAction",
+    "SetExperimentCyclesAction",
+    "GenerateSequencerLoadingChecklistAction",
+    "dist_reads",
+    "lane_pools",
+    "load_flowcell",
 ]

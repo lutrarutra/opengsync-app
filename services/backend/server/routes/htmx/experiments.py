@@ -1,15 +1,28 @@
-from fastapi import APIRouter, Depends, Query
+import os
+
+import pandas as pd
+from fastapi import APIRouter, Depends, Query, Path
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, units
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, units, actions
 
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
 from ...components.tables import StaticSpreadsheet, TextColumn
-from ...forms.models import ExperimentForm
+from ... import forms
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
-router.include_router(ExperimentForm.Router())
+router.include_router(forms.models.ExperimentForm.Router())
+router.include_router(forms.actions.dist_reads.DistributeReadsSeparateAction.Router())
+router.include_router(forms.actions.dist_reads.DistributeReadsCombinedAction.Router())
+router.include_router(forms.actions.SelectExperimentPoolsAction.Router())
+router.include_router(forms.actions.DilutePoolsAction.Router())
+router.include_router(forms.actions.lane_pools.LanePoolsSeparateAction.Router())
+router.include_router(forms.actions.lane_pools.LanePoolsCombinedAction.Router())
+router.include_router(forms.actions.load_flowcell.LoadFlowCellSeparateAction.Router())
+router.include_router(forms.actions.load_flowcell.LoadFlowCellCombinedAction.Router())
+router.include_router(forms.actions.SetExperimentCyclesAction.Router())
+router.include_router(forms.actions.GenerateSequencerLoadingChecklistAction.Router())
 
 class ExperimentTable(HTMXTable):
     columns = [
@@ -67,7 +80,6 @@ def render_experiment_table(
         ]
     )
     table.set_num_pages(count)
-
     return table.make_response(experiments=experiments)
 
 @router.get("/{experiment_id}/delete")
@@ -234,4 +246,102 @@ def experiment_stats(
         experiment=experiment, library_stats=library_stats, pool_stats=pool_stats,
         num_total_reads=units.Quantity(experiment.get_demultiplexed_reads(), units.read),
         num_library_reads=units.Quantity(experiment.get_demultiplexed_reads(include_undetermined=False), units.read)
+    )
+
+@router.delete("/{experiment_id}/remove-pool/{pool_id}", dependencies=[Depends(dependencies.require_insider)])
+def remove_pool_from_experiment(
+    experiment_id: int,
+    pool_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    experiment = session.get_one(Q.experiment.select(id=experiment_id))
+    pool = session.get_one(Q.pool.select(id=pool_id))
+
+    if pool not in experiment.pools:
+        raise exc.BadRequestException(f"Pool {pool.name} is not associated with Experiment {experiment.name}.")
+
+    experiment.pools.remove(pool)
+    session.save(experiment)
+
+    return responses.htmx_response(
+        redirect=responses.url_for("experiment_page", experiment_id=experiment.id),
+        flash=responses.flash(f"Pool '{pool.name}' removed from Experiment '{experiment.name}'.", "success")
+    )
+
+
+@router.post("/{experiment_id}/lane-pool/{lane}/{pool_id}", dependencies=[Depends(dependencies.require_insider)])
+def add_pool_to_lane(
+    experiment_id: int,
+    lane_num: int = Path(..., alias="lane"),
+    pool_id: int = Path(...),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    experiment = session.get_one(Q.experiment.select(id=experiment_id))
+    if experiment.workflow.combined_lanes:
+        raise exc.BadRequestException(f"Experiment {experiment.name} is a combined-lane workflow, and does not support lane-specific pools.")
+    
+    from loguru import logger
+    logger.debug(f"Adding Pool {pool_id} to Lane {lane_num} in Experiment {experiment_id}")
+    pool = session.get_one(Q.pool.select(id=pool_id, experiment_id=experiment.id))
+    lane = session.get_one(Q.lane.select(experiment_id=experiment.id, number=lane_num))
+    
+    actions.add_pool_to_lane(session, experiment=experiment, pool=pool, lane=lane)
+
+    return responses.htmx_response(
+        redirect=responses.url_for("experiment_page", experiment_id=experiment.id),
+        flash=responses.flash(f"Pool '{pool.name}' added to Experiment '{experiment.name}' on Lane {lane.number}.", "success")
+    )
+
+@router.delete("/{experiment_id}/lane-pool/{lane}/{pool_id}", dependencies=[Depends(dependencies.require_insider)])
+def remove_pool_from_lane(
+    experiment_id: int,
+    lane_num: int = Path(..., alias="lane"),
+    pool_id: int = Path(...),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    experiment = session.get_one(Q.experiment.select(id=experiment_id))
+    if experiment.workflow.combined_lanes:
+        raise exc.BadRequestException(f"Experiment {experiment.name} is a combined-lane workflow, and does not support lane-specific pools.")
+    
+    pool = session.get_one(Q.pool.select(id=pool_id))
+
+    if pool not in experiment.pools:
+        raise exc.BadRequestException(f"Pool {pool.name} is not associated with Experiment {experiment.name}.")
+    
+    lane = session.get_one(Q.lane.select(experiment_id=experiment.id, number=lane_num))
+    
+    actions.remove_pool_from_lane(session, experiment=experiment, pool=pool, lane=lane)
+
+    return responses.htmx_response(
+        redirect=responses.url_for("experiment_page", experiment_id=experiment.id),
+        flash=responses.flash(f"Pool '{pool.name}' removed from Experiment '{experiment.name}' on Lane {lane.number}.", "success")
+    )
+
+@router.get("/{experiment_id}/sample-pooling-table/{file_id}", dependencies=[Depends(dependencies.require_insider)])
+def render_experiment_sample_pooling_table(
+    experiment_id: int,
+    file_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    experiment = session.get_one(Q.experiment.select(id=experiment_id))
+    file = session.get_one(Q.media_file.select(id=file_id, experiment_id=experiment.id))
+
+    if not os.path.exists(filepath := os.path.join("/media", file.path)):
+        raise exc.ItemNotFoundException()
+
+    df = pd.read_csv(filepath, sep="\t")
+
+    if "lane" not in df.columns:
+        target_molarity = df["target_molarity"].values[0]
+        target_total_volume = df["target_total_volume"].values[0]
+        pipet = df["pipet"].sum()
+        eb_volume = target_total_volume - pipet
+        return responses.htmx_response(
+            "components/experiment-pooling-ratios.html", experiment=experiment, df=df,
+            target_molarity=target_molarity, target_total_volume=target_total_volume,
+            pipet=pipet, eb_volume=eb_volume
+        )
+    
+    return responses.htmx_response(
+        "components/lane-pooling-ratios.html", experiment=experiment, df=df
     )

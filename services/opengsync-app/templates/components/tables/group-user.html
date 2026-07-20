@@ -20,13 +20,13 @@
                 <td class="cm-callback"
                 {{
                     context_menu([
-                        {"type": "hxdelete", "label": "Remove User", "disabled": false if can_add_users else true, "config": {
-                            "url": url_for('groups_htmx.remove_user', group_id=group.id, user_id=affiliation.user.id),
+                        {"type": "hxdelete", "label": "Remove User", "disabled": false if access_level >= C.AccessLevel.WRITE else true, "config": {
+                            "url": url_for('remove_user_from_group', group_id=group.id, user_id=affiliation.user.id).__str__(),
                             "target": "#group-user-table",
                             "title": "Remove user '{user}' from group '{group}'?".format(user=affiliation.user.name, group=group.name)
                         },},
-                        {"type": "hxpost", "label": "Make Owner", "disabled": false if can_add_users else true, "config": {
-                            "url": url_for('groups_htmx.make_owner', group_id=group.id, user_id=affiliation.user.id),
+                        {"type": "hxpost", "label": "Make Owner", "disabled": false if access_level >= C.AccessLevel.WRITE else true, "config": {
+                            "url": url_for('make_owner_of_group', group_id=group.id, user_id=affiliation.user.id).__str__(),
                             "target": "#group-user-table",
                             "title": "Make user '{user}' an owner of group '{group}'?".format(user=affiliation.user.name, group=group.name)
                         },},

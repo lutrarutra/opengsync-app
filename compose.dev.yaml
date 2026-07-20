@@ -54,7 +54,6 @@ services:
         command: >
             bash -c "
             cd services/backend &&
-            python -m server.scripts.prestart &&
             uvicorn server.main:app --host 0.0.0.0 --port ${OPENGSYNC_PORT:-5000} --reload"
 
     opengsync-celery-worker:

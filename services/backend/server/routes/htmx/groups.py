@@ -2,13 +2,14 @@ from fastapi import APIRouter, Depends, Query
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
+from ...core import dependencies, responses, exceptions as exc
 from ... import forms
-from ...core import dependencies, responses
 from ...components.tables import HTMXTable, TableCol
 
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 router.include_router(forms.models.GroupForm.Router())
+router.include_router(forms.actions.AddUserToGroupAction.Router())
 
 class GroupTable(HTMXTable):
     columns = [
@@ -79,3 +80,47 @@ def search_groups(
 
     groups, count = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/group.html", groups=groups)
+
+
+@router.delete("/{group_id}/remove-user/{user_id}")
+def remove_user_from_group(
+    group_id: int,
+    user_id: int,
+    current_user: models.User = Depends(dependencies.require_user),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException("You do not have permission to remove users from this group.")
+
+    affiliation = session.get_one(Q.affiliation.select(group_id=group_id, user_id=user_id))
+    if affiliation.affiliation_type == C.AffiliationType.OWNER:
+        raise exc.NoPermissionsException("You cannot remove an owner from the group.")
+    
+    session.delete(affiliation)
+
+    return responses.htmx_response(
+        redirect=responses.url_for("group_page", group_id=group_id),
+        flash=responses.flash("User removed from group.", "success")
+    )
+
+@router.post("/{group_id}/make-owner/{user_id}")
+def make_owner_of_group(
+    group_id: int,
+    user_id: int,
+    current_user: models.User = Depends(dependencies.require_user),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException("You do not have permission to make users owners of this group.")
+
+    group = session.get_one(Q.group.select(id=group_id))
+    owner_affiliation = session.get_one(Q.affiliation.select(group_id=group_id, user_id=group.owner.id))
+    owner_affiliation.affiliation_type = C.AffiliationType.MANAGER
+    
+    affiliation = session.get_one(Q.affiliation.select(group_id=group_id, user_id=user_id))
+    affiliation.affiliation_type = C.AffiliationType.OWNER
+
+    return responses.htmx_response(
+        redirect=responses.url_for("group_page", group_id=group_id),
+        flash=responses.flash("User is now an owner of the group.", "success")
+    )

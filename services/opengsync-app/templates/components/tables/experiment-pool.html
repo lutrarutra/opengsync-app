@@ -13,7 +13,7 @@
         {% set m_reads_used = experiment.m_reads_planned() %}
         {% set reads_used_pct = 100.0 * m_reads_used / experiment.flowcell_type.max_m_reads %}
         <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;"
-        hx-get="{{ url_for('begin_dist_reads_workflow', experiment_id=experiment.id) }}" hx-target="#xl-modal-content" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">
+        hx-get="{{ url_for('DistributeReadsCombinedAction.Begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">
             <div class="progress-title">
                 <b>Flowcell</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.label }}</b> &mdash; {{ m_reads_used | int }}/{{ experiment.flowcell_type.max_m_reads }} Million Reads)
             </div>
@@ -25,7 +25,7 @@
         {% set m_reads_used = lane.m_reads_planned() %}
         {% set reads_used_pct = 100.0 * m_reads_used / experiment.flowcell_type.max_m_reads_per_lane %}
         <div type="button" class="progress relative-progress flowcell-capacity-bar" role="progressbar" aria-valuenow="{{ reads_used_pct }}" aria-valuemin="0" aria-valuemax="100" style="height: 25px;"
-        hx-get="{{ url_for('begin_dist_reads_workflow', experiment_id=experiment.id) }}" hx-target="#xl-modal-content" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">
+        hx-get="{{ url_for('DistributeReadsSeparateAction.Begin', experiment_id=experiment.id) }}" hx-target="#xl-modal-content" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#xl-modal">
             <div class="progress-title">
                 <b>Lane {{ lane.number }}</b> Capacity: {{ "%0.1f" % reads_used_pct }}% (Flowcell: <b>{{ experiment.flowcell_type.label }}</b> &mdash; {{ m_reads_used | int }}/{{ experiment.flowcell_type.max_m_reads_per_lane }} Million Reads)
             </div>
@@ -57,7 +57,7 @@
                     context_menu([
                         {"type": "copy", "value": pool.name, "label": "Copy Name"},
                         {"type": "hxdelete", "label": "Remove Pool", "disabled": false if current_user.is_admin or experiment.status == C.ExperimentStatus.DRAFT else true, "config": {
-                            "url": url_for('experiments_htmx.remove_pool', experiment_id=experiment.id, pool_id=pool.id, sort_by=sort_by, sort_order=sort_order),
+                            "url": url_for('remove_pool_from_experiment', experiment_id=experiment.id, pool_id=pool.id).__str__(),
                             "target": "#experiment-pool-table",
                             "title": "Remove {pool.name} from {experiment.name}?".format(pool=pool, experiment=experiment)
                         },}
@@ -84,7 +84,7 @@
                                 {% set lane, num_m_reads = pool.lane(lane_num) %}
                                 <button type="button" class="btn btn-primary table-btn pool-lane-btn"
                                 hx-target="#experiment-pool-table" hx-swap="outerHTML"
-                                hx-delete="{{ url_for('experiments_htmx.unlane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num, sort_by=sort_by, sort_order=sort_order) }}">
+                                hx-delete="{{ url_for('remove_pool_from_lane', experiment_id=experiment.id, pool_id=pool.id, lane=lane_num) }}">
                                     <span {{ tooltip("Reads: " + (num_m_reads or 0) | string) }}>
                                         {{ lane_num }}
                                     </span>
@@ -92,7 +92,7 @@
                                 {% else %}
                                 <button type="button" class="btn btn-outline-primary table-btn pool-lane-btn"
                                 hx-target="#experiment-pool-table" hx-swap="outerHTML"
-                                hx-post="{{ url_for('experiments_htmx.lane_pool', experiment_id=experiment.id, pool_id=pool.id, lane_num=lane_num, sort_by=sort_by, sort_order=sort_order) }}">
+                                hx-post="{{ url_for('add_pool_to_lane', experiment_id=experiment.id, pool_id=pool.id, lane=lane_num) }}">
                                     {{ lane_num }}
                                 </button>
                                 {% endif %}
@@ -123,4 +123,10 @@
             {% endfor %}
         </tbody>
     </table>
+    {{ pagination("experiment-pool-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#experiment-pool-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

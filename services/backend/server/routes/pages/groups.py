@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from opengsync_db import models
+from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 from ...core import dependencies, responses
 
@@ -15,12 +15,14 @@ def groups_page():
 @router.get("/{group_id}")
 def group_page(
     group_id: int,
-    current_user: models.User = Depends(dependencies.require_user),
+    session: SyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.group_permissions),
 ):
-    # NOTE: Group lookup, affiliation checks, form generation, and
-    # breadcrumb resolution are handled client-side via API calls.
+    group = session.get_one(Q.group.select(id=group_id))
+
     return responses.html_response(
         "group_page.html",
-        group_id=group_id,
+        group=group,
         title=f"Group {group_id}",
+        access_level=access_level,
     )

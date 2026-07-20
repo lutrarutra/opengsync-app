@@ -1,7 +1,3 @@
-{% from 'components/form_group.jinja2' import form_group, select_input %}
-{% from 'components/search_select.jinja2' import search_select_field %}
-
-
 <div class="modal-content" id="sequencer-loading-checklist-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Create Sequencer Loading Checklist</h1>
@@ -9,13 +5,13 @@
     </div>
     <div class="modal-body">
         <div id="sequencer-loading-checklist-form">
-            {{ form.csrf_token() }}
+            {{ form.csrf_token.render() }}
 
             {% for subform in form.parameters %}
             <div class="row">
-                {{ subform.csrf_token() }}
-                {{ form_group(subform.param_label, class="col-6", readonly=True) }}
-                {{ form_group(subform.param_value, class="col-6") }}
+                {{ subform.csrf_token.render() }}
+                {{ subform.param_label.render(class="col-6") }}
+                {{ subform.param_value.render(class="col-6") }}
                 {{ subform.var_name }}
             </div>
             {% endfor %}
@@ -29,7 +25,7 @@
         <div class="footer-controls">
             <button class="btn btn-success"
             hx-include="#sequencer-loading-checklist-form" hx-target="#sequencer-loading-checklist-form-container" hx-swap="outerHTML"
-            hx-post="{{ url_for('experiments_htmx.sequencer_loading_checklist', experiment_id=form.experiment.id) }}">Submit</button>
+            hx-post="{{ url_for('GenerateSequencerLoadingChecklistAction.Submit', experiment_id=form.experiment.id) }}">Submit</button>
         </div>
     </div>
 </div>

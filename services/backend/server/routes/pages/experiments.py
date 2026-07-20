@@ -20,15 +20,9 @@ def experiment_page(
     path_list: list = Depends(dependencies.parse_from_page),
 ):
     experiment = session.get_one(Q.experiment.select(id=experiment_id).options(
-        orm.selectinload(models.Experiment.lanes).selectinload(models.Lane.pool_links),
+        orm.selectinload(models.Experiment.lanes).selectinload(models.Lane.pool_links).selectinload(models.links.LanePoolLink.pool),
+        orm.selectinload(models.Experiment.pools).selectinload(models.Pool.lane_links),
     ))
-    experiment_lanes: dict[int, list[int]] = {}
-
-    for lane in experiment.lanes:
-        experiment_lanes[lane.number] = []
-
-        for link in lane.pool_links:
-            experiment_lanes[lane.number].append(link.pool_id)
 
     checklist = experiment.get_checklist()
     steps = [
@@ -46,10 +40,10 @@ def experiment_page(
     if experiment.workflow.load_sequencer_workflow_checklist is not None:
         steps.append(checklist["loading_checklist_generated"])
     steps_completed = sum(1 for item in steps if item)
+
     return responses.html_response(
         "experiment_page.html", experiment=experiment, title=experiment.name, path_list=path_list,
         pools=experiment.pools,
-        experiment_lanes=experiment_lanes,
         selected_sequencer=experiment.sequencer.name,
         selected_user=experiment.operator,
         checklist_steps_completed=steps_completed,
