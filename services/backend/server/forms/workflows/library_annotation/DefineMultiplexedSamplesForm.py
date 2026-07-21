@@ -9,8 +9,7 @@ from ....components import inputs
 from ....components.tables import TextColumn, DropdownColumn, DuplicateCellValue, MissingCellValue, InvalidCellValue
 from ..HTMXWorkflowStep import HTMXWorkflowStep
 from ...HTMXForm import RouteFunc, htmx_route
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 from .CustomAssayAnnotationForm import CustomAssayAnnotationForm
 
 class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):

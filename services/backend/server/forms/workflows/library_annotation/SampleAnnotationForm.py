@@ -8,12 +8,10 @@ from .... import utils
 from ....components import inputs
 from ....components.tables import TextColumn, CategoricalDropDown
 from ...HTMXForm import RouteFunc, htmx_route
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 
 class SampleAnnotationForm(LibraryAnnotationWorkflowStep):
-    workflow: LibraryAnnotationWorkflow
     template_path = "workflows/library_annotation/sas-sample_annotation.html"
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(columns=[
         TextColumn("sample_name", "Sample Name", 300, required=True, max_length=models.Sample.name.type.length, min_length=4, clean_up_fnc=lambda x: utils.parsing.make_alpha_numeric(x, keep=["_", "."]), validation_fnc=lambda x: utils.parsing.check_string(x, allowed_special_characters=["_"]), unique=True),

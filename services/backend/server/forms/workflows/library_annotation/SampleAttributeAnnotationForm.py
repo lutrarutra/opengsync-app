@@ -6,10 +6,9 @@ from opengsync_db import models, categories as C
 from ....core import exceptions as exc
 from ....components import inputs
 from ....components.tables import TextColumn
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 from ...HTMXForm import RouteFunc, htmx_route
 from ....components.tables import MissingCellValue
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
 
 class SampleAttributeAnnotationForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow

@@ -25,6 +25,7 @@ from . import (
     dilutions,
     protocols,
     kits,
+    lanes
 )
 
 router = APIRouter(prefix="/htmx", tags=["pages", "htmx"])
@@ -38,7 +39,7 @@ router.include_router(events.router, dependencies=[Depends(auth.dependencies.req
 router.include_router(projects.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(pools.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(samples.router, dependencies=[Depends(auth.dependencies.require_user)])
-router.include_router(experiments.router, dependencies=[Depends(auth.dependencies.require_insider)])
+router.include_router(experiments.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(sequencers.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(share_tokens.router, dependencies=[Depends(auth.dependencies.require_insider)])
 router.include_router(users.router, dependencies=[Depends(auth.dependencies.require_user)])
@@ -51,3 +52,4 @@ router.include_router(pool_design.router, dependencies=[Depends(auth.dependencie
 router.include_router(dilutions.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(protocols.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(kits.router, dependencies=[Depends(auth.dependencies.require_user)])
+router.include_router(lanes.router, dependencies=[Depends(auth.dependencies.require_user)])

@@ -9,8 +9,7 @@ from ....utils import parsing
 from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
 from ...SubHTMXForm import SubHTMXForm
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 
 class PoolMappingSubForm(SubHTMXForm):

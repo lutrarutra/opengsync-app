@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TypeVar
 
 from fastapi import Query, Depends, APIRouter
 
@@ -6,11 +6,43 @@ from opengsync_db import categories as C
 
 from ....core import dependencies, exceptions as exc, redis, responses
 from ..HTMXWorkflow import HTMXWorkflow, WorkflowFunc
-from ...HTMXForm import RouteFunc
+from ...HTMXForm import RouteFunc, FormFunc
+from ..HTMXWorkflowStep import HTMXWorkflowStep
 from .. import library_annotation as wf
 
-if TYPE_CHECKING:
-    from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+
+T = TypeVar("T", bound="LibraryAnnotationWorkflowStep")
+
+
+class LibraryAnnotationWorkflowStep(HTMXWorkflowStep):
+    """Base workflow step with standard Library Annotation construction."""
+
+    workflow: LibraryAnnotationWorkflow
+
+    @property
+    def post_url(self) -> responses.URL:
+        return self.PostURL(
+            prefix="LibraryAnnotationWorkflow",
+            seq_request_id=self.workflow.seq_request_id,
+        ).include_query_params(uuid=self.workflow.uuid)
+
+    @classmethod
+    def Init(cls: type[T]) -> FormFunc:
+        """Create this step from the workflow state for an endpoint dependency."""
+        def dependency(
+            workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__))
+        ) -> T:
+            return cls(workflow=workflow)
+        return dependency
+
+    @classmethod
+    def Validate(cls: type[T]) -> FormFunc:
+        """Validate this step from the workflow state for an endpoint dependency."""
+        def dependency(
+            form: T = Depends(super(LibraryAnnotationWorkflowStep, cls).Validate()),
+        ) -> T:
+            return form
+        return dependency
 
 class LibraryAnnotationWorkflow(HTMXWorkflow):    
     def __init__(self, step: str, seq_request_id: int, r: redis.RedisClient, uuid: str | None = None) -> None:
@@ -42,7 +74,7 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
     @classmethod
     def Router(cls) -> APIRouter:
         router = APIRouter(prefix="/library-annotation/{seq_request_id}", tags=["library-annotation"], dependencies=[Depends(dependencies.seq_request_permissions)])
-        router.add_api_route("/begin", LibraryAnnotationWorkflow.Begin(), methods=["GET"], name="LibraryAnnotationWorkflow.begin")
+        router.add_api_route("/begin", LibraryAnnotationWorkflow.Begin(), methods=["GET"], name="LibraryAnnotationWorkflow.Begin")
         router.include_router(wf.ProjectSelectForm.Router(cls.__name__))
         router.include_router(wf.SampleAnnotationForm.Router(cls.__name__))
         router.include_router(wf.SampleAttributeAnnotationForm.Router(cls.__name__))

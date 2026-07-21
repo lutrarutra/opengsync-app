@@ -7,8 +7,7 @@ from ....core import responses, exceptions as exc
 from ....components import inputs
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
 from ...SubHTMXForm import SubHTMXForm
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 from .DefineMultiplexedSamplesForm import DefineMultiplexedSamplesForm
 from .CustomAssayAnnotationForm import CustomAssayAnnotationForm
 

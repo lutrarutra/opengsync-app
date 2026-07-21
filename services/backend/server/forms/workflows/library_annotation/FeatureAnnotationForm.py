@@ -8,8 +8,7 @@ from .... import utils
 from ....components import inputs
 from ....components.tables import TextColumn, CategoricalDropDown, DropdownColumn, DuplicateCellValue, InvalidCellValue, MissingCellValue
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 
 class FeatureAnnotationForm(LibraryAnnotationWorkflowStep):

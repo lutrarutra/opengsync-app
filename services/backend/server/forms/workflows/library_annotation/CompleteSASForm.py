@@ -7,8 +7,7 @@ from opengsync_db import models, categories as C, queries as Q, SyncSession, act
 from ....core import responses, exceptions as exc, dependencies
 from ....utils import barcodes
 from ...HTMXForm import RouteFunc, htmx_route
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 class CompleteSASForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow

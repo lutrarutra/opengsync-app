@@ -5,13 +5,10 @@ from opengsync_db import models, queries as Q, SyncSession, categories as C
 
 from ....core import exceptions as exc, dependencies, responses
 from ....components import inputs
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
 
 class ProjectSelectForm(LibraryAnnotationWorkflowStep):
-    workflow: LibraryAnnotationWorkflow
-
     template_path = "workflows/library_annotation/sas-project_select.html"
 
     existing_project = inputs.searchable.SearchableInputField(

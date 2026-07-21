@@ -7,8 +7,7 @@ from ....core import responses, exceptions as exc
 from ....components import inputs
 from ....components.tables import TextColumn, DropdownColumn, DuplicateCellValue
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 
 class VisiumAnnotationForm(LibraryAnnotationWorkflowStep):

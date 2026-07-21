@@ -6,8 +6,7 @@ from opengsync_db import categories as C
 from ....components import inputs
 from ....components.tables import DropdownColumn, CategoricalDropDown, DuplicateCellValue, InvalidCellValue
 from ...HTMXForm import RouteFunc, htmx_route
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 class CustomAssayAnnotationForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow

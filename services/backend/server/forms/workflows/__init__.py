@@ -1,4 +1,6 @@
 from . import library_annotation
+from . import qubit_measure
+
 from . import ba_report
 from . import lane_qc
 from . import library_pooling
@@ -15,6 +17,7 @@ from . import merge_projects
 
 __all__ = [
     "library_annotation",
+    "qubit_measure",
     "ba_report",
     "lane_qc",
     "library_pooling",

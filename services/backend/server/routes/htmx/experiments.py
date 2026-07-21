@@ -37,8 +37,7 @@ class ExperimentTable(HTMXTable):
         TableCol(title="Completed", label="timestamp_completed", col_size=2, sortable=True, sort_by="timestamp_finished_utc"),
     ]
 
-
-@router.get("/render-table-page", dependencies=[Depends(dependencies.require_insider)])
+@router.get("/render-table-page")
 def render_experiment_table(
     project_id: int | None = Query(None, description="Optional project ID to filter experiments"),
     status_in: list[C.ExperimentStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ExperimentStatus, query_param="status_in")),
@@ -47,6 +46,7 @@ def render_experiment_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Experiment, default=models.Experiment.id.desc())),
     session: SyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_user)
 ):
     table = ExperimentTable(route="render_experiment_table", page=page, order_by=order_by)
 
@@ -62,14 +62,21 @@ def render_experiment_table(
     )
 
     if project_id is not None:
+        if session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException(f"User does not have permission to view experiments for project ID {project_id}.")
         table.template = "components/tables/project-experiment.html"
         table.url_params["project_id"] = project_id
-    elif browse is not None:
+    else:
+        if not current_user.is_insider:
+            raise exc.NoPermissionsException("User does not have permission to view experiments.")
+        table.template = "components/tables/experiment.html"
+    
+    if browse is not None:
+        if not current_user.is_insider:
+            raise exc.NoPermissionsException("User does not have permission to browse experiments.")
         table.template = "components/tables/browse-experiment.html"
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse
-    else:
-        table.template = "components/tables/experiment.html"
 
     experiments, count = session.page(
         stmt, page=page, order_by=order_by,

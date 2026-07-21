@@ -9,8 +9,7 @@ from ....utils import parsing
 from ....components import inputs
 from ....components.tables import TextColumn, DuplicateCellValue, InvalidCellValue
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 class FlexAnnotationForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow

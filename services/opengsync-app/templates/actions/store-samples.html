@@ -1,5 +1,3 @@
-{% set selected_samples = form.selected_sample_ids.get_selected_samples(session) %}
-{% set selected_libraries = form.selected_library_ids.get_selected_libraries(session) %}
 <div class="modal-content" id="store-samples-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Store Samples</h1>
@@ -18,7 +16,7 @@
             <li class="nav-item" role="presentation">
                 <button id="{{ form.selected_sample_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#store-samples-action-selected-samples-tab"
                     type="button" role="tab" aria-controls="store-samples-action-selected-samples-tab" aria-selected="false">
-                    Selected Samples ({{ selected_samples | length }})
+                    Selected Samples ({{ form.selected_sample_ids.data | length }})
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -30,7 +28,7 @@
             <li class="nav-item" role="presentation">
                 <button id="{{ form.selected_library_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#store-samples-action-selected-libraries-tab"
                     type="button" role="tab" aria-controls="store-samples-action-selected-libraries-tab" aria-selected="false">
-                    Selected Libraries ({{ selected_libraries | length }})
+                    Selected Libraries ({{ form.selected_library_ids.data | length }})
                 </button>
             </li>
         </ul>
@@ -39,53 +37,13 @@
                 {{ form.selected_sample_ids.render() }}
             </div>
             <div class="tab-pane fade" id="store-samples-action-selected-samples-tab" role="tabpanel" tabindex="1">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="col-1">ID</th>
-                            <th scope="col" class="col-4">Name</th>
-                            <th scope="col" class="col-3">Status</th>
-                            <th scope="col" class="col-3">Owner</th>
-                        </tr>
-                    </thead>
-                    <tbody id="{{ form.selected_sample_ids.id }}-selected-table-body">
-                        {% for sample in selected_samples %}
-                        <tr id="selected-sample-row-{{ sample.id }}" class="sample-row selected">
-                            <th scope="row">{{ sample.id }}</th>
-                            <td>{{ sample.name }}</td>
-                            <td>{% if sample.status %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
-                            <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {{ form.selected_sample_ids.render_selected_table() }}
             </div>
             <div class="tab-pane fade" id="store-samples-action-libraries-tab" role="tabpanel" tabindex="2">
                 {{ form.selected_library_ids.render() }}
             </div>
             <div class="tab-pane fade" id="store-samples-action-selected-libraries-tab" role="tabpanel" tabindex="3">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="col-1">ID</th>
-                            <th scope="col" class="col-4">Name</th>
-                            <th scope="col" class="col-2">Type</th>
-                            <th scope="col" class="col-2">Status</th>
-                            <th scope="col" class="col-2">Owner</th>
-                        </tr>
-                    </thead>
-                    <tbody id="{{ form.selected_library_ids.id }}-selected-table-body">
-                        {% for library in selected_libraries %}
-                        <tr id="selected-library-row-{{ library.id }}" class="library-row selected">
-                            <th scope="row">{{ library.id }}</th>
-                            <td>{{ library.name }}</td>
-                            <td>{{ library.type.abbreviation }}</td>
-                            <td>{% if library.status %}{{ library.status.label }} {{ library.status.icon }}{% endif %}</td>
-                            <td>{{ library.owner.name }} <span class="desc">{{ "me" if current_user.id == library.owner_id }}</span></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {{ form.selected_library_ids.render_selected_table() }}
             </div>
         </div>
     </div>

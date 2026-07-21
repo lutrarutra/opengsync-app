@@ -6,8 +6,7 @@ from opengsync_db import models, categories as C, queries as Q
 from ....core import exceptions as exc
 from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 
 def _check_index_type(barcode_table: pd.DataFrame) -> C.IndexType | None:

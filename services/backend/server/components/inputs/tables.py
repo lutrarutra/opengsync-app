@@ -1,10 +1,10 @@
 import json
 from typing import Any
-
-from loguru import logger
+from uuid import uuid4
 
 from opengsync_db import models, SyncSession, categories as C, queries as Q, utils as db_utils
 
+from ...core.context import ctx
 from ...core import responses
 from .BaseInputField import BaseInputField
 
@@ -16,6 +16,12 @@ class SelectTableField(BaseInputField):
     parse a JSON array of int IDs from the form. Subclasses only need to
     define ``__init__``, ``table_url``, and a ``get_selected_*`` method.
     """
+
+    entity_type: str
+    """Lowercase entity name used in CSS classes and DOM IDs (e.g. 'sample', 'library')."""
+
+    _uid: str
+    """Unique suffix for JS variable names so multiple instances on one page don't collide."""
 
     @property
     def data(self) -> list[int]:
@@ -93,7 +99,7 @@ class SampleSelectTableField(SelectTableField):
     ):
         super().__init__(
             label=label,
-            template="components/inputs/sample-table-select.html",
+            template="components/inputs/table-select.html",
             type="sample-select",
             required=required,
             default=json.dumps(default) if default else "",
@@ -101,6 +107,8 @@ class SampleSelectTableField(SelectTableField):
             hidden=hidden,
             read_only=read_only,
         )
+        self.entity_type = "sample"
+        self._uid = uuid4().hex[:8]
         self.select_all = select_all
         self.query_params: dict[str, Any] = {"browse": browse_context}
         self.browse_context = browse_context
@@ -116,6 +124,16 @@ class SampleSelectTableField(SelectTableField):
         if not self.data:
             return []
         return [session.get_one(Q.sample.select(id=sid), options=options) for sid in self.data]
+
+    def render_selected_table(self) -> str:
+        """Render the selected samples table as HTML."""
+        selected_samples = self.get_selected_samples(ctx.session)
+        return responses.render_template(
+            "components/tables/selected-sample.html",
+            field=self,
+            selected_samples=selected_samples,
+            browse_context=self.browse_context,
+        )
 
 
 class LibrarySelectTableField(SelectTableField):
@@ -138,7 +156,7 @@ class LibrarySelectTableField(SelectTableField):
     ):
         super().__init__(
             label=label,
-            template="components/inputs/library-table-select.html",
+            template="components/inputs/table-select.html",
             type="library-select",
             required=required,
             default=json.dumps(default) if default else "",
@@ -146,6 +164,8 @@ class LibrarySelectTableField(SelectTableField):
             hidden=hidden,
             read_only=read_only,
         )
+        self.entity_type = "library"
+        self._uid = uuid4().hex[:8]
         self.select_all = select_all
         self.query_params: dict[str, Any] = {"browse": browse_context}
         self.browse_context = browse_context
@@ -187,7 +207,7 @@ class PoolSelectTableField(SelectTableField):
     ):
         super().__init__(
             label=label,
-            template="components/inputs/pool-table-select.html",
+            template="components/inputs/table-select.html",
             type="pool-select",
             required=required,
             default=json.dumps(default) if default else "",
@@ -195,6 +215,8 @@ class PoolSelectTableField(SelectTableField):
             hidden=hidden,
             read_only=read_only,
         )
+        self.entity_type = "pool"
+        self._uid = uuid4().hex[:8]
         self.select_all = select_all
         self.query_params: dict[str, Any] = {"browse": browse_context}
         self.browse_context = browse_context
@@ -214,7 +236,48 @@ class PoolSelectTableField(SelectTableField):
         return [session.get_one(Q.pool.select(id=pid), options=options) for pid in self.data]
 
 
-class ExperimentSelectTable(SelectTableField):
+class LaneSelectTableField(SelectTableField):
+    """A reusable input component for selecting multiple lanes."""
+
+    def __init__(
+        self,
+        label: str,
+        browse_context: str,
+        *,
+        select_all: bool = False,
+        required: bool = True,
+        default: list[int] | None = None,
+        hidden: bool = False,
+        read_only: bool = False,
+    ):
+        super().__init__(
+            label=label,
+            template="components/inputs/table-select.html",
+            type="lane-select",
+            required=required,
+            default=json.dumps(default) if default else "",
+            pydantic_type=str,
+            hidden=hidden,
+            read_only=read_only,
+        )
+        self.entity_type = "lane"
+        self._uid = uuid4().hex[:8]
+        self.select_all = select_all
+        self.query_params: dict[str, Any] = {"browse": browse_context}
+        self.browse_context = browse_context
+
+    @property
+    def table_url(self) -> responses.URL:
+        return responses.url_for('render_lane_table').include_query_params(**self.query_params)
+
+    def get_selected_lanes(self, session: SyncSession, options: db_utils.QueryOptions = None) -> list[models.Lane]:
+        """Query the database for the selected :class:`Lane` objects."""
+        if not self.data:
+            return []
+        return [session.get_one(Q.lane.select(id=lid), options=options) for lid in self.data]
+
+
+class ExperimentSelectTableField(SelectTableField):
     """A reusable input component for selecting multiple experiments."""
 
     def __init__(
@@ -232,7 +295,7 @@ class ExperimentSelectTable(SelectTableField):
     ):
         super().__init__(
             label=label,
-            template="components/inputs/experiment-table-select.html",
+            template="components/inputs/table-select.html",
             type="experiment-select",
             required=required,
             default=json.dumps(default) if default else "",
@@ -240,6 +303,8 @@ class ExperimentSelectTable(SelectTableField):
             hidden=hidden,
             read_only=read_only,
         )
+        self.entity_type = "experiment"
+        self._uid = uuid4().hex[:8]
         self.select_all = select_all
         self.query_params: dict[str, Any] = {"browse": browse_context}
         self.browse_context = browse_context

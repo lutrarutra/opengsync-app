@@ -1,0 +1,158 @@
+{% from 'components/spinner.jinja2' import spinner %}
+{% from 'components/tooltip.jinja2' import tooltip %}
+
+{% set entity = field.entity_type %}
+{% set Entity = entity | capitalize %}
+{% set uid = field._uid %}
+
+<div class="{{ entity }}-select-input {{ container_class }} {% if field.hidden %}d-none{% endif %}" id="{{ field.id }}-container">
+    <input
+        type="hidden"
+        name="{{ field.name }}"
+        id="{{ field.id }}"
+        value="{{ field.data | tojson if field.data else '[]' }}"
+    >
+    <div class="invalid-feedback-container d-block pb-1" role="alert" style="min-height: 20px; width: 100%;">
+        {% for error in field.errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+    <div hx-get="{{ field.table_url }}" hx-trigger="load" hx-swap="outerHTML">
+        {{ spinner() }}
+    </div>
+</div>
+
+{% if not field.read_only %}
+<script>
+    (function() {
+        const containerId = "{{ field.id }}";
+        const fieldId = "{{ field.id }}";
+        const selectAll = {{ "true" if field.select_all else "false" }};
+        const entity = "{{ entity }}";
+        const Entity = "{{ Entity }}";
+
+        // State
+        let selected{{ uid }} = {{ field.data | tojson if field.data else "[]" }};
+        let isMouseDown{{ uid }} = false;
+        let dragging{{ uid }} = false;
+        let hovered{{ uid }} = null;
+        let selecting{{ uid }} = true;
+
+        // DOM refs
+        const $container{{ uid }} = $("#" + containerId + "-container");
+        const $hiddenInput{{ uid }} = $("#" + fieldId);
+        const $selectedCount{{ uid }} = $("#" + fieldId + "-selected-count");
+        const $selectedTableBody{{ uid }} = $("#" + fieldId + "-selected-table-body");
+
+        function syncHiddenInput{{ uid }}() {
+            $hiddenInput{{ uid }}.val(JSON.stringify(selected{{ uid }}));
+        }
+
+        function updateCount{{ uid }}() {
+            $selectedCount{{ uid }}.text(selected{{ uid }}.length);
+            $("#" + fieldId + "-tab-btn").text("Selected " + Entity + "s (" + selected{{ uid }}.length + ")");
+        }
+
+        function add{{ uid }}(id, rowElement) {
+            id = parseInt(id);
+            if (selected{{ uid }}.includes(id)) return;
+            selected{{ uid }}.push(id);
+            $(rowElement).addClass("selected");
+
+            const $cloned = $(rowElement).clone();
+            $cloned.attr("id", "selected-" + entity + "-row-" + id);
+            $cloned.on("click", function() { remove{{ uid }}(id); });
+            $selectedTableBody{{ uid }}.append($cloned);
+
+            syncHiddenInput{{ uid }}();
+            updateCount{{ uid }}();
+        }
+
+        function remove{{ uid }}(id) {
+            id = parseInt(id);
+            selected{{ uid }} = selected{{ uid }}.filter(function(v) { return v !== id; });
+            $("#" + entity + "-row-" + id).removeClass("selected");
+            $("#selected-" + entity + "-row-" + id).remove();
+            syncHiddenInput{{ uid }}();
+            updateCount{{ uid }}();
+        }
+
+        function toggle{{ uid }}(id, rowElement) {
+            id = parseInt(id);
+            if (selected{{ uid }}.includes(id)) {
+                remove{{ uid }}(id);
+            } else {
+                add{{ uid }}(id, rowElement);
+            }
+        }
+
+        // Delegate events on the browse table (which loads dynamically)
+        $container{{ uid }}.on("mousedown", "." + entity + "-row", function(e) {
+            e.preventDefault();
+            isMouseDown{{ uid }} = true;
+            const firstId = parseInt($(this).data("id"));
+            selecting{{ uid }} = !selected{{ uid }}.includes(firstId);
+            if (selecting{{ uid }}) {
+                add{{ uid }}(firstId, this);
+            } else {
+                remove{{ uid }}(firstId);
+            }
+            hovered{{ uid }} = firstId;
+        });
+
+        $container{{ uid }}.on("mousemove", "." + entity + "-row", function(e) {
+            if (isMouseDown{{ uid }}) {
+                dragging{{ uid }} = true;
+                const currentId = parseInt($(this).data("id"));
+                if (hovered{{ uid }} !== currentId) {
+                    hovered{{ uid }} = currentId;
+                    if (selecting{{ uid }}) {
+                        add{{ uid }}(currentId, this);
+                    } else {
+                        remove{{ uid }}(currentId);
+                    }
+                }
+            }
+        });
+
+        $(document).on("mouseup", function(e) {
+            isMouseDown{{ uid }} = false;
+            dragging{{ uid }} = false;
+        });
+
+        // Cmd+A / Ctrl+A to select all visible rows
+        $(document).on("keydown", function(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === "a") {
+                const $focused = $(document.activeElement);
+                if ($focused.closest("#" + containerId + "-container").length) {
+                    e.preventDefault();
+                    $container{{ uid }}.find("." + entity + "-row").each(function() {
+                        add{{ uid }}($(this).data("id"), this);
+                    });
+                }
+            }
+        });
+
+        // Select All button
+        if (selectAll) {
+            $(document).on("click", "#" + fieldId + "-select-all", function(e) {
+                $container{{ uid }}.find("." + entity + "-row").each(function() {
+                    add{{ uid }}($(this).data("id"), this);
+                });
+            });
+        }
+
+        // Re-highlight selected rows after HTMX settles
+        $(document).on("htmx:afterSettle", function(e) {
+            if ($(e.target).closest("#" + containerId + "-container").length) {
+                $container{{ uid }}.find("." + entity + "-row").each(function() {
+                    const id = parseInt($(this).data("id"));
+                    if (selected{{ uid }}.includes(id)) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
+        });
+    })();
+</script>
+{% endif %}

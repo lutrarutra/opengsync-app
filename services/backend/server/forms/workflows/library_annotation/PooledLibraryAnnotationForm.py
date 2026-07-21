@@ -5,8 +5,7 @@ from opengsync_db import models, categories as C
 from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
 from ....components.tables import TextColumn
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 class PooledLibraryAnnotationForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow

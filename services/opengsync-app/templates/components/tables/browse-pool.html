@@ -9,9 +9,11 @@
                 {{ table_col("select-pools-table", table, "name") }}
                 {{ table_col("select-pools-table", table, "library_types") }}
                 {{ table_col("select-pools-table", table, "status") }}
-                {{ table_col("select-pools-table", table, "type") }}
-                {{ table_col("select-pools-table", table, "owner") }}
-                {{ table_col("select-pools-table", table, "num_libraries") }}
+                {% if browse_context == "qubit-measure" %}
+                <th class="col-2" scope="col">Qubit Conc.</th>
+                {% elif browse_context == "ba-report" %}
+                <th class="col-2" scope="col">Avg. Fragment Size</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -21,9 +23,21 @@
                 <td>{{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}</td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(pool.library_types) }}</td>
                 <td>{{ pool.status.icon }} {{ pool.status.label }}</td>
-                <td>{{ pool.type.display_name }}</td>
-                <td>{{ pool.owner.name }} <span class="desc">{{ "me" if current_user.id == pool.owner_id }}</span></td>
-                <td>{{ pool.num_libraries }}</td>
+                {% if browse_context == "qubit-measure" %}
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ pool.qubit_concentration or '' }}</div>
+                        <div class="unit">ng/μL</div>
+                    </div>
+                </td>
+                {% elif browse_context == "ba-report" %}
+                <td>
+                    <div class="quantity-container">
+                        <div class="value">{{ pool.avg_fragment_size or '' }}</div>
+                        <div class="unit">bp</div>
+                    </div>
+                </td>
+                {% endif %}
             </tr>
             {% endfor %}
         </tbody>

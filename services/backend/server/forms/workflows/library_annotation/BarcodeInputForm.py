@@ -7,8 +7,7 @@ from ....core import dependencies, exceptions as exc
 from ....components import inputs
 from ....components.tables import TextColumn, CategoricalDropDown, MissingCellValue, InvalidCellValue
 from ...HTMXForm import RouteFunc, htmx_route
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 
 class BarcodeInputForm(LibraryAnnotationWorkflowStep):

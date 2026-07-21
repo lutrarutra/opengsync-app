@@ -8,7 +8,6 @@ router = APIRouter(prefix="/workflows", tags=["workflows"])
 insider = [Depends(dependencies.require_insider)]
 router.include_router(wf.library_annotation.LibraryAnnotationWorkflow.Router())
 router.include_router(wf.select_library_protocols.SelectLibraryProtocolsWorkflow.Router())
-router.include_router(wf.qubit_measure.QubitMeasureWorkflow.Router())
 router.include_router(wf.ba_report.BAReportWorkflow.Router())
 router.include_router(wf.lane_qc.LaneQCWorkflow.Router())
 router.include_router(wf.library_pooling.LibraryPoolingWorkflow.Router())
@@ -22,4 +21,5 @@ router.include_router(wf.check_barcode_constraints.CheckBarcodeConstraintsWorkfl
 router.include_router(wf.add_kits_to_protocol.AddKitsToProtocolAction.Router())
 router.include_router(wf.select_library_protocols.SelectLibraryProtocolsWorkflow.Router())
 router.include_router(wf.merge_projects.MergeProjectsWorkflow.Router())
+router.include_router(wf.qubit_measure.QubitMeasureWorkflow.Router())
 

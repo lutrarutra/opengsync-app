@@ -8,8 +8,7 @@ from ....utils import parsing
 from ....components import inputs
 from ....components.tables import TextColumn, DuplicateCellValue, InvalidCellValue, CategoricalDropDown, DropdownColumn, MissingCellValue
 from ...HTMXForm import RouteFunc, FormFunc, htmx_route
-from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow
-from .LibraryAnnotationWorkflowStep import LibraryAnnotationWorkflowStep
+from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
 
 class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
     workflow: LibraryAnnotationWorkflow
@@ -174,7 +173,7 @@ class OligoMuxAnnotationForm(LibraryAnnotationWorkflowStep):
             df["custom_feature"] = custom_feature
             df["kit_feature"] = kit_feature
 
-            sample_pooling_table = workflow.tables["sample_pooling_table"]
+            sample_pooling_table = form.workflow.tables["sample_pooling_table"]
 
             sample_pooling_table["mux_barcode"] = None
             sample_pooling_table["mux_pattern"] = None

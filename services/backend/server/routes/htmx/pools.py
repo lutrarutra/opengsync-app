@@ -62,6 +62,8 @@ def render_pool_table(
         table.url_params["seq_request_id"] = seq_request_id
         table.context["seq_request_id"] = seq_request_id
     elif browse is not None:
+        if browse == "select-experiment-pools":
+            stmt = Q.pool.select(associated_to_experiment=False, statement=stmt)
         table.template = "components/tables/browse-pool.html"
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse

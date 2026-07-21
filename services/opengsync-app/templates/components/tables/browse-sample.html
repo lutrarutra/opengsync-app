@@ -7,10 +7,9 @@
                 {{ table_col("select-samples-table", table, "id") }}
                 {{ table_col("select-samples-table", table, "name") }}
                 {{ table_col("select-samples-table", table, "status") }}
-                {{ table_col("select-samples-table", table, "owner") }}
-                {% if browse_context == "qubit_measure" %}
+                {% if browse_context == "qubit-measure" %}
                 <th class="col-2" scope="col">Qubit Conc.</th>
-                {% elif browse_context == "ba_report" %}
+                {% elif browse_context == "ba-report" %}
                 <th class="col-2" scope="col">Avg. Fragment Size</th>
                 {% endif %}
             </tr>
@@ -21,15 +20,14 @@
                 <th scope="row">{{ sample.id }}</th>
                 <td>{{ sample.name }}</td>
                 <td>{% if sample.status %}{{ sample.status.label }} {{ sample.status.icon }}{% endif %}</td>
-                <td>{{ sample.owner.name }} <span class="desc">{{ "me" if current_user.id == sample.owner_id }}</span></td>
-                {% if browse_context == "qubit_measure" %}
+                {% if browse_context == "qubit-measure" %}
                 <td>
                     <div class="quantity-container">
                         <div class="value">{{ sample.qubit_concentration or "" }}</div>
                         <div class="unit">ng/μL</div>
                     </div>
                 </td>
-                {% elif browse_context == "ba_report" %}
+                {% elif browse_context == "ba-report" %}
                 <td>
                     <div class="quantity-container">
                         <div class="value">{{ sample.avg_fragment_size or "" }}</div>

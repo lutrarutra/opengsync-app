@@ -12,7 +12,7 @@ from ..HTMXForm import HTMXForm, RouteFunc, htmx_route
 
 class BillingAction(HTMXForm):
     template_path = "workflows/billing/billing.html"
-    experiment_ids = inputs.tables.ExperimentSelectTable("Experiments", browse_context="billing", status_in=[C.ExperimentStatus.SEQUENCED, C.ExperimentStatus.ARCHIVED])
+    experiment_ids = inputs.tables.ExperimentSelectTableField("Experiments", browse_context="billing", status_in=[C.ExperimentStatus.SEQUENCED, C.ExperimentStatus.ARCHIVED])
 
     @htmx_route("GET", "/")
     def Begin(cls) -> RouteFunc:

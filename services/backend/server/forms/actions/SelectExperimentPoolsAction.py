@@ -8,10 +8,10 @@ from ..HTMXForm import RouteFunc, htmx_route, HTMXForm
 
 
 class SelectExperimentPoolsAction(HTMXForm):
-    template_path = "actions/store-samples.html"
+    template_path = "actions/select-experiment-pools.html"
     selected_pool_ids = inputs.tables.PoolSelectTableField(
         "Pools",
-        "store-samples",
+        "select-experiment-pools",
         status_in=[C.PoolStatus.STORED],
         required=False
     )
