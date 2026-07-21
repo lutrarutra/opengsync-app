@@ -491,6 +491,7 @@ class SeqRequestForm(HTMXFlaskForm):
             billing_contact=billing_contact,
             bioinformatician_contact=bioinformatician_contact,
             organization_contact=organization_contact,
+            billing_code=self.billing_form.billing_code.data,
         )
 
         seq_request.delivery_email_links.append(models.links.SeqRequestDeliveryEmailLink(
