@@ -12,7 +12,6 @@ from ... import forms
 
 
 router = APIRouter(prefix="/projects", tags=["projects"])
-router.include_router(forms.models.ProjectForm.Router())
 
 class ProjectTable(HTMXTable):
     columns = [
@@ -478,3 +477,5 @@ def render_project_software(
         software=project.software or {},
         project=project,
     )
+
+router.include_router(forms.models.ProjectForm.Router())

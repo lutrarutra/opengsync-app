@@ -1,19 +1,18 @@
-import pandas as pd
 from fastapi import Depends, Response
+from sqlalchemy import orm
 
 from opengsync_db import models, categories as C, SyncSession, queries as Q
 
 from ....core import dependencies, responses
-from .... import utils
 from ....components import inputs
-from ....components.tables import TextColumn, CategoricalDropDown
 from ...HTMXForm import RouteFunc, htmx_route
 from ...SubHTMXForm import SubHTMXForm
-from .QubitMeasureWorkflow import QubitMeasureWorkflow, QubitMeasureWorkflowStep
+from .QubitMeasureWorkflow import QubitMeasureWorkflowStep
 
 class SubForm(SubHTMXForm):
     id_ = inputs.numeric.IntInputField("ID", required=True, read_only=True)
-    qubit_concentration = inputs.numeric.FloatInputField("Qubit Concentration (ng/µL)", required=False, ge=0.0)
+    name = inputs.string.StringInputField("Name", required=True, read_only=True)
+    qubit_concentration = inputs.numeric.FloatInputField("Qubit Concentration", unit="ng/µL", required=False, ge=0.0)
 
 class QubitMeasureForm(QubitMeasureWorkflowStep):
     template_path = "workflows/qubit-measure/complete.html"
@@ -26,33 +25,37 @@ class QubitMeasureForm(QubitMeasureWorkflowStep):
     def prepare(self):
         from ....core.context import ctx
         
-        sample_ids = self.workflow.metadata.get("selected_sample_ids", [])
-        library_ids = self.workflow.metadata.get("selected_library_ids", [])
-        pool_ids = self.workflow.metadata.get("selected_pool_ids", [])
-        lane_ids = self.workflow.metadata.get("selected_lane_ids", [])
+        sample_ids: list[int] = self.workflow.metadata["selected_sample_ids"]
+        library_ids: list[int] = self.workflow.metadata["selected_library_ids"]
+        pool_ids: list[int] = self.workflow.metadata["selected_pool_ids"]
+        lane_ids: list[int] = self.workflow.metadata["selected_lane_ids"]
 
         for sample_id in sample_ids:
             sample = ctx.session.get_one(Q.sample.select(id=sample_id))
             entry = self.sample_forms.append_entry()
             entry.id_.data = sample.id
+            entry.name.data = sample.name
             entry.qubit_concentration.data = sample.qubit_concentration
 
         for library_id in library_ids:
             library = ctx.session.get_one(Q.library.select(id=library_id))
             entry = self.library_forms.append_entry()
             entry.id_.data = library.id
+            entry.name.data = library.name
             entry.qubit_concentration.data = library.qubit_concentration
         
         for pool_id in pool_ids:
             pool = ctx.session.get_one(Q.pool.select(id=pool_id))
             entry = self.pool_forms.append_entry()
             entry.id_.data = pool.id
+            entry.name.data = pool.name
             entry.qubit_concentration.data = pool.qubit_concentration
 
         for lane_id in lane_ids:
-            lane = ctx.session.get_one(Q.lane.select(id=lane_id))
+            lane = ctx.session.get_one(Q.lane.select(id=lane_id).options(orm.joinedload(models.Lane.experiment)))
             entry = self.lane_forms.append_entry()
             entry.id_.data = lane.id
+            entry.name.data = f"{lane.experiment.name} - Lane {lane.number}"
             entry.qubit_concentration.data = lane.original_qubit_concentration
 
     @htmx_route("POST")
@@ -60,6 +63,7 @@ class QubitMeasureForm(QubitMeasureWorkflowStep):
         def route(
             form: "QubitMeasureForm" = Depends(QubitMeasureForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
+            _ = Depends(dependencies.audit_log),
         ) -> Response:
             for entry in form.sample_forms.entries:
                 sample = session.get_one(Q.sample.select(id=entry.id_.data))

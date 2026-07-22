@@ -8,7 +8,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C
 from ...core import exceptions as exc, responses, dependencies
 from ...components import inputs
 from ...components.tables import IntegerColumn, TextColumn
-from ..HTMXForm import HTMXForm
+from ..HTMXForm import HTMXForm, htmx_route, FormFunc, RouteFunc
 
 
 class LibraryPropertyForm(HTMXForm):
@@ -39,7 +39,7 @@ class LibraryPropertyForm(HTMXForm):
             query_params["project_id"] = project_id
         if library_id is not None:
             query_params["library_id"] = library_id
-        self.post_url = request.url_for("edit_library_properties").include_query_params(**query_params)
+        self.post_url = responses.url_for("edit_library_properties").include_query_params(**query_params)
 
         editable = self.access_level >= C.AccessLevel.WRITE
 
@@ -64,14 +64,7 @@ class LibraryPropertyForm(HTMXForm):
         else:
             df = pd.DataFrame(columns=["library_id", "library_name"])
 
-        self.spreadsheet.configure(
-            df=df,
-            post_url=self.post_url,
-            csrf_token=self.csrf_token_value,
-            editable=editable,
-            allow_new_cols=editable,
-            allow_col_rename=editable,
-        )
+        self.spreadsheet.configure(df=df, post_url=self.post_url, csrf_token=self.csrf_token_value)
 
     def validate(self) -> bool:
         """Validate the submitted spreadsheet via the SpreadsheetInputField."""
@@ -85,6 +78,12 @@ class LibraryPropertyForm(HTMXForm):
         self._validated_df = df
         self._to_delete = self.spreadsheet.to_delete
         return True
+    
+    # @htmx_route("GET")
+    # def Begin(cls) -> RouteFunc:
+    #     def route(
+    #         library_id: int | None = Query(None),
+    #     )
 
     @staticmethod
     def edit(

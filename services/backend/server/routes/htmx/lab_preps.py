@@ -13,7 +13,6 @@ from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextCol
 from ... import forms
 
 router = APIRouter(prefix="/lab_preps", tags=["lab_preps"])
-router.include_router(forms.actions.UploadLibraryPrepSpreadsheetAction.Router())
 
 
 class LabPrepTable(HTMXTable):
@@ -459,3 +458,5 @@ def lab_prep_mux_prep(
         raise NotImplementedError(f"Multiplexing type {mux_type} is not implemented.")
     
     return form.make_response()
+
+router.include_router(forms.actions.UploadLibraryPrepSpreadsheetAction.Router())

@@ -11,6 +11,7 @@ from .TODOCommentForm import TODOCommentForm
 from .CommentForm import CommentForm
 from .ProtocolForm import ProtocolForm
 from .GroupForm import GroupForm
+from .SampleForm import SampleForm
 
 __all__ = [
     "SeqRequestForm",
@@ -26,4 +27,5 @@ __all__ = [
     "TODOCommentForm",
     "CommentForm",
     "ProtocolForm",
+    "SampleForm",
 ]

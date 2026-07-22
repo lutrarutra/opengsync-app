@@ -21,11 +21,6 @@ from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
 router = APIRouter(prefix="/seq_requests", tags=["seq_requests"])
-router.include_router(forms.models.SeqRequestForm.Router())
-router.include_router(forms.actions.SubmitSeqRequestAction.Router())
-router.include_router(forms.actions.AddSeqRequestAssigneeAction.Router())
-router.include_router(forms.actions.AddSeqRequestShareEmailAction.Router())
-router.include_router(forms.actions.ProcessSeqRequestAction.Router())
 
 class SeqRequestTable(HTMXTable):
     columns = [
@@ -1032,3 +1027,9 @@ def remove_sample_from_request(
             "Removed all libraries associated with the sample.", "success"
         ),
     )
+
+router.include_router(forms.models.SeqRequestForm.Router())
+router.include_router(forms.actions.SubmitSeqRequestAction.Router())
+router.include_router(forms.actions.AddSeqRequestAssigneeAction.Router())
+router.include_router(forms.actions.AddSeqRequestShareEmailAction.Router())
+router.include_router(forms.actions.ProcessSeqRequestAction.Router())

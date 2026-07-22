@@ -71,13 +71,14 @@ class BaseInputField(ABC):
         """
         return True
 
-    def render(self, container_class: str = "", hide_label: bool = False, **kwargs) -> str:
+    def render(self, container_class: str = "", hide_label: bool = False, hide_errors: bool = False, **kwargs) -> str:
         return Markup(
             render_template(
                 self.template,
                 field=self,
                 container_class=container_class,
                 hide_label=hide_label,
+                hide_errors=hide_errors,
                 **kwargs,
                 **get_request_context(),
             )

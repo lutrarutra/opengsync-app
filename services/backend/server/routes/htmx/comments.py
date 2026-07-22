@@ -11,7 +11,6 @@ from ... import forms
 
 
 router = APIRouter(prefix="/comments", tags=["comments"])
-router.include_router(forms.models.CommentForm.Router())
 
 
 @router.get("/render-thread")
@@ -135,3 +134,5 @@ def delete_todo_comment(
 
     session.delete(todo_comment)
     return responses.htmx_response(redirect=responses.url_for("design"))
+
+router.include_router(forms.models.CommentForm.Router())

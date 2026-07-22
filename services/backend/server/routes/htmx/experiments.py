@@ -12,17 +12,6 @@ from ...components.tables import StaticSpreadsheet, TextColumn
 from ... import forms
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
-router.include_router(forms.models.ExperimentForm.Router())
-router.include_router(forms.actions.dist_reads.DistributeReadsSeparateAction.Router())
-router.include_router(forms.actions.dist_reads.DistributeReadsCombinedAction.Router())
-router.include_router(forms.actions.SelectExperimentPoolsAction.Router())
-router.include_router(forms.actions.DilutePoolsAction.Router())
-router.include_router(forms.actions.lane_pools.LanePoolsSeparateAction.Router())
-router.include_router(forms.actions.lane_pools.LanePoolsCombinedAction.Router())
-router.include_router(forms.actions.load_flowcell.LoadFlowCellSeparateAction.Router())
-router.include_router(forms.actions.load_flowcell.LoadFlowCellCombinedAction.Router())
-router.include_router(forms.actions.SetExperimentCyclesAction.Router())
-router.include_router(forms.actions.GenerateSequencerLoadingChecklistAction.Router())
 
 class ExperimentTable(HTMXTable):
     columns = [
@@ -349,6 +338,16 @@ def render_experiment_sample_pooling_table(
             pipet=pipet, eb_volume=eb_volume
         )
     
-    return responses.htmx_response(
-        "components/lane-pooling-ratios.html", experiment=experiment, df=df
-    )
+    return responses.htmx_response("components/lane-pooling-ratios.html", experiment=experiment, df=df)
+
+router.include_router(forms.models.ExperimentForm.Router())
+router.include_router(forms.actions.dist_reads.DistributeReadsSeparateAction.Router())
+router.include_router(forms.actions.dist_reads.DistributeReadsCombinedAction.Router())
+router.include_router(forms.actions.SelectExperimentPoolsAction.Router())
+router.include_router(forms.actions.DilutePoolsAction.Router())
+router.include_router(forms.actions.lane_pools.LanePoolsSeparateAction.Router())
+router.include_router(forms.actions.lane_pools.LanePoolsCombinedAction.Router())
+router.include_router(forms.actions.load_flowcell.LoadFlowCellSeparateAction.Router())
+router.include_router(forms.actions.load_flowcell.LoadFlowCellCombinedAction.Router())
+router.include_router(forms.actions.SetExperimentCyclesAction.Router())
+router.include_router(forms.actions.GenerateSequencerLoadingChecklistAction.Router())

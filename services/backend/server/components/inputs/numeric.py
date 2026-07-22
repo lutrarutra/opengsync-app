@@ -14,6 +14,7 @@ class FloatInputField(BaseInputField, Generic[_FloatDataT]):
         label: str,
         *,
         required: Literal[True] = True,
+        unit: str | None = None,
         placeholder: str | None = None,
         ge: float | None = None,
         le: float | None = None,
@@ -29,6 +30,7 @@ class FloatInputField(BaseInputField, Generic[_FloatDataT]):
         label: str,
         *,
         required: Literal[False],
+        unit: str | None = None,
         placeholder: str | None = None,
         ge: float | None = None,
         le: float | None = None,
@@ -40,6 +42,7 @@ class FloatInputField(BaseInputField, Generic[_FloatDataT]):
 
     def __init__(
         self, label: str,
+        unit: str | None = None,
         placeholder: str | None = None,
         ge: float | None = None,
         le: float | None = None,
@@ -78,6 +81,7 @@ class FloatInputField(BaseInputField, Generic[_FloatDataT]):
             hidden=hidden,
             read_only=read_only,
         )
+        self.unit = unit
         self.placeholder = placeholder
         self.ge = ge
         self.le = le
@@ -95,6 +99,7 @@ class IntInputField(BaseInputField, Generic[_IntDataT]):
         label: str,
         *,
         required: Literal[True] = True,
+        unit: str | None = None,
         placeholder: str | None = None,
         ge: int | None = None,
         le: int | None = None,
@@ -110,6 +115,7 @@ class IntInputField(BaseInputField, Generic[_IntDataT]):
         label: str,
         *,
         required: Literal[False],
+        unit: str | None = None,
         placeholder: str | None = None,
         ge: int | None = None,
         le: int | None = None,
@@ -121,6 +127,7 @@ class IntInputField(BaseInputField, Generic[_IntDataT]):
 
     def __init__(
         self, label: str,
+        unit: str | None = None,
         placeholder: str | None = None,
         ge: int | None = None,
         le: int | None = None,
@@ -153,6 +160,7 @@ class IntInputField(BaseInputField, Generic[_IntDataT]):
             hidden=hidden,
             read_only=read_only,
         )
+        self.unit = unit
         self.placeholder = placeholder
         self.ge = ge
         self.le = le

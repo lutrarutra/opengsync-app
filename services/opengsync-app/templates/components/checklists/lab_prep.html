@@ -213,9 +213,9 @@
                 <b>Steps:</b>
                 <ol>
                     <li>
-                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#xl-modal"
-                        hx-get="{{ url_for('BAReportWorkflow.begin', lab_prep_id=lab_prep.id) }}"
-                        hx-target="#xl-modal-content" data-bs-toggle="modal"
+                        <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                        hx-get="{{ url_for('BAReportWorkflow.Begin', lab_prep_id=lab_prep.id) }}"
+                        hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Bio Analyzer' - Workflow
                     </li>
                 </ol>

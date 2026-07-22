@@ -29,7 +29,6 @@ BROWSER_RENDERABLE_EXTENSIONS = {
 }
 
 router = APIRouter(prefix="/files", tags=["files"])
-router.include_router(MediaFileForm.Router())
 
 class MediaFileTable(HTMXTable):
     columns = [
@@ -165,3 +164,5 @@ def render_markdown_file(
             }
         )
     )
+
+router.include_router(MediaFileForm.Router())

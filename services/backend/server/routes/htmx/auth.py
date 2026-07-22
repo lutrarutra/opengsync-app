@@ -6,8 +6,6 @@ from ...core import dependencies, responses
 from ...forms import auth as auth_forms
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-router.include_router(auth_forms.LoginForm.Router())
-router.include_router(auth_forms.RegisterForm.Router())
 
 @router.get("/complete-registration/{token}")
 def complete_registration_form(
@@ -31,3 +29,6 @@ def logout(
     resp.delete_cookie(key="access_token", path="/", samesite="lax")
     resp.delete_cookie(key="csrf_token", path="/", samesite="lax")
     return resp
+
+router.include_router(auth_forms.LoginForm.Router())
+router.include_router(auth_forms.RegisterForm.Router())

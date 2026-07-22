@@ -15,6 +15,11 @@ T = TypeVar("T", bound="QubitMeasureWorkflowStep")
 class QubitMeasureWorkflowStep(HTMXWorkflowStep):
     workflow: "QubitMeasureWorkflow"
 
+    show_samples: bool = True
+    show_libraries: bool = True
+    show_pools: bool = True
+    show_lanes: bool = True
+
     @property
     def post_url(self) -> responses.URL:
         return self.PostURL(

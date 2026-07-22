@@ -6,8 +6,8 @@
         <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
     </div>
     <div class="modal-body" id="ba_report-form">
-        {{ form.csrf_token() }}
-        {{ form_group(form.report) }}
+        {{ form.csrf_token.render() }}
+        {{ form.pdf.render() }}
         <table class="table">
             <thead>
                 <tr>
@@ -18,16 +18,12 @@
                 </tr>
             </thead>
             <tbody>
-                {% for i, (_, row) in enumerate(form.ba_table.iterrows()) %}
-                {% set sub_form = form.sample_fields[i] %}
-                {{ sub_form.csrf_token() }}
-                {{ sub_form.sample_type(readonly=true, hidden=true) }}
-                {{ sub_form.obj_id(readonly=true, hidden=true) }}
+                {% for sub_form in form.sample_forms %}
                 <tr>
-                    <th scope="row">{{ row["id"] | int }}</th>
-                    <td>{{ row["name"] }}</td>
-                    <td>{{ row["sample_type"] }}</td>
-                    <td>{{ form_cell(sub_form.avg_fragment_size, unit="bp") }}</td>
+                    <th scope="row">{{ sub_form.id_.render(hide_label=True, hide_errors=True) }}</th>
+                    <td>{{ sub_form.name.render(hide_label=True, hide_errors=True) }}</td>
+                    <td>{{ sub_form.type.render(hide_label=True, hide_errors=True) }}</td>
+                    <td>{{ sub_form.avg_fragment_size.render(unit="bp", hide_label=True, hide_errors=True) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -35,13 +31,13 @@
     </div>
     <div class="modal-footer" id="popup-footer">
         <div class="footer-id">
-            {{ form.uuid }}            
+            {{ form.workflow.uuid }}            
         </div>
         <div class="footer-info">
         </div>
         <div class="footer-controls">
             <button class="btn btn-success" id="submit-ba_report-form-btn" hx-include="#ba_report-form" hx-target="#ba_report-form-container" hx-swap="outerHTML"
-                hx-encoding="multipart/form-data" hx-post="{{ url_for('ba_report_workflow.complete', uuid=form.uuid) }}">
+                hx-encoding="multipart/form-data" hx-post="{{ form.post_url }}">
                 Submit
             </button>
         </div>

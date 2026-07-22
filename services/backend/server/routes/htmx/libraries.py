@@ -135,14 +135,16 @@ def render_library_table(
             raise exc.NoPermissionsException("You do not have permission to view libraries for this sample.")
         table.template = "components/tables/sample-library.html"
         table.url_params["sample_id"] = sample_id
-    elif browse is not None:
-        table.template = "components/tables/browse-library.html"
-        table.context["browse_context"] = browse
-        table.url_params["browse"] = browse
+        table.context["sample_id"] = sample_id
     else:
         table.template = "components/tables/library.html"
         if not current_user.is_insider:
             stmt = Q.library.select(viewer_id=current_user.id, statement=stmt)
+
+    if browse is not None:
+        table.template = "components/tables/browse-library.html"
+        table.context["browse_context"] = browse
+        table.url_params["browse"] = browse
 
     libraries, count = session.page(
         stmt,

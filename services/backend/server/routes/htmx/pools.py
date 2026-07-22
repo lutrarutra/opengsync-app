@@ -10,7 +10,6 @@ from ...forms.models import PoolForm
 
 
 router = APIRouter(prefix="/pools", tags=["pools"])
-router.include_router(PoolForm.Router())
 
 
 class PoolTable(HTMXTable):
@@ -61,12 +60,6 @@ def render_pool_table(
         table.template = "components/tables/seq_request-pool.html"
         table.url_params["seq_request_id"] = seq_request_id
         table.context["seq_request_id"] = seq_request_id
-    elif browse is not None:
-        if browse == "select-experiment-pools":
-            stmt = Q.pool.select(associated_to_experiment=False, statement=stmt)
-        table.template = "components/tables/browse-pool.html"
-        table.context["browse_context"] = browse
-        table.url_params["browse"] = browse
     elif experiment_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view pools for this experiment.")
@@ -81,6 +74,13 @@ def render_pool_table(
         table.template = "components/tables/pool.html"
         if not current_user.is_insider:
             stmt = Q.pool.select(viewer_id=current_user.id, statement=stmt)
+
+    if browse is not None:
+        if browse == "select-experiment-pools":
+            stmt = Q.pool.select(associated_to_experiment=False, statement=stmt)
+        table.template = "components/tables/browse-pool.html"
+        table.context["browse_context"] = browse
+        table.url_params["browse"] = browse
 
     pools, count = session.page(
         stmt, page=page, order_by=order_by,
@@ -190,3 +190,5 @@ def delete_pool(
         redirect=responses.url_for("pool_pages"),
         flash=responses.flash("Pool deleted", "success")
     )
+
+router.include_router(PoolForm.Router())

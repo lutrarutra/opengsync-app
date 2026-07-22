@@ -1,8 +1,9 @@
+from uuid import uuid7
 import sqlalchemy as sa
 from sqlalchemy import sql
 
 from ..models import MediaFile, User, links, SeqRequest
-from ..categories import MediaFileType, AccessLevel, UserRole
+from ..categories import MediaFileType, AccessLevel
 
 
 def create(
@@ -20,7 +21,7 @@ def create(
         name=name,
         type_id=type.id,
         extension=extension.lower().strip(),
-        uuid=uuid,
+        uuid=uuid or uuid7().__str__(),
         uploader_id=uploader_id,
         size_bytes=size_bytes,
         experiment_id=experiment_id,

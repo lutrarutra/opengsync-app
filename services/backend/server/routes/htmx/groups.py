@@ -8,8 +8,6 @@ from ...components.tables import HTMXTable, TableCol
 
 
 router = APIRouter(prefix="/groups", tags=["groups"])
-router.include_router(forms.models.GroupForm.Router())
-router.include_router(forms.actions.AddUserToGroupAction.Router())
 
 class GroupTable(HTMXTable):
     columns = [
@@ -124,3 +122,6 @@ def make_owner_of_group(
         redirect=responses.url_for("group_page", group_id=group_id),
         flash=responses.flash("User is now an owner of the group.", "success")
     )
+
+router.include_router(forms.models.GroupForm.Router())
+router.include_router(forms.actions.AddUserToGroupAction.Router())

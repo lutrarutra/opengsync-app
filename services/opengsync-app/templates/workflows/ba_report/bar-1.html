@@ -1,5 +1,3 @@
-{% from 'components/form_group.jinja2' import form_group, form_cell %}
-
 <div class="modal-content" id="ba_report-form-container">
     <div class="modal-header">
         <h1 class="modal-title fs-5">Upload Bio Analyzer Report</h1>
@@ -8,14 +6,14 @@
     <div class="modal-body tab-body" id="ba_report-form">
         <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
             <li class="nav-item" role="presentation">
-                <button class="nav-link{% if active_tab == 'excel' %} active{% endif %}" data-bs-toggle="tab"
+                <button class="nav-link{% if form.active_tab == 'excel' %} active{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#form-tab-excel" type="button" role="tab"
                 aria-controls="form-tab-excel" aria-selected="true"
                 id="ba_report-excel-tab-btn">
                 Excel</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link{% if active_tab == 'manual' %} active{% endif %}" data-bs-toggle="tab"
+                <button class="nav-link{% if form.active_tab == 'manual' %} active{% endif %}" data-bs-toggle="tab"
                 data-bs-target="#form-tab-manual" type="button" role="tab"
                 aria-controls="form-tab-manual" aria-selected="false"
                 id="ba_report-manual-tab-btn">
@@ -23,12 +21,12 @@
             </li>
         </ul>
         <div class="tab-content">
-            {{ form.csrf_token() }}
-            <div class="tab-pane fade{% if active_tab == 'excel' %} show active{% endif %}" id="form-tab-excel" role="tabpanel" tabindex="0">
-                {{ form_group(form.excel) }}
+            {{ form.csrf_token.render() }}
+            <div class="tab-pane fade{% if form.active_tab == 'excel' %} show active{% endif %}" id="form-tab-excel" role="tabpanel" tabindex="0">
+                {{ form.ba_excel.render() }}
             </div>
-            <div class="tab-pane fade{% if active_tab == 'manual' %} show active{% endif %}" id="form-tab-manual" role="tabpanel" tabindex="1">
-                {{ form_group(form.pdf) }}
+            <div class="tab-pane fade{% if form.active_tab == 'manual' %} show active{% endif %}" id="form-tab-manual" role="tabpanel" tabindex="1">
+                {{ form.pdf.render() }}
                 <table class="table">
                     <thead>
                         <tr>
@@ -39,16 +37,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for i, (_, row) in enumerate(form.sample_table.iterrows()) %}
-                        {% set sub_form = form.sample_fields[i] %}
-                        {{ sub_form.csrf_token() }}
-                        {{ sub_form.sample_type(readonly=true, hidden=true) }}
-                        {{ sub_form.obj_id(readonly=true, hidden=true) }}
+                        {% for sub_form in form.sample_forms %}
                         <tr>
-                            <th scope="row">{{ row["id"] | int }}</th>
-                            <td>{{ row["name"] }}</td>
-                            <td>{{ row["sample_type"] }}</td>
-                            <td>{{ form_cell(sub_form.avg_fragment_size, unit="bp") }}</td>
+                            <th scope="row">{{ sub_form.id_.render(hide_label=True, hide_errors=True) }}</th>
+                            <td>{{ sub_form.name.render(hide_label=True, hide_errors=True) }}</td>
+                            <td>{{ sub_form.type.render(hide_label=True, hide_errors=True) }}</td>
+                            <td>{{ sub_form.avg_fragment_size.render(unit="bp", hide_label=True, hide_errors=True) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -58,19 +52,19 @@
     </div>
     <div class="modal-footer" id="popup-footer">
         <div class="footer-id">
-            {{ form.uuid }}
+            {{ form.workflow.uuid }}
         </div>
         <div class="footer-info">
         </div>
         <div class="footer-controls">
             <button class="btn btn-primary" id="submit-ba_report-excel-form-btn" hx-include="#ba_report-form" hx-target="#ba_report-form-container" hx-swap="outerHTML"
-                hx-encoding="multipart/form-data" hx-post="{{ url_for('ba_report_workflow.upload', uuid=form.uuid, method='excel') }}"
-                {% if active_tab == 'manual' %} style="display: none;"{% endif %}>
+                hx-encoding="multipart/form-data" hx-post="{{ form.post_url.include_query_params(method='excel') }}"
+                {% if form.active_tab == 'manual' %} style="display: none;"{% endif %}>
                 Parse
             </button>
             <button class="btn btn-success" id="submit-ba_report-manual-form-btn" hx-include="#ba_report-form" hx-target="#ba_report-form-container" hx-swap="outerHTML"
-                hx-encoding="multipart/form-data" hx-post="{{ url_for('ba_report_workflow.upload', uuid=form.uuid, method='manual') }}"
-                {% if active_tab == 'excel' %} style="display: none;"{% endif %}>
+                hx-encoding="multipart/form-data" hx-post="{{ form.post_url.include_query_params(method='manual') }}"
+                {% if form.active_tab == 'excel' %} style="display: none;"{% endif %}>
                 Save
             </button>
         </div>

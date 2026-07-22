@@ -1,0 +1,45 @@
+{% from "components/tooltip.jinja2" import tooltip %}
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col" class="col-1">ID</th>
+            <th class="col-3">Name</th>
+            <th class="col-3">Library Types</th>
+            <th class="col-2">Status</th>
+            {% if browse_context == "qubit-measure" %}
+            <th class="col-2" scope="col">Qubit Conc.</th>
+            {% elif browse_context == "ba-report" %}
+            <th class="col-2" scope="col">Avg. Fragment Size</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody id="{{ field.id }}-selected-table-body">
+        {% for pool in selected_pools %}
+        <tr id="selected-pool-row-{{ pool.id }}" class="pool-row selected">
+            <th scope="row">{{ pool.id }}</th>
+            <td>{{ pool.name }}</td>
+            <td>
+                <span {{ tooltip(pool.type.label) }}>
+                    {{ pool.type.abbreviation }}
+                </span>
+            </td>
+            <td>{% if pool.status %}{{ pool.status.label }} {{ pool.status.icon }}{% endif %}</td>
+            {% if browse_context == "qubit-measure" %}
+            <td>
+                <div class="quantity-container">
+                    <div class="value">{{ pool.qubit_concentration or '' }}</div>
+                    <div class="unit">ng/μL</div>
+                </div>
+            </td>
+            {% elif browse_context == "ba-report" %}
+            <td>
+                <div class="quantity-container">
+                    <div class="value">{{ pool.avg_fragment_size or '' }}</div>
+                    <div class="unit">bp</div>
+                </div>
+            </td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

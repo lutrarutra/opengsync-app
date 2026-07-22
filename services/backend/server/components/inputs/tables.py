@@ -1,6 +1,7 @@
 import json
 from typing import Any
 from uuid import uuid4
+from markupsafe import Markup
 
 from opengsync_db import models, SyncSession, categories as C, queries as Q, utils as db_utils
 
@@ -128,12 +129,12 @@ class SampleSelectTableField(SelectTableField):
     def render_selected_table(self) -> str:
         """Render the selected samples table as HTML."""
         selected_samples = self.get_selected_samples(ctx.session)
-        return responses.render_template(
+        return Markup(responses.render_template(
             "components/tables/selected-sample.html",
             field=self,
             selected_samples=selected_samples,
             browse_context=self.browse_context,
-        )
+        ))
 
 
 class LibrarySelectTableField(SelectTableField):
@@ -188,6 +189,16 @@ class LibrarySelectTableField(SelectTableField):
             return []
         return [session.get_one(Q.library.select(id=lid), options=options) for lid in self.data]
 
+    def render_selected_table(self) -> str:
+        """Render the selected libraries table as HTML."""
+        selected_libraries = self.get_selected_libraries(ctx.session)
+        return Markup(responses.render_template(
+            "components/tables/selected-library.html",
+            field=self,
+            selected_libraries=selected_libraries,
+            browse_context=self.browse_context,
+        ))
+
 
 class PoolSelectTableField(SelectTableField):
     """A reusable input component for selecting multiple pools."""
@@ -235,6 +246,15 @@ class PoolSelectTableField(SelectTableField):
             return []
         return [session.get_one(Q.pool.select(id=pid), options=options) for pid in self.data]
 
+    def render_selected_table(self) -> str:
+        """Render the selected pools table as HTML."""
+        selected_pools = self.get_selected_pools(ctx.session)
+        return Markup(responses.render_template(
+            "components/tables/selected-pool.html",
+            field=self,
+            selected_pools=selected_pools,
+            browse_context=self.browse_context,
+        ))
 
 class LaneSelectTableField(SelectTableField):
     """A reusable input component for selecting multiple lanes."""
@@ -276,6 +296,15 @@ class LaneSelectTableField(SelectTableField):
             return []
         return [session.get_one(Q.lane.select(id=lid), options=options) for lid in self.data]
 
+    def render_selected_table(self) -> str:
+        """Render the selected lanes table as HTML."""
+        selected_lanes = self.get_selected_lanes(ctx.session)
+        return Markup(responses.render_template(
+            "components/tables/selected-lane.html",
+            field=self,
+            selected_lanes=selected_lanes,
+            browse_context=self.browse_context,
+        ))
 
 class ExperimentSelectTableField(SelectTableField):
     """A reusable input component for selecting multiple experiments."""
@@ -322,3 +351,13 @@ class ExperimentSelectTableField(SelectTableField):
         if not self.data:
             return []
         return [session.get_one(Q.experiment.select(id=eid), options=options) for eid in self.data]
+
+    def render_selected_table(self) -> str:
+        """Render the selected experiments table as HTML."""
+        selected_experiments = self.get_selected_experiments(ctx.session)
+        return Markup(responses.render_template(
+            "components/tables/selected-experiment.html",
+            field=self,
+            selected_experiments=selected_experiments,
+            browse_context=self.browse_context,
+        ))

@@ -12,7 +12,6 @@
                 {{ table_col("select-experiments-table", table, "status") }}
                 {{ table_col("select-experiments-table", table, "library_types") }}
                 {{ table_col("select-experiments-table", table, "operator") }}
-                {{ table_col("select-experiments-table", table, "timestamp_created") }}
             </tr>
         </thead>
         <tbody>
@@ -24,7 +23,6 @@
                 <td>{{ experiment.status.icon | safe }} {{ experiment.status.label }}</td>
                 <td class="x-scroll-cell">{{ library_type_badge_list(experiment.library_types) }}</td>
                 <td>{{ experiment.operator.name }} <span class="desc">{{ "me" if current_user.id == experiment.operator_id }}</span></td>
-                <td>{{ experiment.timestamp_created_str("%Y-%m-%d") }}</td>
             </tr>
             {% endfor %}
         </tbody>

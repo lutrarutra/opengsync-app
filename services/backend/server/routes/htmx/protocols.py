@@ -10,8 +10,6 @@ from ... import forms
 from ...components.tables import HTMXTable, TableCol
 
 router = APIRouter(prefix="/protocols", tags=["protocols"])
-router.include_router(forms.actions.AddKitsToProtocolAction.Router())
-router.include_router(forms.models.ProtocolForm.Router())
 
 class ProtocolTable(HTMXTable):
     columns = [
@@ -107,3 +105,6 @@ def remove_kit_combination_from_protocol(
         flash=responses.flash(f"Kit combination '{link.combination_num}' removed from protocol '{protocol.name}'.", "success"),
         redirect=responses.url_for("protocols_page"),
     )
+
+router.include_router(forms.actions.AddKitsToProtocolAction.Router())
+router.include_router(forms.models.ProtocolForm.Router())

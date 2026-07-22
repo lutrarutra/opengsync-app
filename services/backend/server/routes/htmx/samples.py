@@ -34,6 +34,7 @@ def render_sample_table(
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter samples"),
     browse: str | None = Query(None, description="Optional browse context to filter samples"),
     name: str | None = Query(None, description="Optional sample name to search samples"),
+    id: str | None = Query(None, description="Optional sample ID to search samples"),
     status_in: list[C.SampleStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.SampleStatus, query_param="status_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Sample, default=models.Sample.id.desc())),
@@ -56,6 +57,13 @@ def render_sample_table(
     if name:
         table.active_search_var = "name"
         table.active_query_value = name
+    elif id:
+        table.active_search_var = "id"
+        table.active_query_value = str(id)
+        try:
+            stmt = Q.sample.select(id=int("".join(filter(str.isdigit, str(id)))), statement=stmt)
+        except ValueError:
+            raise exc.BadRequestException()
 
     stmt = Q.sample.search(
         name=name,
@@ -86,14 +94,15 @@ def render_sample_table(
         table.template = "components/tables/lab_prep-sample.html"
         table.url_params["lab_prep_id"] = lab_prep_id
         table.context["lab_prep"] = session.get_one(Q.lab_prep.select(id=lab_prep_id))
-    elif browse is not None:
-        table.template = "components/tables/browse-sample.html"
-        table.context["browse_context"] = browse
-        table.url_params["browse"] = browse
     else:
         if not current_user.is_insider:
             stmt = Q.sample.select(viewer_id=current_user.id, statement=stmt)
         table.template = "components/tables/sample.html"
+
+    if browse is not None:
+        table.template = "components/tables/browse-sample.html"
+        table.context["browse_context"] = browse
+        table.url_params["browse"] = browse
 
     samples, count = session.page(
         stmt, page=page, order_by=order_by,
@@ -141,3 +150,5 @@ def render_sample_attribute_spreadsheet(
     spreadsheet = StaticSpreadsheet(df, columns=columns, )
 
     return spreadsheet.render()
+
+router.include_router(forms.models.SampleForm.Router())

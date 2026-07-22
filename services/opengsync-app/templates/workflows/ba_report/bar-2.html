@@ -25,7 +25,7 @@
     </div>
     <div class="modal-footer" id="popup-footer">
         <div class="footer-id">
-            {{ form.uuid }}            
+            {{ form.workflow.uuid }}            
         </div>
         <div class="footer-info">
         </div>
@@ -62,11 +62,11 @@
         document.head.appendChild(script);
         
         $("#submit-ba_report-form-btn").on("click", function() {
-            htmx.ajax("POST", "{{ url_for('ba_report_workflow.parse_sample_order', uuid=form.uuid) }}", {
+            htmx.ajax("POST", "{{ form.post_url }}", {
                 "target": "#ba_report-form-container",
                 "swap": "outerHTML",
                 "values": {
-                    "csrf_token": "{{ form._csrf_token }}",
+                    "csrf_token": "{{ form.csrf_token_value }}",
                     "left_order": JSON.stringify(Array.from($("#left-list li")).map(li => parseInt($(li).data("idx")))),
                     "right_order": JSON.stringify(Array.from($("#right-list li")).map(li => ({
                         "name": $(li).data("name"),

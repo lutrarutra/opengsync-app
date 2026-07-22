@@ -21,8 +21,8 @@
         <p>{{ error }}</p>
         {% endfor %}
         {% else %}
-        {% if field.max_size %}
-        <div class="form-text">Maximum file size: {{ field.max_size }} MB</div>
+        {% if field.max_size_mb %}
+        <div class="form-text">Maximum file size: {{ field.max_size_mb }} MB</div>
         {% endif %}
         {% endif %}
     </div>

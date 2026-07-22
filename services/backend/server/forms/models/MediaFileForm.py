@@ -21,7 +21,7 @@ class MediaFileForm(HTMXForm):
     comment = inputs.string.TextAreaInputField(
         "Comment", max_length=4096, required=False, description="Provide a brief description of the file.",
     )
-    file = inputs.file.FileInputField("File", max_size=MAX_SIZE_MBYTES, allowed_extensions=["tsv", "xlsx", "csv", "pdf", "png", "jpg", "jpeg"])
+    file = inputs.file.FileInputField("File", max_size_mb=MAX_SIZE_MBYTES, allowed_extensions=["tsv", "xlsx", "csv", "pdf", "png", "jpg", "jpeg"])
 
     def __init__(
         self,

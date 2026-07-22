@@ -1,0 +1,113 @@
+<div class="modal-content" id="ba-report-workflow-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Bio Analyzer Report (Select Samples)</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body tab-body">
+        {{ form.csrf_token.render() }}
+        {{ form.render_general_errors() }}
+        <ul class="nav nav-tabs" role="tablist">
+            {% if form.show_samples %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#ba-report-workflow-samples-tab"
+                    type="button" role="tab" aria-controls="ba-report-workflow-samples-tab" aria-selected="true">
+                    Samples
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button id="{{ form.selected_sample_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#ba-report-workflow-selected-samples-tab"
+                    type="button" role="tab" aria-controls="ba-report-workflow-selected-samples-tab" aria-selected="false">
+                    Selected Samples ({{ form.selected_sample_ids.data | length }})
+                </button>
+            </li>
+            {% endif %}
+            {% if form.show_libraries %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if not form.show_samples %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#ba-report-workflow-libraries-tab"
+                    type="button" role="tab" aria-controls="ba-report-workflow-libraries-tab" aria-selected="false">
+                    Libraries
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button id="{{ form.selected_library_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#ba-report-workflow-selected-libraries-tab"
+                    type="button" role="tab" aria-controls="ba-report-workflow-selected-libraries-tab" aria-selected="false">
+                    Selected Libraries ({{ form.selected_library_ids.data | length }})
+                </button>
+            </li>
+            {% endif %}
+            {% if form.show_pools %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if not form.show_samples and not form.show_libraries %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#ba-report-workflow-pools-tab"
+                    type="button" role="tab" aria-controls="ba-report-workflow-pools-tab" aria-selected="false">
+                    Pools
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button id="{{ form.selected_pool_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#ba-report-workflow-selected-pools-tab"
+                    type="button" role="tab" aria-controls="ba-report-workflow-selected-pools-tab" aria-selected="false">
+                    Selected Pools ({{ form.selected_pool_ids.data | length }})
+                </button>
+            </li>
+            {% endif %}
+            {% if form.show_lanes %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if not form.show_samples and not form.show_libraries and not form.show_pools %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#ba-report-workflow-lanes-tab"
+                    type="button" role="tab" aria-controls="ba-report-workflow-lanes-tab" aria-selected="false">
+                    Lanes
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button id="{{ form.selected_lane_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#ba-report-workflow-selected-lanes-tab"
+                    type="button" role="tab" aria-controls="ba-report-workflow-selected-lanes-tab" aria-selected="false">
+                    Selected Lanes ({{ form.selected_lane_ids.data | length }})
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+        <div class="tab-content">
+            {% if form.show_samples %}
+            <div class="tab-pane fade show active" id="ba-report-workflow-samples-tab" role="tabpanel" tabindex="0">
+                {{ form.selected_sample_ids.render() }}
+            </div>
+            <div class="tab-pane fade" id="ba-report-workflow-selected-samples-tab" role="tabpanel" tabindex="1">
+                {{ form.selected_sample_ids.render_selected_table() }}
+            </div>
+            {% endif %}
+            {% if form.show_libraries %}
+            <div class="tab-pane fade {% if not form.show_samples %}show active{% endif %}" id="ba-report-workflow-libraries-tab" role="tabpanel" tabindex="2">
+                {{ form.selected_library_ids.render() }}
+            </div>
+            <div class="tab-pane fade" id="ba-report-workflow-selected-libraries-tab" role="tabpanel" tabindex="3">
+                {{ form.selected_library_ids.render_selected_table() }}
+            </div>
+            {% endif %}
+            {% if form.show_pools %}
+            <div class="tab-pane fade {% if not form.show_samples and not form.show_libraries %}show active{% endif %}" id="ba-report-workflow-pools-tab" role="tabpanel" tabindex="4">
+                {{ form.selected_pool_ids.render() }}
+            </div>
+            <div class="tab-pane fade" id="ba-report-workflow-selected-pools-tab" role="tabpanel" tabindex="5">
+                {{ form.selected_pool_ids.render_selected_table() }}
+            </div>
+            {% endif %}
+            {% if form.show_lanes %}
+            <div class="tab-pane fade {% if not form.show_samples and not form.show_libraries and not form.show_pools %}show active{% endif %}" id="ba-report-workflow-lanes-tab" role="tabpanel" tabindex="6">
+                {{ form.selected_lane_ids.render() }}
+            </div>
+            <div class="tab-pane fade" id="ba-report-workflow-selected-lanes-tab" role="tabpanel" tabindex="7">
+                {{ form.selected_lane_ids.render_selected_table() }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-ba-report-btn" class="btn btn-success"
+            hx-include="#ba-report-workflow-container" hx-target="#ba-report-workflow-container" hx-swap="outerHTML"
+            hx-post="{{ form.post_url }}">Submit</button>
+        </div>
+    </div>
+</div>

@@ -1,9 +1,13 @@
-from typing import Any, Generic, Literal, TypeVar, overload
+import os
 import io
+from typing import Any, Generic, Literal, TypeVar, overload
 
 import pandas as pd
 from pydantic import BaseModel
 
+from opengsync_db import models
+
+from ...core.config import settings
 from .BaseInputField import BaseInputField
 from .spreadsheet import SpreadsheetInputField
 from ..tables.spreadsheet import SpreadSheetColumn
@@ -37,7 +41,7 @@ class FileInputField(BaseInputField, Generic[_DataT]):
         self: "FileInputField[FileUpload]",
         label: str,
         *,
-        max_size: int | None = None,
+        max_size_mb: int | None = 10,
         allowed_extensions: list[str] | None = None,
         description: str | None = None,
         required: Literal[True] = True,
@@ -50,7 +54,7 @@ class FileInputField(BaseInputField, Generic[_DataT]):
         self: "FileInputField[FileUpload | None]",
         label: str,
         *,
-        max_size: int | None = None,
+        max_size_mb: int | None = 10,
         allowed_extensions: list[str] | None = None,
         description: str | None = None,
         required: Literal[False],
@@ -62,7 +66,7 @@ class FileInputField(BaseInputField, Generic[_DataT]):
         self,
         label: str,
         *,
-        max_size: int | None = None,
+        max_size_mb: int | None = 10,
         allowed_extensions: list[str] | None = None,
         description: str | None = None,
         default: Any = None,
@@ -81,7 +85,7 @@ class FileInputField(BaseInputField, Generic[_DataT]):
             hidden=hidden,
             read_only=read_only,
         )
-        self.max_size = max_size
+        self.max_size_mb = max_size_mb
         self.allowed_extensions = allowed_extensions or []
         self.accept = (
             ",".join(f".{ext.lstrip('.')}" for ext in self.allowed_extensions)
@@ -97,6 +101,20 @@ class FileInputField(BaseInputField, Generic[_DataT]):
             return FileUpload.model_validate(self._data, from_attributes=True)  # type: ignore
         return None  # type: ignore
 
+    def save(self, media_file: models.MediaFile):
+        if self.data is None:
+            raise ValueError("No file data to save.")
+        
+        if media_file.uuid is None:
+            raise ValueError("MediaFile must have a UUID before saving.")
+        
+        path = os.path.join(settings.app_config.media_folder, media_file.type.dir, f"{media_file.uuid}{media_file.extension}")
+        
+        if os.path.exists(path):
+            raise FileExistsError(f"File already exists at {path}.")
+        
+        with open(path, "wb") as f:
+            f.write(self.data.content)
 
 _SpreadsheetDataT = TypeVar("_SpreadsheetDataT", pd.DataFrame, pd.DataFrame | None, covariant=True)
 

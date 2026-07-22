@@ -15,9 +15,9 @@
             <h1>Library: {{ library.name }} <span class="desc">{{ library.type.abbreviation }}</span></h1>
         </div>
         <div class="page-controls">
-            <span {% if not library.is_editable() and not current_user.is_insider %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
+            <span {% if access_level < C.AccessLevel.WRITE %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
                 <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup"
-                {% if not library.is_editable() and not current_user.is_insider %}disabled{% endif %}>
+                {% if access_level < C.AccessLevel.WRITE %}disabled{% endif %}>
                     Edit Library
                 </button>
             </span>
