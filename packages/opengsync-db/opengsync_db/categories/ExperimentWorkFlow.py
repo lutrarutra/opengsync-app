@@ -77,9 +77,11 @@ class ExperimentWorkFlow(ExtendedEnum):
     def novaseq_x_workflows(cls) -> list["ExperimentWorkFlow"]:
         return [
             cls.NOVASEQ_X_1B,
+            cls.NOVASEQ_X_5B,
             cls.NOVASEQ_X_10B,
             cls.NOVASEQ_X_25B,
             cls.NOVASEQ_X_1B_XP,
+            cls.NOVASEQ_X_5B_XP,
             cls.NOVASEQ_X_10B_XP,
             cls.NOVASEQ_X_25B_XP,
         ]
