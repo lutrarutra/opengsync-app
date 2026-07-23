@@ -40,10 +40,12 @@ class ExperimentWorkFlow(ExtendedEnum):
     NOVASEQ_X_1B = ExperimentWorkFlowEnum(100, "NovaSeq X 1.5B", -1, FlowCellType.NOVASEQ_X_1B_ILLUMINA, True, "novaseq_x.md")
     NOVASEQ_X_10B = ExperimentWorkFlowEnum(101, "NovaSeq X 10B", -1, FlowCellType.NOVASEQ_X_10B_ILLUMINA, True, "novaseq_x.md")
     NOVASEQ_X_25B = ExperimentWorkFlowEnum(102, "NovaSeq X 25B", -1, FlowCellType.NOVASEQ_X_25B_ILLUMINA, True, "novaseq_x_25B.md")
+    NOVASEQ_X_5B = ExperimentWorkFlowEnum(106, "NovaSeq X 5B", -1, FlowCellType.NOVASEQ_X_5B_ILLUMINA, True, "novaseq_x.md")
 
     NOVASEQ_X_1B_XP = ExperimentWorkFlowEnum(103, "NovaSeq X 1.5B XP", -1, FlowCellType.NOVASEQ_X_1B_ILLUMINA, False, "novaseq_x.md")
     NOVASEQ_X_10B_XP = ExperimentWorkFlowEnum(104, "NovaSeq X 10B XP", -1, FlowCellType.NOVASEQ_X_10B_ILLUMINA, False, "novaseq_x.md")
     NOVASEQ_X_25B_XP = ExperimentWorkFlowEnum(105, "NovaSeq X 25B XP", -1, FlowCellType.NOVASEQ_X_25B_ILLUMINA, False, "novaseq_x_25B.md")
+    NOVASEQ_X_5B_XP = ExperimentWorkFlowEnum(107, "NovaSeq X 5B XP", -1, FlowCellType.NOVASEQ_X_5B_ILLUMINA, False, "novaseq_x.md")
 
     @property
     def display_name(self) -> str:
