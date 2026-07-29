@@ -7,7 +7,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 
 from ...core import dependencies, responses, exceptions as exc
 from ... import forms
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import HTMXTable, TableCol, TextColumn, StaticSpreadsheet
 
 router = APIRouter(prefix="/libraries", tags=["libraries"])
 
@@ -161,35 +161,33 @@ def render_library_table(
     return table.make_response(libraries=libraries)
 
 
-@router.get("/properties")
-def render_library_properties(
-    seq_request_id: int | None = Query(None, description="Seq request ID to filter libraries"),
-    project_id: int | None = Query(None, description="Project ID to filter libraries"),
-    library_id: int | None = Query(None, description="Library ID to edit properties for"),
-    current_user: models.User = Depends(dependencies.require_user),
+@router.get("/{library_id}/reads", dependencies=[Depends(dependencies.library_permissions)])
+def render_library_reads(
+    library_id: int,
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    if seq_request_id is None and project_id is None and library_id is None:
-        raise exc.BadRequestException("Must provide at least one of seq_request_id, project_id, or library_id")
+    library = session.get_one(Q.library.select(id=library_id))
+
+    if not library.read_qualities:
+        raise exc.BadRequestException("No read quality data available for this library.")
     
-    access_level = C.AccessLevel.NONE
-    if seq_request_id is not None:
-        if (access_level := session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id))) < C.AccessLevel.READ:
-            raise exc.NoPermissionsException("You do not have permission to view libraries for this seq request.")
-    elif project_id is not None:
-        if (access_level := session.get_access_level(Q.project.permissions(project_id, current_user.id))) < C.AccessLevel.READ:
-            raise exc.NoPermissionsException("You do not have permission to view libraries for this project.")
-    elif library_id is not None:
-        if (access_level := session.get_access_level(Q.library.permissions(library_id, current_user.id))) < C.AccessLevel.READ:
-            raise exc.NoPermissionsException("You do not have permission to view this library.")
-        
-    libraries = session.get_all(Q.library.select(seq_request_id=seq_request_id, project_id=project_id, id=library_id).order_by(models.Library.id.asc()))
+    library_stats_per_lane = session.pd.get_library_stats(library_id, per_lane=True)
+    library_stats_average = session.pd.get_library_stats(library_id, per_lane=False)
 
-    form = forms.LibraryPropertyForm(
-        access_level=access_level, libraries=libraries,
-        seq_request_id=seq_request_id, project_id=project_id, library_id=library_id
+    per_lane_columns = []
+    for col in library_stats_per_lane.columns:
+        per_lane_columns.append(TextColumn(col, col.replace("_", " ").title(), {"lane": 50}.get(col, 150), max_length=1000))
+
+    average_columns = []
+    for col in library_stats_average.columns:
+        average_columns.append(TextColumn(col, col.replace("_", " ").title(), {"lane": 50}.get(col, 150), max_length=1000))
+
+    per_lane_stats_ss = StaticSpreadsheet(df=library_stats_per_lane, columns=per_lane_columns, id=f"library-{library_id}-reads-per-lane")
+    average_stats_ss = StaticSpreadsheet(df=library_stats_average, columns=average_columns, id=f"library-{library_id}-reads-average")
+    
+    return responses.htmx_response(
+        "components/library-reads.html", library=library,
+        per_lane_stats_ss=per_lane_stats_ss, average_stats_ss=average_stats_ss
     )
-    return form.make_response()
 
-@router.post("/properties")
-def edit_library_properties(response = Depends(forms.LibraryPropertyForm.edit)): return response
+router.include_router(forms.models.LibraryForm.Router())

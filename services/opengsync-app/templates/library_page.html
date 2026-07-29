@@ -15,12 +15,13 @@
             <h1>Library: {{ library.name }} <span class="desc">{{ library.type.abbreviation }}</span></h1>
         </div>
         <div class="page-controls">
-            <span {% if access_level < C.AccessLevel.WRITE %} {{ tooltip("You cannot edit library that is already submitted.") }} {% endif %}>
-                <button type="button"  class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#library-form-popup"
-                {% if access_level < C.AccessLevel.WRITE %}disabled{% endif %}>
-                    Edit Library
-                </button>
-            </span>
+            {{
+                modal_button(
+                    "Edit Library", 
+                    url_for('LibraryForm.Edit', library_id=library.id),
+                    disabled=access_level < C.AccessLevel.WRITE,
+                )
+            }}
         </div>
     </div>
 
@@ -213,12 +214,12 @@
                 <div class="row">
                     {{ metadata_group("Orientation", index.orientation.name if index.orientation else "", class="col-4") }}
                     {% if index.index_kit_i7_id %}
-                    {{ metadata_group_link("Kit i7", index.index_kit_i7.name, url_for("kits_page.index_kit", index_kit_id=index.index_kit_i7_id, from="library@" + library.id | string), class="col-4") }}
+                    {{ metadata_group_link("Kit i7", index.index_kit_i7.name, url_for("index_kit_page", index_kit_id=index.index_kit_i7_id, from="library@" + library.id | string), class="col-4") }}
                     {% else %}
                     {{ metadata_group("Kit i7", "", class="col-4") }}
                     {% endif %}
                     {% if index.index_kit_i5_id %}
-                    {{ metadata_group_link("Kit i5", index.index_kit_i5.name, url_for("kits_page.index_kit", index_kit_id=index.index_kit_i5_id, from="library@" + library.id | string), class="col-4") }}
+                    {{ metadata_group_link("Kit i5", index.index_kit_i5.name, url_for("index_kit_page", index_kit_id=index.index_kit_i5_id, from="library@" + library.id | string), class="col-4") }}
                     {% else %}
                     {{ metadata_group("Kit i5", "", class="col-4") }}
                     {% endif %}
@@ -238,7 +239,7 @@
                 <div>
                     {{
                         modal_button(
-                            "Edit Properties", url=url_for('libraries_htmx.edit_properties', library_id=library.id),
+                            "Edit Properties", url=url_for('EditLibraryPropertiesAction.Begin', library_id=library.id),
                             disabled=not (current_user.is_insider or project.status <= C.ProjectStatus.SEQUENCED),
                             size="fullscreen",
                             disabled_tooltip="Only insiders can edit properties of a completed project.",
@@ -247,9 +248,11 @@
                 </div>
             </div>
             <div class="row">
+                {% if library.properties %}
                 {% for name, value in library.properties.items() %}
                 {{ metadata_group(name.capitalize(), value or "", class="col-6") }}
-                {%endfor %}
+                {% endfor %}
+                {% endif %}
             </div>
         </div>
         <div class="tab-pane fade" id="library-wetlab-tab" role="tabpanel" tabindex="1">
@@ -330,7 +333,7 @@
         </div>
         {% endif %}
         <div class="tab-pane fade" id="reads-tab" role="tabpanel" tabindex="10">
-            <div hx-get="{{ url_for('libraries_htmx.reads_tab', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_library_reads', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>
@@ -338,25 +341,6 @@
             <div hx-get="{{ url_for('render_data_path_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="library-form-popup" aria-hidden="true" aria-labelledby="" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-fullscreen-xl-down modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h1 class="modal-title fs-5" >Edit Library</h1>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                {% include library_form._template_path %}
-            </div>
-            <div class="modal-footer" id="popup-footer">
-                <button class="btn btn-primary"
-                hx-include="#edit-library-form" hx-target="#edit-library-form" hx-swap="outerHTML"
-                hx-post="{{ url_for('libraries_htmx.edit', library_id=library.id) }}">Submit</button>
-            </div>
-          </div>
         </div>
     </div>
 </div>

@@ -82,7 +82,7 @@ class LibraryPoolingAction(HTMXForm):
             return form
         return dependency
     
-    @htmx_route("GET", "/{lab_prep_id}", name="Begin")
+    @htmx_route("GET", "/library-pooling/{lab_prep_id}", name="Begin")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "LibraryPoolingAction" = Depends(LibraryPoolingAction.Init()),
@@ -90,7 +90,7 @@ class LibraryPoolingAction(HTMXForm):
             return form.make_response(flash=form._context.pop("flash"))
         return route
     
-    @htmx_route("POST", "/{lab_prep_id}", name="Submit")
+    @htmx_route("POST", "/library-pooling/{lab_prep_id}", name="Submit")
     def Submit(cls) -> RouteFunc:
         def route(
             form: "LibraryPoolingAction" = Depends(LibraryPoolingAction.Validate()),

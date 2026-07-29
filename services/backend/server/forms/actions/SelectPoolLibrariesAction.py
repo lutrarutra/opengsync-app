@@ -44,7 +44,7 @@ class SelectPoolLibrariesAction(HTMXForm):
             return cls(pool_id=pool_id)
         return dependency
 
-    @htmx_route("GET", "/{pool_id}", name="Begin")
+    @htmx_route("GET", "/select-pool-libraries/{pool_id}", name="Begin")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "SelectPoolLibrariesAction" = Depends(SelectPoolLibrariesAction.Init()),
@@ -52,7 +52,7 @@ class SelectPoolLibrariesAction(HTMXForm):
             return form.make_response()
         return route
 
-    @htmx_route("POST", "/{pool_id}", name="Submit")
+    @htmx_route("POST", "/select-pool-libraries/{pool_id}", name="Submit")
     def Submit(cls) -> RouteFunc:
         def route(
             form: "SelectPoolLibrariesAction" = Depends(SelectPoolLibrariesAction.Validate()),

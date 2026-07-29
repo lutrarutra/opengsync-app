@@ -49,7 +49,7 @@ class LibraryPrepAction(HTMXForm):
             return cls(lab_prep_id=lab_prep_id, library_type_filter=library_type_filter)
         return dependency
 
-    @htmx_route("GET", "/{lab_prep_id}", name="Begin")
+    @htmx_route("GET", "/library-prep/{lab_prep_id}", name="Begin")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "LibraryPrepAction" = Depends(LibraryPrepAction.Init()),
@@ -61,7 +61,7 @@ class LibraryPrepAction(HTMXForm):
             return form.make_response()
         return route
 
-    @htmx_route("POST", "/{lab_prep_id}", name="Submit")
+    @htmx_route("POST", "/library-prep/{lab_prep_id}", name="Submit")
     def Submit(cls) -> RouteFunc:
         def route(
             form: "LibraryPrepAction" = Depends(LibraryPrepAction.Validate()),

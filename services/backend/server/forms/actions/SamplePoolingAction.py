@@ -55,7 +55,7 @@ class SamplePoolingAction(HTMXForm):
             return form
         return dependency
 
-    @htmx_route("GET", "/{lab_prep_id}", name="Begin")
+    @htmx_route("GET", "/sample-pooling/{lab_prep_id}", name="Begin")
     def Begin(cls) -> RouteFunc:
         def route(
             form: "SamplePoolingAction" = Depends(SamplePoolingAction.Init()),
@@ -63,7 +63,7 @@ class SamplePoolingAction(HTMXForm):
             return form.make_response()
         return route
 
-    @htmx_route("POST", "/{lab_prep_id}", name="Submit")
+    @htmx_route("POST", "/sample-pooling/{lab_prep_id}", name="Submit")
     def Submit(cls) -> RouteFunc:
         def route(
             form: "SamplePoolingAction" = Depends(SamplePoolingAction.Validate()),

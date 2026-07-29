@@ -14,7 +14,7 @@
         {% if field.read_only %}disabled{% endif %}
         name="{{ field.name }}" id="{{ field.id }}">
             {% if field.default is none %}
-            <option value="" disabled selected>Select {{ field.label }}</option>
+            <option value="" {% if field.required %}disabled{% endif %} {% if selected_value is none %}selected{% endif %}>Select {{ field.label }}</option>
             {% endif %}
             {% for option in field.options %}
             <option value="{{ option[0] }}"

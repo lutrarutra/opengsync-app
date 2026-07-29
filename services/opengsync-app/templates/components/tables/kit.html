@@ -23,7 +23,7 @@
                     ])
                 }}><a 
                     {% if kit.kit_type == C.KitType.INDEX_KIT %}
-                    href="{{ url_for('kits_page.index_kit', index_kit_id=kit.id) }}"
+                    href="{{ url_for('index_kit_page', index_kit_id=kit.id) }}"
                     {% elif kit.kit_type == C.KitType.FEATURE_KIT %}
                     href="{{ url_for('kits_page.feature_kit', feature_kit_id=kit.id) }}"
                     {% else %}
@@ -36,7 +36,7 @@
                     ])
                 }}><a 
                     {% if kit.kit_type == C.KitType.INDEX_KIT %}
-                    href="{{ url_for('kits_page.index_kit', index_kit_id=kit.id) }}"
+                    href="{{ url_for('index_kit_page', index_kit_id=kit.id) }}"
                     {% elif kit.kit_type == C.KitType.FEATURE_KIT %}
                     href="{{ url_for('kits_page.feature_kit', feature_kit_id=kit.id) }}"
                     {% else %}

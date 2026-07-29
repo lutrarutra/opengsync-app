@@ -18,6 +18,7 @@ from .SelectExperimentPoolsAction import SelectExperimentPoolsAction
 from .DilutePoolsAction import DilutePoolsAction
 from .SetExperimentCyclesAction import SetExperimentCyclesAction
 from .GenerateSequencerLoadingChecklistAction import GenerateSequencerLoadingChecklistAction
+from .EditLibraryPropertiesAction import EditLibraryPropertiesAction
 
 from . import dist_reads, lane_pools, load_flowcell
 
@@ -42,6 +43,7 @@ __all__ = [
     "DilutePoolsAction",
     "SetExperimentCyclesAction",
     "GenerateSequencerLoadingChecklistAction",
+    "EditLibraryPropertiesAction",
     "dist_reads",
     "lane_pools",
     "load_flowcell",

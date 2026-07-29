@@ -96,7 +96,7 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
             return UploadLibraryPrepSpreadsheetAction(lab_prep=lab_prep)
         return form
     
-    @htmx_route("GET", "/{lab_prep_id}/upload-prep-table")
+    @htmx_route("GET", "/upload-prep-table/{lab_prep_id}")
     def Begin(cls) -> RouteFunc:
         def route(
             form: UploadLibraryPrepSpreadsheetAction = Depends(UploadLibraryPrepSpreadsheetAction.Init()),
@@ -105,7 +105,7 @@ class UploadLibraryPrepSpreadsheetAction(HTMXForm):
             return form.make_response()
         return route
 
-    @htmx_route("POST", "/{lab_prep_id}/upload-prep-table")
+    @htmx_route("POST", "/upload-prep-table/{lab_prep_id}")
     def Submit(cls) -> RouteFunc:
         def route(
             form: UploadLibraryPrepSpreadsheetAction = Depends(UploadLibraryPrepSpreadsheetAction.Validate()),
