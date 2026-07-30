@@ -45,6 +45,10 @@ class MediaFile(Base):
     @property
     def type(self) -> MediaFileType:
         return MediaFileType.get(self.type_id)
+
+    @type.setter
+    def type(self, value: MediaFileType) -> None:
+        self.type_id = value.id
     
     @property
     def path(self) -> str:
@@ -66,3 +70,7 @@ class MediaFile(Base):
         
     def timestamp_str(self) -> str:
         return self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+    @property
+    def basename(self) -> str:
+        return f"{self.name}{self.extension}"

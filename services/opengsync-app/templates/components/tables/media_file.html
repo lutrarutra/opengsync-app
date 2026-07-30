@@ -1,10 +1,6 @@
-{% from "components/pagination.jinja2" import pagination %} {% from
-"components/table_col.jinja2" import table_col %} {% from
-"components/spinner.jinja2" import spinner %} {% from
-"components/assignee_list.jinja2" import assignee_list %} {% from
-"components/contextmenu.jinja2" import context_menu %} {% from
-"components/library_type_badge_list.jinja2" import library_type_badge_list %}
-
+{% from "components/pagination.jinja2" import pagination %}
+{% from "components/table_col.jinja2" import table_col %}
+{% from "components/contextmenu.jinja2" import context_menu %}
 <div id="media_file-table" class="table-container">
   <table class="table">
     <thead>
@@ -25,7 +21,7 @@
             <span class="x-scroll">
                 <span class="scroll-container">
                     <a href="{{ url_for('serve_media_file', media_file_id=file.id) }}" target="_blank" rel="noopener noreferrer">
-                        {{ file.name }}{{ file.extension }}
+                        {{ file.basename }}
                     </a>
                 </span>
             </span>

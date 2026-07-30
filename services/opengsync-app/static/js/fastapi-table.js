@@ -14,9 +14,18 @@ class HTMXTable {
         };
         
         this.multiselects = [];
+        this._selfTriggered = false; // mutex flag: set by _ajax(), checked by htmx:afterRequest
         this._init(this.options.state);
         this._initialState = {...this.options.state};
         this._bindEvents();
+    }
+
+    /**
+     * Re-fetch the table from the server using the current page state.
+     * Replaces the table container with the fresh server response.
+     */
+    refresh() {
+        this._ajax(this._getState());
     }
 
     _show_filter_menu(th, focus=true) {
@@ -69,6 +78,7 @@ class HTMXTable {
             console.error("Failed to parse/clean table URL", e);
         }
 
+        this._selfTriggered = true;
         htmx.ajax("GET", cleanUrl, {
             target: this.selector,
             swap: "outerHTML",
@@ -164,6 +174,22 @@ class HTMXTable {
     }
 
     _bindEvents() {
+        // After a successful htmx request that was NOT initiated by the table
+        // itself (e.g. a context-menu delete action targeting this container),
+        // re-fetch the table so filters, pagination, sort, and row count stay
+        // accurate.  Self-triggered requests (sort, page, search) are skipped
+        // via the _selfTriggered mutex flag because they already swap their
+        // own response.
+        this.$container[0].addEventListener('htmx:afterRequest', (evt) => {
+            if (this._selfTriggered) {
+                this._selfTriggered = false;
+                return;
+            }
+            if (evt.detail?.successful) {
+                this.refresh();
+            }
+        });
+
         // Show multiselect filter
         this.$table.on("click", ".table-multiselect-filter-btn", (e) => {
             e.stopPropagation();
@@ -241,3 +267,4 @@ function toggle_index_display() {
         $(this).toggle();
     });
 }
+

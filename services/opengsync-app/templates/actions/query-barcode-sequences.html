@@ -1,0 +1,21 @@
+<div class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Query Barcode Sequences</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body" id="query-barcode-sequences-form" style="overflow-y: hidden; display: flex; flex-direction: column; height: 100%;">
+        {{ form.csrf_token.render() }}
+        <div class="pt-2">
+        <input type="search" autocomplete="off"
+            class="form-control"
+            name="{{ form.sequence.name }}" id="{{ form.sequence.name }}"
+            hx-include="#query-barcode-sequences-form" hx-target="#query-barcode-sequences-results"
+            hx-trigger="keyup changed delay:500ms" hx-swap="innerHTML"
+            hx-post="{{ url_for('QueryBarcodeSequencesAction.Search') }}"
+            placeholder="Search...">
+        </div>
+        
+        <div class="d-flex pt-2" style="gap: 20px; overflow-y: hidden; height: 100%;" id="query-barcode-sequences-results">
+        </div>
+    </div>
+</div>

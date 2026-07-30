@@ -7,6 +7,7 @@ from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
 from ...core.context import ctx
 from ...forms.models import PoolForm
+from ...forms.models import PlateForm
 
 
 router = APIRouter(prefix="/pools", tags=["pools"])
@@ -141,7 +142,7 @@ def remove_library_from_pool(
 
     session.save(pool)
     return responses.htmx_response(
-        redirect=responses.url_for("pool_page", pool_id=pool_id),
+        # redirect=responses.url_for("pool_page", pool_id=pool_id),
         flash=responses.flash(f"Library {library.name} removed from pool", "success")
     )
 
@@ -192,3 +193,4 @@ def delete_pool(
     )
 
 router.include_router(PoolForm.Router())
+router.include_router(PlateForm.Router())

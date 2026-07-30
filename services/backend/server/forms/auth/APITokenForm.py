@@ -1,11 +1,11 @@
-from fastapi import Request, Depends
+from fastapi import Depends
 from fastapi.responses import Response
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
 
 from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
-from ..HTMXForm import HTMXForm
+from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 
 class APITokenForm(HTMXForm):
@@ -18,39 +18,49 @@ class APITokenForm(HTMXForm):
         (60 * 24 * 365, "1 Year"),
     ], default=60 * 24 * 365)
 
-    def __init__(
-        self,
-        request: Request,
-        user: models.User,
-    ):
-        super().__init__(request)
+    def __init__(self, user: models.User) -> None:
+        super().__init__()
         self.user = user
+        self.post_url = responses.url_for("APITokenForm.Create", user_id=user.id)
 
+    @classmethod
+    def Init(cls) -> FormFunc:
+        def dependency(
+            user_id: int,
+            session: SyncSession = Depends(dependencies.db_session),
+        ) -> "APITokenForm":
+            user = session.get_one(Q.user.select(id=user_id))
+            return APITokenForm(user=user)
+        return dependency
 
-    @staticmethod
-    def create_api_token(
-        user_id: int,
-        request: Request,
-        session: SyncSession = Depends(dependencies.db_session),
-        current_user: models.User = Depends(dependencies.require_user),
-        access_level: C.AccessLevel = Depends(dependencies.user_permissions),
-    ) -> Response:
-        if access_level < C.AccessLevel.WRITE:
-            raise exc.NoPermissionsException("You do not have permission to edit this user.")
-        
-        user = session.get_one(Q.user.select(id=user_id))
-        form = APITokenForm(request, user=user)
-        form.validate()
+    @htmx_route("GET", "/{user_id}/create-api-token")
+    def Begin(cls) -> RouteFunc:
+        def route(
+            form: "APITokenForm" = Depends(APITokenForm.Init()),
+        ) -> Response:
+            return form.make_response()
+        return route
 
-        if not form.validate():
-            raise exc.FormValidationException(form)
+    @htmx_route("POST", "/{user_id}/create-api-token")
+    def Create(cls) -> RouteFunc:
+        def route(
+            user_id: int,
+            session: SyncSession = Depends(dependencies.db_session),
+            current_user: models.User = Depends(dependencies.require_user),
+            form: "APITokenForm" = Depends(APITokenForm.Validate()),
+            access_level: C.AccessLevel = Depends(dependencies.user_permissions),
+        ) -> Response:
+            if current_user.id != user_id and access_level < C.AccessLevel.ADMIN:
+                raise exc.NoPermissionsException("You do not have permission to create API tokens for this user.")
 
-        token = session.save(Q.api_token.create(
-            owner=user, time_valid_min=form.time_valid_min.data
-        ))
+            token = session.save(Q.api_token.create(
+                owner=form.user,
+                time_valid_min=form.time_valid_min.data,
+            ))
 
-        return responses.html_response(
-            template="forms/auth/api_token_complete.html",
-            token=token,
-            flash=responses.flash("API Token Created!", "success"),
-        )
+            return responses.htmx_response(
+                template="forms/auth/api_token_complete.html",
+                token=token,
+                flash=responses.flash("API Token Created!", "success"),
+            )
+        return route

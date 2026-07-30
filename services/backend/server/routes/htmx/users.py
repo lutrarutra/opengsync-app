@@ -47,21 +47,21 @@ def render_user_table(
         table.filter_values["role"] = role_in
 
     if seq_request_id is not None:
-        template = "components/tables/seq-request-assignee.html"
+        table.template = "components/tables/seq-request-assignee.html"
         table.url_params["seq_request_id"] = seq_request_id
     elif project_id is not None:
-        template = "components/tables/project-assignee.html"
+        table.template = "components/tables/project-assignee.html"
         table.url_params["project_id"] = project_id
     elif group_id is not None:
         if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        template = "components/tables/group-user.html"
+        table.template = "components/tables/group-user.html"
         table.url_params["group_id"] = group_id
         table.context["group"] = session.get_one(Q.group.select(id=group_id))
     else:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        template = "components/tables/user.html"
+        table.template = "components/tables/user.html"
 
 
     users, count = session.page(
@@ -71,7 +71,7 @@ def render_user_table(
         ]
     )
     table.set_num_pages(count)
-    return responses.htmx_response(template=template, users=users, table=table)
+    return table.make_response(users=users)
 
     
 @router.get("/search")
@@ -102,45 +102,6 @@ def search_users(
 
     users, count = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/user.html", users=users)
-
-
-@router.get("/{user_id}/edit")
-def render_edit_user_form(
-    user_id: int,
-    request: Request,
-    access_level: C.AccessLevel = Depends(dependencies.user_permissions),
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException("You do not have permission to edit this user.")
-    
-    user = session.get_one(Q.user.select(id=user_id))
-
-    form = forms.models.UserForm(request, user)
-    return responses.htmx_response(template="forms/user.html", form=form)
-
-
-@router.post("/{user_id}/edit")
-def edit_user(response = Depends(forms.models.UserForm.edit_user)): return response
-
-@router.get("/{user_id}/change-password")
-def render_change_password_form(
-    user_id: int,
-    request: Request,
-    access_level: C.AccessLevel = Depends(dependencies.user_permissions),
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException("You do not have permission to change this user's password.")
-    
-    user = session.get_one(Q.user.select(id=user_id))
-
-    form = forms.auth.ChangePasswordForm(request, user)
-    return responses.htmx_response(template="forms/auth/change_password.html", form=form)
-
-
-@router.post("/{user_id}/change-password")
-def change_password(response = Depends(forms.auth.ChangePasswordForm.change_password)): return response
 
 
 @router.post("/{user_id}/reset-password")
@@ -204,33 +165,5 @@ def start_user_session(
     # TODO: missing implementation
 
 
-@router.get("/{user_id}/create-api-token")
-def render_create_api_token_form(
-    user_id: int,
-    request: Request,
-    current_user: models.User = Depends(dependencies.require_user),
-    access_level: C.AccessLevel = Depends(dependencies.user_permissions),
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    if current_user.id != user_id and access_level < C.AccessLevel.ADMIN:
-        raise exc.NoPermissionsException("You do not have permission to create API tokens for this user.")
-    
-    user = session.get_one(Q.user.select(id=user_id))
-
-    form = forms.auth.APITokenForm(request, user)
-    return responses.htmx_response(template="forms/auth/create_api_token.html", form=form)
-
-@router.post("/{user_id}/create-api-token")
-def create_api_token(response = Depends(forms.auth.APITokenForm.create_api_token)): return response
-
-
-@router.get("/{user_id}/api-tokens")
-def render_api_tokens_table(
-    user_id: int,
-    request: Request,
-    current_user: models.User = Depends(dependencies.require_user),
-    access_level: C.AccessLevel = Depends(dependencies.user_permissions),
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    # TODO: missing implementation
-    pass
+router.include_router(forms.models.UserForm.Router())
+router.include_router(forms.auth.APITokenForm.Router())

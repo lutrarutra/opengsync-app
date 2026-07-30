@@ -160,7 +160,7 @@
                 <div>
                     {{
                         modal_button(
-                            "New Token", url=url_for('render_create_api_token_form', user_id=user.id), size="sm",
+                            "New Token", url=url_for('APITokenForm.Begin', user_id=user.id), size="sm",
                             disabled=not (current_user.is_admin or (current_user.id == user.id and current_user.is_insider)),
                             disabled_tooltip="Only insiders can create API tokens.", tooltip_position="left"
                         )

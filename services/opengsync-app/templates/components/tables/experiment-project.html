@@ -28,7 +28,7 @@
                         {{ project.id }}
                         <span class="scroll-container">
                             {% if current_user not in project.assignees %}
-                            <button type="button" {{ tooltip("Assign Me", category="success", position="left") }} class="btn assignee-btn" hx-post="{{ url_for('projects_htmx.add_assignee', project_id=project.id, experiment_id=experiment.id, sort_by=sort_by, sort_order=sort_order, page=active_page) }}" hx-target="#experiment-project-table" hx-swap="outerHTML"><i class="bi bi-person-fill-add"></i></button>
+                            <button type="button" {{ tooltip("Assign Me", category="success", position="left") }} class="btn assignee-btn" hx-post="{{ url_for('AddProjectAssigneeAction.AssignMe', project_id=project.id, experiment_id=experiment.id, sort_by=sort_by, sort_order=sort_order, page=active_page) }}" hx-target="#experiment-project-table" hx-swap="outerHTML"><i class="bi bi-person-fill-add"></i></button>
                             {% endif %}
                             {{ assignee_list(project.assignees, current_user=current_user) }}
                         </span>

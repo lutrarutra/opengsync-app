@@ -1,0 +1,46 @@
+<div class="modal-content" id="seq_run-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >{% if form.seq_run %}Edit{% else %}Create{% endif %} Seq Run</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="seq_run-form">
+            {{ form.csrf_token.render() }}
+            <div class="row">
+                {{ form.experiment_name.render("col-6") }}
+                {{ form.status.render("col-6") }}
+            </div>
+            <div class="row">
+                {{ form.instrument_name.render("col-4") }}
+                {{ form.run_folder.render("col-4") }}
+                {{ form.flowcell_id.render("col-4") }}
+            </div>
+            <div class="row">
+                {{ form.read_type.render("col-4") }}
+                {{ form.rta_version.render("col-4") }}
+                {{ form.recipe_version.render("col-4") }}
+            </div>
+            <div class="row">
+                {{ form.side.render("col-4") }}
+                {{ form.flowcell_mode.render("col-4") }}
+            </div>
+            <div class="row">
+                {{ form.r1_cycles.render("col-3") }}
+                {{ form.r2_cycles.render("col-3") }}
+                {{ form.i1_cycles.render("col-3") }}
+                {{ form.i2_cycles.render("col-3") }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-seq_run-btn" class="btn btn-success"
+            hx-include="#seq_run-form" hx-target="#seq_run-form-container" hx-swap="outerHTML"
+            hx-post="{{ form.post_url }}">{% if form.seq_run %}Save{% else %}Create{% endif %}</button>
+        </div>
+    </div>
+</div>

@@ -1,32 +1,24 @@
-{% from 'components/spreadsheet.jinja2' import spreadsheet_input %}
-{% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
-
-<div id="library_properties_form-container" class="modal-content">
+<div id="library-features-form-container" class="modal-content">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >Library Properties</h1>
-        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#fullscreen-modal")></button>
+        <h1 class="modal-title fs-5" >Library Features</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
-        {{ form.csrf_token() }}
-        {{ 
-            spreadsheet_input(
-                element=form.spreadsheet,
-                submit_btn_id="submit-spreadsheet-btn",
-                target_element_id="library_properties_form-container",
-            )
-        }}
+        <div id="library-features-form">
+            {{ form.csrf_token.render() }}
+            {{ form.spreadsheet.render(submit_btn_id="submit-library-features-btn", target_element_id="library-features-form-container") }}
+        </div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" id="popup-footer">
         <div class="footer-id">
-            {{ library.name }}
+            {{ form.library.name }}
         </div>
         <div class="footer-info">
-            {{ spreadsheet_error_legend() }}
         </div>
         <div class="footer-controls">
-            <button class="btn btn-success submit-form-btn" type="button" id="submit-spreadsheet-btn">
-                Save
-            </button>
+            <button id="submit-library-features-btn" class="btn btn-success">Save</button>
         </div>
+    </div>
+</div>
     </div>
 </div>

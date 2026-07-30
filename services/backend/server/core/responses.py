@@ -62,17 +62,19 @@ def htmx_response(
     re_swap: str | None = None,
     response: Response | None = None,
     flash: FlashMessage | str | None = None,
+    refresh_table: str | None = None,
     **context
 ) -> Response:
-    headers = {"HX-Trigger": "contentUpdated"}
-
     if template and content:
         raise ValueError("Cannot provide both template and content for HTMX response.")
+
+    # Build composable HX-Trigger events
+    events: dict[str, object] = {}
 
     if flash:
         flash_data = flash.model_dump() if isinstance(flash, FlashMessage) else {"message": flash, "category": "info"}
         if redirect:
-            headers["HX-Redirect"] = redirect.__str__()
+            headers = {"HX-Redirect": redirect.__str__()}
             resp = HTMLResponse(status_code=204, headers=headers)
             resp.set_cookie(
                 key="flash_message",
@@ -88,7 +90,15 @@ def htmx_response(
                         resp.raw_headers.append((header, value))
             return resp
         else:
-            headers["HX-Trigger"] = json.dumps({"flash": flash_data})
+            events["flash"] = flash_data
+
+    if refresh_table:
+        events["refreshTable"] = refresh_table
+
+    if events:
+        headers = {"HX-Trigger": json.dumps(events)}
+    else:
+        headers = {"HX-Trigger": "contentUpdated"}
 
     if re_target:
         headers["HX-Target"] = re_target

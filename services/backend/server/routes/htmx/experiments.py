@@ -260,7 +260,7 @@ def remove_pool_from_experiment(
     session.save(experiment)
 
     return responses.htmx_response(
-        redirect=responses.url_for("experiment_page", experiment_id=experiment.id),
+        # redirect=responses.url_for("experiment_page", experiment_id=experiment.id),
         flash=responses.flash(f"Pool '{pool.name}' removed from Experiment '{experiment.name}'.", "success")
     )
 

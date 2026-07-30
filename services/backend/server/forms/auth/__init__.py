@@ -3,6 +3,7 @@ from .RegisterForm import RegisterForm
 from .CompleteRegistrationForm import CompleteRegistrationForm
 from .ChangePasswordForm import ChangePasswordForm
 from .APITokenForm import APITokenForm
+from .ResetPasswordForm import ResetPasswordForm
 
 __all__ = [
     "LoginForm",
@@ -10,4 +11,5 @@ __all__ = [
     "CompleteRegistrationForm",
     "ChangePasswordForm",
     "APITokenForm",
+    "ResetPasswordForm",
 ]

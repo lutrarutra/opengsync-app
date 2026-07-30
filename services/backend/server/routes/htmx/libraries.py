@@ -191,3 +191,4 @@ def render_library_reads(
     )
 
 router.include_router(forms.models.LibraryForm.Router())
+router.include_router(forms.actions.LibraryFeaturesAction.Router())

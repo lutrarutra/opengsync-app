@@ -172,7 +172,7 @@ def remove_library_from_prep(
     library.lab_prep = None
 
     return responses.htmx_response(
-        redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
+        # redirect=request.url_for("lab_prep", lab_prep_id=lab_prep.id),
         flash=responses.flash("Library removed!", "success"),
     )
 

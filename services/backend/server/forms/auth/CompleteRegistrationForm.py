@@ -1,4 +1,4 @@
-from fastapi import Request, Depends
+from fastapi import Depends
 from fastapi.responses import Response
 from loguru import logger
 
@@ -7,7 +7,7 @@ from opengsync_db.categories import UserRole
 
 from ...core import responses, secrets, dependencies, exceptions as exc
 from ...components import inputs
-from ..HTMXForm import HTMXForm
+from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 
 class CompleteRegistrationForm(HTMXForm):
@@ -21,55 +21,68 @@ class CompleteRegistrationForm(HTMXForm):
     password = inputs.string.PasswordInputField("Password", min_length=8, autocomplete="new-password")
     confirm = inputs.string.PasswordInputField("Confirm Password", autocomplete="new-password")
 
-    def prepare(self):
-        token = self.request.path_params.get("token")
-        if token is not None:
-            if (data := secrets.verify_registration_token(token=token)) is not None:
-                email, role = data
-                self.email.data = email
-            else:
-                self.email.errors.append("Token expired or invalid.")
-                raise exc.FormValidationException(self)
-        else:
+    def __init__(self, token: str) -> None:
+        super().__init__()
+        self.token = token
+        self.post_url = responses.url_for("CompleteRegistrationForm.Submit", token=token)
+
+        data = secrets.verify_registration_token(token=token)
+        if data is None:
             self.email.errors.append("Token expired or invalid.")
-            raise exc.FormValidationException(self)
+            return
 
-    @staticmethod
-    def process_request(
-        request: Request,
-        token: str,
-        session: SyncSession = Depends(dependencies.db_session),
-        bcrypt: secrets.BcryptCompat = Depends(dependencies.get_bcrypt),
-    ) -> Response:
-        form = CompleteRegistrationForm(request)
-        form.validate()
-        
-        if (data := secrets.verify_registration_token(token=token)) is None:
-            form.email.errors.append("Token expired or invalid.")
-            raise exc.FormValidationException(form)
-        
-        email, role = data
-        if session.exists(Q.user.select(email=email)):
-            form.email.errors.append("User already exists.")
-            raise exc.FormValidationException(form)
-        if email != form.email.data:
-            form.email.errors.append("Token expired or invalid.")
-            raise exc.FormValidationException(form)
-        
-        user = session.save(Q.user.create(
-            email=email,
-            first_name=form.first_name.data,
-            last_name=form.last_name.data,
-            hashed_password=bcrypt.generate_password_hash(form.password.data),
-            role=UserRole.get(role)
-        ))
+        self.email.data = data[0]
+        self.role = data[1]
 
-        logger.info(f"User {user.email} completed registration.")
-        return responses.htmx_response(redirect=responses.url_for("login_page"))
-    
-    @property
-    def token(self) -> str:
-        return self.request.path_params["token"]
+    @classmethod
+    def Init(cls) -> FormFunc:
+        def dependency(token: str) -> "CompleteRegistrationForm":
+            return CompleteRegistrationForm(token=token)
+        return dependency
+
+    @htmx_route("GET", "/complete-registration/{token}")
+    def Begin(cls) -> RouteFunc:
+        def route(
+            form: "CompleteRegistrationForm" = Depends(CompleteRegistrationForm.Init()),
+        ) -> Response:
+            return form.make_response()
+        return route
+
+    @htmx_route("POST", "/complete-registration/{token}")
+    def Submit(cls) -> RouteFunc:
+        def route(
+            session: SyncSession = Depends(dependencies.db_session),
+            bcrypt: secrets.BcryptCompat = Depends(dependencies.get_bcrypt),
+            form: "CompleteRegistrationForm" = Depends(CompleteRegistrationForm.Validate()),
+            _ = Depends(dependencies.audit_log)
+        ) -> Response:
+            data = secrets.verify_registration_token(token=form.token)
+            if data is None:
+                form.email.errors.append("Token expired or invalid.")
+                raise exc.FormValidationException(form)
+
+            email, role = data
+            if session.exists(Q.user.select(email=email)):
+                form.email.errors.append("User already exists.")
+                raise exc.FormValidationException(form)
+            if email != form.email.data:
+                form.email.errors.append("Token expired or invalid.")
+                raise exc.FormValidationException(form)
+
+            user = session.save(Q.user.create(
+                email=email,
+                first_name=form.first_name.data,
+                last_name=form.last_name.data,
+                hashed_password=bcrypt.generate_password_hash(form.password.data),
+                role=UserRole.get(role),
+            ), flush=True)
+
+            logger.info(f"User {user.email} completed registration.")
+            return responses.htmx_response(
+                redirect=responses.url_for("login_page"),
+                flash=responses.flash("Registration completed successfully.", "success"),
+            )
+        return route
         
 
 

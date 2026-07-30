@@ -18,7 +18,7 @@
                 <ul class="dropdown-menu">
                     <li>
                         <button type="button" class="dropdown-item"  data-bs-toggle="modal" data-bs-target="#xl-modal" 
-                            hx-get="{{ url_for('index_kits_htmx.edit', index_kit_id=index_kit.id) }}"
+                            hx-get="{{ url_for('IndexKitForm.Edit', index_kit_id=index_kit.id) }}"
                             hx-target="#xl-modal-content" data-bs-toggle="modal"
                             hx-swap="innerHTML">
                             Edit

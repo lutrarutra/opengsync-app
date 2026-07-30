@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from opengsync_db import models, SyncSession, queries as Q
 
 from ...core import dependencies, responses
+from ... import forms
 
 router = APIRouter(prefix="/sequencers", tags=["sequencers"])
 
@@ -11,7 +12,7 @@ router = APIRouter(prefix="/sequencers", tags=["sequencers"])
 def search_sequencers(
     word: str | None = Query(None, description="Search word for sequencer name"),
     selected_id: int | None = Query(None, description="Currently selected sequencer"),
-    current_user: models.User = Depends(dependencies.require_user),
+    current_user: models.User = Depends(dependencies.require_insider),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     session: SyncSession = Depends(dependencies.db_session),
 ):
@@ -24,3 +25,5 @@ def search_sequencers(
 
     sequencers, count = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/sequencer.html", sequencers=sequencers)
+
+router.include_router(forms.models.SequencerForm.Router())

@@ -97,7 +97,7 @@ def remove_user_from_group(
     session.delete(affiliation)
 
     return responses.htmx_response(
-        redirect=responses.url_for("group_page", group_id=group_id),
+        # redirect=responses.url_for("group_page", group_id=group_id),
         flash=responses.flash("User removed from group.", "success")
     )
 
@@ -119,7 +119,7 @@ def make_owner_of_group(
     affiliation.affiliation_type = C.AffiliationType.OWNER
 
     return responses.htmx_response(
-        redirect=responses.url_for("group_page", group_id=group_id),
+        # redirect=responses.url_for("group_page", group_id=group_id),
         flash=responses.flash("User is now an owner of the group.", "success")
     )
 

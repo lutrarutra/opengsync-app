@@ -49,7 +49,39 @@ class Mailer:
             body=self.j2_env.get_template("email/password-reset.html").render(link=reset_link, style=style),
             mime_type="html"
         )
-    
+
+    def send_share_directory(
+        self,
+        recipients: Sequence[str],
+        share_token,
+        author,
+        browse_link: str,
+    ):
+        outdir = "BSF_DATA"
+        style = open("/static/style/compiled/email.css").read()
+
+        http_command = self.j2_env.get_template("snippets/rclone-http.sh.j2").render(token=share_token.uuid, outdir=outdir)
+        sync_command = self.j2_env.get_template("snippets/rclone-sync.sh.j2").render(token=share_token.uuid, outdir=outdir)
+        wget_command = self.j2_env.get_template("snippets/wget.sh.j2").render(token=share_token.uuid, outdir=outdir)
+
+        body = self.j2_env.get_template("email/share-directory.html").render(
+            style=style,
+            browse_link=browse_link,
+            author=author,
+            share_token=share_token,
+            sync_command=sync_command,
+            http_command=http_command,
+            wget_command=wget_command,
+            outdir=outdir,
+        )
+
+        self.__send_email(
+            recipients=list(set(recipients)),
+            subject=f"{settings.app_config.personalization.organization} Shared a Directory",
+            body=body,
+            mime_type="html",
+        )
+
     def __send_email(self, recipients: str | Sequence[str], subject: str, body: str, mime_type: Literal["plain", "html"] = "plain"):
         if mime_type == "html":
             body = premailer.transform(body)

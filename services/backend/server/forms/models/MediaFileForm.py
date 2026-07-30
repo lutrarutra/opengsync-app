@@ -1,8 +1,8 @@
 import os
-import uuid as uuid_lib
 from typing import Literal
 
 from fastapi import Depends, Response, Query
+from sqlalchemy import orm
 
 from opengsync_db import queries as Q, SyncSession, models, categories as C
 
@@ -37,19 +37,19 @@ class MediaFileForm(HTMXForm):
         self.seq_request_id = seq_request_id
         self.experiment_id = experiment_id
         self.lab_prep_id = lab_prep_id
+
         if self.form_type == "create" and self.media_file is not None:
             raise ValueError("file must be None when form_type is 'create'")
         if self.form_type == "edit" and self.media_file is None:
             raise ValueError("file must be provided when form_type is 'edit'")
-        
-        url_context = {}
+
+        self.post_url = responses.url_for("MediaFileForm.Upload")
         if self.seq_request_id is not None:
-            url_context["seq_request_id"] = self.seq_request_id
+            self.post_url = self.post_url.include_query_params(seq_request_id=self.seq_request_id)
         if self.experiment_id is not None:
-            url_context["experiment_id"] = self.experiment_id
+            self.post_url = self.post_url.include_query_params(experiment_id=self.experiment_id)
         if self.lab_prep_id is not None:
-            url_context["lab_prep_id"] = self.lab_prep_id
-        self.post_url = responses.url_for("MediaFileForm.Upload").include_query_params(**url_context)
+            self.post_url = self.post_url.include_query_params(lab_prep_id=self.lab_prep_id)
 
     @staticmethod
     def check_permissions(
@@ -74,6 +74,7 @@ class MediaFileForm(HTMXForm):
             experiment_id: int | None = None,
             lab_prep_id: int | None = None,
             session: SyncSession = Depends(dependencies.db_session),
+            type: C.MediaFileType | None = Depends(dependencies.parse_enum_id(enum_type=C.MediaFileType, query_param="type")),
             current_user: models.User = Depends(dependencies.require_user),
         ) -> "MediaFileForm":
             MediaFileForm.check_permissions(
@@ -84,12 +85,14 @@ class MediaFileForm(HTMXForm):
                 lab_prep_id=lab_prep_id,
             )
 
-            return MediaFileForm(
+            form = MediaFileForm(
                 form_type=form_type,
                 seq_request_id=seq_request_id,
                 experiment_id=experiment_id,
                 lab_prep_id=lab_prep_id,
             )
+            form.file_type._data = type.id if type is not None else None
+            return form
 
         return dependency
 
@@ -112,7 +115,7 @@ class MediaFileForm(HTMXForm):
             lab_prep_id: int | None = Query(None),
         ) -> Response:
             if seq_request_id is not None:
-                redirect = responses.url_for("seq_request_page", seq_request_id=seq_request_id)
+                redirect = responses.url_for("seq_request_page", seq_request_id=seq_request_id).include_query_params(tab="seq_request-files-tab")
             elif experiment_id is not None:
                 redirect = responses.url_for("experiment_page", experiment_id=experiment_id)
             elif lab_prep_id is not None:
@@ -136,42 +139,26 @@ class MediaFileForm(HTMXForm):
             except (ValueError, TypeError):
                 raise exc.BadRequestException("Invalid file type.")
 
-            filename = form.file.data.filename
-            _, ext = os.path.splitext(filename)
-            if file_type.extensions and ext.lower() not in file_type.extensions:
-                raise exc.BadRequestException(f"File type '{file_type.label}' does not support '{ext}' files.")
+            if file_type == C.MediaFileType.SEQ_AUTH_FORM:
+                if form.seq_request_id is None:
+                    raise exc.BadRequestException("Sequencing authorization form cannot be submitted from this context.")
 
-            content = form.file.data.content
-            if content is None:
-                raise exc.BadRequestException("No file was uploaded.")
-            
-            size_bytes = form.file.data.size
-            if size_bytes and size_bytes > MediaFileForm.MAX_SIZE_MBYTES * 1024 * 1024:
-                raise exc.BadRequestException(f"File size exceeds {MediaFileForm.MAX_SIZE_MBYTES} MB limit.")
+                seq_request = session.get_one(Q.seq_request.select(id=seq_request_id), options=[orm.joinedload(models.SeqRequest.seq_auth_form_file)])
+                if seq_request.seq_auth_form_file is not None:
+                    seq_request.seq_auth_form_file.type = C.MediaFileType.CUSTOM
 
-            file_uuid = str(uuid_lib.uuid4())
-            file_ext = ext.lower()
-            file_name = filename.rsplit(".", 1)[0][:64]
-
-            media_dir = config.settings.app_config.media_folder
-            file_dir = os.path.join(media_dir, file_type.dir)
-            os.makedirs(file_dir, exist_ok=True)
-            file_path = os.path.join(file_dir, f"{file_uuid}{file_ext}")
-
-            with open(file_path, "wb") as f:
-                f.write(content)
-
-            session.save(Q.media_file.create(
-                name=file_name,
+            filename, extension = os.path.splitext(form.file.data.filename)
+            media_file = session.save(Q.media_file.create(
+                name=filename,
+                extension=extension,
+                size_bytes=form.file.data.size,
                 type=file_type,
                 uploader_id=current_user.id,
-                extension=file_ext,
-                size_bytes=size_bytes,
-                uuid=file_uuid,
                 seq_request_id=seq_request_id,
                 experiment_id=experiment_id,
                 lab_prep_id=lab_prep_id,
             ))
+            form.file.save(media_file)
             return responses.htmx_response(redirect=redirect, flash=responses.flash("File uploaded successfully!", "success"))
         return submit
 

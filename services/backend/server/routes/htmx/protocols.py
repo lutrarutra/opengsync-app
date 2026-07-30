@@ -79,7 +79,7 @@ def remove_kit_from_protocol(
 
     return responses.htmx_response(
         flash=responses.flash(f"Kit '{kit.name}' removed from protocol '{protocol.name}'.", "success"),
-        redirect=responses.url_for("protocols_page"),
+        # redirect=responses.url_for("protocols_page"),
     )
 
 @router.delete("/{protocol_id}/remove-kit-combination", dependencies=[Depends(dependencies.require_insider), Depends(dependencies.audit_log)])
@@ -103,7 +103,7 @@ def remove_kit_combination_from_protocol(
 
     return responses.htmx_response(
         flash=responses.flash(f"Kit combination '{link.combination_num}' removed from protocol '{protocol.name}'.", "success"),
-        redirect=responses.url_for("protocols_page"),
+        # redirect=responses.url_for("protocols_page"),
     )
 
 router.include_router(forms.actions.AddKitsToProtocolAction.Router())

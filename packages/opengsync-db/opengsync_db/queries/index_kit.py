@@ -52,6 +52,7 @@ def search(
 
 def select(
     id: int | None = None,
+    name: str | None = None,
     type_in: list[IndexType] | None = None,
     type: IndexType | None = None,
     identifier: str | None = None,
@@ -61,6 +62,8 @@ def select(
 
     if id is not None:
         statement = statement.where(IndexKit.id == id)
+    if name is not None:
+        statement = statement.where(IndexKit.name == name.strip())
     if type_in is not None:
         statement = statement.where(IndexKit.type_id.in_([t.id for t in type_in]))
     if type is not None:

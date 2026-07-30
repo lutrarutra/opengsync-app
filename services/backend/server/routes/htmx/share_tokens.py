@@ -73,21 +73,20 @@ def render_data_path_table(
     )
 
     if library_id is not None:
-        template = "components/tables/library-data_path.html"
+        table.template = "components/tables/library-data_path.html"
         table.url_params["library_id"] = library_id
     elif project_id is not None:
-        template = "components/tables/project-data_path.html"
+        table.template = "components/tables/project-data_path.html"
         table.url_params["project_id"] = project_id
     elif seq_request_id is not None:
-        template = "components/tables/seq_request-data_path.html"
+        table.template = "components/tables/seq_request-data_path.html"
         table.url_params["seq_request_id"] = seq_request_id
     elif experiment_id is not None:
-        template = "components/tables/experiment-data_path.html"
+        table.template = "components/tables/experiment-data_path.html"
         table.url_params["experiment_id"] = experiment_id
     else:
         raise exc.BadRequestException("At least one of library_id, project_id, seq_request_id, or experiment_id must be provided")
 
     data_paths, count = session.page(stmt, page=page, order_by=order_by)
     table.set_num_pages(count)
-
-    return responses.htmx_response(template=template, data_paths=data_paths, table=table)
+    return table.make_response(data_paths=data_paths)

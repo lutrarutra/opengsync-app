@@ -118,12 +118,13 @@ function createMenuItem(action, $contextElement) {
     return li.append(link);
 }
 
-function hx_request(url, title, text, icon, swap, target, confirm, type) {
+function hx_request(url, title, text, icon, swap, target, confirm, type, sourceElement) {
     function send_request() {
-        htmx.ajax(type, url, {
-            target: target,
-            swap: swap,
-        });
+        const opts = { target: target, swap: swap };
+        if (sourceElement) {
+            opts.source = sourceElement;
+        }
+        htmx.ajax(type, url, opts);
     }
 
     if (confirm) {
@@ -155,7 +156,7 @@ function handleContextMenuAction(action, $contextElement) {
             const config = action.config;
             window.location.href = `mailto:${encodeURIComponent(config.recipient || '')}?subject=${encodeURIComponent(config.subject || '')}`;
         },
-        hxdelete: (action) => {
+        hxdelete: (action, $contextElement) => {
             const config = action.config;
             hx_request(
                 config.url,
@@ -165,10 +166,11 @@ function handleContextMenuAction(action, $contextElement) {
                 config.swap || "outerHTML",
                 config.target,
                 config.confirm ?? true,
-                "DELETE"
+                "DELETE",
+                $contextElement ? $contextElement[0] : undefined
             );
         },
-        hxpost: (action) => {
+        hxpost: (action, $contextElement) => {
             const config = action.config;
             hx_request(
                 config.url,
@@ -178,10 +180,11 @@ function handleContextMenuAction(action, $contextElement) {
                 config.swap || "outerHTML",
                 config.target,
                 config.confirm ?? true,
-                "POST"
+                "POST",
+                $contextElement ? $contextElement[0] : undefined
             );
         },
-        hxget: (action) => {
+        hxget: (action, $contextElement) => {
             const config = action.config;
             hx_request(
                 config.url,
@@ -191,7 +194,8 @@ function handleContextMenuAction(action, $contextElement) {
                 config.swap || "outerHTML",
                 config.target,
                 config.confirm ?? true,
-                "GET"
+                "GET",
+                $contextElement ? $contextElement[0] : undefined
             );
         }
     };

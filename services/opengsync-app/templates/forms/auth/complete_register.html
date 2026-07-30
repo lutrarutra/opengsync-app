@@ -3,28 +3,29 @@
         <h1 class="modal-title fs-5" >Register</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
-    <div class="modal-body" id="complete-register-form">
-        {{ form.csrf_token.render() }}
-        <div class="row">
-            {{ form.email.render("col-4") }}
-            {{ form.first_name.render("col-4") }}
-            {{ form.last_name.render("col-4") }}
-        </div>
-        <div class="row">
-            {{ form.password.render("col-6") }}
-            {{ form.confirm.render("col-6") }}
+    <div class="modal-body">
+        <div id="complete-register-form">
+            {{ form.csrf_token.render() }}
+            <div class="row">
+                {{ form.email.render("col-4") }}
+                {{ form.first_name.render("col-4") }}
+                {{ form.last_name.render("col-4") }}
+            </div>
+            <div class="row">
+                {{ form.password.render("col-6") }}
+                {{ form.confirm.render("col-6") }}
+            </div>
         </div>
     </div>
-    {{tokenn}}
-    <div class="modal-footer">
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
         <div class="footer-controls">
-            {{
-                form.render_submit_button(
-                    post_url=url_for('complete_registration', token=form.token),
-                    form_id="complete-register-form",
-                    target_id="complete-register-form-container"
-                )
-            }}
+            <button id="submit-complete-register-btn" class="btn btn-success"
+            hx-include="#complete-register-form" hx-target="#complete-register-form-container" hx-swap="outerHTML"
+            hx-post="{{ form.post_url }}">Register</button>
         </div>
     </div>
 </div>

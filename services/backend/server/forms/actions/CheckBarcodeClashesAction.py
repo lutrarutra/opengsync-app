@@ -15,9 +15,6 @@ class CheckBarcodeClashesAction(HTMXForm):
     template_path = "workflows/check_barcode_clashes/select-samples.html"
     library_ids = inputs.tables.LibrarySelectTableField("Libraries", browse_context="barcode-clashes", indexed=True)
 
-    def __init__(self):
-        super().__init__()
-
     @classmethod
     def get_library_data(cls, libraries: Sequence[models.Library]) -> pd.DataFrame:
         library_data = {

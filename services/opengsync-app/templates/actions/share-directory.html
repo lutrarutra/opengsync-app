@@ -1,0 +1,28 @@
+<div id="share-directory-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Share Directory</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="share-directory-form">
+            {{ form.csrf_token.render() }}
+            <div class="row">
+                {{ form.directory_path.render("col-6") }}
+                {{ form.time_valid_min.render("col-6") }}
+            </div>
+            {{ form.recipients.render() }}
+            {{ form.anonymous_send.render() }}
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-controls">
+            <button type="button" class="btn btn-success"
+                hx-target="#share-directory-form-container" hx-swap="outerHTML" hx-include="#share-directory-form"
+                hx-post="{{ form.post_url }}">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>

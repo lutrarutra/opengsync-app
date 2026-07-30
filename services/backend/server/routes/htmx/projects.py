@@ -289,18 +289,6 @@ def complete_project(
     )
 
 
-@router.get("/{project_id}/edit-sample-attributes")
-def render_project_sample_attributes_form(
-    access_level: C.AccessLevel = Depends(dependencies.project_permissions),
-):
-    if access_level < C.AccessLevel.WRITE:
-        raise exc.NoPermissionsException(
-            "You do not have permission to edit this project."
-        )
-
-    pass
-
-
 @router.get(
     "/{project_id}/sample-attributes",
     dependencies=[Depends(dependencies.project_permissions)],
@@ -458,13 +446,6 @@ def render_project_overview(
     )
 
 
-@router.get("/{project_id}/assignee-form", dependencies=[Depends(dependencies.require_insider)])
-def render_project_assignee_form(
-    project_id: int,
-):
-    pass
-
-
 @router.get("/{project_id}/software", dependencies=[Depends(dependencies.project_permissions)])
 def render_project_software(
     project_id: int,
@@ -479,3 +460,6 @@ def render_project_software(
     )
 
 router.include_router(forms.models.ProjectForm.Router())
+router.include_router(forms.actions.AddProjectAssigneeAction.Router())
+router.include_router(forms.actions.SampleAttributeTableAction.Router())
+router.include_router(forms.actions.MergeProjectsAction.Router())

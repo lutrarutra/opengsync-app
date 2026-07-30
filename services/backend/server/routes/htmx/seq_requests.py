@@ -557,12 +557,11 @@ def render_seq_request_assignee_table(
     )
 
 
-@router.delete("/{seq_request_id}/remove-assignee/{assignee_id}")
+@router.delete("/{seq_request_id}/remove-assignee/{assignee_id}", dependencies=[Depends(dependencies.require_insider)])
 def remove_seq_request_assignee(
     seq_request_id: int,
     assignee_id: int,
     session: SyncSession = Depends(dependencies.db_session),
-    current_user: models.User = Depends(dependencies.require_insider),
 ):
     seq_request = session.get_one(
         Q.seq_request.select(id=seq_request_id),
@@ -578,9 +577,10 @@ def remove_seq_request_assignee(
     session.save(seq_request)
 
     return responses.htmx_response(
-        "components/tables/seq_request-assignee.html",
-        assignees=seq_request.assignees,
-        seq_request=seq_request,
+        # "components/tables/seq_request-assignee.html",
+        # assignees=seq_request.assignees,
+        # seq_request=seq_request,
+        flash=responses.flash("Assignee removed.", "success"),
     )
 
 
@@ -940,7 +940,6 @@ def remove_auth_form(
 def remove_library_from_request(
     seq_request_id: int,
     library_id: int,
-    request: Request,
     session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
@@ -963,7 +962,7 @@ def remove_library_from_request(
     session.delete(library)
 
     return responses.htmx_response(
-        redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
+        # redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
         flash=responses.flash("Library removed!", "success"),
     )
 
@@ -972,7 +971,6 @@ def remove_library_from_request(
 def reseq_library(
     seq_request_id: int,
     library_id: int,
-    request: Request,
     session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
@@ -998,7 +996,7 @@ def reseq_library(
     )
 
     return responses.htmx_response(
-        redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
+        # redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
         flash=responses.flash("Library cloned!", "success"),
     )
 
@@ -1007,7 +1005,6 @@ def reseq_library(
 def remove_sample_from_request(
     seq_request_id: int,
     sample_id: int,
-    request: Request,
     session: SyncSession = Depends(dependencies.db_session),
     access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
 ):
@@ -1022,7 +1019,7 @@ def remove_sample_from_request(
         session.delete(library_link.library)
 
     return responses.htmx_response(
-        redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
+        # redirect=request.url_for("seq_request_page", seq_request_id=seq_request_id),
         flash=responses.flash(
             "Removed all libraries associated with the sample.", "success"
         ),

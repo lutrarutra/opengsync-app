@@ -1,25 +1,14 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 
 from opengsync_db import models
 
 from ...core import dependencies, responses
-from ...forms import auth as auth_forms
+from ... import forms
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.get("/complete-registration/{token}")
-def complete_registration_form(
-    form: auth_forms.CompleteRegistrationForm = Depends(auth_forms.CompleteRegistrationForm),
-):
-    return form.make_response()
-
-@router.post("/complete-registration/{token}")
-def complete_registration(response = Depends(auth_forms.CompleteRegistrationForm.process_request)): return response
-
-
 @router.post("/logout")
 def logout(
-    request: Request,
     current_user: models.User = Depends(dependencies.require_user),
 ):
     resp = responses.htmx_response(
@@ -30,5 +19,8 @@ def logout(
     resp.delete_cookie(key="csrf_token", path="/", samesite="lax")
     return resp
 
-router.include_router(auth_forms.LoginForm.Router())
-router.include_router(auth_forms.RegisterForm.Router())
+router.include_router(forms.auth.LoginForm.Router())
+router.include_router(forms.auth.RegisterForm.Router())
+router.include_router(forms.auth.ResetPasswordForm.Router())
+router.include_router(forms.auth.CompleteRegistrationForm.Router())
+router.include_router(forms.auth.ChangePasswordForm.Router())

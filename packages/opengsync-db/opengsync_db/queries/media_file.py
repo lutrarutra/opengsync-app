@@ -55,13 +55,15 @@ def select(
     experiment_id: int | None = None,
     seq_request_id: int | None = None,
     lab_prep_id: int | None = None,
+    type_in: list[MediaFileType] | None = None,
+    type: MediaFileType | None = None,
     viewer_id: int | None = None,
     statement: sa.Select[tuple[MediaFile]] = sa.select(MediaFile),
 ) -> sa.Select[tuple[MediaFile]]:
     statement = statement.where(*where_clauses(
         id=id, uploader_id=uploader_id, experiment_id=experiment_id,
         seq_request_id=seq_request_id, lab_prep_id=lab_prep_id,
-        viewer_id=viewer_id
+        viewer_id=viewer_id, type_in=type_in, type=type
     ))
     return statement
 
@@ -75,6 +77,8 @@ def where_clauses(
     experiment_id: int | None = None,
     seq_request_id: int | None = None,
     lab_prep_id: int | None = None,
+    type_in: list[MediaFileType] | None = None,
+    type: MediaFileType | None = None,
     viewer_id: int | None = None,
 ) -> list[sa.ColumnElement[bool]]:
     """Return WHERE clauses for filtering media files.
@@ -92,6 +96,10 @@ def where_clauses(
         clauses.append(MediaFile.seq_request_id == seq_request_id)
     if lab_prep_id is not None:
         clauses.append(MediaFile.lab_prep_id == lab_prep_id)
+    if type_in is not None:
+        clauses.append(MediaFile.type_id.in_([t.id for t in type_in]))
+    if type is not None:
+        clauses.append(MediaFile.type_id == type.id)
     if viewer_id is not None:
         clauses.append(access_level(viewer_id) >= AccessLevel.READ)
 

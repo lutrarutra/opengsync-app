@@ -30,11 +30,11 @@ class RegisterForm(HTMXForm):
     @htmx_route("POST")
     def Register(cls) -> RouteFunc:
         def route(
-            request: Request,
+            form: RegisterForm = Depends(RegisterForm.Validate()),
             current_user: models.User | None = Depends(dependencies.get_user),
             mailer: mailer.Mailer = Depends(dependencies.mail_client),
             session: SyncSession = Depends(dependencies.db_session),
-            form: RegisterForm = Depends(RegisterForm.Validate()),
+            _ = Depends(dependencies.audit_log)
         ) -> Response:
             # Email domain whitelist check
             if current_user is None or not current_user.is_insider:
@@ -72,7 +72,7 @@ class RegisterForm(HTMXForm):
                 return responses.htmx_response(redirect=responses.url_for("login_page"))
 
             token = secrets.generate_registration_token(email=form.email.data, role=user.role)
-            link = request.url_for("complete_registration_page", token=token)
+            link = responses.url_for("complete_registration_page", token=token)
             try:
                 mailer.send_registration(form.email.data, link)
             except Exception as e:
