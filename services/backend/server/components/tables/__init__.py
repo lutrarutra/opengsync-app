@@ -3,7 +3,7 @@ from .TableCol import TableCol
 from .StaticSpreadsheet import StaticSpreadsheet
 from .spreadsheet import (
     SpreadSheetColumn, IntegerColumn, FloatColumn,
-    DropdownColumn, TextColumn, CategoricalDropDown,
+    DropdownColumn, TextColumn, CategoricalDropDown, DBObjectColumn,
     MissingCellValue, InvalidCellValue, DuplicateCellValue, NotUniqueCellValue
 )
 from .UniverSpreadsheet import UniverSpreadsheet
@@ -12,6 +12,6 @@ __all__ = [
     "HTMXTable", "TableCol", "StaticSpreadsheet",
     "SpreadSheetColumn", "IntegerColumn", "FloatColumn",
     "DropdownColumn", "TextColumn", "UniverSpreadsheet",
-    "CategoricalDropDown",
+    "CategoricalDropDown", "DBObjectColumn",
     "MissingCellValue", "InvalidCellValue", "DuplicateCellValue", "NotUniqueCellValue"
 ]

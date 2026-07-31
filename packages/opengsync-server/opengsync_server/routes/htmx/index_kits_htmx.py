@@ -39,7 +39,7 @@ def render_table(index_kit_id: int):
     df = df.drop(columns=["adapter_id"])
 
     columns = []
-    for i, col in enumerate(df.columns):
+    for col in df.columns:
         if "sequence" in col:
             width = 200
         elif "well" in col:
@@ -49,7 +49,6 @@ def render_table(index_kit_id: int):
         columns.append(TextColumn(col, col, width, max_length=1000))
 
     spreadsheet = StaticSpreadSheet(df, columns=columns, id=f"index_kit_table-{index_kit_id}")
-
     return make_response(render_template("components/itable.html", spreadsheet=spreadsheet))
 
 

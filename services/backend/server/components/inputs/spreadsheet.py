@@ -14,6 +14,7 @@ from ..tables.spreadsheet import (
     IntegerColumn,
     DropdownColumn,
     CategoricalDropDown,
+    DBObjectColumn,
     SpreadSheetColumn,
     SpreadSheetException,
 )
@@ -122,15 +123,24 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
             col.letter = string.ascii_uppercase[i]
 
     def set_data(self, df: pd.DataFrame):
+        self._ensure_lazy_options()
+        # Do not mutate workflow state while converting stored category keys
+        # to the labels displayed by the spreadsheet.
+        display_df = df.copy()
         for col in self.columns.keys():
-            if col not in df.columns:
-                df[col] = None
+            if col not in display_df.columns:
+                display_df[col] = None
 
         for col in self.columns.values():
-            if isinstance(col, CategoricalDropDown):
-                if col.label in df.columns:
-                    df[col.label] = df[col.label].apply(lambda v, c=col: c.to_display(v))
-        self.table_data = df[[col.label for col in self.columns.values()]].astype(object).replace(np.nan, "").values.tolist()
+            if isinstance(col, DBObjectColumn):
+                display_df[col.label] = display_df.apply(col.to_display_row, axis=1)
+            elif isinstance(col, CategoricalDropDown) and col.label in display_df.columns:
+                display_df[col.label] = display_df[col.label].apply(
+                    lambda v, c=col: c.to_display(v)
+                )
+        self.table_data = display_df[
+            [col.label for col in self.columns.values()]
+        ].astype(object).replace(np.nan, "").values.tolist()
 
     def configure(
         self,
@@ -138,6 +148,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         df: pd.DataFrame = pd.DataFrame(),
         post_url: responses.URL | None = None,
     ):
+        self._ensure_lazy_options()
         self.post_url = post_url
         self.csrf_token = csrf_token
         self._errors = []
@@ -145,6 +156,12 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         self.style = {}
         self.set_data(df)
         self._configured = True
+
+    def _ensure_lazy_options(self) -> None:
+        for column in self.columns.values():
+            ensure = getattr(column, "_ensure_choices", None) or getattr(column, "_ensure_categories", None)
+            if ensure is not None:
+                ensure()
 
 
     def validate(self, raw_data: dict[str, Any]) -> bool:
@@ -162,9 +179,42 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         spreadsheet_json = str(raw_data.get("spreadsheet", "") or "")
         columns_json = str(raw_data.get("columns", "") or "")
 
+        # JSpreadsheet can submit an empty string or only spare blank rows.
+        # Handle that here, before parsing/column validation, so an empty
+        # spreadsheet cannot be accepted accidentally.
+        if not self.can_be_empty and self._is_empty_submission(spreadsheet_json):
+            self.add_general_error("Spreadsheet must contain at least one row.")
+            self.errors = list(self._errors)
+            return False
+
+        if not spreadsheet_json or not columns_json:
+            self.add_general_error("Spreadsheet data or columns are missing.")
+            self.errors = list(self._errors)
+            return False
+
         result = self._do_validate(spreadsheet_json, columns_json)
         self.errors = list(self._errors)
         return result
+
+    @staticmethod
+    def _is_empty_submission(spreadsheet_json: str) -> bool:
+        if not spreadsheet_json.strip():
+            return True
+        try:
+            data = json.loads(spreadsheet_json)
+        except (json.JSONDecodeError, TypeError):
+            return False
+        if not isinstance(data, list) or not data:
+            return True
+        return not any(
+            any(
+                value is not None
+                and (not isinstance(value, str) or value.strip() != "")
+                for value in row
+            )
+            for row in data
+            if isinstance(row, list)
+        )
 
     def _do_validate(self, spreadsheet_json: str, columns_json: str) -> bool:
         if not spreadsheet_json or not columns_json:
@@ -207,13 +257,31 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
 
         df = df.dropna(how="all")
 
-        if len(df) == 0 and not self.can_be_empty:
-            self._errors.append("Spreadsheet is empty.")
-            return False
+        if df.empty:
+            if not self.can_be_empty:
+                self.add_general_error("Spreadsheet must contain at least one row.")
+                return False
+            self._data = df
+            self._validated = True
+            return True
+
+        for column in self.columns.values():
+            if not isinstance(column, DBObjectColumn) or column.label not in df.columns:
+                continue
+            for idx, value in df[column.label].items():
+                for target_column, target_value in column.expand(value).items():
+                    df.loc[idx, target_column] = target_value
+            df = df.drop(columns=[column.label])
 
         # Track columns that have been removed by the user
         to_delete: set[str] = set()
         for label, column in self.columns.items():
+            if isinstance(column, DBObjectColumn):
+                if not all(backend_name in df.columns for backend_name in column.backend_columns):
+                    self.add_general_error(
+                        f"Missing required columns for '{column.label}'."
+                    )
+                continue
             if column.can_be_deleted and label not in df.columns:
                 to_delete.add(label)
             elif label not in df.columns:
@@ -224,6 +292,14 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         # Type coercion + per-column validation
         for label, column in self.columns.items():
             if label not in df.columns:
+                continue
+
+            if isinstance(column, DBObjectColumn):
+                for idx, value in enumerate(df[label].tolist()):
+                    try:
+                        column.validate(value, column_values=df[label].tolist())
+                    except SpreadSheetException as e:
+                        self.add_error(idx, label, e)
                 continue
 
             if isinstance(column, CategoricalDropDown):

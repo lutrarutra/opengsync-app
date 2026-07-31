@@ -309,7 +309,7 @@
                 <div class="flip-card card{% if seq_request.status != C.SeqRequestStatus.DRAFT and not current_user.is_insider %} disabled text-muted{% endif %}"
                     {% if seq_request.status == C.SeqRequestStatus.DRAFT or current_user.is_insider %}
                     data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                    hx-get="{{ url_for('ReindexWorkflow.begin', seq_request_id=seq_request.id) }}"
+                    hx-get="{{ url_for('ReindexWorkflow.Begin', seq_request_id=seq_request.id) }}"
                     hx-target="#fullscreen-modal-content" hx-swap="innerHTML"
                     {% else %}{{ tooltip("You can no longer edit libraries after the request has been submitted.", category="warning") }}{% endif %}>
                     <div class="flip-card-container">

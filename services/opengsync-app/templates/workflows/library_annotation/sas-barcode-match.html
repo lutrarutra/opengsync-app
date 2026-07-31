@@ -66,7 +66,7 @@
             </div>
             {% for (kit_id, kit) in kits %}
             <div class="tab-pane fade" id="index_kit-{{kit_id}}-tab" role="tabpanel" tabindex="{{ loop.index }}">
-                <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=kit_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                <div hx-get="{{ url_for('render_index_kit_spreadsheet', index_kit_id=kit_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                     {{ spinner() }}
                 </div>
             </div>

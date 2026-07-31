@@ -57,7 +57,14 @@ class SelectableInputField(BaseInputField, Generic[T_int]):
             hidden=hidden,
             read_only=read_only,
         )
-        self.options: list[tuple[int, str]] = options
+        self.set_options(options)
+        self._mapping = dict(options)
+
+    def set_options(self, options: list[tuple[int, str]]) -> None:
+        """Set the options for the selectable input field."""
+        self.options = options
+        if self.default is None:
+            self.options = [("", f"Select {self.label} ({'Required' if self.required else 'Optional'})")] + options  # type: ignore
         self._mapping = dict(options)
 
     @property

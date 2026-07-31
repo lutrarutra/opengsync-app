@@ -13,12 +13,10 @@
         <select class="form-control select-field {% if field.errors %}is-invalid{% endif %} {{ 'disabled' if field.read_only else '' }}" 
         {% if field.read_only %}disabled{% endif %}
         name="{{ field.name }}" id="{{ field.id }}">
-            {% if field.default is none %}
-            <option value="" {% if field.required %}disabled{% endif %} {% if selected_value is none %}selected{% endif %}>Select {{ field.label }}</option>
-            {% endif %}
             {% for option in field.options %}
             <option value="{{ option[0] }}"
-            {% if selected_value is not none and option[0]|string == selected_value|string %}selected{% endif %}>
+            {% if option[0] == "" and field.required %}disabled{% endif %}
+            {% if (selected_value is none and option[0] == "") or (selected_value is not none and option[0]|string == selected_value|string) %}selected{% endif %}>
                 {{ option[1] }}
             </option>
             {% endfor %}

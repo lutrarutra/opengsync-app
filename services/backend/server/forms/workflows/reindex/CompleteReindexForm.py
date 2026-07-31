@@ -1,16 +1,22 @@
 import pandas as pd
 from fastapi import Depends, Response
-from loguru import logger
+from pydantic import BaseModel
 
 from opengsync_db import models, queries as Q, SyncSession, categories as C
 
 from ....core import dependencies, exceptions as exc, responses
+from ....utils import parsing, barcodes
 from ...HTMXForm import RouteFunc, htmx_route
-from .ReindexWorkflow import ReindexWorkflowStep
+from .ReindexWorkflow import ReindexWorkflowStep, ReindexWorkflow
 
 
 class CompleteReindexForm(ReindexWorkflowStep):
     template_path = "workflows/reindex/reindex-complete.html"
+
+    def __init__(self, workflow: ReindexWorkflow) -> None:
+        super().__init__(workflow=workflow)
+        self.barcode_table = self.workflow.tables["barcode_table"]
+        self.barcode_table = barcodes.check_indices(self.barcode_table)
 
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
@@ -30,13 +36,30 @@ class CompleteReindexForm(ReindexWorkflowStep):
 
             seq_request_ids: set[int] = set()
 
-            for (library_id, index_type_id), group in library_table.groupby(["library_id", "index_type_id"], dropna=False, sort=False):
-                library = session.get_one(Q.library.select(id=int(library_id)))
+            class GroupSchema(BaseModel):
+                library_id: int
+                index_type_id: int | None
+
+            class RowSchema(BaseModel):
+                library_id: int
+                index_type_id: int | None
+                kit_i7_id: int | None
+                kit_i5_id: int | None
+                sequence_i7: str
+                sequence_i5: str | None
+                name_i7: str | None
+                name_i5: str | None
+                orientation_i7_id: int | None
+                orientation_i5_id: int | None
+
+            # for (library_id, index_type_id), group in library_table.groupby(["library_id", "index_type_id"], dropna=False, sort=False):
+            for group, _ in parsing.safe_groupby(library_table, ["library_id", "index_type_id"], GroupSchema):
+                library = session.get_one(Q.library.select(id=group.library_id))
                 seq_request_ids.add(library.seq_request_id)
 
                 try:
-                    if pd.notna(index_type_id):
-                        index_type = C.IndexType.get(int(index_type_id))
+                    if group.index_type_id is not None:
+                        index_type = C.IndexType.get(group.index_type_id)
                     else:
                         index_type = C.IndexType.DUAL_INDEX
                 except (ValueError, TypeError):
@@ -48,38 +71,42 @@ class CompleteReindexForm(ReindexWorkflowStep):
                 if index_type == C.IndexType.TENX_ATAC_INDEX:
                     if tenx_atac_barcode_table is None:
                         raise exc.OpeNGSyncServerException("TENX_ATAC_INDEX selected but no ATAC barcode table found.")
-                    df = tenx_atac_barcode_table[tenx_atac_barcode_table["library_id"] == int(library_id)]
+                    df = tenx_atac_barcode_table[tenx_atac_barcode_table["library_id"] == group.library_id]
                 else:
-                    df = barcode_table[barcode_table["library_id"] == int(library_id)]
+                    df = barcode_table[barcode_table["library_id"] == group.library_id]
 
                 if df.get("index_well", pd.Series(dtype=str)).eq("del").all():
                     continue
 
-                for _, row in df.iterrows():
+                for _, row in parsing.safe_iter(df, RowSchema):
                     if index_type == C.IndexType.TENX_ATAC_INDEX:
                         for i in range(1, 5):
                             library.indices.append(
                                 Q.library_index.create(
                                     library_id=library.id,
-                                    index_kit_i7_id=int(row.get("kit_id")) if pd.notna(row.get("kit_id")) else None,
-                                    sequence_i7=row[f"sequence_{i}"],
-                                    name_i7=row.get("name") if pd.notna(row.get("name")) else None,
+                                    index_kit_i7_id=row.kit_i7_id,
+                                    sequence_i7=row.sequence_i7,
+                                    name_i7=row.name_i7,
+                                    name_i5=None,
+                                    sequence_i5=None,
+                                    index_kit_i5_id=None,
+                                    orientation=None
                                 )
                             )
                     else:
                         orientation = None
-                        if pd.notna(row.get("orientation_i7_id")):
-                            orientation = C.BarcodeOrientation.get(int(row["orientation_i7_id"]))
+                        if pd.notna(row.orientation_i7_id):
+                            orientation = C.BarcodeOrientation.get(int(row.orientation_i7_id))
 
                         library.indices.append(
                             Q.library_index.create(
                                 library_id=library.id,
-                                index_kit_i7_id=int(row["kit_i7_id"]) if pd.notna(row.get("kit_i7_id")) else None,
-                                index_kit_i5_id=int(row["kit_i5_id"]) if pd.notna(row.get("kit_i5_id")) else None,
-                                name_i7=row.get("name_i7") if pd.notna(row.get("name_i7")) else None,
-                                name_i5=row.get("name_i5") if pd.notna(row.get("name_i5")) else None,
-                                sequence_i7=row["sequence_i7"],
-                                sequence_i5=row.get("sequence_i5") if pd.notna(row.get("sequence_i5")) else None,
+                                index_kit_i7_id=row.kit_i7_id if pd.notna(row.kit_i7_id) else None,
+                                index_kit_i5_id=row.kit_i5_id if pd.notna(row.kit_i5_id) else None,
+                                name_i7=row.name_i7 if pd.notna(row.name_i7) else None,
+                                name_i5=row.name_i5 if pd.notna(row.name_i5) else None,
+                                sequence_i7=row.sequence_i7,
+                                sequence_i5=row.sequence_i5 if pd.notna(row.sequence_i5) else None,
                                 orientation=orientation,
                             )
                         )

@@ -163,17 +163,16 @@ class CompleteReindexForm(MultiStepForm):
             db.session.save(library)
 
         for seq_request_id in seq_request_ids:
-            seq_request = db.session.get_one(Q.seq_request.select(id=seq_request_id))
             for context, text in self.get_comments().items():
                 if context == "i7_primer":
                     db.session.save(Q.comment.create(
                         text=f"i7 Primer Sequence: {text}",
-                        author=user, seq_request=seq_request
+                        author=user, seq_request_id=seq_request_id
                     ))
                 elif context == "i5_primer":
                     db.session.save(Q.comment.create(
                         text=f"i5 Primer Sequence: {text}",
-                        author=user, seq_request=seq_request
+                        author=user, seq_request_id=seq_request_id
                     ))
 
         flash("Libraries Re-Indexed!", "success")

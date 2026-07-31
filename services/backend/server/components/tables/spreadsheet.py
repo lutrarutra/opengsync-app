@@ -1,4 +1,4 @@
-from typing import Optional, Literal, Any, Type, Callable, Sequence
+from typing import Optional, Literal, Any, Type, Callable, Sequence, cast
 from dataclasses import dataclass
 
 import pandas as pd
@@ -80,7 +80,7 @@ class SpreadSheetColumn:
             if column_values.count(self.clean_up(value, ignore_missing=True)) > 1:
                 raise DuplicateCellValue(f"Value '{value}' for '{self.label}' is not unique. It appears multiple times in the column.")
 
-    def set_choices(self, choices: list[Any]) -> None:
+    def set_choices(self, choices: list[Any] | Callable[[], list[Any]]) -> None:
         raise NotImplementedError("set_choices must be implemented in subclasses that support choices.")
 
     def set_categories(self, categories: dict[Any, str]) -> None:
@@ -175,20 +175,30 @@ class DropdownColumn(SpreadSheetColumn):
     all_options_required: bool
 
     def __init__(
-        self, label: str, name: str, width: float, choices: list[Any], required: bool = False,
+        self, label: str, name: str, width: float, choices: list[Any] | Callable[[], list[Any]], required: bool = False,
         letter: str | None = None, optional_col: bool = False, unique: bool = False, all_options_required: bool = False, read_only: bool = False
     ):
         super().__init__(
-            label=label, name=name, type="dropdown", width=width, var_type=str, source=choices,
+            label=label, name=name, type="dropdown", width=width, var_type=str,
+            source=[] if callable(choices) else choices,
             letter=letter, required=required, optional_col=optional_col, unique=unique, read_only=read_only
         )
         self.all_options_required = all_options_required
+        self._choices_factory: Callable[[], list[Any]] | None = choices if callable(choices) else None
+        if self._choices_factory is not None:
+            self.source = []
 
-    def set_choices(self, choices: list[Any]) -> None:
+    def _ensure_choices(self) -> None:
+        if self._choices_factory is not None and not self.source:
+            self.source = self._choices_factory()
+
+    def set_choices(self, choices: list[Any] | Callable[[], list[Any]]) -> None:
         """Update the dropdown choices after construction."""
-        self.source = choices
+        self._choices_factory = choices if callable(choices) else None
+        self.source = [] if callable(choices) else choices
 
     def validate(self, value: Any, column_values: Sequence[Any]):
+        self._ensure_choices()
         super().validate(value, column_values)
 
         if value not in self.source:
@@ -201,16 +211,23 @@ class DropdownColumn(SpreadSheetColumn):
 
 class CategoricalDropDown(SpreadSheetColumn):
     def __init__(
-        self, label: str, name: str, width: float, categories: dict[Any, str], required: bool = False,
+        self, label: str, name: str, width: float, categories: dict[Any, str] | Callable[[], dict[Any, str]], required: bool = False,
         letter: str | None = None, optional_col: bool = False, unique: bool = False, read_only: bool = False
     ):
         super().__init__(
             label=label, name=name, type="dropdown", width=width, var_type=str,
-            source=list(categories.values()), letter=letter, required=required,
+            source=[] if callable(categories) else list(categories.values()), letter=letter, required=required,
             optional_col=optional_col, unique=unique, read_only=read_only
         )
-        self.categories = categories
-        self.rev_categories = {v: k for k, v in categories.items()}
+        self._categories_factory: Callable[[], dict[Any, str]] | None = categories if callable(categories) else None
+        self.categories: dict[Any, str] = (
+            {} if self._categories_factory is not None else cast(dict[Any, str], categories)
+        )
+        self.rev_categories = {v: k for k, v in self.categories.items()}
+
+    def _ensure_categories(self) -> None:
+        if self._categories_factory is not None and not self.categories:
+            self.set_categories(self._categories_factory())
 
     def set_categories(self, categories: dict[Any, str]) -> None:
         """Update the dropdown categories after construction.
@@ -224,6 +241,7 @@ class CategoricalDropDown(SpreadSheetColumn):
         self.source = list(categories.values())
 
     def validate(self, value: Any, column_values: Sequence[Any]):
+        self._ensure_categories()
         super().validate(value, column_values)
         if pd.isna(value) and not self.required:
             return
@@ -231,6 +249,7 @@ class CategoricalDropDown(SpreadSheetColumn):
             raise InvalidCellValue(f"Invalid category '{value}' for '{self.label}'.")
         
     def clean_up(self, value: Any) -> Any:
+        self._ensure_categories()
         if pd.isna(value):
             return None
         return self.rev_categories[value]
@@ -238,5 +257,46 @@ class CategoricalDropDown(SpreadSheetColumn):
     def to_display(self, value: Any) -> Any:
         """Convert a stored key back to the human-readable display name."""
         if pd.isna(value):
-            return value
-        return self.categories.get(value, value)
+            return None
+        return self.categories.get(value, None)
+
+
+class DBObjectColumn(CategoricalDropDown):
+    """Render several DataFrame fields as one selectable object column."""
+
+    def __init__(
+        self,
+        columns: tuple[str, str],
+        label: str,
+        width: float,
+        categories: dict[Any, str] | Callable[[], dict[Any, str]],
+        required: bool = False,
+        read_only: bool = False,
+    ):
+        if len(columns) < 2:
+            raise ValueError("DBObjectColumn requires at least two DataFrame columns.")
+        super().__init__(label, label, width, categories, required, read_only=read_only)
+        self.backend_columns = columns
+
+    def to_display_row(self, row: pd.Series) -> Any:
+        object_id = row.get(self.backend_columns[0])
+        object_name = row.get(self.backend_columns[1])
+        if pd.isna(object_id):
+            return None
+        return f"{object_name} [{object_id}]" if pd.notna(object_name) else f"[{object_id}]"
+
+    def expand(self, value: Any) -> dict[str, Any]:
+        if pd.isna(value):
+            return {column: None for column in self.backend_columns}
+        text = str(value)
+        identifier, separator, name = text.partition("] ")
+        if not separator or not identifier.startswith("["):
+            raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'.")
+        try:
+            object_id = int(identifier[1:])
+        except ValueError as error:
+            raise InvalidCellValue(f"Invalid ID in '{value}' for '{self.label}'.") from error
+        values = {self.backend_columns[0]: object_id, self.backend_columns[1]: name}
+        for column in self.backend_columns[2:]:
+            values[column] = None
+        return values

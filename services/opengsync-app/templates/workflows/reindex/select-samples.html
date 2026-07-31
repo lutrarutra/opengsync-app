@@ -1,0 +1,43 @@
+<div class="modal-content" id="reindex-workflow-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Reindex (Select Libraries)</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#browse-libraries-tab"
+                    type="button" role="tab" aria-controls="browse-libraries-tab" aria-selected="false">
+                    Libraries
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button id="{{ form.selected_library_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#selected-libraries-tab"
+                    type="button" role="tab" aria-controls="selected-libraries-tab" aria-selected="false">
+                    Selected Libraries ({{ form.selected_library_ids.data | length }})
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="browse-libraries-tab" role="tabpanel" tabindex="0">
+                {{ form.csrf_token.render() }}
+                {{ form.render_general_errors() }}
+                {{ form.selected_library_ids.render() }}
+            </div>
+            <div class="tab-pane fade" id="selected-libraries-tab" role="tabpanel" tabindex="1">
+                {{ form.selected_library_ids.render_selected_table() }}
+            </div>
+        </div>
+    </div>
+    <form class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-reindex-btn" class="btn btn-success"
+            hx-include="#reindex-workflow-container" hx-target="#reindex-workflow-container" hx-swap="outerHTML"
+            hx-post="{{ form.post_url }}">Submit</button>
+        </div>
+    </form>
+</div>

@@ -1,24 +1,13 @@
 import pandas as pd
 from fastapi import Depends, Response
 
-from opengsync_db import models, categories as C, queries as Q
+from opengsync_db import models, categories as C, queries as Q, SyncSession
 
-from ....core import exceptions as exc
+from ....core import exceptions as exc, dependencies
+from ....utils import barcodes
 from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
 from .LibraryAnnotationWorkflow import LibraryAnnotationWorkflow, LibraryAnnotationWorkflowStep
-
-
-def _check_index_type(barcode_table: pd.DataFrame) -> C.IndexType | None:
-    if (barcode_table["index_type_id"] == C.IndexType.DUAL_INDEX.id).all():
-        return C.IndexType.DUAL_INDEX
-    elif (barcode_table["index_type_id"] == C.IndexType.SINGLE_INDEX_I7.id).all():
-        return C.IndexType.SINGLE_INDEX_I7
-    elif (barcode_table["index_type_id"] == C.IndexType.COMBINATORIAL_DUAL_INDEX.id).all():
-        return C.IndexType.COMBINATORIAL_DUAL_INDEX
-    elif (barcode_table["index_type_id"] == C.IndexType.TENX_ATAC_INDEX.id).all():
-        return C.IndexType.TENX_ATAC_INDEX
-    return None
 
 
 class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
@@ -36,14 +25,12 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
     def is_applicable(cls, workflow: LibraryAnnotationWorkflow) -> bool:
         df = workflow.tables["barcode_table"]
         df = df[(df["index_well"] != "del") | (df["index_well"].isna())]
-        return (not df.empty) and bool(
-            df["kit_i7"].isna().all() and df["kit_i5"].isna().all()
-        )
+        return (not df.empty) and bool(df["kit_i7"].isna().all() and df["kit_i5"].isna().all())
 
     def __init__(self, workflow: LibraryAnnotationWorkflow) -> None:
         super().__init__(workflow)
         self.barcode_table = workflow.tables["barcode_table"]
-        self.index_type = _check_index_type(self.barcode_table)
+        self.index_type = barcodes.check_index_type(self.barcode_table)
         self._context["index_type"] = self.index_type
 
     def prepare(self) -> None:
@@ -81,10 +68,8 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
         for _, row in kits_rc_i5.iterrows():
             kit_i5s.append((row["kit_id"], f'[{row["kit_identifier"]}] {row["kit_name"]}' + " (Reverse Complement)"))
 
-        self.i7_kit.options = [(-1, "Select Kit"), (0, "Custom")] + kit_i7s
-        self.i5_kit.options = [(-1, "Select Kit"), (0, "Custom")] + kit_i5s
-        self.i7_kit._mapping = dict(self.i7_kit.options)
-        self.i5_kit._mapping = dict(self.i5_kit.options)
+        self.i7_kit.set_options([(0, "Custom")] + kit_i7s)
+        self.i5_kit.set_options([(0, "Custom")] + kit_i5s)
 
         self._context["kits"] = list(set(kit_i7s + kit_i5s))
 
@@ -107,6 +92,7 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def route(
             form: BarcodeMatchForm = Depends(BarcodeMatchForm.Validate()),
+            session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
             if form.i7_kit.data == -1:
                 form.i7_kit.errors.append("Please select an i7 kit or choose Custom.")
@@ -124,10 +110,6 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
                 form.i5_option.errors.append("Please select how to proceed with the i5 index.")
 
             form.assert_valid()
-
-            from ....core.context import ctx
-
-            session = ctx.session
             barcode_table = form.barcode_table
 
             kit_i7_id = form.i7_kit.data
@@ -204,6 +186,5 @@ class BarcodeMatchForm(LibraryAnnotationWorkflowStep):
                 form.workflow.add_comment(context="i5_primer", text=form.i5_primer.data)
 
             form.workflow.tables["barcode_table"] = barcode_table
-
             return form.workflow.get_next_step(form).make_response()
         return route

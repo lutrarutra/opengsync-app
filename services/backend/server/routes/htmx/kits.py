@@ -7,7 +7,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 from ...core import dependencies, responses, exceptions as exc, config
 from ... import forms
-from ...components.tables import HTMXTable, TableCol
+from ...components.tables import HTMXTable, TableCol, StaticSpreadsheet, TextColumn
 
 router = APIRouter(prefix="/kits", tags=["kits"])
 
@@ -60,6 +60,29 @@ def render_kit_table(
     kits, count = session.page(stmt, page=page)
     table.set_num_pages(count)
     return table.make_response(kits=kits)
+
+
+@router.get("/index-kit-spreadsheet/{index_kit_id}", dependencies=[Depends(dependencies.require_user)])
+def render_index_kit_spreadsheet(
+    index_kit_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    df = session.pd.get_index_kit_barcodes(index_kit_id, per_index=True)
+    df = df.drop(columns=["adapter_id"])
+
+    columns = []
+    for i, col in enumerate(df.columns):
+        if "sequence" in col:
+            width = 200
+        elif "well" in col:
+            width = 100
+        else:
+            width = 150
+        columns.append(TextColumn(col, col, width, max_length=1000))
+
+    spreadsheet = StaticSpreadsheet(df, columns=columns, id=f"index_kit_table-{index_kit_id}")
+    return responses.htmx_response(content=spreadsheet.render())
+
 
 router.include_router(forms.models.FeatureKitForm.Router())
 router.include_router(forms.actions.EditKitFeaturesAction.Router())

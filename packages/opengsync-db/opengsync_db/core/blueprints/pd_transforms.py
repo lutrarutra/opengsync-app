@@ -413,22 +413,21 @@ def index_kit_barcodes(df: pd.DataFrame, per_adapter: bool, per_index: bool) -> 
 
 def index_kit_barcodes_per_index(df: pd.DataFrame, index_kit_type) -> pd.DataFrame:
     """Pivots grouped barcodes into wide-form based on index kit type."""
+    barcode_data = {
+        "well": [], "adapter_id": [],
+        "name_i7": [], "sequence_i7": [], "name_i5": [], "sequence_i5": [],
+    }
+
     if index_kit_type == C.IndexType.TENX_ATAC_INDEX:
-        barcode_data: dict = {
-            "well": [], "adapter_id": [], "name": [],
-            "sequence_1": [], "sequence_2": [], "sequence_3": [], "sequence_4": [],
-        }
         for _, row in df.iterrows():
-            barcode_data["well"].append(row["well"])
-            barcode_data["name"].append(row["names"][0])
-            barcode_data["adapter_id"].append(row["adapter_id"])
             for i in range(4):
-                barcode_data[f"sequence_{i + 1}"].append(row["sequences"][i])
+                barcode_data["well"].append(row["well"])
+                barcode_data["name_i7"].append(row["names"][0])
+                barcode_data["sequence_i7"].append(row["sequences"][i])
+                barcode_data["adapter_id"].append(row["adapter_id"])
+                barcode_data["name_i5"].append(None)
+                barcode_data["sequence_i5"].append(None)
     elif index_kit_type == C.IndexType.DUAL_INDEX:
-        barcode_data = {
-            "well": [], "adapter_id": [],
-            "name_i7": [], "sequence_i7": [], "name_i5": [], "sequence_i5": [],
-        }
         for _, row in df.iterrows():
             barcode_data["well"].append(row["well"])
             barcode_data["adapter_id"].append(row["adapter_id"])
@@ -440,10 +439,6 @@ def index_kit_barcodes_per_index(df: pd.DataFrame, index_kit_type) -> pd.DataFra
                     barcode_data["name_i5"].append(row["names"][i])
                     barcode_data["sequence_i5"].append(row["sequences"][i])
     elif index_kit_type == C.IndexType.COMBINATORIAL_DUAL_INDEX:
-        barcode_data = {
-            "adapter_id": [],
-            "name_i7": [], "sequence_i7": [], "name_i5": [], "sequence_i5": [],
-        }
         for _, row in df.iterrows():
             barcode_data["adapter_id"].append(row["adapter_id"])
             if row["types"][0] == C.BarcodeType.INDEX_I7:
@@ -457,12 +452,13 @@ def index_kit_barcodes_per_index(df: pd.DataFrame, index_kit_type) -> pd.DataFra
                 barcode_data["name_i5"].append(row["names"][0])
                 barcode_data["sequence_i5"].append(row["sequences"][0])
     elif index_kit_type == C.IndexType.SINGLE_INDEX_I7:
-        barcode_data = {"well": [], "adapter_id": [], "name_i7": [], "sequence_i7": []}
         for _, row in df.iterrows():
             barcode_data["adapter_id"].append(row["adapter_id"])
             barcode_data["well"].append(row["well"])
             barcode_data["name_i7"].append(row["names"][0])
             barcode_data["sequence_i7"].append(row["sequences"][0])
+            barcode_data["name_i5"].append(None)
+            barcode_data["sequence_i5"].append(None)
     else:
         raise ValueError(f"Unsupported index kit type: {index_kit_type}")
 

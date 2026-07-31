@@ -471,6 +471,7 @@ class HTMXForm(ABC):
     
     def invalid_response_handler(self, request: Request, exc: exc.FormValidationException) -> Response:
         """Handle invalid form submissions by returning a response with errors."""
+        self.prepare()
         return self.make_response(status_code=200)
 
     def render_general_errors(self) -> str:

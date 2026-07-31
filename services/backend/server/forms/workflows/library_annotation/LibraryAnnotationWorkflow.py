@@ -297,7 +297,13 @@ class LibraryAnnotationWorkflow(HTMXWorkflow):
             case _:
                 raise ValueError(f"Unknown form type: {form.__class__.__name__}")
 
-        self.previous_url = responses.url_for(f"{self.__class__.__name__}.{form.__class__.__name__}.Previous", seq_request_id=self.seq_request_id).include_query_params(uuid=self.uuid)
+        # Store the back URL on the destination step.  This preserves the
+        # current step's own back URL when navigating forward after returning
+        # from a later step.
+        self.previous_url = responses.url_for(
+            f"{self.__class__.__name__}.{form.__class__.__name__}.Previous",
+            seq_request_id=self.seq_request_id,
+        ).include_query_params(uuid=self.uuid)
         self.add_step(next_form.__class__.__name__)
         return next_form
 

@@ -132,3 +132,8 @@ textarea.disabled:focus {
         padding-left: 10px;
     }
 }
+
+/* Muted placeholder styling for select elements */
+select.form-control:has(option:checked[value=""]) {
+    color: #6c757d;
+}

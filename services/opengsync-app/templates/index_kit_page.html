@@ -78,7 +78,7 @@
 <div class="page-content pt-2">
     <div class="tab-content">
         <div class="tab-pane fade show active" id="table-tab" role="tabpanel" tabindex="0">
-            <div hx-get="{{ url_for('index_kits_htmx.render_table', index_kit_id=index_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_index_kit_spreadsheet', index_kit_id=index_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

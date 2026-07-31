@@ -3,8 +3,8 @@ import itertools
 
 import pandas as pd
 
-from opengsync_db import models, SyncSession, queries as Q
-
+from opengsync_db import models, SyncSession, queries as Q, categories as C
+from ..core import exceptions as exc
 
 def reverse_complement(seq: str | None) -> str:
     if pd.isna(seq):
@@ -109,7 +109,7 @@ def check_indices(df: pd.DataFrame, groupby: str | list[str] | None = None) -> p
     df.loc[df["min_hamming_bases"] < 3, "warning"] = "Small hamming distance between barcode combination in two or more libraries."
     return df
 
-def get_barcode_table(session: AsyncSession, libraries: Sequence[models.Library]) -> pd.DataFrame:
+def get_barcode_table(session: SyncSession, libraries: Sequence[models.Library]) -> pd.DataFrame:
     library_data = {
         "library_id": [],
         "library_name": [],
@@ -228,3 +228,19 @@ def generate_valid_combinations(
                 return res
     
     return res
+
+
+def check_index_type(barcode_table: pd.DataFrame) -> C.IndexType | None:
+    if (barcode_table["index_type_id"] == C.IndexType.DUAL_INDEX.id).all():
+        return C.IndexType.DUAL_INDEX
+    elif (barcode_table["index_type_id"] == C.IndexType.SINGLE_INDEX_I7.id).all():
+        return C.IndexType.SINGLE_INDEX_I7
+    elif (barcode_table["index_type_id"] == C.IndexType.COMBINATORIAL_DUAL_INDEX.id).all():
+        return C.IndexType.COMBINATORIAL_DUAL_INDEX
+    elif (barcode_table["index_type_id"] == C.IndexType.TENX_ATAC_INDEX.id).all():
+        return C.IndexType.TENX_ATAC_INDEX
+    return None
+
+
+# def fill_barcode_orientation(df: pd.DataFrame, session: SyncSession) -> pd.DataFrame:
+#     return df
