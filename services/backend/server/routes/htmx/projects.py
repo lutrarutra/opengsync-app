@@ -194,7 +194,7 @@ def export_project_data(
             "Status": [project.status.name],
             "Group": [project.group.name if project.group else "N/A"],
             "Number of Samples": [project.num_samples],
-        }
+        }  # type: ignore
     ).T
 
     samples_df = session.pd.get_project_samples(project_id=project.id)
@@ -205,7 +205,7 @@ def export_project_data(
     )
 
     software = pd.DataFrame.from_records(
-        {name: [data] for name, data in (project.software or {}).items()}
+        {name: [data] for name, data in (project.software or {}).items()}  # type: ignore
     ).T
 
     bytes_io = io.BytesIO()

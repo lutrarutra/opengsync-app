@@ -10,7 +10,6 @@ from . import merge_pools
 from . import library_remux
 from . import relib
 from . import share_project_data
-from . import check_barcode_constraints
 from . import add_kits_to_protocol
 from . import select_library_protocols
 from . import merge_projects
@@ -27,7 +26,6 @@ __all__ = [
     "library_remux",
     "relib",
     "share_project_data",
-    "check_barcode_constraints",
     "add_kits_to_protocol",
     "select_library_protocols",
     "merge_projects",

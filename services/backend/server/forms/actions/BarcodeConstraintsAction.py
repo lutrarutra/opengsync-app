@@ -11,7 +11,7 @@ from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
 
 
 class BarcodeConstraintsAction(HTMXForm):
-    template_path = "workflows/barcode_constraints.html"
+    template_path = "actions/barcode_constraints.html"
 
     spreadsheet = inputs.spreadsheet.SpreadsheetInputField(
         columns=[
@@ -21,7 +21,11 @@ class BarcodeConstraintsAction(HTMXForm):
         allow_new_rows=True,
         can_be_empty=True,
     )
-    kit = inputs.searchable.SearchableInputField("Select Kit", route="search_index_kits", required=False)
+    kit = inputs.searchable.SearchableInputField(
+        "Select Kit", route="search_index_kits",
+        query_params={"type_in": [C.IndexType.DUAL_INDEX.id, C.IndexType.SINGLE_INDEX_I7.id, C.IndexType.COMBINATORIAL_DUAL_INDEX.id]},
+        required=False
+    )
     min_samples = inputs.numeric.IntInputField("Minimum Number of Samples", required=False, ge=1)
 
     def __init__(self) -> None:
@@ -33,6 +37,7 @@ class BarcodeConstraintsAction(HTMXForm):
         self.additional_sequences: list[tuple[str | None, str | None]] = []
         self.needed_bases = ["T", "C"]
         self.active_tab = "form-tab-form"
+        self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url)
 
     @classmethod
     def Init(cls) -> FormFunc:

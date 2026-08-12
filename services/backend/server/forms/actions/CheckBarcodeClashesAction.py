@@ -8,7 +8,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C
 
 from ...components import inputs
 from ...core import barcode_utils, dependencies, exceptions as exc, responses
-from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
+from ..HTMXForm import HTMXForm, RouteFunc, htmx_route
 
 
 class CheckBarcodeClashesAction(HTMXForm):

@@ -59,6 +59,16 @@ class TENXATACBarcodeInputForm(ReindexWorkflowStep):
 
         self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url, df=self.barcode_table)
 
+    @htmx_route("GET")
+    def Previous(cls) -> RouteFunc:
+        def route(
+            form: "TENXATACBarcodeInputForm" = Depends(TENXATACBarcodeInputForm.Init()),
+        ) -> Response:
+            barcode_table = form.workflow.tables["tenx_atac_barcode_table"]
+            form.spreadsheet.set_data(barcode_table)
+            return form.make_response()
+        return route
+
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(

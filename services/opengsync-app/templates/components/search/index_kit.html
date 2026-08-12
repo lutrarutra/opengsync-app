@@ -1,9 +1,9 @@
-{% if index_kits %}
-{% for index_kit in index_kits %}
-<li class="option" data-value="{{ index_kit.id }}">>
-    <span class="search-select-header">{{ index_kit.identifier }}</span>
-    <span class="search-select-name">{{ index_kit.name }}</span>
-    <span class="search-select-desc">{{ index_kit.type.label }}</span>
+{% if results is defined and results %}
+{% for res in results %}
+<li class="option" data-value="{{ res.id }}">
+    <span class="search-select-header">{{ res.identifier }}</span>
+    <span class="search-select-name">{{ res.name }}</span>
+    <span class="search-select-desc">{{ res.type.label }}</span>
 </li>
 {% endfor %}
 {% else %}

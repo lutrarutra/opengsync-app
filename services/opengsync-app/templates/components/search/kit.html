@@ -3,7 +3,11 @@
 <li class="option" data-value="{{ res.id }}">
     <span class="search-select-header">{{ res.identifier }}</span>
     <span class="search-select-name">{{ res.name }}</span>
-    <span class="search-select-desc">{{ res.type.label }}</span>
+    {% if hasattr(res, "type") %}
+    <span class="search-select-desc">{{ res.type.label }} Kit</span>
+    {% else %}
+    <span class="search-select-desc">{{ res.kit_type.label }}</span>
+    {% endif %}
 </li>
 {% endfor %}
 {% else %}

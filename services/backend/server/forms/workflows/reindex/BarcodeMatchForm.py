@@ -81,6 +81,21 @@ class BarcodeMatchForm(ReindexWorkflowStep):
 
         self._context["kits"] = list(set(kit_i7s + kit_i5s))
 
+    @htmx_route("GET")
+    def Previous(cls) -> RouteFunc:
+        def route(
+            form: "BarcodeMatchForm" = Depends(BarcodeMatchForm.Init()),
+        ) -> Response:
+            form.prepare()
+            form.i7_kit.data = form.workflow.metadata["i7_kit"]
+            form.i5_kit.data = form.workflow.metadata["i5_kit"]
+            form.i7_option.data = form.workflow.metadata["i7_option"]
+            form.i5_option.data = form.workflow.metadata["i5_option"]
+            form.i7_primer.data = form.workflow.metadata["i7_primer"]
+            form.i5_primer.data = form.workflow.metadata["i5_primer"]
+            return form.make_response()
+        return route
+
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
@@ -92,6 +107,5 @@ class BarcodeMatchForm(ReindexWorkflowStep):
             form.workflow.metadata["i5_option"] = form.i5_option.data
             form.workflow.metadata["i7_primer"] = form.i7_primer.data
             form.workflow.metadata["i5_primer"] = form.i5_primer.data
-
             return form.workflow.get_next_step(form).make_response()
         return route

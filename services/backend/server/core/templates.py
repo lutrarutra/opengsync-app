@@ -133,6 +133,7 @@ j2.env.globals["isna"] = pd.isna
 j2.env.globals["notna"] = pd.notna
 j2.env.globals["units"] = units
 j2.env.globals["uuid4"] = uuid4
+j2.env.globals["hasattr"] = hasattr
 j2.env.globals["SpreadSheetErrors"] = [
     # ssc.InvalidCellValue(""),
     # ssc.MissingCellValue(""),

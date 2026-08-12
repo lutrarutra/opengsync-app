@@ -24,6 +24,7 @@ class SearchableInputField(BaseInputField, Generic[_SearchableDataT]):
         type: str = "search",
         hidden: bool = False,
         read_only: bool = False,
+        query_params: dict | None = None,
     ) -> None: ...
 
     @overload
@@ -40,6 +41,7 @@ class SearchableInputField(BaseInputField, Generic[_SearchableDataT]):
         type: str = "search",
         hidden: bool = False,
         read_only: bool = False,
+        query_params: dict | None = None,
     ) -> None: ...
 
     def __init__(
@@ -55,6 +57,7 @@ class SearchableInputField(BaseInputField, Generic[_SearchableDataT]):
         type: str = "search",
         hidden: bool = False,
         read_only: bool = False,
+        query_params: dict | None = None,
     ):
         super().__init__(
             label=label,
@@ -71,6 +74,7 @@ class SearchableInputField(BaseInputField, Generic[_SearchableDataT]):
         self.placeholder = placeholder
         self.autocomplete = autocomplete
         self.type = type
+        self.query_params = query_params or {}
 
     def url(self) -> URL:
-        return ctx.request.url_for(self.route)
+        return ctx.request.url_for(self.route).include_query_params(**self.query_params)

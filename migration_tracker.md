@@ -1,6 +1,6 @@
 # Flask → FastAPI Migration Tracker
 
-> Last updated: 2026-07-30
+> Last updated: 2026-08-12
 
 ## Legend
 - ✅ **Migrated** — Fully implemented in FastAPI
@@ -21,22 +21,42 @@
 | 3 | **Qubit Measure** | `workflows/qubit_measure/` | `workflows/qubit_measure/` | Multi-step: SelectSamples → QubitMeasure → CompleteQubitMeasure. All forms migrated. |
 | 4 | **Add Kits to Protocol** | `workflows/add_protocol_kits/` | `workflows/add_kits_to_protocol/` | Delegates to `AddKitsToProtocolAction`. Fully migrated. |
 
-### 1.2 Shell-Only Workflows (Forms Not Migrated)
+### 1.2 Partial Workflows
 
-These have `HTMXWorkflow` class with `Begin()`, `Init()`, `Router()` but the actual form classes are not yet implemented in FastAPI.
+These workflows have FastAPI workflow infrastructure, but their forms or step transitions are not complete.
 
 | # | Workflow | Legacy Path | FastAPI Path | Missing Forms | Notes |
 |---|----------|-------------|--------------|---------------|-------|
-| 5 | **Reindex** | `workflows/reindex/` | `workflows/reindex/` | BarcodeInputForm, TENXATACBarcodeInputForm, BarcodeMatchForm, CompleteReindexForm | Multi-step: SelectSamples → BarcodeInput → (TENXATAC or BarcodeMatch) → CompleteReindex. Full workflow structure implemented — step forms need refinement. |
-| 6 | **Relib** | `workflows/relib/` | `workflows/relib/` | LibraryEditTableForm | Multi-step: SelectSamples → LibraryEditTable. |
-| 7 | **Merge Pools** | `workflows/` (MergePoolsForm.py) | `workflows/merge_pools/` | MergePoolsForm | Multi-step: SelectSamples → MergePools. |
-| 8 | **Mux Prep** | `workflows/mux_prep/` | `workflows/mux_prep/` | OligoMuxForm, OCMMuxForm, FlexABCForm | ⚠️ FlexMuxForm partially covered by `FlexMuxPrepAction`. SamplePooling covered by `SamplePoolingAction`. |
-| 9 | **Library Pooling** | `workflows/library_pooling/` | `workflows/library_pooling/` | CompleteLibraryPoolingForm | ⚠️ LibraryPoolingForm covered by `LibraryPoolingAction`. |
-| 10 | **Library Remux** | `workflows/remux/` | `workflows/library_remux/` | FlexReMuxForm, OligoReMuxForm | Single-step per library. |
-| 11 | **Select Library Protocols** | `workflows/select_library_protocols/` | `workflows/select_library_protocols/` | LibraryProtocolSelectForm, ProtocolMappingForm | Multi-step: LibraryProtocolSelect → ProtocolMapping. |
-| 12 | **Share Project Data** | `workflows/share/` | `workflows/share_project_data/` | ShareProjectDataForm, AssociatePathForm | Single form. |
-| 13 | **Lane QC** | `workflows/lane_qc.py` | `workflows/lane_qc/` | QCLanesForm, UnifiedQCLanesForm | Single form (separate or combined lanes). |
-| 14 | **Select Experiment Pools** | `workflows/select_experiment_pools` (via SelectSamplesForm) | `workflows/select_experiment_pools/` | SelectSamplesForm integration | ⚠️ `SelectExperimentPoolsAction` exists as action. |
+| 5 | **Reindex** | `workflows/reindex/` | `workflows/reindex/` | No missing form classes; several business-logic gaps remain | Step forms now exist: SelectSamples → BarcodeInput → (TENXATAC or BarcodeMatch) → CompleteReindex. Shared barcode validation and composite library columns are implemented, but the migration is not yet complete. See the gap list below. |
+| 6 | **Relib** | `workflows/relib/` | `workflows/relib/` | LibraryEditTableForm | Workflow shell only; `Begin()` still references the legacy/shared `SelectSamplesForm`, and `get_next_step()` is not implemented. |
+| 7 | **Merge Pools** | `workflows/` (MergePoolsForm.py) | `workflows/merge_pools/` | MergePoolsForm | Workflow shell only; `get_next_step()` is not implemented. |
+| 8 | **Mux Prep** | `workflows/mux_prep/` | `workflows/mux_prep/` | OligoMuxForm, OCMMuxForm, FlexABCForm | `FlexMuxForm` is covered by `FlexMuxPrepAction`; `SamplePoolingForm` is covered by `SamplePoolingAction`. The workflow itself remains a shell. |
+| 9 | **Library Pooling** | `workflows/library_pooling/` | `workflows/library_pooling/` | CompleteLibraryPoolingForm | `LibraryPoolingForm` is covered by `LibraryPoolingAction`; the workflow shell remains incomplete. |
+| 10 | **Library Remux** | `workflows/remux/` | `workflows/library_remux/` | FlexReMuxForm, OligoReMuxForm | Workflow shell only; `Begin()` references forms that are not present in the FastAPI workflow package. |
+| 11 | **Select Library Protocols** | `workflows/select_library_protocols/` | `workflows/select_library_protocols/` | LibraryProtocolSelectForm, ProtocolMappingForm | Workflow shell only; `Begin()` references forms that are not present in the FastAPI workflow package. |
+| 12 | **Share Project Data** | `workflows/share/` | `workflows/share_project_data/` | ShareProjectDataForm, AssociatePathForm | Workflow shell only; form implementation is not present. |
+| 13 | **Lane QC** | `workflows/lane_qc.py` | `workflows/lane_qc/` | QCLanesForm, UnifiedQCLanesForm | Workflow shell only; form implementations are not present. |
+| 14 | **Select Experiment Pools** | `workflows/select_experiment_pools` (via SelectSamplesForm) | `workflows/select_experiment_pools/` | SelectSamplesForm integration | `SelectExperimentPoolsAction` exists, but the workflow package remains a shell. |
+| 15 | **Merge Projects** | `workflows/merge_projects/` | `workflows/merge_projects/` | MergeProjectsForm | New FastAPI workflow shell; `MergeProjectsAction` exists, but workflow form and transitions are not implemented. |
+
+### 1.3 Migrated as Actions, Workflow Shells Remaining
+
+The following functionality has a FastAPI action, but its legacy multi-step workflow counterpart is not yet implemented as a FastAPI workflow:
+
+| Workflow/functionality | FastAPI action | Remaining work |
+|---|---|---|
+| **Check Barcode Constraints** | `BarcodeConstraintsAction` | Complete or remove the unused workflow shell if the action is the intended replacement. |
+
+### 1.4 Reindex Migration Gaps
+
+Reindex is **not testing-only yet**. The following existing legacy behavior still needs to be migrated or verified in the FastAPI implementation:
+
+- Add `Previous` routes for the TENX ATAC barcode form, barcode-match form, and completion form. Their templates currently render a Previous control, but only the regular barcode form defines the route.
+- Restore the legacy library validation for both barcode-entry forms: library ID/name validity, consistency with `library_table`, and validation that the library belongs to the selected sequencing request or lab prep.
+- Reconcile the TENX ATAC data model between input and completion. The input form submits `kit`, `name`, and `sequence_1`–`sequence_4`, while completion currently expects `kit_i7_id`, `name_i7`, and `sequence_i7` through `RowSchema`.
+- Port completion safeguards from the legacy form: expected barcode counts, required TENX ATAC sequences, conflicting i7/i5 orientation detection, and equivalent handling of deleted rows.
+- Verify the workflow context and permissions match the legacy behavior, including existence checks for selected lab prep, pool, or sequencing request and lab-prep-specific initial library selection.
+- Verify that all workflow metadata and tables needed by Previous navigation are preserved for every branch, including `tenx_atac_barcode_table` and barcode-match settings.
 
 ---
 
@@ -65,17 +85,25 @@ These have `HTMXWorkflow` class with `Begin()`, `Init()`, `Router()` but the act
 | 19 | **StoreSamplesAction** | `actions/StoreSamplesAction.py` | `SelectSamplesForm.py` (store_samples context) | Sample/library/pool storage |
 | 20 | **SubmitSeqRequestAction** | `actions/SubmitSeqRequestAction.py` | `SubmitSeqRequestForm.py` | Seq request submission with time/comment |
 | 21 | **UploadLibraryPrepSpreadsheetAction** | `actions/UploadLibraryPrepSpreadsheetAction.py` | `workflows/library_prep/LibraryPrepForm.py` | Prep table spreadsheet upload |
+| 22 | **AddProjectAssigneeAction** | `actions/AddProjectAssigneeAction.py` | `AddProjectAssigneeForm.py` | Project assignee management |
+| 23 | **BarcodeConstraintsAction** | `actions/BarcodeConstraintsAction.py` | `workflows/check_barcode_constraints/` | Barcode constraint checking |
+| 24 | **EditKitFeaturesAction** | `actions/EditKitFeaturesAction.py` | `EditKitFeaturesForm.py` | Kit feature editing |
+| 25 | **LibraryFeaturesAction** | `actions/LibraryFeaturesAction.py` | `LibraryFeaturesForm.py` | Library feature editing |
+| 26 | **MergeProjectsAction** | `actions/MergeProjectsAction.py` | `workflows/merge_projects/` | Project merge action |
+| 27 | **QueryBarcodeSequencesAction** | `actions/QueryBarcodeSequencesAction.py` | `QueryBarcodeSequencesForm.py` | Barcode sequence query |
+| 28 | **SampleAttributeTableAction** | `actions/SampleAttributeTableAction.py` | `SampleAttributeTableForm.py` | Sample attribute table editing |
+| 29 | **ShareDirectoryAction** | `actions/ShareDirectoryAction.py` | `DirectoryShareForm.py` | Directory sharing |
 
 ### 2.1 Action Subdirectories (Combined/Separate Lane Variants)
 
 | # | Action | FastAPI Path | Legacy Source |
 |---|--------|-------------|---------------|
-| 22 | **DistributeReadsCombinedAction** | `actions/dist_reads/DistributeReadsCombinedAction.py` | `workflows/dist_reads.py` (combined lanes) |
-| 23 | **DistributeReadsSeparateAction** | `actions/dist_reads/DistributeReadsSeparateAction.py` | `workflows/dist_reads.py` (separate lanes) |
-| 24 | **LanePoolsCombinedAction** | `actions/lane_pools/LanePoolsCombinedAction.py` | `workflows/lane_pools/UnifiedLanePoolingForm.py` |
-| 25 | **LanePoolsSeparateAction** | `actions/lane_pools/LanePoolsSeparateAction.py` | `workflows/lane_pools/LanePoolingForm.py` |
-| 26 | **LoadFlowCellCombinedAction** | `actions/load_flowcell/LoadFlowCellCombinedAction.py` | `workflows/load_flow_cell/UnifiedLoadFlowCellForm.py` |
-| 27 | **LoadFlowCellSeparateAction** | `actions/load_flowcell/LoadFlowCellSeparateAction.py` | `workflows/load_flow_cell/LoadFlowCellForm.py` |
+| 30 | **DistributeReadsCombinedAction** | `actions/dist_reads/DistributeReadsCombinedAction.py` | `workflows/dist_reads.py` (combined lanes) |
+| 31 | **DistributeReadsSeparateAction** | `actions/dist_reads/DistributeReadsSeparateAction.py` | `workflows/dist_reads.py` (separate lanes) |
+| 32 | **LanePoolsCombinedAction** | `actions/lane_pools/LanePoolsCombinedAction.py` | `workflows/lane_pools/UnifiedLanePoolingForm.py` |
+| 33 | **LanePoolsSeparateAction** | `actions/lane_pools/LanePoolsSeparateAction.py` | `workflows/lane_pools/LanePoolingForm.py` |
+| 34 | **LoadFlowCellCombinedAction** | `actions/load_flowcell/LoadFlowCellCombinedAction.py` | `workflows/load_flow_cell/UnifiedLoadFlowCellForm.py` |
+| 35 | **LoadFlowCellSeparateAction** | `actions/load_flowcell/LoadFlowCellSeparateAction.py` | `workflows/load_flow_cell/LoadFlowCellForm.py` |
 
 ---
 
@@ -167,8 +195,8 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 | Category | Count |
 |----------|-------|
 | ✅ Fully migrated workflows | 4 |
-| 🔶 Shell-only workflows (forms not migrated) | 10 |
-| ✅ Migrated actions | 34 |
+| ⚠️ Partial workflows | 11 |
+| ✅ Migrated actions | 35 |
 | ❌ Legacy workflows → should be actions | 1 (4 forms) |
 | ✅ Legacy top-level forms migrated | 7 |
 | ✅ Auth forms migrated | 5 |
@@ -177,5 +205,6 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 | ✅ Model forms migrated | 19 |
 
 ### Priority Order (Recommended)
-1. **Shell-only workflows with missing forms** — These have the workflow infrastructure ready; just need form implementations
-2. **edit_kit_barcodes** — Single-step, should be actions
+1. **Reindex runtime verification and cleanup** — Step forms now exist, but the workflow needs end-to-end testing and final refinement.
+2. **Shell-only workflows with missing forms** — Relib, Merge Pools, Mux Prep, Library Pooling, Library Remux, Select Library Protocols, Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
+3. **edit_kit_barcodes** — Single-step, should be migrated as actions.
