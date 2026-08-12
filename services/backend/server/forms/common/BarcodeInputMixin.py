@@ -72,6 +72,7 @@ class BarcodeInputMixin:
         spreadsheet = self.spreadsheet
         session = context.ctx.session
         df = spreadsheet.data.copy()
+        
         df.loc[df["name_i7"].notna(), "name_i7"] = df.loc[df["name_i7"].notna(), "name_i7"].astype(str).str.strip()
         df.loc[df["name_i5"].notna(), "name_i5"] = df.loc[df["name_i5"].notna(), "name_i5"].astype(str).str.strip()
         df.loc[df["index_well"].notna(), "index_well"] = df.loc[df["index_well"].notna(), "index_well"].astype(str).str.strip()
@@ -91,10 +92,7 @@ class BarcodeInputMixin:
             if kit.type == C.IndexType.DUAL_INDEX:
                 df.loc[df["name_i5"].isna() & (df["kit_i7"] == identifier), "name_i5"] = df.loc[df["name_i5"].isna() & (df["kit_i7"] == identifier), "name_i7"]
             kit_df = session.pd.get_index_kit_barcodes(kit.id, per_adapter=False, per_index=True)
-            
-            from loguru import logger
-            logger.debug(kit_df.columns)
-            logger.debug(kit_df)
+
 
             kits[identifier] = (kit, kit_df)
             df.loc[df["kit_i7"] == identifier, "kit_i7_id"] = kit.id
@@ -103,28 +101,28 @@ class BarcodeInputMixin:
         for kit_identifier, (kit, kit_df) in kits.items():
             view = df[(df["kit_i7"] == kit_identifier) | (df["kit_i5"] == kit_identifier)]
             
-            # match kit.type:
-            #     case C.IndexType.DUAL_INDEX:
-            #         mask = (kit_df["well"].isin(view["index_well"].values) | kit_df["name_i7"].isin(view["name_i7"].values) | kit_df["name_i5"].isin(view["name_i5"].values))
-            #     case C.IndexType.COMBINATORIAL_DUAL_INDEX:
-            #         mask = kit_df["name_i7"].isin(view["name_i7"].values) | kit_df["name_i5"].isin(view["name_i5"].values)
-            #     case C.IndexType.SINGLE_INDEX_I7 | C.IndexType.TENX_ATAC_INDEX:
-            #         mask = kit_df["well"].isin(view["index_well"].values) | kit_df["name_i7"].isin(view["name_i7"].values)
-            #     case _:
-            #         raise ValueError(f"Unsupported index kit type: {kit.type.name}")
+            match kit.type:
+                case C.IndexType.DUAL_INDEX:
+                    mask = (kit_df["well"].isin(view["index_well"].values) | kit_df["name_i7"].isin(view["name_i7"].values) | kit_df["name_i5"].isin(view["name_i5"].values))
+                case C.IndexType.COMBINATORIAL_DUAL_INDEX:
+                    mask = kit_df["name_i7"].isin(view["name_i7"].values) | kit_df["name_i5"].isin(view["name_i5"].values)
+                case C.IndexType.SINGLE_INDEX_I7 | C.IndexType.TENX_ATAC_INDEX:
+                    mask = kit_df["well"].isin(view["index_well"].values) | kit_df["name_i7"].isin(view["name_i7"].values)
+                case _:
+                    raise ValueError(f"Unsupported index kit type: {kit.type.name}")
 
-            # for _, kit_row in kit_df[mask].iterrows():
-            #     if "well" in kit_row:
-            #         row_mask = (df["kit_i7"] == kit_identifier) & (df["index_well"] == kit_row["well"])
-            #         df.loc[row_mask, "name_i7"] = kit_row["name_i7"]
-            #         df.loc[row_mask, "sequence_i7"] = kit_row["sequence_i7"]
-            #     df.loc[(df["kit_i7"] == kit_identifier) & (df["name_i7"] == kit_row["name_i7"]), "sequence_i7"] = kit_row["sequence_i7"]
-            #     if kit.type in {C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX}:
-            #         if "well" in kit_row:
-            #             row_mask = (df["kit_i5"] == kit_identifier) & (df["index_well"] == kit_row["well"])
-            #             df.loc[row_mask, "name_i5"] = kit_row["name_i5"]
-            #             df.loc[row_mask, "sequence_i5"] = kit_row["sequence_i5"]
-            #         df.loc[(df["kit_i5"] == kit_identifier) & (df["name_i5"] == kit_row["name_i5"]), "sequence_i5"] = kit_row["sequence_i5"]
+            for _, kit_row in kit_df[mask].iterrows():
+                if "well" in kit_row:
+                    row_mask = (df["kit_i7"] == kit_identifier) & (df["index_well"] == kit_row["well"])
+                    df.loc[row_mask, "name_i7"] = kit_row["name_i7"]
+                    df.loc[row_mask, "sequence_i7"] = kit_row["sequence_i7"]
+                df.loc[(df["kit_i7"] == kit_identifier) & (df["name_i7"] == kit_row["name_i7"]), "sequence_i7"] = kit_row["sequence_i7"]
+                if kit.type in {C.IndexType.DUAL_INDEX, C.IndexType.COMBINATORIAL_DUAL_INDEX}:
+                    if "well" in kit_row:
+                        row_mask = (df["kit_i5"] == kit_identifier) & (df["index_well"] == kit_row["well"])
+                        df.loc[row_mask, "name_i5"] = kit_row["name_i5"]
+                        df.loc[row_mask, "sequence_i5"] = kit_row["sequence_i5"]
+                    df.loc[(df["kit_i5"] == kit_identifier) & (df["name_i5"] == kit_row["name_i5"]), "sequence_i5"] = kit_row["sequence_i5"]
 
         for idx, row in df.iterrows():
             if pd.notna(row["index_well"]) and row["index_well"] == "del":
@@ -167,13 +165,13 @@ class BarcodeInputMixin:
             if pd.isna(row["sequence_i7"]):
                 spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("missing 'sequence_i7'"))
 
-        df["index_type_id"] = None
-        df.loc[df["sequence_i7"].notna() & df["sequence_i5"].notna(), "index_type_id"] = C.IndexType.DUAL_INDEX.id
-        df.loc[df["sequence_i7"].notna() & df["sequence_i5"].isna(), "index_type_id"] = C.IndexType.SINGLE_INDEX_I7.id
+        df["index_type"] = None
+        df.loc[df["sequence_i7"].notna() & df["sequence_i5"].notna(), "index_type"] = C.IndexType.DUAL_INDEX
+        df.loc[df["sequence_i7"].notna() & df["sequence_i5"].isna(), "index_type"] = C.IndexType.SINGLE_INDEX_I7
         df["orientation_i7_id"] = None
         df["orientation_i5_id"] = None
         df.loc[df["kit_i7_id"].notna(), "orientation_i7_id"] = C.BarcodeOrientation.FORWARD.id
-        df.loc[df["kit_i5_id"].notna() & (df["index_type_id"] == C.IndexType.DUAL_INDEX.id), "orientation_i5_id"] = C.BarcodeOrientation.FORWARD.id
+        df.loc[df["kit_i5_id"].notna() & (df["index_type"] == C.IndexType.DUAL_INDEX), "orientation_i5_id"] = C.BarcodeOrientation.FORWARD.id
         spreadsheet.set_data(df)
         df["index_well"] = df["index_well"].astype(pd.StringDtype())
         df["name_i7"] = df["name_i7"].astype(pd.StringDtype())

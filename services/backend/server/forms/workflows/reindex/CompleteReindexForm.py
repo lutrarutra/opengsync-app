@@ -25,12 +25,9 @@ class CompleteReindexForm(ReindexWorkflowStep):
             session: SyncSession = Depends(dependencies.db_session),
             current_user: models.User = Depends(dependencies.require_user),
         ) -> Response:
-            library_table = form.workflow.tables.get("library_table")
-            barcode_table = form.workflow.tables.get("barcode_table")
+            # library_table = form.workflow.tables["library_table"]
+            barcode_table = form.workflow.tables["barcode_table"]
             tenx_atac_barcode_table = form.workflow.tables.get("tenx_atac_barcode_table")
-
-            if library_table is None or barcode_table is None:
-                raise exc.OpeNGSyncServerException("Missing required workflow data.")
 
             barcode_table = barcode_table[barcode_table.get("index_well", pd.Series(dtype=str)) != "del"].copy()
 
@@ -38,11 +35,10 @@ class CompleteReindexForm(ReindexWorkflowStep):
 
             class GroupSchema(BaseModel):
                 library_id: int
-                index_type_id: int | None
+                index_type: C.IndexType | None
 
             class RowSchema(BaseModel):
                 library_id: int
-                index_type_id: int | None
                 kit_i7_id: int | None
                 kit_i5_id: int | None
                 sequence_i7: str
@@ -52,23 +48,14 @@ class CompleteReindexForm(ReindexWorkflowStep):
                 orientation_i7_id: int | None
                 orientation_i5_id: int | None
 
-            # for (library_id, index_type_id), group in library_table.groupby(["library_id", "index_type_id"], dropna=False, sort=False):
-            for group, _ in parsing.safe_groupby(library_table, ["library_id", "index_type_id"], GroupSchema):
+            for group, _ in parsing.safe_groupby(barcode_table, ["library_id", "index_type"], GroupSchema):
                 library = session.get_one(Q.library.select(id=group.library_id))
                 seq_request_ids.add(library.seq_request_id)
 
-                try:
-                    if group.index_type_id is not None:
-                        index_type = C.IndexType.get(group.index_type_id)
-                    else:
-                        index_type = C.IndexType.DUAL_INDEX
-                except (ValueError, TypeError):
-                    index_type = C.IndexType.DUAL_INDEX
-
                 library.indices = []
-                library.index_type = index_type
+                library.index_type = group.index_type
 
-                if index_type == C.IndexType.TENX_ATAC_INDEX:
+                if group.index_type == C.IndexType.TENX_ATAC_INDEX:
                     if tenx_atac_barcode_table is None:
                         raise exc.OpeNGSyncServerException("TENX_ATAC_INDEX selected but no ATAC barcode table found.")
                     df = tenx_atac_barcode_table[tenx_atac_barcode_table["library_id"] == group.library_id]
@@ -79,8 +66,8 @@ class CompleteReindexForm(ReindexWorkflowStep):
                     continue
 
                 for _, row in parsing.safe_iter(df, RowSchema):
-                    if index_type == C.IndexType.TENX_ATAC_INDEX:
-                        for i in range(1, 5):
+                    if group.index_type == C.IndexType.TENX_ATAC_INDEX:
+                        for _ in range(1, 5):
                             library.indices.append(
                                 Q.library_index.create(
                                     library_id=library.id,

@@ -1,14 +1,11 @@
 from fastapi import Depends, Response
 
-from opengsync_db import models, queries as Q, categories as C
+from opengsync_db import categories as C
 
-from ....core import dependencies, context
 from ....components.tables import DBObjectColumn
-from ....components.tables.spreadsheet import TextColumn, CategoricalDropDown
 from ...HTMXForm import RouteFunc, htmx_route
 from ...common.BarcodeInputMixin import BarcodeInputMixin
 from .ReindexWorkflow import ReindexWorkflowStep, ReindexWorkflow
-from .BarcodeMatchForm import BarcodeMatchForm
 
 class BarcodeInputForm(BarcodeInputMixin, ReindexWorkflowStep):
     template_path = "workflows/reindex/barcode-input.html"
@@ -16,6 +13,7 @@ class BarcodeInputForm(BarcodeInputMixin, ReindexWorkflowStep):
     spreadsheet = BarcodeInputMixin.make_spreadsheet(
         DBObjectColumn(
             columns=("library_id", "library_name"),
+            types=(int, str),
             label="Library",
             width=300,
             categories={},
@@ -30,11 +28,12 @@ class BarcodeInputForm(BarcodeInputMixin, ReindexWorkflowStep):
 
     def __init__(self, workflow: "ReindexWorkflow") -> None:
         super().__init__(workflow=workflow)
+        self.library_table = self.workflow.tables["library_table"]
         self.barcode_table = self.workflow.tables["barcode_table"]
 
         self.spreadsheet.columns["Library"].set_categories({
             row["library_id"]: f"{row['library_name']} [{row['library_id']}]"
-            for _, row in self.barcode_table.iterrows()
+            for _, row in self.library_table.iterrows()
             if row["library_type"] != C.LibraryType.TENX_SC_ATAC.id
         })
 

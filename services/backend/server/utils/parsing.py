@@ -304,6 +304,8 @@ def safe_groupby(
     df: pd.DataFrame,
     by: str | list[str],
     key_model: type[M],
+    sort: bool = False,
+    dropna: bool = False,
 ) -> Generator[tuple[M, pd.DataFrame], None, None]:
     """Group DataFrame rows by column(s), validating the group key against a Pydantic model.
 
@@ -328,7 +330,7 @@ def safe_groupby(
     """
     by_cols = [by] if isinstance(by, str) else by
 
-    for group_key, group_df in df.groupby(by):
+    for group_key, group_df in df.groupby(by, sort=sort, dropna=dropna):
         if isinstance(group_key, tuple):
             key_dict = dict(zip(by_cols, group_key))
         else:

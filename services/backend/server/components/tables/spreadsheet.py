@@ -270,33 +270,74 @@ class DBObjectColumn(CategoricalDropDown):
         label: str,
         width: float,
         categories: dict[Any, str] | Callable[[], dict[Any, str]],
+        types: tuple[type, ...] | None = None,
         required: bool = False,
         read_only: bool = False,
     ):
         if len(columns) < 2:
             raise ValueError("DBObjectColumn requires at least two DataFrame columns.")
+        if types is not None and len(types) != len(columns):
+            raise ValueError("DBObjectColumn types must match the number of columns.")
         super().__init__(label, label, width, categories, required, read_only=read_only)
         self.backend_columns = columns
+        self.backend_types = types
+
+    @property
+    def pandas_dtypes(self) -> tuple[pd.api.extensions.ExtensionDtype | None, ...] | None:
+        if self.backend_types is None:
+            return None
+
+        dtype_map: dict[type, pd.api.extensions.ExtensionDtype] = {
+            int: pd.Int64Dtype(),
+            float: pd.Float64Dtype(),
+            str: pd.StringDtype(),
+            bool: pd.BooleanDtype(),
+        }
+        try:
+            return tuple(dtype_map[type_] for type_ in self.backend_types)
+        except KeyError as error:
+            raise TypeError(
+                f"Unsupported DBObjectColumn type: {error.args[0]!r}. "
+                "Supported types are int, float, str, and bool."
+            ) from error
+
+    def cast_backend_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Cast configured backend columns using nullable pandas dtypes."""
+        dtypes = self.pandas_dtypes
+        if dtypes is None:
+            return df
+
+        for column, dtype in zip(self.backend_columns, dtypes):
+            if column in df.columns and dtype is not None:
+                df[column] = df[column].astype(dtype)
+        return df
 
     def to_display_row(self, row: pd.Series) -> Any:
+        self._ensure_categories()
         object_id = row.get(self.backend_columns[0])
         object_name = row.get(self.backend_columns[1])
         if pd.isna(object_id):
             return None
+        # Use the category value as the canonical frontend value so restored
+        # data round-trips exactly like a value selected in the dropdown.
+        display_value = self.categories.get(object_id)
+        if display_value is not None:
+            return display_value
         return f"{object_name} [{object_id}]" if pd.notna(object_name) else f"[{object_id}]"
 
     def expand(self, value: Any) -> dict[str, Any]:
         if pd.isna(value):
             return {column: None for column in self.backend_columns}
         text = str(value)
-        identifier, separator, name = text.partition("] ")
-        if not separator or not identifier.startswith("["):
+        # Expected format: "name [id]"
+        name, separator, identifier = text.rpartition(" [")
+        if not separator or not identifier.endswith("]"):
             raise InvalidCellValue(f"Invalid value '{value}' for '{self.label}'.")
         try:
-            object_id = int(identifier[1:])
+            object_id = int(identifier[:-1])
         except ValueError as error:
             raise InvalidCellValue(f"Invalid ID in '{value}' for '{self.label}'.") from error
-        values = {self.backend_columns[0]: object_id, self.backend_columns[1]: name}
+        values = {self.backend_columns[0]: object_id, self.backend_columns[1]: name.strip()}
         for column in self.backend_columns[2:]:
             values[column] = None
         return values

@@ -127,17 +127,28 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         # Do not mutate workflow state while converting stored category keys
         # to the labels displayed by the spreadsheet.
         display_df = df.copy()
-        for col in self.columns.keys():
-            if col not in display_df.columns:
-                display_df[col] = None
-
         for col in self.columns.values():
             if isinstance(col, DBObjectColumn):
-                display_df[col.label] = display_df.apply(col.to_display_row, axis=1)
+                # A DBObjectColumn has no physical column in the stored
+                # DataFrame. Build its visible value from the backend columns
+                # every time data is restored (including Previous navigation).
+                if all(
+                    backend_column in display_df.columns
+                    for backend_column in col.backend_columns
+                ):
+                    display_df = col.cast_backend_columns(display_df)
+                    display_df[col.label] = display_df.apply(
+                        col.to_display_row,
+                        axis=1,
+                    )
+                elif col.label not in display_df.columns:
+                    display_df[col.label] = None
             elif isinstance(col, CategoricalDropDown) and col.label in display_df.columns:
                 display_df[col.label] = display_df[col.label].apply(
                     lambda v, c=col: c.to_display(v)
                 )
+            elif col.label not in display_df.columns:
+                display_df[col.label] = None
         self.table_data = display_df[
             [col.label for col in self.columns.values()]
         ].astype(object).replace(np.nan, "").values.tolist()
@@ -272,6 +283,7 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
                 for target_column, target_value in column.expand(value).items():
                     df.loc[idx, target_column] = target_value
             df = df.drop(columns=[column.label])
+            df = column.cast_backend_columns(df)
 
         # Track columns that have been removed by the user
         to_delete: set[str] = set()
