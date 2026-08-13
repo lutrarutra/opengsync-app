@@ -1,13 +1,14 @@
 import pandas as pd
 from fastapi import Depends
+from opengsync_db import SyncSession
+from opengsync_db import categories as C
+from opengsync_db import queries as Q
 
-from opengsync_db import queries as Q, SyncSession, categories as C
-
-from ...core import dependencies, responses
-from ...utils import barcodes
 from ...components import inputs
 from ...components.tables.spreadsheet import TextColumn
-from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
+from ...core import dependencies, responses
+from ...utils import barcodes
+from ..HTMXForm import FormFunc, HTMXForm, RouteFunc, htmx_route
 
 
 class BarcodeConstraintsAction(HTMXForm):
@@ -22,9 +23,16 @@ class BarcodeConstraintsAction(HTMXForm):
         can_be_empty=True,
     )
     kit = inputs.searchable.SearchableInputField(
-        "Select Kit", route="search_index_kits",
-        query_params={"type_in": [C.IndexType.DUAL_INDEX.id, C.IndexType.SINGLE_INDEX_I7.id, C.IndexType.COMBINATORIAL_DUAL_INDEX.id]},
-        required=False
+        "Select Kit",
+        route="search_index_kits",
+        query_params={
+            "type_in": [
+                C.IndexType.DUAL_INDEX.id,
+                C.IndexType.SINGLE_INDEX_I7.id,
+                C.IndexType.COMBINATORIAL_DUAL_INDEX.id,
+            ]
+        },
+        required=False,
     )
     min_samples = inputs.numeric.IntInputField("Minimum Number of Samples", required=False, ge=1)
 
@@ -43,6 +51,7 @@ class BarcodeConstraintsAction(HTMXForm):
     def Init(cls) -> FormFunc:
         def dependency() -> "BarcodeConstraintsAction":
             return BarcodeConstraintsAction()
+
         return dependency
 
     @htmx_route("GET", "/check-barcode-constraints")
@@ -52,6 +61,7 @@ class BarcodeConstraintsAction(HTMXForm):
             _=Depends(dependencies.require_insider),
         ):
             return form.make_response()
+
         return route
 
     @htmx_route("POST", "/check-barcode-constraints")
@@ -72,16 +82,22 @@ class BarcodeConstraintsAction(HTMXForm):
             if form.kit.data is not None:
                 kit = session.get_one(Q.index_kit.select(id=int(form.kit.data)))
                 if kit.type == C.IndexType.TENX_ATAC_INDEX:
-                    form.spreadsheet.add_general_error("10x ATAC index kits are not supported. 10X ATAC kits should be safe!")
+                    form.spreadsheet.add_general_error(
+                        "10x ATAC index kits are not supported. 10X ATAC kits should be safe!"
+                    )
                     form.assert_valid()
 
                 barcodes_df = session.pd.get_index_kit_barcodes(kit.id, per_index=True)
                 if len(barcodes_df["sequence_i7"].str.len().unique()) != 1:
-                    form.spreadsheet.add_general_error(f"The selected kit '{kit.name}' has i7 index sequences of different lengths and cannot be used.")
+                    form.spreadsheet.add_general_error(
+                        f"The selected kit '{kit.name}' has i7 index sequences of different lengths and cannot be used."
+                    )
                     form.assert_valid()
 
                 if len(barcodes_df["sequence_i5"].str.len().unique()) != 1:
-                    form.spreadsheet.add_general_error(f"The selected kit '{kit.name}' has i5 index sequences of different lengths and cannot be used.")
+                    form.spreadsheet.add_general_error(
+                        f"The selected kit '{kit.name}' has i5 index sequences of different lengths and cannot be used."
+                    )
                     form.assert_valid()
 
                 kit_i7_len = len(barcodes_df["sequence_i7"].values[0])  # type: ignore
@@ -118,7 +134,9 @@ class BarcodeConstraintsAction(HTMXForm):
                     return form.make_response()
 
                 needed = barcodes.generate_valid_combinations(
-                    indices=[], additional_indices=additional_sequences, min_samples=form.min_samples.data,
+                    indices=[],
+                    additional_indices=additional_sequences,
+                    min_samples=form.min_samples.data,
                 )
                 if barcodes_df is not None:
                     mapping = barcodes_df.set_index("sequence_i7")
@@ -127,13 +145,15 @@ class BarcodeConstraintsAction(HTMXForm):
                         for s in combo:
                             seq7 = s[:kit_i7_len]
                             seq5 = s[kit_i7_len:]
-                            res.append({
-                                "name_i7": mapping.at[seq7, "name_i7"],
-                                "name_i5": mapping.at[seq7, "name_i5"],
-                                "well": mapping.at[seq7, "well"],
-                                "sequence_i7": seq7,
-                                "sequence_i5": seq5,
-                            })
+                            res.append(
+                                {
+                                    "name_i7": mapping.at[seq7, "name_i7"],
+                                    "name_i5": mapping.at[seq7, "name_i5"],
+                                    "well": mapping.at[seq7, "well"],
+                                    "sequence_i7": seq7,
+                                    "sequence_i5": seq5,
+                                }
+                            )
                         form.needed_additions.append(res)
 
             # Dual Index
@@ -152,7 +172,9 @@ class BarcodeConstraintsAction(HTMXForm):
                         form.spreadsheet.add_general_error("Index constraints not met. Select another kit.")
                         form.kit.errors.append("Index constraints not met. Select another kit.")
                     else:
-                        needed = barcodes.generate_valid_combinations(sequences, additional_indices=additional_sequences, min_samples=form.min_samples.data)
+                        needed = barcodes.generate_valid_combinations(
+                            sequences, additional_indices=additional_sequences, min_samples=form.min_samples.data
+                        )
                         if barcodes_df is not None:
                             mapping = barcodes_df.set_index("sequence_i7")
                             for combo in needed:
@@ -160,13 +182,15 @@ class BarcodeConstraintsAction(HTMXForm):
                                 for s in combo:
                                     seq7 = s[:kit_i7_len]
                                     seq5 = s[kit_i7_len:]
-                                    res.append({
-                                        "name_i7": mapping.at[seq7, "name_i7"],
-                                        "name_i5": mapping.at[seq7, "name_i5"],
-                                        "well": mapping.at[seq7, "well"],
-                                        "sequence_i7": seq7,
-                                        "sequence_i5": seq5,
-                                    })
+                                    res.append(
+                                        {
+                                            "name_i7": mapping.at[seq7, "name_i7"],
+                                            "name_i5": mapping.at[seq7, "name_i5"],
+                                            "well": mapping.at[seq7, "well"],
+                                            "sequence_i7": seq7,
+                                            "sequence_i5": seq5,
+                                        }
+                                    )
                                 form.needed_additions.append(res)
 
             # Single Index (i7 or i5)
@@ -175,35 +199,44 @@ class BarcodeConstraintsAction(HTMXForm):
                     if not kit_sequences_i7:
                         form.spreadsheet.add_general_error("i7 index constraints not met. Select another kit.")
                     else:
-                        needed_i7 = barcodes.generate_valid_combinations(sequences_i7, additional_indices=kit_sequences_i7)
+                        needed_i7 = barcodes.generate_valid_combinations(
+                            sequences_i7, additional_indices=kit_sequences_i7
+                        )
                         if barcodes_df is not None:
                             mapping = barcodes_df.set_index("sequence_i7")
                             for combo in needed_i7:
                                 res = []
                                 for s in combo:
-                                    res.append({
-                                        "name": mapping.at[s, "name_i7"],
-                                        "well": mapping.at[s, "well"],
-                                        "sequence": s,
-                                    })
+                                    res.append(
+                                        {
+                                            "name": mapping.at[s, "name_i7"],
+                                            "well": mapping.at[s, "well"],
+                                            "sequence": s,
+                                        }
+                                    )
                                 form.needed_additions_i7.append(res)
 
                 if sequences_i5 and not barcodes.check_index_constraints(sequences_i5):
                     if not kit_sequences_i5:
                         form.spreadsheet.add_general_error("i5 index constraints not met. Select another kit.")
                     else:
-                        needed_i5 = barcodes.generate_valid_combinations(sequences_i5, additional_indices=kit_sequences_i5)
+                        needed_i5 = barcodes.generate_valid_combinations(
+                            sequences_i5, additional_indices=kit_sequences_i5
+                        )
                         if barcodes_df is not None:
                             mapping = barcodes_df.set_index("sequence_i5")
                             for combo in needed_i5:
                                 res = []
                                 for s in combo:
-                                    res.append({
-                                        "name": mapping.at[s, "name_i5"],
-                                        "well": mapping.at[s, "well"],
-                                        "sequence": s,
-                                    })
+                                    res.append(
+                                        {
+                                            "name": mapping.at[s, "name_i5"],
+                                            "well": mapping.at[s, "well"],
+                                            "sequence": s,
+                                        }
+                                    )
                                 form.needed_additions_i5.append(res)
 
             return form.make_response()
+
         return route

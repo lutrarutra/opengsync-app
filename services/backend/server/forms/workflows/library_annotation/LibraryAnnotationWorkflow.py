@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Self
 
 from fastapi import Query, Depends, APIRouter
 
@@ -11,13 +11,10 @@ from ..HTMXWorkflowStep import HTMXWorkflowStep
 from .. import library_annotation as wf
 
 
-T = TypeVar("T", bound="LibraryAnnotationWorkflowStep")
-
-
 class LibraryAnnotationWorkflowStep(HTMXWorkflowStep):
     """Base workflow step with standard Library Annotation construction."""
 
-    workflow: LibraryAnnotationWorkflow
+    workflow: "LibraryAnnotationWorkflow"
 
     @property
     def post_url(self) -> responses.URL:
@@ -27,20 +24,20 @@ class LibraryAnnotationWorkflowStep(HTMXWorkflowStep):
         ).include_query_params(uuid=self.workflow.uuid)
 
     @classmethod
-    def Init(cls: type[T]) -> FormFunc:
+    def Init(cls: type[Self]) -> FormFunc:
         """Create this step from the workflow state for an endpoint dependency."""
         def dependency(
             workflow: LibraryAnnotationWorkflow = Depends(LibraryAnnotationWorkflow.Init(cls.__name__))
-        ) -> T:
+        ) -> Self:
             return cls(workflow=workflow)
         return dependency
 
     @classmethod
-    def Validate(cls: type[T]) -> FormFunc:
+    def Validate(cls: type[Self]) -> FormFunc:
         """Validate this step from the workflow state for an endpoint dependency."""
         def dependency(
-            form: T = Depends(super(LibraryAnnotationWorkflowStep, cls).Validate()),
-        ) -> T:
+            form: Self = Depends(super(LibraryAnnotationWorkflowStep, cls).Validate()),
+        ) -> Self:
             return form
         return dependency
 

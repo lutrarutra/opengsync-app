@@ -10,7 +10,7 @@ from sqlalchemy.ext.mutable import MutableDict
 
 from .Base import Base
 from . import links
-from ..categories import PoolStatus, PoolStatus, PoolType, PoolType, LibraryType, LibraryType, MUXType, MUXType
+from ..categories import PoolStatus, PoolType, LibraryType, MUXType
 from .Experiment import Experiment
 
 if TYPE_CHECKING:
@@ -31,36 +31,36 @@ class Pool(Base):
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
     type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
 
-    timestamp_stored_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
+    timestamp_stored_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
     clone_number: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=0)
-    original_pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True, default=None)
+    original_pool_id: Mapped[int | None] = mapped_column(sa.ForeignKey("pool.id", ondelete="SET NULL"), nullable=True, default=None)
     
-    num_m_reads_requested: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
-    avg_fragment_size: Mapped[Optional[int]] = mapped_column(sa.Integer, default=None, nullable=True)
-    qubit_concentration: Mapped[Optional[float]] = mapped_column(sa.Float, default=None, nullable=True)
+    num_m_reads_requested: Mapped[float | None] = mapped_column(sa.Float, default=None, nullable=True)
+    avg_fragment_size: Mapped[int | None] = mapped_column(sa.Integer, default=None, nullable=True)
+    qubit_concentration: Mapped[float | None] = mapped_column(sa.Float, default=None, nullable=True)
 
     owner_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     owner: Mapped["User"] = relationship("User", back_populates="pools", lazy="select")
 
-    plate_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("plate.id"), nullable=True)
+    plate_id: Mapped[int | None] = mapped_column(sa.ForeignKey("plate.id"), nullable=True)
     plate: Mapped[Optional["Plate"]] = relationship("Plate", lazy="select")
 
-    seq_request_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
+    seq_request_id: Mapped[int | None] = mapped_column(sa.ForeignKey("seq_request.id"), nullable=True)
     seq_request: Mapped[Optional["SeqRequest"]] = relationship("SeqRequest", lazy="select")
     
     contact_id: Mapped[int] = mapped_column(sa.ForeignKey("contact.id"), nullable=False)
     contact: Mapped["Contact"] = relationship("Contact", lazy="select")
 
-    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id"), nullable=True, default=None)
+    ba_report_id: Mapped[int | None] = mapped_column(sa.ForeignKey("media_file.id"), nullable=True, default=None)
     ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select", foreign_keys=[ba_report_id])
 
-    lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
+    lab_prep_id: Mapped[int | None] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)
     lab_prep: Mapped[Optional["LabPrep"]] = relationship("LabPrep", lazy="select")
 
-    experiment_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
+    experiment_id: Mapped[int | None] = mapped_column(sa.ForeignKey("experiment.id"), nullable=True)
     experiment: Mapped[Optional["Experiment"]] = relationship("Experiment", lazy="select", back_populates="pools")
     
-    merged_to_pool_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("pool.id"), nullable=True, default=None)
+    merged_to_pool_id: Mapped[int | None] = mapped_column(sa.ForeignKey("pool.id"), nullable=True, default=None)
     merged_to_pool: Mapped[Optional["Pool"]] = relationship("Pool", lazy="select", remote_side=[id], foreign_keys=[merged_to_pool_id])
 
     merged_from: Mapped[list["Pool"]] = relationship("Pool", lazy="select", back_populates="merged_to_pool", foreign_keys=[merged_to_pool_id])
@@ -86,7 +86,7 @@ class Pool(Base):
     @property
     def mux_types(self) -> list[MUXType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
-            return list(set(library.mux_type for library in self.libraries if library.mux_type is not None))
+            return list({library.mux_type for library in self.libraries if library.mux_type is not None})
         
         from .Library import Library
         if (session := orm.object_session(self)) is None:
@@ -157,8 +157,11 @@ class Pool(Base):
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_types' attribute.")
 
         from .. import queries as Q
-        result = session.scalar(sa.select(sa.func.array_agg(sa.distinct(Library.type_id))).select_from(
-            Q.library.select(pool_id=self.id).subquery()
+        from .Library import Library
+        result = session.scalar(sa.select(
+            sa.func.array_agg(sa.distinct(Library.type_id))
+        ).where(
+            *Q.library.where_clauses(pool_id=self.id)
         ))
         if result is None:
             return []

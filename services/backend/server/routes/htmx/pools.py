@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
-from ...core.context import ctx
 from ...forms.models import PoolForm
 from ...forms.models import PlateForm
 
@@ -29,6 +28,7 @@ class PoolTable(HTMXTable):
 def render_pool_table(
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter pools"),
     experiment_id: int | None = Query(None, description="Optional experiment ID to filter pools"),
+    lab_prep_id: int | None = Query(None, description="Optional lab prep ID to filter pools"),
     status_in: list[C.PoolStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PoolStatus, query_param="status_in")),
     library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
     type_in: list[C.PoolType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.PoolType, query_param="type_in")),
@@ -50,6 +50,7 @@ def render_pool_table(
     stmt = Q.pool.select(
         seq_request_id=seq_request_id,
         experiment_id=experiment_id,
+        lab_prep_id=lab_prep_id,
         status_in=status_in,
         library_types_in=library_types_in,
         type_in=type_in,
@@ -61,6 +62,11 @@ def render_pool_table(
         table.template = "components/tables/seq_request-pool.html"
         table.url_params["seq_request_id"] = seq_request_id
         table.context["seq_request_id"] = seq_request_id
+    elif lab_prep_id is not None:
+        if not current_user.is_insider:
+            raise exc.NoPermissionsException("You do not have permission to view pools for this lab prep.")
+        table.url_params["lab_prep_id"] = lab_prep_id
+        table.context["lab_prep_id"] = lab_prep_id
     elif experiment_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view pools for this experiment.")
@@ -92,7 +98,6 @@ def render_pool_table(
         ]
     )
     table.set_num_pages(count)
-
     return table.make_response(pools=pools)
 
 
@@ -114,7 +119,7 @@ def search_pools(
     if not current_user.is_insider:
         stmt = Q.pool.select(viewer_id=current_user.id, statement=stmt)
 
-    pools, count = session.page(stmt, page=page)
+    pools, _ = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/pool.html", pools=pools)
 
 @router.delete("/{pool_id}/remove-library/{library_id}")

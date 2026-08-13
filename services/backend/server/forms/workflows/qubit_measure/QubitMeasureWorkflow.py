@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Self
 
 from fastapi import Query, Depends, APIRouter
 
@@ -9,8 +9,6 @@ from ..HTMXWorkflow import HTMXWorkflow, WorkflowFunc
 from ..HTMXWorkflowStep import HTMXWorkflowStep
 from ...HTMXForm import RouteFunc, FormFunc
 from .. import qubit_measure as wf
-
-T = TypeVar("T", bound="QubitMeasureWorkflowStep")
 
 class QubitMeasureWorkflowStep(HTMXWorkflowStep):
     workflow: "QubitMeasureWorkflow"
@@ -27,19 +25,19 @@ class QubitMeasureWorkflowStep(HTMXWorkflowStep):
         ).include_query_params(uuid=self.workflow.uuid, **self.workflow._query_params)
 
     @classmethod
-    def Init(cls: type[T]) -> FormFunc:
+    def Init(cls: type[Self]) -> FormFunc:
         def dependency(
             workflow: QubitMeasureWorkflow = Depends(QubitMeasureWorkflow.Init(cls.__name__)),
-        ) -> T:
+        ) -> Self:
             return cls(workflow=workflow)
         return dependency
     
     @classmethod
-    def Validate(cls: type[T]) -> FormFunc:
+    def Validate(cls: type[Self]) -> FormFunc:
         """Validate this step from the workflow state for an endpoint dependency."""
         def dependency(
-            form: T = Depends(super(QubitMeasureWorkflowStep, cls).Validate()),
-        ) -> T:
+            form: Self = Depends(super(QubitMeasureWorkflowStep, cls).Validate()),
+        ) -> Self:
             return form
         return dependency
 
@@ -76,9 +74,8 @@ class QubitMeasureWorkflow(HTMXWorkflow):
             if form.workflow.lab_prep_id is not None:
                 if not current_user.is_insider:
                     raise exc.NoPermissionsException("You do not have permission to access this lab prep.")
-            elif form.workflow.experiment_id is not None:
-                if not current_user.is_insider:
-                    raise exc.NoPermissionsException("You do not have permission to access this experiment.")
+            elif form.workflow.experiment_id is not None and not current_user.is_insider:
+                raise exc.NoPermissionsException("You do not have permission to access this experiment.")
             return form.make_response()
         return route
             

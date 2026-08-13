@@ -237,7 +237,7 @@
                                     </div>
                                 </td>
                                 <td class="x-scroll-cell">
-                                    <span class="scroll-container">{% if library.ba_report_id %}<span class="desc">{{ library.ba_report.timestamp | format_datetime }}</span> <a href="{{ url_for('pdf_file', file_id=library.ba_report_id) }}" target="_blank">{{ library.ba_report.name }}</a></span>{% endif %}
+                                    <span class="scroll-container">{% if library.ba_report_id %}<span class="desc">{{ library.ba_report.timestamp | format_datetime }}</span> <a href="{{ url_for('serve_media_file', media_file_id=library.ba_report_id) }}" target="_blank">{{ library.ba_report.name }}</a></span>{% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -259,7 +259,7 @@
                 <ol>
                     <li>
                         <button class="btn-primary btn" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
-                        hx-get="{{ url_for('ReindexWorkflow.begin', lab_prep_id=lab_prep.id) }}"
+                        hx-get="{{ url_for('ReindexWorkflow.Begin', lab_prep_id=lab_prep.id) }}"
                         hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                         hx-swap="innerHTML"{% if lab_prep_completed %} disabled{% endif %}>Begin</button> 'Index Libraries' - Workflow
                     </li>

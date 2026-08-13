@@ -124,8 +124,10 @@ class Project(Base):
 
         from .. import queries as Q
         from .Library import Library
-        result = session.scalar(sa.select(sa.func.array_agg(sa.distinct(Library.type_id))).select_from(
-            Q.library.select(project_id=self.id).subquery()
+        result = session.scalar(sa.select(
+            sa.func.array_agg(sa.distinct(Library.type_id))
+        ).where(
+            *Q.library.where_clauses(project_id=self.id)
         ))
         if result is None:
             return []

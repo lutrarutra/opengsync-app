@@ -1,4 +1,5 @@
 {% from "components/tooltip.jinja2" import tooltip %}
+{% from "components/library_type_badge_list.jinja2" import library_type_badge_list %}
 <table class="table">
     <thead>
         <tr>
@@ -11,18 +12,15 @@
             {% elif browse_context == "ba-report" %}
             <th class="col-2" scope="col">Avg. Fragment Size</th>
             {% endif %}
+            <th class="col-2" scope="col">Num. Libraries</th>
         </tr>
     </thead>
     <tbody id="{{ field.id }}-selected-table-body">
         {% for pool in selected_pools %}
         <tr id="selected-pool-row-{{ pool.id }}" class="pool-row selected">
             <th scope="row">{{ pool.id }}</th>
-            <td>{{ pool.name }}</td>
-            <td>
-                <span {{ tooltip(pool.type.label) }}>
-                    {{ pool.type.abbreviation }}
-                </span>
-            </td>
+            <td>{{ pool.name }}{% if pool.clone_number > 0 %}<sup class="clone-number">(re:{{ pool.clone_number }})</sup>{% endif %}</td>
+            <td class="x-scroll-cell">{{ library_type_badge_list(pool.library_types) }}</td>
             <td>{% if pool.status %}{{ pool.status.label }} {{ pool.status.icon }}{% endif %}</td>
             {% if browse_context == "qubit-measure" %}
             <td>
@@ -39,6 +37,7 @@
                 </div>
             </td>
             {% endif %}
+            <td>{{ pool.num_libraries }}</td>
         </tr>
         {% endfor %}
     </tbody>

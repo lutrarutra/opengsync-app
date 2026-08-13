@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Self
 
 from fastapi import Query, Depends, APIRouter
 
@@ -9,8 +9,6 @@ from ..HTMXWorkflow import HTMXWorkflow, WorkflowFunc
 from ..HTMXWorkflowStep import HTMXWorkflowStep
 from ...HTMXForm import RouteFunc, FormFunc
 from .. import ba_report as wf
-
-T = TypeVar("T", bound="BAReportWorkflowStep")
 
 class BAReportWorkflowStep(HTMXWorkflowStep):
     workflow: "BAReportWorkflow"
@@ -25,19 +23,19 @@ class BAReportWorkflowStep(HTMXWorkflowStep):
         self.post_url = responses.url_for(f"{self.workflow.__class__.__name__}.{self.__class__.__name__}.Submit").include_query_params(uuid=self.workflow.uuid, **self.workflow._query_params)
 
     @classmethod
-    def Init(cls: type[T]) -> FormFunc:
+    def Init(cls: type[Self]) -> FormFunc:
         def dependency(
             workflow: BAReportWorkflow = Depends(BAReportWorkflow.Init(cls.__name__)),
-        ) -> T:
+        ) -> Self:
             return cls(workflow=workflow)
         return dependency
     
     @classmethod
-    def Validate(cls: type[T]) -> FormFunc:
+    def Validate(cls: type[Self]) -> FormFunc:
         """Validate this step from the workflow state for an endpoint dependency."""
         def dependency(
-            form: T = Depends(super(BAReportWorkflowStep, cls).Validate()),
-        ) -> T:
+            form: Self = Depends(super(BAReportWorkflowStep, cls).Validate()),
+        ) -> Self:
             return form
         return dependency
 
@@ -81,9 +79,8 @@ class BAReportWorkflow(HTMXWorkflow):
             if form.workflow.lab_prep_id is not None:
                 if not current_user.is_insider:
                     raise exc.NoPermissionsException("You do not have permission to access this lab prep.")
-            elif form.workflow.experiment_id is not None:
-                if not current_user.is_insider:
-                    raise exc.NoPermissionsException("You do not have permission to access this experiment.")
+            elif form.workflow.experiment_id is not None and not current_user.is_insider:
+                raise exc.NoPermissionsException("You do not have permission to access this experiment.")
             return form.make_response()
         return route
             

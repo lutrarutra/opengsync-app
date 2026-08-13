@@ -92,7 +92,7 @@ def search_index_kits(
     stmt = Q.index_kit.select(type=type, type_in=type_in)
     stmt = Q.index_kit.search(name=word, identifier=word, statement=stmt)
     
-    kits, count = session.page(stmt, page=page)
+    kits, _ = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/index_kit.html", results=kits)
 
 

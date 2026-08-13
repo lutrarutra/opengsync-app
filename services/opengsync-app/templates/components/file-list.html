@@ -26,7 +26,7 @@
                     </div>
                 </div>
                 <div class="col-2 d-flex align-items-center justify-content-evenly">
-                    <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-primary" download style="margin-top: 10px;">
+                    <a href="{{ url_for('download_media_file', media_file_id=file.id) }}" class="btn btn-primary" download style="margin-top: 10px;">
                         Download
                     </a>
                     
@@ -55,7 +55,7 @@
                     {{ spinner() }}
                 </div>
                 {% elif file.extension == ".pdf" %}
-                <embed src="{{ url_for('pdf_file',  file_id=file.id) }}" type="application/pdf" width="100%" height="1000px"/>
+                <embed src="{{ url_for('serve_media_file', media_file_id=file.id) }}" type="application/pdf" width="100%" height="1000px"/>
                 {% elif file.extension in [".png", ".jpg", ".jpeg"] %}
                 <img src="{{ url_for('img_file',  file_id=file.id) }}" alt="{{file.name}}" loading="lazy">
                 {% elif file.extension == ".xlsx" %}

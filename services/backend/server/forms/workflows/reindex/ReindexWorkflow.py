@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Self
 
 from fastapi import Query, Depends, APIRouter
 
@@ -11,9 +11,6 @@ from ...HTMXForm import RouteFunc, FormFunc
 from .. import reindex as wf
 
 
-T = TypeVar("T", bound="ReindexWorkflowStep")
-
-
 class ReindexWorkflowStep(HTMXWorkflowStep):
     workflow: "ReindexWorkflow"
 
@@ -22,18 +19,18 @@ class ReindexWorkflowStep(HTMXWorkflowStep):
         self.post_url = responses.url_for(f"{self.workflow.__class__.__name__}.{self.__class__.__name__}.Submit").include_query_params(uuid=self.workflow.uuid, **self.workflow._query_params)
 
     @classmethod
-    def Init(cls: type[T]) -> FormFunc:
+    def Init(cls: type[Self]) -> FormFunc:
         def dependency(
             workflow: ReindexWorkflow = Depends(ReindexWorkflow.Init(cls.__name__))
-        ) -> T:
+        ) -> Self:
             return cls(workflow=workflow)
         return dependency
 
     @classmethod
-    def Validate(cls: type[T]) -> FormFunc:
+    def Validate(cls: type[Self]) -> FormFunc:
         def dependency(
-            form: T = Depends(super(ReindexWorkflowStep, cls).Validate()),
-        ) -> T:
+            form: Self = Depends(super(ReindexWorkflowStep, cls).Validate()),
+        ) -> Self:
             return form
         return dependency
 
@@ -90,10 +87,9 @@ class ReindexWorkflow(HTMXWorkflow):
             elif form.workflow.pool_id is not None:
                 if not current_user.is_insider:
                     raise exc.NoPermissionsException("You do not have permission to access this pool.")
-            elif form.workflow.seq_request_id is not None:
-                if session.get_access_level(Q.seq_request.permissions(form.workflow.seq_request_id, current_user.id)) < C.AccessLevel.WRITE:
-                    raise exc.NoPermissionsException()
-            return form.make_response()
+            elif form.workflow.seq_request_id is not None and session.get_access_level(Q.seq_request.permissions(form.workflow.seq_request_id, current_user.id)) < C.AccessLevel.WRITE:
+                raise exc.NoPermissionsException("You do not have permission to edit this seq request.")
+            return form.make_response() 
         return route
 
     def get_next_step(self, form: "ReindexWorkflowStep") -> "ReindexWorkflowStep":

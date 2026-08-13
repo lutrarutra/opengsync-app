@@ -439,8 +439,8 @@ class SeqRequest(Base):
         from .Library import Library
         result = session.scalar(sa.select(
             sa.func.array_agg(sa.distinct(Library.type_id))
-        ).select_from(
-            Q.library.select(seq_request_id=self.id).subquery()
+        ).where(
+            *Q.library.where_clauses(seq_request_id=self.id)
         ))
         if result is None:
             return []
@@ -488,9 +488,8 @@ class SeqRequest(Base):
         from .Library import Library
         result = session.scalar(sa.select(
             sa.func.array_agg(sa.distinct(Library.mux_type_id))
-        ).select_from(
-            Q.library.select(seq_request_id=self.id).subquery()
         ).where(
+            *Q.library.where_clauses(seq_request_id=self.id),
             Library.mux_type_id.isnot(None)
         ))
         if result is None:

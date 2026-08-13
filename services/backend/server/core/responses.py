@@ -133,11 +133,12 @@ def file_response(path: str, filename: str | None = None, content_type: str | No
     headers = {
         "Content-Disposition": f'{disposition}; filename="{filename}"'
     }
-    response = Response(
-        content=open(path, "rb").read(),  # TODO: use nginx to serve files directly instead of reading them into memory
-        media_type=content_type or "application/octet-stream",
-        headers=headers,
-    )
+    with open(path, "rb") as f:
+        response = Response(
+            content=f.read(),
+            media_type=content_type or "application/octet-stream",
+            headers=headers,
+        )
     return response
 
 

@@ -1,0 +1,231 @@
+{% from 'components/barcode_clashes_table.jinja2' import barcode_clashes_table with context %}
+{% from 'components/metadata_group.jinja2' import metadata_group, metadata_group_link, metadata_group_email_link %}
+
+<div id="merge-pools-form-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5" >Merge Pools</h1>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body tab-body">
+        <ul class="nav nav-tabs" role="tablist" style="height: 42px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab"
+                id="form-tab-btn"
+                data-bs-target="#form-tab" type="button" role="tab"
+                aria-controls="form-tab" aria-selected="true">
+                Form</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if barcode_table['error'].notna().any() %}cemm-red{% elif barcode_table['warning'].notna().any() %}cemm-yellow{% else %}cemm-green{% endif %}"
+                data-bs-toggle="tab"
+                id="form-tab-libraries-btn"
+                data-bs-target="#form-tab-libraries" type="button" role="tab"
+                aria-controls="form-tab-libraries" aria-selected="false">
+                Libraries ({{ library_table | length }})</button>
+            </li>
+            {% for pool in pools %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#pool-{{ pool.id }}-libraries" type="button" role="tab"
+                aria-controls="pool-{{ pool.id }}-libraries" aria-selected="false">
+                {{ pool.name }}</button>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="form-tab" role="tabpanel" tabindex="0">
+                <div id="merge-pools-form">
+                    {{ form.csrf_token.render() }}
+                    {{ form.render_general_errors() }}
+                    <div class="row">
+                        {{ form.pool_type.render("col-3") }}
+                        {{ form.name.render("col-3") }}
+                        {{ form.num_m_reads_requested.render("col-3") }}
+                        {{ form.status.render("col-3") }}
+                    </div>
+                    <div class="row">
+                        {% if current_user.is_insider %}
+                        {{ form.contact.render("col-4") }}
+                        {{ form.contact_name.render("col-2") }}
+                        {{ form.contact_email.render("col-3") }}
+                        {{ form.contact_phone.render("col-3") }}
+                        {% else %}
+                        {{ form.contact_name.render("col-4") }}
+                        {{ form.contact_email.render("col-4") }}
+                        {{ form.contact_phone.render("col-4") }}
+                        {% endif %}
+                    </div>
+                    <div class="row">
+                        {{ form.total_volume_ul.render("col-4") }}
+                    </div>
+                    <table class="table" id="pooling-table">
+                        <thead>
+                            <tr>
+                                <th class="col-1" scope="col">ID</th>
+                                <th class="col-3" scope="col">Name</th>
+                                <th class="col-2" scope="col">Molarity</th>
+                                <th class="col-2" scope="col">Num. M Reads Requested</th>
+                                <th class="col-2" scope="col">Pipet</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pool in form.pools %}
+                            {% set sub_form = form.pool_forms[loop.index0] %}
+                            <tr>
+                                <th scope="row">
+                                    {{ sub_form.pool_id.render(hide_label=True, hide_errors=True) }}
+                                    {{ pool.id }}
+                                </th>
+                                <td>{{ pool.name }}</td>
+                                <td class="molarity-col" {% if pool.molarity is not none %}data-value="{{ pool.molarity }}"{% endif %}>
+                                    <div class="quantity-container {{ pool.molarity_color_class }}">
+                                        <div class="value">{{ pool.molarity_str }}</div>
+                                        <div class="unit">nM</div>
+                                    </div>
+                                </td>
+                                <td class="num_m_reads_requested-col">
+                                    {{ sub_form.num_m_reads_requested.render(hide_label=True) }}
+                                </td>
+                                <td class="pipet-col">{{ sub_form.pipet.render(hide_label=True) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="form-tab-libraries" role="tabpanel" tabindex="1">
+                {{ barcode_clashes_table(barcode_table) }}
+            </div>
+            {% for pool in pools %}
+            <div class="tab-pane fade" id="pool-{{ pool.id }}-libraries" role="tabpanel" tabindex="{{ loop.index + 1 }}">
+                <div class="row">
+                    {{ metadata_group("Name", pool.name, class="col-3") }}
+                    {{ metadata_group("Type", pool.type, class="col-3") }}
+                    {% if pool.seq_request_id %}
+                    {{
+                        metadata_group_link(
+                            "Request", pool.seq_request.name,
+                            url_for("seq_request_page", seq_request_id=pool.seq_request_id, from='pool@' + pool.id | string),
+                            class="col-3"
+                        )
+                    }}
+                    {% else %}
+                    {{ metadata_group("Request", "", class="col-3") }}
+                    {% endif %}
+                    {% if pool.lab_prep_id %}
+                    {{
+                        metadata_group_link(
+                            "Lab Prep", pool.lab_prep.display_name,
+                            url_for("lab_prep_page", lab_prep_id=pool.lab_prep_id, from='pool@' + pool.id | string),
+                            class="col-3"
+                        )
+                    }}
+                    {% else %}
+                    {{ metadata_group("Lab Prep", "", class="col-3") }}
+                    {% endif %}
+                </div>
+                <div class="row">
+                    {{
+                        metadata_group_link(
+                            "Owner", pool.owner.name,
+                            url_for("user_page", user_id=pool.owner.id, from='pool@' + pool.id | string),
+                            class="col-2"
+                        )
+                    }}
+                    {{
+                        metadata_group_email_link("Owner Email", pool.owner.email, class="col-3")
+                    }}
+                    {{ metadata_group("Contact Name", pool.contact.name, class="col-2") }}
+                    {{ metadata_group_email_link("Contact Email", pool.contact.email, class="col-3") }}
+                    {{ metadata_group("Contact Phone", pool.contact.phone, class="col-2") }}
+                </div>
+                {{
+                    metadata_group("Num. M Reads Requested", pool.num_m_reads_requested if notna(pool.num_m_reads_requested) else "", class="col-4", unit="M Reads")
+                }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <div class="footer-id">
+            {{ form.workflow.uuid }}
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            {% if form.previous_url %}
+            <button type="button" class="btn btn-warning submit-form-btn"
+                hx-target="#merge-pools-form-container" hx-swap="outerHTML"
+                hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            {% endif %}
+            <button type="button" class="btn btn-success"
+                hx-target="#merge-pools-form-container" hx-swap="outerHTML"
+                hx-include="#merge-pools-form"
+                hx-post="{{ form.post_url }}">
+                Submit
+            </button>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            function sum_num_m_reads_requested() {
+                let total = 0;
+                $("#pooling-table tbody tr").each(function() {
+                    const num_m_reads_requested = parseFloat($(this).find(".num_m_reads_requested-col input").val());
+                    if (!isNaN(num_m_reads_requested)) {
+                        total += num_m_reads_requested;
+                    }
+                });
+                return total;
+            }
+
+            function highest_molarity() {
+                let highest = 0;
+                $("#pooling-table tbody tr").each(function() {
+                    const molarity = parseFloat($(this).find(".molarity-col").data("value"));
+                    if (!isNaN(molarity) && molarity > highest) {
+                        highest = molarity;
+                    }
+                });
+                return highest;
+            }
+
+            function calculate() {
+                let abcde = 0.0;
+                $("#pooling-table tbody tr").each(function() {
+
+                    const molarity = parseFloat($(this).find(".molarity-col").data("value"));
+                    const num_m_reads_requested = parseFloat($(this).find(".num_m_reads_requested-col input").val());
+                    const total_num_m_reads_requested = sum_num_m_reads_requested();
+                    const share = num_m_reads_requested / total_num_m_reads_requested;
+                    const highest_pool_molarity = highest_molarity();
+
+                    if (molarity && share && highest_pool_molarity) {
+                        const ratio = (share) * (highest_pool_molarity / molarity);
+                        abcde += ratio;
+                        const pipetInput = $(this).find(".pipet-col input");
+                        pipetInput.val(ratio);
+                    }
+                });
+
+                $(".pipet-col input").each(function() {
+                    const pipetVolume = parseFloat($(this).val());
+                    const total_volume_ul = parseFloat($("#total_volume_ul").val());
+
+                    if (pipetVolume && abcde) {
+                        const normalizedPipetVolume = pipetVolume * total_volume_ul / abcde;
+                        $(this).val(normalizedPipetVolume.toFixed(2));
+                    }
+                });
+            }
+
+            $("#total_volume_ul, .num_m_reads_requested-col input").on("input", function() {
+                calculate();
+            });
+            calculate();
+        });
+    </script>
+</div>

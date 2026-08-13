@@ -131,7 +131,7 @@
                     <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
-            <embed src="{{ url_for('pdf_file', file_id=sample.ba_report_id) }}" type="application/pdf" width="100%" height="1000px" onload="remove_spinner()">
+            <embed src="{{ url_for('serve_media_file', media_file_id=sample.ba_report_id) }}" type="application/pdf" width="100%" height="1000px" onload="remove_spinner()">
         </div>
         {% endif %}
         {% endif %}

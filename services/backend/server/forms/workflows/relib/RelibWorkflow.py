@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Self
 
 from fastapi import Query, Depends, APIRouter
 
@@ -11,9 +11,6 @@ from ...HTMXForm import RouteFunc, FormFunc
 from .. import relib as wf
 
 
-T = TypeVar("T", bound="RelibWorkflowStep")
-
-
 class RelibWorkflowStep(HTMXWorkflowStep):
     workflow: "RelibWorkflow"
 
@@ -24,18 +21,18 @@ class RelibWorkflowStep(HTMXWorkflowStep):
         ).include_query_params(uuid=self.workflow.uuid, **self.workflow._query_params)
 
     @classmethod
-    def Init(cls: type[T]) -> FormFunc:
+    def Init(cls: type[Self]) -> FormFunc:
         def dependency(
             workflow: RelibWorkflow = Depends(RelibWorkflow.Init(cls.__name__)),
-        ) -> T:
+        ) -> Self:
             return cls(workflow=workflow)
         return dependency
 
     @classmethod
-    def Validate(cls: type[T]) -> FormFunc:
+    def Validate(cls: type[Self]) -> FormFunc:
         def dependency(
-            form: T = Depends(super(RelibWorkflowStep, cls).Validate()),
-        ) -> T:
+            form: Self = Depends(super(RelibWorkflowStep, cls).Validate()),
+        ) -> Self:
             return form
         return dependency
 
@@ -67,12 +64,10 @@ class RelibWorkflow(HTMXWorkflow):
             session: SyncSession = Depends(dependencies.db_session),
             r: redis.RedisClient = Depends(dependencies.redis),
         ) -> "RelibWorkflow":
-            if seq_request_id is not None:
-                if session.first(Q.seq_request.select(id=seq_request_id)) is None:
-                    raise exc.ItemNotFoundException()
-            if lab_prep_id is not None:
-                if session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
-                    raise exc.ItemNotFoundException()
+            if seq_request_id is not None and session.first(Q.seq_request.select(id=seq_request_id)) is None:
+                raise exc.ItemNotFoundException("Seq request not found.")
+            if lab_prep_id is not None and session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
+                raise exc.ItemNotFoundException("Lab prep not found.")
             return cls(
                 step=step,
                 seq_request_id=seq_request_id,

@@ -145,6 +145,23 @@ def serve_media_file(
     return responses.file_response(filepath, filename, content_type, disposition=disposition)
 
 
+@router.get("/{media_file_id}/download", dependencies=[Depends(dependencies.media_file_permissions)])
+def download_media_file(
+    media_file_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    file = session.get_one(Q.media_file.select(id=media_file_id))
+    filepath = os.path.join(config.settings.app_config.media_folder, file.path)
+    if not os.path.isfile(filepath):
+        raise exc.ItemNotFoundException("File not found on disk.")
+    content_type, _ = mimetypes.guess_type(file.name + file.extension)
+    if content_type is None:
+        content_type = "application/octet-stream"
+    disposition = "attachment"
+    filename = f"{file.name}{file.extension}"
+    return responses.file_response(filepath, filename, content_type, disposition=disposition)
+
+
 @router.get("/{media_file_id}/xlsx-spreadsheet", dependencies=[Depends(dependencies.media_file_permissions)])
 def render_xlsx_spreadsheet(
     media_file_id: int,

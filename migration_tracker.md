@@ -21,6 +21,7 @@
 | 3 | **Qubit Measure** | `workflows/qubit_measure/` | `workflows/qubit_measure/` | Multi-step: SelectSamples → QubitMeasure → CompleteQubitMeasure. All forms migrated. |
 | 4 | **Add Kits to Protocol** | `workflows/add_protocol_kits/` | `workflows/add_kits_to_protocol/` | Delegates to `AddKitsToProtocolAction`. Fully migrated. |
 | 5 | **Relib** | `workflows/relib/` | `workflows/relib/` | Two-step: SelectSamples → LibraryEditTable. Library field spreadsheet edit with Previous navigation. |
+| 6 | **Merge Pools** | `workflows/` (MergePoolsForm.py) | `workflows/merge_pools/` | Two-step: SelectSamples → MergePoolsForm. Combines selected pools into a new pool with pipet ratios, barcode clash preview, and Previous navigation. |
 
 ### 1.2 Partial Workflows
 
@@ -28,8 +29,7 @@ These workflows have FastAPI workflow infrastructure, but their forms or step tr
 
 | # | Workflow | Legacy Path | FastAPI Path | Missing Forms | Notes |
 |---|----------|-------------|--------------|---------------|-------|
-| 6 | **Reindex** | `workflows/reindex/` | `workflows/reindex/` | No missing form classes; several business-logic gaps remain | Step forms now exist: SelectSamples → BarcodeInput → (TENXATAC or BarcodeMatch) → CompleteReindex. Shared barcode validation and composite library columns are implemented, but the migration is not yet complete. See the gap list below. |
-| 7 | **Merge Pools** | `workflows/` (MergePoolsForm.py) | `workflows/merge_pools/` | MergePoolsForm | Workflow shell only; `get_next_step()` is not implemented. |
+| 7 | **Reindex** | `workflows/reindex/` | `workflows/reindex/` | No missing form classes; several business-logic gaps remain | Step forms now exist: SelectSamples → BarcodeInput → (TENXATAC or BarcodeMatch) → CompleteReindex. Shared barcode validation and composite library columns are implemented, but the migration is not yet complete. See the gap list below. |
 | 8 | **Mux Prep** | `workflows/mux_prep/` | `workflows/mux_prep/` | OligoMuxForm, OCMMuxForm, FlexABCForm | `FlexMuxForm` is covered by `FlexMuxPrepAction`; `SamplePoolingForm` is covered by `SamplePoolingAction`. The workflow itself remains a shell. |
 | 9 | **Library Pooling** | `workflows/library_pooling/` | `workflows/library_pooling/` | CompleteLibraryPoolingForm | `LibraryPoolingForm` is covered by `LibraryPoolingAction`; the workflow shell remains incomplete. |
 | 10 | **Library Remux** | `workflows/remux/` | `workflows/library_remux/` | FlexReMuxForm, OligoReMuxForm | Workflow shell only; `Begin()` references forms that are not present in the FastAPI workflow package. |
@@ -195,8 +195,8 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 | Category | Count |
 |----------|-------|
-| ✅ Fully migrated workflows | 5 |
-| ⚠️ Partial workflows | 10 |
+| ✅ Fully migrated workflows | 6 |
+| ⚠️ Partial workflows | 9 |
 | ✅ Migrated actions | 36 |
 | ❌ Legacy workflows → should be actions | 0 |
 | ✅ Legacy top-level forms migrated | 7 |
@@ -207,10 +207,10 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 ### Priority Order (Recommended)
 1. **Reindex runtime verification and cleanup** — Step forms now exist, but the workflow needs end-to-end testing and final refinement.
-2. **Remaining workflow shells** — Merge Pools, Mux Prep, Library Pooling, Library Remux, Select Library Protocols, Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
+2. **Remaining workflow shells** — Mux Prep, Library Pooling, Library Remux, Select Library Protocols, Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
 
 ### Next Recommended Migration
 
-**Workflow:** `Merge Pools`
+**Workflow:** `Mux Prep`
 
-`Merge Pools` is the next recommended migration because its FastAPI workflow shell already exists. Implement `MergePoolsForm` and `get_next_step()` / Previous navigation.
+`Mux Prep` is the next recommended migration because `FlexMuxPrepAction` and `SamplePoolingAction` already cover two of its steps. Implement `OligoMuxForm`, `OCMMuxForm`, and `FlexABCForm`, then wire `get_next_step()` / Previous navigation.
