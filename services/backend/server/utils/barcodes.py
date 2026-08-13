@@ -1,10 +1,10 @@
-from typing import Literal, Sequence
+from typing import Literal
 import itertools
+from collections.abc import Sequence
 
 import pandas as pd
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
-from ..core import exceptions as exc
 
 def reverse_complement(seq: str | None) -> str:
     if pd.isna(seq):

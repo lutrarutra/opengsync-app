@@ -1,13 +1,13 @@
 from fastapi import Depends, Response
 
-from opengsync_db import models, queries as Q, SyncSession, categories as C
+from opengsync_db import models, queries as Q, categories as C
 
-from ....core import dependencies, exceptions as exc, responses, context
+from ....core import context
 from ....components import inputs
 from ....components.tables.spreadsheet import DBObjectColumn, TextColumn, CategoricalDropDown
-from ....components.tables import IntegerColumn
 from ...HTMXForm import RouteFunc, htmx_route
 from .ReindexWorkflow import ReindexWorkflowStep, ReindexWorkflow
+from .BarcodeInputForm import assert_libraries_listed
 
 
 class TENXATACBarcodeInputForm(ReindexWorkflowStep):
@@ -44,17 +44,17 @@ class TENXATACBarcodeInputForm(ReindexWorkflowStep):
     @classmethod
     def is_applicable(cls, workflow: "ReindexWorkflow") -> bool:
         library_table = workflow.tables["library_table"]
-        return bool((library_table["library_type"] == C.LibraryType.TENX_SC_ATAC.id).any())
+        return bool((library_table["library_type"] == C.LibraryType.TENX_SC_ATAC).any())
 
     def __init__(self, workflow: "ReindexWorkflow") -> None:
         super().__init__(workflow=workflow)
-        self.barcode_table = self.workflow.tables["barcode_table"]
+        self.barcode_table = self.workflow.tables["tenx_atac_barcode_table"]
         self.library_table = self.workflow.tables["library_table"]
 
         self.spreadsheet.columns["Library"].set_categories({
-            row["library_id"]: f"[{row['library_id']}] {row['library_name']}"
+            row["library_id"]: f"{row['library_name']} [{row['library_id']}]"
             for _, row in self.library_table.iterrows()
-            if row["library_type"] == C.LibraryType.TENX_SC_ATAC.id
+            if row["library_type"] == C.LibraryType.TENX_SC_ATAC
         })
 
         self.spreadsheet.configure(csrf_token=self.csrf_token_value, post_url=self.post_url, df=self.barcode_table)
@@ -74,6 +74,8 @@ class TENXATACBarcodeInputForm(ReindexWorkflowStep):
         def route(
             form: "TENXATACBarcodeInputForm" = Depends(TENXATACBarcodeInputForm.Validate()),
         ) -> Response:
+            assert_libraries_listed(form, form.spreadsheet.data, atac=True)
+            form.assert_valid()
             form.workflow.tables["tenx_atac_barcode_table"] = form.spreadsheet.data
             next_step = form.workflow.get_next_step(form)
             return next_step.make_response()

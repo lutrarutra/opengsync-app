@@ -95,27 +95,26 @@
     </div>
     <script>
         $(document).ready(function() {
-            function toggleRadios($select, radioName) {
-                const shouldDisable = $select.val() !== "0";
-                const $radios = $(`input[name="${radioName}"]`);
-                $radios.prop('disabled', shouldDisable);
-
-                if (shouldDisable) {
-                    $radios.prop('checked', false); // clear selection
+            function toggleCustomOption($select, optionName) {
+                const isCustom = $select.val() === "0";
+                const $option = $(`[name="${optionName}"]`);
+                $option.prop('disabled', !isCustom);
+                if (!isCustom) {
+                    $option.val("-1");
                 }
             }
 
             const i7_kit = $('[name="i7_kit"]');
-            toggleRadios(i7_kit, "i7_option");
+            toggleCustomOption(i7_kit, "i7_option");
             i7_kit.on('change', function () {
-                toggleRadios(i7_kit, "i7_option");
+                toggleCustomOption(i7_kit, "i7_option");
             });
 
             {% if index_type == C.IndexType.DUAL_INDEX %}
             const i5_kit = $('[name="i5_kit"]');
-            toggleRadios(i5_kit, "i5_option");
+            toggleCustomOption(i5_kit, "i5_option");
             i5_kit.on('change', function () {
-                toggleRadios(i5_kit, "i5_option");
+                toggleCustomOption(i5_kit, "i5_option");
             });
             {% endif %}
         });

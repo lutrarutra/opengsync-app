@@ -4,11 +4,36 @@ import pandas as pd
 
 from opengsync_db import SyncSession, models, categories as C
 
-from ....core import dependencies, exceptions as exc
+from ....core import dependencies
 from ....components import inputs
 from ...HTMXForm import RouteFunc, htmx_route
 from .ReindexWorkflow import ReindexWorkflowStep, ReindexWorkflow
-from .BarcodeInputForm import BarcodeInputForm
+
+
+def _append_barcode_row(
+    data: dict[str, list],
+    library: models.Library,
+    index: models.LibraryIndex | None = None,
+) -> None:
+    data["library_id"].append(library.id)
+    data["library_name"].append(library.name)
+    data["library_type"].append(library.type)
+    data["index_well"].append(None)
+    if index is None:
+        data["kit_i7"].append(None)
+        data["kit_i5"].append(None)
+        data["name_i7"].append(None)
+        data["name_i5"].append(None)
+        data["sequence_i7"].append(None)
+        data["sequence_i5"].append(None)
+        return
+    data["kit_i7"].append(index.index_kit_i7.identifier if index.index_kit_i7 else None)
+    data["kit_i5"].append(index.index_kit_i5.identifier if index.index_kit_i5 else None)
+    data["name_i7"].append(index.name_i7)
+    data["name_i5"].append(index.name_i5)
+    data["sequence_i7"].append(index.sequence_i7)
+    data["sequence_i5"].append(index.sequence_i5)
+
 
 class SelectSamplesForm(ReindexWorkflowStep):
     template_path = "workflows/reindex/select-samples.html"
@@ -41,9 +66,10 @@ class SelectSamplesForm(ReindexWorkflowStep):
             form: "SelectSamplesForm" = Depends(SelectSamplesForm.Validate()),
             session: SyncSession = Depends(dependencies.db_session),
         ) -> Response:
-            barcode_table_data = {
+            barcode_table_data: dict[str, list] = {
                 "library_id": [],
                 "library_name": [],
+                "index_well": [],
                 "kit_i7": [],
                 "kit_i5": [],
                 "name_i7": [],
@@ -53,7 +79,7 @@ class SelectSamplesForm(ReindexWorkflowStep):
                 "library_type": [],
             }
 
-            library_table_data = {
+            library_table_data: dict[str, list] = {
                 "library_id": [],
                 "library_name": [],
                 "library_type": [],
@@ -62,20 +88,15 @@ class SelectSamplesForm(ReindexWorkflowStep):
             for library in form.selected_library_ids.get_selected_libraries(session, options=[
                 orm.selectinload(models.Library.indices).selectinload(models.LibraryIndex.index_kit_i7),
                 orm.selectinload(models.Library.indices).selectinload(models.LibraryIndex.index_kit_i5),
-            ]): 
+            ]):
                 library_table_data["library_id"].append(library.id)
                 library_table_data["library_name"].append(library.name)
                 library_table_data["library_type"].append(library.type)
-                for index in library.indices:
-                    barcode_table_data["library_id"].append(library.id)
-                    barcode_table_data["library_name"].append(library.name)
-                    barcode_table_data["kit_i7"].append(index.index_kit_i7.identifier if index.index_kit_i7 else None)
-                    barcode_table_data["kit_i5"].append(index.index_kit_i5.identifier if index.index_kit_i5 else None)
-                    barcode_table_data["name_i7"].append(index.name_i7)
-                    barcode_table_data["name_i5"].append(index.name_i5)
-                    barcode_table_data["sequence_i7"].append(index.sequence_i7)
-                    barcode_table_data["sequence_i5"].append(index.sequence_i5)
-                    barcode_table_data["library_type"].append(library.type)
+                if library.indices:
+                    for index in library.indices:
+                        _append_barcode_row(barcode_table_data, library, index)
+                else:
+                    _append_barcode_row(barcode_table_data, library)
 
             df = pd.DataFrame(barcode_table_data)
             form.workflow.tables["library_table"] = pd.DataFrame(library_table_data)

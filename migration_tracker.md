@@ -22,6 +22,7 @@
 | 4 | **Add Kits to Protocol** | `workflows/add_protocol_kits/` | `workflows/add_kits_to_protocol/` | Delegates to `AddKitsToProtocolAction`. Fully migrated. |
 | 5 | **Relib** | `workflows/relib/` | `workflows/relib/` | Two-step: SelectSamples → LibraryEditTable. Library field spreadsheet edit with Previous navigation. |
 | 6 | **Merge Pools** | `workflows/` (MergePoolsForm.py) | `workflows/merge_pools/` | Two-step: SelectSamples → MergePoolsForm. Combines selected pools into a new pool with pipet ratios, barcode clash preview, and Previous navigation. |
+| 7 | **Reindex** | `workflows/reindex/` | `workflows/reindex/` | SelectSamples → BarcodeInput → (TENXATAC and/or BarcodeMatch) → CompleteReindex. Library validation, TENX ATAC `sequence_1`–`4` completion, barcode-match kit apply, Previous on every step, and lab-prep unindexed pre-selection. |
 
 ### 1.2 Partial Workflows
 
@@ -29,7 +30,6 @@ These workflows have FastAPI workflow infrastructure, but their forms or step tr
 
 | # | Workflow | Legacy Path | FastAPI Path | Missing Forms | Notes |
 |---|----------|-------------|--------------|---------------|-------|
-| 7 | **Reindex** | `workflows/reindex/` | `workflows/reindex/` | No missing form classes; several business-logic gaps remain | Step forms now exist: SelectSamples → BarcodeInput → (TENXATAC or BarcodeMatch) → CompleteReindex. Shared barcode validation and composite library columns are implemented, but the migration is not yet complete. See the gap list below. |
 | 8 | **Mux Prep** | `workflows/mux_prep/` | `workflows/mux_prep/` | OligoMuxForm, OCMMuxForm, FlexABCForm | `FlexMuxForm` is covered by `FlexMuxPrepAction`; `SamplePoolingForm` is covered by `SamplePoolingAction`. The workflow itself remains a shell. |
 | 9 | **Library Pooling** | `workflows/library_pooling/` | `workflows/library_pooling/` | CompleteLibraryPoolingForm | `LibraryPoolingForm` is covered by `LibraryPoolingAction`; the workflow shell remains incomplete. |
 | 10 | **Library Remux** | `workflows/remux/` | `workflows/library_remux/` | FlexReMuxForm, OligoReMuxForm | Workflow shell only; `Begin()` references forms that are not present in the FastAPI workflow package. |
@@ -46,17 +46,6 @@ The following functionality has a FastAPI action. The old workflow shell is reta
 | Workflow/functionality | FastAPI action | Remaining work |
 |---|---|---|
 | **Check Barcode Constraints** | `BarcodeConstraintsAction` | Action implemented in FastAPI. Remove or deprecate the unused workflow shell if no separate workflow UI is required. |
-
-### 1.4 Reindex Migration Gaps
-
-Reindex is **not testing-only yet**. The following existing legacy behavior still needs to be migrated or verified in the FastAPI implementation:
-
-- Add `Previous` routes for the TENX ATAC barcode form, barcode-match form, and completion form. Their templates currently render a Previous control, but only the regular barcode form defines the route.
-- Restore the legacy library validation for both barcode-entry forms: library ID/name validity, consistency with `library_table`, and validation that the library belongs to the selected sequencing request or lab prep.
-- Reconcile the TENX ATAC data model between input and completion. The input form submits `kit`, `name`, and `sequence_1`–`sequence_4`, while completion currently expects `kit_i7_id`, `name_i7`, and `sequence_i7` through `RowSchema`.
-- Port completion safeguards from the legacy form: expected barcode counts, required TENX ATAC sequences, conflicting i7/i5 orientation detection, and equivalent handling of deleted rows.
-- Verify the workflow context and permissions match the legacy behavior, including existence checks for selected lab prep, pool, or sequencing request and lab-prep-specific initial library selection.
-- Verify that all workflow metadata and tables needed by Previous navigation are preserved for every branch, including `tenx_atac_barcode_table` and barcode-match settings.
 
 ---
 
@@ -195,8 +184,8 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 | Category | Count |
 |----------|-------|
-| ✅ Fully migrated workflows | 6 |
-| ⚠️ Partial workflows | 9 |
+| ✅ Fully migrated workflows | 7 |
+| ⚠️ Partial workflows | 8 |
 | ✅ Migrated actions | 36 |
 | ❌ Legacy workflows → should be actions | 0 |
 | ✅ Legacy top-level forms migrated | 7 |
@@ -206,8 +195,7 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 | ✅ Model forms migrated | 19 |
 
 ### Priority Order (Recommended)
-1. **Reindex runtime verification and cleanup** — Step forms now exist, but the workflow needs end-to-end testing and final refinement.
-2. **Remaining workflow shells** — Mux Prep, Library Pooling, Library Remux, Select Library Protocols, Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
+1. **Remaining workflow shells** — Mux Prep, Library Pooling, Library Remux, Select Library Protocols, Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
 
 ### Next Recommended Migration
 

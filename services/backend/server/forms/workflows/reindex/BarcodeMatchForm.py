@@ -33,6 +33,12 @@ class BarcodeMatchForm(ReindexWorkflowStep):
         barcode_table = workflow.tables.get("barcode_table")
         if barcode_table is None or barcode_table.empty:
             return False
+        if "index_well" in barcode_table.columns:
+            barcode_table = barcode_table[
+                (barcode_table["index_well"] != "del") | barcode_table["index_well"].isna()
+            ]
+        if barcode_table.empty:
+            return False
         return bool(barcode_table["kit_i7"].isna().all() and barcode_table["kit_i5"].isna().all())
 
     def __init__(self, workflow: ReindexWorkflow) -> None:
