@@ -16,7 +16,7 @@ def json_encapsulate(key: str, value: str | bytes) -> bytes:
     return b'{"' + key.encode() + b'": ' + (value if isinstance(value, bytes) else value.encode()) + b'}'
 
 
-def check_string(val: str | None, allowed_special_characters: list[str] = ["-", "_", "."], required: bool = True) -> str | None:
+def check_string(val: str | None, allowed_special_characters: list[str] | tuple[str, ...] = ("-", "_", "."), required: bool = True) -> str | None:
     """Check if the given string is a valid name.
 
     Args:
@@ -44,11 +44,11 @@ def titlecase_with_acronyms(val: str) -> str:
     return " ".join([c[0].upper() + c[1:] for c in val.split(" ")])
 
 
-def make_filenameable(val, keep: list[str] = ['-', '.', '_']) -> str:
+def make_filenameable(val, keep: list[str] | tuple[str, ...] = ('-', '.', '_')) -> str:
     return "".join(c for c in str(val) if c.isalnum() or c in keep)
 
 
-def make_alpha_numeric(val: str | None, keep: list[str] = [".", "-", "_"], replace_white_spaces_with: str | None = "_") -> str | None:
+def make_alpha_numeric(val: str | None, keep: list[str] | tuple[str, ...] = (".", "-", "_"), replace_white_spaces_with: str | None = "_") -> str | None:
     if pd.isna(val) or not val:
         return None
     
@@ -174,7 +174,7 @@ def map_columns(dst: pd.DataFrame, src: pd.DataFrame, idx_columns: list[str] | s
         return pd.Series(dst[idx_columns].apply(lambda x: mapping.get(x, None) if pd.notna(x) else None))
     return pd.Series(dst[idx_columns].apply(lambda row: mapping.get(tuple(row), None) if isinstance(row, pd.Series) else mapping.get(row), axis=1))
 
-def normalize_to_ascii(text: str, allow_special_characters: list[str] = ["_", ".", "-"]) -> str:
+def normalize_to_ascii(text: str, allow_special_characters: list[str] | tuple[str, ...] = ("_", ".", "-")) -> str:
     GREEK_TO_ASCII = {
         'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z',
         'η': 'h', 'θ': 'th', 'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm',
@@ -332,8 +332,17 @@ def safe_groupby(
 
     for group_key, group_df in df.groupby(by, sort=sort, dropna=dropna):
         if isinstance(group_key, tuple):
-            key_dict = dict(zip(by_cols, group_key))
+            raw_key = dict(zip(by_cols, group_key))
         else:
-            key_dict = {by_cols[0]: group_key}
+            raw_key = {by_cols[0]: group_key}
+
+        key_dict: dict[str, object] = {}
+        for col, val in raw_key.items():
+            if pd.isna(val):
+                key_dict[col] = None
+            elif hasattr(val, "item"):
+                key_dict[col] = val.item()
+            else:
+                key_dict[col] = val
 
         yield key_model.model_validate(key_dict), group_df

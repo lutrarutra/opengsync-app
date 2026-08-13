@@ -1,5 +1,4 @@
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
-{% from "components/spreadsheet.jinja2" import spreadsheet_input %}
 
 <div id="oligo_mux_annotation-form-container" class="modal-content">
     <div class="modal-header">
@@ -25,8 +24,7 @@
         <div class="tab-content">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
                 {{
-                    spreadsheet_input(
-                        element=form.spreadsheet,
+                    form.spreadsheet.render(
                         target_element_id="oligo_mux_annotation-form-container",
                         submit_btn_id="parse-spreadsheet-btn",
                     )
@@ -38,14 +36,14 @@
     </div>
     <div class="modal-footer">
         <div class="footer-id">
-            {{ form.uuid }}
+            {{ form.workflow.uuid }}
         </div>
         <div class="footer-info">
             {{ spreadsheet_error_legend() }}
         </div>
         <div class="footer-controls">
             <button class="btn btn-primary submit-form-btn" type="button" id="parse-spreadsheet-btn">
-                Next
+                Submit
             </button>
         </div>
     </div>

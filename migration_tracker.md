@@ -23,6 +23,7 @@
 | 5 | **Relib** | `workflows/relib/` | `workflows/relib/` | Two-step: SelectSamples → LibraryEditTable. Library field spreadsheet edit with Previous navigation. |
 | 6 | **Merge Pools** | `workflows/` (MergePoolsForm.py) | `workflows/merge_pools/` | Two-step: SelectSamples → MergePoolsForm. Combines selected pools into a new pool with pipet ratios, barcode clash preview, and Previous navigation. |
 | 7 | **Reindex** | `workflows/reindex/` | `workflows/reindex/` | SelectSamples → BarcodeInput → (TENXATAC and/or BarcodeMatch) → CompleteReindex. Library validation, TENX ATAC `sequence_1`–`4` completion, barcode-match kit apply, Previous on every step, and lab-prep unindexed pre-selection. |
+| 8 | **Mux Prep** | `workflows/mux_prep/` | `workflows/mux_prep/` | OligoMux, FlexMux (+ FlexABC), OCMMux. Lab-prep checklist starts `MuxPrepWorkflow.Begin`. Sample pooling stays `SamplePoolingAction`. `FlexMuxPrepAction` is unused from the checklist. |
 
 ### 1.2 Partial Workflows
 
@@ -30,7 +31,6 @@ These workflows have FastAPI workflow infrastructure, but their forms or step tr
 
 | # | Workflow | Legacy Path | FastAPI Path | Missing Forms | Notes |
 |---|----------|-------------|--------------|---------------|-------|
-| 8 | **Mux Prep** | `workflows/mux_prep/` | `workflows/mux_prep/` | OligoMuxForm, OCMMuxForm, FlexABCForm | `FlexMuxForm` is covered by `FlexMuxPrepAction`; `SamplePoolingForm` is covered by `SamplePoolingAction`. The workflow itself remains a shell. |
 | 9 | **Library Pooling** | `workflows/library_pooling/` | `workflows/library_pooling/` | CompleteLibraryPoolingForm | `LibraryPoolingForm` is covered by `LibraryPoolingAction`; the workflow shell remains incomplete. |
 | 10 | **Library Remux** | `workflows/remux/` | `workflows/library_remux/` | FlexReMuxForm, OligoReMuxForm | Workflow shell only; `Begin()` references forms that are not present in the FastAPI workflow package. |
 | 11 | **Select Library Protocols** | `workflows/select_library_protocols/` | `workflows/select_library_protocols/` | LibraryProtocolSelectForm, ProtocolMappingForm | Workflow shell only; `Begin()` references forms that are not present in the FastAPI workflow package. |
@@ -61,7 +61,7 @@ The following functionality has a FastAPI action. The old workflow shell is reta
 | 6 | **CheckBarcodeClashesAction** | `actions/CheckBarcodeClashesAction.py` | `workflows/check_barcode_clashes/CheckBarcodeClashesForm.py` | Library selection + clash analysis |
 | 7 | **DilutePoolsAction** | `actions/DilutePoolsAction.py` | `workflows/dilute_pools/DilutePoolsForm.py` | Pool dilution with molarity calculations |
 | 8 | **EditLibraryPropertiesAction** | `actions/EditLibraryPropertiesAction.py` | `LibraryPropertiesForm.py` / `LibraryPropertyForm.py` | Spreadsheet-based property editing |
-| 9 | **FlexMuxPrepAction** | `actions/FlexMuxPrepAction.py` | `workflows/mux_prep/FlexMuxForm.py` | Flex probe barcode assignment |
+| 9 | **FlexMuxPrepAction** | `actions/FlexMuxPrepAction.py` | `workflows/mux_prep/FlexMuxForm.py` | Superseded by `MuxPrepWorkflow` (GEX + ABC persist). Action remains as a migration reference. |
 | 10 | **GenerateSequencerLoadingChecklistAction** | `actions/GenerateSequencerLoadingChecklistAction.py` | `SequencerLoadingChecklistForm.py` | Markdown template parameter filling |
 | 11 | **LibraryPoolingAction** | `actions/LibraryPoolingAction.py` | `workflows/library_pooling/LibraryPoolingForm.py` | Spreadsheet-based library pooling |
 | 12 | **LibraryPrepAction** | `actions/LibraryPrepAction.py` | `workflows/library_prep/LibraryPrepForm.py` | Library selection for prep |
@@ -184,8 +184,8 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 | Category | Count |
 |----------|-------|
-| ✅ Fully migrated workflows | 7 |
-| ⚠️ Partial workflows | 8 |
+| ✅ Fully migrated workflows | 8 |
+| ⚠️ Partial workflows | 7 |
 | ✅ Migrated actions | 36 |
 | ❌ Legacy workflows → should be actions | 0 |
 | ✅ Legacy top-level forms migrated | 7 |
@@ -195,10 +195,10 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 | ✅ Model forms migrated | 19 |
 
 ### Priority Order (Recommended)
-1. **Remaining workflow shells** — Mux Prep, Library Pooling, Library Remux, Select Library Protocols, Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
+1. **Remaining workflow shells** — Library Pooling, Library Remux, Select Library Protocols, Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
 
 ### Next Recommended Migration
 
-**Workflow:** `Mux Prep`
+**Workflow:** `Library Pooling`
 
-`Mux Prep` is the next recommended migration because `FlexMuxPrepAction` and `SamplePoolingAction` already cover two of its steps. Implement `OligoMuxForm`, `OCMMuxForm`, and `FlexABCForm`, then wire `get_next_step()` / Previous navigation.
+`Library Pooling` is the next recommended migration because `LibraryPoolingAction` already covers the pooling spreadsheet. Implement `CompleteLibraryPoolingForm` and wire the workflow shell.

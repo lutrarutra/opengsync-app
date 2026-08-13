@@ -201,7 +201,7 @@ def render_lab_prep_mux_spreadsheet(
 ):
     df = session.pd.get_lab_prep_pooling_table(lab_prep_id)
 
-    df = df.sort_values(by=["library_name", "sample_pool", "sample_name"])
+    df = df.sort_values(by=["sample_id"])
 
     mux_table = {
         "sample_name": [],
@@ -446,17 +446,32 @@ def render_lab_prep_plates(
 @router.get("/{lab_prep_id}/mux-prep")
 def lab_prep_mux_prep(
     lab_prep_id: int,
+    mux_type_id: int | None = Query(None, description="MUX type ID"),
     session: SyncSession = Depends(dependencies.db_session),
-    mux_type: C.MUXType | None = Depends(dependencies.parse_enum_id(enum_type=C.MUXType, query_param="mux_type")),
+    r=Depends(dependencies.redis),
+    _=Depends(dependencies.require_insider),
 ):
-    if mux_type is None:
-        raise exc.BadRequestException("Missing mux_type query parameter.")
+    if mux_type_id is None:
+        raise exc.BadRequestException("Missing mux_type_id query parameter.")
 
-    if mux_type == C.MUXType.TENX_FLEX_PROBE:
-        form = forms.actions.FlexMuxPrepAction.Init()(lab_prep_id=lab_prep_id, session=session)
+    from ...forms.workflows.mux_prep import MuxPrepWorkflow, OligoMuxForm, FlexMuxForm, OCMMuxForm
+
+    if session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
+        raise exc.ItemNotFoundException("Lab prep not found.")
+    if C.MUXType.get(mux_type_id) is None:
+        raise exc.BadRequestException("Invalid multiplexing type.")
+
+    workflow = MuxPrepWorkflow(step="Begin", lab_prep_id=lab_prep_id, mux_type_id=mux_type_id, r=r)
+    mux_type = C.MUXType.get(mux_type_id)
+    if mux_type == C.MUXType.TENX_OLIGO:
+        form = OligoMuxForm.build(workflow, session)
+    elif mux_type == C.MUXType.TENX_FLEX_PROBE:
+        form = FlexMuxForm.build(workflow, session)
+    elif mux_type == C.MUXType.TENX_ON_CHIP:
+        form = OCMMuxForm.build(workflow, session)
     else:
-        raise NotImplementedError(f"Multiplexing type {mux_type} is not implemented.")
-    
+        raise exc.BadRequestException(f"Multiplexing type {mux_type} is not implemented.")
+
     return form.make_response()
 
 router.include_router(forms.actions.UploadLibraryPrepSpreadsheetAction.Router())
