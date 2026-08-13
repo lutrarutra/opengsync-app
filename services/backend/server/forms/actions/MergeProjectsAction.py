@@ -1,6 +1,7 @@
 from fastapi import Depends
+from sqlalchemy import orm
 
-from opengsync_db import queries as Q, SyncSession, actions
+from opengsync_db import models, queries as Q, SyncSession, actions
 
 from ...core import dependencies, exceptions as exc, responses
 from ...components import inputs
@@ -26,6 +27,30 @@ class MergeProjectsAction(HTMXForm):
         def dependency() -> "MergeProjectsAction":
             return MergeProjectsAction()
         return dependency
+
+    def _raise_if_attribute_conflicts(
+        self,
+        project_dst: models.Project,
+        project_src: models.Project,
+    ) -> None:
+        dst_sample_mapping = {sample.name: sample for sample in project_dst.samples}
+        for sample in project_src.samples:
+            if sample.name not in dst_sample_mapping:
+                continue
+            dst_sample = dst_sample_mapping[sample.name]
+            for attr in sample.attributes:
+                dst_attr = dst_sample.get_attribute(attr.name)
+                if dst_attr is None:
+                    continue
+                if dst_attr.type_id != attr.type_id:
+                    msg = f"Sample name conflict for sample '{sample.name}' with incompatible attribute types."
+                elif dst_attr.value != attr.value:
+                    msg = f"Sample name conflict for sample '{sample.name}' with incompatible attribute values."
+                else:
+                    continue
+                self.project_src.errors.append(msg)
+                self.project_dst.errors.append(msg)
+                raise exc.FormValidationException(self)
 
     @htmx_route("GET", "/merge-projects")
     def Begin(cls) -> RouteFunc:
@@ -56,11 +81,24 @@ class MergeProjectsAction(HTMXForm):
                 form.project_dst.errors.append("Source and destination projects cannot be the same.")
                 raise exc.FormValidationException(form)
 
-            project = actions.merge_projects(
-                session,
-                project_dst=session.get_one(Q.project.select(id=int(form.project_dst.data))),
-                project_src=session.get_one(Q.project.select(id=int(form.project_src.data))),
-            )
+            sample_options = [orm.selectinload(models.Project.samples)]
+            if (project_dst := session.first(
+                Q.project.select(id=int(form.project_dst.data)),
+                options=sample_options,
+            )) is None:
+                form.project_dst.errors.append("Selected project not found.")
+                raise exc.FormValidationException(form)
+
+            if (project_src := session.first(
+                Q.project.select(id=int(form.project_src.data)),
+                options=sample_options,
+            )) is None:
+                form.project_src.errors.append("Selected project not found.")
+                raise exc.FormValidationException(form)
+
+            form._raise_if_attribute_conflicts(project_dst, project_src)
+
+            project = actions.merge_projects(session, project_dst=project_dst, project_src=project_src)
 
             return responses.htmx_response(
                 redirect=responses.url_for("project_page", project_id=project.id),

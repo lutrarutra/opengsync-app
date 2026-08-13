@@ -1,5 +1,5 @@
-from .MergeProjectsWorkflow import MergeProjectsWorkflow
+from ...actions.MergeProjectsAction import MergeProjectsAction
 
 __all__ = [
-    "MergeProjectsWorkflow",
+    "MergeProjectsAction",
 ]

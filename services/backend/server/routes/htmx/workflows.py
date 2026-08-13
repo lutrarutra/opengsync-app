@@ -17,6 +17,5 @@ router.include_router(wf.relib.RelibWorkflow.Router())
 router.include_router(wf.share_project_data.ShareProjectDataWorkflow.Router())
 router.include_router(wf.add_kits_to_protocol.AddKitsToProtocolAction.Router())
 router.include_router(wf.select_library_protocols.SelectLibraryProtocolsWorkflow.Router())
-router.include_router(wf.merge_projects.MergeProjectsWorkflow.Router())
 router.include_router(wf.qubit_measure.QubitMeasureWorkflow.Router())
 

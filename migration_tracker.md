@@ -30,14 +30,11 @@
 | 12 | **Share Project Data** | `workflows/share/` | `workflows/share_project_data/` | Single-step `ShareProjectDataForm`. Project page Share Data starts `ShareProjectDataWorkflow.Begin`. File-browser Assign is `AssociatePathAction` (not a workflow step). |
 | 13 | **Lane QC** | `workflows/lane_qc.py` | `workflows/lane_qc/` | UnifiedQCLanesForm (combined lanes) / QCLanesForm (separate lanes). Starts at `LaneQCWorkflow.Begin`. Writes phi X, fragment size, and original qubit concentration on experiment lanes. |
 | 14 | **Select Experiment Pools** | `workflows/select_experiment_pools` (via SelectSamplesForm) | `actions/SelectExperimentPoolsAction.py` | Delegates to `SelectExperimentPoolsAction`. Experiment checklist starts `SelectExperimentPoolsAction.Begin`. Browse lists STORED pools not already on an experiment. |
+| 15 | **Merge Projects** | `workflows/merge_projects/` | `actions/MergeProjectsAction.py` | Delegates to `MergeProjectsAction`. SOPs and workflow-container start `MergeProjectsAction.Begin`. Same-name samples with incompatible attribute types or values fail as form errors before merge. |
 
 ### 1.2 Partial Workflows
 
-These workflows have FastAPI workflow infrastructure, but their forms or step transitions are not complete.
-
-| # | Workflow | Legacy Path | FastAPI Path | Missing Forms | Notes |
-|---|----------|-------------|--------------|---------------|-------|
-| 15 | **Merge Projects** | `workflows/merge_projects/` | `workflows/merge_projects/` | MergeProjectsForm | New FastAPI workflow shell; `MergeProjectsAction` exists, but workflow form and transitions are not implemented. |
+None remaining.
 
 ### 1.3 Migrated as Actions, Workflow Shells Remaining
 
@@ -78,7 +75,7 @@ The following functionality has a FastAPI action. The old workflow shell is reta
 | 23 | **BarcodeConstraintsAction** | `actions/BarcodeConstraintsAction.py` | `workflows/check_barcode_constraints/` | ✅ Implemented; replaces the former workflow form |
 | 24 | **EditKitFeaturesAction** | `actions/EditKitFeaturesAction.py` | `EditKitFeaturesForm.py` | Kit feature editing |
 | 25 | **LibraryFeaturesAction** | `actions/LibraryFeaturesAction.py` | `LibraryFeaturesForm.py` | Library feature editing |
-| 26 | **MergeProjectsAction** | `actions/MergeProjectsAction.py` | `workflows/merge_projects/` | Project merge action |
+| 26 | **MergeProjectsAction** | `actions/MergeProjectsAction.py` | `workflows/merge_projects/` | Project merge. SOPs start `Begin`. Rejects same-name samples with incompatible attribute types or values. |
 | 27 | **QueryBarcodeSequencesAction** | `actions/QueryBarcodeSequencesAction.py` | `QueryBarcodeSequencesForm.py` | Barcode sequence query |
 | 28 | **SampleAttributeTableAction** | `actions/SampleAttributeTableAction.py` | `SampleAttributeTableForm.py` | Sample attribute table editing |
 | 29 | **ShareDirectoryAction** | `actions/ShareDirectoryAction.py` | `DirectoryShareForm.py` | Directory sharing |
@@ -185,8 +182,8 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 | Category | Count |
 |----------|-------|
-| ✅ Fully migrated workflows | 14 |
-| ⚠️ Partial workflows | 1 |
+| ✅ Fully migrated workflows | 15 |
+| ⚠️ Partial workflows | 0 |
 | ✅ Migrated actions | 37 |
 | ❌ Legacy workflows → should be actions | 0 |
 | ✅ Legacy top-level forms migrated | 7 |
@@ -196,10 +193,8 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 | ✅ Model forms migrated | 19 |
 
 ### Priority Order (Recommended)
-1. **Remaining workflow shell** — Merge Projects.
+1. **Cleanup** — Check Barcode Constraints unused workflow shell, if any.
 
 ### Next Recommended Migration
 
-**Workflow:** `Merge Projects`
-
-`Merge Projects` is the next recommended migration. `MergeProjectsAction` already exists and is used from SOPs; the workflow shell still references missing `MergeProjectsForm`. Treat the action as the FastAPI implementation (same pattern as Add Kits / Select Experiment Pools), optionally porting Flask's sample-attribute conflict validation into the action.
+Workflow migration is complete. `MergeProjectsAction` is the FastAPI implementation; SOPs and the workflow-container start `MergeProjectsAction.Begin`. Same-name samples with incompatible attribute types or values are rejected as form errors before `actions.merge_projects`.
