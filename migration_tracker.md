@@ -26,6 +26,7 @@
 | 8 | **Mux Prep** | `workflows/mux_prep/` | `workflows/mux_prep/` | OligoMux, FlexMux (+ FlexABC), OCMMux. Lab-prep checklist starts `MuxPrepWorkflow.Begin`. Sample pooling stays `SamplePoolingAction`. `FlexMuxPrepAction` is unused from the checklist. |
 | 9 | **Library Pooling** | `workflows/library_pooling/` | `workflows/library_pooling/` | LibraryPoolingForm → CompleteLibraryPoolingForm (barcode-clash preview). Lab-prep checklist starts `LibraryPoolingWorkflow.Begin`. `LibraryPoolingAction` is unused from the checklist. |
 | 10 | **Library Remux** | `workflows/remux/` | `workflows/library_remux/` | FlexReMuxForm / OligoReMuxForm by mux type. Library page Edit starts `LibraryRemuxWorkflow.Begin`. |
+| 11 | **Select Library Protocols** | `workflows/select_library_protocols/` | `workflows/select_library_protocols/` | ProtocolMappingForm (kit combinations from prep file) → LibraryProtocolSelectForm. Lab-prep checklist starts `SelectLibraryProtocolsWorkflow.Begin`. Skips mapping when the prep file has no `library_kits`. |
 
 ### 1.2 Partial Workflows
 
@@ -33,7 +34,6 @@ These workflows have FastAPI workflow infrastructure, but their forms or step tr
 
 | # | Workflow | Legacy Path | FastAPI Path | Missing Forms | Notes |
 |---|----------|-------------|--------------|---------------|-------|
-| 11 | **Select Library Protocols** | `workflows/select_library_protocols/` | `workflows/select_library_protocols/` | LibraryProtocolSelectForm, ProtocolMappingForm | Workflow shell only; `Begin()` references forms that are not present in the FastAPI workflow package. |
 | 12 | **Share Project Data** | `workflows/share/` | `workflows/share_project_data/` | ShareProjectDataForm, AssociatePathForm | Workflow shell only; form implementation is not present. |
 | 13 | **Lane QC** | `workflows/lane_qc.py` | `workflows/lane_qc/` | QCLanesForm, UnifiedQCLanesForm | Workflow shell only; form implementations are not present. |
 | 14 | **Select Experiment Pools** | `workflows/select_experiment_pools` (via SelectSamplesForm) | `workflows/select_experiment_pools/` | SelectSamplesForm integration | `SelectExperimentPoolsAction` exists, but the workflow package remains a shell. |
@@ -184,8 +184,8 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 | Category | Count |
 |----------|-------|
-| ✅ Fully migrated workflows | 10 |
-| ⚠️ Partial workflows | 5 |
+| ✅ Fully migrated workflows | 11 |
+| ⚠️ Partial workflows | 4 |
 | ✅ Migrated actions | 36 |
 | ❌ Legacy workflows → should be actions | 0 |
 | ✅ Legacy top-level forms migrated | 7 |
@@ -195,10 +195,10 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 | ✅ Model forms migrated | 19 |
 
 ### Priority Order (Recommended)
-1. **Remaining workflow shells** — Select Library Protocols, Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
+1. **Remaining workflow shells** — Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
 
 ### Next Recommended Migration
 
-**Workflow:** `Select Library Protocols`
+**Workflow:** `Share Project Data`
 
-`Select Library Protocols` is the next recommended migration. Implement `LibraryProtocolSelectForm` and `ProtocolMappingForm`, then wire the workflow shell.
+`Share Project Data` is the next recommended migration. Implement `ShareProjectDataForm` and `AssociatePathForm`, then wire the workflow shell.

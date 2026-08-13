@@ -84,13 +84,11 @@ def render_feature_kit_spreadsheet(
 
     columns = []
     for col in df.columns:
-        if col == "feature_id":
-            width = 50
-        elif col == "read":
+        if col == "feature_id" or col == "target_id":
             width = 50
         else:
             width = 200
-        columns.append(TextColumn(col, col.replace("_", " ").title().replace("Id", "ID"), width))
+        columns.append(TextColumn(col, col.replace("_", " ").title(), width))
 
     spreadsheet = StaticSpreadsheet(df, columns=columns)
     return responses.htmx_response(content=spreadsheet.render())
