@@ -34,6 +34,7 @@ dependencies = [
     "openpyxl",
     "pyarrow",
     "markdown",
+    "plotly >= 5.19.0",
 ]
 
 [tool.setuptools_scm]

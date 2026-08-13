@@ -6,8 +6,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from opengsync_db import SyncSession
 
-from ..core import runtime
-
 _request_ctx_var: ContextVar[Request] = ContextVar("request")
 _response_ctx_var: ContextVar[Response] = ContextVar("response")
 
@@ -67,6 +65,8 @@ class ContextMiddleware(BaseHTTPMiddleware):
 
 
 def get_request_context() -> dict[str, Any]:
+    from ..core import runtime
+
     request = ctx.request
     
     if (current_user := getattr(request.state, "current_user", runtime.NOT_CHECKED)) == runtime.NOT_CHECKED:

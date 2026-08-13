@@ -1,3 +1,4 @@
+import shlex
 from uuid import uuid4
 from pathlib import Path
 from datetime import datetime
@@ -110,6 +111,9 @@ def replace_substrings(s: str, replacements: dict[str, str]) -> str:
 def root_name(path: str | Path) -> str:
     return Path(path).parts[0] if Path(path).parts else ""
 
+def shell_quote(s) -> str:
+    return shlex.quote(str(s))
+
 j2.env.filters["format_iso"] = format_iso
 j2.env.filters["from_timestamp"] = from_timestamp
 j2.env.filters["bytes_to_human"] = bytes_to_human
@@ -118,6 +122,7 @@ j2.env.filters["highlight_sh"] = highlight_sh
 j2.env.filters["highlight_r"] = highlight_r
 j2.env.filters["replace_substrings"] = replace_substrings
 j2.env.filters["root_name"] = root_name
+j2.env.filters["shell_quote"] = shell_quote
 
 # ─── Globals ported from add_context ───
 j2.env.globals["app_version"] = "dev"
@@ -158,7 +163,19 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
     """
     request = ctx.get("request")
     if request is not None:
-        route_param_names = _get_route_param_names(request.app.router, name)
+        for key in ("_external", "_scheme", "_anchor"):
+            path_params.pop(key, None)
+
+        normalized: dict = {}
+        for key, value in path_params.items():
+            if isinstance(value, Path):
+                value = value.as_posix() if value.parts else ""
+            if value is None or value == "" or value == ".":
+                continue
+            normalized[key] = value
+        path_params = normalized
+
+        route_param_names = _get_route_param_names(request.app.router, name, set(path_params.keys()))
         url_kwargs = {k: v for k, v in path_params.items() if k in route_param_names}
         query_kwargs = {k: v for k, v in path_params.items() if k not in route_param_names}
 
@@ -177,14 +194,25 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
         return url
     raise RuntimeError(f"Cannot generate URL for '{name}' without a request context")
 
-def _get_route_param_names(router, name: str) -> set:
+def _get_route_param_names(router, name: str, provided: set[str] | None = None) -> set:
     """Extract path parameter names from a route by its name."""
+    matches: list[set] = []
     for route in router.routes:
-        if getattr(route, 'name', None) == name:
-            if hasattr(route, 'param_convertors'):
-                return set(route.param_convertors.keys())
-            return set()
-    return set()
+        if getattr(route, "name", None) != name:
+            continue
+        params = set(getattr(route, "param_convertors", {}).keys())
+        matches.append(params)
+    if not matches:
+        return set()
+    if provided is None:
+        return matches[0]
+    exact = [params for params in matches if params == provided]
+    if exact:
+        return exact[0]
+    subsets = [params for params in matches if params <= provided]
+    if subsets:
+        return max(subsets, key=len)
+    return matches[0]
 
 j2.env.globals["url_for"] = url_for
 

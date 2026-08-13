@@ -56,11 +56,12 @@ FROM builder AS pytest
 ENV PYTHONPATH=/app/services/backend
 COPY packages /app/packages
 COPY services/backend /app/services/backend
-COPY services/pytest/tests /app/tests
 COPY services/opengsync-app/static/resources/templates/library_prep/ /app/prep_tables
 COPY services/opengsync-app/templates /templates
 COPY services/opengsync-app/static /static
 RUN mkdir -p /logs /static /templates
 RUN uv sync --frozen --no-editable --no-dev
 RUN uv pip install pytest httpx
+# Copy tests last so edits only invalidate this layer (not uv sync).
+COPY services/pytest/tests /app/tests
 CMD ["pytest"]

@@ -79,9 +79,9 @@ deploy: prod-build prod-run
 	docker system prune -f --filter "until=24h"
 
 test:
-	$(COMPOSE_TEST) up --build --abort-on-container-exit --exit-code-from opengsync-pytest --remove-orphans 
-	$(COMPOSE_TEST) down --rmi local --remove-orphans
-	docker system prune -f --filter "until=24h"
+	$(COMPOSE_TEST) down -v --remove-orphans
+	$(COMPOSE_TEST) run --build --rm opengsync-pytest
+	$(COMPOSE_TEST) down --remove-orphans -v
 
 gitlab-runner:
 	docker compose -f compose.gitlab-runner.yaml -p gitlab-runner up --build -d

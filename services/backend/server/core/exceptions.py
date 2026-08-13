@@ -54,6 +54,13 @@ class BadRequestException(HTTPException):
             detail=detail
         )
 
+class MethodNotAllowedException(HTTPException):
+    def __init__(self, detail: str = "Method not allowed"):
+        super().__init__(
+            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+            detail=detail
+        )
+
 class InvalidCredentialsException(OpeNGSyncServerException):
     pass
 

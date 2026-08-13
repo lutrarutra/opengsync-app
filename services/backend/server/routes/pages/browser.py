@@ -1,17 +1,16 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 
-from opengsync_db import models
-
-from ...core import dependencies, responses, exceptions
+from ...core import responses
 
 router = APIRouter(prefix="/browser", tags=["browser"])
 
 
+@router.get("/")
 @router.get("/{subpath:path}")
-def browser_page(request: Request, subpath: str = "/"):
-    subpath_path = Path(subpath) if subpath else Path()
+def browser_page(request: Request, subpath: str = ""):
+    subpath_path = Path(subpath) if subpath and subpath not in (".", "/") else Path()
 
     sort_by = request.query_params.get("sort_by", "name")
     sort_order = request.query_params.get("sort_order", "asc" if sort_by == "name" else "desc")

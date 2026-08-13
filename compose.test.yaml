@@ -6,6 +6,9 @@ services:
             dockerfile: ./services/Dockerfile
             target: pytest
         command: "pytest tests/ -v -W always"
+        volumes:
+            # Host tests overlay the image copy so local edits are picked up without a stale cache.
+            - ./services/pytest/tests:/app/tests
         environment:
             POSTGRES_USER: admin
             POSTGRES_PASSWORD: password

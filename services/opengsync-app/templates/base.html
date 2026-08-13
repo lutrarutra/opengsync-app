@@ -123,7 +123,7 @@
                 <a class="nav-link {{'active' if active_page == 'seq_run-page' else ''}}" href="{{ url_for('seq_runs_page') }}">Runs</a>
             </div>
             <div class="nav-item">
-                <a class="nav-link {{'active' if active_page == 'browser-page' else ''}}" href="{{ url_for('browser_page', subpath='/') }}">Files</a>
+                <a class="nav-link {{'active' if active_page == 'browser-page' else ''}}" href="{{ url_for('browser_page') }}">Files</a>
             </div>
             {% if user_role == C.UserRole.ADMIN  %}
             <div class="nav-item nav-item-dropdown">

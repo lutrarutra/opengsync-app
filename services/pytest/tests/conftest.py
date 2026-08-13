@@ -108,8 +108,8 @@ def client(db: SyncDBHandler):
     from fastapi.testclient import TestClient
     from redis import ConnectionPool
 
-    from server.core import config, secrets, templates
     from server.main import app
+    from server.core import config, secrets, templates
 
     @asynccontextmanager
     async def test_lifespan(app_):
@@ -126,7 +126,10 @@ def client(db: SyncDBHandler):
     app.router.lifespan_context = test_lifespan
     try:
         with TestClient(app) as test_client:
+            from redis import Redis
+            Redis(connection_pool=test_client.app.state.redis_pool).flushdb()
             yield test_client
+            Redis(connection_pool=test_client.app.state.redis_pool).flushdb()
     finally:
         app.router.lifespan_context = original_lifespan
 
@@ -159,6 +162,12 @@ def user(db: SyncDBHandler):
 
 
 @pytest.fixture  # type: ignore[attr-defined]
+def user_2(db: SyncDBHandler):
+    _ensure_backend_on_path()
+    return _create_test_user(db, email="user2@example.com", role=UserRole.CLIENT)
+
+
+@pytest.fixture  # type: ignore[attr-defined]
 def insider(db: SyncDBHandler):
     _ensure_backend_on_path()
     return _create_test_user(db, email="insider@example.com", role=UserRole.TECHNICIAN)
@@ -173,6 +182,11 @@ def admin(db: SyncDBHandler):
 @pytest.fixture  # type: ignore[attr-defined]
 def user_token(client, user) -> str:
     return _login_token(user)
+
+
+@pytest.fixture  # type: ignore[attr-defined]
+def user_2_token(client, user_2) -> str:
+    return _login_token(user_2)
 
 
 @pytest.fixture  # type: ignore[attr-defined]

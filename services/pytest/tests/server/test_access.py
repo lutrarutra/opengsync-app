@@ -1,91 +1,317 @@
-"""Role gating for the FastAPI server: client vs insider vs admin."""
+"""Role gating and resource-level AccessLevel enforcement over HTTP."""
 
+import pytest
 from fastapi.testclient import TestClient
 
+from opengsync_db import SyncDBHandler, queries as Q, categories as C
 
-def _auth(token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {token}"}
+from ..db.create_units import (
+    create_project, create_seq_request, create_sample, create_library,
+    create_pool, create_group,
+)
+from ._http import auth, get, post_form, flush_redis
 
 
 def _allowed(response) -> None:
     assert response.status_code not in (303, 401, 403)
 
 
-# --- unauthenticated ---
-
-def test_projects_requires_authentication(client: TestClient):
-    response = client.get("/projects/", follow_redirects=False)
+def _anon_login_redirect(response) -> None:
     assert response.status_code == 303
+    assert "/auth/login" in response.headers.get("location", "")
 
 
-def test_users_page_requires_authentication(client: TestClient):
-    response = client.get("/users/", follow_redirects=False)
-    assert response.status_code == 303
+def _commit(db: SyncDBHandler) -> None:
+    db.session.commit()
 
 
-def test_experiments_requires_authentication(client: TestClient):
-    response = client.get("/experiments/", follow_redirects=False)
-    assert response.status_code == 303
+# --- anonymous: listing and resource pages require login ---
+
+@pytest.mark.parametrize("path", [  # type: ignore[attr-defined]
+    "/",
+    "/projects/",
+    "/seq_requests/",
+    "/samples/",
+    "/libraries/",
+    "/pools/",
+    "/groups/",
+    "/users/",
+    "/kits",
+    "/experiments/",
+    "/lab_preps/",
+    "/protocols/",
+    "/seq_runs/",
+    "/share_tokens/",
+    "/admin/",
+    "/devices/",
+    "/browser/",
+    "/design/",
+])
+def test_anon_listing_pages_redirect_to_login(client: TestClient, path: str):
+    _anon_login_redirect(get(client, path))
 
 
-def test_admin_requires_authentication(client: TestClient):
-    response = client.get("/admin/", follow_redirects=False)
-    assert response.status_code == 303
+@pytest.mark.parametrize("path", [  # type: ignore[attr-defined]
+    "/projects/1",
+    "/seq_requests/1",
+    "/samples/1",
+    "/libraries/1",
+    "/pools/1",
+    "/groups/1",
+    "/users/1",
+    "/kits/1",
+    "/experiments/1",
+    "/lab_preps/1",
+    "/protocols/1",
+    "/seq_runs/1",
+    "/admin/",
+])
+def test_anon_resource_pages_redirect_to_login(client: TestClient, path: str):
+    _anon_login_redirect(get(client, path))
 
 
-# --- client (regular user) ---
+@pytest.mark.parametrize("path", [  # type: ignore[attr-defined]
+    "/htmx/comments/comment",
+    "/htmx/groups/1/add-user",
+    "/htmx/workflows/lane-qc/begin",
+])
+def test_anon_htmx_get_redirects_to_login(client: TestClient, path: str):
+    _anon_login_redirect(get(client, path))
+
+
+def test_anon_cannot_post_comment(client: TestClient):
+    _anon_login_redirect(post_form(
+        client, "/htmx/comments/comment",
+        {"comment": "nope"},
+        params={"seq_request_id": 1},
+    ))
+
+
+def test_anon_cannot_add_user_to_group(client: TestClient):
+    _anon_login_redirect(post_form(
+        client, "/htmx/groups/1/add-user",
+        {"email": "a@b.com", "affiliation_type": str(C.AffiliationType.MEMBER.id)},
+    ))
+
+
+# --- client (regular user) listing ---
 
 def test_user_can_access_projects(client: TestClient, user_token: str):
-    _allowed(client.get("/projects/", headers=_auth(user_token), follow_redirects=False))
+    _allowed(client.get("/projects/", headers=auth(user_token), follow_redirects=False))
 
 
 def test_user_cannot_access_users_page(client: TestClient, user_token: str):
-    response = client.get("/users/", headers=_auth(user_token), follow_redirects=False)
+    response = client.get("/users/", headers=auth(user_token), follow_redirects=False)
     assert response.status_code == 403
 
 
 def test_user_cannot_access_experiments(client: TestClient, user_token: str):
-    response = client.get("/experiments/", headers=_auth(user_token), follow_redirects=False)
+    response = client.get("/experiments/", headers=auth(user_token), follow_redirects=False)
     assert response.status_code == 403
 
 
 def test_user_cannot_access_admin(client: TestClient, user_token: str):
-    response = client.get("/admin/", headers=_auth(user_token), follow_redirects=False)
+    # Intended: admin only. require_admin uses `role < ADMIN` (CLIENT id=4), so a
+    # 200 here is a product bug, not a bad test.
+    response = client.get("/admin/", headers=auth(user_token), follow_redirects=False)
     assert response.status_code == 403
 
 
-# --- insider ---
+# --- insider listing ---
 
 def test_insider_can_access_projects(client: TestClient, insider_token: str):
-    _allowed(client.get("/projects/", headers=_auth(insider_token), follow_redirects=False))
+    _allowed(client.get("/projects/", headers=auth(insider_token), follow_redirects=False))
 
 
 def test_insider_can_access_users_page(client: TestClient, insider_token: str):
-    _allowed(client.get("/users/", headers=_auth(insider_token), follow_redirects=False))
+    _allowed(client.get("/users/", headers=auth(insider_token), follow_redirects=False))
 
 
 def test_insider_can_access_experiments(client: TestClient, insider_token: str):
-    _allowed(client.get("/experiments/", headers=_auth(insider_token), follow_redirects=False))
+    _allowed(client.get("/experiments/", headers=auth(insider_token), follow_redirects=False))
 
 
 def test_insider_cannot_access_admin(client: TestClient, insider_token: str):
-    response = client.get("/admin/", headers=_auth(insider_token), follow_redirects=False)
+    response = client.get("/admin/", headers=auth(insider_token), follow_redirects=False)
     assert response.status_code == 403
 
 
-# --- admin ---
+# --- admin listing ---
 
 def test_admin_can_access_projects(client: TestClient, admin_token: str):
-    _allowed(client.get("/projects/", headers=_auth(admin_token), follow_redirects=False))
+    _allowed(client.get("/projects/", headers=auth(admin_token), follow_redirects=False))
 
 
 def test_admin_can_access_users_page(client: TestClient, admin_token: str):
-    _allowed(client.get("/users/", headers=_auth(admin_token), follow_redirects=False))
+    _allowed(client.get("/users/", headers=auth(admin_token), follow_redirects=False))
 
 
 def test_admin_can_access_experiments(client: TestClient, admin_token: str):
-    _allowed(client.get("/experiments/", headers=_auth(admin_token), follow_redirects=False))
+    _allowed(client.get("/experiments/", headers=auth(admin_token), follow_redirects=False))
 
 
 def test_admin_can_access_admin_page(client: TestClient, admin_token: str):
-    _allowed(client.get("/admin/", headers=_auth(admin_token), follow_redirects=False))
+    _allowed(client.get("/admin/", headers=auth(admin_token), follow_redirects=False))
+
+
+# --- resource pages: project ---
+
+def test_draft_project_owner_ok_stranger_403(
+    client: TestClient, db: SyncDBHandler, user, user_token, user_2_token,
+):
+    project = create_project(db, user)
+    _commit(db)
+
+    assert get(client, f"/projects/{project.id}", user_token).status_code == 200
+    assert get(client, f"/projects/{project.id}", user_2_token).status_code == 403
+
+
+def test_processing_project_stranger_200(
+    client: TestClient, db: SyncDBHandler, user, user_2_token,
+):
+    project = create_project(db, user)
+    project.status = C.ProjectStatus.PROCESSING
+    db.session.save(project)
+    _commit(db)
+    flush_redis(client)
+
+    assert get(client, f"/projects/{project.id}", user_2_token).status_code == 200
+
+
+def test_project_insider_and_admin_ok(
+    client: TestClient, db: SyncDBHandler, user, insider_token, admin_token,
+):
+    project = create_project(db, user)
+    _commit(db)
+
+    assert get(client, f"/projects/{project.id}", insider_token).status_code == 200
+    assert get(client, f"/projects/{project.id}", admin_token).status_code == 200
+
+
+def test_project_missing_is_404(client: TestClient, user_token: str):
+    assert get(client, "/projects/999999", user_token).status_code == 404
+
+
+# --- seq request page: no seq_request_permissions on the page today ---
+
+def test_seq_request_page_owner_ok(
+    client: TestClient, db: SyncDBHandler, user, user_token,
+):
+    seq_request = create_seq_request(db, user)
+    _commit(db)
+    assert get(client, f"/seq_requests/{seq_request.id}", user_token).status_code == 200
+
+
+def test_seq_request_page_stranger_allowed_without_dep(
+    client: TestClient, db: SyncDBHandler, user, user_2_token,
+):
+    """The HTML page does not use seq_request_permissions; any authed user can load it."""
+    seq_request = create_seq_request(db, user)
+    _commit(db)
+    assert get(client, f"/seq_requests/{seq_request.id}", user_2_token).status_code == 200
+
+
+def test_seq_request_missing_is_404(client: TestClient, user_token: str):
+    assert get(client, "/seq_requests/999999", user_token).status_code == 404
+
+
+# --- sample / library / pool ---
+
+def test_unlinked_sample_owner_403(
+    client: TestClient, db: SyncDBHandler, user, user_token,
+):
+    project = create_project(db, user)
+    sample = create_sample(db, user, project)
+    _commit(db)
+    assert get(client, f"/samples/{sample.id}", user_token).status_code == 403
+
+
+def test_linked_sample_owner_ok_stranger_403(
+    client: TestClient, db: SyncDBHandler, user, user_token, user_2_token,
+):
+    project = create_project(db, user)
+    seq_request = create_seq_request(db, user)
+    sample = create_sample(db, user, project)
+    library = create_library(db, user, seq_request)
+    db.actions.link_sample_library(sample.id, library.id)
+    _commit(db)
+
+    assert get(client, f"/samples/{sample.id}", user_token).status_code == 200
+    assert get(client, f"/samples/{sample.id}", user_2_token).status_code == 403
+
+
+def test_library_requestor_ok_stranger_403(
+    client: TestClient, db: SyncDBHandler, user, user_token, user_2_token,
+):
+    seq_request = create_seq_request(db, user)
+    library = create_library(db, user, seq_request)
+    _commit(db)
+
+    assert get(client, f"/libraries/{library.id}", user_token).status_code == 200
+    assert get(client, f"/libraries/{library.id}", user_2_token).status_code == 403
+
+
+def test_pool_requestor_ok_stranger_403(
+    client: TestClient, db: SyncDBHandler, user, user_token, user_2_token,
+):
+    seq_request = create_seq_request(db, user)
+    pool = create_pool(db, user, seq_request)
+    _commit(db)
+
+    assert get(client, f"/pools/{pool.id}", user_token).status_code == 200
+    assert get(client, f"/pools/{pool.id}", user_2_token).status_code == 403
+
+
+def test_sample_missing_is_404(client: TestClient, user_token: str):
+    assert get(client, "/samples/999999", user_token).status_code == 404
+
+
+def test_library_missing_is_404(client: TestClient, user_token: str):
+    assert get(client, "/libraries/999999", user_token).status_code == 404
+
+
+def test_pool_missing_is_404(client: TestClient, user_token: str):
+    assert get(client, "/pools/999999", user_token).status_code == 404
+
+
+def test_library_insider_ok(
+    client: TestClient, db: SyncDBHandler, user, insider_token,
+):
+    seq_request = create_seq_request(db, user)
+    library = create_library(db, user, seq_request)
+    _commit(db)
+    assert get(client, f"/libraries/{library.id}", insider_token).status_code == 200
+
+
+# --- group ---
+
+def test_group_member_ok_outsider_403(
+    client: TestClient, db: SyncDBHandler, user, user_2, user_token, user_2_token,
+):
+    group = create_group(db)
+    db.session.save(Q.affiliation.create(user=user, group=group, type=C.AffiliationType.MEMBER), flush=True)
+    _commit(db)
+
+    assert get(client, f"/groups/{group.id}", user_token).status_code == 200
+    assert get(client, f"/groups/{group.id}", user_2_token).status_code == 403
+
+
+def test_group_missing_is_404(client: TestClient, user_token: str):
+    assert get(client, "/groups/999999", user_token).status_code == 404
+
+
+# --- user ---
+
+def test_user_self_ok_other_client_403(
+    client: TestClient, user, user_2, user_token, user_2_token,
+):
+    assert get(client, f"/users/{user.id}", user_token).status_code == 200
+    assert get(client, f"/users/{user.id}", user_2_token).status_code == 403
+
+
+def test_user_insider_can_view_other(client: TestClient, user, insider_token):
+    assert get(client, f"/users/{user.id}", insider_token).status_code == 200
+
+
+def test_user_missing_is_404(client: TestClient, user_token: str):
+    assert get(client, "/users/999999", user_token).status_code == 404

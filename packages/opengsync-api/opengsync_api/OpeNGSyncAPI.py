@@ -9,15 +9,15 @@ class OpeNGSyncAPI:
         self.base_url = base_url.rstrip("/")
         self.api_token = api_token
 
+    def _headers(self) -> dict[str, str]:
+        return {"X-API-Token": self.api_token}
+
     def get_status(self):
-        response = requests.get(f"{self.base_url}/status")
+        response = requests.get(f"{self.base_url}/api/status")
         return response
     
     def authenticate(self):
-        payload = {
-            "api_token": self.api_token
-        }
-        response = requests.get(f"{self.base_url}/validate_api_token/", json=payload)
+        response = requests.get(f"{self.base_url}/api/validate-api_token", headers=self._headers())
         response.raise_for_status()
         return response.json()
     
@@ -50,7 +50,6 @@ class OpeNGSyncAPI:
             raise ValueError("At least one of seq_request_id, project_id, experiment_id, or library_id must be provided.")
         
         payload = {
-            "api_token": self.api_token,
             "project_id": project_id,
             "seq_request_id": seq_request_id,
             "experiment_id": experiment_id,
@@ -58,7 +57,7 @@ class OpeNGSyncAPI:
             "path": path,
             "path_type_id": path_type.id if path_type is not None else None,
         }
-        response = requests.post(f"{self.base_url}/api/shares/add_data_path/", json=payload)
+        response = requests.post(f"{self.base_url}/api/shares/add-data_path", json=payload, headers=self._headers())
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
@@ -87,13 +86,12 @@ class OpeNGSyncAPI:
             dict: json response from the server
         """
         payload = {
-            "api_token": self.api_token,
             "project_id": project_id,
             "seq_request_id": seq_request_id,
             "experiment_id": experiment_id,
             "library_id": library_id,
         }
-        response = requests.delete(f"{self.base_url}/api/shares/remove_data_paths/", json=payload)
+        response = requests.delete(f"{self.base_url}/api/shares/remove-data_paths", json=payload, headers=self._headers())
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
@@ -102,11 +100,10 @@ class OpeNGSyncAPI:
 
     def query_barcode_sequence(self, sequence: str, limit: int = 5) -> pd.DataFrame:
         payload = {
-            "api_token": self.api_token,
             "sequence": sequence,
             "limit": limit
         }
-        response = requests.post(f"{self.base_url}/api/barcodes/query_barcode_sequence/", json=payload)
+        response = requests.post(f"{self.base_url}/api/barcodes/query-barcode-sequence", json=payload, headers=self._headers())
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
@@ -134,14 +131,13 @@ class OpeNGSyncAPI:
             dict: json response from the server
         """
         payload = {
-            "api_token": self.api_token,
             "library_id": library_id,
             "experiment_name": experiment_name,
             "lane": lane,
             "num_reads": num_reads,
             "qc": qc
         }
-        response = requests.post(f"{self.base_url}/api/stats/set_library_lane_reads/", json=payload)
+        response = requests.post(f"{self.base_url}/api/stats/set-library-lane-reads", json=payload, headers=self._headers())
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
@@ -181,7 +177,6 @@ class OpeNGSyncAPI:
         """
 
         payload = {
-            "api_token": self.api_token,
             "project_id": project_id,
             "internal_access": internal_access,
             "time_valid_min": time_valid_min,
@@ -191,7 +186,7 @@ class OpeNGSyncAPI:
         }
         if mark_project_delivered is not None:
             payload["mark_project_delivered"] = mark_project_delivered
-        response = requests.post(f"{self.base_url}/api/shares/release_project_data/", json=payload)
+        response = requests.post(f"{self.base_url}/api/shares/release-project_data", json=payload, headers=self._headers())
         try:
             response.raise_for_status()
         except requests.HTTPError as e:

@@ -193,8 +193,8 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 | ✅ Model forms migrated | 19 |
 
 ### Priority Order (Recommended)
-1. **Cleanup** — Check Barcode Constraints unused workflow shell, if any.
+1. **Public file share / WebDAV** — browse, rclone, token validate (`routes/files/`).
 
 ### Next Recommended Migration
 
-Workflow migration is complete. `MergeProjectsAction` is the FastAPI implementation; SOPs and the workflow-container start `MergeProjectsAction.Begin`. Same-name samples with incompatible attribute types or values are rejected as form errors before `actions.merge_projects`.
+Plotly plots are migrated under `services/backend/server/routes/htmx/plots.py` (library/pool reads and admin weekday usage). Remaining Flask routes are public file share/WebDAV.

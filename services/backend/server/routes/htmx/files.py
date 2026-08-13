@@ -1,5 +1,7 @@
 import os
 import mimetypes
+from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
@@ -11,6 +13,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 from ...core import dependencies, responses, exceptions as exc, config
 from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
 from ...forms.models import MediaFileForm
+from ...utils.file_browser import FileBrowser
 from ...forms.actions import ShareDirectoryAction, AssociatePathAction
 
 BROWSER_RENDERABLE_EXTENSIONS = {
@@ -227,6 +230,49 @@ def delete_media_file(
         flash=responses.flash(f"File {file.name}{file.extension} deleted successfully.", "success"),
     )
 
-router.include_router(MediaFileForm.Router())
+
+def _subpath(subpath: str) -> Path:
+    if not subpath or subpath in (".", "/"):
+        return Path()
+    return Path(subpath)
+
+
+@router.get("/")
+@router.get("/{subpath:path}")
+def render_file_browser_page(
+    subpath: str = "",
+    page: int = Query(0, ge=0),
+    sort_by: Literal["name", "size", "mtime"] = Query("name"),
+    sort_order: Literal["asc", "desc"] | None = Query(None),
+    session: SyncSession = Depends(dependencies.db_session),
+    _: models.User = Depends(dependencies.require_user),
+):
+    PAGE_LIMIT = 50
+    if sort_order is None:
+        sort_order = "asc" if sort_by == "name" else "desc"
+
+    current_path = _subpath(subpath)
+    browser = FileBrowser(Path(config.settings.app_config.share_root), session)
+    paths = browser.list_contents(
+        current_path,
+        limit=PAGE_LIMIT,
+        offset=page * PAGE_LIMIT,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+
+    return responses.htmx_response(
+        "components/tables/files-body.html",
+        paths=paths,
+        current_path=current_path,
+        parents_dir=current_path.parent if current_path != Path() else None,
+        limit=PAGE_LIMIT,
+        current_page=page,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+
+
 router.include_router(ShareDirectoryAction.Router())
 router.include_router(AssociatePathAction.Router())
+router.include_router(MediaFileForm.Router())

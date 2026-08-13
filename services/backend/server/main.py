@@ -1,6 +1,7 @@
 import json
 
 from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -58,6 +59,7 @@ if config.settings.ENVIRONMENT != "production":
 routes.api.router.get("/health")(lambda: {"status": "ok"})
 
 app.include_router(routes.api.router)
+app.include_router(routes.api.tokens.router)
 app.include_router(routes.pages.router)
 app.include_router(routes.htmx.router)
 
@@ -73,6 +75,10 @@ def dashboard(
 @app.get("/help")
 def help():
     return responses.html_response(template="help.html")
+
+@app.get("/status")
+def status():
+    return PlainTextResponse("OK")
 
 @app.get("/retrieve_flash_messages")
 def retrieve_flash_messages():

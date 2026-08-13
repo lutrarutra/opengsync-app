@@ -118,8 +118,6 @@ class AssociatePathAction(HTMXForm):
                     pass
 
             parent = form.path.parent
-            subpath = "" if parent == Path() or parent.as_posix() == "." else parent.as_posix()
-            return responses.htmx_response(
-                redirect=responses.url_for("browser_page", subpath=subpath),
-            )
+            kwargs = {} if parent == Path() or parent.as_posix() == "." else {"subpath": parent.as_posix()}
+            return responses.htmx_response(redirect=responses.url_for("browser_page", **kwargs))
         return route
