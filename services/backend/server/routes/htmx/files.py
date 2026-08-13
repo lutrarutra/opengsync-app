@@ -11,7 +11,7 @@ from opengsync_db import models, SyncSession, queries as Q, categories as C, uti
 from ...core import dependencies, responses, exceptions as exc, config
 from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
 from ...forms.models import MediaFileForm
-from ...forms.actions import ShareDirectoryAction
+from ...forms.actions import ShareDirectoryAction, AssociatePathAction
 
 BROWSER_RENDERABLE_EXTENSIONS = {
     ".pdf",
@@ -229,3 +229,4 @@ def delete_media_file(
 
 router.include_router(MediaFileForm.Router())
 router.include_router(ShareDirectoryAction.Router())
+router.include_router(AssociatePathAction.Router())

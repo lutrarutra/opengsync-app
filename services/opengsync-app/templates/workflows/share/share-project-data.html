@@ -1,7 +1,3 @@
-{% from 'components/form_group.jinja2' import form_group, switch_input, select_input %}
-{% from 'components/spinner.jinja2' import spinner %}
-{% from 'components/spreadsheet.jinja2' import static_spreadsheet %}
-
 <div id="share_project_data-form-container" class="modal-content">
     <div class="modal-header">
         <h1 class="modal-title fs-5" >Share Project</h1>
@@ -26,26 +22,26 @@
             <div class="tab-pane fade show active" id="share_project_data-form-tab" role="tabpanel" tabindex="0">
                 <div class="row pb-2 pt-3">
                     <div style="display: flex; gap: 10px;" class="col-6">
-                        {{ switch_input(form.send_to_owner) }} {{ project.owner.email }}
+                        {{ form.send_to_owner.render() }} {{ project.owner.email }}
                     </div>
                     {% if current_user.is_insider %}
-                    {{ switch_input(form.anonymous_send, class="col-3") }}
-                    {{ switch_input(form.internal_share, class="col-3") }}
+                    {{ form.anonymous_send.render("col-3") }}
+                    {{ form.internal_share.render("col-3") }}
                     {% endif %}
                 </div>
                 {% if current_user.is_insider %}
                 <div class="pb-3">
-                    {{ switch_input(form.mark_project_delivered, class="col-6") }}
+                    {{ form.mark_project_delivered.render("col-6") }}
                 </div>
                 {% endif %}
                 <div class="row">
-                    {{ select_input(form.time_valid_min, class="col-6") }}
-                    {{ form_group(form.custom_email, class="col-6", disabled=not current_user.is_insider) }}
+                    {{ form.time_valid_min.render("col-6") }}
+                    {{ form.custom_email.render("col-6") }}
                 </div>
 
                 <div class="pt-1">
                     <div class="invalid-feedback-container">
-                        {% for error in form.error_dummy.errors %}
+                        {% for error in form.errors.get(None, []) %}
                             <p>{{ error }}</p>
                         {% endfor %}
                     </div>
@@ -57,7 +53,6 @@
                             aria-controls="request-{{ seq_request.id }}-tab" aria-selected="true">
                             BSR_{{ "%04d" % seq_request.id }}</button>
                         </li>
-                        {% endfor %}
                     </ul>
                     <div class="tab-content pt-3">
                         {% for seq_request in project.seq_requests %}
@@ -126,9 +121,8 @@
                 target: "#share_project_data-form-container",
                 swap: "outerHTML",
                 values: {
-                    csrf_token: "{{ form._csrf_token }}",
+                    csrf_token: "{{ form.csrf_token_value }}",
                     recipients: JSON.stringify(selected_recipient_emails),
-                    project_id: "{{ project.id }}",
                     anonymous_send: $("#anonymous_send").is(":checked"),
                     send_to_owner: $("#send_to_owner").is(":checked"),
                     time_valid_min: parseInt($("#time_valid_min").val()),

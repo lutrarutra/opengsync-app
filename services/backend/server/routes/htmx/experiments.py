@@ -78,6 +78,27 @@ def render_experiment_table(
     table.set_num_pages(count)
     return table.make_response(experiments=experiments)
 
+
+@router.get("/search")
+def search_experiments(
+    word: str | None = Query(None, description="Search word for experiment name"),
+    selected_id: int | None = Query(None, description="Currently selected experiment"),
+    _=Depends(dependencies.require_insider),
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    stmt = Q.experiment.select()
+
+    if selected_id is not None and not word:
+        stmt = Q.experiment.select(id=selected_id, statement=stmt)
+    elif word:
+        stmt = Q.experiment.search(name=word, statement=stmt)
+    else:
+        stmt = stmt.order_by(models.Experiment.name.asc())
+
+    experiments, _ = session.page(stmt, page=page)
+    return responses.htmx_response(template="components/search/experiment.html", experiments=experiments)
+
 @router.get("/{experiment_id}/delete")
 def delete_experiment(
     experiment_id: int,

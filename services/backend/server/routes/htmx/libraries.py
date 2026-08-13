@@ -161,6 +161,30 @@ def render_library_table(
     return table.make_response(libraries=libraries)
 
 
+@router.get("/search")
+def search_libraries(
+    word: str | None = Query(None, description="Search word for library name"),
+    selected_id: int | None = Query(None, description="Currently selected library"),
+    current_user: models.User = Depends(dependencies.require_user),
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    stmt = Q.library.select()
+
+    if selected_id is not None and not word:
+        stmt = Q.library.select(id=selected_id, statement=stmt)
+    elif word:
+        stmt = Q.library.search(name=word, statement=stmt)
+    else:
+        stmt = stmt.order_by(models.Library.name.asc())
+
+    if not current_user.is_insider:
+        stmt = Q.library.select(viewer_id=current_user.id, statement=stmt)
+
+    libraries, _ = session.page(stmt, page=page)
+    return responses.htmx_response(template="components/search/library.html", libraries=libraries)
+
+
 @router.get("/{library_id}/reads", dependencies=[Depends(dependencies.library_permissions)])
 def render_library_reads(
     library_id: int,

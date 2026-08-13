@@ -27,6 +27,7 @@
 | 9 | **Library Pooling** | `workflows/library_pooling/` | `workflows/library_pooling/` | LibraryPoolingForm → CompleteLibraryPoolingForm (barcode-clash preview). Lab-prep checklist starts `LibraryPoolingWorkflow.Begin`. `LibraryPoolingAction` is unused from the checklist. |
 | 10 | **Library Remux** | `workflows/remux/` | `workflows/library_remux/` | FlexReMuxForm / OligoReMuxForm by mux type. Library page Edit starts `LibraryRemuxWorkflow.Begin`. |
 | 11 | **Select Library Protocols** | `workflows/select_library_protocols/` | `workflows/select_library_protocols/` | ProtocolMappingForm (kit combinations from prep file) → LibraryProtocolSelectForm. Lab-prep checklist starts `SelectLibraryProtocolsWorkflow.Begin`. Skips mapping when the prep file has no `library_kits`. |
+| 12 | **Share Project Data** | `workflows/share/` | `workflows/share_project_data/` | Single-step `ShareProjectDataForm`. Project page Share Data starts `ShareProjectDataWorkflow.Begin`. File-browser Assign is `AssociatePathAction` (not a workflow step). |
 
 ### 1.2 Partial Workflows
 
@@ -34,7 +35,6 @@ These workflows have FastAPI workflow infrastructure, but their forms or step tr
 
 | # | Workflow | Legacy Path | FastAPI Path | Missing Forms | Notes |
 |---|----------|-------------|--------------|---------------|-------|
-| 12 | **Share Project Data** | `workflows/share/` | `workflows/share_project_data/` | ShareProjectDataForm, AssociatePathForm | Workflow shell only; form implementation is not present. |
 | 13 | **Lane QC** | `workflows/lane_qc.py` | `workflows/lane_qc/` | QCLanesForm, UnifiedQCLanesForm | Workflow shell only; form implementations are not present. |
 | 14 | **Select Experiment Pools** | `workflows/select_experiment_pools` (via SelectSamplesForm) | `workflows/select_experiment_pools/` | SelectSamplesForm integration | `SelectExperimentPoolsAction` exists, but the workflow package remains a shell. |
 | 15 | **Merge Projects** | `workflows/merge_projects/` | `workflows/merge_projects/` | MergeProjectsForm | New FastAPI workflow shell; `MergeProjectsAction` exists, but workflow form and transitions are not implemented. |
@@ -83,6 +83,7 @@ The following functionality has a FastAPI action. The old workflow shell is reta
 | 28 | **SampleAttributeTableAction** | `actions/SampleAttributeTableAction.py` | `SampleAttributeTableForm.py` | Sample attribute table editing |
 | 29 | **ShareDirectoryAction** | `actions/ShareDirectoryAction.py` | `DirectoryShareForm.py` | Directory sharing |
 | 36 | **EditKitBarcodes** | `actions/edit_kit_actions/` | `workflows/edit_kit_barcodes/` | Four separate index-kit barcode actions selected by the index-kits route |
+| 37 | **AssociatePathAction** | `actions/AssociatePathAction.py` | `workflows/share/AssociatePathForm.py` | File-browser Assign; search-select project/experiment/seq request/library |
 
 ### 2.1 Action Subdirectories (Combined/Separate Lane Variants)
 
@@ -184,9 +185,9 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 | Category | Count |
 |----------|-------|
-| ✅ Fully migrated workflows | 11 |
-| ⚠️ Partial workflows | 4 |
-| ✅ Migrated actions | 36 |
+| ✅ Fully migrated workflows | 12 |
+| ⚠️ Partial workflows | 3 |
+| ✅ Migrated actions | 37 |
 | ❌ Legacy workflows → should be actions | 0 |
 | ✅ Legacy top-level forms migrated | 7 |
 | ✅ Auth forms migrated | 5 |
@@ -195,10 +196,10 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 | ✅ Model forms migrated | 19 |
 
 ### Priority Order (Recommended)
-1. **Remaining workflow shells** — Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
+1. **Remaining workflow shells** — Lane QC, Select Experiment Pools, and Merge Projects.
 
 ### Next Recommended Migration
 
-**Workflow:** `Share Project Data`
+**Workflow:** `Lane QC`
 
-`Share Project Data` is the next recommended migration. Implement `ShareProjectDataForm` and `AssociatePathForm`, then wire the workflow shell.
+`Lane QC` is the next recommended migration. Implement `QCLanesForm` and `UnifiedQCLanesForm`, then wire the workflow shell.

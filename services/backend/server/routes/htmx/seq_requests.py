@@ -164,6 +164,30 @@ def render_seq_request_table(
     return table.make_response(seq_requests=seq_requests)
 
 
+@router.get("/search")
+def search_seq_requests(
+    word: str | None = Query(None, description="Search word for sequencing request name"),
+    selected_id: int | None = Query(None, description="Currently selected sequencing request"),
+    current_user: models.User = Depends(dependencies.require_user),
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    stmt = Q.seq_request.select()
+
+    if selected_id is not None and not word:
+        stmt = Q.seq_request.select(id=selected_id, statement=stmt)
+    elif word:
+        stmt = Q.seq_request.search(name=word, statement=stmt)
+    else:
+        stmt = stmt.order_by(models.SeqRequest.name.asc())
+
+    if not current_user.is_insider:
+        stmt = Q.seq_request.select(viewer_id=current_user.id, statement=stmt)
+
+    seq_requests, _ = session.page(stmt, page=page)
+    return responses.htmx_response(template="components/search/seq_request.html", seq_requests=seq_requests)
+
+
 @router.get("/recent")
 def recent_seq_requests(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),

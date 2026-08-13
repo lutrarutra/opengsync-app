@@ -242,7 +242,7 @@
                     {% if current_user.is_insider %}
                     <div>
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#xl-modal" style="width: 120px;"
-                            hx-get="{{ url_for('begin_share_project_data_workflow', project_id=project.id) }}"
+                            hx-get="{{ url_for('ShareProjectDataWorkflow.Begin', project_id=project.id) }}"
                             hx-swap="innerHTML" hx-target="#xl-modal-content"
                             {% if project.share_token_uuid and not project.share_token.is_expired %}
                             _="on htmx:confirm(issueRequest)

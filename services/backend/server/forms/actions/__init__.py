@@ -17,6 +17,7 @@ from .AddKitsToProtocolAction import AddKitsToProtocolAction
 from .AddUserToGroupAction import AddUserToGroupAction
 from .SelectExperimentPoolsAction import SelectExperimentPoolsAction
 from .ShareDirectoryAction import ShareDirectoryAction
+from .AssociatePathAction import AssociatePathAction
 from .DilutePoolsAction import DilutePoolsAction
 from .SetExperimentCyclesAction import SetExperimentCyclesAction
 from .GenerateSequencerLoadingChecklistAction import GenerateSequencerLoadingChecklistAction
@@ -48,6 +49,7 @@ __all__ = [
     "AddKitsToProtocolAction",
     "AddUserToGroupAction",
     "ShareDirectoryAction",
+    "AssociatePathAction",
     "SelectExperimentPoolsAction",
     "DilutePoolsAction",
     "SetExperimentCyclesAction",

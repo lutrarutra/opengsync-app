@@ -108,9 +108,7 @@ class SelectLibraryProtocolsWorkflow(HTMXWorkflow):
             case wf.ProtocolMappingForm:
                 next_form = wf.LibraryProtocolSelectForm.build(self, ctx.session)
             case _:
-                raise exc.OpeNGSyncServerException(
-                    f"Unknown form class {form.__class__.__name__} in SelectLibraryProtocolsWorkflow."
-                )
+                raise exc.OpeNGSyncServerException(f"Unknown form class {form.__class__.__name__} in SelectLibraryProtocolsWorkflow.")
 
         self.previous_url = responses.url_for(
             f"{self.__class__.__name__}.{form.__class__.__name__}.Previous",
