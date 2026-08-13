@@ -26,6 +26,7 @@ COPY pyproject.toml uv.lock ./
 COPY packages/opengsync-db/pyproject.toml ./packages/opengsync-db/
 COPY packages/opengsync-api/pyproject.toml ./packages/opengsync-api/
 COPY packages/opengsync-worker/pyproject.toml ./packages/opengsync-worker/
+COPY services/backend/pyproject.toml ./services/backend/
 RUN uv sync --frozen --no-install-project --no-dev
 
 # --- SERVER ---
@@ -52,10 +53,14 @@ RUN uv sync --frozen --no-editable --no-dev
 
 # --- PYTEST ---
 FROM builder AS pytest
-# RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+ENV PYTHONPATH=/app/services/backend
 COPY packages /app/packages
+COPY services/backend /app/services/backend
 COPY services/pytest/tests /app/tests
 COPY services/opengsync-app/static/resources/templates/library_prep/ /app/prep_tables
+COPY services/opengsync-app/templates /templates
+COPY services/opengsync-app/static /static
+RUN mkdir -p /logs /static /templates
 RUN uv sync --frozen --no-editable --no-dev
-RUN uv pip install pytest
+RUN uv pip install pytest httpx
 CMD ["pytest"]

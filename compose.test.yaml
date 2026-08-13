@@ -15,8 +15,14 @@ services:
             TIMEZONE: "Europe/Vienna"
             TZ: "Europe/Vienna"
             ENVIRONMENT: test
+            SECRET_KEY: "test-secret-key-1234-5678-9012-3456"
+            REDIS_HOST: redis-cache
+            REDIS_PORT: 6379
         depends_on:
             postgres:
+                condition: service_healthy
+                restart: true
+            redis-cache:
                 condition: service_healthy
                 restart: true
 
@@ -32,6 +38,16 @@ services:
             TZ: "Europe/Vienna"
         healthcheck:
             test: ["CMD", "pg_isready", "-d", "test_db", "-U", "admin"]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+
+    redis-cache:
+        container_name: opengsync-redis-test
+        image: redis:7-alpine
+        restart: on-failure
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
             interval: 10s
             timeout: 10s
             retries: 5

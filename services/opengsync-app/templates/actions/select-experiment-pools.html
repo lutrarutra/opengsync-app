@@ -1,0 +1,45 @@
+{% set selected_pools = form.selected_pool_ids.get_selected_pools(session) %}
+<div class="modal-content" id="select-experiment-pools-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Select Pools</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body tab-body" id="select-experiment-pools-form">
+        {{ form.csrf_token.render() }}
+        {{ form.render_general_errors() }}
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#select-experiment-pools-browse-tab"
+                    type="button" role="tab" aria-controls="select-experiment-pools-browse-tab" aria-selected="true">
+                    Browse Pools
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button id="{{ form.selected_pool_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#select-experiment-pools-selected-tab"
+                    type="button" role="tab" aria-controls="select-experiment-pools-selected-tab" aria-selected="false">
+                    Selected ({{ selected_pools | length }})
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="select-experiment-pools-browse-tab" role="tabpanel" tabindex="0">
+                {{ form.selected_pool_ids.render() }}
+            </div>
+            <div class="tab-pane fade" id="select-experiment-pools-selected-tab" role="tabpanel" tabindex="1">
+                {{ form.selected_pool_ids.render_selected_table() }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer" id="popup-footer">
+        <div class="footer-id">
+            Experiment: {{ experiment.name }} [{{ experiment.id }}]
+        </div>
+        <div class="footer-info">
+        </div>
+        <div class="footer-controls">
+            <button id="submit-select-experiment-pools-btn" class="btn btn-success"
+            hx-include="#select-experiment-pools-form" hx-target="#select-experiment-pools-form-container" hx-swap="outerHTML"
+            hx-post="{{ url_for('SelectExperimentPoolsAction.Submit', experiment_id=form.experiment_id) }}">Confirm</button>
+        </div>
+    </div>
+</div>

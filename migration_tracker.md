@@ -29,6 +29,7 @@
 | 11 | **Select Library Protocols** | `workflows/select_library_protocols/` | `workflows/select_library_protocols/` | ProtocolMappingForm (kit combinations from prep file) → LibraryProtocolSelectForm. Lab-prep checklist starts `SelectLibraryProtocolsWorkflow.Begin`. Skips mapping when the prep file has no `library_kits`. |
 | 12 | **Share Project Data** | `workflows/share/` | `workflows/share_project_data/` | Single-step `ShareProjectDataForm`. Project page Share Data starts `ShareProjectDataWorkflow.Begin`. File-browser Assign is `AssociatePathAction` (not a workflow step). |
 | 13 | **Lane QC** | `workflows/lane_qc.py` | `workflows/lane_qc/` | UnifiedQCLanesForm (combined lanes) / QCLanesForm (separate lanes). Starts at `LaneQCWorkflow.Begin`. Writes phi X, fragment size, and original qubit concentration on experiment lanes. |
+| 14 | **Select Experiment Pools** | `workflows/select_experiment_pools` (via SelectSamplesForm) | `actions/SelectExperimentPoolsAction.py` | Delegates to `SelectExperimentPoolsAction`. Experiment checklist starts `SelectExperimentPoolsAction.Begin`. Browse lists STORED pools not already on an experiment. |
 
 ### 1.2 Partial Workflows
 
@@ -36,7 +37,6 @@ These workflows have FastAPI workflow infrastructure, but their forms or step tr
 
 | # | Workflow | Legacy Path | FastAPI Path | Missing Forms | Notes |
 |---|----------|-------------|--------------|---------------|-------|
-| 14 | **Select Experiment Pools** | `workflows/select_experiment_pools` (via SelectSamplesForm) | `workflows/select_experiment_pools/` | SelectSamplesForm integration | `SelectExperimentPoolsAction` exists, but the workflow package remains a shell. |
 | 15 | **Merge Projects** | `workflows/merge_projects/` | `workflows/merge_projects/` | MergeProjectsForm | New FastAPI workflow shell; `MergeProjectsAction` exists, but workflow form and transitions are not implemented. |
 
 ### 1.3 Migrated as Actions, Workflow Shells Remaining
@@ -68,7 +68,7 @@ The following functionality has a FastAPI action. The old workflow shell is reta
 | 13 | **ProcessSeqRequestAction** | `actions/ProcessSeqRequestAction.py` | `ProcessRequestForm.py` | Accept/reject sequencing requests |
 | 14 | **ReseqAction** | `actions/ReseqAction.py` | `workflows/reseq/ReseqLibrariesForm.py` | Library resequencing (indexed/raw) |
 | 15 | **SamplePoolingAction** | `actions/SamplePoolingAction.py` | `workflows/mux_prep/SamplePoolingForm.py` | Sample-to-pool assignment |
-| 16 | **SelectExperimentPoolsAction** | `actions/SelectExperimentPoolsAction.py` | `workflows/select_experiment_pools` (SelectSamplesForm) | Pool selection for experiment |
+| 16 | **SelectExperimentPoolsAction** | `actions/SelectExperimentPoolsAction.py` | `workflows/select_experiment_pools` (SelectSamplesForm) | Pool selection for experiment. Experiment checklist starts `Begin`. Redirects to the experiment page. |
 | 17 | **SelectPoolLibrariesAction** | `actions/SelectPoolLibrariesAction.py` | N/A (new) | Library selection for a pool |
 | 18 | **SetExperimentCyclesAction** | `actions/SetExperimentCyclesAction.py` | `EditExperimentCyclesForm.py` | R1/R2/I1/I2 cycle configuration |
 | 19 | **StoreSamplesAction** | `actions/StoreSamplesAction.py` | `SelectSamplesForm.py` (store_samples context) | Sample/library/pool storage |
@@ -185,8 +185,8 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 | Category | Count |
 |----------|-------|
-| ✅ Fully migrated workflows | 13 |
-| ⚠️ Partial workflows | 2 |
+| ✅ Fully migrated workflows | 14 |
+| ⚠️ Partial workflows | 1 |
 | ✅ Migrated actions | 37 |
 | ❌ Legacy workflows → should be actions | 0 |
 | ✅ Legacy top-level forms migrated | 7 |
@@ -196,10 +196,10 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 | ✅ Model forms migrated | 19 |
 
 ### Priority Order (Recommended)
-1. **Remaining workflow shells** — Select Experiment Pools and Merge Projects.
+1. **Remaining workflow shell** — Merge Projects.
 
 ### Next Recommended Migration
 
-**Workflow:** `Select Experiment Pools`
+**Workflow:** `Merge Projects`
 
-`Select Experiment Pools` is the next recommended migration. `SelectExperimentPoolsAction` already exists; wire `SelectSamplesForm` into the workflow shell if a separate workflow UI is still required, or treat the action as the FastAPI implementation.
+`Merge Projects` is the next recommended migration. `MergeProjectsAction` already exists and is used from SOPs; the workflow shell still references missing `MergeProjectsForm`. Treat the action as the FastAPI implementation (same pattern as Add Kits / Select Experiment Pools), optionally porting Flask's sample-attribute conflict validation into the action.

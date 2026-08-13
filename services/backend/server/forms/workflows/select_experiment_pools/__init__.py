@@ -1,5 +1,5 @@
-from .SelectExperimentPoolsWorkflow import SelectExperimentPoolsWorkflow
+from ...actions.SelectExperimentPoolsAction import SelectExperimentPoolsAction
 
 __all__ = [
-    "SelectExperimentPoolsWorkflow",
+    "SelectExperimentPoolsAction",
 ]
