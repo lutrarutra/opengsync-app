@@ -143,8 +143,10 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
 
     if (seq_request := context.get("seq_request")) is not None:
         fnc_context["seq_request_id"] = seq_request.id
+        table.url_params["seq_request_id"] = seq_request.id
     if (pool := context.get("pool")) is not None:
         fnc_context["pool_id"] = pool.id
+        table.url_params["pool_id"] = pool.id
 
     samples, table.num_pages = db.samples.find(page=table.active_page, **fnc_context)
 

@@ -51,7 +51,7 @@ class Pool(Base):
     contact_id: Mapped[int] = mapped_column(sa.ForeignKey("contact.id"), nullable=False)
     contact: Mapped["Contact"] = relationship("Contact", lazy="select")
 
-    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id"), nullable=True, default=None)
+    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id", ondelete="SET NULL"), nullable=True, default=None)
     ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select", foreign_keys=[ba_report_id])
 
     lab_prep_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("lab_prep.id"), nullable=True)

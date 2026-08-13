@@ -69,7 +69,12 @@ def ms_hls_to_rgb(hue, lightness=None, saturation=None):
 
 def theme_and_tint_to_rgb(themes, theme, tint):
     """Given a workbook, a theme number and a tint return a hex based rgb"""
-    rgb = themes[theme]
+    if not themes or theme is None or not isinstance(theme, int) or theme < 0 or theme >= len(themes):
+        rgb = "000000"
+    else:
+        rgb = themes[theme]
+    if tint is None:
+        tint = 0.0
     h, l, s = rgb_to_ms_hls(rgb)
     return rgb_to_hex(ms_hls_to_rgb(h, tint_luminance(tint, l), s))
 

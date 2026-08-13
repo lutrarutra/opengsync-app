@@ -56,7 +56,7 @@ class Sample(Base):
     project_id: Mapped[int] = mapped_column(sa.ForeignKey("project.id"), nullable=False)
     project: Mapped["Project"] = relationship("Project", back_populates="samples", lazy="select")
 
-    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id"), nullable=True, default=None)
+    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id", ondelete="SET NULL"), nullable=True, default=None)
     ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select")
     
     plate_links: Mapped[list[links.SamplePlateLink]] = relationship("SamplePlateLink", back_populates="sample", lazy="select")

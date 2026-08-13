@@ -31,7 +31,7 @@ class Lane(Base):
     experiment_id: Mapped[int] = mapped_column(sa.ForeignKey("experiment.id"), nullable=False)
     experiment: Mapped["Experiment"] = relationship("Experiment", back_populates="lanes", lazy="select")
 
-    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id"), nullable=True, default=None)
+    ba_report_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("media_file.id", ondelete="SET NULL"), nullable=True, default=None)
     _ba_report: Mapped[Optional["MediaFile"]] = relationship("MediaFile", lazy="select", foreign_keys=[ba_report_id])
 
     pool_links: Mapped[list["links.LanePoolLink"]] = relationship(

@@ -2,7 +2,7 @@ from opengsync_db import DBHandler
 
 from .create_units import (
     create_user, create_project, create_seq_request, create_sample, create_library,
-    create_file, create_group
+    create_file, create_group, create_pool
 )  # noqa
 
 
@@ -78,6 +78,36 @@ def test_files(db: DBHandler):
     assert len(db.media_files.find(limit=None)) == NUM_FILES + 2
     db.seq_requests.delete(seq_request.id)
     assert len(db.media_files.find(limit=None)) == NUM_FILES
+
+
+def test_delete_media_file_unlinks_ba_report(db: DBHandler):
+    user = create_user(db)
+    seq_request = create_seq_request(db, user)
+    library = create_library(db, user, seq_request)
+    sample = create_sample(db, user, create_project(db, user))
+    pool = create_pool(db, user, seq_request)
+    file = create_file(db, seq_request=seq_request)
+
+    library.ba_report_id = file.id
+    sample.ba_report_id = file.id
+    pool.ba_report_id = file.id
+    db.libraries.update(library)
+    db.samples.update(sample)
+    db.pools.update(pool)
+    db.flush()
+
+    db.media_files.delete(file.id)
+
+    library = db.libraries.get(library.id)
+    sample = db.samples.get(sample.id)
+    pool = db.pools.get(pool.id)
+    assert library is not None
+    assert sample is not None
+    assert pool is not None
+    assert library.ba_report_id is None
+    assert sample.ba_report_id is None
+    assert pool.ba_report_id is None
+    assert db.media_files.get(file.id) is None
 
 
 def test_group_affiliations(db: DBHandler):

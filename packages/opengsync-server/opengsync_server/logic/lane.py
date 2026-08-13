@@ -37,6 +37,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
 
     if (experiment := context.get("experiment")):
         fnc_context["experiment_id"] = experiment.id
+        table.url_params["experiment_id"] = experiment.id
 
     elif (id_ := request.args.get("id")):
         table.active_search_var = "id"
