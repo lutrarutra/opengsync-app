@@ -28,6 +28,7 @@
 | 10 | **Library Remux** | `workflows/remux/` | `workflows/library_remux/` | FlexReMuxForm / OligoReMuxForm by mux type. Library page Edit starts `LibraryRemuxWorkflow.Begin`. |
 | 11 | **Select Library Protocols** | `workflows/select_library_protocols/` | `workflows/select_library_protocols/` | ProtocolMappingForm (kit combinations from prep file) → LibraryProtocolSelectForm. Lab-prep checklist starts `SelectLibraryProtocolsWorkflow.Begin`. Skips mapping when the prep file has no `library_kits`. |
 | 12 | **Share Project Data** | `workflows/share/` | `workflows/share_project_data/` | Single-step `ShareProjectDataForm`. Project page Share Data starts `ShareProjectDataWorkflow.Begin`. File-browser Assign is `AssociatePathAction` (not a workflow step). |
+| 13 | **Lane QC** | `workflows/lane_qc.py` | `workflows/lane_qc/` | UnifiedQCLanesForm (combined lanes) / QCLanesForm (separate lanes). Starts at `LaneQCWorkflow.Begin`. Writes phi X, fragment size, and original qubit concentration on experiment lanes. |
 
 ### 1.2 Partial Workflows
 
@@ -35,7 +36,6 @@ These workflows have FastAPI workflow infrastructure, but their forms or step tr
 
 | # | Workflow | Legacy Path | FastAPI Path | Missing Forms | Notes |
 |---|----------|-------------|--------------|---------------|-------|
-| 13 | **Lane QC** | `workflows/lane_qc.py` | `workflows/lane_qc/` | QCLanesForm, UnifiedQCLanesForm | Workflow shell only; form implementations are not present. |
 | 14 | **Select Experiment Pools** | `workflows/select_experiment_pools` (via SelectSamplesForm) | `workflows/select_experiment_pools/` | SelectSamplesForm integration | `SelectExperimentPoolsAction` exists, but the workflow package remains a shell. |
 | 15 | **Merge Projects** | `workflows/merge_projects/` | `workflows/merge_projects/` | MergeProjectsForm | New FastAPI workflow shell; `MergeProjectsAction` exists, but workflow form and transitions are not implemented. |
 
@@ -185,8 +185,8 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 | Category | Count |
 |----------|-------|
-| ✅ Fully migrated workflows | 12 |
-| ⚠️ Partial workflows | 3 |
+| ✅ Fully migrated workflows | 13 |
+| ⚠️ Partial workflows | 2 |
 | ✅ Migrated actions | 37 |
 | ❌ Legacy workflows → should be actions | 0 |
 | ✅ Legacy top-level forms migrated | 7 |
@@ -196,10 +196,10 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 | ✅ Model forms migrated | 19 |
 
 ### Priority Order (Recommended)
-1. **Remaining workflow shells** — Lane QC, Select Experiment Pools, and Merge Projects.
+1. **Remaining workflow shells** — Select Experiment Pools and Merge Projects.
 
 ### Next Recommended Migration
 
-**Workflow:** `Lane QC`
+**Workflow:** `Select Experiment Pools`
 
-`Lane QC` is the next recommended migration. Implement `QCLanesForm` and `UnifiedQCLanesForm`, then wire the workflow shell.
+`Select Experiment Pools` is the next recommended migration. `SelectExperimentPoolsAction` already exists; wire `SelectSamplesForm` into the workflow shell if a separate workflow UI is still required, or treat the action as the FastAPI implementation.
