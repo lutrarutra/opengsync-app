@@ -294,7 +294,7 @@
         {% endif %}
         {% if library.type in [C.LibraryType.TENX_ANTIBODY_CAPTURE, C.LibraryType.TENX_SC_ABC_FLEX] %}
         <div class="tab-pane fade" id="library-abc-tab" role="tabpanel" tabindex="7">
-            <div hx-get="{{ url_for('feature_kits_htmx.get_features', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_feature_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

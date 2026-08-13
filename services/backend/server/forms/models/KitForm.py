@@ -86,7 +86,7 @@ class KitForm(HTMXForm):
 
         return route
 
-    @htmx_route("POST", "/{kit_id}/edit", name="Edit")
+    @htmx_route("POST", "/{kit_id}/edit-kit", name="Edit")
     def Edit(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),

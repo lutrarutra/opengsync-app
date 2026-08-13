@@ -92,7 +92,7 @@ class IndexKitForm(HTMXForm):
 
         return route
 
-    @htmx_route("POST", "/{index_kit_id}/edit", name="Edit")
+    @htmx_route("POST", "/{index_kit_id}/edit-index-kit", name="Edit")
     def Edit(cls) -> RouteFunc:
         def submit(
             session: SyncSession = Depends(dependencies.db_session),
