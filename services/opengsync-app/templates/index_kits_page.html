@@ -26,7 +26,7 @@
 </div>
 
 <div class="page-content">
-    <div hx-get="{{ url_for('index_kits_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
+    <div hx-get="{{ url_for('render_index_kit_table') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

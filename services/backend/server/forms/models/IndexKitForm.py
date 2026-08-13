@@ -2,12 +2,14 @@ import string
 from typing import Literal
 
 from fastapi import Depends, Response
+from opengsync_db import SyncSession, models
+from opengsync_db import categories as C
+from opengsync_db import queries as Q
 
-from opengsync_db import queries as Q, SyncSession, models, categories as C
-
-from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
-from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
+from ...core import dependencies, responses
+from ...core import exceptions as exc
+from ..HTMXForm import FormFunc, HTMXForm, RouteFunc, htmx_route
 
 
 class IndexKitForm(HTMXForm):
@@ -65,7 +67,7 @@ class IndexKitForm(HTMXForm):
 
         return dependency
 
-    @htmx_route("GET", "/{index_kit_id}/edit", name="Edit")
+    @htmx_route("GET", "/{index_kit_id}/edit-index-kit", name="Edit")
     def RenderEdit(cls) -> RouteFunc:
         def route(
             form: "IndexKitForm" = Depends(IndexKitForm.Init(form_type="edit")),
@@ -77,6 +79,7 @@ class IndexKitForm(HTMXForm):
             form.identifier.data = form.index_kit.identifier
             form.index_type_id.data = form.index_kit.type_id
             return form.make_response()
+
         return route
 
     @htmx_route("GET", "/create", name="Create")
@@ -86,6 +89,7 @@ class IndexKitForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ):
             return form.make_response()
+
         return route
 
     @htmx_route("POST", "/{index_kit_id}/edit", name="Edit")
@@ -110,18 +114,12 @@ class IndexKitForm(HTMXForm):
                     raise exc.FormValidationException(form)
 
             if session.exists(
-                Q.index_kit.select(identifier=form.identifier.data).where(
-                    models.IndexKit.id != form.index_kit.id
-                )
+                Q.index_kit.select(identifier=form.identifier.data).where(models.IndexKit.id != form.index_kit.id)
             ):
                 form.identifier.errors.append("An index kit with this identifier already exists.")
                 raise exc.FormValidationException(form)
 
-            if session.exists(
-                Q.index_kit.select(name=form.name.data).where(
-                    models.IndexKit.id != form.index_kit.id
-                )
-            ):
+            if session.exists(Q.index_kit.select(name=form.name.data).where(models.IndexKit.id != form.index_kit.id)):
                 form.name.errors.append("An index kit with this name already exists.")
                 raise exc.FormValidationException(form)
 
@@ -132,6 +130,7 @@ class IndexKitForm(HTMXForm):
                 redirect=responses.url_for("index_kit_page", index_kit_id=form.index_kit.id),
                 flash=responses.flash("Index kit updated successfully.", "success"),
             )
+
         return submit
 
     @htmx_route("POST", "/create", name="Create")
@@ -160,15 +159,21 @@ class IndexKitForm(HTMXForm):
                 form.name.errors.append("An index kit with this name already exists.")
                 raise exc.FormValidationException(form)
 
-            index_kit = session.save(Q.index_kit.create(
-                name=form.name.data,
-                identifier=form.identifier.data,
-                type=C.IndexType.get(form.index_type_id.data) if form.index_type_id.data is not None else C.IndexType.DUAL_INDEX,
-                supported_protocol_ids=[],
-            ), flush=True)
+            index_kit = session.save(
+                Q.index_kit.create(
+                    name=form.name.data,
+                    identifier=form.identifier.data,
+                    type=C.IndexType.get(form.index_type_id.data)
+                    if form.index_type_id.data is not None
+                    else C.IndexType.DUAL_INDEX,
+                    supported_protocol_ids=[],
+                ),
+                flush=True,
+            )
 
             return responses.htmx_response(
                 redirect=responses.url_for("index_kit_page", index_kit_id=index_kit.id),
                 flash=responses.flash("Index kit created successfully.", "success"),
             )
+
         return submit

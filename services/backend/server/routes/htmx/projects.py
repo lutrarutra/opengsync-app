@@ -96,13 +96,8 @@ def render_project_table(
     )
 
     if user_id is not None:
-        if (
-            session.get_access_level(Q.user.permissions(user_id, current_user.id))
-            < C.AccessLevel.READ
-        ):
-            raise exc.NoPermissionsException(
-                "You do not have permission to view projects for this user."
-            )
+        if (session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ):
+            raise exc.NoPermissionsException("You do not have permission to view projects for this user.")
         table.template = "components/tables/user-project.html"
         table.url_params["user_id"] = user_id
     elif experiment_id is not None:

@@ -84,8 +84,8 @@ class BarcodeConstraintsAction(HTMXForm):
                     form.spreadsheet.add_general_error(f"The selected kit '{kit.name}' has i5 index sequences of different lengths and cannot be used.")
                     form.assert_valid()
 
-                kit_i7_len = len(barcodes_df["sequence_i7"].values[0])
-                kit_i5_len = len(barcodes_df["sequence_i5"].values[0])
+                kit_i7_len = len(barcodes_df["sequence_i7"].values[0])  # type: ignore
+                kit_i5_len = len(barcodes_df["sequence_i5"].values[0])  # type: ignore
                 kit_sequences_i7 = barcodes_df["sequence_i7"].to_list()
                 kit_sequences_i5 = barcodes_df["sequence_i5"].to_list()
                 additional_sequences = [s1 + s2 for s1, s2 in zip(kit_sequences_i7, kit_sequences_i5)]

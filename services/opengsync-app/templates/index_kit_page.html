@@ -26,7 +26,7 @@
                     </li>
                     <li>
                         <button type="button" class="dropdown-item"  data-bs-toggle="modal" data-bs-target="#fullscreen-modal" 
-                            hx-get="{{ url_for('index_kits_htmx.edit_barcodes', index_kit_id=index_kit.id) }}"
+                            hx-get="{{ url_for('EditKitBarcodesForm.Begin', index_kit_id=index_kit.id) }}"
                             hx-target="#fullscreen-modal-content" data-bs-toggle="modal"
                             hx-swap="innerHTML">
                             Edit Barcodes
@@ -36,7 +36,7 @@
                         <span {% if not current_user.is_admin %} {{ tooltip("Only admin can delete kit.", "left", "warning") }} {% endif %}>
                             <button type="button" class="dropdown-item"
                                 {% if current_user.is_admin %}
-                                hx-delete="{{ url_for('kits_htmx.delete', kit_id=index_kit.id) }}"
+                                hx-delete="{{ url_for('delete_kit', kit_id=index_kit.id) }}"
                                 _="on htmx:confirm(issueRequest)
                                 halt the event
                                 call Swal.fire({
@@ -83,7 +83,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="barcodes-tab" role="tabpanel" tabindex="1">
-            <div hx-get="{{ url_for('index_kits_htmx.get_adapters', index_kit_id=index_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_adapter_table', index_kit_id=index_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

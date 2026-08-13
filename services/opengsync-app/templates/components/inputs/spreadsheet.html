@@ -48,6 +48,9 @@
                     "spreadsheet": JSON.stringify(data),
                     "csrf_token": "{{ field.csrf_token }}",
                     "columns": JSON.stringify(spread_sheet.getHeaders()),
+                    {% for extra in extra_fields | default([]) %}
+                    "{{ extra.name }}": {% if extra.type == "checkbox" %}$("#{{ extra.id }}").prop("checked"){% else %}$("#{{ extra.id }}").val(){% endif %},
+                    {% endfor %}
                 },
             });
 

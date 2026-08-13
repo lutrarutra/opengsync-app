@@ -1,6 +1,6 @@
 # Flask → FastAPI Migration Tracker
 
-> Last updated: 2026-08-12
+> Last updated: 2026-08-13
 
 ## Legend
 - ✅ **Migrated** — Fully implemented in FastAPI
@@ -20,6 +20,7 @@
 | 2 | **BA Report** | `workflows/ba_report/` | `workflows/ba_report/` | Multi-step: SelectSamples → UploadBA/ParseBAExcel → CompleteBA. All forms migrated. |
 | 3 | **Qubit Measure** | `workflows/qubit_measure/` | `workflows/qubit_measure/` | Multi-step: SelectSamples → QubitMeasure → CompleteQubitMeasure. All forms migrated. |
 | 4 | **Add Kits to Protocol** | `workflows/add_protocol_kits/` | `workflows/add_kits_to_protocol/` | Delegates to `AddKitsToProtocolAction`. Fully migrated. |
+| 5 | **Relib** | `workflows/relib/` | `workflows/relib/` | Two-step: SelectSamples → LibraryEditTable. Library field spreadsheet edit with Previous navigation. |
 
 ### 1.2 Partial Workflows
 
@@ -27,8 +28,7 @@ These workflows have FastAPI workflow infrastructure, but their forms or step tr
 
 | # | Workflow | Legacy Path | FastAPI Path | Missing Forms | Notes |
 |---|----------|-------------|--------------|---------------|-------|
-| 5 | **Reindex** | `workflows/reindex/` | `workflows/reindex/` | No missing form classes; several business-logic gaps remain | Step forms now exist: SelectSamples → BarcodeInput → (TENXATAC or BarcodeMatch) → CompleteReindex. Shared barcode validation and composite library columns are implemented, but the migration is not yet complete. See the gap list below. |
-| 6 | **Relib** | `workflows/relib/` | `workflows/relib/` | LibraryEditTableForm | Workflow shell only; `Begin()` still references the legacy/shared `SelectSamplesForm`, and `get_next_step()` is not implemented. |
+| 6 | **Reindex** | `workflows/reindex/` | `workflows/reindex/` | No missing form classes; several business-logic gaps remain | Step forms now exist: SelectSamples → BarcodeInput → (TENXATAC or BarcodeMatch) → CompleteReindex. Shared barcode validation and composite library columns are implemented, but the migration is not yet complete. See the gap list below. |
 | 7 | **Merge Pools** | `workflows/` (MergePoolsForm.py) | `workflows/merge_pools/` | MergePoolsForm | Workflow shell only; `get_next_step()` is not implemented. |
 | 8 | **Mux Prep** | `workflows/mux_prep/` | `workflows/mux_prep/` | OligoMuxForm, OCMMuxForm, FlexABCForm | `FlexMuxForm` is covered by `FlexMuxPrepAction`; `SamplePoolingForm` is covered by `SamplePoolingAction`. The workflow itself remains a shell. |
 | 9 | **Library Pooling** | `workflows/library_pooling/` | `workflows/library_pooling/` | CompleteLibraryPoolingForm | `LibraryPoolingForm` is covered by `LibraryPoolingAction`; the workflow shell remains incomplete. |
@@ -41,11 +41,11 @@ These workflows have FastAPI workflow infrastructure, but their forms or step tr
 
 ### 1.3 Migrated as Actions, Workflow Shells Remaining
 
-The following functionality has a FastAPI action, but its legacy multi-step workflow counterpart is not yet implemented as a FastAPI workflow:
+The following functionality has a FastAPI action. The old workflow shell is retained only as a migration reference and should not be treated as remaining business logic unless the workflow UI itself is still required:
 
 | Workflow/functionality | FastAPI action | Remaining work |
 |---|---|---|
-| **Check Barcode Constraints** | `BarcodeConstraintsAction` | Complete or remove the unused workflow shell if the action is the intended replacement. |
+| **Check Barcode Constraints** | `BarcodeConstraintsAction` | Action implemented in FastAPI. Remove or deprecate the unused workflow shell if no separate workflow UI is required. |
 
 ### 1.4 Reindex Migration Gaps
 
@@ -86,13 +86,14 @@ Reindex is **not testing-only yet**. The following existing legacy behavior stil
 | 20 | **SubmitSeqRequestAction** | `actions/SubmitSeqRequestAction.py` | `SubmitSeqRequestForm.py` | Seq request submission with time/comment |
 | 21 | **UploadLibraryPrepSpreadsheetAction** | `actions/UploadLibraryPrepSpreadsheetAction.py` | `workflows/library_prep/LibraryPrepForm.py` | Prep table spreadsheet upload |
 | 22 | **AddProjectAssigneeAction** | `actions/AddProjectAssigneeAction.py` | `AddProjectAssigneeForm.py` | Project assignee management |
-| 23 | **BarcodeConstraintsAction** | `actions/BarcodeConstraintsAction.py` | `workflows/check_barcode_constraints/` | Barcode constraint checking |
+| 23 | **BarcodeConstraintsAction** | `actions/BarcodeConstraintsAction.py` | `workflows/check_barcode_constraints/` | ✅ Implemented; replaces the former workflow form |
 | 24 | **EditKitFeaturesAction** | `actions/EditKitFeaturesAction.py` | `EditKitFeaturesForm.py` | Kit feature editing |
 | 25 | **LibraryFeaturesAction** | `actions/LibraryFeaturesAction.py` | `LibraryFeaturesForm.py` | Library feature editing |
 | 26 | **MergeProjectsAction** | `actions/MergeProjectsAction.py` | `workflows/merge_projects/` | Project merge action |
 | 27 | **QueryBarcodeSequencesAction** | `actions/QueryBarcodeSequencesAction.py` | `QueryBarcodeSequencesForm.py` | Barcode sequence query |
 | 28 | **SampleAttributeTableAction** | `actions/SampleAttributeTableAction.py` | `SampleAttributeTableForm.py` | Sample attribute table editing |
 | 29 | **ShareDirectoryAction** | `actions/ShareDirectoryAction.py` | `DirectoryShareForm.py` | Directory sharing |
+| 36 | **EditKitBarcodes** | `actions/edit_kit_actions/` | `workflows/edit_kit_barcodes/` | Four separate index-kit barcode actions selected by the index-kits route |
 
 ### 2.1 Action Subdirectories (Combined/Separate Lane Variants)
 
@@ -113,7 +114,7 @@ These legacy workflow directories contain single-step forms that should be migra
 
 | # | Legacy | Description | Recommendation |
 |---|--------|-------------|----------------|
-| 1 | `workflows/edit_kit_barcodes/` | EditCombinatorialKitBarcodesForm, EditDualIndexKitBarcodesForm, EditKitTENXATACBarcodesForm, EditSingleIndexKitBarcodesForm | **Action** — Single-step spreadsheet forms for editing index kit barcodes |
+| 1 | `workflows/edit_kit_barcodes/` | EditCombinatorialKitBarcodesForm, EditDualIndexKitBarcodesForm, EditKitTENXATACBarcodesForm, EditSingleIndexKitBarcodesForm | ✅ Migrated as `actions/edit_kit_actions/` with an index-kits route |
 
 ---
 
@@ -194,10 +195,10 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 | Category | Count |
 |----------|-------|
-| ✅ Fully migrated workflows | 4 |
-| ⚠️ Partial workflows | 11 |
-| ✅ Migrated actions | 35 |
-| ❌ Legacy workflows → should be actions | 1 (4 forms) |
+| ✅ Fully migrated workflows | 5 |
+| ⚠️ Partial workflows | 10 |
+| ✅ Migrated actions | 36 |
+| ❌ Legacy workflows → should be actions | 0 |
 | ✅ Legacy top-level forms migrated | 7 |
 | ✅ Auth forms migrated | 5 |
 | ✅ Comment forms migrated (combined into one) | 4 |
@@ -206,5 +207,10 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 ### Priority Order (Recommended)
 1. **Reindex runtime verification and cleanup** — Step forms now exist, but the workflow needs end-to-end testing and final refinement.
-2. **Shell-only workflows with missing forms** — Relib, Merge Pools, Mux Prep, Library Pooling, Library Remux, Select Library Protocols, Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
-3. **edit_kit_barcodes** — Single-step, should be migrated as actions.
+2. **Remaining workflow shells** — Merge Pools, Mux Prep, Library Pooling, Library Remux, Select Library Protocols, Share Project Data, Lane QC, Select Experiment Pools, and Merge Projects.
+
+### Next Recommended Migration
+
+**Workflow:** `Merge Pools`
+
+`Merge Pools` is the next recommended migration because its FastAPI workflow shell already exists. Implement `MergePoolsForm` and `get_next_step()` / Previous navigation.

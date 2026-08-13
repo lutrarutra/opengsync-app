@@ -410,7 +410,20 @@ class SpreadsheetInputField(BaseInputField, Generic[_DataT]):
         if message not in self.errors:
             self.errors.append(message)
 
-    def render(self, container_class: str = "", submit_btn_id: str | None = None, target_element_id: str | None = None, hide_label: bool = False) -> str:
-        return super().render(container_class=container_class, hide_label=hide_label, submit_btn_id=submit_btn_id, target_element_id=target_element_id)
+    def render(
+        self,
+        container_class: str = "",
+        submit_btn_id: str | None = None,
+        target_element_id: str | None = None,
+        hide_label: bool = False,
+        extra_fields: list | None = None,
+    ) -> str:
+        return super().render(
+            container_class=container_class,
+            hide_label=hide_label,
+            submit_btn_id=submit_btn_id,
+            target_element_id=target_element_id,
+            extra_fields=extra_fields or [],
+        )
 
 

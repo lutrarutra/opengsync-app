@@ -1,0 +1,22 @@
+<div class="modal-content" id="kit-barcodes-form-container">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Edit Barcodes</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body" id="kit-barcodes-form">
+        {% for field in reverse_complement_inputs %}
+        {{ field.render() }}
+        {% endfor %}
+        {{ form.csrf_token.render() }}
+        {{ form.spreadsheet.render(submit_btn_id="submit-kit-barcodes-btn", target_element_id="kit-barcodes-form-container", extra_fields=reverse_complement_inputs) }}
+    </div>
+
+    <div class="modal-footer">
+        <div class="footer-id">{{ index_kit.identifier }}</div>
+        <div class="footer-info"></div>
+        <div class="footer-controls">
+            <button id="submit-kit-barcodes-btn" class="btn btn-success">Save</button>
+        </div>
+    </div>
+</div>

@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 from sqlalchemy import sql
 
-from ..models import IndexKit
+from ..models import IndexKit, links, Kit
 from ..categories import IndexType, KitType
 from ..core import utils
 
@@ -55,6 +55,7 @@ def select(
     name: str | None = None,
     type_in: list[IndexType] | None = None,
     type: IndexType | None = None,
+    protocol_id: int | None = None,
     identifier: str | None = None,
     statement: sql.Select[tuple[IndexKit]] = sa.select(IndexKit),
 ) -> sql.Select[tuple[IndexKit]]:
@@ -70,5 +71,12 @@ def select(
         statement = statement.where(IndexKit.type_id == type.id)
     if identifier is not None:
         statement = statement.where(IndexKit.identifier == identifier.strip())
+    if protocol_id is not None:
+        statement = statement.where(
+            sa.select(1).where(
+                (links.ProtocolKitLink.protocol_id == protocol_id) &
+                (links.ProtocolKitLink.kit_id == Kit.id)
+            ).correlate_except(links.ProtocolKitLink).exists()
+        )
 
     return statement

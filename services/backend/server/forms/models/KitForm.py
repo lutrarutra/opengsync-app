@@ -2,12 +2,14 @@ import string
 from typing import Literal
 
 from fastapi import Depends, Response
+from opengsync_db import SyncSession, models
+from opengsync_db import categories as C
+from opengsync_db import queries as Q
 
-from opengsync_db import queries as Q, SyncSession, models, categories as C
-
-from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
-from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
+from ...core import dependencies, responses
+from ...core import exceptions as exc
+from ..HTMXForm import FormFunc, HTMXForm, RouteFunc, htmx_route
 
 
 class KitForm(HTMXForm):
@@ -60,7 +62,7 @@ class KitForm(HTMXForm):
 
         return dependency
 
-    @htmx_route("GET", "/{kit_id}/edit", name="Edit")
+    @htmx_route("GET", "/{kit_id}/edit-kit", name="Edit")
     def RenderEdit(cls) -> RouteFunc:
         def route(
             form: "KitForm" = Depends(KitForm.Init(form_type="edit")),
@@ -71,6 +73,7 @@ class KitForm(HTMXForm):
             form.name.data = form.kit.name
             form.identifier.data = form.kit.identifier
             return form.make_response()
+
         return route
 
     @htmx_route("GET", "/create", name="Create")
@@ -80,6 +83,7 @@ class KitForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ):
             return form.make_response()
+
         return route
 
     @htmx_route("POST", "/{kit_id}/edit", name="Edit")
@@ -107,19 +111,11 @@ class KitForm(HTMXForm):
                     form.identifier.errors.append("Identifier cannot contain whitespace.")
                     raise exc.FormValidationException(form)
 
-            if session.exists(
-                Q.kit.select(identifier=form.identifier.data).where(
-                    models.Kit.id != form.kit.id
-                )
-            ):
+            if session.exists(Q.kit.select(identifier=form.identifier.data).where(models.Kit.id != form.kit.id)):
                 form.identifier.errors.append("A kit with this identifier already exists.")
                 raise exc.FormValidationException(form)
 
-            if session.exists(
-                Q.kit.select(name=form.name.data).where(
-                    models.Kit.id != form.kit.id
-                )
-            ):
+            if session.exists(Q.kit.select(name=form.name.data).where(models.Kit.id != form.kit.id)):
                 form.name.errors.append("A kit with this name already exists.")
                 raise exc.FormValidationException(form)
 
@@ -130,6 +126,7 @@ class KitForm(HTMXForm):
                 redirect=responses.url_for("kit_page", kit_id=form.kit.id),
                 flash=responses.flash("Kit updated successfully.", "success"),
             )
+
         return submit
 
     @htmx_route("POST", "/create", name="Create")
@@ -162,14 +159,18 @@ class KitForm(HTMXForm):
                 form.name.errors.append("A kit with this name already exists.")
                 raise exc.FormValidationException(form)
 
-            kit = session.save(Q.kit.create(
-                name=form.name.data,
-                identifier=form.identifier.data,
-                kit_type=C.KitType.LIBRARY_KIT,
-            ), flush=True)
+            kit = session.save(
+                Q.kit.create(
+                    name=form.name.data,
+                    identifier=form.identifier.data,
+                    kit_type=C.KitType.LIBRARY_KIT,
+                ),
+                flush=True,
+            )
 
             return responses.htmx_response(
                 redirect=responses.url_for("kit_page", kit_id=kit.id),
                 flash=responses.flash("Kit created successfully.", "success"),
             )
+
         return submit

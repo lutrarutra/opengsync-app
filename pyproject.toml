@@ -49,16 +49,8 @@ members = [
     "services/backend",
 ]
 
-[tool.flake8]
-max-line-length = 120
-exclude = [
-    ".git",
-    "__pycache__",
-]
-extend-ignore = ["E501", "W292", "W293"]
-
 [tool.ruff]
-max-line-length = 120
+line-length = 120
 exclude = [
     ".git",
     "__pycache__",

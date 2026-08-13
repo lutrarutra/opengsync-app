@@ -16,8 +16,8 @@ def create(
         sequence=sequence.strip(),
         well=well,
         type_id=type.id,
-        adapter=adapter,
-        index_kit=adapter.index_kit
+        adapter_id=adapter.id,
+        index_kit_id=adapter.index_kit_id,
     )
 
 

@@ -270,10 +270,14 @@ class HTMXForm(ABC):
         PydanticModel = self._build_pydantic_model(pydantic_fields)
 
         try:
-            validated_data = PydanticModel(**{
-                field.name: self.raw_data.get(field.name, field.default)
-                for field in pydantic_fields
-            })
+            mapped_data = {}
+            for field in pydantic_fields:
+                raw_value = self.raw_data.get(field.name, field.default)
+                if isinstance(field, inputs.boolean.BooleanInputField):
+                    raw_value = field.validate_value(raw_value)
+                mapped_data[field.name] = raw_value
+
+            validated_data = PydanticModel(**mapped_data)
 
             for field in pydantic_fields:
                 if not field.errors:

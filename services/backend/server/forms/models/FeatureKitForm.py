@@ -2,12 +2,14 @@ import string
 from typing import Literal
 
 from fastapi import Depends, Response
+from opengsync_db import SyncSession, models
+from opengsync_db import categories as C
+from opengsync_db import queries as Q
 
-from opengsync_db import queries as Q, SyncSession, models, categories as C
-
-from ...core import responses, dependencies, exceptions as exc
 from ...components import inputs
-from ..HTMXForm import HTMXForm, RouteFunc, FormFunc, htmx_route
+from ...core import dependencies, responses
+from ...core import exceptions as exc
+from ..HTMXForm import FormFunc, HTMXForm, RouteFunc, htmx_route
 
 
 class FeatureKitForm(HTMXForm):
@@ -65,7 +67,7 @@ class FeatureKitForm(HTMXForm):
 
         return dependency
 
-    @htmx_route("GET", "/{feature_kit_id}/edit", name="Edit")
+    @htmx_route("GET", "/{feature_kit_id}/edit-feature-kit", name="Edit")
     def RenderEdit(cls) -> RouteFunc:
         def route(
             form: "FeatureKitForm" = Depends(FeatureKitForm.Init(form_type="edit")),
@@ -77,6 +79,7 @@ class FeatureKitForm(HTMXForm):
             form.identifier.data = form.feature_kit.identifier
             form.feature_type_id.data = form.feature_kit.type_id
             return form.make_response()
+
         return route
 
     @htmx_route("GET", "/create", name="Create")
@@ -86,6 +89,7 @@ class FeatureKitForm(HTMXForm):
             _=Depends(dependencies.require_insider),
         ):
             return form.make_response()
+
         return route
 
     @htmx_route("POST", "/{feature_kit_id}/edit", name="Edit")
@@ -110,17 +114,13 @@ class FeatureKitForm(HTMXForm):
                     raise exc.FormValidationException(form)
 
             if session.exists(
-                Q.feature_kit.select(identifier=form.identifier.data).where(
-                    models.FeatureKit.id != form.feature_kit.id
-                )
+                Q.feature_kit.select(identifier=form.identifier.data).where(models.FeatureKit.id != form.feature_kit.id)
             ):
                 form.identifier.errors.append("A feature kit with this identifier already exists.")
                 raise exc.FormValidationException(form)
 
             if session.exists(
-                Q.feature_kit.select(name=form.name.data).where(
-                    models.FeatureKit.id != form.feature_kit.id
-                )
+                Q.feature_kit.select(name=form.name.data).where(models.FeatureKit.id != form.feature_kit.id)
             ):
                 form.name.errors.append("A feature kit with this name already exists.")
                 raise exc.FormValidationException(form)
@@ -136,6 +136,7 @@ class FeatureKitForm(HTMXForm):
                 redirect=responses.url_for("feature_kit_page", feature_kit_id=form.feature_kit.id),
                 flash=responses.flash("Feature kit updated successfully.", "success"),
             )
+
         return submit
 
     @htmx_route("POST", "/create", name="Create")
@@ -163,14 +164,20 @@ class FeatureKitForm(HTMXForm):
                 form.name.errors.append("A feature kit with this name already exists.")
                 raise exc.FormValidationException(form)
 
-            feature_kit = session.save(Q.feature_kit.create(
-                name=form.name.data,
-                identifier=form.identifier.data,
-                type=C.FeatureType.get(form.feature_type_id.data) if form.feature_type_id.data is not None else C.FeatureType.CUSTOM,
-            ), flush=True)
+            feature_kit = session.save(
+                Q.feature_kit.create(
+                    name=form.name.data,
+                    identifier=form.identifier.data,
+                    type=C.FeatureType.get(form.feature_type_id.data)
+                    if form.feature_type_id.data is not None
+                    else C.FeatureType.CUSTOM,
+                ),
+                flush=True,
+            )
 
             return responses.htmx_response(
                 redirect=responses.url_for("feature_kit_page", feature_kit_id=feature_kit.id),
                 flash=responses.flash("Feature kit created successfully.", "success"),
             )
+
         return submit
