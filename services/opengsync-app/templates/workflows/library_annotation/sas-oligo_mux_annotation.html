@@ -45,7 +45,7 @@
             {% if kits is defined and kits %}
             {% for identifier, (kit, df) in kits.items() %}
             <div class="tab-pane fade" id="kit-{{ identifier }}-tab" role="tabpanel" tabindex="{{ loop.index + 2 }}">
-                <div hx-get="{{ url_for('feature_kits_htmx.render_table', feature_kit_id=kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+                <div hx-get="{{ url_for('render_feature_kit_spreadsheet', feature_kit_id=kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                     {{ spinner() }}
                 </div>
             </div>

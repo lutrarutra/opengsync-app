@@ -1,6 +1,4 @@
 {% from "components/legends.jinja2" import spreadsheet_error_legend with context %}
-{% from "components/spreadsheet.jinja2" import spreadsheet_input, static_spreadsheet %}
-{% from "components/form_group.jinja2" import checkbox_input %}
 
 <div id="oligo_annotation-form-container" class="modal-content">
     <div class="modal-header">
@@ -31,11 +29,17 @@
         </ul>
         <div class="tab-content">
             <div class="tab-pane fade show active" id="spreadsheet-tab" role="tabpanel" tabindex="0">
-                {{ checkbox_input(form.apply_to_sample_pool) }}
-                {{ spreadsheet_input(element=form.spreadsheet) }}
+                {{ form.apply_to_sample_pool.render() }}
+                {{
+                    form.spreadsheet.render(
+                        target_element_id="oligo_annotation-form-container",
+                        submit_btn_id="parse-spreadsheet-btn",
+                        extra_fields=[form.apply_to_sample_pool],
+                    )
+                }}
             </div>
             <div class="tab-pane fade" id="sample_pool-tab" role="tabpanel" tabindex="1">
-                {{ static_spreadsheet(library_sample_pool_table) }}
+                {{ library_sample_pool_table.render() }}
             </div>
             <div class="tab-pane fade" id="help-tab" role="tabpanel" tabindex="2">
             </div>
@@ -43,7 +47,7 @@
     </div>
     <div class="modal-footer">
         <div class="footer-id">
-            {{ form.uuid }}
+            {{ form.workflow.uuid }}
         </div>
         <div class="footer-info">
             {{ spreadsheet_error_legend() }}
@@ -55,23 +59,3 @@
         </div>
     </div>
 </div>
-<script>
-    $(document).ready(function() {
-        $("#parse-spreadsheet-btn").click(function() {
-            var data = spread_sheet.getData();
-
-            htmx.ajax("POST", "{{ form.spreadsheet.post_url | safe }}", {
-                "target": "#oligo_annotation-form-container",
-                "swap": "outerHTML",
-                "values": {
-                    "spreadsheet": JSON.stringify(data),
-                    "csrf_token": "{{ form._csrf_token }}",
-                    "columns": JSON.stringify(spread_sheet.getHeaders()),
-                    "apply_to_sample_pool": $("#{{ form.apply_to_sample_pool.id }}").prop("checked"),
-                },
-            });
-
-            disable_button($(this));
-        });
-    });
-</script>

@@ -8,7 +8,7 @@
             <h1><b>[{{ feature_kit.identifier }}]</b> {{ feature_kit.name }} <span class="desc">{{ feature_kit.type.label }}</span></h1>
         </div>
         <div class="page-controls">
-            <a type="button" class="btn btn-primary" href="{{ url_for('kits_page.export_features', feature_kit_id=feature_kit.id) }}">Export</a>
+            <a type="button" class="btn btn-primary" href="{{ url_for('export_feature_kit_features', feature_kit_id=feature_kit.id) }}">Export</a>
             {% if current_user.is_insider %}
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -77,7 +77,7 @@
 <div class="page-content pt-2">
     <div class="tab-content">
         <div class="tab-pane fade show active" id="table-tab" role="tabpanel" tabindex="0">
-            <div hx-get="{{ url_for('feature_kits_htmx.render_table', feature_kit_id=feature_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_feature_kit_spreadsheet', feature_kit_id=feature_kit.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

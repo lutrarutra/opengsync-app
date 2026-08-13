@@ -1,6 +1,6 @@
 from contextlib import suppress
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils

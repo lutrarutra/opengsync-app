@@ -29,6 +29,7 @@ from . import (
     seq_runs,
     index_kits,
     adapters,
+    feature_kits,
 )
 
 router = APIRouter(prefix="/htmx", tags=["pages", "htmx"])
@@ -59,3 +60,4 @@ router.include_router(seq_runs.router, dependencies=[Depends(auth.dependencies.r
 router.include_router(actions.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(index_kits.router, dependencies=[Depends(auth.dependencies.require_user)])
 router.include_router(adapters.router, dependencies=[Depends(auth.dependencies.require_user)])
+router.include_router(feature_kits.router, dependencies=[Depends(auth.dependencies.require_user)])
