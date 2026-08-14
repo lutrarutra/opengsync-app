@@ -320,33 +320,11 @@ def render_project_sample_attribute_spreadsheet(
     return responses.htmx_response(content=spreadsheet.render())
 
 
-class ExperimentNameKey(BaseModel):
-    experiment_name: str
-
-
-class SeqRequestIdKey(BaseModel):
-    seq_request_id: int
-
-
-class SampleNameKey(BaseModel):
-    sample_name: str
-
-
-class OverviewLibraryRow(BaseModel):
-    library_name: str
-    library_id: int
-    seq_request_id: int
-    experiment_name: str | None = None
-
-
-@router.get(
-    "/{project_id}/overview", dependencies=[Depends(dependencies.project_permissions)]
-)
+@router.get("/{project_id}/overview", dependencies=[Depends(dependencies.project_permissions)])
 def render_project_overview(
     project_id: int,
     session: SyncSession = Depends(dependencies.db_session),
 ):
-
     df = session.pd.get_project_libraries(project_id=project_id)
 
     LINK_WIDTH_UNIT = 1
@@ -359,6 +337,21 @@ def render_project_overview(
     experiment_nodes = {}
     seq_request_nodes = {}
     idx = 0
+
+    class ExperimentNameKey(BaseModel):
+        experiment_name: str
+
+    class SeqRequestIdKey(BaseModel):
+        seq_request_id: int
+
+    class SampleNameKey(BaseModel):
+        sample_name: str
+
+    class OverviewLibraryRow(BaseModel):
+        library_name: str
+        library_id: int
+        seq_request_id: int
+        experiment_name: str | None = None
 
     for key, _ in parsing.safe_groupby(df, "experiment_name", ExperimentNameKey, dropna=True):
         node = {

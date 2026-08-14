@@ -240,10 +240,6 @@ def render_prep_feed(
     return responses.htmx_response("components/dashboard/preps-feed.html", df=df)
 
 
-class SeqRequestIdKey(BaseModel):
-    seq_request_id: int
-
-
 @router.get("/render-feed/{service_type_id}", dependencies=[Depends(dependencies.require_insider)])
 def render_prep_feed_detail(
     service_type_id: int,
@@ -281,6 +277,9 @@ def render_prep_feed_detail(
         "num_waiting_pools": [],
     }
 
+    class SeqRequestIdKey(BaseModel):
+        seq_request_id: int
+        
     for key, _ in parsing.safe_groupby(df, "seq_request_id", SeqRequestIdKey, dropna=True):
         seq_request = session.get_one(
             Q.seq_request.select(id=key.seq_request_id),

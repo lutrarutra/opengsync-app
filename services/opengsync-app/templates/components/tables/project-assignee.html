@@ -21,7 +21,7 @@
                 {{
                     context_menu([
                         {"type": "hxdelete", "label": "Remove Assignee", "disabled": false if current_user.is_insider else true, "config": {
-                            "url": url_for('remove_project_assignee', project_id=project.id, assignee_id=user.id),
+                            "url": url_for('remove_project_assignee', project_id=project.id, assignee_id=user.id).__str__(),
                             "target": "#project-assignee-table",
                             "title": "Remove assignee {user.name}?".format(user=user)
                         },},

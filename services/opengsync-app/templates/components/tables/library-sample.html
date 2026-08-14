@@ -22,7 +22,7 @@
                     context_menu([
                         {"type": "copy", "value": sample.name, "label": "Copy Name"},
                         {"type": "hxdelete", "label": "Remove", "disabled": false if library.status == C.LibraryStatus.DRAFT or current_user.is_insider else true, "config": {
-                            "url": url_for("remove_sample_from_library", library_id=library.id, sample_id=sample.id),
+                            "url": url_for("remove_sample_from_library", library_id=library.id, sample_id=sample.id).__str__(),
                             "target": "#library-sample-table",
                             "text": "Are you sure?",
                             "title": "Remove sample '{name}' [{id}] from '{library}'-library?".format(name=sample.name, id=sample.id, library=library.name)
