@@ -112,7 +112,7 @@ class SequencerForm(HTMXForm):
             ), flush=True)
 
             return responses.htmx_response(
-                redirect=responses.url_for("devices_page"),
+                redirect=responses.url_for("sequencers_page"),
                 flash=responses.flash(f"Sequencer '{sequencer.name}' created.", "success"),
             )
         return submit

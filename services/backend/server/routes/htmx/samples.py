@@ -1,13 +1,10 @@
-import io
-import pandas as pd
 from sqlalchemy import orm
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Query
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies, exceptions as exc, responses
 from ...components.tables import HTMXTable, TableCol, TextColumn, StaticSpreadsheet
-from ...core.context import ctx
 from ... import forms
 
 
@@ -152,3 +149,21 @@ def render_sample_attribute_spreadsheet(
     return spreadsheet.render()
 
 router.include_router(forms.models.SampleForm.Router())
+
+
+@router.delete("/{sample_id}/delete")
+def delete_sample(
+    sample_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.sample_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException("You do not have permission to delete this sample.")
+
+    sample = session.get_one(Q.sample.select(id=sample_id))
+    session.delete(sample)
+
+    return responses.htmx_response(
+        redirect=responses.url_for("samples_page"),
+        flash=responses.flash(f"Sample {sample.name} deleted.", "success")
+    )

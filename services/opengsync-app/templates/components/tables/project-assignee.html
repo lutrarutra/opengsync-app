@@ -21,13 +21,13 @@
                 {{
                     context_menu([
                         {"type": "hxdelete", "label": "Remove Assignee", "disabled": false if current_user.is_insider else true, "config": {
-                            "url": url_for('projects_htmx.remove_assignee', project_id=project.id, assignee_id=user.id),
+                            "url": url_for('remove_project_assignee', project_id=project.id, assignee_id=user.id),
                             "target": "#project-assignee-table",
                             "title": "Remove assignee {user.name}?".format(user=user)
                         },},
                     ])
                 }}>
-                    <a href="{{ url_for('user_page', user_id=user.id, from='project@' + project.id | string) }}">{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span></a>{% endif %}
+                    <a href="{{ url_for('user_page', user_id=user.id, from='project@' + project.id | string) }}">{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span>{% endif %}</a>
                 </td>
                 <td class="cm-callback" {{
                     context_menu([

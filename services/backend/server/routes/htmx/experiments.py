@@ -361,6 +361,35 @@ def render_experiment_sample_pooling_table(
     
     return responses.htmx_response("components/lane-pooling-ratios.html", experiment=experiment, df=df)
 
+
+@router.get("/render-feed", dependencies=[Depends(dependencies.require_insider)])
+def render_experiment_feed(
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    PAGE_LIMIT = 10
+    experiments, _ = session.page(
+        Q.experiment.select(
+            status_in=[
+                C.ExperimentStatus.DRAFT,
+                C.ExperimentStatus.LOADED,
+                C.ExperimentStatus.SEQUENCING,
+                C.ExperimentStatus.SEQUENCED,
+            ]
+        ),
+        page=page,
+        limit=PAGE_LIMIT,
+        order_by=models.Experiment.name.desc(),
+        options=[orm.selectinload(models.Experiment.operator)],
+    )
+    return responses.htmx_response(
+        "components/dashboard/experiments-feed.html",
+        experiments=experiments,
+        current_page=page,
+        limit=PAGE_LIMIT,
+    )
+
+
 router.include_router(forms.models.ExperimentForm.Router())
 router.include_router(forms.actions.dist_reads.DistributeReadsSeparateAction.Router())
 router.include_router(forms.actions.dist_reads.DistributeReadsCombinedAction.Router())

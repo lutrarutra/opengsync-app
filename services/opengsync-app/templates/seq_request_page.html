@@ -548,7 +548,7 @@
                     <h2>The data will be shared with following emails:</h2>
                 </div>
                 <div>
-                    {{ modal_button("Add Email", url=url_for('clone_seq_request', seq_request_id=seq_request.id), disabled=not current_user.is_insider and seq_request.status >= C.SeqRequestStatus.FINISHED) }}
+                    {{ modal_button("Add Email", url=url_for('AddSeqRequestShareEmailAction.Begin', seq_request_id=seq_request.id), disabled=not current_user.is_insider and seq_request.status >= C.SeqRequestStatus.FINISHED) }}
                 </div>
             </div>     
             {% set only_one = seq_request.delivery_email_links | length == 1 %}
@@ -567,7 +567,7 @@
                             {{ tooltip('Atleast one email is required. Add another email to remove this.', category='danger') }}
                         {% endif %}>
                             <button class="btn btn-danger" {% if only_one %}disabled{% endif %}
-                            hx-delete="{{ url_for('clone_seq_request', seq_request_id=seq_request.id, email=link.email) }}">
+                            hx-delete="{{ url_for('remove_seq_request_share_email', seq_request_id=seq_request.id, email=link.email) }}">
                                 Remove
                             </button>
                         </span>
@@ -600,7 +600,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="request-data_paths-tab" role="tabpanel" tabindex="13">
-            <div hx-get="{{ url_for('clone_seq_request', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_data_path_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

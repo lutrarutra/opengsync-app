@@ -35,7 +35,7 @@
         </div>
         <div class="tab-content ba">
             <div class="tab-pane fade show active" id="select-experiments-form-tab" role="tabpanel" tabindex="0">
-                <div hx-trigger="intersect once" hx-get="{{ url_for('experiments_htmx.browse', **url_context) }}">
+                <div hx-trigger="intersect once" hx-get="{{ url_for('render_experiment_table', browse='billing') }}">
                     {{ spinner() }}
                 </div>
             </div>

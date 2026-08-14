@@ -36,6 +36,14 @@ class ChangePasswordForm(HTMXForm):
             return ChangePasswordForm(user=user)
         return dependency
 
+    @htmx_route("GET")
+    def Render(cls) -> RouteFunc:
+        def route(
+            form: "ChangePasswordForm" = Depends(ChangePasswordForm.Init()),
+        ) -> Response:
+            return form.make_response()
+        return route
+
     @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(

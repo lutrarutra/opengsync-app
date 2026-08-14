@@ -24,7 +24,7 @@ class FeatureTable(HTMXTable):
 
 @router.get("/render-table-page")
 def render_feature_table(
-    feature_kit_id: int,
+    feature_kit_id: int | None = Query(None, description="Optional feature kit ID to filter features"),
     library_id: int | None = Query(None, description="Filter features by library ID"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     type_in: list[C.FeatureType] | None = Depends(dependencies.parse_enum_ids(C.FeatureType, "type_in")),

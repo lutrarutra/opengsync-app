@@ -27,7 +27,7 @@
             {% endif %}>
                 <button class="btn btn-danger"
                 {% if sample.is_editable() %}
-                hx-delete="{{ url_for('samples_htmx.delete', sample_id=sample.id) }}" 
+                hx-delete="{{ url_for('delete_sample', sample_id=sample.id) }}" 
                     _="on htmx:confirm(issueRequest)
                     halt the event
                     call Swal.fire({

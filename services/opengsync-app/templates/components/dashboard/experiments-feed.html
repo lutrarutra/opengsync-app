@@ -4,14 +4,14 @@
 {% for experiment in experiments %}
 <div class="element-banner"
 {% if loop.last and limit == loop.index %}
-hx-get="{{ url_for('render_experiment_table_recent', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#experiments-htmx-indicator" hx-swap="outerHTML" hx-indicator="#experiments-htmx-indicator"
+hx-get="{{ url_for('render_experiment_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#experiments-feed-indicator" hx-swap="outerHTML" hx-indicator="#experiments-feed-indicator"
 {% endif %}>
     <div class="row pb-1">
         <div class="title col-4"><a href="{{ url_for('experiment_page', experiment_id=experiment.id) }}">{{ experiment.name }}</a></div>
-        <div class="description col-4">{{ experiment.operator.name }}</span></div>
+        <div class="description col-4">{{ experiment.operator.name }}</div>
         <div class="col-4">{{ experiment.timestamp_created_str("%-d. %b. @ %-H:%M") }}</div>
     </div>
     {{ experiment_status_bar(experiment) }}
 </div>
 {% endfor %}
-{{ spinner(id="experiments-htmx-indicator") }}
+{{ spinner(id="experiments-feed-indicator") }}

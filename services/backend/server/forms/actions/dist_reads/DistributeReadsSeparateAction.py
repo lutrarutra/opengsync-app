@@ -20,6 +20,7 @@ class PoolSubForm(SubHTMXForm):
     lane_forms = inputs.dynamic.SubFormList[LaneSubForm](min_elements=1)
 
 class DistributeReadsSeparateAction(HTMXForm):
+    template_path = "workflows/dist_reads/separate.html"
     pool_forms = inputs.dynamic.SubFormList[PoolSubForm](min_elements=1)
 
     def __init__(self, experiment: models.Experiment) -> None:

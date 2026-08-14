@@ -15,7 +15,7 @@
                     </div>
                 </div>
                 <div class="dash-component-content">
-                    <div class="banner-container" hx-get="{{ url_for('recent_seq_requests') }}" hx-trigger="load once">
+                    <div class="banner-container" hx-get="{{ url_for('render_seq_request_feed') }}" hx-trigger="load once">
                         {{ spinner() }}
                     </div>
                 </div>
@@ -27,7 +27,7 @@
                     </div>
                 </div>
                 <div class="dash-component-content">
-                    <div class="banner-container" hx-get="{{ url_for('recent_seq_requests') }}" hx-trigger="load once">
+                    <div class="banner-container" hx-get="{{ url_for('render_experiment_feed') }}" hx-trigger="load once">
                         {{ spinner() }}
                     </div>
                 </div>
@@ -59,17 +59,17 @@
                 </div>
                 <div class="tab-content dash-component-content">
                     <div class="tab-pane fade show active" id="tab-projects" role="tabpanel" tabindex="0">
-                        <div class="banner-container" hx-get="{{ url_for('recent_seq_requests') }}" hx-trigger="load once">
+                        <div class="banner-container" hx-get="{{ url_for('render_project_feed') }}" hx-trigger="load once">
                             {{ spinner() }}
                         </div>
                     </div>
                     <div class="tab-pane fade" id="tab-pools" role="tabpanel" tabindex="1">
-                        <div class="banner-container" hx-get="{{ url_for('recent_seq_requests') }}" hx-trigger="intersect once">
+                        <div class="banner-container" hx-get="{{ url_for('render_pool_feed') }}" hx-trigger="intersect once">
                             {{ spinner() }}
                         </div>
                     </div>
                     <div class="tab-pane fade" id="tab-todo-libraries" role="tabpanel" tabindex="2">
-                        <div class="banner-container" hx-get="{{ url_for('recent_seq_requests') }}" hx-trigger="intersect once">
+                        <div class="banner-container" hx-get="{{ url_for('render_prep_feed') }}" hx-trigger="intersect once">
                             {{ spinner() }}
                         </div>
                     </div>

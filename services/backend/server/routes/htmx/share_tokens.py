@@ -22,7 +22,7 @@ class ShareTokenTable(HTMXTable):
 @router.get("/render-table-page")
 def render_share_token_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    project_id: int = Query(..., description="Optional project ID to filter share tokens"),
+    project_id: int | None = Query(None, description="Optional project ID to filter share tokens"),
     current_user: models.User = Depends(dependencies.require_insider),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.ShareToken, default=models.ShareToken.uuid.asc())),
     session: SyncSession = Depends(dependencies.db_session),

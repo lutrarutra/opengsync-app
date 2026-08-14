@@ -2,15 +2,12 @@
 {% from "components/assignee_list.jinja2" import assignee_list %}
 {% from "components/spinner.jinja2" import spinner %}
 {% from "components/tooltip.jinja2" import tooltip %}
-{% from "components/contextmenu.jinja2" import context_menu %}
 
 {% for project in projects %}
-{% if loop.last and limit == loop.index %}
 <div class="element-banner"
-hx-get="{{ url_for('render_project_table_recent', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#projects-htmx-indicator" hx-swap="outerHTML" hx-indicator="#projects-htmx-indicator">
-{% else %}
-<div class="element-banner">
-{% endif %}
+{% if loop.last and limit == loop.index %}
+hx-get="{{ url_for('render_project_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#projects-feed-indicator" hx-swap="outerHTML" hx-indicator="#projects-feed-indicator"
+{% endif %}>
     <div class="row">
         <div class="col-6">
             <a type="button" href="{{ url_for('project_page', project_id=project.id) }}">{% if project.identifier %}{{ project.identifier }}{% else %}#{{ project.id }}{% endif %}</a> {% if project.assignees %} - {{ assignee_list(project.assignees, current_user=current_user) }}{% endif %}
@@ -30,4 +27,4 @@ hx-get="{{ url_for('render_project_table_recent', page=current_page + 1) }}" hx-
     {{ project_status_bar(project) }}
 </div>
 {% endfor %}
-{{ spinner(id="projects-htmx-indicator") }}
+{{ spinner(id="projects-feed-indicator") }}

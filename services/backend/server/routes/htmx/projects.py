@@ -1,13 +1,15 @@
 import io
 import pandas as pd
+from pydantic import BaseModel
 from sqlalchemy import orm
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Query
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
 from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
 from ...core.context import ctx
+from ...utils import parsing
 from ... import forms
 
 
@@ -165,7 +167,7 @@ def search_projects(
         else:    
             stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
 
-    projects, count = session.page(stmt, page=page)
+    projects, _ = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/project.html", projects=projects)
 
 @router.get("/{project_id}/export", dependencies=[Depends(dependencies.project_permissions)])
@@ -318,6 +320,25 @@ def render_project_sample_attribute_spreadsheet(
     return responses.htmx_response(content=spreadsheet.render())
 
 
+class ExperimentNameKey(BaseModel):
+    experiment_name: str
+
+
+class SeqRequestIdKey(BaseModel):
+    seq_request_id: int
+
+
+class SampleNameKey(BaseModel):
+    sample_name: str
+
+
+class OverviewLibraryRow(BaseModel):
+    library_name: str
+    library_id: int
+    seq_request_id: int
+    experiment_name: str | None = None
+
+
 @router.get(
     "/{project_id}/overview", dependencies=[Depends(dependencies.project_permissions)]
 )
@@ -339,43 +360,37 @@ def render_project_overview(
     seq_request_nodes = {}
     idx = 0
 
-    for (experiment_name,), _ in df.groupby(["experiment_name"]):
+    for key, _ in parsing.safe_groupby(df, "experiment_name", ExperimentNameKey, dropna=True):
         node = {
             "node": idx,
-            "name": experiment_name,
+            "name": key.experiment_name,
         }
-        experiment_nodes[experiment_name] = node
+        experiment_nodes[key.experiment_name] = node
         nodes.append(node)
         idx += 1
 
-    for (seq_request_id,), _ in df.groupby(
-        [
-            "seq_request_id",
-        ]
-    ):
+    for key, _ in parsing.safe_groupby(df, "seq_request_id", SeqRequestIdKey):
         node = {
             "node": idx,
-            "name": f"Request {seq_request_id}",
+            "name": f"Request {key.seq_request_id}",
         }
-        seq_request_nodes[seq_request_id] = node
+        seq_request_nodes[key.seq_request_id] = node
         nodes.append(node)
         idx += 1
 
-    for (sample_name,), sample_df in df.groupby(["sample_name"]):
+    for key, sample_df in parsing.safe_groupby(df, "sample_name", SampleNameKey):
         sample_node = {
             "node": idx,
-            "name": sample_name,
+            "name": key.sample_name,
         }
         idx += 1
         nodes.append(sample_node)
 
-        for _, row in sample_df.iterrows():
-            library_name = row["library_name"]
-            library_id = row["library_id"]
-            seq_request_id = row["seq_request_id"]
-            experiment_name = (
-                row["experiment_name"] if pd.notna(row["experiment_name"]) else None
-            )
+        for _, row in parsing.safe_iter(sample_df, OverviewLibraryRow):
+            library_name = row.library_name
+            library_id = row.library_id
+            seq_request_id = row.seq_request_id
+            experiment_name = row.experiment_name
 
             if library_id not in library_in_nodes:
                 library_in_node = {
@@ -404,36 +419,35 @@ def render_project_overview(
                 }
             )
 
-            if experiment_name is not None:
-                if library_id not in library_out_nodes:
-                    library_out_node = {
-                        "node": idx,
-                        "name": library_name,
+            if experiment_name is not None and library_id not in library_out_nodes:
+                library_out_node = {
+                    "node": idx,
+                    "name": library_name,
+                }
+                idx += 1
+                nodes.append(library_out_node)
+                library_out_nodes[library_id] = library_out_node
+                links.append(
+                    {
+                        "source": library_out_node["node"],
+                        "target": experiment_nodes[experiment_name]["node"],
+                        "value": LINK_WIDTH_UNIT
+                        * len(df[df["library_id"] == library_id]),
                     }
-                    idx += 1
-                    nodes.append(library_out_node)
-                    library_out_nodes[library_id] = library_out_node
-                    links.append(
-                        {
-                            "source": library_out_node["node"],
-                            "target": experiment_nodes[experiment_name]["node"],
-                            "value": LINK_WIDTH_UNIT
-                            * len(df[df["library_id"] == library_id]),
-                        }
-                    )
-                    links.append(
-                        {
-                            "source": seq_request_nodes[seq_request_id]["node"],
-                            "target": library_out_node["node"],
-                            "value": LINK_WIDTH_UNIT
-                            * len(
-                                df[
-                                    (df["library_id"] == library_id)
-                                    & (df["seq_request_id"] == seq_request_id)
-                                ]
-                            ),
-                        }
-                    )
+                )
+                links.append(
+                    {
+                        "source": seq_request_nodes[seq_request_id]["node"],
+                        "target": library_out_node["node"],
+                        "value": LINK_WIDTH_UNIT
+                        * len(
+                            df[
+                                (df["library_id"] == library_id)
+                                & (df["seq_request_id"] == seq_request_id)
+                            ]
+                        ),
+                    }
+                )
 
     return responses.htmx_response(
         template="components/plots/project_overview.html",
@@ -452,6 +466,87 @@ def render_project_software(
         template="components/project-software.html",
         software=project.software or {},
         project=project,
+    )
+
+
+@router.get("/render-feed")
+def render_project_feed(
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    current_user: models.User = Depends(dependencies.require_user),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    PAGE_LIMIT = 10
+    status_in = None
+    user_id = None
+    if current_user.is_insider:
+        status_in = [C.ProjectStatus.PROCESSING, C.ProjectStatus.SEQUENCED]
+    else:
+        user_id = current_user.id
+
+    projects, _ = session.page(
+        Q.project.select(user_id=user_id, status_in=status_in).order_by(
+            models.Project.status_id.desc(), models.Project.id.desc()
+        ),
+        page=page,
+        limit=PAGE_LIMIT,
+        options=[
+            orm.selectinload(models.Project.assignees),
+            orm.selectinload(models.Project.owner),
+            orm.selectinload(models.Project.group),
+            orm.with_expression(
+                models.Project._num_samples, models.Project.num_samples.expression
+            ),
+        ],
+    )
+    return responses.htmx_response(
+        "components/dashboard/projects-feed.html",
+        projects=projects,
+        current_page=page,
+        limit=PAGE_LIMIT,
+    )
+
+
+@router.get("/{project_id}/assignees")
+def render_project_assignee_table(
+    project_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.project_permissions),
+):
+    if access_level < C.AccessLevel.READ:
+        raise exc.NoPermissionsException()
+
+    project = session.get_one(
+        Q.project.select(id=project_id),
+        options=[orm.selectinload(models.Project.assignees)],
+    )
+    return responses.htmx_response(
+        "components/tables/project-assignee.html",
+        assignees=project.assignees,
+        project=project,
+    )
+
+
+@router.delete("/{project_id}/remove-assignee/{assignee_id}", dependencies=[Depends(dependencies.require_insider)])
+def remove_project_assignee(
+    project_id: int,
+    assignee_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    project = session.get_one(
+        Q.project.select(id=project_id),
+        options=[orm.selectinload(models.Project.assignees)],
+    )
+    assignee = session.get_one(Q.user.select(id=assignee_id))
+    if assignee not in project.assignees:
+        raise exc.BadRequestException("Assignee not found in project.")
+
+    project.assignees.remove(assignee)
+    session.save(project)
+    return responses.htmx_response(
+        "components/tables/project-assignee.html",
+        assignees=project.assignees,
+        project=project,
+        flash=responses.flash("Assignee removed.", "success"),
     )
 
 router.include_router(forms.models.ProjectForm.Router())

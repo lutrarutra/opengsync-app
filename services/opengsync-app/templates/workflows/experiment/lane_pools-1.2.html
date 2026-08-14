@@ -91,7 +91,7 @@
             <button type="button" class="btn btn-success"
             hx-target="#lane-pooling-form-container" hx-swap="outerHTML"
             hx-include="#lane-pooling-form"
-            hx-post="{{ url_for('lane_pools_workflow.lane_pools', experiment_id=experiment.id) }}">
+            hx-post="{{ url_for('LanePoolsCombinedAction.Submit', experiment_id=experiment.id) }}">
                 Confirm
             </button>
         </div>

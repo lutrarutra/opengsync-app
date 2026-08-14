@@ -1,11 +1,15 @@
 from contextlib import suppress
 
+import pandas as pd
+import sqlalchemy as sa
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
+from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, actions
 
 from ...core import dependencies, responses, exceptions as exc
+from ...utils import parsing
 from ... import forms
 from ...components.tables import HTMXTable, TableCol, TextColumn, StaticSpreadsheet
 
@@ -213,6 +217,129 @@ def render_library_reads(
         "components/library-reads.html", library=library,
         per_lane_stats_ss=per_lane_stats_ss, average_stats_ss=average_stats_ss
     )
+
+
+@router.get("/render-feed", dependencies=[Depends(dependencies.require_insider)])
+def render_prep_feed(
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    df = session.pd.query(
+        sa.select(
+            models.Library.id,
+            models.Library.service_type_id.label("service_type"),
+            models.Library.name.label("library_name"),
+            models.Library.status_id.label("status"),
+        ).where(
+            models.Library.status_id.in_([
+                C.LibraryStatus.ACCEPTED,
+                C.LibraryStatus.PREPARING,
+                C.LibraryStatus.STORED,
+            ]),
+        )
+    )
+    return responses.htmx_response("components/dashboard/preps-feed.html", df=df)
+
+
+class SeqRequestIdKey(BaseModel):
+    seq_request_id: int
+
+
+@router.get("/render-feed/{service_type_id}", dependencies=[Depends(dependencies.require_insider)])
+def render_prep_feed_detail(
+    service_type_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    try:
+        service_type = C.ServiceType.get(service_type_id)
+    except ValueError:
+        raise exc.BadRequestException()
+
+    df = session.pd.query(
+        sa.select(
+            models.Library.id,
+            models.Library.seq_request_id,
+            models.Library.service_type_id.label("service_type"),
+            models.Library.name.label("library_name"),
+            models.Library.status_id.label("status"),
+        ).where(
+            models.Library.status_id.in_([
+                C.LibraryStatus.ACCEPTED,
+                C.LibraryStatus.PREPARING,
+                C.LibraryStatus.STORED,
+            ]),
+            models.Library.service_type_id == service_type.id,
+        ).order_by(models.Library.seq_request_id, models.Library.id)
+    )
+
+    data: dict[str, list] = {
+        "seq_request": [],
+        "num_waiting_samples": [],
+        "num_preparing_libraries": [],
+        "num_pooled_libraries": [],
+        "library_type_counts": [],
+        "num_waiting_libraries": [],
+        "num_waiting_pools": [],
+    }
+
+    for key, _ in parsing.safe_groupby(df, "seq_request_id", SeqRequestIdKey, dropna=True):
+        seq_request = session.get_one(
+            Q.seq_request.select(id=key.seq_request_id),
+            options=[
+                orm.selectinload(models.SeqRequest.samples),
+                orm.selectinload(models.SeqRequest.libraries),
+                orm.selectinload(models.SeqRequest.pools),
+                orm.selectinload(models.SeqRequest.assignees),
+                orm.selectinload(models.SeqRequest.requestor),
+            ],
+        )
+
+        data["seq_request"].append(seq_request)
+        data["num_waiting_samples"].append(sum(
+            s.status == C.SampleStatus.WAITING_DELIVERY for s in seq_request.samples
+        ))
+        data["num_preparing_libraries"].append(sum(
+            ls.status == C.LibraryStatus.PREPARING for ls in seq_request.libraries
+        ))
+        data["num_pooled_libraries"].append(sum(
+            ls.status in [
+                C.LibraryStatus.POOLED,
+                C.LibraryStatus.SEQUENCED,
+                C.LibraryStatus.SHARED,
+                C.LibraryStatus.ARCHIVED,
+            ]
+            for ls in seq_request.libraries
+        ))
+        data["library_type_counts"].append(seq_request.library_type_counts)
+        data["num_waiting_libraries"].append(sum(
+            ls.status == C.LibraryStatus.ACCEPTED for ls in seq_request.libraries
+        ))
+        data["num_waiting_pools"].append(sum(
+            p.status == C.PoolStatus.ACCEPTED for p in seq_request.pools
+        ))
+
+    return responses.htmx_response(
+        "components/dashboard/preps-feed-detail.html",
+        service_type=service_type,
+        df=pd.DataFrame(data),
+    )
+
+
+@router.delete("/{library_id}/remove-sample")
+def remove_sample_from_library(
+    library_id: int,
+    sample_id: int = Query(..., description="The ID of the sample to remove from the library"),
+    session: SyncSession = Depends(dependencies.db_session),
+    access_level: C.AccessLevel = Depends(dependencies.library_permissions),
+):
+    if access_level < C.AccessLevel.WRITE:
+        raise exc.NoPermissionsException("You do not have permission to remove samples from this library.")
+    sample = session.get_one(Q.sample.select(id=sample_id))
+    actions.unlink_sample_library(session=session, sample_id=sample_id, library_id=library_id)
+    return responses.htmx_response(
+        redirect=responses.url_for("library_page", library_id=library_id),
+        flash=responses.flash(f"Sample {sample.name} removed from library.", "success")
+    )
+
 
 router.include_router(forms.models.LibraryForm.Router())
 router.include_router(forms.actions.LibraryFeaturesAction.Router())

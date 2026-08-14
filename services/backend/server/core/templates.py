@@ -6,9 +6,8 @@ from datetime import datetime
 import pandas as pd
 import jinja2
 from fastapi.templating import Jinja2Templates
-from starlette.datastructures import URL
 
-from opengsync_db import categories as C, models, SyncSession, units
+from opengsync_db import categories as C, models, units
 
 from . import context
 from .config import settings
@@ -19,8 +18,10 @@ def format_timestamp(value: float, format: str = "%Y-%m-%d %H:%M"):
     """Convert timestamp to readable string"""
     return datetime.fromtimestamp(value).strftime(format)
 
-def format_datetime(value: datetime, format: str = "%Y-%m-%d %H:%M"):
-    """Convert datetime to readable string"""
+def format_datetime(value: datetime | None, format: str = "%Y-%m-%d %H:%M"):
+    """Convert datetime to readable string. Empty when the value is missing."""
+    if value is None:
+        return ""
     return value.astimezone(settings.TIMEZONE).strftime(format)
 
 def weekday_name(value: int):

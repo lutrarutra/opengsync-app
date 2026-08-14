@@ -19,7 +19,7 @@
                 {% if (form.form_type == "create" or form.form_type == "clone") and current_user.is_insider %}
                 {{
                     search_select_field(
-                        form.contact, url_for('users_htmx.search', insider=True), "name", class="col-4"
+                        form.contact, url_for('search_users'), "name", class="col-4"
                     )
                 }}
                 {{ form_group(form.contact_name, class="col-2") }}

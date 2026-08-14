@@ -3,7 +3,7 @@
     {{ seq_auth_form.csrf_token() }}
     {{ form_group(seq_auth_form.file) }}
     <button class="btn btn-primary" hx-include="#seq_auth-form" hx-target="#seq_auth-form" hx-swap="outerHTML"
-    hx-encoding="multipart/form-data" hx-post="{{ url_for('seq_requests_htmx.upload_auth_form', seq_request_id=seq_request.id) }}">
+    hx-encoding="multipart/form-data" hx-post="{{ url_for('MediaFileForm.Upload', seq_request_id=seq_request.id, type=C.MediaFileType.SEQ_AUTH_FORM.id) }}">
         Submit
     </button>
 </div>

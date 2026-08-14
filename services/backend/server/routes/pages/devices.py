@@ -1,21 +1,25 @@
 from fastapi import APIRouter, Depends
 
-from opengsync_db import models
+from opengsync_db import SyncSession, queries as Q
 
-from ...core import dependencies, responses, exceptions
+from ...core import dependencies, responses
 
-router = APIRouter(prefix="/devices", tags=["devices"])
+router = APIRouter(prefix="/sequencers", tags=["sequencers"])
 
 
 @router.get("/")
 def sequencers_page():
-    return responses.html_response("devices_page.html", title="Devices")
+    return responses.html_response("sequencers_page.html", title="Sequencers")
 
 
 @router.get("/{sequencer_id}")
-def sequencer_page(sequencer_id: int):
+def sequencer_page(
+    sequencer_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    sequencer = session.get_one(Q.sequencer.select(id=sequencer_id))
     return responses.html_response(
-        "device_page.html",
-        sequencer_id=sequencer_id,
-        title=f"Device {sequencer_id}",
+        "sequencer_page.html",
+        sequencer=sequencer,
+        title=f"{sequencer.name}",
     )

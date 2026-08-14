@@ -135,7 +135,7 @@
                 {{ 
                     metadata_group_link(
                         "Protocol", library.protocol.name,
-                        url_for("protocols_page.protocol", protocol_id=library.protocol_id, from="library@" + library.id | string),
+                        url_for("protocol_page", protocol_id=library.protocol_id, from="library@" + library.id | string),
                         class="col-5"
                     )
                 }}
@@ -309,7 +309,7 @@
                     )
                 }}
             </div>
-            <div hx-get="{{ url_for('libraries_htmx.render_feature_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_feature_table', library_id=library.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

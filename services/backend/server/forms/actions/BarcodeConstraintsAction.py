@@ -51,7 +51,6 @@ class BarcodeConstraintsAction(HTMXForm):
     def Init(cls) -> FormFunc:
         def dependency() -> "BarcodeConstraintsAction":
             return BarcodeConstraintsAction()
-
         return dependency
 
     @htmx_route("GET", "/check-barcode-constraints")

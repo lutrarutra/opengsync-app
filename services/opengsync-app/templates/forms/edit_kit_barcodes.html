@@ -40,7 +40,7 @@
     $("#submit-spreadsheet-btn").on("click", function() {
         var data = spread_sheet.getData();
 
-        htmx.ajax("POST", "{{ url_for('index_kits_htmx.edit_barcodes', index_kit_id=index_kit.id) }}", {
+        htmx.ajax("POST", "{{ url_for('EditKitBarcodesForm.Submit', index_kit_id=index_kit.id) }}", {
             "target": "#kit_barcodes-form-container",
             "swap": "outerHTML",
             "values": {

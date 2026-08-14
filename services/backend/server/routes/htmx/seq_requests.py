@@ -188,12 +188,13 @@ def search_seq_requests(
     return responses.htmx_response(template="components/search/seq_request.html", seq_requests=seq_requests)
 
 
-@router.get("/recent")
-def recent_seq_requests(
+@router.get("/render-feed")
+def render_seq_request_feed(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ):
+    PAGE_LIMIT = 10
     options = [
         orm.selectinload(models.SeqRequest.assignees),
         orm.selectinload(models.SeqRequest.requestor),
@@ -202,7 +203,7 @@ def recent_seq_requests(
         ),
     ]
     if current_user.is_insider:
-        query = Q.seq_request.select(
+        stmt = Q.seq_request.select(
             status_in=[
                 C.SeqRequestStatus.SUBMITTED,
                 C.SeqRequestStatus.ACCEPTED,
@@ -214,32 +215,19 @@ def recent_seq_requests(
             models.SeqRequest.status_id,
             models.SeqRequest.timestamp_submitted_utc.desc(),
         )
-
     else:
-        query = Q.seq_request.select(
-            status_in=[
-                C.SeqRequestStatus.SUBMITTED,
-                C.SeqRequestStatus.ACCEPTED,
-                C.SeqRequestStatus.SAMPLES_RECEIVED,
-                C.SeqRequestStatus.PREPARED,
-                C.SeqRequestStatus.DATA_PROCESSING,
-            ],
-            requestor_id=current_user.id,
+        stmt = Q.seq_request.select(
+            viewer_id=current_user.id,
         ).order_by(
-            models.SeqRequest.status_id,
             models.SeqRequest.timestamp_submitted_utc.desc(),
         )
 
-    seq_requests, num_total = session.page(
-        query, limit=10, page=page, options=options
-    )
-
+    seq_requests, _ = session.page(stmt, limit=PAGE_LIMIT, page=page, options=options)
     return responses.htmx_response(
-        "components/dashboard/seq_requests-list.html",
+        "components/dashboard/seq_requests-feed.html",
         seq_requests=seq_requests,
-        num_total=num_total,
         current_page=page,
-        limit=10,
+        limit=PAGE_LIMIT,
     )
 
 @router.delete("/{seq_request_id}/delete")

@@ -4,12 +4,10 @@
 {% from "components/spinner.jinja2" import spinner %}
 
 {% for seq_request in seq_requests %}
-{% if loop.last and limit == loop.index %}
 <div class="element-banner"
-hx-get="{{ url_for('recent_seq_requests', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#seq_requests-htmx-indicator" hx-swap="outerHTML" hx-indicator="#seq_requests-htmx-indicator">
-{% else %}
-<div class="element-banner">
-{% endif %}
+{% if loop.last and limit == loop.index %}
+hx-get="{{ url_for('render_seq_request_feed', page=current_page + 1) }}" hx-trigger="intersect once" hx-target="#seq-requests-feed-indicator" hx-swap="outerHTML" hx-indicator="#seq-requests-feed-indicator"
+{% endif %}>
     <div class="row">
         <div class="col-6"><a href="{{ url_for('seq_request_page', seq_request_id=seq_request.id) }}">BSR_{{ "%04d" | format(seq_request.id) }}</a> {% if seq_request.assignees %} - {{ assignee_list(seq_request.assignees, current_user=current_user) }}{% endif %}</div>
         <div class="col-6">
@@ -27,4 +25,4 @@ hx-get="{{ url_for('recent_seq_requests', page=current_page + 1) }}" hx-trigger=
     {{ seq_request_status_bar(seq_request) }}
 </div>
 {% endfor %}
-{{ spinner(id="seq_requests-htmx-indicator") }}
+{{ spinner(id="seq-requests-feed-indicator") }}

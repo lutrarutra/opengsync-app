@@ -15,6 +15,7 @@ class PoolSubForm(SubHTMXForm):
     num_reads = inputs.numeric.FloatInputField("Number of Reads", required=False, ge=0.0)
 
 class DistributeReadsCombinedAction(HTMXForm):
+    template_path = "workflows/dist_reads/combined.html"
     pool_forms = inputs.dynamic.SubFormList[PoolSubForm](min_elements=1)
 
     def __init__(self, experiment: models.Experiment) -> None:

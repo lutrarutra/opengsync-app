@@ -3,8 +3,8 @@
     <ul>
         <li><b>Sample Name</b>: name of the sample after demultiplexing <span class="desc">e.g. brain-control-123</span></li>
         <li><b>Multiplexing Pool</b>: indicates how the samples are multiplexed <span class="desc">e.g. sample-pool-1</span></li>
-        <li><b>Kit</b>: name of a predefined feature kit, one found in <a href="{{ url_for('feature_kit_pages') }}">Feature Kits</a> page</li>
-        <li><b>Feature</b>: Name of the CMO feature. If using predefined kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('feature_kit_pages') }}" target="_blank">Feature Kits</a> page</li>
+        <li><b>Kit</b>: name of a predefined feature kit, one found in <a href="{{ url_for('feature_kits_page') }}">Feature Kits</a> page</li>
+        <li><b>Feature</b>: Name of the CMO feature. If using predefined kit, must match the 'Name'-column of the Feature in one of the feature kits from <a href="{{ url_for('feature_kits_page') }}" target="_blank">Feature Kits</a> page</li>
         <li><b>Sequence</b>: e.g. 'TGAGTACAGGCTCCCAAG'</li>
         <li><b>Pattern</b>: e.g. '5P(BC)'</li>
         <li><b>Read</b>: e.g. 'R2'</li>
@@ -14,7 +14,7 @@
     <ul>
         <li>Two ways to specify CMOs:</li>
         <ol>
-            <li>If using predefined kit from <a href="{{ url_for('feature_kit_pages') }}" target="_blank">Feature Kits</a>: specify columns <b>Demux Name, Sample Name, Feature, Kit</b></li>
+            <li>If using predefined kit from <a href="{{ url_for('feature_kits_page') }}" target="_blank">Feature Kits</a>: specify columns <b>Demux Name, Sample Name, Feature, Kit</b></li>
             <li>If using custom kit: specify columns <b>Demux Name, Sample Name, Sequence, Pattern, Read</b></li>
         </ol>
     </ul>

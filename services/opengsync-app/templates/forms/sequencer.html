@@ -1,9 +1,20 @@
-<div id="sequencer-form">
-    {{ form.csrf_token.render() }}
-    <div class="row">
-        {{ form.name.render("col-4") }}
-        {{ form.model.render("col-4") }}
-        {{ form.ip_address.render("col-4") }}
+<div class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">{% if form.sequencer %}Edit Sequencer{% else %}Add New Sequencer{% endif %}</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div id="sequencer-form">
+            {{ form.csrf_token.render() }}
+            <div class="row">
+                {{ form.name.render("col-4") }}
+                {{ form.model.render("col-4") }}
+                {{ form.ip_address.render("col-4") }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary" hx-include="#sequencer-form" hx-target="#sequencer-form"
+        hx-swap="outerHTML" hx-post="{{ form.post_url }}">Submit</button>
     </div>
 </div>
-

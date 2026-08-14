@@ -2,7 +2,6 @@
 {% from 'components/tooltip.jinja2' import tooltip %}
 {% from "components/status_bar.jinja2" import project_status_bar with context %}
 {% from 'components/button.jinja2' import confirm_action_button, modal_button %}
-
 {% extends "base.html" %}
 {% set active_page = "projects-page" %}
 {% block content %}
@@ -135,7 +134,7 @@
                 <div>
                     {{
                         modal_button(
-                            "Edit Attributes", url=url_for('render_project_sample_attributes_form', project_id=project.id),
+                            "Edit Attributes", url=url_for('SampleAttributeTableAction.Begin', project_id=project.id),
                             disabled=not (current_user.is_insider or project.status <= C.ProjectStatus.SEQUENCED),
                             size="fullscreen",
                             disabled_tooltip="Only insiders can edit attributes of a completed project.",
@@ -200,7 +199,7 @@
                     <h2>Assignees <img {{ tooltip('Right click on a name to remove.', 'right') }} src="{{ url_for('static', filename='images/info.svg' )}}" style="width: 20px;"></h2>
                 </div>
                 <div>
-                    <button hx-get="{{ url_for('render_project_assignee_form', project_id=project.id) }}" class="btn btn-success"
+                    <button hx-get="{{ url_for('AddProjectAssigneeAction.Begin', project_id=project.id) }}" class="btn btn-success"
                         data-bs-toggle="modal" data-bs-target="#xl-modal" 
                         hx-target="#xl-modal-content" hx-swap="innerHTML" hx-trigger="click"
                         {% if not current_user.is_insider %}disabled{% endif %}>
@@ -208,7 +207,7 @@
                     </button>
                 </div>
             </div>
-            <div hx-get="{{ url_for('render_user_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_project_assignee_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

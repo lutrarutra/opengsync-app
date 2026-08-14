@@ -1,5 +1,4 @@
 {% from "components/spinner.jinja2" import spinner %}
-
 {% extends "base.html" %}
 {% set active_page = "seq_run-page" %}
 {% block content %}
@@ -12,9 +11,9 @@
         </div>
     </div>
 </div>
-    
+
 <div class="page-content">
-    <div hx-get="{{ url_for('seq_runs_htmx.get') }}" hx-trigger="load" hx-swap="outerHTML">
+    <div hx-get="{{ url_for('render_seq_run_table') }}" hx-trigger="load" hx-swap="outerHTML">
         {{ spinner() }}
     </div>
 </div>

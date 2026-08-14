@@ -31,6 +31,12 @@ class ExperimentForm(HTMXForm):
         elif experiment is not None and form_type == "create":
             raise ValueError("Experiment must not be provided for create form.")
 
+        if form_type == "create":
+            self.post_url = responses.url_for("ExperimentForm.Create")
+        else:
+            assert experiment is not None
+            self.post_url = responses.url_for("ExperimentForm.Edit", experiment_id=experiment.id)
+
     @classmethod
     def Init(cls, form_type: Literal["create", "edit"]) -> FormFunc:
         def dependency(
@@ -110,9 +116,9 @@ class ExperimentForm(HTMXForm):
             form.experiment.r2_cycles = form.r2_cycles.data
             form.experiment.i1_cycles = form.i1_cycles.data
             form.experiment.i2_cycles = form.i2_cycles.data
-
+            form.experiment.workflow = workflow
+            form.experiment.status = status
             session.save(form.experiment)
-
             return responses.htmx_response(
                 redirect=responses.url_for("experiment_page", experiment_id=form.experiment.id),
                 flash=responses.flash("Experiment Updated!", "success"),

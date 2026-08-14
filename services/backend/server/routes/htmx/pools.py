@@ -211,5 +211,29 @@ def render_plate_tab(
     return responses.htmx_response("components/plate.html", plate=plate)
 
 
+@router.get("/render-feed", dependencies=[Depends(dependencies.require_insider)])
+def render_pool_feed(
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    PAGE_LIMIT = 10
+    pools, _ = session.page(
+        Q.pool.select(status_in=[C.PoolStatus.STORED, C.PoolStatus.ACCEPTED]),
+        page=page,
+        limit=PAGE_LIMIT,
+        order_by=models.Pool.id.desc(),
+        options=[
+            orm.selectinload(models.Pool.owner),
+            orm.selectinload(models.Pool.experiment),
+        ],
+    )
+    return responses.htmx_response(
+        "components/dashboard/pools-feed.html",
+        pools=pools,
+        current_page=page,
+        limit=PAGE_LIMIT,
+    )
+
+
 router.include_router(PoolForm.Router())
 router.include_router(PlateForm.Router())
