@@ -207,7 +207,7 @@
         {% if current_user.is_insider %}
         <div class="tab-pane fade" id="plate-tab" role="tabpanel" tabindex="2">
             {% if pool.plate_id %}
-            <div hx-get="{{ url_for('plates_htmx.plate_tab', plate_id=pool.plate_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_plate_tab', plate_id=pool.plate_id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
             {% endif %}

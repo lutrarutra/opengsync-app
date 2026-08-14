@@ -14,6 +14,7 @@ from ...core import dependencies, responses, exceptions as exc, config
 from ...components.tables import HTMXTable, TableCol, UniverSpreadsheet
 from ...forms.models import MediaFileForm
 from ...utils.file_browser import FileBrowser
+from ...utils.io import is_browser_friendly
 from ...forms.actions import ShareDirectoryAction, AssociatePathAction
 
 BROWSER_RENDERABLE_EXTENSIONS = {
@@ -65,9 +66,7 @@ def render_media_file_table(
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = MediaFileTable(
-        route="render_media_file_table", page=page, order_by=order_by
-    )
+    table = MediaFileTable(route="render_media_file_table", page=page, order_by=order_by)
     stmt = Q.media_file.select(
         seq_request_id=seq_request_id,
         experiment_id=experiment_id,
@@ -78,7 +77,6 @@ def render_media_file_table(
 
     if type_in:
         table.filter_values["type"] = type_in
-
 
     if seq_request_id is not None:
         if (access_level := session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id))) < C.AccessLevel.READ:
@@ -119,6 +117,35 @@ def download_seq_auth_form():
     name = "seq_auth_form_v2.pdf"
     path = os.path.join("/static", "resources", "templates", name)
     return responses.file_response(path, filename=name)
+
+
+@router.get("/serve-data-file/{data_path_id}")
+def serve_data_file(
+    data_path_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+    current_user: models.User = Depends(dependencies.require_user),
+):
+    data_path = session.get_one(Q.data_path.select(id=data_path_id))
+
+    if not current_user.is_insider:
+        if data_path.project_id is not None:
+            if session.get_access_level(Q.project.permissions(data_path.project_id, current_user.id)) < C.AccessLevel.READ:
+                raise exc.NoPermissionsException()
+        elif data_path.seq_request_id is not None:
+            if session.get_access_level(Q.seq_request.permissions(data_path.seq_request_id, current_user.id)) < C.AccessLevel.READ:
+                raise exc.NoPermissionsException()
+        else:
+            raise exc.NoPermissionsException()
+
+    path = Path(config.settings.app_config.share_root) / data_path.path
+    if not path.exists():
+        raise exc.ItemNotFoundException("Data file not found")
+    if not path.is_file():
+        raise exc.BadRequestException("Data path is not a file")
+
+    mimetype = mimetypes.guess_type(path)[0] or "application/octet-stream"
+    disposition = "inline" if is_browser_friendly(mimetype) else "attachment"
+    return responses.file_response(path, filename=path.name, content_type=mimetype, disposition=disposition)
 
 
 @router.get("/{media_file_id}/render")

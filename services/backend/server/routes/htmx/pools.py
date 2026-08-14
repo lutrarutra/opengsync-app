@@ -197,5 +197,19 @@ def delete_pool(
         flash=responses.flash("Pool deleted", "success")
     )
 
+
+@router.get("/render-plate/{plate_id}", dependencies=[Depends(dependencies.require_insider)])
+def render_plate_tab(
+    plate_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    plate = session.get_one(
+        Q.plate.select(id=plate_id).options(
+            orm.selectinload(models.Plate.sample_links),
+        )
+    )
+    return responses.htmx_response("components/plate.html", plate=plate)
+
+
 router.include_router(PoolForm.Router())
 router.include_router(PlateForm.Router())
