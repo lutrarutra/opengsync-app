@@ -1,3 +1,27 @@
+const TABLE_ROW_HEIGHT = 42;
+const TABLE_HEADER_HEIGHT = 42;
+const TABLE_PAGINATION_HEIGHT = 48;
+const TABLE_PAGE_LIMIT_MIN = 10;
+const TABLE_PAGE_LIMIT_MAX = 50;
+
+function calcTablePageLimit(el) {
+    if (!el || typeof el.getBoundingClientRect !== "function") {
+        return TABLE_PAGE_LIMIT_MIN;
+    }
+    const scroller = el.closest(".tab-pane, .page-content, #middle-container")
+        || document.documentElement;
+    const available = scroller.getBoundingClientRect().bottom
+        - el.getBoundingClientRect().top
+        - TABLE_HEADER_HEIGHT
+        - TABLE_PAGINATION_HEIGHT;
+    const rows = Math.floor(available / TABLE_ROW_HEIGHT) - 1;
+    return Math.max(TABLE_PAGE_LIMIT_MIN, Math.min(TABLE_PAGE_LIMIT_MAX, rows || TABLE_PAGE_LIMIT_MIN));
+}
+
+function isProjectTablePath(path) {
+    return (path || "").includes("/htmx/projects/render-table-page");
+}
+
 class HTMXTable {
     constructor(selector, url=null, options = {}) {
         this.selector = selector;
@@ -82,7 +106,8 @@ class HTMXTable {
         htmx.ajax("GET", cleanUrl, {
             target: this.selector,
             swap: "outerHTML",
-            values: state
+            values: state,
+            source: this.$container[0]
         });
         
         $tbody.empty();
@@ -169,6 +194,9 @@ class HTMXTable {
                     state.order_by = `${$th.data("sort_by")}:${current_sort}`;
                 }
             });
+        }
+        if (isProjectTablePath(this.url)) {
+            state.limit = calcTablePageLimit(this.$container[0]);
         }
         return state;
     }
@@ -261,6 +289,14 @@ class HTMXTable {
         });
     }
 }
+
+document.body.addEventListener("htmx:configRequest", (evt) => {
+    const path = evt.detail.path || "";
+    if (!isProjectTablePath(path)) {
+        return;
+    }
+    evt.detail.parameters.limit = calcTablePageLimit(evt.detail.elt);
+});
 
 function toggle_index_display() {
     $(".index-badge").each(function() {
