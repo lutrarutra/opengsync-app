@@ -199,7 +199,10 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
         fnc_context["experiment_id"] = experiment.id
         table.url_params["experiment_id"] = experiment.id
     elif (pool := context.get("pool")) is not None:
-        fnc_context["pool_id"] = pool.id
+        if kwargs["workflow"] == "select_pool_libraries":
+            fnc_context["pooled"] = False
+        else:
+            fnc_context["pool_id"] = pool.id
         table.url_params["pool_id"] = pool.id
     elif (lab_prep := context.get("lab_prep")) is not None:
         if kwargs["workflow"] != "library_prep":
@@ -208,7 +211,6 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     elif (seq_request := context.get("seq_request")) is not None:
         fnc_context["seq_request_id"] = seq_request.id
         table.url_params["seq_request_id"] = seq_request.id
-
     if (name := request.args.get("name")):
         fnc_context["name"] = name
         table.active_search_var = "name"
@@ -240,6 +242,7 @@ def get_browse_context(current_user: models.User, request: Request, **kwargs) ->
     if not current_user.is_insider():
         fnc_context["user_id"] = current_user.id
 
+    logger.debug(f"fnc_context: {fnc_context}")
     libraries, table.num_pages = db.libraries.find(page=table.active_page, **fnc_context)
     context.update({
         "libraries": libraries,

@@ -8,8 +8,8 @@ from sqlalchemy.orm import aliased
 
 from ... import models, PAGE_LIMIT
 from ...categories import (
-    LibraryType, LibraryStatus, LibraryStatus, GenomeRef, PoolStatus,
-    AccessType, AccessType, ServiceType, IndexType, MUXType, BarcodeOrientation,
+    LibraryType, LibraryStatus, GenomeRef, PoolStatus,
+    AccessType, ServiceType, IndexType, MUXType, BarcodeOrientation,
     UserRole
 )
 from .. import exceptions
