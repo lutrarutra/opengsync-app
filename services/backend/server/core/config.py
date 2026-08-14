@@ -1,9 +1,9 @@
-from datetime import time
+from datetime import datetime, time
 from typing import Literal
+from zoneinfo import ZoneInfo
+
 from pydantic import BaseModel, PrivateAttr
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-import pytz
 
 class Personalization(BaseModel):
     organization: str
@@ -42,7 +42,7 @@ class AppConfig(BaseModel):
     external_base_url: str | None = None
     db: DBConfig
     share_path_mapping: SharePathMapping | None = None
-    canary_files: dict[str, str] = dict()
+    canary_files: dict[str, str] = {}
     app_root: str
     media_folder: str
     uploads_folder: str
@@ -83,9 +83,24 @@ class Settings(BaseSettings):
     _app_config: AppConfig | None = PrivateAttr(default=None)
 
     @property
-    def TIMEZONE(self) -> pytz.BaseTzInfo:
-        return pytz.timezone(self.TZ)
-    
+    def TIMEZONE(self) -> ZoneInfo:
+        return ZoneInfo(self.TZ)
+
+    def now(self) -> datetime:
+        return datetime.now(self.TIMEZONE)
+
+    def datetime(
+        self,
+        year: int,
+        month: int,
+        day: int = 1,
+        hour: int = 0,
+        minute: int = 0,
+        second: int = 0,
+        microsecond: int = 0,
+    ) -> datetime:
+        return datetime(year, month, day, hour, minute, second, microsecond, tzinfo=self.TIMEZONE)
+
     @property
     def REDIS_URL(self) -> str:
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}"

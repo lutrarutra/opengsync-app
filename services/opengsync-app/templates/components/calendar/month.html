@@ -2,11 +2,11 @@
 
 <div class="calendar-container" id="calendar-month-container">
     <div class="header" style="z-index: 2;">
-        <a hx-get="{{ url_for('events_htmx.render_calendar_month', year=prev_year, month=prev_month) }}" hx-target="#calendar-month-container" hx-swap="outerHTML" hx-indicator="#calendar-month-spinner" onclick="hide_calendar()">
+        <a hx-get="{{ url_for('events_month', year=prev_year, month=prev_month) }}" hx-target="#calendar-month-container" hx-swap="outerHTML" hx-indicator="#calendar-month-spinner" onclick="hide_calendar()">
             <i class="bi bi-chevron-left"></i>
         </a>
         <h5>{{ year }} {{ month_name }}</h5>
-        <a hx-get="{{ url_for('events_htmx.render_calendar_month', year=next_year, month=next_month) }}" hx-target="#calendar-month-container" hx-swap="outerHTML" hx-indicator="#calendar-month-spinner" onclick="hide_calendar();">
+        <a hx-get="{{ url_for('events_month', year=next_year, month=next_month) }}" hx-target="#calendar-month-container" hx-swap="outerHTML" hx-indicator="#calendar-month-spinner" onclick="hide_calendar();">
             <i class="bi bi-chevron-right"></i>
         </a>
     </div>
@@ -16,7 +16,7 @@
         <div class="week">
         {% endif %}
             <div class="day {% if day.month == prev_month or day.month == next_month %}monthnot{% endif %} {% if day.weekday() > 4 %}weekend{% endif %} {% if day.year == today.year and day.month == today.month and day.day == today.day %} today {% endif %}{% if events | length %} eventful{% endif %}"
-            {% if events | length %}hx-get="{{ url_for('events_htmx.render_calendar_day', year=day.year, month=day.month, day=day.day) }}"
+            {% if events | length %}hx-get="{{ url_for('events_day', year=day.year, month=day.month, day=day.day) }}"
             hx-target="#calendar-day-modal-content" hx-swap="innerHTML" data-bs-target="#calendar-day-modal" data-bs-toggle="modal"{% endif %}>
                 <p class="day-number">{{ day.day }}</p>
                 <ul>

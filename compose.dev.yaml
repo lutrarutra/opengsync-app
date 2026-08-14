@@ -54,7 +54,7 @@ services:
         command: >
             bash -c "
             cd services/backend &&
-            uvicorn server.main:app --host 0.0.0.0 --port ${OPENGSYNC_PORT:-5000} --reload"
+            uvicorn server.main:app --host 0.0.0.0 --port ${OPENGSYNC_PORT:-5000} --reload --reload-dir /app/services/backend --reload-dir /app/packages"
 
     opengsync-celery-worker:
         container_name: opengsync-celery-worker-dev

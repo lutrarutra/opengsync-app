@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from fastapi import Request as FastApiRequest, FastAPI as FastApiApp
@@ -7,7 +8,7 @@ from typing import cast
 
 from opengsync_db import SyncDBHandler, models
 
-from . import mailer, audit, secrets
+from . import mailer, audit, secrets, config
 
 class AppState(State):
     db_handler: SyncDBHandler

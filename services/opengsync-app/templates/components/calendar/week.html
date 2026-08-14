@@ -3,11 +3,11 @@
 
 <div class="calendar-container" id="calendar-week-container">
     <div class="header" style="z-index: 2;">
-        <a hx-get="{{ url_for('events_htmx.render_calendar_week', year=prev_year, week=prev_week) }}" hx-target="#calendar-week-container" hx-swap="outerHTML" hx-indicator="#calendar-week-spinner" onclick="hide_calendar()">
+        <a hx-get="{{ url_for('events_week', year=prev_year, week=prev_week) }}" hx-target="#calendar-week-container" hx-swap="outerHTML" hx-indicator="#calendar-week-spinner" onclick="hide_calendar()">
             <i class="bi bi-chevron-left"></i>
         </a>
         <h5>Week <span {% if week == today.isocalendar().week %}style="color: #0d6efd;"{% endif %}>{{ week }}</span> <span class="desc">{{ year }} {{ month_name}}</span></h5>
-        <a hx-get="{{ url_for('events_htmx.render_calendar_week', year=next_year, week=next_week) }}" hx-target="#calendar-week-container" hx-swap="outerHTML" hx-indicator="#calendar-week-spinner" onclick="hide_calendar();">
+        <a hx-get="{{ url_for('events_week', year=next_year, week=next_week) }}" hx-target="#calendar-week-container" hx-swap="outerHTML" hx-indicator="#calendar-week-spinner" onclick="hide_calendar();">
             <i class="bi bi-chevron-right"></i>
         </a>
     </div>
@@ -15,7 +15,7 @@
         <div class="week">
             {% for day, events in calendar.items() %}
             <div class="day {% if day.weekday() > 4 %}weekend{% endif %} {% if day.year == today.year and day.month == today.month and day.day == today.day %} today {% endif %}{% if events | length %} eventful{% endif %}"
-            {% if events | length %}hx-get="{{ url_for('events_htmx.render_calendar_day', year=day.year, month=day.month, day=day.day) }}"
+            {% if events | length %}hx-get="{{ url_for('events_day', year=day.year, month=day.month, day=day.day) }}"
             hx-target="#calendar-day-modal-content" hx-swap="innerHTML" data-bs-target="#calendar-day-modal" data-bs-toggle="modal"{% endif %}>
                 <div class="header">
                     {{ day.strftime("%A") }}
@@ -33,7 +33,7 @@
         </div>
     </div>
     <div style="width: 100%;" class="d-flex justify-content-center">
-        {{ color_legend(C.EventType.to_color_legend()) }}
+        {{ color_legend(event_type_legend) }}
     </div>
     <div style="position: relative;">
         <div style="position: absolute; width: 100%;">

@@ -10,9 +10,7 @@ from .BillingAction import BillingAction
 from .SelectPoolLibrariesAction import SelectPoolLibrariesAction
 from .LibraryPrepAction import LibraryPrepAction
 from .ReseqAction import ReseqAction
-from .FlexMuxPrepAction import FlexMuxPrepAction
 from .SamplePoolingAction import SamplePoolingAction
-from .LibraryPoolingAction import LibraryPoolingAction
 from .AddKitsToProtocolAction import AddKitsToProtocolAction
 from .AddUserToGroupAction import AddUserToGroupAction
 from .SelectExperimentPoolsAction import SelectExperimentPoolsAction
@@ -43,9 +41,7 @@ __all__ = [
     "SelectPoolLibrariesAction",
     "LibraryPrepAction",
     "ReseqAction",
-    "FlexMuxPrepAction",
     "SamplePoolingAction",
-    "LibraryPoolingAction",
     "AddKitsToProtocolAction",
     "AddUserToGroupAction",
     "ShareDirectoryAction",
