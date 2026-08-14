@@ -542,6 +542,25 @@ def remove_project_assignee(
         flash=responses.flash("Assignee removed.", "success"),
     )
 
+@router.delete("/{project_id}/remove-data_path", dependencies=[Depends(dependencies.require_insider)])
+def remove_project_data_path(
+    project_id: int,
+    data_path_id: int = Query(..., description="Data path ID to remove"),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    project = session.get_one(Q.project.select(id=project_id))
+    data_path = session.get_one(Q.data_path.select(id=data_path_id))
+    if data_path.project_id != project.id:
+        raise exc.BadRequestException("Data path not found in project.")
+
+    session.delete(data_path)
+
+    return responses.htmx_response(
+        redirect=ctx.request.url_for("project_page", project_id=project.id).include_query_params(tab="project-data_paths-tab"),
+        flash=responses.flash("Data path removed.", "success"),
+    )
+
+
 router.include_router(forms.models.ProjectForm.Router())
 router.include_router(forms.actions.AddProjectAssigneeAction.Router())
 router.include_router(forms.actions.SampleAttributeTableAction.Router())

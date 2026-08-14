@@ -52,8 +52,15 @@ def render_share_token_table(
         table=table,
     )
 
+class DataPathTable(HTMXTable):
+    columns = [
+        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
+        TableCol(title="Path", label="path", col_size=4, searchable=True, sortable=True),
+        TableCol(title="Type", label="type", col_size=2, choices=C.DataPathType.as_selectable(), sortable=True, sort_by="type_id"),
+    ]
 
-@router.get("/render-data-path-table-page", dependencies=[Depends(dependencies.require_insider)])
+
+@router.get("/render-data_path-table-page", dependencies=[Depends(dependencies.require_insider)])
 def render_data_path_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     library_id: int | None = Query(None, description="Optional library ID to filter data paths"),
@@ -63,7 +70,7 @@ def render_data_path_table(
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.DataPath, default=models.DataPath.path.asc())),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    table = HTMXTable(route="render_data_path_table", page=page, order_by=order_by)
+    table = DataPathTable(route="render_data_path_table", page=page, order_by=order_by)
 
     stmt = Q.data_path.select(
         library_id=library_id,
@@ -77,6 +84,7 @@ def render_data_path_table(
         table.url_params["library_id"] = library_id
     elif project_id is not None:
         table.template = "components/tables/project-data_path.html"
+        table.context["project"] = session.get_one(Q.project.select(id=project_id))
         table.url_params["project_id"] = project_id
     elif seq_request_id is not None:
         table.template = "components/tables/seq_request-data_path.html"

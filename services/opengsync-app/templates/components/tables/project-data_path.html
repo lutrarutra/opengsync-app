@@ -46,7 +46,7 @@
             }).then(function(e) {
                 if (e.isConfirmed) {
                     htmx.ajax(
-                    "DELETE", "{{ url_for('projects_htmx.remove_data_path', project_id=project.id) }}?data_path_id=" + selected_path_id,
+                    "DELETE", "{{ url_for('remove_project_data_path', project_id=project.id) }}?data_path_id=" + selected_path_id,
                     null);
                 }
             });
