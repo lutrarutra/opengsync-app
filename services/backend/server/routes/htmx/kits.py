@@ -72,8 +72,7 @@ def render_kit_table(
         table.context["protocol_id"] = protocol_id
         table.context["protocol"] = session.get_one(Q.protocol.select(id=protocol_id))
 
-    kits, count = session.page(stmt, page=page, order_by=order_by)
-    table.set_num_pages(count)
+    kits = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(kits=kits)
 
 

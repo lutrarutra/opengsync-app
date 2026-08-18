@@ -89,15 +89,14 @@ def render_pool_table(
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse
 
-    pools, count = session.page(
-        stmt, page=page, order_by=order_by,
+    pools = table.paginate(
+        session, stmt, page=page, order_by=order_by,
         options=[
             orm.selectinload(models.Pool.owner),
             orm.with_expression(models.Pool._num_libraries, models.Pool.num_libraries.expression),
             orm.with_expression(models.Pool._library_types, models.Pool.library_types.expression),
         ]
     )
-    table.set_num_pages(count)
     return table.make_response(pools=pools)
 
 

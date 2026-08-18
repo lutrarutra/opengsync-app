@@ -64,13 +64,12 @@ def render_user_table(
         table.template = "components/tables/user.html"
 
 
-    users, count = session.page(
-        stmt, page=page, order_by=order_by,
+    users = table.paginate(
+        session, stmt, page=page, order_by=order_by,
         options=[
 
         ]
     )
-    table.set_num_pages(count)
     return table.make_response(users=users)
 
     

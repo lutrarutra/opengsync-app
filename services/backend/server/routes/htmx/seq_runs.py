@@ -59,8 +59,7 @@ def render_seq_run_table(
         if digits:
             stmt = Q.seq_run.select(id=int(digits), statement=stmt)
 
-    seq_runs, count = session.page(stmt, page=page, order_by=order_by)
-    table.set_num_pages(count)
+    seq_runs = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(seq_runs=seq_runs)
 
 

@@ -143,7 +143,8 @@ def render_seq_request_table(
 
         table.template = "components/tables/seq_request.html"
 
-    seq_requests, count = session.page(
+    seq_requests = table.paginate(
+        session,
         stmt,
         page=page,
         order_by=order_by,
@@ -160,7 +161,6 @@ def render_seq_request_table(
             orm.selectinload(models.SeqRequest.group),
         ],
     )
-    table.set_num_pages(count)
     return table.make_response(seq_requests=seq_requests)
 
 

@@ -160,7 +160,8 @@ def render_media_file_table(
         if not current_user.is_insider:
             stmt = Q.media_file.select(viewer_id=current_user.id, statement=stmt)
 
-    files, count = session.page(
+    files = table.paginate(
+        session,
         stmt,
         page=page,
         order_by=order_by,
@@ -168,7 +169,6 @@ def render_media_file_table(
             orm.selectinload(models.MediaFile.uploader),
         ],
     )
-    table.set_num_pages(count)
     return table.make_response(files=files)
 
 @router.get("/seq_auth_form_v2.pdf")

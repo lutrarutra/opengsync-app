@@ -101,15 +101,14 @@ def render_sample_table(
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse
 
-    samples, count = session.page(
-        stmt, page=page, order_by=order_by,
+    samples = table.paginate(
+        session, stmt, page=page, order_by=order_by,
         options=[
             orm.selectinload(models.Sample.library_links).selectinload(models.links.SampleLibraryLink.library),
             orm.selectinload(models.Sample.owner),
             orm.selectinload(models.Sample.project)
         ]
     )
-    table.set_num_pages(count)
     return table.make_response(samples=samples)
 
 

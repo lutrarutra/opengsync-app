@@ -76,7 +76,8 @@ def render_lab_prep_table(
     if id is not None and not name and not creator:
         stmt = Q.lab_prep.select(id=id, statement=stmt)
 
-    lab_preps, count = session.page(
+    lab_preps = table.paginate(
+        session,
         stmt,
         page=page,
         order_by=order_by,
@@ -87,7 +88,6 @@ def render_lab_prep_table(
             orm.with_expression(models.LabPrep._num_libraries, models.LabPrep.num_libraries.expression),
         ],
     )
-    table.set_num_pages(count)
     return table.make_response(lab_preps=lab_preps)
 
 

@@ -150,7 +150,8 @@ def render_library_table(
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse
 
-    libraries, count = session.page(
+    libraries = table.paginate(
+        session,
         stmt,
         page=page,
         order_by=order_by,
@@ -161,7 +162,6 @@ def render_library_table(
             orm.selectinload(models.Library.indices),
         ],
     )
-    table.set_num_pages(count)
     return table.make_response(libraries=libraries)
 
 

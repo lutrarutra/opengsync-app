@@ -36,15 +36,14 @@ def render_share_token_table(
         table.url_params["project_id"] = project_id
 
 
-    share_tokens, count = session.page(
-        stmt, page=page, order_by=order_by,
+    share_tokens = table.paginate(
+        session, stmt, page=page, order_by=order_by,
         options=[
             orm.selectinload(models.ShareToken.owner),
             orm.selectinload(models.ShareToken.paths),
             orm.with_expression(models.ShareToken._num_paths, models.ShareToken.num_paths.expression),
         ]
     )
-    table.set_num_pages(count)
 
     return responses.htmx_response(
         template="components/tables/share_token.html",
@@ -95,6 +94,5 @@ def render_data_path_table(
     else:
         raise exc.BadRequestException("At least one of library_id, project_id, seq_request_id, or experiment_id must be provided")
 
-    data_paths, count = session.page(stmt, page=page, order_by=order_by)
-    table.set_num_pages(count)
+    data_paths = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(data_paths=data_paths)

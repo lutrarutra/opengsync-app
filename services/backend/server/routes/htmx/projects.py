@@ -60,13 +60,11 @@ def render_project_table(
     status_in: list[C.ProjectStatus] | None = Depends(dependencies.parse_enum_ids(enum_type=C.ProjectStatus, query_param="status_in")),
     library_types_in: list[C.LibraryType] | None = Depends(dependencies.parse_enum_ids(enum_type=C.LibraryType, query_param="library_types_in")),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
-    limit: int = Query(10, ge=1, le=100, description="Rows per page, sized to the viewport"),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.Project, default=models.Project.id.desc())),
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ):
     table = ProjectTable(route="render_project_table", page=page, order_by=order_by)
-    table.url_params["limit"] = limit
 
     if status_in:
         table.filter_values["status"] = status_in
@@ -126,10 +124,10 @@ def render_project_table(
         if not current_user.is_insider:
             stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
 
-    projects, count = session.page(
+    projects = table.paginate(
+        session,
         stmt,
         page=page,
-        limit=limit,
         order_by=order_by,
         options=[
             orm.selectinload(models.Project.assignees),
@@ -143,7 +141,6 @@ def render_project_table(
             ),
         ],
     )
-    table.set_num_pages(count, limit=limit)
     return table.make_response(projects=projects)
 
 @router.get("/search")

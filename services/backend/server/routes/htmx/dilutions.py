@@ -53,13 +53,11 @@ def render_dilution_table(
     else:
         raise exc.BadRequestException("No pool or experiment context provided for dilution table.")
 
-    dilutions, count = session.page(
-        stmt, page=page, order_by=order_by,
+    dilutions = table.paginate(
+        session, stmt, page=page, order_by=order_by,
         options=[
             orm.selectinload(models.PoolDilution.operator),
             orm.selectinload(models.PoolDilution.pool),
         ]
     )
-    table.set_num_pages(count)
-
     return table.make_response(dilutions=dilutions)

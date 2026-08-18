@@ -56,8 +56,7 @@ def render_group_table(
     if not current_user.is_insider:
         stmt = Q.group.select(user_id=current_user.id, statement=stmt)
 
-    groups, count = session.page(stmt, page=page)
-    table.set_num_pages(count)
+    groups = table.paginate(session, stmt, page=page)
     return table.make_response(groups=groups)
 
 @router.get("/search")

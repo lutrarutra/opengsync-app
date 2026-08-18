@@ -52,8 +52,7 @@ def render_feature_kit_table(
         
     stmt = Q.feature_kit.search(name=name, identifier=identifier, statement=stmt)
     
-    feature_kits, count = session.page(stmt, page=page, order_by=order_by)
-    table.set_num_pages(count)
+    feature_kits = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(feature_kits=feature_kits)
 
 

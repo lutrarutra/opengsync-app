@@ -52,6 +52,5 @@ def render_lane_table(
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse
 
-    lanes, count = session.page(stmt, page=page, order_by=order_by)
-    table.set_num_pages(count)
+    lanes = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(lanes=lanes)

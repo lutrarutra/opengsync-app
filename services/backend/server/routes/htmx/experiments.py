@@ -67,15 +67,14 @@ def render_experiment_table(
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse
 
-    experiments, count = session.page(
-        stmt, page=page, order_by=order_by,
+    experiments = table.paginate(
+        session, stmt, page=page, order_by=order_by,
         options=[
             orm.selectinload(models.Experiment.operator),
             orm.selectinload(models.Experiment.libraries),
             orm.selectinload(models.Experiment.sequencer),
         ]
     )
-    table.set_num_pages(count)
     return table.make_response(experiments=experiments)
 
 

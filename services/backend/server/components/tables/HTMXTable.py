@@ -1,4 +1,5 @@
 import json
+from typing import Any, Sequence
 from starlette.datastructures import URL
 from fastapi import Response
 
@@ -7,10 +8,21 @@ from opengsync_db import utils
 from .TableCol import TableCol
 from ...core import responses, context
 
+TABLE_PAGE_LIMIT_DEFAULT = 10
+TABLE_PAGE_LIMIT_MIN = 1
+TABLE_PAGE_LIMIT_MAX = 100
+
+
 class HTMXTable:
     template = ""
     columns: list[TableCol] = []
-    def __init__(self, route: str, page: int | None = 0, order_by: utils.OrderBy | None = None):
+    def __init__(
+        self,
+        route: str,
+        page: int | None = 0,
+        order_by: utils.OrderBy | None = None,
+        limit: int | None = None,
+    ):
         self.active_search_var: str | None = None
         self.active_sort_var: str | None = None
         self.active_sort_descending: bool = False
@@ -21,6 +33,8 @@ class HTMXTable:
         self.active_page: int | None = page
         self.url_params: dict = {}
         self.context: dict = {}
+        self.limit = self._resolve_limit(limit)
+        self.url_params["limit"] = self.limit
 
         if order_by is not None:
             try:
@@ -32,6 +46,21 @@ class HTMXTable:
                     self.url_params["order_by"] = f"{attr}:{'desc' if is_desc else 'asc'}"
             except AttributeError:
                 pass
+
+    def _resolve_limit(self, limit: int | None) -> int:
+        request = getattr(context.ctx, "request", None)
+        if request is not None and request.query_params.get("browse") is not None:
+            return TABLE_PAGE_LIMIT_DEFAULT
+        if limit is None and request is not None:
+            raw = request.query_params.get("limit")
+            if raw is not None:
+                try:
+                    limit = int(raw)
+                except (TypeError, ValueError):
+                    limit = None
+        if limit is None:
+            return TABLE_PAGE_LIMIT_DEFAULT
+        return max(TABLE_PAGE_LIMIT_MIN, min(TABLE_PAGE_LIMIT_MAX, limit))
 
     def __getitem__(self, item: str) -> TableCol:
         for col in self.columns:
@@ -59,8 +88,23 @@ class HTMXTable:
     def page_url(self, page: int) -> URL:
         return context.ctx.request.url_for(self.route).include_query_params(**{**self.url_params, "page": page})
 
-    def set_num_pages(self, count: int, limit: int = 10) -> None:
-        self.num_pages = (count + limit - 1) // limit
+    def set_num_pages(self, count: int, limit: int | None = None) -> None:
+        page_limit = limit if limit is not None else self.limit
+        self.num_pages = (count + page_limit - 1) // page_limit
+
+    def paginate(
+        self,
+        session: Any,
+        statement: Any,
+        page: int,
+        order_by: Any = None,
+        options: Any = None,
+    ) -> Sequence[Any]:
+        rows, count = session.page(
+            statement, page=page, limit=self.limit, order_by=order_by, options=options
+        )
+        self.set_num_pages(count)
+        return rows
 
     def make_response(self, **kwargs) -> Response:
         if not self.template:

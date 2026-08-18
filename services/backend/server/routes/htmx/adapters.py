@@ -45,10 +45,10 @@ def render_adapter_table(
     else:
         raise NotImplementedError("Adapter table rendering without index_kit_id is not implemented yet.")
 
-    adapters, count = session.page(
+    adapters = table.paginate(
+        session,
         stmt,
         page=page,
         order_by=order_by,
     )
-    table.set_num_pages(count)
     return table.make_response(adapters=adapters)

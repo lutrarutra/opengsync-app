@@ -26,8 +26,7 @@ def render_sequencer_table(
     table = SequencerTable(route="render_sequencer_table", page=page, order_by=order_by)
     table.template = "components/tables/sequencer.html"
     stmt = Q.sequencer.select()
-    sequencers, count = session.page(stmt, page=page, order_by=order_by)
-    table.set_num_pages(count)
+    sequencers = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(sequencers=sequencers)
 
 

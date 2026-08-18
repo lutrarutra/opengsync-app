@@ -54,8 +54,7 @@ def render_index_kit_table(
         
     stmt = Q.index_kit.search(name=name, identifier=identifier, statement=stmt)
     
-    index_kits, count = session.page(stmt, page=page, order_by=order_by)
-    table.set_num_pages(count)
+    index_kits = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(index_kits=index_kits)
 
 

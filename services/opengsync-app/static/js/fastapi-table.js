@@ -18,8 +18,15 @@ function calcTablePageLimit(el) {
     return Math.max(TABLE_PAGE_LIMIT_MIN, Math.min(TABLE_PAGE_LIMIT_MAX, rows || TABLE_PAGE_LIMIT_MIN));
 }
 
-function isProjectTablePath(path) {
-    return (path || "").includes("/htmx/projects/render-table-page");
+function isBrowseTableRequest(path, parameters) {
+    const params = parameters || {};
+    const url = path || "";
+    return !!params.browse || url.includes("browse=") || url.includes("browse%3D");
+}
+
+function isMainTablePath(path) {
+    const url = path || "";
+    return /\/render-table-page|\/render-data_path-table-page|\/lab_preps\/render-table/.test(url);
 }
 
 class HTMXTable {
@@ -195,7 +202,7 @@ class HTMXTable {
                 }
             });
         }
-        if (isProjectTablePath(this.url)) {
+        if (isMainTablePath(this.url) && !isBrowseTableRequest(this.url, this._initialState)) {
             state.limit = calcTablePageLimit(this.$container[0]);
         }
         return state;
@@ -292,7 +299,8 @@ class HTMXTable {
 
 document.body.addEventListener("htmx:configRequest", (evt) => {
     const path = evt.detail.path || "";
-    if (!isProjectTablePath(path)) {
+    const parameters = evt.detail.parameters || {};
+    if (!isMainTablePath(path) || isBrowseTableRequest(path, parameters)) {
         return;
     }
     evt.detail.parameters.limit = calcTablePageLimit(evt.detail.elt);

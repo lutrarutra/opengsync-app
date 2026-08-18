@@ -42,11 +42,10 @@ def render_api_token_table(
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         table.template = "components/tables/api_token.html"
 
-    tokens, count = session.page(
-        stmt, page=page, order_by=order_by,
+    tokens = table.paginate(
+        session, stmt, page=page, order_by=order_by,
         options=[joinedload(models.APIToken.owner)],
     )
-    table.set_num_pages(count)
     return table.make_response(tokens=tokens)
 
 

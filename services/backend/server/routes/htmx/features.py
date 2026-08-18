@@ -46,6 +46,5 @@ def render_feature_table(
     else:
         table.template = "components/tables/feature.html"
 
-    features, count = session.page(stmt, page=page, order_by=order_by)
-    table.set_num_pages(count)
+    features = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(features=features)

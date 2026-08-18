@@ -47,6 +47,5 @@ def render_affiliation_table(
     else:
         raise exc.BadRequestException("Group or User context is required to render affiliation table.")
 
-    affiliations, count = session.page(stmt, page=page)
-    table.set_num_pages(count)
+    affiliations = table.paginate(session, stmt, page=page)
     return table.make_response(affiliations=affiliations)

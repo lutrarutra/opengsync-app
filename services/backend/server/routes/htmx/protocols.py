@@ -44,8 +44,7 @@ def render_protocol_table(
             raise exc.BadRequestException()
     
     stmt = Q.protocol.search(name=name, statement=stmt)
-    protocols, count = session.page(stmt, page=page)
-    table.set_num_pages(count)
+    protocols = table.paginate(session, stmt, page=page)
     return table.make_response(protocols=protocols)
 
 
