@@ -1,9 +1,12 @@
 import os
 import mimetypes
+import asyncio
+import shutil
 from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy import orm
 from loguru import logger
 import markdown
@@ -34,6 +37,62 @@ BROWSER_RENDERABLE_EXTENSIONS = {
 }
 
 router = APIRouter(prefix="/files", tags=["files"])
+
+_CANARY_TIMEOUT_S = 2.0
+
+
+def _read_canary(filepath: str) -> tuple[bool, str]:
+    try:
+        content = Path(filepath).read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return False, "File not found or endpoint disconnected"
+    except OSError as e:
+        return False, f"Error: {e}"
+    if content == "ok":
+        return True, "online"
+    return False, f"File found, but contained: {content!r}"
+
+
+async def _check_canary(name: str, filepath: str) -> tuple[str, bool, str]:
+    try:
+        is_ok, msg = await asyncio.wait_for(
+            asyncio.to_thread(_read_canary, filepath),
+            timeout=_CANARY_TIMEOUT_S,
+        )
+    except TimeoutError:
+        return name, False, "Timeout: Cluster is offline or hanging"
+    return name, is_ok, msg
+
+
+@router.get("/share-status")
+async def share_status_check():
+    canaries = config.settings.app_config.canary_files
+    if not canaries:
+        return JSONResponse({"status": "unknown", "details": {}})
+
+    results = await asyncio.gather(*(_check_canary(name, path) for name, path in canaries.items()))
+    status_report = {name: msg for name, _, msg in results}
+    good_count = sum(is_ok for _, is_ok, _ in results)
+
+    if good_count == len(results):
+        status, code = "online", 200
+    elif good_count == 0:
+        status, code = "offline", 503
+    else:
+        status, code = "degraded", 503
+    return JSONResponse({"status": status, "details": status_report}, status_code=code)
+
+
+@router.get("/storage-availability")
+async def storage_availability_check():
+    usage = await asyncio.to_thread(shutil.disk_usage, config.settings.app_config.media_folder)
+    return {
+        "used": f"{usage.used / (1024**3):.1f} GB",
+        "free": f"{usage.free / (1024**3):.1f} GB",
+        "total": f"{usage.total / (1024**3):.1f} GB",
+        "percent_used": f"{(usage.used / usage.total) * 100:.1f}%",
+    }
+
 
 class MediaFileTable(HTMXTable):
     columns = [

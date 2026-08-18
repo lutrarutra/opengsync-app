@@ -209,6 +209,9 @@ $(document).ready(function() {
         } else if (data.status === "offline") {
             $badge.text("🔴 Offline");
             $details.text("Cannot connect to cluster storage.");
+        } else {
+            $badge.text("⚫ Unknown");
+            $details.text("Share status is not configured.");
         }
     }
 

@@ -1,5 +1,3 @@
-import json
-
 from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -16,7 +14,7 @@ from .core import lifespan, config, middleware, handlers, dependencies, exceptio
 from . import routes
 
 
-app = FastAPI(lifespan=lifespan.lifespan)
+app = FastAPI(lifespan=lifespan.lifespan)  # type: ignore
 
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.csrf_middleware)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.parse_form_data)  # type: ignore
@@ -84,108 +82,9 @@ def status():
 def retrieve_flash_messages():
     return {}, 204
 
-@app.get("/share-status")
-def share_status_check():
-    if not config.settings.app_config.canary_files:
-        return json.dumps({"status": "unknown", "details": "No canary files configured"}), 200
-    
-    import subprocess
-    def check_canary_file(filepath: str):
-        try:
-            result = subprocess.run(
-                ['cat', filepath], 
-                capture_output=True, 
-                text=True, 
-                timeout=2 
-            )
-            
-            if result.returncode == 0 and result.stdout.strip() == "ok":
-                return True, "online"
-                
-            elif result.returncode == 0:
-                return False, f"File found, but contained: '{result.stdout.strip()}'"
-                
-            else:
-                return False, "File not found or endpoint disconnected"
-                
-        except subprocess.TimeoutExpired:
-            return False, "Timeout: Cluster is offline or hanging"
-        except Exception as e:
-            return False, f"Error: {str(e)}"
-        
-    status_report = {}
-    good_count = 0
-    total_count = len(config.settings.app_config.canary_files)
-
-    for name, filepath in config.settings.app_config.canary_files.items():
-        is_ok, msg = check_canary_file(filepath)
-        status_report[name] = msg
-        if is_ok:
-            good_count += 1
-
-    if good_count == total_count:
-        return json.dumps({"status": "online", "details": status_report}), 200
-
-    elif good_count == 0:
-        return json.dumps({"status": "offline", "details": status_report}), 503
-
-    return json.dumps({"status": "degraded", "details": status_report}), 503
-
-@app.get("/storage-availability")
-def storage_availability_check():
-    import shutil
-    usage = shutil.disk_usage(config.settings.app_config.media_folder)
-
-    # if (usage.free / usage.total) < 0.1:
-    #     flash("Less than 10% of storage space is available.", "warning")
-
-    return {
-        "used": f"{usage.used / (1024**3):.1f} GB",
-        "free": f"{usage.free / (1024**3):.1f} GB",
-        "total": f"{usage.total / (1024**3):.1f} GB",
-        "percent_used": f"{(usage.used / usage.total) * 100:.1f}%"
-    }
-
 if config.settings.ENVIRONMENT != "production":
     @app.get("/test")
     def test_route():
-        from .components import inputs
-
-        text_field_required = inputs.string.StringInputField("Text Field", required=True)
-        text_field_required.data # should be str
-        text_field_optional = inputs.string.StringInputField("Text Field", required=False)
-        text_field_optional.data # should be str | None
-
-        int_field_required = inputs.numeric.IntInputField("Integer Field", required=True)
-        int_field_required.data # is correctly typed as int
-        int_field_optional = inputs.numeric.IntInputField("Integer Field", required=False)
-        int_field_optional.data # is correctly typed as int | None
-
-        float_field_required = inputs.numeric.FloatInputField("Float Field", required=True)
-        float_field_required.data # is correctly typed as float
-        float_field_optional = inputs.numeric.FloatInputField("Float Field", required=False)
-        float_field_optional.data # is correctly typed as float | None
-
-        selectable_required = inputs.selectable.SelectableInputField("File Field", options=[(1, "Option 1")], required=True)
-        selectable_required.data # is correctly typed as int
-        selectable_optional = inputs.selectable.SelectableInputField("File Field", options=[(1, "Option 1")], required=False)
-        selectable_optional.data # should be int | None instead of int
-
-        searchable_required = inputs.searchable.SearchableInputField("File Field", route="/search", required=True)
-        searchable_required.data # is correctly typed as int
-        searchable_optional = inputs.searchable.SearchableInputField("File Field", route="/search", required=False)
-        searchable_optional.data # should be int | None instead of int
-
-        spreadsheet_input_required = inputs.spreadsheet.SpreadsheetInputField(label="Spreadsheet Field", required=True)
-        spreadsheet_input_required.data # is correctly pd.DataFrame
-        spreadsheet_input_optional = inputs.spreadsheet.SpreadsheetInputField(label="Spreadsheet Field", required=False)
-        spreadsheet_input_optional.data # is correctly pd.DataFrame | None
-
-        spreadsheet_file_required = inputs.file.SpreadsheetFileField(label="Spreadsheet Field")
-        spreadsheet_file_required.data # should be pd.DataFrame
-        spreadsheet_file_optional = inputs.file.SpreadsheetFileField(label="Spreadsheet Field", required=False)
-        spreadsheet_file_optional.data # should be pd.DataFrame | None
-
         return {"message": "This is a test route."}
 
 

@@ -71,3 +71,54 @@ def test_login_sets_access_token(client: TestClient, user):
 def test_dashboard_with_user_token(client: TestClient, user_token: str):
     response = client.get("/", headers=auth(user_token), follow_redirects=False)
     assert response.status_code not in (303, 401, 403)
+
+
+def test_share_status_unknown_when_unconfigured(client: TestClient):
+    from server.core import config
+
+    original = dict(config.settings.app_config.canary_files)
+    config.settings.app_config.canary_files.clear()
+    try:
+        response = client.get("/htmx/files/share-status")
+        assert response.status_code == 200
+        assert response.json() == {"status": "unknown", "details": {}}
+    finally:
+        config.settings.app_config.canary_files.update(original)
+
+
+def test_share_status_online_degraded_offline(client: TestClient, tmp_path):
+    from server.core import config
+
+    original = dict(config.settings.app_config.canary_files)
+    ok = tmp_path / "ok.txt"
+    ok.write_text("ok\n")
+    bad = tmp_path / "bad.txt"
+    bad.write_text("nope\n")
+    missing = tmp_path / "missing.txt"
+    config.settings.app_config.canary_files.clear()
+    try:
+        config.settings.app_config.canary_files["ok"] = str(ok)
+        response = client.get("/htmx/files/share-status")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "online"
+        assert body["details"]["ok"] == "online"
+
+        config.settings.app_config.canary_files["missing"] = str(missing)
+        response = client.get("/htmx/files/share-status")
+        assert response.status_code == 503
+        body = response.json()
+        assert body["status"] == "degraded"
+        assert body["details"]["ok"] == "online"
+        assert body["details"]["missing"] != "online"
+
+        config.settings.app_config.canary_files.clear()
+        config.settings.app_config.canary_files["bad"] = str(bad)
+        response = client.get("/htmx/files/share-status")
+        assert response.status_code == 503
+        body = response.json()
+        assert body["status"] == "offline"
+        assert body["details"]["bad"] != "online"
+    finally:
+        config.settings.app_config.canary_files.clear()
+        config.settings.app_config.canary_files.update(original)
