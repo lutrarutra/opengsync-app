@@ -16,7 +16,7 @@ class BarcodeBP(DBBlueprint):
         type: BarcodeType, adapter_id: int, flush: bool = True
     ) -> models.Barcode:
         if (adapter := self.db.session.get(models.Adapter, adapter_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Adapter with id '{adapter_id}', not found.")
+            raise exceptions.ModelNotFoundException(f"Adapter with id '{adapter_id}', not found.")
         
         barcode = models.Barcode(
             name=name.strip(),
@@ -102,5 +102,5 @@ class BarcodeBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.Barcode:
         if (barcode := self.get(id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Barcode with id '{id}' does not exist.")
+            raise exceptions.ModelNotFoundException(f"Barcode with id '{id}' does not exist.")
         return barcode

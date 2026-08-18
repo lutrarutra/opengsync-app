@@ -1,6 +1,7 @@
 
 
-from typing import TYPE_CHECKING, Sequence, Iterator
+from typing import TYPE_CHECKING
+from collections.abc import Sequence, Iterator
 
 import sqlalchemy as sa
 from sqlalchemy import sql

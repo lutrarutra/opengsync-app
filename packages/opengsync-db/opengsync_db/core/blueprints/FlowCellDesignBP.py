@@ -137,5 +137,5 @@ class FlowCellDesignBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.FlowCellDesign:
         if (flow_cell_design := self.get(id)) is None:
-            raise exceptions.ElementDoesNotExist(f"FlowCellDesign with id {id} does not exist")
+            raise exceptions.ModelNotFoundException(f"FlowCellDesign with id {id} does not exist")
         return flow_cell_design

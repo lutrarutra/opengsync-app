@@ -150,11 +150,24 @@ class Lane(Base):
             else_=None
         )  # type: ignore[arg-type]
 
-    @property
-    def original_molarity(self) -> float | None:
+    @hybrid_property
+    def original_molarity(self) -> float | None:  # type: ignore[override]
         if self.original_qubit_concentration is None or self.avg_fragment_size is None:
             return None
         return self.original_qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
+
+    @original_molarity.expression
+    def original_molarity(cls) -> sa.ColumnElement[float | None]:
+        return sa.case(
+            (
+                sa.and_(
+                    Lane.original_qubit_concentration.is_not(None),
+                    Lane.avg_fragment_size.is_not(None)
+                ),
+                sa.cast(Lane.original_qubit_concentration, sa.Float) / (sa.cast(Lane.avg_fragment_size, sa.Float) * 660) * 1_000_000
+            ),
+            else_=None
+        )
     
     @property
     def qubit_concentration(self) -> float | None:

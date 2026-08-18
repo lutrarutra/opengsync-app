@@ -75,7 +75,7 @@ class ExperimentForm(HTMXFlaskForm):
                 if self.experiment is None or  self.experiment.id != e.id:
                     self.name.errors = ("An experiment with this name already exists.",)
                     return False
-        except exceptions.ElementDoesNotExist:
+        except exceptions.ModelNotFoundException:
             pass
         
         try:

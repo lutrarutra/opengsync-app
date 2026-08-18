@@ -191,7 +191,7 @@ class Experiment(Base):
         return lanes
 
     @hybrid_property
-    def library_types(self) -> list[LibraryType]:
+    def library_types(self) -> list[LibraryType]:  # type: ignore[override]
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = {library.type_id for library in self.libraries}
             return [LibraryType.get(type_id) for type_id in sorted(types)]
@@ -201,6 +201,18 @@ class Experiment(Base):
         from .Library import Library
         type_ids = session.query(Library.type_id).filter(Library.experiment_id == self.id).distinct().order_by(Library.type_id).all()
         return [LibraryType.get(type_id) for (type_id,) in type_ids]
+
+    @library_types.expression
+    def library_types(cls):
+        from .Library import Library
+        return sa.select(
+            sa.func.coalesce(
+                sa.func.array_agg(sa.distinct(Library.type_id)),
+                sa.cast(sa.text("'{}'"), sa.ARRAY(sa.Integer))
+            )
+        ).where(
+            Library.experiment_id == cls.id
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @hybrid_property
     def num_pools(self) -> int:  # type: ignore[override]

@@ -25,12 +25,10 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     is_admin = sa.select(1).where(User.id == user_id, User.is_admin)
     is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
 
-    is_same_user = sa.select(1).where(User.id == user_id)
-
     return sa.case(
         (sa.exists(is_admin), AccessLevel.ADMIN),
         (sa.exists(is_insider), AccessLevel.INSIDER),
-        (sa.exists(is_same_user), AccessLevel.WRITE),
+        (User.id == user_id, AccessLevel.WRITE),
         else_=AccessLevel.NONE
     )
 

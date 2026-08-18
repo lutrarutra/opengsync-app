@@ -19,24 +19,24 @@ class CommentBP(DBBlueprint):
             if lab_prep_id is not None:
                 raise Exception("Cannot have both seq_request_id and lab_prep_id.")
             if self.db.session.get(models.SeqRequest, seq_request_id) is None:
-                raise exceptions.ElementDoesNotExist(f"SeqRequest with id '{seq_request_id}', not found.")
+                raise exceptions.ModelNotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
             
         elif experiment_id is not None:
             if lab_prep_id is not None:
                 raise Exception("Cannot have both experiment_id and lab_prep_id.")
             if self.db.session.get(models.Experiment, experiment_id) is None:
-                raise exceptions.ElementDoesNotExist(f"Experiment with id '{experiment_id}', not found.")
+                raise exceptions.ModelNotFoundException(f"Experiment with id '{experiment_id}', not found.")
             
         elif lab_prep_id is not None:
             if self.db.session.get(models.LabPrep, lab_prep_id) is None:
-                raise exceptions.ElementDoesNotExist(f"LabPrep with id '{lab_prep_id}', not found.")
+                raise exceptions.ModelNotFoundException(f"LabPrep with id '{lab_prep_id}', not found.")
             
         if file_id is not None:
             if self.db.session.get(models.MediaFile, file_id) is None:
-                raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
+                raise exceptions.ModelNotFoundException(f"File with id '{file_id}', not found.")
             
         if self.db.session.get(models.User, author_id) is None:
-            raise exceptions.ElementDoesNotExist(f"User with id '{author_id}', not found.")
+            raise exceptions.ModelNotFoundException(f"User with id '{author_id}', not found.")
 
         comment = models.Comment(
             text=text.strip()[:4096],
@@ -85,7 +85,7 @@ class CommentBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, comment_id: int, flush: bool = True) -> None:
         if (comment := self.db.session.get(models.Comment, comment_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Comment with id {comment_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Comment with id {comment_id} does not exist")
 
         self.db.session.delete(comment)
 

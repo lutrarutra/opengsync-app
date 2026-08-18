@@ -1,4 +1,3 @@
-import pandas as pd
 from fastapi import Depends
 from sqlalchemy import orm
 from pydantic import BaseModel
@@ -15,6 +14,7 @@ class LaneRowSchema(BaseModel):
     target_molarity: float | None
     lane_molarity: float | None
     sequencing_qubit_concentration: float | None
+    sequencing_molarity: float | None
     original_qubit_concentration: float | None
     avg_fragment_size: int | None
     phi_x: float | None
@@ -78,7 +78,7 @@ class LoadFlowCellCombinedAction(HTMXForm):
             else:
                 form.total_volume_ul.data = form.experiment.workflow.volume_target_ul
 
-            if pd.notna(row.sequencing_qubit_concentration):
+            if row.sequencing_qubit_concentration is not None:
                 form.measured_qubit.data = row.sequencing_qubit_concentration
 
             if row.target_molarity is not None and row.lane_molarity is not None:
@@ -89,18 +89,13 @@ class LoadFlowCellCombinedAction(HTMXForm):
                 library_volume = None
                 eb_volume = None
 
-            if row.sequencing_qubit_concentration is not None and row.avg_fragment_size is not None:
-                sequencing_molarity = row.sequencing_qubit_concentration / (row.avg_fragment_size * 660) * 1_000_000
-            else:
-                sequencing_molarity = None
-
             if row.phi_x is not None:
                 form.phi_x.data = row.phi_x
 
             form.avg_fragment_size._data = row.avg_fragment_size
             form.qubit_concentration._data = row.original_qubit_concentration
             form.lane_molarity._data = row.lane_molarity
-            form.sequencing_molarity._data = sequencing_molarity
+            form.sequencing_molarity._data = row.sequencing_molarity
             form.library_volume._data = library_volume
             form.eb_volume._data = eb_volume
 

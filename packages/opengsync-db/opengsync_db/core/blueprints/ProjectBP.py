@@ -93,7 +93,7 @@ class ProjectBP(DBBlueprint):
     ) -> models.Project:
         if group_id is not None:
             if self.db.session.get(models.Group, group_id) is None:
-                raise exceptions.ElementDoesNotExist(f"Group with id {group_id} does not exist")
+                raise exceptions.ModelNotFoundException(f"Group with id {group_id} does not exist")
 
         project = models.Project(
             identifier=identifier,
@@ -207,7 +207,7 @@ class ProjectBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, project_id: int, flush: bool = True):
         if (project := self.db.session.get(models.Project, project_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Project with id {project_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Project with id {project_id} does not exist")
 
         self.db.session.delete(project)
 
@@ -330,6 +330,6 @@ class ProjectBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int | str) -> models.Project:
         if (project := self.get(id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Project with identifier '{id}' does not exist")
+            raise exceptions.ModelNotFoundException(f"Project with identifier '{id}' does not exist")
         return project
     

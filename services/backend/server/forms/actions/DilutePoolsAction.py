@@ -1,8 +1,10 @@
 from fastapi import Depends
+from pydantic import BaseModel
 
 from opengsync_db import models, queries as Q, SyncSession, actions
 
 from ...core import dependencies, exceptions as exc, responses
+from ...utils import parsing
 from ...components import inputs
 from ..HTMXForm import RouteFunc, FormFunc, HTMXForm, htmx_route
 from ..SubHTMXForm import SubHTMXForm
@@ -41,14 +43,16 @@ class DilutePoolsAction(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
         ):
             df = session.pd.get_experiment_pools(form.experiment.id)
-            df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
             df["molarity_color"] = "cemm-green"
             df.loc[(df["molarity"] < models.Pool.warning_min_molarity) | (models.Pool.warning_max_molarity < df["molarity"]), "molarity_color"] = "cemm-yellow"
             df.loc[(df["molarity"] < models.Pool.error_min_molarity) | (models.Pool.error_max_molarity < df["molarity"]), "molarity_color"] = "cemm-red"
 
-            for _, row in df.iterrows():
+            class RowSchema(BaseModel):
+                id: int
+
+            for _, row in parsing.safe_iter(df, RowSchema):
                 entry = form.pool_forms.append_entry()
-                entry.pool_id.data = row["id"]
+                entry.pool_id.data = row.id
 
             form._context["df"] = df
             return form.make_response()

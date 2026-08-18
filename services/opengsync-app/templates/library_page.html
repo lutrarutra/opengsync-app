@@ -240,9 +240,9 @@
                     {{
                         modal_button(
                             "Edit Properties", url=url_for('EditLibraryPropertiesAction.Begin', library_id=library.id),
-                            disabled=not (current_user.is_insider or project.status <= C.ProjectStatus.SEQUENCED),
+                            disabled=not (current_user.is_insider or library.status <= C.LibraryStatus.SEQUENCED),
                             size="fullscreen",
-                            disabled_tooltip="Only insiders can edit properties of a completed project.",
+                            disabled_tooltip="Only insiders can edit properties of a completed library.",
                         )
                     }}
                 </div>

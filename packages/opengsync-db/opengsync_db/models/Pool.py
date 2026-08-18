@@ -193,12 +193,25 @@ class Pool(Base):
     def type(self, value: PoolType):
         self.type_id = value.id
     
-    @property
-    def molarity(self) -> float | None:
+    @hybrid_property
+    def molarity(self) -> float | None:  # type: ignore[override]
         if self.avg_fragment_size is None or self.qubit_concentration is None:
             return None
         
         return self.qubit_concentration / (self.avg_fragment_size * 660) * 1_000_000
+
+    @molarity.expression
+    def molarity(cls) -> sa.ColumnElement[float | None]:
+        return sa.case(
+            (
+                sa.and_(
+                    Pool.avg_fragment_size.is_not(None),
+                    Pool.qubit_concentration.is_not(None)
+                ),
+                sa.cast(cls.qubit_concentration, sa.Float) / (sa.cast(cls.avg_fragment_size, sa.Float) * 660) * 1_000_000
+            ),
+            else_=None
+        )
     
     @property
     def molarity_color_class(self) -> str:

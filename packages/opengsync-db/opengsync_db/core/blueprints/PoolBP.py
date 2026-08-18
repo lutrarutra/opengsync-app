@@ -98,19 +98,19 @@ class PoolBP(DBBlueprint):
         
         if seq_request_id is not None:
             if self.db.session.get(models.SeqRequest, seq_request_id) is None:
-                raise exceptions.ElementDoesNotExist(f"SeqRequest with id {seq_request_id} does not exist")
+                raise exceptions.ModelNotFoundException(f"SeqRequest with id {seq_request_id} does not exist")
             
         if experiment_id is not None:
             if self.db.session.get(models.Experiment, experiment_id) is None:
-                raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+                raise exceptions.ModelNotFoundException(f"Experiment with id {experiment_id} does not exist")
             
         if lab_prep_id is not None:
             if self.db.session.get(models.LabPrep, lab_prep_id) is None:
-                raise exceptions.ElementDoesNotExist(f"LabPrep with id {lab_prep_id} does not exist")
+                raise exceptions.ModelNotFoundException(f"LabPrep with id {lab_prep_id} does not exist")
             
         if original_pool_id is not None:
             if self.db.session.get(models.Pool, original_pool_id) is None:
-                raise exceptions.ElementDoesNotExist(f"Original Pool with id {original_pool_id} does not exist")
+                raise exceptions.ModelNotFoundException(f"Original Pool with id {original_pool_id} does not exist")
             clone_number = self.get_number_of_cloned_pools(original_pool_id) + 1
         else:
             clone_number = 0
@@ -231,7 +231,7 @@ class PoolBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, pool_id: int, flush: bool = True):
         if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Pool with id {pool_id} does not exist")
 
         self.db.session.delete(pool)
 
@@ -253,7 +253,7 @@ class PoolBP(DBBlueprint):
     ) -> models.Pool:
 
         if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Pool with id {pool_id} does not exist")
             
         n = len(pool.dilutions)
 
@@ -410,7 +410,7 @@ class PoolBP(DBBlueprint):
     def clone(self, pool_id: int, status: PoolStatus, seq_request_id: int | None = None) -> models.Pool:
 
         if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Pool with id {pool_id} does not exist")
 
         cloned_pool = self.create(
             name=pool.name,
@@ -440,7 +440,7 @@ class PoolBP(DBBlueprint):
             raise exceptions.InvalidOperation("Cannot merge a pool into itself")
 
         if (merged_pool := self.db.session.get(models.Pool, merged_pool_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"New Pool with id {merged_pool} does not exist")
+            raise exceptions.ModelNotFoundException(f"New Pool with id {merged_pool} does not exist")
 
         from sqlalchemy import orm
         pools = self.db.session.query(models.Pool).filter(
@@ -448,7 +448,7 @@ class PoolBP(DBBlueprint):
         ).options(orm.joinedload(models.Pool.libraries)).all()
 
         if len(pool_ids) != len(pools):
-            raise exceptions.ElementDoesNotExist("One or more pools to merge do not exist")
+            raise exceptions.ModelNotFoundException("One or more pools to merge do not exist")
 
         for pool in pools:
             for library in pool.libraries:
@@ -468,7 +468,7 @@ class PoolBP(DBBlueprint):
     def __getitem__(self, pool_id: int) -> models.Pool:
         """Get a pool by its ID."""
         if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Pool with id {pool_id} does not exist")
         return pool
 
 

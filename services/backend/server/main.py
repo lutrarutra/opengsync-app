@@ -32,7 +32,7 @@ app.exception_handler(HTTPException)(handlers.http_exception_handler)
 app.exception_handler(RequestValidationError)(handlers.validation_exception_handler)
 app.exception_handler(exc.UserNotAuthenticatedException)(handlers.UserNotAuthenticatedException_handler)
 app.exception_handler(exc.FormValidationException)(handlers.form_validation_exception_handler)
-app.exception_handler(db_exc.ElementDoesNotExist)(handlers.db_model_not_found_handler)
+app.exception_handler(db_exc.ModelNotFoundException)(handlers.db_model_not_found_handler)
 app.exception_handler(MissingGreenlet)(handlers.missing_greenlet_handler)
 
 

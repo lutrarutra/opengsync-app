@@ -25,7 +25,7 @@ def _default_logger(exc: Exception, exc_type: str, level: Literal["error", "warn
             serv_exceptions.NoPermissionsException: "info",
             serv_exceptions.NotFoundException: "info",
             serv_exceptions.BadRequestException: "info",
-            db_exceptions.ElementDoesNotExist: "info",
+            db_exceptions.ModelNotFoundException: "info",
         }.get(type(exc), "error")
     else:
         _level = level
@@ -221,7 +221,7 @@ def _page_handler(e: Exception):
     match type(e):
         case serv_exceptions.NoPermissionsException:
             code = 403
-        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ModelNotFoundException:
             code = 404
         case serv_exceptions.BadRequestException:
             code = 400
@@ -246,7 +246,7 @@ def _htmx_handler(e: Exception):
     match type(e):
         case serv_exceptions.NoPermissionsException:
             code = 403
-        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ModelNotFoundException:
             code = 404
         case serv_exceptions.BadRequestException:
             code = 400
@@ -272,7 +272,7 @@ def _api_handler(e: Exception):
     match type(e):
         case serv_exceptions.NoPermissionsException:
             return msg, HTTPResponse.FORBIDDEN.id
-        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ModelNotFoundException:
             return msg, HTTPResponse.NOT_FOUND.id
         case serv_exceptions.BadRequestException:
             return msg, HTTPResponse.BAD_REQUEST.id
@@ -295,7 +295,7 @@ def _resource_handler(e: Exception):
     match type(e):
         case serv_exceptions.NoPermissionsException:
             code = 403
-        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ElementDoesNotExist:
+        case serv_exceptions.NotFoundException | db_exceptions.LinkDoesNotExist | db_exceptions.ModelNotFoundException:
             code = 404
         case serv_exceptions.BadRequestException:
             code = 400

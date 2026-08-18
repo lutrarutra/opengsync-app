@@ -1,44 +1,44 @@
-from opengsync_db import SyncDBHandler, queries as Q
+from opengsync_db import SyncSession, actions, queries as Q
 
 from .create_units import (
     create_user, create_project, create_seq_request, create_sample, create_library,
 )  # noqa
 
 
-def test_project_merge(db: SyncDBHandler):
-    user = create_user(db)
-    project_a = create_project(db, user)
-    project_b = create_project(db, user)
-    seq_request_a = create_seq_request(db, user)
-    seq_request_b = create_seq_request(db, user)
+def test_project_merge(session: SyncSession):
+    user = create_user(session)
+    project_a = create_project(session, user)
+    project_b = create_project(session, user)
+    seq_request_a = create_seq_request(session, user)
+    seq_request_b = create_seq_request(session, user)
 
     NUM_SAMPLES = 10
 
     for _ in range(NUM_SAMPLES):
-        sample_a = create_sample(db, user, project_a)
-        sample_b = create_sample(db, user, project_b)
+        sample_a = create_sample(session, user, project_a)
+        sample_b = create_sample(session, user, project_b)
 
-        library_a = create_library(db, user, seq_request_a)
-        library_b = create_library(db, user, seq_request_b)
+        library_a = create_library(session, user, seq_request_a)
+        library_b = create_library(session, user, seq_request_b)
 
-        db.actions.link_sample_library(sample_a.id, library_a.id)
-        db.actions.link_sample_library(sample_b.id, library_b.id)
+        actions.link_sample_library(session, sample_a.id, library_a.id)
+        actions.link_sample_library(session, sample_b.id, library_b.id)
 
 
-    assert db.session.count(Q.sample.select()) == 2 * NUM_SAMPLES
-    assert db.session.count(Q.library.select()) == 2 * NUM_SAMPLES
-    assert db.session.count(Q.seq_request.select()) == 2
-    assert db.session.count(Q.project.select()) == 2
+    assert session.count(Q.sample.select()) == 2 * NUM_SAMPLES
+    assert session.count(Q.library.select()) == 2 * NUM_SAMPLES
+    assert session.count(Q.seq_request.select()) == 2
+    assert session.count(Q.project.select()) == 2
         
-    project_a = db.actions.merge_projects(project_dst=project_a, project_src=project_b)
-    db.session.flush()
-    db.session.refresh(project_a)
-    db.session.refresh(project_b)
+    project_a = actions.merge_projects(session, project_dst=project_a, project_src=project_b)
+    session.flush()
+    session.refresh(project_a)
+    session.refresh(project_b)
 
-    assert db.session.count(Q.sample.select()) == 2 * NUM_SAMPLES
-    assert db.session.count(Q.library.select()) == 2 * NUM_SAMPLES
-    assert db.session.count(Q.seq_request.select()) == 2
-    assert db.session.count(Q.project.select()) == 2
+    assert session.count(Q.sample.select()) == 2 * NUM_SAMPLES
+    assert session.count(Q.library.select()) == 2 * NUM_SAMPLES
+    assert session.count(Q.seq_request.select()) == 2
+    assert session.count(Q.project.select()) == 2
     assert len(project_a.samples) == 2 * NUM_SAMPLES
     assert len(project_a.libraries) == 2 * NUM_SAMPLES
     assert len(project_a.seq_requests) == 2

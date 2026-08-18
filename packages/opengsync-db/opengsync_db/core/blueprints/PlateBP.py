@@ -14,7 +14,7 @@ class PlateBP(DBBlueprint):
         self, name: str, num_cols: int, num_rows: int, owner_id: int, flush: bool = True
     ) -> models.Plate:
         if (owner := self.db.users.get(owner_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"User with id {owner_id} does not exist")
 
         plate = models.Plate(name=name, num_cols=num_cols, num_rows=num_rows, owner=owner)
         self.db.session.add(plate)
@@ -57,7 +57,7 @@ class PlateBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, plate_id: int, flush: bool = True):
         if (plate := self.get(plate_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Plate with id {plate_id} does not exist")
         
         for sample_link in plate.sample_links:
             self.db.session.delete(sample_link)
@@ -72,7 +72,7 @@ class PlateBP(DBBlueprint):
         self, plate_id: int, sample_id: int, well_idx: int
     ) -> models.Plate:
         if (plate := self.get(plate_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Plate with id {plate_id} does not exist")
         
         if self.db.session.query(models.links.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
             raise exceptions.LinkAlreadyExists(f"Well {well_idx} is already occupied in plate with id {plate_id}")
@@ -89,7 +89,7 @@ class PlateBP(DBBlueprint):
         self, plate_id: int, library_id: int, well_idx: int
     ) -> models.Plate:
         if (plate := self.get(plate_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Plate with id {plate_id} does not exist")
         
         if self.db.session.query(models.links.SamplePlateLink).filter_by(plate_id=plate_id, well_idx=well_idx).first() is not None:
             raise exceptions.LinkAlreadyExists(f"Well {well_idx} is already occupied in plate with id {plate_id}")
@@ -104,7 +104,7 @@ class PlateBP(DBBlueprint):
     @DBBlueprint.transaction
     def clear(self, plate_id: int) -> models.Plate:
         if (plate := self.get(plate_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Plate with id {plate_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Plate with id {plate_id} does not exist")
         
         for link in plate.sample_links:
             self.db.session.delete(link)

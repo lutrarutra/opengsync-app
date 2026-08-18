@@ -228,7 +228,7 @@ class UserBP(DBBlueprint):
             exceptions.ElementDoesNotExist: if user with user_id does not exist
         """
         if (user := self.db.session.get(models.User, user_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"User with id {user_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"User with id {user_id} does not exist")
 
         self.db.session.delete(user)
         if flush:
@@ -345,11 +345,11 @@ class UserBP(DBBlueprint):
     def __getitem__(self, key: int | str) -> models.User:
         if isinstance(key, int):
             if (user := self.get(key)) is None:
-                raise exceptions.ElementDoesNotExist(f"User with id {key} does not exist")
+                raise exceptions.ModelNotFoundException(f"User with id {key} does not exist")
             return user
         elif isinstance(key, str):
             if (user := self.get_with_email(key)) is None:
-                raise exceptions.ElementDoesNotExist(f"User with email {key} does not exist")
+                raise exceptions.ModelNotFoundException(f"User with email {key} does not exist")
             return user
         else:
             raise TypeError(f"Key must be int or str, got {type(key).__name__}")

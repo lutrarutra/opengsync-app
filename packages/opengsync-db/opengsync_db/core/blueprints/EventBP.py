@@ -77,7 +77,7 @@ class EventBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, event_id: int, flush: bool = True):
         if (event := self.db.session.get(models.Event, event_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Event with id {event_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Event with id {event_id} does not exist")
         
         self.db.session.delete(event)
 

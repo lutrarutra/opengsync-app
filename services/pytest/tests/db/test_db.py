@@ -1,32 +1,31 @@
-from opengsync_db import SyncDBHandler, queries as Q
+from opengsync_db import SyncSession, queries as Q
 
 from .create_units import create_user
 
 
-def test_db(db: SyncDBHandler):
-    user_1 = create_user(db)
+def test_db(session: SyncSession):
+    user_1 = create_user(session)
     assert user_1 is not None
 
-    user_2 = create_user(db)
+    user_2 = create_user(session)
     assert user_2 is not None
 
-    assert len(db.session.get_all(Q.user.select(), limit=None)) == db.session.count(Q.user.select()) == 2
+    assert len(session.get_all(Q.user.select(), limit=None)) == session.count(Q.user.select()) == 2
 
-    db.close_session(rollback=True)
-    db.open_session()
+    session.rollback()
 
-    assert len(db.session.get_all(Q.user.select(), limit=None)) == db.session.count(Q.user.select()) == 0
+    assert len(session.get_all(Q.user.select(), limit=None)) == session.count(Q.user.select()) == 0
 
-    create_user(db)
+    create_user(session)
 
-    assert len(db.session.get_all(Q.user.select(), limit=None)) == db.session.count(Q.user.select()) == 1
+    assert len(session.get_all(Q.user.select(), limit=None)) == session.count(Q.user.select()) == 1
 
-    db.session.commit()
+    session.commit()
 
-    create_user(db)
+    create_user(session)
 
-    assert len(db.session.get_all(Q.user.select(), limit=None)) == db.session.count(Q.user.select()) == 2
+    assert len(session.get_all(Q.user.select(), limit=None)) == session.count(Q.user.select()) == 2
 
-    db.session.rollback()
+    session.rollback()
 
-    assert len(db.session.get_all(Q.user.select(), limit=None)) == db.session.count(Q.user.select()) == 1
+    assert len(session.get_all(Q.user.select(), limit=None)) == session.count(Q.user.select()) == 1

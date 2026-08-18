@@ -5,7 +5,7 @@ import uuid
 from fastapi.testclient import TestClient
 from redis import Redis
 
-from opengsync_db import SyncDBHandler, queries as Q, categories as C
+from opengsync_db import SyncSession, queries as Q, categories as C
 
 from ..db.create_units import create_experiment
 from ._http import get, post_form
@@ -14,8 +14,8 @@ from ._http import get, post_form
 QC_LANES_PATH = "/htmx/workflows/lane-qc/q-c-lanes"
 
 
-def _commit(db: SyncDBHandler) -> None:
-    db.session.commit()
+def _commit(session: SyncSession) -> None:
+    session.commit()
 
 
 def _qc_payload(lanes) -> dict[str, str]:
@@ -29,10 +29,10 @@ def _qc_payload(lanes) -> dict[str, str]:
 
 
 def test_lane_qc_begin_requires_insider(
-    client: TestClient, db: SyncDBHandler, user, user_token, insider, insider_token,
+    client: TestClient, session: SyncSession, user, user_token, insider, insider_token,
 ):
-    experiment = create_experiment(db, insider, C.ExperimentWorkFlow.NOVASEQ_6K_SP_XP)
-    _commit(db)
+    experiment = create_experiment(session, insider, C.ExperimentWorkFlow.NOVASEQ_6K_SP_XP)
+    _commit(session)
 
     denied = get(
         client, "/htmx/workflows/lane-qc/begin", user_token,
@@ -48,11 +48,11 @@ def test_lane_qc_begin_requires_insider(
 
 
 def test_lane_qc_submit_updates_lanes_and_clears_redis(
-    client: TestClient, db: SyncDBHandler, insider, insider_token,
+    client: TestClient, session: SyncSession, insider, insider_token,
 ):
-    experiment = create_experiment(db, insider, C.ExperimentWorkFlow.NOVASEQ_6K_SP_XP)
-    _commit(db)
-    lanes = db.session.get_all(Q.lane.select(experiment_id=experiment.id), limit=None)
+    experiment = create_experiment(session, insider, C.ExperimentWorkFlow.NOVASEQ_6K_SP_XP)
+    _commit(session)
+    lanes = session.get_all(Q.lane.select(experiment_id=experiment.id), limit=None)
     assert len(lanes) >= 1
 
     wf_uuid = str(uuid.uuid4())
@@ -72,8 +72,8 @@ def test_lane_qc_submit_updates_lanes_and_clears_redis(
     assert response.status_code == 204
     assert "HX-Redirect" in response.headers
 
-    db.session.expire_all()
-    updated = db.session.get_all(Q.lane.select(experiment_id=experiment.id), limit=None)
+    session.expire_all()
+    updated = session.get_all(Q.lane.select(experiment_id=experiment.id), limit=None)
     for lane in updated:
         assert lane.phi_x == 1.5
         assert lane.avg_fragment_size == 350
@@ -84,11 +84,11 @@ def test_lane_qc_submit_updates_lanes_and_clears_redis(
 
 
 def test_lane_qc_client_cannot_submit(
-    client: TestClient, db: SyncDBHandler, user, user_token, insider,
+    client: TestClient, session: SyncSession, user, user_token, insider,
 ):
-    experiment = create_experiment(db, insider, C.ExperimentWorkFlow.NOVASEQ_6K_SP_XP)
-    _commit(db)
-    lanes = db.session.get_all(Q.lane.select(experiment_id=experiment.id), limit=None)
+    experiment = create_experiment(session, insider, C.ExperimentWorkFlow.NOVASEQ_6K_SP_XP)
+    _commit(session)
+    lanes = session.get_all(Q.lane.select(experiment_id=experiment.id), limit=None)
 
     response = post_form(
         client,

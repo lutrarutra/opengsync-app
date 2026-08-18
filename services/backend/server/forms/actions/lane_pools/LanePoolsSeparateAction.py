@@ -109,10 +109,10 @@ class LanePoolsSeparateAction(HTMXForm):
                         sample_sub.dilution.data = dilution.identifier
                         df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str()))  # type: ignore
                         df.at[idx, "qubit_concentration"] = dilution.qubit_concentration
+                        df.at[idx, "molarity"] = dilution.molarity(pool)
 
                     counter += 1
 
-            df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
             df["share"] = None
             for _, _df in df.groupby("lane"):
                 df.loc[_df.index, "share"] = _df["num_m_reads"] / _df["num_m_reads"].sum()
@@ -147,6 +147,7 @@ class LanePoolsSeparateAction(HTMXForm):
                 "target_total_volume": [],
                 "target_concentration": [],
                 "avg_fragment_size": [],
+                "molarity": [],
                 "dilution": [],
             }
 
@@ -178,6 +179,9 @@ class LanePoolsSeparateAction(HTMXForm):
                 data["qubit_concentration"].append(
                     link.dilution.qubit_concentration if link.dilution is not None else link.pool.qubit_concentration
                 )
+                data["molarity"].append(
+                    link.dilution.molarity(link.pool) if link.dilution is not None else link.pool.molarity
+                )
                 data["target_total_volume"].append(link.lane.total_volume_ul)
                 data["target_concentration"].append(link.lane.target_molarity)
                 data["dilution"].append(link.dilution.identifier if link.dilution is not None else "Orig.")
@@ -187,7 +191,6 @@ class LanePoolsSeparateAction(HTMXForm):
             for lane, _df in df.groupby(["lane", "lane_id"]):
                 df.loc[_df.index, "share"] = _df["num_m_reads"].values / _df["num_m_reads"].sum()
 
-            df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
             df["pipet"] = df["target_concentration"] / df["molarity"] * df["share"] * df["target_total_volume"]
 
             # Save TSV file

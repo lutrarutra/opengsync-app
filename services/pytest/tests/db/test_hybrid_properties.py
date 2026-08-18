@@ -1,8 +1,8 @@
 import uuid
 import sqlalchemy as sa
-from opengsync_db import SyncDBHandler, models, queries as Q
+from opengsync_db import SyncSession, actions, models
 from opengsync_db.categories import (
-    UserRole, AffiliationType, ExperimentWorkFlow, LibraryType, DataPathType,
+    AffiliationType, ExperimentWorkFlow, LibraryType, DataPathType,
     MediaFileType, PrepStatus, LabChecklistType, ServiceType
 )
 from opengsync_db.models import links
@@ -13,8 +13,8 @@ from .create_units import (
 )
 
 
-def test_user_hybrid_properties(db: SyncDBHandler):
-    user = create_user(db)
+def test_user_hybrid_properties(session: SyncSession):
+    user = create_user(session)
     
     # Initial checks
     assert user.num_api_tokens == 0
@@ -29,29 +29,29 @@ def test_user_hybrid_properties(db: SyncDBHandler):
         time_valid_min=10,
         owner_id=user.id,
     )
-    db.session.add(token)
+    session.add(token)
 
     # Add Project
-    project = create_project(db, user)
+    project = create_project(session, user)
 
     # Add Sample
-    sample = create_sample(db, user, project)
+    _ = create_sample(session, user, project)
 
     # Add SeqRequest
-    seq_request = create_seq_request(db, user)
+    _ = create_seq_request(session, user)
 
     # Add Group Affiliation
-    group = create_group(db)
+    group = create_group(session)
     affiliation = links.UserAffiliation(
         user_id=user.id,
         group_id=group.id,
         affiliation_type_id=AffiliationType.MEMBER.id
     )
-    db.session.add(affiliation)
-    db.session.flush()
+    session.add(affiliation)
+    session.flush()
 
     # Refresh user
-    db.session.refresh(user)
+    session.refresh(user)
 
     # Python property access
     assert user.num_api_tokens == 1
@@ -61,7 +61,7 @@ def test_user_hybrid_properties(db: SyncDBHandler):
     assert user.num_affiliations == 1
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.User.num_api_tokens,
             models.User.num_samples,
@@ -80,9 +80,9 @@ def test_user_hybrid_properties(db: SyncDBHandler):
     assert res[5] == f"{user.first_name} {user.last_name}"
 
 
-def test_project_hybrid_properties(db: SyncDBHandler):
-    user = create_user(db)
-    project = create_project(db, user)
+def test_project_hybrid_properties(session: SyncSession):
+    user = create_user(session)
+    project = create_project(session, user)
 
     # Initial checks
     assert project.num_samples == 0
@@ -93,14 +93,14 @@ def test_project_hybrid_properties(db: SyncDBHandler):
     assert project.num_experiments == 0
 
     # Add Sample
-    sample = create_sample(db, user, project)
+    sample = create_sample(session, user, project)
 
     # Add SeqRequest
-    seq_request = create_seq_request(db, user)
+    seq_request = create_seq_request(session, user)
 
     # Add Library
-    library = create_library(db, user, seq_request)
-    db.actions.link_sample_library(sample.id, library.id)
+    library = create_library(session, user, seq_request)
+    actions.link_sample_library(session, sample.id, library.id)
 
     # Add DataPath
     data_path = models.DataPath(
@@ -108,25 +108,25 @@ def test_project_hybrid_properties(db: SyncDBHandler):
         project_id=project.id,
         type_id=DataPathType.CUSTOM.id,
     )
-    db.session.add(data_path)
+    session.add(data_path)
 
     # Add Assignee
     assignee_link = links.ProjectAssigneeLink(
         project_id=project.id,
         user_id=user.id,
     )
-    db.session.add(assignee_link)
+    session.add(assignee_link)
 
     # Add Experiment
-    experiment = create_experiment(db, user, ExperimentWorkFlow.MISEQ_v2)
+    experiment = create_experiment(session, user, ExperimentWorkFlow.MISEQ_v2)
     # Link library to pool, pool to experiment
-    pool = create_pool(db, user, seq_request)
+    pool = create_pool(session, user, seq_request)
     library.pool_id = pool.id
-    db.session.flush()
-    db.actions.link_pool_experiment(pool=pool, experiment=experiment)
+    session.flush()
+    actions.link_pool_experiment(session, pool=pool, experiment=experiment)
 
-    db.session.flush()
-    db.session.refresh(project)
+    session.flush()
+    session.refresh(project)
 
     # Python property access
     assert project.num_samples == 1
@@ -137,7 +137,7 @@ def test_project_hybrid_properties(db: SyncDBHandler):
     assert project.num_experiments == 1
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.Project.num_samples,
             models.Project.library_types,
@@ -156,9 +156,9 @@ def test_project_hybrid_properties(db: SyncDBHandler):
     assert res[5] == 1
 
 
-def test_seq_request_hybrid_properties(db: SyncDBHandler):
-    user = create_user(db)
-    seq_request = create_seq_request(db, user)
+def test_seq_request_hybrid_properties(session: SyncSession):
+    user = create_user(session)
+    seq_request = create_seq_request(session, user)
 
     # Initial checks
     assert seq_request.num_projects == 0
@@ -174,24 +174,24 @@ def test_seq_request_hybrid_properties(db: SyncDBHandler):
     assert seq_request.num_delivery_email_links == 0
 
     # Add Project
-    project = create_project(db, user)
+    project = create_project(session, user)
 
     # Add Sample
-    sample = create_sample(db, user, project)
+    sample = create_sample(session, user, project)
 
     # Add Library
-    library = create_library(db, user, seq_request)
-    db.actions.link_sample_library(sample.id, library.id)
+    library = create_library(session, user, seq_request)
+    actions.link_sample_library(session, sample.id, library.id)
 
     # Add Pool
-    pool = create_pool(db, user, seq_request)
+    _ = create_pool(session, user, seq_request)
 
     # Add Assignee
     assignee_link = links.SeqRequestAssigneeLink(
         seq_request_id=seq_request.id,
         user_id=user.id,
     )
-    db.session.add(assignee_link)
+    session.add(assignee_link)
 
     # Add Comment
     comment = models.Comment(
@@ -199,10 +199,10 @@ def test_seq_request_hybrid_properties(db: SyncDBHandler):
         author_id=user.id,
         seq_request_id=seq_request.id,
     )
-    db.session.add(comment)
+    session.add(comment)
 
     # Add File
-    media_file = create_file(db, seq_request=seq_request)
+    _ = create_file(session, seq_request=seq_request)
 
     # Add DataPath
     data_path = models.DataPath(
@@ -210,17 +210,17 @@ def test_seq_request_hybrid_properties(db: SyncDBHandler):
         seq_request_id=seq_request.id,
         type_id=DataPathType.CUSTOM.id,
     )
-    db.session.add(data_path)
+    session.add(data_path)
 
     # Add Delivery Email Link
     email_link = links.SeqRequestDeliveryEmailLink(
         seq_request_id=seq_request.id,
         email="test@email.com",
     )
-    db.session.add(email_link)
+    session.add(email_link)
 
-    db.session.flush()
-    db.session.refresh(seq_request)
+    session.flush()
+    session.refresh(seq_request)
 
     # Python property access
     assert seq_request.num_projects == 1
@@ -236,7 +236,7 @@ def test_seq_request_hybrid_properties(db: SyncDBHandler):
     assert seq_request.num_delivery_email_links == 1
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.SeqRequest.num_projects,
             models.SeqRequest.num_libraries,
@@ -263,9 +263,9 @@ def test_seq_request_hybrid_properties(db: SyncDBHandler):
     assert res[9] == 1
 
 
-def test_experiment_hybrid_properties(db: SyncDBHandler):
-    user = create_user(db)
-    experiment = create_experiment(db, user, ExperimentWorkFlow.MISEQ_v2)
+def test_experiment_hybrid_properties(session: SyncSession):
+    user = create_user(session)
+    experiment = create_experiment(session, user, ExperimentWorkFlow.MISEQ_v2)
 
     # Initial checks
     assert experiment.library_types == []
@@ -279,18 +279,17 @@ def test_experiment_hybrid_properties(db: SyncDBHandler):
     assert experiment.sequencer_loading_checklist is None
 
     # Add SeqRequest
-    seq_request = create_seq_request(db, user)
+    seq_request = create_seq_request(session, user)
 
-    # Add Pool
-    pool = create_pool(db, user, seq_request)
-    db.actions.link_pool_experiment(pool=pool, experiment=experiment)
-
-    # Add Library
-    library = create_library(db, user, seq_request)
+    # Add Pool, then library, then link so experiment_id is copied onto the library
+    pool = create_pool(session, user, seq_request)
+    library = create_library(session, user, seq_request)
     library.pool_id = pool.id
+    session.flush()
+    actions.link_pool_experiment(session, pool=pool, experiment=experiment)
 
     # Add File
-    media_file = create_file(db, experiment=experiment)
+    _ = create_file(session, experiment=experiment)
 
     # Add Comment
     comment = models.Comment(
@@ -298,12 +297,12 @@ def test_experiment_hybrid_properties(db: SyncDBHandler):
         author_id=user.id,
         experiment_id=experiment.id,
     )
-    db.session.add(comment)
+    session.add(comment)
 
     # Add Project
-    project = create_project(db, user)
-    sample = create_sample(db, user, project)
-    db.actions.link_sample_library(sample.id, library.id)
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    actions.link_sample_library(session, sample.id, library.id)
 
     # Add DataPath
     data_path = models.DataPath(
@@ -311,7 +310,7 @@ def test_experiment_hybrid_properties(db: SyncDBHandler):
         experiment_id=experiment.id,
         type_id=DataPathType.CUSTOM.id,
     )
-    db.session.add(data_path)
+    session.add(data_path)
 
     # Add Lane Pooling Table
     lane_pooling_table = models.MediaFile(
@@ -323,7 +322,7 @@ def test_experiment_hybrid_properties(db: SyncDBHandler):
         uuid=str(uuid.uuid4()),
         experiment_id=experiment.id,
     )
-    db.session.add(lane_pooling_table)
+    session.add(lane_pooling_table)
 
     # Add Sequencer Loading Checklist
     sequencer_loading_checklist = models.MediaFile(
@@ -335,10 +334,10 @@ def test_experiment_hybrid_properties(db: SyncDBHandler):
         uuid=str(uuid.uuid4()),
         experiment_id=experiment.id,
     )
-    db.session.add(sequencer_loading_checklist)
+    session.add(sequencer_loading_checklist)
 
-    db.session.flush()
-    db.session.refresh(experiment)
+    session.flush()
+    session.refresh(experiment)
 
     # Python property access
     assert experiment.library_types == [LibraryType.BULK_RNA_SEQ]
@@ -348,11 +347,11 @@ def test_experiment_hybrid_properties(db: SyncDBHandler):
     assert experiment.num_comments == 1
     assert experiment.num_projects == 1
     assert experiment.num_data_paths == 1
-    assert experiment.lane_pooling_table.id == lane_pooling_table.id
-    assert experiment.sequencer_loading_checklist.id == sequencer_loading_checklist.id
+    assert experiment.lane_pooling_table is not None and experiment.lane_pooling_table.id == lane_pooling_table.id
+    assert experiment.sequencer_loading_checklist is not None and experiment.sequencer_loading_checklist.id == sequencer_loading_checklist.id
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.Experiment.library_types,
             models.Experiment.num_pools,
@@ -373,10 +372,10 @@ def test_experiment_hybrid_properties(db: SyncDBHandler):
     assert res[6] == 1
 
 
-def test_library_hybrid_properties(db: SyncDBHandler):
-    user = create_user(db)
-    seq_request = create_seq_request(db, user)
-    library = create_library(db, user, seq_request)
+def test_library_hybrid_properties(session: SyncSession):
+    user = create_user(session)
+    seq_request = create_seq_request(session, user)
+    library = create_library(session, user, seq_request)
 
     # Initial checks
     assert library.num_samples == 0
@@ -384,13 +383,13 @@ def test_library_hybrid_properties(db: SyncDBHandler):
     assert library.num_data_paths == 0
 
     # Add Sample
-    project = create_project(db, user)
-    sample = create_sample(db, user, project)
-    db.actions.link_sample_library(sample.id, library.id)
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    actions.link_sample_library(session, sample.id, library.id)
 
     # Add Feature
-    feature = create_feature(db)
-    db.actions.link_feature_library(feature.id, library.id)
+    feature = create_feature(session)
+    actions.link_feature_library(session, feature.id, library.id)
 
     # Add DataPath
     data_path = models.DataPath(
@@ -398,10 +397,10 @@ def test_library_hybrid_properties(db: SyncDBHandler):
         library_id=library.id,
         type_id=DataPathType.CUSTOM.id,
     )
-    db.session.add(data_path)
+    session.add(data_path)
 
-    db.session.flush()
-    db.session.refresh(library)
+    session.flush()
+    session.refresh(library)
 
     # Python property access
     assert library.num_samples == 1
@@ -409,7 +408,7 @@ def test_library_hybrid_properties(db: SyncDBHandler):
     assert library.num_data_paths == 1
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.Library.num_samples,
             models.Library.num_features,
@@ -422,21 +421,21 @@ def test_library_hybrid_properties(db: SyncDBHandler):
     assert res[2] == 1
 
 
-def test_api_token_hybrid_properties(db: SyncDBHandler):
-    user = create_user(db)
+def test_api_token_hybrid_properties(session: SyncSession):
+    user = create_user(session)
     token = models.APIToken(
         time_valid_min=10,
         owner_id=user.id,
     )
-    db.session.add(token)
-    db.session.flush()
+    session.add(token)
+    session.flush()
 
     # Python property access
     assert token.expiration is not None
     assert not token.is_expired
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.APIToken.expiration
         ).where(models.APIToken.id == token.id)
@@ -444,14 +443,14 @@ def test_api_token_hybrid_properties(db: SyncDBHandler):
     assert res is not None
 
 
-def test_share_token_hybrid_properties(db: SyncDBHandler):
-    user = create_user(db)
+def test_share_token_hybrid_properties(session: SyncSession):
+    user = create_user(session)
     token = models.ShareToken(
         time_valid_min=10,
         owner_id=user.id,
     )
-    db.session.add(token)
-    db.session.flush()
+    session.add(token)
+    session.flush()
 
     # Initial checks
     assert token.num_paths == 0
@@ -463,15 +462,15 @@ def test_share_token_hybrid_properties(db: SyncDBHandler):
         path="test_path",
         uuid=token.uuid,
     )
-    db.session.add(share_path)
-    db.session.flush()
-    db.session.refresh(token)
+    session.add(share_path)
+    session.flush()
+    session.refresh(token)
 
     # Python property access
     assert token.num_paths == 1
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.ShareToken.num_paths,
             models.ShareToken.expiration
@@ -482,8 +481,8 @@ def test_share_token_hybrid_properties(db: SyncDBHandler):
     assert res[1] is not None
 
 
-def test_group_hybrid_properties(db: SyncDBHandler):
-    group = create_group(db)
+def test_group_hybrid_properties(session: SyncSession):
+    group = create_group(session)
 
     # Initial checks
     assert group.num_projects == 0
@@ -491,24 +490,24 @@ def test_group_hybrid_properties(db: SyncDBHandler):
     assert group.num_users == 0
 
     # Add User Affiliation
-    user = create_user(db)
+    user = create_user(session)
     affiliation = links.UserAffiliation(
         user_id=user.id,
         group_id=group.id,
         affiliation_type_id=AffiliationType.MEMBER.id
     )
-    db.session.add(affiliation)
+    session.add(affiliation)
 
     # Add Project
-    project = create_project(db, user)
+    project = create_project(session, user)
     project.group_id = group.id
 
     # Add SeqRequest
-    seq_request = create_seq_request(db, user)
+    seq_request = create_seq_request(session, user)
     seq_request.group_id = group.id
 
-    db.session.flush()
-    db.session.refresh(group)
+    session.flush()
+    session.refresh(group)
 
     # Python property access
     assert group.num_projects == 1
@@ -516,7 +515,7 @@ def test_group_hybrid_properties(db: SyncDBHandler):
     assert group.num_users == 1
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.Group.num_projects,
             models.Group.num_seq_requests,
@@ -529,20 +528,15 @@ def test_group_hybrid_properties(db: SyncDBHandler):
     assert res[2] == 1
 
 
-def test_lane_hybrid_properties(db: SyncDBHandler):
-    user = create_user(db)
-    seq_request = create_seq_request(db, user)
-    pool = create_pool(db, user, seq_request)
+def test_lane_hybrid_properties(session: SyncSession):
+    user = create_user(session)
+    seq_request = create_seq_request(session, user)
+    pool = create_pool(session, user, seq_request)
     pool.avg_fragment_size = 300
     pool.qubit_concentration = 1.5
 
-    # Create Lane
-    lane = models.Lane(
-        number=1,
-        experiment_id=create_experiment(db, user, ExperimentWorkFlow.MISEQ_v2).id,
-    )
-    db.session.add(lane)
-    db.session.flush()
+    experiment = create_experiment(session, user, ExperimentWorkFlow.MISEQ_v2)
+    lane = experiment.lanes[0]
 
     # Initial checks
     assert lane.avg_fragment_size is None
@@ -551,14 +545,8 @@ def test_lane_hybrid_properties(db: SyncDBHandler):
     assert lane.sequencing_molarity is None
     assert lane.molarity is None
 
-    # Link pool to lane
-    lane_pool_link = links.LanePoolLink(
-        lane_id=lane.id,
-        pool_id=pool.id,
-    )
-    db.session.add(lane_pool_link)
-    db.session.flush()
-    db.session.refresh(lane)
+    actions.add_pool_to_lane(session, experiment, pool=pool, lane=lane)
+    session.refresh(lane)
 
     # Python property access
     assert lane.avg_fragment_size == 300
@@ -567,7 +555,7 @@ def test_lane_hybrid_properties(db: SyncDBHandler):
     assert lane.molarity is not None
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.Lane.avg_fragment_size,
             models.Lane.original_qubit_concentration,
@@ -582,27 +570,27 @@ def test_lane_hybrid_properties(db: SyncDBHandler):
     assert res[3] is not None
 
 
-def test_sample_hybrid_properties(db: SyncDBHandler):
-    user = create_user(db)
-    project = create_project(db, user)
-    sample = create_sample(db, user, project)
+def test_sample_hybrid_properties(session: SyncSession):
+    user = create_user(session)
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
 
     # Initial checks
     assert sample.num_libraries == 0
 
     # Add Library
-    seq_request = create_seq_request(db, user)
-    library = create_library(db, user, seq_request)
-    db.actions.link_sample_library(sample.id, library.id)
+    seq_request = create_seq_request(session, user)
+    library = create_library(session, user, seq_request)
+    actions.link_sample_library(session, sample.id, library.id)
 
-    db.session.flush()
-    db.session.refresh(sample)
+    session.flush()
+    session.refresh(sample)
 
     # Python property access
     assert sample.num_libraries == 1
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.Sample.num_libraries
         ).where(models.Sample.id == sample.id)
@@ -610,28 +598,28 @@ def test_sample_hybrid_properties(db: SyncDBHandler):
     assert res == 1
 
 
-def test_pool_hybrid_properties(db: SyncDBHandler):
-    user = create_user(db)
-    seq_request = create_seq_request(db, user)
-    pool = create_pool(db, user, seq_request)
+def test_pool_hybrid_properties(session: SyncSession):
+    user = create_user(session)
+    seq_request = create_seq_request(session, user)
+    pool = create_pool(session, user, seq_request)
 
     # Initial checks
     assert pool.num_libraries == 0
     assert pool.library_types == []
 
     # Add Library
-    library = create_library(db, user, seq_request)
+    library = create_library(session, user, seq_request)
     library.pool_id = pool.id
 
-    db.session.flush()
-    db.session.refresh(pool)
+    session.flush()
+    session.refresh(pool)
 
     # Python property access
     assert pool.num_libraries == 1
     assert pool.library_types == [LibraryType.BULK_RNA_SEQ]
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.Pool.num_libraries,
             models.Pool.library_types
@@ -642,18 +630,18 @@ def test_pool_hybrid_properties(db: SyncDBHandler):
     assert res[1] == [LibraryType.BULK_RNA_SEQ.id]
 
 
-def test_lab_prep_hybrid_properties(db: SyncDBHandler):
-    user = create_user(db)
+def test_lab_prep_hybrid_properties(session: SyncSession):
+    user = create_user(session)
     lab_prep = models.LabPrep(
         name="test_lab_prep",
         prep_number=1,
-        status_id=PrepStatus.DRAFT.id,
-        checklist_type_id=LabChecklistType.TENX_3_v3_1.id,
+        status_id=PrepStatus.PREPARING.id,
+        checklist_type_id=LabChecklistType.SMART_SEQ.id,
         service_type_id=ServiceType.CUSTOM.id,
         creator_id=user.id,
     )
-    db.session.add(lab_prep)
-    db.session.flush()
+    session.add(lab_prep)
+    session.flush()
 
     # Initial checks
     assert lab_prep.library_types == []
@@ -665,21 +653,21 @@ def test_lab_prep_hybrid_properties(db: SyncDBHandler):
     assert lab_prep.num_plates == 0
 
     # Add Library
-    seq_request = create_seq_request(db, user)
-    library = create_library(db, user, seq_request)
+    seq_request = create_seq_request(session, user)
+    library = create_library(session, user, seq_request)
     library.lab_prep_id = lab_prep.id
 
     # Add Sample
-    project = create_project(db, user)
-    sample = create_sample(db, user, project)
-    db.actions.link_sample_library(sample.id, library.id)
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    actions.link_sample_library(session, sample.id, library.id)
 
     # Add Pool
-    pool = create_pool(db, user, seq_request)
+    pool = create_pool(session, user, seq_request)
     pool.lab_prep_id = lab_prep.id
 
     # Add File
-    media_file = create_file(db, lab_prep=lab_prep)
+    create_file(session, lab_prep=lab_prep)
 
     # Add Comment
     comment = models.Comment(
@@ -687,7 +675,7 @@ def test_lab_prep_hybrid_properties(db: SyncDBHandler):
         author_id=user.id,
         lab_prep_id=lab_prep.id,
     )
-    db.session.add(comment)
+    session.add(comment)
 
     # Add Plate
     plate = models.Plate(
@@ -697,10 +685,10 @@ def test_lab_prep_hybrid_properties(db: SyncDBHandler):
         owner_id=user.id,
         lab_prep_id=lab_prep.id,
     )
-    db.session.add(plate)
+    session.add(plate)
 
-    db.session.flush()
-    db.session.refresh(lab_prep)
+    session.flush()
+    session.refresh(lab_prep)
 
     # Python property access
     assert lab_prep.library_types == [LibraryType.BULK_RNA_SEQ]
@@ -712,7 +700,7 @@ def test_lab_prep_hybrid_properties(db: SyncDBHandler):
     assert lab_prep.num_plates == 1
 
     # SQLAlchemy expression query
-    res = db.session.execute(
+    res = session.execute(
         sa.select(
             models.LabPrep.library_types,
             models.LabPrep.num_samples,

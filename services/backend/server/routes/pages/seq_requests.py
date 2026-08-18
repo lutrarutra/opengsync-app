@@ -12,7 +12,7 @@ def seq_requests_page():
     return responses.html_response("seq_requests_page.html", title="Requests")
 
 
-@router.get("/{seq_request_id}", dependencies=[Depends(dependencies.require_user)])
+@router.get("/{seq_request_id}", dependencies=[Depends(dependencies.require_user), Depends(dependencies.seq_request_permissions)])
 def seq_request_page(
     seq_request_id: int,
     session: dependencies.SyncSession = Depends(dependencies.db_session),

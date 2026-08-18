@@ -69,19 +69,19 @@ class LabPrep(Base):
             match library.mux_type:
                 case MUXType.TENX_OLIGO | MUXType.TENX_ABC_HASH:
                     for link in library.sample_links:
-                        _oligo_mux_annotated = all([link.mux.get(key) for key in library.mux_type.mux_columns]) if link.mux else False
+                        _oligo_mux_annotated = all(link.mux.get(key) for key in library.mux_type.mux_columns) if link.mux else False
                         if not _oligo_mux_annotated:
                             oligo_mux_libraries_annotations_missing.add(library.name)
                             oligo_mux_annotated = False
                 case MUXType.TENX_FLEX_PROBE:
                     for link in library.sample_links:
-                        _flex_mux_annotated = all([link.mux.get(key) for key in library.mux_type.mux_columns]) if link.mux else False
+                        _flex_mux_annotated = all(link.mux.get(key) for key in library.mux_type.mux_columns) if link.mux else False
                         if not _flex_mux_annotated:
                             flex_mux_libraries_annotations_missing.add(library.name)
                             flex_mux_annotated = False
                 case MUXType.TENX_ON_CHIP:
                     for link in library.sample_links:
-                        _on_chip_mux_annotated = all([link.mux.get(key) for key in library.mux_type.mux_columns]) if link.mux else False
+                        _on_chip_mux_annotated = all(link.mux.get(key) for key in library.mux_type.mux_columns) if link.mux else False
                         if not _on_chip_mux_annotated:
                             on_chip_mux_libraries_annotations_missing.add(library.name)
                             on_chip_mux_annotated = False
@@ -143,7 +143,7 @@ class LabPrep(Base):
     @property
     def mux_types(self) -> list[MUXType]:
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
-            return list(set(library.mux_type for library in self.libraries if library.mux_type is not None))
+            return list[MUXType]({library.mux_type for library in self.libraries if library.mux_type is not None})
         
         from .Library import Library
         if (session := orm.object_session(self)) is None:
@@ -157,7 +157,7 @@ class LabPrep(Base):
         return [MUXType.get(mux_type_id) for (mux_type_id,) in mux_type_ids]
     
     @hybrid_property
-    def library_types(self) -> list[LibraryType]:
+    def library_types(self) -> list[LibraryType]:  # type: ignore[override]
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
@@ -169,6 +169,19 @@ class LabPrep(Base):
         from .Library import Library
         type_ids = session.query(Library.type_id).filter(Library.lab_prep_id == self.id).distinct().order_by(Library.type_id).all()
         return [LibraryType.get(type_id) for (type_id,) in type_ids]
+
+    @library_types.expression
+    def library_types(cls):
+        from .. import queries as Q
+        from .Library import Library
+        return sa.select(
+            sa.func.coalesce(
+                sa.func.array_agg(sa.distinct(Library.type_id)),
+                sa.cast(sa.text("'{}'"), sa.ARRAY(sa.Integer))
+            )
+        ).where(
+            *Q.library.where_clauses(lab_prep_id=cls.id)
+        ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]

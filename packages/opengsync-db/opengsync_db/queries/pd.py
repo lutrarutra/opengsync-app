@@ -170,7 +170,7 @@ def experiment_pools(experiment_id: int) -> sa.Select:
     query = sa.select(
         Pool.id, Pool.name, Pool.status_id,
         Pool.num_m_reads_requested, Pool.qubit_concentration,
-        Pool.avg_fragment_size,
+        Pool.avg_fragment_size, Pool.molarity.label("molarity"),
     ).where(
         Pool.experiment_id == experiment_id
     )
@@ -184,6 +184,7 @@ def experiment_lanes(experiment_id: int) -> sa.Select:
         Lane.phi_x, Lane.original_qubit_concentration, Lane.total_volume_ul,
         Lane.library_volume_ul, Lane.avg_fragment_size, Lane.sequencing_qubit_concentration,
         Lane.target_molarity, Lane.lane_molarity, Lane.sequencing_molarity,
+        Lane.original_molarity, Lane.molarity,
     ).where(
         Lane.experiment_id == experiment_id
     ).order_by(Lane.number)
@@ -196,7 +197,7 @@ def experiment_laned_pools(experiment_id: int) -> sa.Select:
         Lane.id.label("lane_id"), Lane.number.label("lane"),
         Pool.id.label("pool_id"), Pool.name.label("pool_name"),
         Pool.num_m_reads_requested, Pool.qubit_concentration,
-        Pool.avg_fragment_size, links.LanePoolLink.num_m_reads,
+        Pool.avg_fragment_size, Pool.molarity.label("molarity"), links.LanePoolLink.num_m_reads,
         PoolDilution.id.label("dilution_id"), PoolDilution.identifier.label("dilution"),
     ).where(
         Lane.experiment_id == experiment_id

@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from datetime import datetime
 from datetime import timezone
 
@@ -28,12 +28,11 @@ class PoolDilution(Base):
     operator: Mapped[models.User] = relationship("User", lazy="select")
 
     qubit_concentration: Mapped[float] = mapped_column(sa.Float)
-    volume_ul: Mapped[Optional[float]] = mapped_column(sa.Float, nullable=True)
+    volume_ul: Mapped[float | None] = mapped_column(sa.Float, nullable=True)
 
     def molarity(self, pool: models.Pool) -> float | None:
         if pool.avg_fragment_size is None:
             return None
-        
         return self.qubit_concentration / (pool.avg_fragment_size * 660) * 1_000_000
     
     def molarity_str(self, pool: models.Pool) -> str:

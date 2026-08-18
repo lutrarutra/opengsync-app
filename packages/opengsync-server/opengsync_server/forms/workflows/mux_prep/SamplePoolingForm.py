@@ -64,7 +64,7 @@ class SamplePoolingForm(HTMXFlaskForm):
         for library_id in self.sample_table["library_id"].unique():
             if (library := db.session.first(Q.library.select(id=int(library_id)))) is None:
                 logger.error(f"Library {library_id} not found.")
-                raise exceptions.ElementDoesNotExist(f"Library {library_id} not found.")
+                raise exceptions.ModelNotFoundException(f"Library {library_id} not found.")
             
             old_libraries[library.id] = library
             library.sample_links.clear()

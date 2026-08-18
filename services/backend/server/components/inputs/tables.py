@@ -6,7 +6,7 @@ from markupsafe import Markup
 from opengsync_db import models, SyncSession, categories as C, queries as Q, utils as db_utils
 
 from ...core.context import ctx
-from ...core import responses
+from ...core import responses, templates
 from .BaseInputField import BaseInputField
 
 
@@ -129,7 +129,7 @@ class SampleSelectTableField(SelectTableField):
     def render_selected_table(self) -> str:
         """Render the selected samples table as HTML."""
         selected_samples = self.get_selected_samples(ctx.session)
-        return Markup(responses.render_template(
+        return Markup(templates.render_template(
             "components/tables/selected-sample.html",
             field=self,
             selected_samples=selected_samples,
@@ -192,7 +192,7 @@ class LibrarySelectTableField(SelectTableField):
     def render_selected_table(self) -> str:
         """Render the selected libraries table as HTML."""
         selected_libraries = self.get_selected_libraries(ctx.session)
-        return Markup(responses.render_template(
+        return Markup(templates.render_template(
             "components/tables/selected-library.html",
             field=self,
             selected_libraries=selected_libraries,
@@ -249,7 +249,7 @@ class PoolSelectTableField(SelectTableField):
     def render_selected_table(self) -> str:
         """Render the selected pools table as HTML."""
         selected_pools = self.get_selected_pools(ctx.session)
-        return Markup(responses.render_template(
+        return Markup(templates.render_template(
             "components/tables/selected-pool.html",
             field=self,
             selected_pools=selected_pools,
@@ -299,7 +299,7 @@ class LaneSelectTableField(SelectTableField):
     def render_selected_table(self) -> str:
         """Render the selected lanes table as HTML."""
         selected_lanes = self.get_selected_lanes(ctx.session)
-        return Markup(responses.render_template(
+        return Markup(templates.render_template(
             "components/tables/selected-lane.html",
             field=self,
             selected_lanes=selected_lanes,
@@ -355,7 +355,7 @@ class ExperimentSelectTableField(SelectTableField):
     def render_selected_table(self) -> str:
         """Render the selected experiments table as HTML."""
         selected_experiments = self.get_selected_experiments(ctx.session)
-        return Markup(responses.render_template(
+        return Markup(templates.render_template(
             "components/tables/selected-experiment.html",
             field=self,
             selected_experiments=selected_experiments,

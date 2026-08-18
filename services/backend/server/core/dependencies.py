@@ -173,7 +173,7 @@ def require_user(user: models.User | None = Depends(get_user)) -> models.User:
     return user
 
 def require_admin(user: models.User = Depends(require_user)) -> models.User:
-    if user.role < C.UserRole.ADMIN:
+    if user.role != C.UserRole.ADMIN:
         raise exc.HTTPException(status_code=403, detail="Admin privileges required")
     return user
 

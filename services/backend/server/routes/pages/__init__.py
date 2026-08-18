@@ -8,7 +8,7 @@ from . import (
     browser,
     dashboard,
     design,
-    devices,
+    sequencers,
     experiments,
     groups,
     kits,
@@ -51,4 +51,4 @@ router.include_router(share_tokens.router, dependencies=[Depends(dependencies.re
 
 # Admin-only routes
 router.include_router(admin.router, dependencies=[Depends(dependencies.require_admin)])
-router.include_router(devices.router, dependencies=[Depends(dependencies.require_admin)])
+router.include_router(sequencers.router, dependencies=[Depends(dependencies.require_admin)])

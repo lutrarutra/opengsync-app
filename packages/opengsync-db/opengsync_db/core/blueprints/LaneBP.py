@@ -14,7 +14,7 @@ class LaneBP(DBBlueprint):
         self, number: int, experiment_id: int
     ) -> models.Lane:
         if self.db.session.get(models.Experiment, experiment_id) is None:
-            raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Experiment with id {experiment_id} does not exist")
         
         if self.db.session.query(models.Lane).where(
             models.Lane.number == number,
@@ -105,7 +105,7 @@ class LaneBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, lane_id: int, flush: bool = True):
         if (lane := self.db.session.get(models.Lane, lane_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Lane with id {lane_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Lane with id {lane_id} does not exist")
         
         for link in lane.pool_links:
             self.db.session.delete(link)
@@ -119,5 +119,5 @@ class LaneBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.Lane:
         if (lane := self.db.session.get(models.Lane, id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Lane with id {id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Lane with id {id} does not exist")
         return lane

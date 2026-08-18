@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import sqlalchemy as sa
 
-from opengsync_db import SyncDBHandler, queries as Q
+from opengsync_db import SyncDBHandler, SyncSession, queries as Q
 from opengsync_db.models.Base import Base
 from opengsync_db.categories import UserRole
 
@@ -14,7 +14,7 @@ PASSWORD = "testpassword"
 
 
 @pytest.fixture(scope="function")  # type: ignore[attr-defined]
-def db():
+def _db_handler():
     db_name = f"db{uuid.uuid4().hex}"
     engine = sa.create_engine(SyncDBHandler.AdminURL(
         user="admin", password="password", host="postgres", port=5434, db="postgres"
@@ -34,6 +34,11 @@ def db():
     db.open_session()
     yield db
     db.close_session()
+
+
+@pytest.fixture(scope="function")  # type: ignore[attr-defined]
+def session(_db_handler: SyncDBHandler) -> SyncSession:
+    return _db_handler.session
 
 
 def _ensure_backend_on_path() -> None:
@@ -99,7 +104,7 @@ class _DummyMailer:
 
 
 @pytest.fixture(scope="function")  # type: ignore[attr-defined]
-def client(db: SyncDBHandler):
+def client(_db_handler: SyncDBHandler):
     """FastAPI TestClient bound to the per-test database."""
     _ensure_app_dirs()
     _ensure_backend_on_path()
@@ -113,7 +118,7 @@ def client(db: SyncDBHandler):
 
     @asynccontextmanager
     async def test_lifespan(app_):
-        app_.state.db_handler = db
+        app_.state.db_handler = _db_handler
         app_.state.mailer = _DummyMailer()
         app_.state.redis_pool = ConnectionPool.from_url(config.settings.REDIS_URL)
         app_.state.bcrypt = secrets.BcryptCompat()
@@ -134,17 +139,17 @@ def client(db: SyncDBHandler):
         app.router.lifespan_context = original_lifespan
 
 
-def _create_test_user(db: SyncDBHandler, *, email: str, role: UserRole):
+def _create_test_user(session: SyncSession, *, email: str, role: UserRole):
     from server.core.secrets import BcryptCompat
 
-    user = db.session.save(Q.user.create(
+    user = session.save(Q.user.create(
         email=email,
         hashed_password=BcryptCompat().generate_password_hash(PASSWORD),
         first_name="Test",
         last_name=role.name.title(),
         role=role,
     ), flush=True)
-    db.session.commit()
+    session.commit()
     return user
 
 
@@ -156,27 +161,27 @@ def _login_token(user) -> str:
 
 
 @pytest.fixture  # type: ignore[attr-defined]
-def user(db: SyncDBHandler):
+def user(session: SyncSession):
     _ensure_backend_on_path()
-    return _create_test_user(db, email="user@example.com", role=UserRole.CLIENT)
+    return _create_test_user(session, email="user@example.com", role=UserRole.CLIENT)
 
 
 @pytest.fixture  # type: ignore[attr-defined]
-def user_2(db: SyncDBHandler):
+def user_2(session: SyncSession):
     _ensure_backend_on_path()
-    return _create_test_user(db, email="user2@example.com", role=UserRole.CLIENT)
+    return _create_test_user(session, email="user2@example.com", role=UserRole.CLIENT)
 
 
 @pytest.fixture  # type: ignore[attr-defined]
-def insider(db: SyncDBHandler):
+def insider(session: SyncSession):
     _ensure_backend_on_path()
-    return _create_test_user(db, email="insider@example.com", role=UserRole.TECHNICIAN)
+    return _create_test_user(session, email="insider@example.com", role=UserRole.TECHNICIAN)
 
 
 @pytest.fixture  # type: ignore[attr-defined]
-def admin(db: SyncDBHandler):
+def admin(session: SyncSession):
     _ensure_backend_on_path()
-    return _create_test_user(db, email="admin@example.com", role=UserRole.ADMIN)
+    return _create_test_user(session, email="admin@example.com", role=UserRole.ADMIN)
 
 
 @pytest.fixture  # type: ignore[attr-defined]

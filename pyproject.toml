@@ -56,7 +56,7 @@ exclude = [
     ".git",
     "__pycache__",
 ]
-extend-ignore = ["E501", "W292", "W293", "I001", "N999", "B008", "RUF012", "RUF022"]
+extend-ignore = ["E501", "W292", "W293", "I001", "N999", "B008", "RUF012", "RUF022", "SIM102"]
 
 [tool.uv.sources]
 opengsync-db = { workspace = true }

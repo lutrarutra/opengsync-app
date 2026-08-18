@@ -287,7 +287,7 @@ def get_barcode_table(db: SyncDBHandler, libraries: Sequence[models.Library]) ->
                 if kit_i7_id is not None:
                     if (kit_i7 := db.session.first(Q.index_kit.select(id=kit_i7_id))) is None:
                         logger.error(f"Index kit {kit_i7_id} not found in database")
-                        raise exceptions.ElementDoesNotExist("Index kit not found in database")
+                        raise exceptions.ModelNotFoundException("Index kit not found in database")
                     kit_i7 = kit_i7.identifier
                 else:
                     kit_i7 = None
@@ -302,7 +302,7 @@ def get_barcode_table(db: SyncDBHandler, libraries: Sequence[models.Library]) ->
                 if kit_i5_id is not None:
                     if (kit_i5 := db.session.first(Q.index_kit.select(id=kit_i5_id))) is None:
                         logger.error(f"Index kit {kit_i5_id} not found in database")
-                        raise exceptions.ElementDoesNotExist("Index kit not found in database")
+                        raise exceptions.ModelNotFoundException("Index kit not found in database")
                     kit_i5 = kit_i5.identifier
                 else:
                     kit_i5 = None

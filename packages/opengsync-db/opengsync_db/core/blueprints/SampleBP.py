@@ -171,7 +171,7 @@ class SampleBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, sample_id: int, flush: bool = True):
         if (sample := self.db.session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id {sample_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Sample with id {sample_id} does not exist")
         
         self.db.session.delete(sample)
         if flush:
@@ -234,7 +234,7 @@ class SampleBP(DBBlueprint):
             name = type.label
 
         if (sample := self.db.session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
+            raise exceptions.ModelNotFoundException(f"Sample with id '{sample_id}', not found.")
         
         sample.set_attribute(key=name, value=value, type=type)
 
@@ -246,7 +246,7 @@ class SampleBP(DBBlueprint):
         name = name.lower().strip().replace(" ", "_")
 
         if (sample := self.db.session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
+            raise exceptions.ModelNotFoundException(f"Sample with id '{sample_id}', not found.")
         
         attribute = sample.get_attribute(key=name)
         return attribute
@@ -258,10 +258,10 @@ class SampleBP(DBBlueprint):
         name = name.lower().strip().replace(" ", "_")
 
         if (sample := self.db.session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}', not found.")
+            raise exceptions.ModelNotFoundException(f"Sample with id '{sample_id}', not found.")
         
         if sample.get_attribute(key=name) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample attribute with name '{name}' does not exist in sample with id '{sample_id}'.")
+            raise exceptions.ModelNotFoundException(f"Sample attribute with name '{name}' does not exist in sample with id '{sample_id}'.")
         
         sample.delete_sample_attribute(key=name)
 
@@ -288,5 +288,5 @@ class SampleBP(DBBlueprint):
     def __getitem__(self, sample_id: int) -> models.Sample:
         """Get a sample by its ID."""
         if (sample := self.db.session.get(models.Sample, sample_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Sample with id '{sample_id}' does not exist.")
+            raise exceptions.ModelNotFoundException(f"Sample with id '{sample_id}' does not exist.")
         return sample

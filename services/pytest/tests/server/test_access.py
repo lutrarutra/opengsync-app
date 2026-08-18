@@ -3,7 +3,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from opengsync_db import SyncDBHandler, queries as Q, categories as C
+from opengsync_db import SyncSession, actions, queries as Q, categories as C
 
 from ..db.create_units import (
     create_project, create_seq_request, create_sample, create_library,
@@ -21,8 +21,8 @@ def _anon_login_redirect(response) -> None:
     assert "/auth/login" in response.headers.get("location", "")
 
 
-def _commit(db: SyncDBHandler) -> None:
-    db.session.commit()
+def _commit(session: SyncSession) -> None:
+    session.commit()
 
 
 # --- anonymous: listing and resource pages require login ---
@@ -43,7 +43,7 @@ def _commit(db: SyncDBHandler) -> None:
     "/seq_runs/",
     "/share_tokens/",
     "/admin/",
-    "/devices/",
+    "/sequencers/",
     "/browser/",
     "/design/",
 ])
@@ -157,32 +157,32 @@ def test_admin_can_access_admin_page(client: TestClient, admin_token: str):
 # --- resource pages: project ---
 
 def test_draft_project_owner_ok_stranger_403(
-    client: TestClient, db: SyncDBHandler, user, user_token, user_2_token,
+    client: TestClient, session: SyncSession, user, user_token, user_2_token,
 ):
-    project = create_project(db, user)
-    _commit(db)
+    project = create_project(session, user)
+    _commit(session)
 
     assert get(client, f"/projects/{project.id}", user_token).status_code == 200
     assert get(client, f"/projects/{project.id}", user_2_token).status_code == 403
 
 
 def test_processing_project_stranger_200(
-    client: TestClient, db: SyncDBHandler, user, user_2_token,
+    client: TestClient, session: SyncSession, user, user_2_token,
 ):
-    project = create_project(db, user)
+    project = create_project(session, user)
     project.status = C.ProjectStatus.PROCESSING
-    db.session.save(project)
-    _commit(db)
+    session.save(project)
+    _commit(session)
     flush_redis(client)
 
     assert get(client, f"/projects/{project.id}", user_2_token).status_code == 200
 
 
 def test_project_insider_and_admin_ok(
-    client: TestClient, db: SyncDBHandler, user, insider_token, admin_token,
+    client: TestClient, session: SyncSession, user, insider_token, admin_token,
 ):
-    project = create_project(db, user)
-    _commit(db)
+    project = create_project(session, user)
+    _commit(session)
 
     assert get(client, f"/projects/{project.id}", insider_token).status_code == 200
     assert get(client, f"/projects/{project.id}", admin_token).status_code == 200
@@ -192,23 +192,22 @@ def test_project_missing_is_404(client: TestClient, user_token: str):
     assert get(client, "/projects/999999", user_token).status_code == 404
 
 
-# --- seq request page: no seq_request_permissions on the page today ---
+# --- seq request page ---
 
 def test_seq_request_page_owner_ok(
-    client: TestClient, db: SyncDBHandler, user, user_token,
+    client: TestClient, session: SyncSession, user, user_token,
 ):
-    seq_request = create_seq_request(db, user)
-    _commit(db)
+    seq_request = create_seq_request(session, user)
+    _commit(session)
     assert get(client, f"/seq_requests/{seq_request.id}", user_token).status_code == 200
 
 
-def test_seq_request_page_stranger_allowed_without_dep(
-    client: TestClient, db: SyncDBHandler, user, user_2_token,
+def test_seq_request_page_stranger_403(
+    client: TestClient, session: SyncSession, user, user_2_token,
 ):
-    """The HTML page does not use seq_request_permissions; any authed user can load it."""
-    seq_request = create_seq_request(db, user)
-    _commit(db)
-    assert get(client, f"/seq_requests/{seq_request.id}", user_2_token).status_code == 200
+    seq_request = create_seq_request(session, user)
+    _commit(session)
+    assert get(client, f"/seq_requests/{seq_request.id}", user_2_token).status_code == 403
 
 
 def test_seq_request_missing_is_404(client: TestClient, user_token: str):
@@ -218,45 +217,45 @@ def test_seq_request_missing_is_404(client: TestClient, user_token: str):
 # --- sample / library / pool ---
 
 def test_unlinked_sample_owner_403(
-    client: TestClient, db: SyncDBHandler, user, user_token,
+    client: TestClient, session: SyncSession, user, user_token,
 ):
-    project = create_project(db, user)
-    sample = create_sample(db, user, project)
-    _commit(db)
+    project = create_project(session, user)
+    sample = create_sample(session, user, project)
+    _commit(session)
     assert get(client, f"/samples/{sample.id}", user_token).status_code == 403
 
 
 def test_linked_sample_owner_ok_stranger_403(
-    client: TestClient, db: SyncDBHandler, user, user_token, user_2_token,
+    client: TestClient, session: SyncSession, user, user_token, user_2_token,
 ):
-    project = create_project(db, user)
-    seq_request = create_seq_request(db, user)
-    sample = create_sample(db, user, project)
-    library = create_library(db, user, seq_request)
-    db.actions.link_sample_library(sample.id, library.id)
-    _commit(db)
+    project = create_project(session, user)
+    seq_request = create_seq_request(session, user)
+    sample = create_sample(session, user, project)
+    library = create_library(session, user, seq_request)
+    actions.link_sample_library(session, sample.id, library.id)
+    _commit(session)
 
     assert get(client, f"/samples/{sample.id}", user_token).status_code == 200
     assert get(client, f"/samples/{sample.id}", user_2_token).status_code == 403
 
 
 def test_library_requestor_ok_stranger_403(
-    client: TestClient, db: SyncDBHandler, user, user_token, user_2_token,
+    client: TestClient, session: SyncSession, user, user_token, user_2_token,
 ):
-    seq_request = create_seq_request(db, user)
-    library = create_library(db, user, seq_request)
-    _commit(db)
+    seq_request = create_seq_request(session, user)
+    library = create_library(session, user, seq_request)
+    _commit(session)
 
     assert get(client, f"/libraries/{library.id}", user_token).status_code == 200
     assert get(client, f"/libraries/{library.id}", user_2_token).status_code == 403
 
 
 def test_pool_requestor_ok_stranger_403(
-    client: TestClient, db: SyncDBHandler, user, user_token, user_2_token,
+    client: TestClient, session: SyncSession, user, user_token, user_2_token,
 ):
-    seq_request = create_seq_request(db, user)
-    pool = create_pool(db, user, seq_request)
-    _commit(db)
+    seq_request = create_seq_request(session, user)
+    pool = create_pool(session, user, seq_request)
+    _commit(session)
 
     assert get(client, f"/pools/{pool.id}", user_token).status_code == 200
     assert get(client, f"/pools/{pool.id}", user_2_token).status_code == 403
@@ -275,22 +274,22 @@ def test_pool_missing_is_404(client: TestClient, user_token: str):
 
 
 def test_library_insider_ok(
-    client: TestClient, db: SyncDBHandler, user, insider_token,
+    client: TestClient, session: SyncSession, user, insider_token,
 ):
-    seq_request = create_seq_request(db, user)
-    library = create_library(db, user, seq_request)
-    _commit(db)
+    seq_request = create_seq_request(session, user)
+    library = create_library(session, user, seq_request)
+    _commit(session)
     assert get(client, f"/libraries/{library.id}", insider_token).status_code == 200
 
 
 # --- group ---
 
 def test_group_member_ok_outsider_403(
-    client: TestClient, db: SyncDBHandler, user, user_2, user_token, user_2_token,
+    client: TestClient, session: SyncSession, user, user_2, user_token, user_2_token,
 ):
-    group = create_group(db)
-    db.session.save(Q.affiliation.create(user=user, group=group, type=C.AffiliationType.MEMBER), flush=True)
-    _commit(db)
+    group = create_group(session)
+    session.save(Q.affiliation.create(user=user, group=group, type=C.AffiliationType.MEMBER), flush=True)
+    _commit(session)
 
     assert get(client, f"/groups/{group.id}", user_token).status_code == 200
     assert get(client, f"/groups/{group.id}", user_2_token).status_code == 403

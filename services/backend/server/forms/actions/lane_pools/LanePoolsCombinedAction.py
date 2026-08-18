@@ -93,8 +93,8 @@ class LanePoolsCombinedAction(HTMXForm):
                     sample_sub.dilution.data = dilution.identifier
                     df.at[idx, "dilutions"].append((dilution.identifier, dilution.qubit_concentration, dilution.molarity(pool), dilution.timestamp_str()))  # type: ignore
                     df.at[idx, "qubit_concentration"] = dilution.qubit_concentration
+                    df.at[idx, "molarity"] = dilution.molarity(pool)
 
-            df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
             df["share"] = df["num_m_reads"] / df["num_m_reads"].sum()
 
             df["molarity_color"] = "cemm-green"
@@ -128,6 +128,7 @@ class LanePoolsCombinedAction(HTMXForm):
                 "target_total_volume": [],
                 "target_concentration": [],
                 "avg_fragment_size": [],
+                "molarity": [],
                 "dilution": [],
             }
 
@@ -164,6 +165,9 @@ class LanePoolsCombinedAction(HTMXForm):
                     data["qubit_concentration"].append(
                         link.dilution.qubit_concentration if link.dilution else link.pool.qubit_concentration
                     )
+                    data["molarity"].append(
+                        link.dilution.molarity(link.pool) if link.dilution else link.pool.molarity
+                    )
                     data["target_total_volume"].append(form.target_total_volume.data)
                     data["target_concentration"].append(form.target_molarity.data)
                     data["dilution"].append(link.dilution.identifier if link.dilution else "Orig.")
@@ -172,7 +176,6 @@ class LanePoolsCombinedAction(HTMXForm):
             df["share"] = None
             for _, _df in df.groupby("lane"):
                 df.loc[_df.index, "share"] = _df["num_m_reads"] / _df["num_m_reads"].sum()
-            df["molarity"] = df["qubit_concentration"] / (df["avg_fragment_size"] * 660) * 1_000_000
             df["pipet"] = df["target_concentration"] / df["molarity"] * df["share"] * df["target_total_volume"]
 
             # Save TSV file

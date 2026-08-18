@@ -73,10 +73,10 @@ def remove_pool_from_lane(session: Session, experiment: models.Experiment, pool:
 
 def unlink_pool_experiment(session: Session, experiment_id: int, pool_id: int, flush: bool = True):
     if (experiment := session.get(models.Experiment, experiment_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Experiment with id {experiment_id} does not exist")
+        raise exceptions.ModelNotFoundException(f"Experiment with id {experiment_id} does not exist")
 
     if (pool := session.get(models.Pool, pool_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+        raise exceptions.ModelNotFoundException(f"Pool with id {pool_id} does not exist")
     if pool.experiment_id != experiment_id:
         raise exceptions.LinkDoesNotExist(f"Pool with id {pool_id} is not linked to experiment with id {experiment_id}")
     
@@ -114,7 +114,7 @@ def clone_library(
 ) -> models.Library:
 
     if (library := session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+        raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
 
     cloned_library = Q.library.create(
         name=library.name,
@@ -174,15 +174,15 @@ def add_index_to_library(
 ) -> models.Library:
 
     if (library := session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+        raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
     
     if index_kit_i7_id is not None:
         if session.get(models.IndexKit, index_kit_i7_id) is None:
-            raise exceptions.ElementDoesNotExist(f"Index kit with id {index_kit_i7_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Index kit with id {index_kit_i7_id} does not exist")
         
     if index_kit_i5_id is not None:
         if session.get(models.IndexKit, index_kit_i5_id) is None:
-            raise exceptions.ElementDoesNotExist(f"Index kit with id {index_kit_i5_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Index kit with id {index_kit_i5_id} does not exist")
 
     library.indices.append(models.LibraryIndex(
         library_id=library_id,
@@ -204,10 +204,10 @@ def add_index_to_library(
 
 def link_feature_library(session: Session, feature_id: int, library_id: int):
     if (feature := session.get(models.Feature, feature_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Feature with id {feature_id} does not exist")
+        raise exceptions.ModelNotFoundException(f"Feature with id {feature_id} does not exist")
     
     if (library := session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+        raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
     
     if session.query(models.links.LibraryFeatureLink).where(
         models.links.LibraryFeatureLink.feature_id == feature_id,
@@ -281,7 +281,7 @@ def process_seq_request(session: Session, seq_request: models.SeqRequest, status
 def clone_pool(session: Session, pool_id: int, status: C.PoolStatus, seq_request_id: int | None = None) -> models.Pool:
 
     if (pool := session.get(models.Pool, pool_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+        raise exceptions.ModelNotFoundException(f"Pool with id {pool_id} does not exist")
 
     cloned_pool = Q.pool.create(
         name=pool.name,
@@ -311,7 +311,7 @@ def merge_pool(session: Session, merged_pool_id: int, pool_ids: Sequence[int], f
         raise exceptions.InvalidOperation("Cannot merge a pool into itself")
 
     if (merged_pool := session.get(models.Pool, merged_pool_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"New Pool with id {merged_pool} does not exist")
+        raise exceptions.ModelNotFoundException(f"New Pool with id {merged_pool} does not exist")
 
     from sqlalchemy import orm
     pools = session.query(models.Pool).filter(
@@ -319,7 +319,7 @@ def merge_pool(session: Session, merged_pool_id: int, pool_ids: Sequence[int], f
     ).options(orm.joinedload(models.Pool.libraries)).all()
 
     if len(pool_ids) != len(pools):
-        raise exceptions.ElementDoesNotExist("One or more pools to merge do not exist")
+        raise exceptions.ModelNotFoundException("One or more pools to merge do not exist")
 
     for pool in pools:
         for library in pool.libraries:
@@ -340,10 +340,10 @@ def remove_library_from_prep(
     session: Session, lab_prep_id: int, library_id: int, flush: bool = True
 ) -> models.LabPrep:
     if (lab_prep := session.get(models.LabPrep, lab_prep_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Lab prep with id '{lab_prep_id}', not found.")
+        raise exceptions.ModelNotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
     
     if (library := session.get(models.Library, library_id)) is None:
-        raise exceptions.ElementDoesNotExist(f"Library with id '{library_id}', not found.")
+        raise exceptions.ModelNotFoundException(f"Library with id '{library_id}', not found.")
     
     if library.status == C.LibraryStatus.PREPARING:
         library.status = C.LibraryStatus.ACCEPTED

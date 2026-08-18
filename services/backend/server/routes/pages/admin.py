@@ -1,10 +1,8 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 
-from opengsync_db import models
+from ...core import dependencies, responses
 
-from ...core import dependencies, responses, exceptions
-
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(dependencies.require_admin)])
 
 
 @router.get("/")

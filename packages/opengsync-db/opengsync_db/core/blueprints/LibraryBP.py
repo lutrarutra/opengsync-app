@@ -115,17 +115,17 @@ class LibraryBP(DBBlueprint):
         flush: bool = True
     ) -> models.Library:
         if self.db.session.get(models.User, owner_id) is None:
-            raise exceptions.ElementDoesNotExist(f"User with id {owner_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"User with id {owner_id} does not exist")
         
         if seq_request_id is not None:
             if (seq_request := self.db.session.get(models.SeqRequest, seq_request_id)) is None:
-                raise exceptions.ElementDoesNotExist(f"Seq request with id {seq_request_id} does not exist")
+                raise exceptions.ModelNotFoundException(f"Seq request with id {seq_request_id} does not exist")
             self.db.session.add(seq_request)
 
         if status is None:
             if pool_id is not None:
                 if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-                    raise exceptions.ElementDoesNotExist(f"Pool with id {pool_id} does not exist")
+                    raise exceptions.ModelNotFoundException(f"Pool with id {pool_id} does not exist")
                 self.db.session.add(pool)
                 status = LibraryStatus.POOLED
             else:
@@ -133,7 +133,7 @@ class LibraryBP(DBBlueprint):
 
         if original_library_id is not None:
             if self.db.session.get(models.Library, original_library_id) is None:
-                raise exceptions.ElementDoesNotExist(f"Original library with id {original_library_id} does not exist")
+                raise exceptions.ModelNotFoundException(f"Original library with id {original_library_id} does not exist")
             clone_number = self.get_number_of_cloned_libraries(original_library_id) + 1
         else:
             clone_number = 0
@@ -351,7 +351,7 @@ class LibraryBP(DBBlueprint):
     ) -> models.Library:
 
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
 
         if library.pool_id is not None:
             raise exceptions.LinkAlreadyExists(f"Library with id {library_id} is already pooled")
@@ -370,7 +370,7 @@ class LibraryBP(DBBlueprint):
     ) -> models.SeqQuality:
         if library_id is not None:
             if (library := self.db.session.get(models.Library, library_id)) is None:
-                raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+                raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
             
             if library.status < LibraryStatus.SEQUENCED:
                 library.status = LibraryStatus.SEQUENCED
@@ -421,15 +421,15 @@ class LibraryBP(DBBlueprint):
     ) -> models.Library:
 
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
         
         if index_kit_i7_id is not None:
             if self.db.session.get(models.IndexKit, index_kit_i7_id) is None:
-                raise exceptions.ElementDoesNotExist(f"Index kit with id {index_kit_i7_id} does not exist")
+                raise exceptions.ModelNotFoundException(f"Index kit with id {index_kit_i7_id} does not exist")
             
         if index_kit_i5_id is not None:
             if self.db.session.get(models.IndexKit, index_kit_i5_id) is None:
-                raise exceptions.ElementDoesNotExist(f"Index kit with id {index_kit_i5_id} does not exist")
+                raise exceptions.ModelNotFoundException(f"Index kit with id {index_kit_i5_id} does not exist")
 
         library.indices.append(models.LibraryIndex(
             library_id=library_id,
@@ -453,7 +453,7 @@ class LibraryBP(DBBlueprint):
     def remove_indices(self, library_id: int, flush: bool = True) -> models.Library:
 
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
 
         for index in library.indices:
             self.db.session.delete(index)
@@ -488,7 +488,7 @@ class LibraryBP(DBBlueprint):
     ) -> models.Library:
 
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Library with id {library_id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
 
         cloned_library = self.create(
             name=library.name,
@@ -537,7 +537,7 @@ class LibraryBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.Library:
         if (library := self.db.session.get(models.Library, id)) is None:
-            raise exceptions.ElementDoesNotExist(f"Library with id {id} does not exist")
+            raise exceptions.ModelNotFoundException(f"Library with id {id} does not exist")
         return library
 
     @DBBlueprint.transaction

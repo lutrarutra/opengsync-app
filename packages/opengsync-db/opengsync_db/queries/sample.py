@@ -2,7 +2,7 @@ import sqlalchemy as sa
 
 from ..models import Library, Sample, links, User, SeqRequest
 from ..categories import (
-    LibraryStatus, UserRole, AccessLevel, SeqRequestStatus, SampleStatus
+    LibraryStatus, AccessLevel, SeqRequestStatus, SampleStatus
 )
 from ..core import utils
 

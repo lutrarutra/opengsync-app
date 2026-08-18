@@ -1,5 +1,5 @@
 from fastapi import Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import JSONResponse, Response
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from pydantic import ValidationError
 from loguru import logger
