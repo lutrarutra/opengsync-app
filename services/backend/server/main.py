@@ -78,10 +78,6 @@ def help():
 def status():
     return PlainTextResponse("OK")
 
-@app.get("/retrieve_flash_messages")
-def retrieve_flash_messages():
-    return {}, 204
-
 if config.settings.ENVIRONMENT != "production":
     @app.get("/test")
     def test_route():

@@ -3,7 +3,7 @@ from sqlalchemy.orm import joinedload
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
-from ...core import dependencies, exceptions as exc
+from ...core import dependencies, exceptions as exc, responses
 from ...components.tables import HTMXTable, TableCol
 
 router = APIRouter(prefix="/api-tokens", tags=["api-tokens"])
@@ -29,10 +29,7 @@ def render_api_token_table(
     session: SyncSession = Depends(dependencies.db_session),
 ):
     table = APITokenTable(route="render_api_token_table", page=page, order_by=order_by)
-
-    stmt = Q.api_token.select(
-        owner_id=owner_id,
-    )
+    stmt = Q.api_token.select(owner_id=owner_id)
 
     if owner_id is not None:
         if session.get_access_level(Q.user.permissions(user_id=owner_id, viewer_id=current_user.id)) < C.AccessLevel.READ:
@@ -47,10 +44,23 @@ def render_api_token_table(
 
     tokens, count = session.page(
         stmt, page=page, order_by=order_by,
-        options=[
-            joinedload(models.APIToken.owner),
-        ]
+        options=[joinedload(models.APIToken.owner)],
     )
     table.set_num_pages(count)
     return table.make_response(tokens=tokens)
+
+
+@router.post("/{token_id}/deactivate")
+def deactivate_api_token(
+    token_id: int,
+    current_user: models.User = Depends(dependencies.require_user),
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    token = session.get_one(Q.api_token.select(id=token_id))
+    if token.owner_id != current_user.id and not current_user.is_admin:
+        raise exc.NoPermissionsException("You do not have permission to deactivate this API token.")
+
+    token._expired = True
+    session.save(token)
+    return responses.htmx_response(flash=responses.flash("API token deactivated.", "success"))
 

@@ -6,7 +6,7 @@ Compared every `url_for(...)` in `services/opengsync-app/templates/` against:
 - Flask route functions in `packages/opengsync-server/`
 - FastAPI route names in `services/backend/server/`
 
-**655** template calls. Most page links and workflow `*.Begin` names are already correct. Below are the ones that are wrong, still Flask-named, or point at a missing FastAPI route.
+**655** template calls. All live-template mismatches below are resolved (struck through). Flask package `packages/opengsync-server/` still contains old `*_htmx.*` / `*_workflow.*` names as reference.
 
 Legend:
 
@@ -16,11 +16,13 @@ Legend:
 - **Missing route** — no FastAPI endpoint found; fixing the name is not enough.
 - ~~Struck through~~ — template (and any companion route tweak) already updated.
 
+Last reviewed: 2026-08-18.
+
 ---
 
 ## 1. Wrong: same FastAPI URL used for different Flask endpoints
 
-These are the “many buttons go to the same URL” cases. All three leftover mistakes are on `seq_request_page.html`. Clone (pooled/indexed/raw) is correct; Add Email / Remove email / Data paths were overwritten to `clone_seq_request`.
+These were the “many buttons go to the same URL” cases. All three leftover mistakes on `seq_request_page.html` are fixed. Clone (pooled/indexed/raw) was already correct.
 
 | Template | Flask (correct target) | Current (wrong) | FastAPI (correct) |
 |---|---|---|---|
@@ -78,14 +80,14 @@ Templates still call Flask blueprint endpoints. FastAPI uses the function / form
 | ~~`libraries_htmx.remove_sample`~~ | ~~`remove_sample_from_library`~~ | ~~`components/tables/library-sample.html`~~ |
 | ~~`samples_htmx.delete`~~ | ~~`delete_sample`~~ | ~~`sample_page.html`~~ |
 | ~~`projects_htmx.remove_assignee`~~ | ~~`remove_project_assignee`~~ | ~~`components/tables/project-assignee.html`~~ |
-| `projects_htmx.remove_data_path` | `remove_data_paths` (API; check if HTMX table should call it) | `components/tables/project-data_path.html` |
-| `api_tokens_htmx.deactivate` | no FastAPI deactivate route found (`render_api_token_table` exists) | `components/tables/user-api_token.html` |
+| ~~`projects_htmx.remove_data_path`~~ | ~~`remove_project_data_path`~~ | ~~`components/tables/project-data_path.html`~~ |
+| ~~`api_tokens_htmx.deactivate`~~ | ~~`deactivate_api_token`~~ | ~~`components/tables/user-api_token.html`~~ |
 | ~~`seq_requests_htmx.upload_auth_form`~~ | ~~`MediaFileForm.Upload` with `type=SEQ_AUTH_FORM`~~ | ~~`forms/seq_request/seq_auth.html`~~ |
 | ~~`index_kits_htmx.edit_barcodes`~~ | ~~`EditKitBarcodesForm.Submit` (POST from the form)~~ | ~~`forms/edit_kit_barcodes.html`~~ |
 
 ### Workflow templates still posting to Flask workflow blueprints
 
-These HTML files are still used by the FastAPI actions. POSTs 404 unless renamed.
+Live workflow POSTs are renamed. Unused Flask `select_experiment_pools_workflow.*` template `sp-1.html` is deleted; live UI is `actions/select-experiment-pools.html`.
 
 | Current (wrong) | FastAPI (correct) | Template |
 |---|---|---|
@@ -93,10 +95,8 @@ These HTML files are still used by the FastAPI actions. POSTs 404 unless renamed
 | ~~`load_flow_cell_workflow.load`~~ | ~~`LoadFlowCellCombinedAction.Submit` / `LoadFlowCellSeparateAction.Submit`~~ | ~~`workflows/experiment/load_flow_cell-1.1.html`, `1.2.html`~~ |
 | ~~`dist_reads_workflow.submit`~~ | ~~`DistributeReadsCombinedAction.Submit` / `DistributeReadsSeparateAction.Submit`~~ | ~~`workflows/dist_reads/combined.html`, `separate.html`~~ |
 | ~~`dilute_pools_workflow.dilute`~~ | ~~`DilutePoolsAction.Submit`~~ | ~~`workflows/dilute_pools/dilute-1.html`~~ |
-| `select_experiment_pools_workflow.get_pools` | table browse inside `SelectExperimentPoolsAction` (not a separate workflow route) | `workflows/select_experiment_pools/sp-1.html` |
-| `select_experiment_pools_workflow.complete` | `SelectExperimentPoolsAction.Submit` | `workflows/select_experiment_pools/sp-1.html` |
-
-`sp-1.html` may be unused if FastAPI already renders `actions/select-experiment-pools.html`. Confirm before renaming.
+| ~~`select_experiment_pools_workflow.get_pools`~~ | ~~`render_pool_table` (`browse=select-experiment-pools`)~~ | ~~deleted `workflows/select_experiment_pools/sp-1.html`~~ |
+| ~~`select_experiment_pools_workflow.complete`~~ | ~~`SelectExperimentPoolsAction.Submit`~~ | ~~deleted `workflows/select_experiment_pools/sp-1.html`~~ |
 
 ---
 
@@ -115,27 +115,30 @@ These HTML files are still used by the FastAPI actions. POSTs 404 unless renamed
 | ~~`render_project_sample_attributes_form`~~ | ~~`SampleAttributeTableAction.Begin`~~ | ~~`project_page.html`~~ |
 | ~~`index_kit_page.html` Edit barcodes~~ | ~~`EditKitBarcodesForm.Begin` (already used; OK)~~ | — |
 
-`help`, `dashboard`, `retrieve_flash_messages`, `share_status_check` are defined on `main.py` as those function names — they resolve. `retrieve_flash_messages` is a stub (empty 204), not a bad `url_for`.
+`help` and `dashboard` are defined on `main.py` as those function names — they resolve. Flask `retrieve_flash_messages` is gone; flash is cookie + `HX-Trigger` in `callbacks.js`.
+
+`share_status_check` and `storage_availability_check` live on `routes/htmx/files.py` (paths `/htmx/files/...`). Dashboard, files page, and share browse `url_for` those names.
 
 ---
 
 ## 4. Missing FastAPI routes (name in template, no matching endpoint)
 
-These Flask-era names were never given a FastAPI counterpart, or the dashboard “recent” helpers were not ported:
+These Flask-era names were never given a FastAPI counterpart:
 
 | Template name | Flask | Notes |
 |---|---|---|
 | ~~`render_project_table_recent`~~ | ~~dashboard recent projects~~ | ~~`render_project_feed`~~ |
 | ~~`render_experiment_table_recent`~~ | ~~dashboard recent experiments~~ | ~~`render_experiment_feed`~~ |
-| `storage_availability_check` | core route | `dashboard-insider.html` |
-| `render_library_table_crispr_guides` | `libraries_htmx.get_crispr_guides` | library page |
-| `render_library_table_mux_table` | `libraries_htmx.get_mux_table` | library page |
+| ~~`storage_availability_check`~~ | ~~core route~~ | ~~`htmx/files.py`; used by `dashboard-insider.html`~~ |
+| ~~`render_library_table_crispr_guides`~~ | ~~`libraries_htmx.get_crispr_guides`~~ | ~~`GET /htmx/libraries/{id}/crispr-guides`~~ |
+| ~~`render_library_table_mux_table`~~ | ~~`libraries_htmx.get_mux_table`~~ | ~~`GET /htmx/libraries/{id}/mux-table`~~ |
 | ~~`render_library_table_service_type_todo_libraries`~~ | ~~`libraries_htmx.get_service_type_todo_libraries`~~ | ~~`render_prep_feed_detail`~~ |
 | ~~`sequencers_htmx.get`~~ | ~~sequencer table~~ | ~~`render_sequencer_table` on `sequencers_page.html`~~ |
 | ~~`seq_runs_htmx.get`~~ | ~~seq-run table~~ | ~~`render_seq_run_table` on `seq_runs_page.html`~~ |
 | ~~`samples_htmx.delete`~~ | ~~delete sample~~ | ~~`delete_sample` on `sample_page.html`~~ |
-| `api_tokens_htmx.deactivate` | deactivate token | user API token table |
+| ~~`api_tokens_htmx.deactivate`~~ | ~~`api_tokens_htmx.deactivate`~~ | ~~`POST /htmx/api-tokens/{id}/deactivate` (`deactivate_api_token`)~~ |
 | ~~`projects_htmx.remove_assignee`~~ | ~~remove project assignee~~ | ~~`remove_project_assignee`~~ |
+| ~~`projects_htmx.remove_data_path`~~ | ~~remove project data path~~ | ~~`remove_project_data_path`~~ |
 | ~~`ChangePasswordForm` GET~~ | ~~`auth_htmx.change_password` GET~~ | ~~added `ChangePasswordForm.Render`~~ |
 
 `render_project_overview` and `render_project_sample_attribute_spreadsheet` **do** exist on FastAPI (`projects.py`).
@@ -149,11 +152,11 @@ These were renamed from Flask and match FastAPI. Included so they are not “fix
 | Pattern | Example |
 |---|---|
 | Pages | `seq_request_page`, `project_page`, `library_page`, `pool_page`, `experiment_page`, `user_page`, `kit_page`, `feature_kits_page`, `index_kits_page`, `sequencers_page`, … |
-| Tables | `render_library_table`, `render_pool_table`, `render_sample_table`, `render_project_table`, `render_data_path_table` (except seq-request tab, §1), `serve_data_file`, `serve_media_file`, `download_media_file` |
+| Tables | `render_library_table`, `render_pool_table`, `render_sample_table`, `render_project_table`, `render_data_path_table`, `serve_data_file`, `serve_media_file`, `download_media_file`, `remove_project_data_path` |
 | Workflows | `MuxPrepWorkflow.Begin`, `LibraryPoolingWorkflow.Begin`, `ReindexWorkflow.Begin`, `RelibWorkflow.Begin`, `MergePoolsWorkflow.Begin`, `BAReportWorkflow.Begin`, `QubitMeasureWorkflow.Begin`, `LibraryAnnotationWorkflow.Begin`, `ShareProjectDataWorkflow.Begin`, `SelectLibraryProtocolsWorkflow.Begin`, `LaneQCWorkflow.Begin` |
-| Actions | `StoreSamplesAction.Begin`, `ReseqAction.Begin`, `ProcessSeqRequestAction.Begin`, `CheckBarcodeClashesAction.Render` / `.SelectSamples`, `MediaFileForm.Upload`, `CommentForm.Begin`, `SeqRequestForm.Edit` / `.Create`, most other `*Action.Begin` |
+| Actions | `StoreSamplesAction.Begin`, `ReseqAction.Begin`, `ProcessSeqRequestAction.Begin`, `CheckBarcodeClashesAction.Render` / `.SelectSamples`, `MediaFileForm.Upload`, `CommentForm.Begin`, `SeqRequestForm.Edit` / `.Create`, `SelectExperimentPoolsAction.Begin` / `.Submit`, most other `*Action.Begin` |
 | Calendar | `events_week`, `events_month`, `events_day` |
-| Share | `file_share.browse`, `file_share.rclone`, `file_share.rclone_script` |
+| Share / status | `file_share.browse`, `file_share.rclone`, `file_share.rclone_script`, `share_status_check`, `storage_availability_check` |
 
 ---
 
@@ -163,4 +166,7 @@ These were renamed from Flask and match FastAPI. Included so they are not “fix
 2. ~~**Stale Flask names in live pages** (§2 search/auth/files/tables).~~
 3. ~~**Workflow POST templates** (§2 last table) — experiment checklist submits.~~
 4. ~~**Plural / typo names** (§3).~~
-5. **Missing routes** (§4) — either port the Flask handler or point the template at an existing table/action.
+5. ~~**Missing routes** (§4) — CRISPR guides, mux table, API token deactivate.~~
+6. ~~Unused `workflows/select_experiment_pools/sp-1.html` deleted.~~
+
+Live templates in `services/opengsync-app/templates/` have no remaining Flask `*_htmx.*` / `*_workflow.*` names. Flask package `packages/opengsync-server/` is still in the repo as reference.

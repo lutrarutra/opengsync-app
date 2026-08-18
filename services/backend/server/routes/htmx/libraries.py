@@ -340,5 +340,78 @@ def remove_sample_from_library(
     )
 
 
+@router.get("/{library_id}/crispr-guides", dependencies=[Depends(dependencies.library_permissions)])
+def render_library_table_crispr_guides(
+    library_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    library = session.get_one(Q.library.select(id=library_id))
+    if library.type != C.LibraryType.PARSE_SC_CRISPR:
+        raise exc.BadRequestException("Library is not a Parse CRISPR library.")
+
+    cols = ["guide_name", "target_gene", "prefix", "guide_sequence", "suffix"]
+    guides = (library.properties or {}).get("crispr_guides") or []
+    df = pd.DataFrame(guides)
+    for col in cols:
+        if col not in df.columns:
+            df[col] = None
+    df: pd.DataFrame = df[cols]  # type: ignore
+
+    columns: list = [
+        TextColumn(col, col.replace("_", " ").title(), 200, max_length=1000)
+        for col in df.columns
+    ]
+    spreadsheet = StaticSpreadsheet(df, columns=columns, id=f"library-crispr-guides-{library_id}")
+    return responses.htmx_response(content=spreadsheet.render())
+
+
+@router.get("/{library_id}/mux-table", dependencies=[Depends(dependencies.library_permissions)])
+def render_library_table_mux_table(
+    library_id: int,
+    session: SyncSession = Depends(dependencies.db_session),
+):
+    library = session.get_one(
+        Q.library.select(id=library_id),
+        options=[orm.selectinload(models.Library.sample_links)],
+    )
+    if library.mux_type is None:
+        raise exc.BadRequestException("Library is not multiplexed.")
+
+    mux_data: dict[str, list] = {
+        "sample_name": [],
+        "barcode": [],
+    }
+    oligo = library.mux_type == C.MUXType.TENX_OLIGO
+    if oligo:
+        mux_data["read"] = []
+        mux_data["pattern"] = []
+
+    for link in library.sample_links:
+        mux_data["sample_name"].append(link.sample.name)
+        if link.mux is not None:
+            mux_data["barcode"].append(link.mux.get("barcode"))
+            if oligo:
+                mux_data["read"].append(link.mux.get("read", ""))
+                mux_data["pattern"].append(link.mux.get("pattern", ""))
+        else:
+            mux_data["barcode"].append(None)
+            if oligo:
+                mux_data["read"].append("")
+                mux_data["pattern"].append("")
+
+    df = pd.DataFrame(mux_data)
+    widths = {"sample_name": 300, "barcode": 200, "read": 80, "pattern": 200}
+    columns: list = [
+        TextColumn(
+            col,
+            col.replace("_", " ").title().replace("Id", "ID").replace("Cmo", "CMO"),
+            widths.get(col, 100),
+            max_length=1000,
+        ) for col in df.columns
+    ]
+    spreadsheet = StaticSpreadsheet(df, columns=columns, id=f"library-mux-table-{library_id}")
+    return responses.htmx_response(content=spreadsheet.render())
+
+
 router.include_router(forms.models.LibraryForm.Router())
 router.include_router(forms.actions.LibraryFeaturesAction.Router())

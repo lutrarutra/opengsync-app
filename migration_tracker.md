@@ -1,6 +1,6 @@
 # Flask → FastAPI Migration Tracker
 
-> Last updated: 2026-08-13
+> Last updated: 2026-08-18
 
 ## Legend
 - ✅ **Migrated** — Fully implemented in FastAPI
@@ -178,7 +178,39 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 
 ---
 
-## 6. Summary
+## 6. Routes and pages (since last tracker)
+
+| Item | FastAPI location | Status |
+|------|------------------|--------|
+| Public file share (browse, rclone, curl, validate) | `routes/api/shares.py` (`file_share.*`) | ✅ Migrated |
+| WebDAV | `routes/api/webdav.py` (`webdav.share`) | ✅ Migrated |
+| Plotly plots | `routes/htmx/plots.py` | ✅ Migrated |
+| Sequencer pages | `routes/pages/sequencers.py` (replaces Flask `devices`) | ✅ Migrated |
+| Cluster / share canary check | `routes/htmx/files.py` `share_status_check` (async) | ✅ Migrated |
+| VM storage usage | `routes/htmx/files.py` `storage_availability_check` (async) | ✅ Migrated |
+| Library CRISPR guides table | `routes/htmx/libraries.py` `render_library_table_crispr_guides` | ✅ Migrated |
+| Library mux table | `routes/htmx/libraries.py` `render_library_table_mux_table` | ✅ Migrated |
+| API token deactivate | `routes/htmx/api_tokens.py` `deactivate_api_token` | ✅ Migrated; empty 204 + table `refresh()` |
+| Flash messages | cookie + `HX-Trigger` (`callbacks.js`) | ✅ Migrated; Flask `retrieve_flash_messages` poll removed |
+
+Unused Flask template `templates/workflows/select_experiment_pools/sp-1.html` deleted. Live UI is `actions/select-experiment-pools.html`.
+
+### Tests (`services/pytest/tests/`)
+
+DB tests take `session: SyncSession` (not `SyncDBHandler`). HTTP tests live under `tests/server/` with CSRF-aware `_http.py`.
+
+| Area | Files |
+|------|-------|
+| Access-control SQL | `tests/db/test_access_control.py` |
+| Models / hybrids / formulas | `tests/db/test_*.py` |
+| Auth / listings / resource 403s | `tests/server/test_auth.py`, `test_access.py` |
+| Forms (AddUserToGroup, CommentForm) | `tests/server/test_forms.py` |
+| Lane QC workflow | `tests/server/test_workflows.py` |
+| Share status JSON | `tests/server/test_auth.py` (`/htmx/files/share-status`) |
+
+---
+
+## 7. Summary
 
 | Category | Count |
 |----------|-------|
@@ -191,10 +223,12 @@ All legacy file/attachment forms are combined into a single `models/MediaFileFor
 | ✅ Comment forms migrated (combined into one) | 4 |
 | ✅ File forms migrated (combined into one) | 4 |
 | ✅ Model forms migrated | 19 |
+| ❌ Remaining HTMX handlers | 0 |
 
 ### Priority Order (Recommended)
-1. **Public file share / WebDAV** — browse, rclone, token validate (`routes/files/`).
+1. Optional: remove unused `BarcodeConstraintsAction` workflow shell in Flask `packages/opengsync-server/` if that package is being deleted.
+2. Tests for token deactivate, mux table, and CRISPR table (share-status is already covered).
 
 ### Next Recommended Migration
 
-Plotly plots are migrated under `services/backend/server/routes/htmx/plots.py` (library/pool reads and admin weekday usage). Remaining Flask routes are public file share/WebDAV.
+Workflows, actions, model forms, public share/WebDAV, plots, and remaining HTMX handlers are on FastAPI. Live templates have no leftover Flask `url_for` names. Flask package `packages/opengsync-server/` remains as reference.

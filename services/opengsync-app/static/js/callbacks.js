@@ -70,7 +70,6 @@ document.addEventListener("htmx:afterRequest", (event) => {
     if (xhr && xhr.getResponseHeader("HX-Redirect")) {
         return;
     }
-    // render_flash_messages();
 });
 
 document.addEventListener("htmx:responseError", (event) => {
