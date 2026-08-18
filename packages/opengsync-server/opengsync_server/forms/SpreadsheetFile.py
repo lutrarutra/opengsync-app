@@ -159,7 +159,6 @@ class SpreadsheetFile(FlaskForm):
             for row_num, color in e:
                 style[f"{letter}{row_num}"] = f"background-color: {color};"
 
-        logger.debug(style)
         return style
         
     def add_error(self, idx: Hashable, column: str | list[str], exception: SpreadSheetException):

@@ -90,12 +90,15 @@ class CompleteReindexForm(MultiStepForm):
 
             seq_request_ids.add(library.seq_request_id)
 
-            try:
-                index_type_id = int(index_type_id)  # type: ignore
-                index_type = IndexType.get(index_type_id)
-            except ValueError:
-                logger.error(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
-                raise exceptions.InternalServerErrorException(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
+            if pd.isna(index_type_id):  # type: ignore
+                index_type = None
+            else:
+                try:
+                    index_type_id = int(index_type_id)  # type: ignore
+                    index_type = IndexType.get(index_type_id)
+                except ValueError:
+                    logger.error(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
+                    raise exceptions.InternalServerErrorException(f"{self.uuid}: Invalid index_type_id {index_type_id} for library {library_id}")
 
             library.indices = []
             library.index_type = index_type

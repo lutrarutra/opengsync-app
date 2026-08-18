@@ -561,28 +561,29 @@ def overview(current_user: models.User, seq_request_id: int):
                     idx += 1
 
                     if contains_pooled:
-                        if link.library.pool_id not in pool_nodes.keys():
-                            pool_node = {
-                                "node": idx,
-                                "name": link.library.pool.name,         # type: ignore
-                                "id": f"pool-{link.library.pool.id}"    # type: ignore
-                            }
-                            nodes.append(pool_node)
-                            pool_nodes[link.library.pool.id] = idx      # type: ignore
-                            pool_link_widths[link.library.pool.id] = 0  # type: ignore
-                            pool_idx = idx
+                        if link.library.pool_id is not None:
+                            if link.library.pool_id not in pool_nodes.keys():
+                                pool_node = {
+                                    "node": idx,
+                                    "name": link.library.pool.name,         # type: ignore
+                                    "id": f"pool-{link.library.pool.id}"    # type: ignore
+                                }
+                                nodes.append(pool_node)
+                                pool_nodes[link.library.pool.id] = idx      # type: ignore
+                                pool_link_widths[link.library.pool.id] = 0  # type: ignore
+                                pool_idx = idx
 
-                            idx += 1
-                        else:
-                            pool_idx = pool_nodes[link.library.pool.id]     # type: ignore
+                                idx += 1
+                            else:
+                                pool_idx = pool_nodes[link.library.pool.id]     # type: ignore
 
-                        pool_link_widths[link.library.pool.id] += LINK_WIDTH_UNIT * link.library.num_samples    # type: ignore
-                        
-                        links.append({
-                            "source": library_nodes[link.library_id],
-                            "target": pool_idx,
-                            "value": LINK_WIDTH_UNIT * link.library.num_samples
-                        })
+                            pool_link_widths[link.library.pool.id] += LINK_WIDTH_UNIT * link.library.num_samples    # type: ignore
+                            
+                            links.append({
+                                "source": library_nodes[link.library_id],
+                                "target": pool_idx,
+                                "value": LINK_WIDTH_UNIT * link.library.num_samples
+                            })
                 else:
                     library_idx = library_nodes[link.library.id]
                 links.append({

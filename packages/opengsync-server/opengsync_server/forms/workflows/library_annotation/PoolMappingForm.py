@@ -51,7 +51,7 @@ class PoolMappingForm(LibraryAnnotationWorkflow):
             sub_form.raw_label.data = str(pool)
 
             if not sub_form.new_pool_name.data:
-                sub_form.new_pool_name.data = str(pool)
+                sub_form.new_pool_name.data = utils.make_alpha_numeric(str(pool), keep=["_", "."])
         
     def fill_previous_form(self):
         pool_table = self.tables["pool_table"]

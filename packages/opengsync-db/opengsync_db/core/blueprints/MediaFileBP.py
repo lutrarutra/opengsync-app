@@ -73,6 +73,13 @@ class MediaFileBP(DBBlueprint):
         if (file := self.db.session.get(models.MediaFile, file_id)) is None:
             raise exceptions.ElementDoesNotExist(f"File with id '{file_id}', not found.")
 
+        # BA reports are referenced from several tables without a reverse
+        # relationship, so the ORM delete would hit a ForeignKeyViolation.
+        for model in (models.Library, models.Sample, models.Pool, models.Lane):
+            self.db.session.query(model).filter(
+                model.ba_report_id == file_id
+            ).update({model.ba_report_id: None}, synchronize_session="fetch")
+
         self.db.session.delete(file)
         if flush:
             self.db.flush()

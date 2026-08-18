@@ -39,3 +39,4 @@ class FlowCellType(ExtendedEnum):
     NOVASEQ_X_1B_ILLUMINA = FlowCellTypeEnum(100, "NovaSeq X 1.5B", "Illumina", 2, 800)
     NOVASEQ_X_10B_ILLUMINA = FlowCellTypeEnum(101, "NovaSeq X 10B", "Illumina", 8, 1250)
     NOVASEQ_X_25B_ILLUMINA = FlowCellTypeEnum(102, "NovaSeq X 25B", "Illumina", 8, 3250)
+    NOVASEQ_X_5B_ILLUMINA = FlowCellTypeEnum(103, "NovaSeq X 5B", "Illumina", 8, 625)
