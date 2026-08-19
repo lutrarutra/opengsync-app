@@ -119,7 +119,7 @@ def create_feature_kit(
 
 def create_sequencer(session: SyncSession) -> models.Sequencer:
     return session.save(Q.sequencer.create(
-        name="sequencer",
+        name=uuid.uuid1().hex,
         model=SequencerModel.NOVA_SEQ_6000,
     ), flush=True)
 

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
@@ -47,5 +48,11 @@ def render_affiliation_table(
     else:
         raise exc.BadRequestException("Group or User context is required to render affiliation table.")
 
-    affiliations = table.paginate(session, stmt, page=page)
+    affiliations = table.paginate(
+        session, stmt, page=page,
+        options=[
+            orm.selectinload(models.links.UserAffiliation.user),
+            orm.selectinload(models.links.UserAffiliation.group),
+        ],
+    )
     return table.make_response(affiliations=affiliations)

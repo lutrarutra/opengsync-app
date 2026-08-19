@@ -86,6 +86,7 @@ def render_lab_prep_table(
             orm.selectinload(models.LabPrep.libraries),
             orm.with_expression(models.LabPrep._num_samples, models.LabPrep.num_samples.expression),
             orm.with_expression(models.LabPrep._num_libraries, models.LabPrep.num_libraries.expression),
+            orm.with_expression(models.LabPrep._library_types, models.LabPrep.library_types.expression),
         ],
     )
     return table.make_response(lab_preps=lab_preps)

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
@@ -49,7 +50,13 @@ def render_user_table(
     else:
         table.template = "components/tables/user.html"
 
-    users = table.paginate(session, stmt, page=page, order_by=order_by)
+    users = table.paginate(
+        session, stmt, page=page, order_by=order_by,
+        options=[
+            orm.with_expression(models.User._num_seq_requests, models.User.num_seq_requests.expression),
+            orm.with_expression(models.User._num_projects, models.User.num_projects.expression),
+        ],
+    )
     return table.make_response(users=users)
 
 

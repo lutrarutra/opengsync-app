@@ -93,6 +93,7 @@ def render_pool_table(
         session, stmt, page=page, order_by=order_by,
         options=[
             orm.selectinload(models.Pool.owner),
+            orm.selectinload(models.Pool.lane_links),
             orm.with_expression(models.Pool._num_libraries, models.Pool.num_libraries.expression),
             orm.with_expression(models.Pool._library_types, models.Pool.library_types.expression),
         ]

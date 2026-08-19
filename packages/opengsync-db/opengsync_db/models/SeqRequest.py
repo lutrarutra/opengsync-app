@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy import orm
@@ -32,20 +32,20 @@ class SeqRequest(Base):
     id: Mapped[int] = mapped_column(sa.Integer, default=None, primary_key=True)
 
     name: Mapped[str] = mapped_column(sa.String(128), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
-    special_requirements: Mapped[Optional[str]] = mapped_column(sa.String(1024), nullable=True)
-    billing_code: Mapped[Optional[str]] = mapped_column(sa.String(256), nullable=True)
+    description: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
+    special_requirements: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
+    billing_code: Mapped[str | None] = mapped_column(sa.String(256), nullable=True)
     
     data_delivery_mode_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     read_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     submission_type_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False)
     status_id: Mapped[int] = mapped_column(sa.SmallInteger, nullable=False, default=SeqRequestStatus.DRAFT.id)
 
-    timestamp_submitted_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
-    timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
+    timestamp_submitted_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
+    timestamp_finished_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
 
-    read_length: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-    num_lanes: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    read_length: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    num_lanes: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
 
     organization_contact_id: Mapped[int] = mapped_column(sa.ForeignKey("contact.id"), nullable=False)
     organization_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[organization_contact_id], cascade="save-update, merge")
@@ -53,11 +53,11 @@ class SeqRequest(Base):
     requestor_id: Mapped[int] = mapped_column(sa.ForeignKey("lims_user.id"), nullable=False)
     requestor: Mapped["User"] = relationship("User", back_populates="requests", lazy="select", foreign_keys=[requestor_id])
 
-    group_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("group.id"), nullable=True)
-    group: Mapped[Optional["Group"]] = relationship("Group", back_populates="seq_requests", lazy="select", foreign_keys=[group_id], cascade="save-update, merge")
+    group_id: Mapped[int | None] = mapped_column(sa.ForeignKey("group.id"), nullable=True)
+    group: Mapped["Group | None"] = relationship("Group", back_populates="seq_requests", lazy="select", foreign_keys=[group_id], cascade="save-update, merge")
 
-    bioinformatician_contact_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("contact.id"), nullable=True)
-    bioinformatician_contact: Mapped[Optional["Contact"]] = relationship("Contact", lazy="select", foreign_keys=[bioinformatician_contact_id], cascade="save-update, merge")
+    bioinformatician_contact_id: Mapped[int | None] = mapped_column(sa.ForeignKey("contact.id"), nullable=True)
+    bioinformatician_contact: Mapped["Contact | None"] = relationship("Contact", lazy="select", foreign_keys=[bioinformatician_contact_id], cascade="save-update, merge")
     
     contact_person_id: Mapped[int] = mapped_column(sa.ForeignKey("contact.id"), nullable=False)
     contact_person: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[contact_person_id], cascade="save-update, merge")
@@ -65,13 +65,13 @@ class SeqRequest(Base):
     billing_contact_id: Mapped[int] = mapped_column(sa.ForeignKey("contact.id"), nullable=False)
     billing_contact: Mapped["Contact"] = relationship("Contact", lazy="select", foreign_keys=[billing_contact_id], cascade="save-update, merge")
 
-    seq_auth_form_file: Mapped[Optional["MediaFile"]] = relationship(
+    seq_auth_form_file: Mapped["MediaFile | None"] = relationship(
         "MediaFile", lazy="select", viewonly=True, uselist=False,
         primaryjoin=f"and_(SeqRequest.id == MediaFile.seq_request_id, MediaFile.type_id == {MediaFileType.SEQ_AUTH_FORM.id})",
     )
 
-    sample_submission_event_id: Mapped[Optional[int]] = mapped_column(sa.ForeignKey("event.id"), nullable=True)
-    sample_submission_event: Mapped[Optional["Event"]] = relationship("Event", lazy="select", foreign_keys=[sample_submission_event_id], back_populates="seq_request", cascade="save-update, merge, delete")
+    sample_submission_event_id: Mapped[int | None] = mapped_column(sa.ForeignKey("event.id"), nullable=True)
+    sample_submission_event: Mapped["Event | None"] = relationship("Event", lazy="select", foreign_keys=[sample_submission_event_id], back_populates="seq_request", cascade="save-update, merge, delete")
 
     libraries: Mapped[list["Library"]] = relationship("Library", back_populates="seq_request", lazy="select", cascade="all, delete-orphan")
     pools: Mapped[list["Pool"]] = relationship("Pool", back_populates="seq_request", lazy="select",)

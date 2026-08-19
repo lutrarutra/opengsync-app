@@ -1,12 +1,10 @@
-from fastapi import APIRouter, Depends, Query, Path
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import orm
 
-from opengsync_db import models, SyncSession, queries as Q, categories as C, utils, units, actions
+from opengsync_db import models, SyncSession, queries as Q, utils
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies
 from ...components.tables import HTMXTable, TableCol
-from ...components.tables import StaticSpreadsheet, TextColumn
-from ... import forms
 
 router = APIRouter(prefix="/lanes", tags=["lanes"])
 
@@ -24,10 +22,7 @@ def render_lane_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     browse: str | None = Query(None, description="Optional browse context for lane selection component"),
     order_by: utils.OrderBy | None = Depends(
-        dependencies.parse_order_by(
-            model=models.Lane,
-            default=models.Lane.id.desc(),
-        )
+        dependencies.parse_order_by(model=models.Lane, default=models.Lane.id.desc())
     ),
     session: SyncSession = Depends(dependencies.db_session),
 ):
@@ -52,5 +47,8 @@ def render_lane_table(
         table.context["browse_context"] = browse
         table.url_params["browse"] = browse
 
-    lanes = table.paginate(session, stmt, page=page, order_by=order_by)
+    lanes = table.paginate(
+        session, stmt, page=page, order_by=order_by,
+        options=[orm.selectinload(models.Lane.pool_links)],
+    )
     return table.make_response(lanes=lanes)

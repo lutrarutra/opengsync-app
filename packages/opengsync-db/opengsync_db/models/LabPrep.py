@@ -158,6 +158,9 @@ class LabPrep(Base):
     
     @hybrid_property
     def library_types(self) -> list[LibraryType]:  # type: ignore[override]
+        if self._library_types is not None:
+            return [LibraryType.get(type_id) for type_id in self._library_types]
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = set()
             for lib in self.libraries:
@@ -166,6 +169,14 @@ class LabPrep(Base):
             return [LibraryType.get(type_id) for type_id in sorted(types)]
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'library_types' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_types was not populated via with_expression. "
+                "Use orm.with_expression(LabPrep._library_types, LabPrep.library_types.expression) "
+                "in your query options."
+            )
+
         from .Library import Library
         type_ids = session.query(Library.type_id).filter(Library.lab_prep_id == self.id).distinct().order_by(Library.type_id).all()
         return [LibraryType.get(type_id) for (type_id,) in type_ids]
@@ -182,6 +193,8 @@ class LabPrep(Base):
         ).where(
             *Q.library.where_clauses(lab_prep_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _library_types: Mapped[list[int] | None] = orm.query_expression()
 
     @hybrid_property
     def num_samples(self) -> int:  # type: ignore[override]

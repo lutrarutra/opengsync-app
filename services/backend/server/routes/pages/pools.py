@@ -21,7 +21,11 @@ def pool_page(
     session: SyncSession = Depends(dependencies.db_session)
 ):
     pool = session.get_one(Q.pool.select(id=pool_id).options(
-        orm.selectinload(models.Pool.libraries)
+        orm.selectinload(models.Pool.libraries).selectinload(models.Library.indices),
+        orm.selectinload(models.Pool.owner),
+        orm.selectinload(models.Pool.seq_request),
+        orm.selectinload(models.Pool.contact),
+        orm.with_expression(models.Pool._num_libraries, models.Pool.num_libraries.expression),
     ))
 
     is_editable = pool.status == C.PoolStatus.DRAFT or current_user.is_insider

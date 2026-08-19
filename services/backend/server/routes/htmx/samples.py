@@ -106,7 +106,8 @@ def render_sample_table(
         options=[
             orm.selectinload(models.Sample.library_links).selectinload(models.links.SampleLibraryLink.library),
             orm.selectinload(models.Sample.owner),
-            orm.selectinload(models.Sample.project)
+            orm.selectinload(models.Sample.project),
+            orm.with_expression(models.Sample._num_libraries, models.Sample.num_libraries.expression),
         ]
     )
     return table.make_response(samples=samples)

@@ -22,6 +22,16 @@ def experiment_page(
     experiment = session.get_one(Q.experiment.select(id=experiment_id).options(
         orm.selectinload(models.Experiment.lanes).selectinload(models.Lane.pool_links).selectinload(models.links.LanePoolLink.pool),
         orm.selectinload(models.Experiment.pools).selectinload(models.Pool.lane_links),
+        orm.selectinload(models.Experiment.operator),
+        orm.selectinload(models.Experiment.sequencer),
+        orm.selectinload(models.Experiment.lane_pooling_tables),
+        orm.selectinload(models.Experiment.sequencer_loading_checklists),
+        orm.with_expression(models.Experiment._num_pools, models.Experiment.num_pools.expression),
+        orm.with_expression(models.Experiment._num_libraries, models.Experiment.num_libraries.expression),
+        orm.with_expression(models.Experiment._num_files, models.Experiment.num_files.expression),
+        orm.with_expression(models.Experiment._num_comments, models.Experiment.num_comments.expression),
+        orm.with_expression(models.Experiment._num_projects, models.Experiment.num_projects.expression),
+        orm.with_expression(models.Experiment._num_data_paths, models.Experiment.num_data_paths.expression),
     ))
 
     checklist = experiment.get_checklist()

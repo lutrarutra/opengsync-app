@@ -37,11 +37,21 @@ class Group(Base):
 
     @hybrid_property
     def num_projects(self) -> int:  # type: ignore[override]
+        if self._num_projects is not None:
+            return self._num_projects
+
         if "projects" not in orm.attributes.instance_state(self).unloaded:
             return len(self.projects)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_projects' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_projects was not populated via with_expression. "
+                "Use orm.with_expression(Group._num_projects, Group.num_projects.expression) "
+                "in your query options."
+            )
         
         from .Project import Project
         return session.query(sa.func.count(Project.id)).filter(Project.group_id == self.id).scalar()
@@ -54,14 +64,26 @@ class Group(Base):
         ).where(
             Project.group_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_projects: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_seq_requests(self) -> int:  # type: ignore[override]
+        if self._num_seq_requests is not None:
+            return self._num_seq_requests
+
         if "seq_requests" not in orm.attributes.instance_state(self).unloaded:
             return len(self.seq_requests)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_seq_requests' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_seq_requests was not populated via with_expression. "
+                "Use orm.with_expression(Group._num_seq_requests, Group.num_seq_requests.expression) "
+                "in your query options."
+            )
         
         from .SeqRequest import SeqRequest
         return session.query(sa.func.count(SeqRequest.id)).filter(SeqRequest.group_id == self.id).scalar()
@@ -75,13 +97,25 @@ class Group(Base):
             SeqRequest.group_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
+    _num_seq_requests: Mapped[int | None] = orm.query_expression()
+
     @hybrid_property
     def num_users(self) -> int:  # type: ignore[override]
+        if self._num_users is not None:
+            return self._num_users
+
         if "user_links" not in orm.attributes.instance_state(self).unloaded:
             return len(self.user_links)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session detached, cannot access 'num_users' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_users was not populated via with_expression. "
+                "Use orm.with_expression(Group._num_users, Group.num_users.expression) "
+                "in your query options."
+            )
         
         return session.query(sa.func.count(links.UserAffiliation.user_id)).filter(links.UserAffiliation.group_id == self.id).scalar()
     
@@ -92,6 +126,8 @@ class Group(Base):
         ).where(
             links.UserAffiliation.group_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_users: Mapped[int | None] = orm.query_expression()
 
     @property
     def type(self) -> GroupType:

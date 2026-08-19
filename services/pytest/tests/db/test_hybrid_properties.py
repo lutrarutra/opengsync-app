@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import pytest
@@ -107,11 +107,17 @@ def _normalize_sql_got(got: Any, want: Any) -> Any:
     return got
 
 
+def _as_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 def _values_equal(got: Any, want: Any) -> bool:
     if isinstance(want, float) and got is not None:
         return got == pytest.approx(want, rel=1e-6, abs=1e-9)
     if isinstance(want, datetime) and isinstance(got, datetime):
-        return abs((want - got).total_seconds()) < 2
+        return abs((_as_utc(want) - _as_utc(got)).total_seconds()) < 2
     return got == want
 
 
@@ -508,7 +514,7 @@ def test_lane_hybrid_properties(session: SyncSession):
     pool = create_pool(session, user, seq_request)
     pool.avg_fragment_size = 300
     pool.qubit_concentration = 1.5
-    experiment = create_experiment(session, user, ExperimentWorkFlow.MISEQ_v2)
+    experiment = create_experiment(session, user, ExperimentWorkFlow.NOVASEQ_6K_SP_XP)
     lane = experiment.lanes[0]
     assert_hybrids(session, lane, models.Lane, {
         "avg_fragment_size": None,

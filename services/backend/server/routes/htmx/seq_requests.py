@@ -161,6 +161,9 @@ def render_seq_request_table(
             ),
             orm.selectinload(models.SeqRequest.requestor),
             orm.selectinload(models.SeqRequest.group),
+            orm.with_expression(
+                models.SeqRequest._num_libraries, models.SeqRequest.num_libraries.expression
+            ),
         ],
     )
     return table.make_response(seq_requests=seq_requests)

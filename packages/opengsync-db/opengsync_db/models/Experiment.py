@@ -30,7 +30,7 @@ class Experiment(Base):
     name: Mapped[str] = mapped_column(sa.String(64), nullable=False, unique=True, index=True)
     
     timestamp_created_utc: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
-    timestamp_finished_utc: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
+    timestamp_finished_utc: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True, default=None)
     
     r1_cycles: Mapped[int | None] = mapped_column(nullable=True)
     r2_cycles: Mapped[int | None] = mapped_column(nullable=True)
@@ -192,12 +192,23 @@ class Experiment(Base):
 
     @hybrid_property
     def library_types(self) -> list[LibraryType]:  # type: ignore[override]
+        if self._library_types is not None:
+            return [LibraryType.get(type_id) for type_id in self._library_types]
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             types = {library.type_id for library in self.libraries}
             return [LibraryType.get(type_id) for type_id in sorted(types)]
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'library_types' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_library_types was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._library_types, Experiment.library_types.expression) "
+                "in your query options."
+            )
+
         from .Library import Library
         type_ids = session.query(Library.type_id).filter(Library.experiment_id == self.id).distinct().order_by(Library.type_id).all()
         return [LibraryType.get(type_id) for (type_id,) in type_ids]
@@ -214,13 +225,26 @@ class Experiment(Base):
             Library.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
 
+    _library_types: Mapped[list[int] | None] = orm.query_expression()
+
     @hybrid_property
     def num_pools(self) -> int:  # type: ignore[override]
+        if self._num_pools is not None:
+            return self._num_pools
+
         if "pools" not in orm.attributes.instance_state(self).unloaded:
             return len(self.pools)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_pools' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_pools was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_pools, Experiment.num_pools.expression) "
+                "in your query options."
+            )
+
         from .Pool import Pool
         return session.query(sa.func.count(Pool.id)).filter(Pool.experiment_id == self.id).scalar()  # type: ignore[arg-type]
     
@@ -232,14 +256,27 @@ class Experiment(Base):
         ).where(
             Pool.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_pools: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_libraries(self) -> int:  # type: ignore[override]
+        if self._num_libraries is not None:
+            return self._num_libraries
+
         if "libraries" not in orm.attributes.instance_state(self).unloaded:
             return len(self.libraries)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_libraries' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_libraries was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_libraries, Experiment.num_libraries.expression) "
+                "in your query options."
+            )
+
         from .Library import Library
         return session.query(sa.func.count(Library.id)).filter(Library.experiment_id == self.id).scalar()
     
@@ -251,16 +288,29 @@ class Experiment(Base):
         ).where(
             Library.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_libraries: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_files(self) -> int:  # type: ignore[override]
-        if "files" not in orm.attributes.instance_state(self).unloaded:
+        if self._num_files is not None:
+            return self._num_files
+
+        if "media_files" not in orm.attributes.instance_state(self).unloaded:
             return len(self.media_files)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_files' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_files was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_files, Experiment.num_files.expression) "
+                "in your query options."
+            )
+
         from .MediaFile import MediaFile
-        return session.query(sa.func.count(MediaFile.id)).filter(MediaFile.experiment_id == self.id).count()
+        return session.query(sa.func.count(MediaFile.id)).filter(MediaFile.experiment_id == self.id).scalar()
     
     @num_files.expression
     def num_files(cls) -> sa.ScalarSelect[int]:
@@ -270,14 +320,27 @@ class Experiment(Base):
         ).where(
             MediaFile.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_files: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_comments(self) -> int:  # type: ignore[override]
+        if self._num_comments is not None:
+            return self._num_comments
+
         if "comments" not in orm.attributes.instance_state(self).unloaded:
             return len(self.comments)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_comments' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_comments was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_comments, Experiment.num_comments.expression) "
+                "in your query options."
+            )
+
         from .Comment import Comment
         return session.query(sa.func.count(Comment.id)).filter(Comment.experiment_id == self.id).scalar()
     
@@ -289,6 +352,8 @@ class Experiment(Base):
         ).where(
             Comment.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_comments: Mapped[int | None] = orm.query_expression()
     
     @property
     def num_dilutions(self) -> int:
@@ -306,8 +371,18 @@ class Experiment(Base):
     
     @hybrid_property
     def num_projects(self) -> int:  # type: ignore[override]
+        if self._num_projects is not None:
+            return self._num_projects
+
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_projects' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_projects was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_projects, Experiment.num_projects.expression) "
+                "in your query options."
+            )
         
         from .. import queries as Q
         from .Project import Project
@@ -326,14 +401,27 @@ class Experiment(Base):
         ).where(
             *Q.project.where_clauses(experiment_id=cls.id)
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_projects: Mapped[int | None] = orm.query_expression()
     
     @hybrid_property
     def num_data_paths(self) -> int:  # type: ignore[override]
+        if self._num_data_paths is not None:
+            return self._num_data_paths
+
         if "data_paths" not in orm.attributes.instance_state(self).unloaded:
             return len(self.data_paths)
         
         if (session := orm.object_session(self)) is None:
             raise orm.exc.DetachedInstanceError("Session is detached, cannot access 'num_data_paths' attribute.")
+
+        if self._is_async_context():
+            raise RuntimeError(
+                "_num_data_paths was not populated via with_expression. "
+                "Use orm.with_expression(Experiment._num_data_paths, Experiment.num_data_paths.expression) "
+                "in your query options."
+            )
+
         from .DataPath import DataPath
         return session.query(sa.func.count(DataPath.id)).filter(DataPath.experiment_id == self.id).scalar()
     
@@ -345,6 +433,8 @@ class Experiment(Base):
         ).where(
             DataPath.experiment_id == cls.id
         ).correlate(cls).scalar_subquery()  # type: ignore[arg-type]
+
+    _num_data_paths: Mapped[int | None] = orm.query_expression()
 
     @property
     def lane_pooling_table(self) -> "MediaFile | None":

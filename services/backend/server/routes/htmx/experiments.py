@@ -71,8 +71,11 @@ def render_experiment_table(
         session, stmt, page=page, order_by=order_by,
         options=[
             orm.selectinload(models.Experiment.operator),
-            orm.selectinload(models.Experiment.libraries),
+            orm.selectinload(models.Experiment.pools),
             orm.selectinload(models.Experiment.sequencer),
+            orm.with_expression(
+                models.Experiment._library_types, models.Experiment.library_types.expression
+            ),
         ]
     )
     return table.make_response(experiments=experiments)

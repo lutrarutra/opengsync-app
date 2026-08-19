@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q
 
@@ -17,7 +18,12 @@ def sample_page(
     sample_id: int,
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    sample = session.get_one(Q.sample.select(id=sample_id))
+    sample = session.get_one(Q.sample.select(id=sample_id).options(
+        orm.selectinload(models.Sample.owner),
+        orm.selectinload(models.Sample.project),
+        orm.selectinload(models.Sample.ba_report).selectinload(models.MediaFile.uploader),
+        orm.with_expression(models.Sample._num_libraries, models.Sample.num_libraries.expression),
+    ))
     
     return responses.html_response(
         "sample_page.html",

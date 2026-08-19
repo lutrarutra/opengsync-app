@@ -3,7 +3,7 @@ from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ...core import dependencies, responses, exceptions
+from ...core import dependencies, responses
 
 router = APIRouter(prefix="/lab_preps", tags=["lab_preps"])
 
@@ -29,8 +29,11 @@ def lab_prep_page(
             orm.selectinload(models.LabPrep.creator),
             orm.with_expression(models.LabPrep._num_pools, models.LabPrep.num_pools.expression),
             orm.with_expression(models.LabPrep._num_samples, models.LabPrep.num_samples.expression),
+            orm.with_expression(models.LabPrep._num_libraries, models.LabPrep.num_libraries.expression),
+            orm.with_expression(models.LabPrep._num_files, models.LabPrep.num_files.expression),
             orm.with_expression(models.LabPrep._num_plates, models.LabPrep.num_plates.expression),
             orm.with_expression(models.LabPrep._num_comments, models.LabPrep.num_comments.expression),
+            orm.with_expression(models.LabPrep._library_types, models.LabPrep.library_types.expression),
         ]
     )
 
