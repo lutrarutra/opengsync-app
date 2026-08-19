@@ -32,6 +32,7 @@ app.exception_handler(exc.UserNotAuthenticatedException)(handlers.UserNotAuthent
 app.exception_handler(exc.FormValidationException)(handlers.form_validation_exception_handler)
 app.exception_handler(db_exc.ModelNotFoundException)(handlers.db_model_not_found_handler)
 app.exception_handler(MissingGreenlet)(handlers.missing_greenlet_handler)
+app.exception_handler(exc.UserAccountSuspendedException)(exc.UserAccountSuspendedException.Handler)
 
 
 class ErrorResponse(BaseModel):

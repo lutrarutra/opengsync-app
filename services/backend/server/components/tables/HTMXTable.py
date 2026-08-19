@@ -1,5 +1,7 @@
 import json
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
+
 from starlette.datastructures import URL
 from fastapi import Response
 

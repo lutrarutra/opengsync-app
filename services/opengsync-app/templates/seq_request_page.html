@@ -595,7 +595,7 @@
                     </button>
                 </div>
             </div>
-            <div hx-get="{{ url_for('render_seq_request_assignee_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_assignee_table', seq_request_id=seq_request.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

@@ -126,6 +126,7 @@ def render_seq_request_table(
             raise exc.NoPermissionsException("You do not have permission to view seq requests for this user.")
         table.template = "components/tables/user-seq_request.html"
         table.url_params["user_id"] = user_id
+        table.context["user_id"] = user_id
     elif group_id is not None:
         if session.get_access_level(Q.group.permissions(group_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view seq requests for this group.")
@@ -137,6 +138,7 @@ def render_seq_request_table(
             raise exc.NoPermissionsException("You do not have permission to view seq requests for this project.")
         table.template = "components/tables/project-seq_request.html"
         table.url_params["project_id"] = project_id
+        table.context["project"] = session.get_one(Q.project.select(id=project_id))
     else:
         if not current_user.is_insider:
             stmt = Q.seq_request.select(viewer_id=current_user.id, statement=stmt)
@@ -548,27 +550,6 @@ def render_seq_request_overview(
     )
 
 
-@router.get("/{seq_request_id}/assignees")
-def render_seq_request_assignee_table(
-    seq_request_id: int,
-    session: SyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.seq_request_permissions),
-):
-    if access_level < C.AccessLevel.READ:
-        raise exc.NoPermissionsException()
-
-    seq_request = session.get_one(
-        Q.seq_request.select(id=seq_request_id),
-        options=[orm.selectinload(models.SeqRequest.assignees)],
-    )
-
-    return responses.htmx_response(
-        "components/tables/seq_request-assignee.html",
-        assignees=seq_request.assignees,
-        seq_request=seq_request,
-    )
-
-
 @router.delete("/{seq_request_id}/remove-assignee/{assignee_id}", dependencies=[Depends(dependencies.require_insider)])
 def remove_seq_request_assignee(
     seq_request_id: int,
@@ -589,9 +570,6 @@ def remove_seq_request_assignee(
     session.save(seq_request)
 
     return responses.htmx_response(
-        # "components/tables/seq_request-assignee.html",
-        # assignees=seq_request.assignees,
-        # seq_request=seq_request,
         flash=responses.flash("Assignee removed.", "success"),
     )
 

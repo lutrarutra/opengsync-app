@@ -59,18 +59,18 @@ class DataPathTable(HTMXTable):
     ]
 
 
-@router.get("/render-data_path-table-page", dependencies=[Depends(dependencies.require_insider)])
+@router.get("/render-data_path-table-page")
 def render_data_path_table(
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     library_id: int | None = Query(None, description="Optional library ID to filter data paths"),
     project_id: int | None = Query(None, description="Optional project ID to filter data paths"),
     seq_request_id: int | None = Query(None, description="Optional seq request ID to filter data paths"),
     experiment_id: int | None = Query(None, description="Optional experiment ID to filter data paths"),
+    current_user: models.User = Depends(dependencies.require_user),
     order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.DataPath, default=models.DataPath.path.asc())),
     session: SyncSession = Depends(dependencies.db_session),
 ):
     table = DataPathTable(route="render_data_path_table", page=page, order_by=order_by)
-
     stmt = Q.data_path.select(
         library_id=library_id,
         project_id=project_id,
@@ -79,16 +79,26 @@ def render_data_path_table(
     )
 
     if library_id is not None:
+        if session.get_access_level(Q.library.permissions(library_id=library_id, user_id=current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException()
         table.template = "components/tables/library-data_path.html"
         table.url_params["library_id"] = library_id
     elif project_id is not None:
+        if (access_level := session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id))) < C.AccessLevel.READ:
+            from loguru import logger
+            logger.error(access_level)
+            raise exc.NoPermissionsException()
         table.template = "components/tables/project-data_path.html"
         table.context["project"] = session.get_one(Q.project.select(id=project_id))
         table.url_params["project_id"] = project_id
     elif seq_request_id is not None:
+        if session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException()
         table.template = "components/tables/seq_request-data_path.html"
         table.url_params["seq_request_id"] = seq_request_id
     elif experiment_id is not None:
+        if not current_user.is_insider:
+            raise exc.NoPermissionsException()
         table.template = "components/tables/experiment-data_path.html"
         table.url_params["experiment_id"] = experiment_id
     else:

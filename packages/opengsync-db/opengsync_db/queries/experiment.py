@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 
-from ..models import Experiment, User, Lane, Project, Sample, Library, links
+from ..models import Experiment, User, Lane, Sample, Library, links
 from ..categories import ExperimentStatus, ExperimentWorkFlow
 from ..core import utils
 
@@ -105,12 +105,11 @@ def where_clauses(
     if project_id is not None:
         clauses.append(
             sa.select(1).where(
-                (Project.id == project_id) &
-                (Sample.project_id == Project.id) &
+                (Sample.project_id == project_id) &
                 (links.SampleLibraryLink.sample_id == Sample.id) &
                 (Library.id == links.SampleLibraryLink.library_id) &
                 (Library.experiment_id == Experiment.id)
-            ).correlate_except(Project, Sample, links.SampleLibraryLink, Library).exists()
+            ).correlate_except(Sample, links.SampleLibraryLink, Library).exists()
         )
 
     return clauses

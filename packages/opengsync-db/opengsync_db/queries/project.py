@@ -28,33 +28,24 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     is_admin = sa.select(1).where(User.id == user_id, User.is_admin)
     is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
 
-    has_write_access = sa.and_(
-        Project.status_id == ProjectStatus.DRAFT.id,
-        sa.or_(
-            sa.select(1).where(
-                (links.UserAffiliation.user_id == user_id) &
-                (links.UserAffiliation.group_id == Project.group_id)
-            ).correlate_except(links.UserAffiliation).exists(),
-            Project.owner_id == user_id,
-        )
+    is_owner_or_group_member = sa.or_(
+        Project.owner_id == user_id,
+        sa.select(1).where(
+            (links.UserAffiliation.user_id == user_id) &
+            (links.UserAffiliation.group_id == Project.group_id)
+        ).correlate_except(links.UserAffiliation).exists(),
     )
 
-    has_read_access = sa.or_(
-        Project.status_id != ProjectStatus.DRAFT.id,
-        sa.or_(
-            sa.select(1).where(
-                (links.UserAffiliation.user_id == user_id) &
-                (links.UserAffiliation.group_id == Project.group_id)
-            ).correlate_except(links.UserAffiliation).exists(),
-            Project.owner_id == user_id,
-        )
+    has_write_access = sa.and_(
+        Project.status_id == ProjectStatus.DRAFT.id,
+        is_owner_or_group_member,
     )
-    
+
     return sa.case(
         (sa.exists(is_admin), AccessLevel.ADMIN),
         (sa.exists(is_insider), AccessLevel.INSIDER),
         (has_write_access, AccessLevel.WRITE),
-        (has_read_access, AccessLevel.READ),
+        (is_owner_or_group_member, AccessLevel.READ),
         else_=AccessLevel.NONE
     )
 

@@ -1,10 +1,10 @@
 import sqlalchemy as sa
 from sqlalchemy import sql
 
-from ..models import User, SeqRequest, Group, Project, Sample, Library, links, Contact
+from ..models import User, SeqRequest, Group, Sample, Library, links, Contact
 from ..categories import (
     SeqRequestStatus, DataDeliveryMode, ReadType,
-    SubmissionType, UserRole, LibraryType, AccessLevel
+    SubmissionType, LibraryType, AccessLevel
 )
 from ..core import utils
 
@@ -211,12 +211,11 @@ def where_clauses(
     if project_id is not None:
         clauses.append(
             sa.select(1).where(
-                (Sample.project_id == Project.id) &
+                (Sample.project_id == project_id) &
                 (links.SampleLibraryLink.sample_id == Sample.id) &
                 (Library.id == links.SampleLibraryLink.library_id) &
-                (Library.seq_request_id == SeqRequest.id) &
-                (Project.id == project_id)
-            ).correlate_except(Sample, links.SampleLibraryLink, Library, Project).exists()
+                (Library.seq_request_id == SeqRequest.id)
+            ).correlate_except(Sample, links.SampleLibraryLink, Library).exists()
         )
     if viewer_id is not None:
         clauses.append(access_level(viewer_id) >= AccessLevel.READ)

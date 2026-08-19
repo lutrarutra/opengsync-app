@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, status, Request, Response
 
+from . import responses
+
 if TYPE_CHECKING:
     from ..forms import HTMXForm
 
@@ -39,6 +41,21 @@ class ResourceNotFoundException(HTTPException):
 class UserNotAuthenticatedException(HTTPException):
     def __init__(self, message: str = "User not authenticated"):
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=message)
+
+class UserAccountSuspendedException(HTTPException):
+    def __init__(self, message: str = "Your account is suspended, please contact us."):
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=message)
+
+    @staticmethod
+    def Handler(request: Request, _: Exception) -> Response:
+        flash = responses.flash(message="Your account is suspended, please contact us.", category="warning")
+        if request.headers.get("HX-Request") == "true":
+            response = responses.htmx_response(redirect=responses.url_for("login_page"), flash=flash)
+        else:
+            response = responses.html_response(redirect=responses.url_for("login_page"), flash=flash)
+        response.delete_cookie(key="access_token", path="/", samesite="lax")
+        response.delete_cookie(key="csrf_token", path="/", samesite="lax")
+        return response
 
 class NoPermissionsException(HTTPException):
     def __init__(self, detail: str = "Permission denied"):

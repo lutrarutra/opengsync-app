@@ -7,14 +7,14 @@
     <table class="table">
         <thead>
             <tr>
-                <th scope="col" class="col-1">ID</th>
-                <th scope="col" class="col-4">Name</th>
-                <th scope="col" class="col-4">Email</th>
-                <th scope="col" class="col-3">Role</th>
+                {{ table_col("project-assignee-table", table, "id") }}
+                {{ table_col("project-assignee-table", table, "name") }}
+                {{ table_col("project-assignee-table", table, "email") }}
+                {{ table_col("project-assignee-table", table, "role") }}
             </tr>
         </thead>
         <tbody>
-            {% for user in assignees %}
+            {% for user in users %}
             <tr>
                 <th scope="row">{{ user.id }}</th>
                 <td class="user-cell cm-callback" id="user-cell-{{ user.id }}" data-id="{{ user.id }}"
@@ -43,4 +43,10 @@
             {% endfor %}
         </tbody>
     </table>
+    {{ pagination("project-assignee-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#project-assignee-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

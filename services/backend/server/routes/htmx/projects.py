@@ -102,6 +102,7 @@ def render_project_table(
             raise exc.NoPermissionsException("You do not have permission to view projects for this user.")
         table.template = "components/tables/user-project.html"
         table.url_params["user_id"] = user_id
+        table.context["user_id"] = user_id
     elif experiment_id is not None:
         if not current_user.is_insider:
             raise exc.NoPermissionsException("You do not have permission to view projects for this experiment.")
@@ -123,6 +124,8 @@ def render_project_table(
         table.template = "components/tables/project.html"
         if not current_user.is_insider:
             stmt = Q.project.select(viewer_id=current_user.id, statement=stmt)
+        from loguru import logger
+        logger.debug(current_user)
 
     projects = table.paginate(
         session,
@@ -499,26 +502,6 @@ def render_project_feed(
     )
 
 
-@router.get("/{project_id}/assignees")
-def render_project_assignee_table(
-    project_id: int,
-    session: SyncSession = Depends(dependencies.db_session),
-    access_level: C.AccessLevel = Depends(dependencies.project_permissions),
-):
-    if access_level < C.AccessLevel.READ:
-        raise exc.NoPermissionsException()
-
-    project = session.get_one(
-        Q.project.select(id=project_id),
-        options=[orm.selectinload(models.Project.assignees)],
-    )
-    return responses.htmx_response(
-        "components/tables/project-assignee.html",
-        assignees=project.assignees,
-        project=project,
-    )
-
-
 @router.delete("/{project_id}/remove-assignee/{assignee_id}", dependencies=[Depends(dependencies.require_insider)])
 def remove_project_assignee(
     project_id: int,
@@ -536,9 +519,6 @@ def remove_project_assignee(
     project.assignees.remove(assignee)
     session.save(project)
     return responses.htmx_response(
-        "components/tables/project-assignee.html",
-        assignees=project.assignees,
-        project=project,
         flash=responses.flash("Assignee removed.", "success"),
     )
 

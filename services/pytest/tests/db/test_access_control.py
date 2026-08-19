@@ -31,7 +31,7 @@ def test_project_draft_owner_write_stranger_none(session: SyncSession):
     assert _level(session, Q.project.permissions(project.id, stranger.id)) == C.AccessLevel.NONE
 
 
-def test_project_processing_is_world_readable(session: SyncSession):
+def test_project_processing_owner_read_stranger_none(session: SyncSession):
     owner = create_user(session)
     stranger = create_user(session)
     project = create_project(session, owner)
@@ -39,7 +39,7 @@ def test_project_processing_is_world_readable(session: SyncSession):
     session.save(project, flush=True)
 
     assert _level(session, Q.project.permissions(project.id, owner.id)) == C.AccessLevel.READ
-    assert _level(session, Q.project.permissions(project.id, stranger.id)) == C.AccessLevel.READ
+    assert _level(session, Q.project.permissions(project.id, stranger.id)) == C.AccessLevel.NONE
 
 
 def test_project_draft_group_member_write(session: SyncSession):
@@ -52,6 +52,21 @@ def test_project_draft_group_member_write(session: SyncSession):
     ), flush=True)
 
     assert _level(session, Q.project.permissions(project.id, member.id)) == C.AccessLevel.WRITE
+
+
+def test_project_processing_group_member_read(session: SyncSession):
+    owner = create_user(session)
+    member = create_user(session)
+    group = create_group(session)
+    _affiliate(session, member, group, C.AffiliationType.MEMBER)
+    project = session.save(Q.project.create(
+        title="grouped", description="d", owner_id=owner.id, group_id=group.id,
+    ), flush=True)
+    project.status = C.ProjectStatus.PROCESSING
+    session.save(project, flush=True)
+
+    assert _level(session, Q.project.permissions(project.id, member.id)) == C.AccessLevel.READ
+    assert _level(session, Q.project.permissions(project.id, owner.id)) == C.AccessLevel.READ
 
 
 def test_project_draft_assignee_has_none(session: SyncSession):

@@ -7,14 +7,14 @@
     <table class="table">
         <thead>
             <tr>
-                <th scope="col" class="col-1">ID</th>
-                <th scope="col" class="col-4">Name</th>
-                <th scope="col" class="col-4">Email</th>
-                <th scope="col" class="col-3">Role</th>
+                {{ table_col("seq_request-assignee-table", table, "id") }}
+                {{ table_col("seq_request-assignee-table", table, "name") }}
+                {{ table_col("seq_request-assignee-table", table, "email") }}
+                {{ table_col("seq_request-assignee-table", table, "role") }}
             </tr>
         </thead>
         <tbody>
-            {% for user in assignees %}
+            {% for user in users %}
             <tr>
                 <th scope="row">{{ user.id }}</th>
                 <td class="user-cell cm-callback" id="user-cell-{{ user.id }}" data-id="{{ user.id }}"
@@ -27,7 +27,7 @@
                         },},
                     ])
                 }}>
-                    <a href="{{ url_for('user_page', user_id=user.id, from='seq_request@' + seq_request.id | string) }}">{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span></a>{% endif %}
+                    <a href="{{ url_for('user_page', user_id=user.id, from='seq_request@' + seq_request.id | string) }}">{{ user.name }}{% if user.id == current_user.id %} <span class="desc">me</span>{% endif %}</a>
                 </td>
                 <td class="cm-callback" {{
                     context_menu([
@@ -43,4 +43,10 @@
             {% endfor %}
         </tbody>
     </table>
+    {{ pagination("seq_request-assignee-table", table) }}
+    <script>
+        $(document).ready(function() {
+            const table = new HTMXTable("#seq_request-assignee-table", "{{ table.url }}", { state: {{ table.get_state() | tojson }} });
+        });
+    </script>
 </div>

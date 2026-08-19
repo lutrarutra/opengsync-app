@@ -166,7 +166,7 @@ def test_draft_project_owner_ok_stranger_403(
     assert get(client, f"/projects/{project.id}", user_2_token).status_code == 403
 
 
-def test_processing_project_stranger_200(
+def test_processing_project_stranger_403(
     client: TestClient, session: SyncSession, user, user_2_token,
 ):
     project = create_project(session, user)
@@ -175,7 +175,7 @@ def test_processing_project_stranger_200(
     _commit(session)
     flush_redis(client)
 
-    assert get(client, f"/projects/{project.id}", user_2_token).status_code == 200
+    assert get(client, f"/projects/{project.id}", user_2_token).status_code == 403
 
 
 def test_project_insider_and_admin_ok(

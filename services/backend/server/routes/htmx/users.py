@@ -1,11 +1,9 @@
-from loguru import logger
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C, utils
 
-from ...core import dependencies, responses, exceptions as exc, mailer, secrets
+from ...core import dependencies, responses, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
-from ...core.context import ctx
 from ... import forms
 
 
@@ -25,8 +23,6 @@ class UserTable(HTMXTable):
 
 @router.get("/render-table-page")
 def render_user_table(
-    seq_request_id: int | None = Query(None, description="Optional seq request ID to filter projects"),
-    project_id: int | None = Query(None, description="Optional project ID to filter projects"),
     group_id: int | None = Query(None, description="Optional group ID to filter users"),
     page: int = Query(0, ge=0, description="Page number, starting from 0"),
     current_user: models.User = Depends(dependencies.require_insider),
@@ -37,8 +33,6 @@ def render_user_table(
     table = UserTable(route="render_user_table", page=page, order_by=order_by)
 
     stmt = Q.user.select(
-        assignees_seq_request_id=seq_request_id,
-        assignees_project_id=project_id,
         role_in=role_in,
         group_id=group_id,
     )
@@ -46,30 +40,65 @@ def render_user_table(
     if role_in:
         table.filter_values["role"] = role_in
 
-    if seq_request_id is not None:
-        table.template = "components/tables/seq-request-assignee.html"
-        table.url_params["seq_request_id"] = seq_request_id
-    elif project_id is not None:
-        table.template = "components/tables/project-assignee.html"
-        table.url_params["project_id"] = project_id
-    elif group_id is not None:
+    if group_id is not None:
         if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         table.template = "components/tables/group-user.html"
         table.url_params["group_id"] = group_id
         table.context["group"] = session.get_one(Q.group.select(id=group_id))
     else:
-        if not current_user.is_insider:
-            raise exc.NoPermissionsException("You do not have permission to view this resource.")
         table.template = "components/tables/user.html"
 
+    users = table.paginate(session, stmt, page=page, order_by=order_by)
+    return table.make_response(users=users)
 
-    users = table.paginate(
-        session, stmt, page=page, order_by=order_by,
-        options=[
 
-        ]
+class AssigneeTable(HTMXTable):
+    columns = [
+        TableCol(title="ID", label="id", col_size=1, searchable=True, sortable=True),
+        TableCol(title="Name", label="name", col_size=4, searchable=True),
+        TableCol(title="Email", label="email", col_size=4, sortable=True),
+        TableCol(title="Role", label="role", col_size=3, choices=C.UserRole.as_selectable(), sortable=True, sort_by="role_id"),
+    ]
+
+
+@router.get("/render-assignee-table-page")
+def render_assignee_table(
+    seq_request_id: int | None = Query(None, description="Optional seq request ID to filter assignees"),
+    project_id: int | None = Query(None, description="Optional project ID to filter assignees"),
+    page: int = Query(0, ge=0, description="Page number, starting from 0"),
+    current_user: models.User = Depends(dependencies.require_user),
+    order_by: utils.OrderBy | None = Depends(dependencies.parse_order_by(model=models.User, default=models.User.id.desc())),
+    role_in: list[C.UserRole] | None = Depends(dependencies.parse_enum_ids(enum_type=C.UserRole, query_param="role_in")),
+    session: SyncSession = Depends(dependencies.db_session)
+):
+    table = AssigneeTable(route="render_assignee_table", page=page, order_by=order_by)
+
+    stmt = Q.user.select(
+        assignees_seq_request_id=seq_request_id,
+        assignees_project_id=project_id,
+        role_in=role_in,
     )
+
+    if role_in:
+        table.filter_values["role"] = role_in
+
+    if seq_request_id is not None:
+        if session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view this resource.")
+        table.template = "components/tables/seq_request-assignee.html"
+        table.url_params["seq_request_id"] = seq_request_id
+        table.context["seq_request"] = session.get_one(Q.seq_request.select(id=seq_request_id))
+    elif project_id is not None:
+        if session.get_access_level(Q.project.permissions(project_id=project_id, user_id=current_user.id)) < C.AccessLevel.READ:
+            raise exc.NoPermissionsException("You do not have permission to view this resource.")
+        table.template = "components/tables/project-assignee.html"
+        table.url_params["project_id"] = project_id
+        table.context["project"] = session.get_one(Q.project.select(id=project_id))
+    else:
+        raise exc.BadRequestException("At least one of seq_request_id or project_id must be provided")
+
+    users = table.paginate(session, stmt, page=page, order_by=order_by)
     return table.make_response(users=users)
 
     
@@ -99,69 +128,8 @@ def search_users(
         else:    
             stmt = Q.user.select(viewer_id=current_user.id, statement=stmt)
 
-    users, count = session.page(stmt, page=page)
+    users, _ = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/user.html", users=users)
-
-
-@router.post("/{user_id}/reset-password")
-def send_reset_password_email(
-    user_id: int,
-    current_user: models.User = Depends(dependencies.require_user),
-    access_level: C.AccessLevel = Depends(dependencies.user_permissions),
-    session: SyncSession = Depends(dependencies.db_session),
-    email: mailer.Mailer = Depends(dependencies.mail_client),
-):
-    if current_user.id != user_id and access_level < C.AccessLevel.ADMIN:
-        raise exc.NoPermissionsException("You do not have permission to change this user's password.")
-    
-    user = session.get_one(Q.user.select(id=user_id))
-        
-    token = secrets.create_password_reset_token(user_id=user.id)
-    link = responses.url_for("reset_password_page", token=token)
-    email.send_password_reset(recipient_email=user.email, reset_link=link)
-
-    return responses.htmx_response(
-        redirect=responses.url_for("login_page"),
-        flash=responses.flash("Password reset email sent!", "success"),
-    )
-
-@router.post("/{user_id}/activate")
-def activate_user(
-    user_id: int,
-    current_user: models.User = Depends(dependencies.require_insider),
-    session: SyncSession = Depends(dependencies.db_session),
-    email: mailer.Mailer = Depends(dependencies.mail_client),
-):
-    
-    user = session.get_one(Q.user.select(id=user_id))
-
-    if user.role != C.UserRole.DEACTIVATED:
-        raise exc.BadRequestException("User is already active.")
-    
-    user.role = C.UserRole.CLIENT
-
-    token = secrets.create_password_reset_token(user_id=user.id)
-    link = responses.url_for("reset_password_page", token=token)
-    email.send_password_reset(recipient_email=user.email, reset_link=link)
-
-    return responses.htmx_response(
-        redirect=responses.url_for("login_page"),
-        flash=responses.flash("Check your email!", "success"),
-    )
-    
-
-@router.post("/{user_id}/start-user-session")
-def start_user_session(
-    user_id: int,
-    current_user: models.User = Depends(dependencies.require_admin),
-    access_level: C.AccessLevel = Depends(dependencies.user_permissions),
-    session: SyncSession = Depends(dependencies.db_session),
-):
-    user = session.get_one(Q.user.select(id=user_id))
-
-    logger.info(f"Admin {current_user.email} is starting a session for user {user.email}")
-    pass
-    # TODO: missing implementation
 
 
 router.include_router(forms.models.UserForm.Router())

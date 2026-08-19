@@ -207,7 +207,7 @@
                     </button>
                 </div>
             </div>
-            <div hx-get="{{ url_for('render_project_assignee_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
+            <div hx-get="{{ url_for('render_assignee_table', project_id=project.id) }}" hx-trigger="intersect once" hx-swap="outerHTML">
                 {{ spinner() }}
             </div>
         </div>

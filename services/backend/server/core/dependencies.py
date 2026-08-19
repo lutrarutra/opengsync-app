@@ -161,7 +161,7 @@ def get_user(
         return None
     
     if user.role == C.UserRole.DEACTIVATED:
-        raise exc.HTTPException(status_code=403, detail="User account is suspended")
+        raise exc.UserAccountSuspendedException()
     
     request.state.current_user = user
     return user

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 
 from opengsync_db import models, SyncSession, queries as Q, categories as C
 
-from ...core import dependencies, responses, exceptions as exc
+from ...core import dependencies, exceptions as exc
 from ...components.tables import HTMXTable, TableCol
 
 router = APIRouter(prefix="/affiliations", tags=["affiliations"])
@@ -33,7 +33,7 @@ def render_affiliation_table(
     )
 
     if user_id is not None:
-        if session.get_access_level(Q.user.permissions(user_id, current_user.id)) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.user.permissions(user_id, current_user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         table.template = "components/tables/user-affiliation.html"
         table.url_params["user_id"] = user_id
