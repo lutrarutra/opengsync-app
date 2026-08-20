@@ -23,7 +23,7 @@ class OpeNGSyncServerException(Exception):
     
 
 class FormValidationException(HTTPException):
-    def __init__(self, form: "HTMXForm", status_code: int = status.HTTP_409_CONFLICT):
+    def __init__(self, form: "HTMXForm", status_code: int = status.HTTP_202_ACCEPTED):
         super().__init__(status_code=status_code)
         self.form = form
 

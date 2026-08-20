@@ -3,13 +3,13 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from opengsync_db import SyncSession, actions, queries as Q, categories as C
+from opengsync_db import SyncSession, queries as Q, categories as C
 
 from ..db.create_units import (
     create_project, create_seq_request, create_sample, create_library,
     create_pool, create_group,
 )
-from ._http import auth, get, post_form, flush_redis
+from ._http import auth, get, delete, post_form, flush_redis
 
 
 def _allowed(response) -> None:
@@ -23,6 +23,10 @@ def _anon_login_redirect(response) -> None:
 
 def _commit(session: SyncSession) -> None:
     session.commit()
+
+
+def _affiliate(session: SyncSession, user, group, type: C.AffiliationType):
+    session.save(Q.affiliation.create(user=user, group=group, type=type), flush=True)
 
 
 # --- anonymous: listing and resource pages require login ---
@@ -166,8 +170,8 @@ def test_draft_project_owner_ok_stranger_403(
     assert get(client, f"/projects/{project.id}", user_2_token).status_code == 403
 
 
-def test_processing_project_stranger_403(
-    client: TestClient, session: SyncSession, user, user_2_token,
+def test_processing_project_owner_ok_stranger_403(
+    client: TestClient, session: SyncSession, user, user_token, user_2_token,
 ):
     project = create_project(session, user)
     project.status = C.ProjectStatus.PROCESSING
@@ -175,7 +179,36 @@ def test_processing_project_stranger_403(
     _commit(session)
     flush_redis(client)
 
+    assert get(client, f"/projects/{project.id}", user_token).status_code == 200
     assert get(client, f"/projects/{project.id}", user_2_token).status_code == 403
+
+
+def test_draft_project_group_member_ok(
+    client: TestClient, session: SyncSession, user, user_2, user_token, user_2_token,
+):
+    group = create_group(session)
+    _affiliate(session, user_2, group, C.AffiliationType.MEMBER)
+    project = session.save(Q.project.create(
+        title="grouped", description="d", owner_id=user.id, group_id=group.id,
+    ), flush=True)
+    _commit(session)
+
+    assert get(client, f"/projects/{project.id}", user_2_token).status_code == 200
+    assert get(client, f"/projects/{project.id}", user_token).status_code == 200
+
+
+def test_draft_project_owner_can_delete_processing_cannot(
+    client: TestClient, session: SyncSession, user, user_token,
+):
+    draft = create_project(session, user)
+    processing = create_project(session, user)
+    processing.status = C.ProjectStatus.PROCESSING
+    session.save(processing)
+    _commit(session)
+    flush_redis(client)
+
+    _allowed(delete(client, f"/htmx/projects/{draft.id}/delete", user_token))
+    assert delete(client, f"/htmx/projects/{processing.id}/delete", user_token).status_code == 403
 
 
 def test_project_insider_and_admin_ok(
@@ -210,41 +243,125 @@ def test_seq_request_page_stranger_403(
     assert get(client, f"/seq_requests/{seq_request.id}", user_2_token).status_code == 403
 
 
+def test_submitted_seq_request_requestor_ok(
+    client: TestClient, session: SyncSession, user, user_token,
+):
+    seq_request = create_seq_request(session, user)
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    session.save(seq_request)
+    _commit(session)
+    flush_redis(client)
+    assert get(client, f"/seq_requests/{seq_request.id}", user_token).status_code == 200
+
+
+def test_draft_seq_request_group_member_ok(
+    client: TestClient, session: SyncSession, user, user_2, user_2_token,
+):
+    group = create_group(session)
+    _affiliate(session, user_2, group, C.AffiliationType.MEMBER)
+    seq_request = create_seq_request(session, user)
+    seq_request.group = group
+    session.save(seq_request)
+    _commit(session)
+
+    assert get(client, f"/seq_requests/{seq_request.id}", user_2_token).status_code == 200
+
+
+def test_draft_seq_request_owner_can_delete_submitted_cannot(
+    client: TestClient, session: SyncSession, user, user_token,
+):
+    draft = create_seq_request(session, user)
+    submitted = create_seq_request(session, user)
+    submitted.status = C.SeqRequestStatus.SUBMITTED
+    session.save(submitted)
+    _commit(session)
+    flush_redis(client)
+
+    _allowed(delete(client, f"/htmx/seq_requests/{draft.id}/delete", user_token))
+    assert delete(client, f"/htmx/seq_requests/{submitted.id}/delete", user_token).status_code == 403
+
+
 def test_seq_request_missing_is_404(client: TestClient, user_token: str):
     assert get(client, "/seq_requests/999999", user_token).status_code == 404
 
 
 # --- sample / library / pool ---
 
-def test_unlinked_sample_owner_403(
-    client: TestClient, session: SyncSession, user, user_token,
-):
-    project = create_project(session, user)
-    sample = create_sample(session, user, project)
-    _commit(session)
-    assert get(client, f"/samples/{sample.id}", user_token).status_code == 403
-
-
-def test_linked_sample_owner_ok_stranger_403(
+def test_sample_follows_project_owner_ok_stranger_403(
     client: TestClient, session: SyncSession, user, user_token, user_2_token,
 ):
     project = create_project(session, user)
-    seq_request = create_seq_request(session, user)
     sample = create_sample(session, user, project)
-    library = create_library(session, user, seq_request)
-    actions.link_sample_library(session, sample.id, library.id)
     _commit(session)
 
     assert get(client, f"/samples/{sample.id}", user_token).status_code == 200
     assert get(client, f"/samples/{sample.id}", user_2_token).status_code == 403
 
 
-def test_library_requestor_ok_stranger_403(
+def test_sample_follows_project_group_member_ok(
+    client: TestClient, session: SyncSession, user, user_2, user_2_token,
+):
+    group = create_group(session)
+    _affiliate(session, user_2, group, C.AffiliationType.MEMBER)
+    project = session.save(Q.project.create(
+        title="grouped", description="d", owner_id=user.id, group_id=group.id,
+    ), flush=True)
+    sample = create_sample(session, user, project)
+    _commit(session)
+
+    assert get(client, f"/samples/{sample.id}", user_2_token).status_code == 200
+
+
+def test_draft_sample_owner_can_delete_processing_project_cannot(
+    client: TestClient, session: SyncSession, user, user_token,
+):
+    draft_project = create_project(session, user)
+    draft_sample = create_sample(session, user, draft_project)
+    processing_project = create_project(session, user)
+    processing_sample = create_sample(session, user, processing_project)
+    processing_project.status = C.ProjectStatus.PROCESSING
+    session.save(processing_project)
+    _commit(session)
+    flush_redis(client)
+
+    _allowed(delete(client, f"/htmx/samples/{draft_sample.id}/delete", user_token))
+    assert delete(client, f"/htmx/samples/{processing_sample.id}/delete", user_token).status_code == 403
+
+
+def test_library_follows_seq_request_owner_ok_library_owner_ignored(
+    client: TestClient, session: SyncSession, user, user_2, user_token, user_2_token,
+):
+    seq_request = create_seq_request(session, user)
+    library = create_library(session, user_2, seq_request)
+    _commit(session)
+
+    assert get(client, f"/libraries/{library.id}", user_token).status_code == 200
+    assert get(client, f"/libraries/{library.id}", user_2_token).status_code == 403
+
+
+def test_library_follows_seq_request_group_member_ok(
+    client: TestClient, session: SyncSession, user, user_2, user_2_token,
+):
+    group = create_group(session)
+    _affiliate(session, user_2, group, C.AffiliationType.MEMBER)
+    seq_request = create_seq_request(session, user)
+    seq_request.group = group
+    session.save(seq_request)
+    library = create_library(session, user, seq_request)
+    _commit(session)
+
+    assert get(client, f"/libraries/{library.id}", user_2_token).status_code == 200
+
+
+def test_library_follows_submitted_seq_request_requestor_ok_stranger_403(
     client: TestClient, session: SyncSession, user, user_token, user_2_token,
 ):
     seq_request = create_seq_request(session, user)
     library = create_library(session, user, seq_request)
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    session.save(seq_request)
     _commit(session)
+    flush_redis(client)
 
     assert get(client, f"/libraries/{library.id}", user_token).status_code == 200
     assert get(client, f"/libraries/{library.id}", user_2_token).status_code == 403

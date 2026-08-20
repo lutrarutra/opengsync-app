@@ -1,5 +1,6 @@
 import pandas as pd
 from fastapi import Depends, Response
+from pydantic import BaseModel
 
 from opengsync_db import models, categories as C, SyncSession, queries as Q
 
@@ -41,9 +42,14 @@ class SampleAnnotationForm(LibraryAnnotationWorkflowStep):
             df["sample_id"] = None
             df["sample_id"] = df["sample_id"].astype(pd.Int64Dtype())
 
+            class RowSchema(BaseModel):
+                sample_id: int | None
+                sample_name: str
+
+
             if (project_id := form.workflow.metadata.get("project_id")) is not None:
-                for idx, row in df.iterrows():
-                    if (sample := session.first(Q.sample.select(name=row["sample_name"], project_id=project_id))) is not None:
+                for idx, row in utils.parsing.safe_iter(df, RowSchema):
+                    if (sample := session.first(Q.sample.select(name=row.sample_name, project_id=project_id))) is not None:
                         df.loc[idx, "sample_id"] = sample.id
 
                         for attr in sample.attributes:
@@ -57,11 +63,11 @@ class SampleAnnotationForm(LibraryAnnotationWorkflowStep):
                 
             #     df[col.label] = ""
 
-            for _, row in df[df["sample_id"].notna()].iterrows():
-                sample = session.get_one(Q.sample.select(id=int(row["sample_id"])))
+            for _, row in utils.parsing.safe_iter(df.loc[df["sample_id"].notna()], RowSchema):
+                sample = session.get_one(Q.sample.select(id=row.sample_id))
                 
                 for attr in sample.attributes:
-                    df.loc[df["sample_name"] == row["sample_name"], attr.name] = attr.value
+                    df.loc[df["sample_name"] == row.sample_name, attr.name] = attr.value
 
             form.workflow.tables["sample_table"] = df
             next_form = form.workflow.get_next_step(form)

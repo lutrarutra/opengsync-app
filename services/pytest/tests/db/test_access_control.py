@@ -2,7 +2,7 @@
 
 These pin the SQL rules. HTTP enforcement lives in tests/server/test_access.py.
 """
-from opengsync_db import SyncSession, actions, queries as Q, categories as C
+from opengsync_db import SyncSession, queries as Q, categories as C
 
 from .create_units import (
     create_user, create_project, create_seq_request, create_sample, create_library,
@@ -141,52 +141,123 @@ def test_seq_request_group_member_write(session: SyncSession):
     assert _level(session, Q.seq_request.permissions(seq_request.id, member.id)) == C.AccessLevel.WRITE
 
 
+def test_seq_request_submitted_group_member_read(session: SyncSession):
+    requestor = create_user(session)
+    member = create_user(session)
+    group = create_group(session)
+    _affiliate(session, member, group, C.AffiliationType.MEMBER)
+    seq_request = create_seq_request(session, requestor)
+    seq_request.group = group
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    session.save(seq_request, flush=True)
+
+    assert _level(session, Q.seq_request.permissions(seq_request.id, member.id)) == C.AccessLevel.READ
+    assert _level(session, Q.seq_request.permissions(seq_request.id, requestor.id)) == C.AccessLevel.READ
+
+
 # ---------------------------------------------------------------------------
-# Sample / library / pool — follow seq request, not owner_id
+# Sample — inherit from project
 # ---------------------------------------------------------------------------
 
-def test_sample_unlinked_is_none_for_client(session: SyncSession):
-    owner = create_user(session)
-    project = create_project(session, owner)
-    sample = create_sample(session, owner, project)
-
-    assert _level(session, Q.sample.permissions(sample.id, owner.id)) == C.AccessLevel.NONE
-
-
-def test_sample_linked_to_draft_seq_request_write(session: SyncSession):
+def test_sample_follows_draft_project_owner_write_stranger_none(session: SyncSession):
     owner = create_user(session)
     stranger = create_user(session)
     project = create_project(session, owner)
-    seq_request = create_seq_request(session, owner)
     sample = create_sample(session, owner, project)
-    library = create_library(session, owner, seq_request)
-    actions.link_sample_library(session, sample.id, library.id)
 
     assert _level(session, Q.sample.permissions(sample.id, owner.id)) == C.AccessLevel.WRITE
     assert _level(session, Q.sample.permissions(sample.id, stranger.id)) == C.AccessLevel.NONE
 
 
-def test_sample_linked_non_draft_library_is_read(session: SyncSession):
+def test_sample_follows_processing_project_owner_read(session: SyncSession):
     owner = create_user(session)
     project = create_project(session, owner)
-    seq_request = create_seq_request(session, owner)
     sample = create_sample(session, owner, project)
-    library = create_library(session, owner, seq_request)
-    actions.link_sample_library(session, sample.id, library.id)
-    library.status = C.LibraryStatus.SUBMITTED
-    session.save(library, flush=True)
+    project.status = C.ProjectStatus.PROCESSING
+    session.save(project, flush=True)
 
     assert _level(session, Q.sample.permissions(sample.id, owner.id)) == C.AccessLevel.READ
 
 
-def test_library_follows_seq_request(session: SyncSession):
+def test_sample_follows_draft_project_group_member_write(session: SyncSession):
+    owner = create_user(session)
+    member = create_user(session)
+    group = create_group(session)
+    _affiliate(session, member, group, C.AffiliationType.MEMBER)
+    project = session.save(Q.project.create(
+        title="grouped", description="d", owner_id=owner.id, group_id=group.id,
+    ), flush=True)
+    sample = create_sample(session, owner, project)
+
+    assert _level(session, Q.sample.permissions(sample.id, member.id)) == C.AccessLevel.WRITE
+
+
+def test_sample_follows_processing_project_group_member_read(session: SyncSession):
+    owner = create_user(session)
+    member = create_user(session)
+    group = create_group(session)
+    _affiliate(session, member, group, C.AffiliationType.MEMBER)
+    project = session.save(Q.project.create(
+        title="grouped", description="d", owner_id=owner.id, group_id=group.id,
+    ), flush=True)
+    sample = create_sample(session, owner, project)
+    project.status = C.ProjectStatus.PROCESSING
+    session.save(project, flush=True)
+
+    assert _level(session, Q.sample.permissions(sample.id, member.id)) == C.AccessLevel.READ
+    assert _level(session, Q.sample.permissions(sample.id, owner.id)) == C.AccessLevel.READ
+
+
+# ---------------------------------------------------------------------------
+# Library — inherit from seq request (library.owner_id is ignored)
+# ---------------------------------------------------------------------------
+
+def test_library_follows_draft_seq_request(session: SyncSession):
     owner = create_user(session)
     other = create_user(session)
     seq_request = create_seq_request(session, owner)
-    library = create_library(session, other, seq_request)  # owner_id ignored by SQL
+    library = create_library(session, other, seq_request)
 
     assert _level(session, Q.library.permissions(library.id, owner.id)) == C.AccessLevel.WRITE
     assert _level(session, Q.library.permissions(library.id, other.id)) == C.AccessLevel.NONE
+
+
+def test_library_follows_submitted_seq_request_read(session: SyncSession):
+    owner = create_user(session)
+    seq_request = create_seq_request(session, owner)
+    library = create_library(session, owner, seq_request)
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    session.save(seq_request, flush=True)
+
+    assert _level(session, Q.library.permissions(library.id, owner.id)) == C.AccessLevel.READ
+
+
+def test_library_follows_draft_seq_request_group_member_write(session: SyncSession):
+    requestor = create_user(session)
+    member = create_user(session)
+    group = create_group(session)
+    _affiliate(session, member, group, C.AffiliationType.MEMBER)
+    seq_request = create_seq_request(session, requestor)
+    seq_request.group = group
+    session.save(seq_request, flush=True)
+    library = create_library(session, requestor, seq_request)
+
+    assert _level(session, Q.library.permissions(library.id, member.id)) == C.AccessLevel.WRITE
+
+
+def test_library_follows_submitted_seq_request_group_member_read(session: SyncSession):
+    requestor = create_user(session)
+    member = create_user(session)
+    group = create_group(session)
+    _affiliate(session, member, group, C.AffiliationType.MEMBER)
+    seq_request = create_seq_request(session, requestor)
+    seq_request.group = group
+    seq_request.status = C.SeqRequestStatus.SUBMITTED
+    session.save(seq_request, flush=True)
+    library = create_library(session, requestor, seq_request)
+
+    assert _level(session, Q.library.permissions(library.id, member.id)) == C.AccessLevel.READ
+    assert _level(session, Q.library.permissions(library.id, requestor.id)) == C.AccessLevel.READ
 
 
 def test_pool_follows_seq_request(session: SyncSession):

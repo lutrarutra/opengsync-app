@@ -61,7 +61,7 @@ def test_add_user_to_group_unknown_email_rerenders(
         {"email": "missing@example.com", "affiliation_type": str(C.AffiliationType.MEMBER.id)},
         token=insider_token,
     )
-    assert response.status_code == 200
+    assert response.status_code == 202
     assert session.count(Q.affiliation.select(group_id=group.id)) == 0
 
 
@@ -82,7 +82,7 @@ def test_add_user_to_group_csrf_mismatch_rerenders(
         headers=auth(insider_token),
         follow_redirects=False,
     )
-    assert response.status_code == 200
+    assert response.status_code == 202
     assert session.first(Q.affiliation.select(user_id=user_2.id, group_id=group.id)) is None
 
 

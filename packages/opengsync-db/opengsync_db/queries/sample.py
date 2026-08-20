@@ -1,8 +1,8 @@
 import sqlalchemy as sa
 
-from ..models import Library, Sample, links, User, SeqRequest
+from ..models import Library, Sample, links, User, SeqRequest, Project
 from ..categories import (
-    LibraryStatus, AccessLevel, SeqRequestStatus, SampleStatus
+    LibraryStatus, AccessLevel, SeqRequestStatus, SampleStatus, ProjectStatus
 )
 from ..core import utils
 
@@ -25,47 +25,36 @@ def access_level(user_id: int) -> sa.ColumnElement[AccessLevel]:
     is_admin = sa.select(1).where(User.id == user_id, User.is_admin)
     is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
 
-    has_write_access = sa.select(1).where(
-        links.SampleLibraryLink.sample_id == Sample.id,
-        Library.id == links.SampleLibraryLink.library_id,
-        Library.seq_request_id == SeqRequest.id,
-        SeqRequest.status_id == SeqRequestStatus.DRAFT.id,
+    is_owner_or_group_member = sa.select(1).where(
+        Sample.project_id == Project.id,
         sa.or_(
-            SeqRequest.requestor_id == user_id,
+            Project.owner_id == user_id,
             sa.select(1).where(
                 (links.UserAffiliation.user_id == user_id) &
-                (links.UserAffiliation.group_id == SeqRequest.group_id)
-            ).correlate_except(links.UserAffiliation).exists()
+                (links.UserAffiliation.group_id == Project.group_id)
+            ).correlate_except(links.UserAffiliation).exists(),
         ),
-        ~sa.select(1).where(
-            (links.SampleLibraryLink.sample_id == Sample.id) &
-            (Library.id == links.SampleLibraryLink.library_id) &
-            (Library.seq_request_id == SeqRequest.id) &
-            (Library.status_id != LibraryStatus.DRAFT.id)
-        ).correlate_except(links.SampleLibraryLink, Library).exists()
-    ).correlate_except(links.SampleLibraryLink, Library, SeqRequest)
+    ).correlate_except(Project)
 
-    has_read_access = sa.select(1).where(
-        links.SampleLibraryLink.sample_id == Sample.id,
-        Library.id == links.SampleLibraryLink.library_id,
-        Library.seq_request_id == SeqRequest.id,
+    has_write_access = sa.select(1).where(
+        Sample.project_id == Project.id,
+        Project.status_id == ProjectStatus.DRAFT.id,
         sa.or_(
-            SeqRequest.requestor_id == user_id,
+            Project.owner_id == user_id,
             sa.select(1).where(
                 (links.UserAffiliation.user_id == user_id) &
-                (links.UserAffiliation.group_id == SeqRequest.group_id)
-            ).correlate_except(links.UserAffiliation).exists()
-        )
-    ).correlate_except(links.SampleLibraryLink, Library, SeqRequest)
+                (links.UserAffiliation.group_id == Project.group_id)
+            ).correlate_except(links.UserAffiliation).exists(),
+        ),
+    ).correlate_except(Project)
 
     return sa.case(
         (sa.exists(is_admin), AccessLevel.ADMIN),
         (sa.exists(is_insider), AccessLevel.INSIDER),
         (sa.exists(has_write_access), AccessLevel.WRITE),
-        (sa.exists(has_read_access), AccessLevel.READ),
+        (sa.exists(is_owner_or_group_member), AccessLevel.READ),
         else_=AccessLevel.NONE
     )
-
 
 
 def search(

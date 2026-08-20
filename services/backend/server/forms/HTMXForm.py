@@ -439,7 +439,7 @@ class HTMXForm(ABC):
 
         return responses.htmx_response(
             template=self.template_path,
-            status_code=status_code,
+            status=status_code,
             **self.get_context(),
             **kwargs
         )
@@ -474,9 +474,9 @@ class HTMXForm(ABC):
         )
     
     def invalid_response_handler(self, request: Request, exc: exc.FormValidationException) -> Response:
-        """Handle invalid form submissions by returning a response with errors."""
+        """Re-render the form with errors. 202 means the POST was accepted but did not advance."""
         self.prepare()
-        return self.make_response(status_code=200)
+        return self.make_response(status_code=exc.status_code)
 
     def render_general_errors(self) -> str:
         """Render general (non-field-specific) errors for this form."""

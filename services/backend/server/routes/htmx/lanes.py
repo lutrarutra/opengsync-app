@@ -28,9 +28,7 @@ def render_lane_table(
 ):
     table = LaneTable(route="render_lane_table", page=page, order_by=order_by)
 
-    stmt = Q.lane.select(
-        experiment_id=experiment_id,
-    )
+    stmt = Q.lane.select(experiment_id=experiment_id)
 
     if experiment:
         table.active_search_var = "experiment"

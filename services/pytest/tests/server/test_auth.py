@@ -55,7 +55,7 @@ def test_login_rejects_invalid_credentials(client: TestClient, user):
         "/htmx/auth/login",
         {"email": user.email, "password": "wrong-password"},
     )
-    assert response.status_code == 200
+    assert response.status_code == 202
 
 
 def test_login_sets_access_token(client: TestClient, user):

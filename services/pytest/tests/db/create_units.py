@@ -37,7 +37,11 @@ def create_contact(session: SyncSession) -> models.Contact:
     ), flush=True)
 
 
-def create_seq_request(session: SyncSession, user: models.User) -> models.SeqRequest:
+def create_seq_request(
+    session: SyncSession,
+    user: models.User,
+    submission_type: SubmissionType = SubmissionType.POOLED_LIBRARIES,
+) -> models.SeqRequest:
     _uuid = str(uuid.uuid1())
     contact = create_contact(session)
     organization = create_contact(session)
@@ -51,7 +55,7 @@ def create_seq_request(session: SyncSession, user: models.User) -> models.SeqReq
         contact_person=contact,
         billing_contact=contact,
         group=None,
-        submission_type=SubmissionType.POOLED_LIBRARIES,
+        submission_type=submission_type,
     ), flush=True)
 
 
