@@ -80,7 +80,7 @@ class IndexKitBP(DBBlueprint):
         self, index_kit_id: int, flush: bool = True
     ) -> models.IndexKit:
         if (index_kit := self.db.session.get(models.IndexKit, index_kit_id)) is None:
-            raise exceptions.ModelNotFoundException(f"IndexKit with id '{index_kit_id}' not found.")
+            raise exceptions.NotFoundException(f"IndexKit with id '{index_kit_id}' not found.")
         
         for adapter in index_kit.adapters:
             for barcode in adapter.barcodes_i7:
@@ -155,8 +155,8 @@ class IndexKitBP(DBBlueprint):
     def __getitem__(self, id: int | str) -> models.IndexKit:
         if isinstance(id, str):
             if (index_kit := self.get_with_identifier(id)) is None:
-                raise exceptions.ModelNotFoundException(f"IndexKit with identifier '{id}' not found.")
+                raise exceptions.NotFoundException(f"IndexKit with identifier '{id}' not found.")
         else:
             if (index_kit := self.get(id)) is None:
-                raise exceptions.ModelNotFoundException(f"IndexKit with id '{id}' not found.")
+                raise exceptions.NotFoundException(f"IndexKit with id '{id}' not found.")
         return index_kit

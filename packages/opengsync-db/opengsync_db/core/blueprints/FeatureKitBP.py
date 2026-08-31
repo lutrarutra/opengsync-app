@@ -113,7 +113,7 @@ class FeatureKitBP(DBBlueprint):
     @DBBlueprint.transaction
     def remove_all_features(self, feature_kit_id: int) -> models.FeatureKit:
         if (feature_kit := self.db.session.get(models.FeatureKit, feature_kit_id)) is None:
-            raise exceptions.ModelNotFoundException(f"FeatureKit with id '{feature_kit_id}' not found.")
+            raise exceptions.NotFoundException(f"FeatureKit with id '{feature_kit_id}' not found.")
         
         for feature in feature_kit.features:
             self.db.session.delete(feature)
@@ -123,8 +123,8 @@ class FeatureKitBP(DBBlueprint):
     def __getitem__(self, id: int | str) -> models.FeatureKit:
         if isinstance(id, int):
             if (kit := self.db.session.get(models.FeatureKit, id)) is None:
-                raise exceptions.ModelNotFoundException(f"FeatureKit with id '{id}' not found.")
+                raise exceptions.NotFoundException(f"FeatureKit with id '{id}' not found.")
         else:
             if (kit := self.get_with_identifier(id)) is None:
-                raise exceptions.ModelNotFoundException(f"FeatureKit with identifier '{id}' not found.")
+                raise exceptions.NotFoundException(f"FeatureKit with identifier '{id}' not found.")
         return kit

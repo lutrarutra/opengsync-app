@@ -8,7 +8,7 @@ class RollBackTriggered(OpeNGSyncDBException):
     def __init__(self, message: str = "DB Rollback Triggered"):
         super().__init__(message)
 
-class ModelNotFoundException(OpeNGSyncDBException):
+class NotFoundException(OpeNGSyncDBException):
     """Raised when a requested object is not found in the database."""
     def __init__(self, message: str = "Object not found in the database") -> None:
         super().__init__(message)

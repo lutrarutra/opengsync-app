@@ -56,17 +56,17 @@ class ReindexWorkflow(HTMXWorkflow):
         ) -> "ReindexWorkflow":
             if seq_request_id is not None:
                 if session.first(Q.seq_request.select(id=seq_request_id)) is None:
-                    raise exc.ItemNotFoundException()
+                    raise exc.NotFoundException()
                 if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.WRITE:
                     raise exc.NoPermissionsException("You do not have permission to edit this seq request.")
             if lab_prep_id is not None:
                 if session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
-                    raise exc.ItemNotFoundException()
+                    raise exc.NotFoundException()
                 if not current_user.is_insider:
                     raise exc.NoPermissionsException("You do not have permission to access this lab prep.")
             if pool_id is not None:
                 if session.first(Q.pool.select(id=pool_id)) is None:
-                    raise exc.ItemNotFoundException()
+                    raise exc.NotFoundException()
                 if session.get_access_level(Q.pool.permissions(pool_id, current_user.id)) < C.AccessLevel.WRITE:
                     raise exc.NoPermissionsException("You do not have permission to edit this pool.")
             if seq_request_id is None and not current_user.is_insider:

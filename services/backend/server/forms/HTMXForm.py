@@ -233,7 +233,10 @@ class HTMXForm(ABC):
 
         if not submitted_token or not csrf_token or submitted_token != csrf_token:
             self.csrf_token.errors.append("Invalid or missing CSRF token.")
-            raise exc.FormValidationException(self)  # TODO: since the field is hidden, frontend needs to show flash message
+            raise exc.FormValidationException(
+                self,
+                flash_message="Your form could not be submitted because the security token was invalid or missing. Please reload the page and try again.",
+            )
         else:
             self.csrf_token.data = submitted_token
 
@@ -476,7 +479,8 @@ class HTMXForm(ABC):
     def invalid_response_handler(self, request: Request, exc: exc.FormValidationException) -> Response:
         """Re-render the form with errors. 202 means the POST was accepted but did not advance."""
         self.prepare()
-        return self.make_response(status_code=exc.status_code)
+        flash = responses.flash(exc.flash_message, "error") if exc.flash_message else None
+        return self.make_response(status_code=exc.status_code, flash=flash)
 
     def render_general_errors(self) -> str:
         """Render general (non-field-specific) errors for this form."""

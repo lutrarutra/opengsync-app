@@ -65,7 +65,7 @@ class MuxPrepWorkflow(HTMXWorkflow):
             r: redis.RedisClient = Depends(dependencies.redis),
         ) -> "MuxPrepWorkflow":
             if session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
-                raise exc.ItemNotFoundException("Lab prep not found.")
+                raise exc.NotFoundException("Lab prep not found.")
             if C.MUXType.get(mux_type_id) is None:
                 raise exc.BadRequestException("Invalid multiplexing type.")
             if not current_user.is_insider:

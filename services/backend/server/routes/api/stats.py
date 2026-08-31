@@ -29,13 +29,13 @@ def set_library_lane_reads(
         options=[orm.selectinload(models.Experiment.libraries).selectinload(models.Library.read_qualities)],
     )
     if experiment is None:
-        raise exc.ItemNotFoundException(f"Experiment with name '{body.experiment_name}' not found.")
+        raise exc.NotFoundException(f"Experiment with name '{body.experiment_name}' not found.")
 
     library = None
     if body.library_id is not None:
         library = session.first(Q.library.select(id=body.library_id, experiment_id=experiment.id))
         if library is None:
-            raise exc.ItemNotFoundException(
+            raise exc.NotFoundException(
                 f"Library with id '{body.library_id}' not found in experiment '{body.experiment_name}'."
             )
 

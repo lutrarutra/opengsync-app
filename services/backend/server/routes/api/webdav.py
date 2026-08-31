@@ -35,7 +35,7 @@ def share(
         return Response(status_code=404)
 
     if (share_token := session.first(Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths)))) is None:
-        raise exc.ItemNotFoundException("Invalid Token")
+        raise exc.NotFoundException("Invalid Token")
 
     if share_token.is_expired:
         raise exc.NoPermissionsException("Token expired")
@@ -52,7 +52,7 @@ def share(
         return response
     elif request.method == "HEAD":
         if (path := browser.get_file(current_path)) is None:
-            raise exc.ItemNotFoundException(f"File not found: {current_path}")
+            raise exc.NotFoundException(f"File not found: {current_path}")
         if not path.is_file():
             raise exc.MethodNotAllowedException("Cannot HEAD a collection")
 
@@ -88,7 +88,7 @@ def share(
         return Response(content=xml, status_code=207, media_type="application/xml; charset=utf-8")
     elif request.method == "GET":
         if (path := browser.get_file(current_path)) is None:
-            raise exc.ItemNotFoundException(f"File not found: {current_path}")
+            raise exc.NotFoundException(f"File not found: {current_path}")
 
         if not path.is_file():
             raise exc.BadRequestException("Subpath must be a file")

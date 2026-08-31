@@ -30,7 +30,7 @@ class SelectExperimentPoolsAction(HTMXForm):
             _=Depends(dependencies.require_insider),
         ) -> "SelectExperimentPoolsAction":
             if (experiment := session.first(Q.experiment.select(id=experiment_id))) is None:
-                raise exc.ItemNotFoundException()
+                raise exc.NotFoundException()
             return cls(experiment=experiment)
         return dependency
 

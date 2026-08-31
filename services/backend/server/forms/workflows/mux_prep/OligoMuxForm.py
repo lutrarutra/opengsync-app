@@ -206,7 +206,7 @@ class OligoMuxForm(MuxPrepWorkflowStep):
                 link = session.first(Q.links.get_sample_library_link(sample_id=sample_id, library_id=library_id))
                 if link is None:
                     logger.error(f"Could not find link for sample {sample_id} and library {library_id}")
-                    raise exc.ItemNotFoundException("Sample-library link not found.")
+                    raise exc.NotFoundException("Sample-library link not found.")
 
                 mux = dict(link.mux) if link.mux else {}
                 mux["barcode"] = row["mux_barcode"] if pd.notna(row["mux_barcode"]) else None

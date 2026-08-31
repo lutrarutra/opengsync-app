@@ -65,9 +65,9 @@ class RelibWorkflow(HTMXWorkflow):
             r: redis.RedisClient = Depends(dependencies.redis),
         ) -> "RelibWorkflow":
             if seq_request_id is not None and session.first(Q.seq_request.select(id=seq_request_id)) is None:
-                raise exc.ItemNotFoundException("Seq request not found.")
+                raise exc.NotFoundException("Seq request not found.")
             if lab_prep_id is not None and session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
-                raise exc.ItemNotFoundException("Lab prep not found.")
+                raise exc.NotFoundException("Lab prep not found.")
             return cls(
                 step=step,
                 seq_request_id=seq_request_id,

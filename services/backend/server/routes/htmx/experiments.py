@@ -101,7 +101,7 @@ def search_experiments(
     experiments, _ = session.page(stmt, page=page)
     return responses.htmx_response(template="components/search/experiment.html", experiments=experiments)
 
-@router.get("/{experiment_id}/delete")
+@router.delete("/{experiment_id}/delete")
 def delete_experiment(
     experiment_id: int,
     session: SyncSession = Depends(dependencies.db_session),
@@ -140,7 +140,7 @@ def experiment_overview(
     session: SyncSession = Depends(dependencies.db_session),
 ):
     if not session.exists(Q.experiment.select(id=experiment_id)):
-        raise exc.ItemNotFoundException(f"Experiment with ID {experiment_id} not found.")
+        raise exc.NotFoundException(f"Experiment with ID {experiment_id} not found.")
     
     LINK_WIDTH_UNIT = 1
     df = session.pd.get_experiment_libraries(experiment_id=experiment_id, include_indices=False, include_seq_request=True, collapse_lanes=False)
@@ -346,7 +346,7 @@ def render_experiment_sample_pooling_table(
     file = session.get_one(Q.media_file.select(id=file_id, experiment_id=experiment.id))
 
     if not os.path.exists(filepath := os.path.join("/media", file.path)):
-        raise exc.ItemNotFoundException()
+        raise exc.NotFoundException()
 
     df = pd.read_csv(filepath, sep="\t")
 

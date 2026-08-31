@@ -114,7 +114,7 @@ class SharedFileBrowser:
         full_path = self.root_dir / subpath
 
         if not full_path.exists():
-            raise exc.ItemNotFoundException(f"File or directory not found: {subpath}")
+            raise exc.NotFoundException(f"File or directory not found: {subpath}")
 
         resources: list[DAVResponse] = []
 

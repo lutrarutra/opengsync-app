@@ -69,7 +69,7 @@ def resolve_share_path(path: str, path_type: C.DataPathType) -> tuple[str, C.Dat
 
     share_root = Path(config.settings.app_config.share_root)
     if not (p := share_root / share_path).exists():
-        raise exc.ItemNotFoundException(
+        raise exc.NotFoundException(
             f"Share path '{share_path}' ({path} -> {p.as_posix()}) does not exist on server."
         )
 
@@ -192,22 +192,22 @@ def add_data_path(
 
     if body.project_id is not None:
         if (project := session.first(Q.project.select(id=body.project_id))) is None:
-            raise exc.ItemNotFoundException(f"Project with ID '{body.project_id}' not found.")
+            raise exc.NotFoundException(f"Project with ID '{body.project_id}' not found.")
         _attach_data_path(session, share_path, path_type, project=project)
 
     if body.seq_request_id is not None:
         if (seq_request := session.first(Q.seq_request.select(id=body.seq_request_id))) is None:
-            raise exc.ItemNotFoundException(f"Seq Request with ID '{body.seq_request_id}' not found.")
+            raise exc.NotFoundException(f"Seq Request with ID '{body.seq_request_id}' not found.")
         _attach_data_path(session, share_path, path_type, seq_request=seq_request)
 
     if body.experiment_id is not None:
         if (experiment := session.first(Q.experiment.select(id=body.experiment_id))) is None:
-            raise exc.ItemNotFoundException(f"Experiment with ID '{body.experiment_id}' not found.")
+            raise exc.NotFoundException(f"Experiment with ID '{body.experiment_id}' not found.")
         _attach_data_path(session, share_path, path_type, experiment=experiment)
 
     if body.library_id is not None:
         if (library := session.first(Q.library.select(id=body.library_id))) is None:
-            raise exc.ItemNotFoundException(f"Library with ID '{body.library_id}' not found.")
+            raise exc.NotFoundException(f"Library with ID '{body.library_id}' not found.")
         _attach_data_path(session, share_path, path_type, library=library)
 
     return {"result": "success", "share_path": share_path, "path": body.path, "type": path_type.name}
@@ -224,7 +224,7 @@ def remove_data_paths(
             Q.project.select(id=body.project_id),
             options=[orm.selectinload(models.Project.data_paths)],
         )) is None:
-            raise exc.ItemNotFoundException(f"Project with ID '{body.project_id}' not found.")
+            raise exc.NotFoundException(f"Project with ID '{body.project_id}' not found.")
         paths.extend(_collect_deleted_paths(session, project.data_paths))
 
     if body.seq_request_id is not None:
@@ -232,7 +232,7 @@ def remove_data_paths(
             Q.seq_request.select(id=body.seq_request_id),
             options=[orm.selectinload(models.SeqRequest.data_paths)],
         )) is None:
-            raise exc.ItemNotFoundException(f"Seq Request with ID '{body.seq_request_id}' not found.")
+            raise exc.NotFoundException(f"Seq Request with ID '{body.seq_request_id}' not found.")
         paths.extend(_collect_deleted_paths(session, seq_request.data_paths))
 
     if body.experiment_id is not None:
@@ -240,7 +240,7 @@ def remove_data_paths(
             Q.experiment.select(id=body.experiment_id),
             options=[orm.selectinload(models.Experiment.data_paths)],
         )) is None:
-            raise exc.ItemNotFoundException(f"Experiment with ID '{body.experiment_id}' not found.")
+            raise exc.NotFoundException(f"Experiment with ID '{body.experiment_id}' not found.")
         paths.extend(_collect_deleted_paths(session, experiment.data_paths))
 
     if body.library_id is not None:
@@ -248,7 +248,7 @@ def remove_data_paths(
             Q.library.select(id=body.library_id),
             options=[orm.selectinload(models.Library.data_paths)],
         )) is None:
-            raise exc.ItemNotFoundException(f"Library with ID '{body.library_id}' not found.")
+            raise exc.NotFoundException(f"Library with ID '{body.library_id}' not found.")
         paths.extend(_collect_deleted_paths(session, library.data_paths))
 
     return {"result": "success", "paths": paths}
@@ -271,7 +271,7 @@ def release_project_data(
         ],
     )
     if project is None:
-        raise exc.ItemNotFoundException(f"Project with ID '{body.project_id}' not found.")
+        raise exc.NotFoundException(f"Project with ID '{body.project_id}' not found.")
 
     if project.identifier is None:
         raise exc.BadRequestException("Project must have an identifier to release data.")
@@ -367,7 +367,7 @@ def _subpath(subpath: str) -> Path:
 
 def _load_share_token(session: SyncSession, token: str) -> models.ShareToken:
     if (share_token := session.first(Q.share_token.select(uuid=token).options(orm.selectinload(models.ShareToken.paths)))) is None:
-        raise exc.ItemNotFoundException("Token Not Found")
+        raise exc.NotFoundException("Token Not Found")
     if share_token.is_expired:
         raise exc.NoPermissionsException("Token expired")
     return share_token

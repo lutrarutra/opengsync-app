@@ -83,7 +83,7 @@ class TODOCommentForm(HTMXForm):
             )
             todo_comment = result.scalar_one_or_none()
             if todo_comment is None:
-                raise exc.ItemNotFoundException("TODO Comment not found")
+                raise exc.NotFoundException("TODO Comment not found")
 
         form = TODOCommentForm(
             request,

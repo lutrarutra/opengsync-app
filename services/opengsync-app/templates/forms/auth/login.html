@@ -2,8 +2,8 @@
 <form id="login-form">
     {{ form.csrf_token.render() }}
     <div style="display: flex; width: 100%; justify-content: center; align-items: center; flex-direction: column;">
-        {{ form.email.render("col-12") }}
-        {{ form.password.render("col-12") }}
+        {{ form.email.render("col-6") }}
+        {{ form.password.render("col-6") }}
         <div class="col-6" style="display: flex; flex-direction: row; justify-content: flex-end; padding: 0 5px;">
             <button class="btn btn-success"
             hx-include="#login-form" hx-target="#login-form" hx-swap="outerHTML"

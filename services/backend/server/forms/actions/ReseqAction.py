@@ -54,7 +54,7 @@ class ReseqAction(HTMXForm):
             elif lab_prep_id is not None:
                 lab_prep = session.get_one(Q.lab_prep.select(id=lab_prep_id))
                 if not lab_prep:
-                    raise exc.ItemNotFoundException()
+                    raise exc.NotFoundException()
             else:
                 raise exc.OpeNGSyncServerException("Either seq_request_id or lab_prep_id must be provided.")
 

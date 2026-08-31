@@ -88,7 +88,10 @@ class DefineMultiplexedSamplesForm(LibraryAnnotationWorkflowStep):
                     elif form.service_type == C.ServiceType.TENX_SC_FLEX_V2:
                         df.at[idx, "pool"] = f"flex_pool_{i // 384 + 1}"  # type: ignore
                     else:
-                        df.at[idx, "pool"] = f"hto_pool_{i + 1}"  # type: ignore
+                        df.at[idx, "pool"] = f"mux_pool_{i + 1}"  # type: ignore
+
+            if len(df["pool"].unique()) == 1:
+                df["pool"] = df["pool"].iloc[0].str.split("_").str[:-1].str.join("_")
 
             duplicate_definition = df.duplicated(subset=["sample_name", "pool"], keep=False)
 

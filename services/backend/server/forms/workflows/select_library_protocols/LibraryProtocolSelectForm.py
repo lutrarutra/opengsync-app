@@ -110,7 +110,7 @@ class LibraryProtocolSelectForm(SelectLibraryProtocolsWorkflowStep):
             for _, row in parsing.safe_iter(df, LibraryProtocolRow):
                 library = session.first(Q.library.select(id=row.library_id))
                 if library is None:
-                    raise exc.ItemNotFoundException(f"Library {row.library_id} not found.")
+                    raise exc.NotFoundException(f"Library {row.library_id} not found.")
                 if library.lab_prep_id != form.workflow.lab_prep_id:
                     raise exc.BadRequestException("Library is not part of this lab prep.")
                 library.protocol_id = row.protocol_id

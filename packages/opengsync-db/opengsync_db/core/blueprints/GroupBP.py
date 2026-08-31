@@ -202,7 +202,7 @@ class GroupBP(DBBlueprint):
     def add_user(self, user_id: int, group_id: int, affiliation_type: AffiliationType) -> models.Group:
 
         if (group := self.db.session.get(models.Group, group_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Group with id {group_id} not found")
+            raise exceptions.NotFoundException(f"Group with id {group_id} not found")
         
         if self.db.session.query(models.links.UserAffiliation).where(
             models.links.UserAffiliation.user_id == user_id,
@@ -222,13 +222,13 @@ class GroupBP(DBBlueprint):
     @DBBlueprint.transaction
     def change_user_affiliation(self, user_id: int, group_id: int, new_affiliation_type: AffiliationType) -> models.Group:
         if (group := self.db.session.get(models.Group, group_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Group with id {group_id} not found")
+            raise exceptions.NotFoundException(f"Group with id {group_id} not found")
         
         if (affiliation := self.db.session.query(models.links.UserAffiliation).where(
             models.links.UserAffiliation.user_id == user_id,
             models.links.UserAffiliation.group_id == group_id
         ).first()) is None:
-            raise exceptions.ModelNotFoundException(f"User {user_id} is not in group {group_id}")
+            raise exceptions.NotFoundException(f"User {user_id} is not in group {group_id}")
 
         affiliation.affiliation_type = new_affiliation_type
         self.db.session.add(affiliation)
@@ -238,13 +238,13 @@ class GroupBP(DBBlueprint):
     @DBBlueprint.transaction
     def remove_user(self, user_id: int, group_id: int) -> models.Group:
         if (group := self.db.session.get(models.Group, group_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Group with id {group_id} not found")
+            raise exceptions.NotFoundException(f"Group with id {group_id} not found")
         
         if (affiliation := self.db.session.query(models.links.UserAffiliation).where(
             models.links.UserAffiliation.user_id == user_id,
             models.links.UserAffiliation.group_id == group_id
         ).first()) is None:
-            raise exceptions.ModelNotFoundException(f"User {user_id} is not in group {group_id}")
+            raise exceptions.NotFoundException(f"User {user_id} is not in group {group_id}")
 
         group.user_links.remove(affiliation)
         self.db.session.delete(affiliation)
@@ -255,5 +255,5 @@ class GroupBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, group_id: int) -> models.Group:
         if (group := self.db.session.get(models.Group, group_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Group with id {group_id} does not exist")
+            raise exceptions.NotFoundException(f"Group with id {group_id} does not exist")
         return group

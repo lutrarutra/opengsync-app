@@ -2,7 +2,7 @@ import sqlalchemy as sa
 from sqlalchemy import sql
 
 from ..models import Pool, Contact, Library, User, SeqRequest, links
-from ..categories import PoolStatus, PoolType, LibraryType, AccessLevel, UserRole, SeqRequestStatus
+from ..categories import PoolStatus, PoolType, LibraryType, AccessLevel, SeqRequestStatus
 from ..core import utils
 
 
@@ -46,9 +46,6 @@ def access_level(user_id: int) -> sql.ColumnElement[AccessLevel]:
     is_insider = sa.select(1).where(User.id == user_id, User.is_insider)
 
     # TODO: This is not entirely correct, as it doesn't account for users having access to the pool through their projects
-    # has_write_access = sa.select(1).where(
-    #     U
-    # )
 
     has_write_access = sa.and_(
         sa.select(1).where(
@@ -107,7 +104,6 @@ def search(
 
     if not filter_conditions:
         return statement
-        relevance = relevance + component
 
     statement = statement.where(sa.or_(*filter_conditions))
 

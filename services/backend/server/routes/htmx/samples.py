@@ -115,8 +115,7 @@ def render_sample_table(
 
 @router.get("/sample-attribute-spreadsheet")
 def render_sample_attribute_spreadsheet(
-    project_id: int | None = Query(None, description="Optional project ID to filter samples"),
-    seq_request_id: int | None = Query(None, description="Optional seq request ID to filter samples"),
+    seq_request_id: int = Query(..., description="Optional seq request ID to filter samples"),
     current_user: models.User = Depends(dependencies.require_user),
     session: SyncSession = Depends(dependencies.db_session),
 ):
@@ -125,12 +124,8 @@ def render_sample_attribute_spreadsheet(
         if session.get_access_level(Q.seq_request.permissions(seq_request_id, current_user.id)) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to view this resource.")
         df = session.pd.get_seq_request_sample_table(seq_request_id=seq_request_id)
-    elif project_id is not None:
-        if session.get_access_level(Q.project.permissions(project_id, current_user.id)) < C.AccessLevel.READ:
-            raise exc.NoPermissionsException("You do not have permission to view this resource.")
-        raise NotImplementedError("Rendering sample attribute spreadsheet for a project is not yet implemented.")
     else:
-        raise exc.BadRequestException("Either project_id or seq_request_id must be provided.")
+        raise exc.BadRequestException("seq_request_id must be provided.")
 
     df["project"] = df["project_identifier"]
     df.loc[df["project"].isna(), "project"] = df.loc[df["project"].isna(), "project_title"]

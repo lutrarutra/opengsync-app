@@ -59,7 +59,7 @@ class LaneQCWorkflow(HTMXWorkflow):
             r: redis.RedisClient = Depends(dependencies.redis),
         ) -> "LaneQCWorkflow":
             if session.first(Q.experiment.select(id=experiment_id)) is None:
-                raise exc.ItemNotFoundException("Experiment not found.")
+                raise exc.NotFoundException("Experiment not found.")
             if not current_user.is_insider:
                 raise exc.NoPermissionsException()
             return cls(step=step, experiment_id=experiment_id, r=r, uuid=uuid)

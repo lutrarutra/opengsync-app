@@ -151,5 +151,5 @@ class PoolDesignBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.PoolDesign:
         if (pool_design := self.get(id)) is None:
-            raise exceptions.ModelNotFoundException(f"PoolDesign with ID {id} does not exist")
+            raise exceptions.NotFoundException(f"PoolDesign with ID {id} does not exist")
         return pool_design

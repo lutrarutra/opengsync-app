@@ -142,7 +142,7 @@ class MergePoolsForm(MergePoolsWorkflowStep):
             if form.contact.data is not None:
                 contact_obj = session.first(Q.user.select(id=form.contact.data))
                 if contact_obj is None:
-                    raise exc.ItemNotFoundException("Contact not found")
+                    raise exc.NotFoundException("Contact not found")
 
             pool = session.save(Q.pool.create(
                 name=form.name.data,

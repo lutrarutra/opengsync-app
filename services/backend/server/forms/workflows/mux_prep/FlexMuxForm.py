@@ -61,7 +61,7 @@ class FlexMuxForm(MuxPrepWorkflowStep):
                 logger.error(
                     f"SampleLibraryLink not found for sample_id={key.sample_id}, library_id={key.library_id}."
                 )
-                raise exc.ItemNotFoundException(
+                raise exc.NotFoundException(
                     f"SampleLibraryLink not found for sample_id={key.sample_id}, library_id={key.library_id}."
                 )
             mux = dict(link.mux) if link.mux else {}

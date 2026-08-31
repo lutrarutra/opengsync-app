@@ -104,7 +104,7 @@ class SequencerBP(DBBlueprint):
     def delete(self, sequencer_id: int, flush: bool = True):
         sequencer = self.db.session.get(models.Sequencer, sequencer_id)
         if not sequencer:
-            raise exceptions.ModelNotFoundException(f"Sequencer with id {sequencer_id} does not exist")
+            raise exceptions.NotFoundException(f"Sequencer with id {sequencer_id} does not exist")
         
         if self.db.session.query(models.Experiment).where(
             models.Experiment.sequencer_id == sequencer_id
@@ -136,7 +136,7 @@ class SequencerBP(DBBlueprint):
     def __getitem__(self, sequencer_id: int) -> models.Sequencer:
         sequencer = self.db.session.get(models.Sequencer, sequencer_id)
         if not sequencer:
-            raise exceptions.ModelNotFoundException(f"Sequencer with id {sequencer_id} does not exist")
+            raise exceptions.NotFoundException(f"Sequencer with id {sequencer_id} does not exist")
         return sequencer
 
         

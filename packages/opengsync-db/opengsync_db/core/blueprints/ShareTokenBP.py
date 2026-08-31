@@ -109,5 +109,5 @@ class ShareTokenBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, uuid: str) -> models.ShareToken:
         if (token := self.get(uuid)) is None:
-            raise exceptions.ModelNotFoundException(f"ShareToken with ID/UUID '{uuid}' not found.")
+            raise exceptions.NotFoundException(f"ShareToken with ID/UUID '{uuid}' not found.")
         return token

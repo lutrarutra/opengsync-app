@@ -8,7 +8,7 @@ from sqlalchemy import sql
 from sqlalchemy.orm import Session as SQLAlchemySession
 
 from . import utils
-from .exceptions import ModelNotFoundException
+from .exceptions import NotFoundException
 
 if TYPE_CHECKING:
     from .blueprints.SyncPandasBP import SyncPandas
@@ -81,7 +81,7 @@ class SyncSession(SQLAlchemySession):
         if (obj := result.scalar_one_or_none()) is None:
             entity = statement.column_descriptions[0].get("entity")
             model_name = entity.__name__ if entity else "Item"
-            raise ModelNotFoundException(f"{model_name} not found")
+            raise NotFoundException(f"{model_name} not found")
         return obj
     
     def get_access_level(self, statement: sa.Select[tuple[utils.ScalarType]]) -> utils.ScalarType:
@@ -90,7 +90,7 @@ class SyncSession(SQLAlchemySession):
         if (obj := result.scalar_one_or_none()) is None:
             entity = statement.column_descriptions[0].get("entity")
             model_name = entity.__name__ if entity else "Item"
-            raise ModelNotFoundException(f"{model_name} not found")
+            raise NotFoundException(f"{model_name} not found")
         return obj
 
     def count(self, statement: sa.Select[tuple[utils.SAModelType]]) -> int:

@@ -60,7 +60,7 @@ class ShareProjectDataWorkflow(HTMXWorkflow):
         ) -> "ShareProjectDataWorkflow":
             project = session.first(Q.project.select(id=project_id))
             if project is None:
-                raise exc.ItemNotFoundException("Project not found.")
+                raise exc.NotFoundException("Project not found.")
 
             access_level = session.get_access_level(Q.project.permissions(project.id, user.id))
             if access_level < C.AccessLevel.WRITE:

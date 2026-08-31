@@ -2,7 +2,7 @@ import pandas as pd
 from fastapi import Depends, Response
 from sqlalchemy import orm
 
-from opengsync_db import models, queries as Q
+from opengsync_db import models, queries as Q, SyncSession
 
 from ....core import exceptions as exc, dependencies
 from ....utils import parsing
@@ -83,6 +83,7 @@ class PoolMappingForm(LibraryAnnotationWorkflowStep):
     def Submit(cls) -> RouteFunc:
         def route(
             current_user: models.User = Depends(dependencies.require_user),
+            session: SyncSession = Depends(dependencies.db_session),
             form: PoolMappingForm = Depends(PoolMappingForm.Validate()),
         ) -> Response:
             # Build pool table from validated entries
@@ -102,8 +103,9 @@ class PoolMappingForm(LibraryAnnotationWorkflowStep):
                 pool_table_data["pool_id"].append(pool_id)
                 pool_table_data["num_m_reads_requested"].append(num_m_reads_requested)
 
-            # Collect user's existing pool names for duplicate check
-            existing_pool_names = {pool.name for pool in current_user.pools}
+            existing_pool_names = {
+                pool.name for pool in session.get_all(Q.pool.select(user_id=current_user.id), limit=None)
+            }
             submitted_names: set[str] = set()
 
             for entry in form.pool_forms:

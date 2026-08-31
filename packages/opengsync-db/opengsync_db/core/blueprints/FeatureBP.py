@@ -96,7 +96,7 @@ class FeatureBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, feature_id: int, flush: bool = True):
         if (feature := self.db.session.get(models.Feature, feature_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Feature with id {feature_id} does not exist")
+            raise exceptions.NotFoundException(f"Feature with id {feature_id} does not exist")
         
         self.db.session.delete(feature)
 
@@ -135,5 +135,5 @@ class FeatureBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.Feature:
         if (feature := self.db.session.get(models.Feature, id)) is None:
-            raise exceptions.ModelNotFoundException(f"Feature with id {id} does not exist")
+            raise exceptions.NotFoundException(f"Feature with id {id} does not exist")
         return feature

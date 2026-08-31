@@ -38,7 +38,7 @@ class SamplePoolingAction(HTMXForm):
             session: SyncSession = Depends(dependencies.db_session),
         ) -> "SamplePoolingAction":
             if (lab_prep := session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
-                raise exc.ItemNotFoundException()
+                raise exc.NotFoundException()
 
             form = cls(lab_prep_id=lab_prep_id)
 
@@ -71,7 +71,7 @@ class SamplePoolingAction(HTMXForm):
         ) -> Response:
             lab_prep = session.get_one(Q.lab_prep.select(id=form.lab_prep_id))
             if lab_prep is None:
-                raise exc.ItemNotFoundException()
+                raise exc.NotFoundException()
 
             df = form.spreadsheet.data
             assert df is not None
@@ -86,7 +86,7 @@ class SamplePoolingAction(HTMXForm):
             for library_id in sample_table["library_id"].unique():
                 if (library := session.first(Q.library.select(id=int(library_id)))) is None:
                     logger.error(f"Library {library_id} not found.")
-                    raise exc.ItemNotFoundException(f"Library {library_id} not found.")
+                    raise exc.NotFoundException(f"Library {library_id} not found.")
 
                 old_libraries[library.id] = library
                 library.sample_links.clear()

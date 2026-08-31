@@ -84,10 +84,10 @@ class ActionsBP(DBBlueprint):
     @DBBlueprint.transaction
     def unlink_pool_experiment(self, experiment_id: int, pool_id: int, flush: bool = True):
         if (experiment := self.db.session.get(models.Experiment, experiment_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Experiment with id {experiment_id} does not exist")
+            raise exceptions.NotFoundException(f"Experiment with id {experiment_id} does not exist")
 
         if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Pool with id {pool_id} does not exist")
+            raise exceptions.NotFoundException(f"Pool with id {pool_id} does not exist")
         if pool.experiment_id != experiment_id:
             raise exceptions.LinkDoesNotExist(f"Pool with id {pool_id} is not linked to experiment with id {experiment_id}")
         
@@ -127,7 +127,7 @@ class ActionsBP(DBBlueprint):
     ) -> models.Library:
 
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
+            raise exceptions.NotFoundException(f"Library with id {library_id} does not exist")
 
         cloned_library = Q.library.create(
             name=library.name,
@@ -185,15 +185,15 @@ class ActionsBP(DBBlueprint):
     ) -> models.Library:
 
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
+            raise exceptions.NotFoundException(f"Library with id {library_id} does not exist")
         
         if index_kit_i7_id is not None:
             if self.db.session.get(models.IndexKit, index_kit_i7_id) is None:
-                raise exceptions.ModelNotFoundException(f"Index kit with id {index_kit_i7_id} does not exist")
+                raise exceptions.NotFoundException(f"Index kit with id {index_kit_i7_id} does not exist")
             
         if index_kit_i5_id is not None:
             if self.db.session.get(models.IndexKit, index_kit_i5_id) is None:
-                raise exceptions.ModelNotFoundException(f"Index kit with id {index_kit_i5_id} does not exist")
+                raise exceptions.NotFoundException(f"Index kit with id {index_kit_i5_id} does not exist")
 
         library.indices.append(models.LibraryIndex(
             library_id=library_id,
@@ -216,10 +216,10 @@ class ActionsBP(DBBlueprint):
     @DBBlueprint.transaction
     def link_feature_library(self, feature_id: int, library_id: int):
         if (feature := self.db.session.get(models.Feature, feature_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Feature with id {feature_id} does not exist")
+            raise exceptions.NotFoundException(f"Feature with id {feature_id} does not exist")
         
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
+            raise exceptions.NotFoundException(f"Library with id {library_id} does not exist")
         
         if self.db.session.query(models.links.LibraryFeatureLink).where(
             models.links.LibraryFeatureLink.feature_id == feature_id,
@@ -295,7 +295,7 @@ class ActionsBP(DBBlueprint):
     def clone_pool(self, pool_id: int, status: PoolStatus, seq_request_id: int | None = None) -> models.Pool:
 
         if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Pool with id {pool_id} does not exist")
+            raise exceptions.NotFoundException(f"Pool with id {pool_id} does not exist")
 
         cloned_pool = Q.pool.create(
             name=pool.name,
@@ -326,7 +326,7 @@ class ActionsBP(DBBlueprint):
             raise exceptions.InvalidOperation("Cannot merge a pool into itself")
 
         if (merged_pool := self.db.session.get(models.Pool, merged_pool_id)) is None:
-            raise exceptions.ModelNotFoundException(f"New Pool with id {merged_pool} does not exist")
+            raise exceptions.NotFoundException(f"New Pool with id {merged_pool} does not exist")
 
         from sqlalchemy import orm
         pools = self.db.session.query(models.Pool).filter(
@@ -334,7 +334,7 @@ class ActionsBP(DBBlueprint):
         ).options(orm.joinedload(models.Pool.libraries)).all()
 
         if len(pool_ids) != len(pools):
-            raise exceptions.ModelNotFoundException("One or more pools to merge do not exist")
+            raise exceptions.NotFoundException("One or more pools to merge do not exist")
 
         for pool in pools:
             for library in pool.libraries:
@@ -356,10 +356,10 @@ class ActionsBP(DBBlueprint):
         self, lab_prep_id: int, library_id: int, flush: bool = True
     ) -> models.LabPrep:
         if (lab_prep := self.db.session.get(models.LabPrep, lab_prep_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
+            raise exceptions.NotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
         
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Library with id '{library_id}', not found.")
+            raise exceptions.NotFoundException(f"Library with id '{library_id}', not found.")
         
         if library.status == LibraryStatus.PREPARING:
             library.status = LibraryStatus.ACCEPTED

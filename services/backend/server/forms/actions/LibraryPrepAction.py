@@ -38,7 +38,7 @@ class LibraryPrepAction(HTMXForm):
             _ = Depends(dependencies.require_insider),
         ) -> "LibraryPrepAction":
             if (lab_prep := session.first(Q.lab_prep.select(id=lab_prep_id))) is None:
-                raise exc.ItemNotFoundException()
+                raise exc.NotFoundException()
 
             library_type_filter: list[C.LibraryType] | None = None
             if lab_prep.checklist_type == LabChecklistType.CUSTOM:
@@ -69,7 +69,7 @@ class LibraryPrepAction(HTMXForm):
         ) -> Response:
             lab_prep = session.get_one(Q.lab_prep.select(id=form.lab_prep_id))
             if lab_prep is None:
-                raise exc.ItemNotFoundException()
+                raise exc.NotFoundException()
 
             for library in form.selected_library_ids.get_selected_libraries(session=session):
                 lab_prep.libraries.append(library)

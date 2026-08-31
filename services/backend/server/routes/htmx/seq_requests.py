@@ -87,7 +87,7 @@ def render_seq_request_table(
     order_by: utils.OrderBy | None = Depends(
         dependencies.parse_order_by(
             model=models.SeqRequest,
-            default=models.SeqRequest.timestamp_submitted_utc.desc(),
+            default=models.SeqRequest.id.desc(),
         )
     ),
     session: SyncSession = Depends(dependencies.db_session),
@@ -810,7 +810,7 @@ def remove_seq_request_share_email(
         )
     )
     if share_email_link is None:
-        raise exc.ItemNotFoundException()
+        raise exc.NotFoundException()
 
     session.delete(share_email_link)
 

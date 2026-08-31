@@ -55,7 +55,7 @@ class ExperimentBP(DBBlueprint):
     ) -> models.Experiment:
 
         if self.db.session.get(models.Sequencer, sequencer_id) is None:
-            raise exceptions.ModelNotFoundException(f"Sequencer with id {sequencer_id} does not exist")
+            raise exceptions.NotFoundException(f"Sequencer with id {sequencer_id} does not exist")
 
         experiment = models.Experiment(
             name=name.strip(),
@@ -173,7 +173,7 @@ class ExperimentBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, experiment_id: int, flush: bool = True):
         if (experiment := self.db.session.get(models.Experiment, experiment_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Experiment with id {experiment_id} does not exist")
+            raise exceptions.NotFoundException(f"Experiment with id {experiment_id} does not exist")
 
         self.db.session.delete(experiment)
 
@@ -185,7 +185,7 @@ class ExperimentBP(DBBlueprint):
         if (prev_workflow_id := self.db.session.query(models.Experiment.workflow_id).where(
             models.Experiment.id == experiment.id,
         ).first()) is None:
-            raise exceptions.ModelNotFoundException(f"Experiment with id {experiment.id} does not exist")
+            raise exceptions.NotFoundException(f"Experiment with id {experiment.id} does not exist")
         
         prev_workflow = ExperimentWorkFlow.get(prev_workflow_id[0])
 
@@ -283,7 +283,7 @@ class ExperimentBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, key: int | str) -> models.Experiment:
         if (experiment := self.get(key)) is None:
-            raise exceptions.ModelNotFoundException(f"Experiment with name '{key}' does not exist")
+            raise exceptions.NotFoundException(f"Experiment with name '{key}' does not exist")
         return experiment
 
     @DBBlueprint.transaction

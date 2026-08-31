@@ -458,7 +458,7 @@ def lab_prep_mux_prep(
     from ...forms.workflows.mux_prep import MuxPrepWorkflow, OligoMuxForm, FlexMuxForm, OCMMuxForm
 
     if session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
-        raise exc.ItemNotFoundException("Lab prep not found.")
+        raise exc.NotFoundException("Lab prep not found.")
     if C.MUXType.get(mux_type_id) is None:
         raise exc.BadRequestException("Invalid multiplexing type.")
 

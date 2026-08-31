@@ -1,16 +1,13 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends, exceptions as fastapi_exc
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from loguru import logger
 
 from opengsync_db import exceptions as db_exc, models
 
-from sqlalchemy.exc import MissingGreenlet
-
-from .core import lifespan, config, middleware, handlers, dependencies, exceptions as exc, context, responses
+from .core import lifespan, config, middleware, dependencies, exceptions as exc, context, responses
 from . import routes
 
 
@@ -23,17 +20,16 @@ app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.state_initialization_
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.audit_middleware)  # type: ignore
 app.add_middleware(context.ContextMiddleware)
 
-app.exception_handler(Exception)(handlers.default_exception_handler)
-app.exception_handler(ResponseValidationError)(handlers.response_validation_exception_handler)
-app.exception_handler(ValidationError)(handlers.pydantic_validation_exception_handler)
-app.exception_handler(HTTPException)(handlers.http_exception_handler)
-app.exception_handler(RequestValidationError)(handlers.validation_exception_handler)
-app.exception_handler(exc.UserNotAuthenticatedException)(handlers.UserNotAuthenticatedException_handler)
-app.exception_handler(exc.FormValidationException)(handlers.form_validation_exception_handler)
-app.exception_handler(db_exc.ModelNotFoundException)(handlers.db_model_not_found_handler)
-app.exception_handler(MissingGreenlet)(handlers.missing_greenlet_handler)
-app.exception_handler(exc.UserAccountSuspendedException)(exc.UserAccountSuspendedException.Handler)
+app.exception_handler(Exception)(exc.OpeNGSyncServerException.Handler)
+app.exception_handler(fastapi_exc.RequestValidationError)(exc.request_validation_exception_handler)
+app.exception_handler(HTTPException)(exc.OpeNGSyncServerException.Handler)
 
+app.exception_handler(exc.UserNotAuthenticatedException)(exc.UserNotAuthenticatedException.Handler)
+app.exception_handler(exc.FormValidationException)(exc.FormValidationException.Handler)
+app.exception_handler(exc.UserAccountSuspendedException)(exc.UserAccountSuspendedException.Handler)
+app.exception_handler(exc.NoPermissionsException)(exc.NoPermissionsException.Handler)
+app.exception_handler(db_exc.NotFoundException)(exc.NotFoundException.Handler)
+app.exception_handler(exc.NotFoundException)(exc.NotFoundException.Handler)
 
 class ErrorResponse(BaseModel):
     detail: str

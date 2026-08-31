@@ -110,5 +110,5 @@ class APITokenBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, key: int | str) -> models.APIToken:
         if (token := self.get(key)) is None:
-            raise exceptions.ModelNotFoundException(f"API Token with ID/UUID '{key}' not found.")
+            raise exceptions.NotFoundException(f"API Token with ID/UUID '{key}' not found.")
         return token

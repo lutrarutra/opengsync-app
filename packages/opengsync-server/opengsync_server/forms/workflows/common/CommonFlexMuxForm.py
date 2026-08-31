@@ -142,7 +142,7 @@ class CommonFlexMuxForm(MultiStepForm):
                 ))
             ) is None:
                 logger.error(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
-                raise exceptions.ModelNotFoundException(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
+                raise exceptions.NotFoundException(f"SampleLibraryLink not found for sample_id={sample_id}, library_id={library_id}.")
             
             if link.mux is None:
                 link.mux = {}

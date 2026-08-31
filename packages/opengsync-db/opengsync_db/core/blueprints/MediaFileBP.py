@@ -25,17 +25,17 @@ class MediaFileBP(DBBlueprint):
             if lab_prep_id is not None:
                 raise Exception("Cannot have both seq_request_id and lab_prep_id.")
             if self.db.session.get(models.SeqRequest, seq_request_id) is None:
-                raise exceptions.ModelNotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
+                raise exceptions.NotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
             
         elif experiment_id is not None:
             if lab_prep_id is not None:
                 raise Exception("Cannot have both experiment_id and lab_prep_id.")
             if self.db.session.get(models.Experiment, experiment_id) is None:
-                raise exceptions.ModelNotFoundException(f"Experiment with id '{experiment_id}', not found.")
+                raise exceptions.NotFoundException(f"Experiment with id '{experiment_id}', not found.")
             
         elif lab_prep_id is not None:
             if self.db.session.get(models.LabPrep, lab_prep_id) is None:
-                raise exceptions.ModelNotFoundException(f"LabPrep with id '{lab_prep_id}', not found.")
+                raise exceptions.NotFoundException(f"LabPrep with id '{lab_prep_id}', not found.")
         
         if uuid is None:
             uuid = uuid7().__str__()
@@ -71,7 +71,7 @@ class MediaFileBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, file_id: int, flush: bool = True):
         if (file := self.db.session.get(models.MediaFile, file_id)) is None:
-            raise exceptions.ModelNotFoundException(f"File with id '{file_id}', not found.")
+            raise exceptions.NotFoundException(f"File with id '{file_id}', not found.")
 
         # BA reports are referenced from several tables without a reverse
         # relationship, so the ORM delete would hit a ForeignKeyViolation.
@@ -139,5 +139,5 @@ class MediaFileBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, file_id: int) -> models.MediaFile:
         if (file := self.db.session.get(models.MediaFile, file_id)) is None:
-            raise exceptions.ModelNotFoundException(f"File with id '{file_id}', not found.")
+            raise exceptions.NotFoundException(f"File with id '{file_id}', not found.")
         return file

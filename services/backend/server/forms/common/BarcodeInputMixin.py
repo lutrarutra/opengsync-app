@@ -134,7 +134,7 @@ class BarcodeInputMixin:
                 spreadsheet.add_error(idx, ["index_well", "name_i5"], MissingCellValue("'index_well' or 'name_i5' must be defined when kit is defined"))
                 continue
             if kit_defined.at[idx]:
-                kit_i7, kit_i7_df = kits[row["kit_i7"]]
+                _, kit_i7_df = kits[row["kit_i7"]]
                 if pd.notna(row["name_i7"]):
                     if row["name_i7"] not in kit_i7_df["name_i7"].values:
                         spreadsheet.add_error(idx, "name_i7", InvalidCellValue(f"i7 name '{row['name_i7']}' not found in kit '{row['kit_i7']}'"))
@@ -165,13 +165,13 @@ class BarcodeInputMixin:
             if pd.isna(row["sequence_i7"]):
                 spreadsheet.add_error(idx, "sequence_i7", MissingCellValue("missing 'sequence_i7'"))
 
-        df["index_type"] = None
-        df.loc[df["sequence_i7"].notna() & df["sequence_i5"].notna(), "index_type"] = C.IndexType.DUAL_INDEX
-        df.loc[df["sequence_i7"].notna() & df["sequence_i5"].isna(), "index_type"] = C.IndexType.SINGLE_INDEX_I7
+        df["index_type_id"] = None
+        df.loc[df["sequence_i7"].notna() & df["sequence_i5"].notna(), "index_type_id"] = C.IndexType.DUAL_INDEX.id
+        df.loc[df["sequence_i7"].notna() & df["sequence_i5"].isna(), "index_type_id"] = C.IndexType.SINGLE_INDEX_I7.id
         df["orientation_i7_id"] = None
         df["orientation_i5_id"] = None
         df.loc[df["kit_i7_id"].notna(), "orientation_i7_id"] = C.BarcodeOrientation.FORWARD.id
-        df.loc[df["kit_i5_id"].notna() & (df["index_type"] == C.IndexType.DUAL_INDEX), "orientation_i5_id"] = C.BarcodeOrientation.FORWARD.id
+        df.loc[df["kit_i5_id"].notna() & (df["index_type_id"] == C.IndexType.DUAL_INDEX.id), "orientation_i5_id"] = C.BarcodeOrientation.FORWARD.id
         spreadsheet.set_data(df)
         df["index_well"] = df["index_well"].astype(pd.StringDtype())
         df["name_i7"] = df["name_i7"].astype(pd.StringDtype())

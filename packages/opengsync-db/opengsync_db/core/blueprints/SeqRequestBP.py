@@ -240,7 +240,7 @@ class SeqRequestBP(DBBlueprint):
     @DBBlueprint.transaction
     def submit(self, seq_request_id: int) -> models.SeqRequest:
         if (seq_request := self.db.session.get(models.SeqRequest, seq_request_id)) is None:
-            raise exceptions.ModelNotFoundException(f"SeqRequest with id '{seq_request}', not found.")
+            raise exceptions.NotFoundException(f"SeqRequest with id '{seq_request}', not found.")
 
         seq_request.status = SeqRequestStatus.SUBMITTED
         seq_request.review_checklist = None
@@ -267,7 +267,7 @@ class SeqRequestBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, seq_request_id: int, flush: bool = True) -> None:
         if (seq_request := self.db.session.get(models.SeqRequest, seq_request_id)) is None:
-            raise exceptions.ModelNotFoundException(f"SeqRequest with id {seq_request_id} does not exist")
+            raise exceptions.NotFoundException(f"SeqRequest with id {seq_request_id} does not exist")
 
         for library in seq_request.libraries:
             self.db.libraries.delete(library)
@@ -330,7 +330,7 @@ class SeqRequestBP(DBBlueprint):
     @DBBlueprint.transaction
     def add_share_email(self, seq_request_id: int, email: str) -> models.SeqRequest:
         if (seq_request := self.db.session.get(models.SeqRequest, seq_request_id)) is None:
-            raise exceptions.ModelNotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
+            raise exceptions.NotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
         
         if self.db.session.query(models.links.SeqRequestDeliveryEmailLink).where(
             models.links.SeqRequestDeliveryEmailLink.seq_request_id == seq_request_id,
@@ -348,13 +348,13 @@ class SeqRequestBP(DBBlueprint):
     @DBBlueprint.transaction
     def remove_share_email(self, seq_request_id: int, email: str) -> models.SeqRequest:
         if (seq_request := self.db.session.get(models.SeqRequest, seq_request_id)) is None:
-            raise exceptions.ModelNotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
+            raise exceptions.NotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
         
         if (delivery_link := self.db.session.query(models.links.SeqRequestDeliveryEmailLink).where(
             models.links.SeqRequestDeliveryEmailLink.seq_request_id == seq_request_id,
             models.links.SeqRequestDeliveryEmailLink.email == email
         ).first()) is None:
-            raise exceptions.ModelNotFoundException(f"Share link with '{email}', not found.")
+            raise exceptions.NotFoundException(f"Share link with '{email}', not found.")
 
         seq_request.delivery_email_links.remove(delivery_link)
         self.db.session.delete(delivery_link)
@@ -364,7 +364,7 @@ class SeqRequestBP(DBBlueprint):
     @DBBlueprint.transaction
     def process(self, seq_request_id: int, status: SeqRequestStatus) -> models.SeqRequest:
         if (seq_request := self.db.session.get(models.SeqRequest, seq_request_id)) is None:
-            raise exceptions.ModelNotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
+            raise exceptions.NotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
 
         seq_request.status = status
 
@@ -453,7 +453,7 @@ class SeqRequestBP(DBBlueprint):
             raise ValueError(f"Method should be one of: {', '.join(['pooled', 'indexed', 'raw'])}")
 
         if (seq_request := self.db.session.get(models.SeqRequest, seq_request_id)) is None:
-            raise exceptions.ModelNotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
+            raise exceptions.NotFoundException(f"SeqRequest with id '{seq_request_id}', not found.")
         
         if method == "raw":
             submission_type = SubmissionType.RAW_SAMPLES
@@ -501,7 +501,7 @@ class SeqRequestBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.SeqRequest:
         if (seq_request := self.get(id)) is None:
-            raise exceptions.ModelNotFoundException(f"SeqRequest with id '{id}', not found.")
+            raise exceptions.NotFoundException(f"SeqRequest with id '{id}', not found.")
         
         return seq_request
     

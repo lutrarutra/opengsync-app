@@ -21,7 +21,7 @@ class LabPrepBP(DBBlueprint):
         flush: bool = True
     ) -> models.LabPrep:
         if (creator := self.db.session.get(models.User, creator_id)) is None:
-            raise exceptions.ModelNotFoundException(f"User with id '{creator_id}', not found.")
+            raise exceptions.NotFoundException(f"User with id '{creator_id}', not found.")
         
         number = self.get_next_protocol_number(checklist_type)
 
@@ -117,7 +117,7 @@ class LabPrepBP(DBBlueprint):
     @DBBlueprint.transaction
     def delete(self, lab_prep_id: int, flush: bool = True) -> None:
         if (lab_prep := self.db.session.get(models.LabPrep, lab_prep_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
+            raise exceptions.NotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
 
         for library in lab_prep.libraries:
             library.lab_prep_id = None
@@ -202,10 +202,10 @@ class LabPrepBP(DBBlueprint):
         self, lab_prep_id: int, library_id: int
     ) -> models.LabPrep:
         if (lab_prep := self.db.session.get(models.LabPrep, lab_prep_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
+            raise exceptions.NotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
         
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Library with id '{library_id}', not found.")
+            raise exceptions.NotFoundException(f"Library with id '{library_id}', not found.")
         
         if library.status < LibraryStatus.PREPARING:
             library.status = LibraryStatus.PREPARING
@@ -219,10 +219,10 @@ class LabPrepBP(DBBlueprint):
         self, lab_prep_id: int, library_id: int, flush: bool = True
     ) -> models.LabPrep:
         if (lab_prep := self.db.session.get(models.LabPrep, lab_prep_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
+            raise exceptions.NotFoundException(f"Lab prep with id '{lab_prep_id}', not found.")
         
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Library with id '{library_id}', not found.")
+            raise exceptions.NotFoundException(f"Library with id '{library_id}', not found.")
         
         if library.status == LibraryStatus.PREPARING:
             library.status = LibraryStatus.ACCEPTED
@@ -236,5 +236,5 @@ class LabPrepBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.LabPrep:
         if (lab_prep := self.db.session.get(models.LabPrep, id)) is None:
-            raise exceptions.ModelNotFoundException(f"Lab prep with id '{id}', not found.")
+            raise exceptions.NotFoundException(f"Lab prep with id '{id}', not found.")
         return lab_prep

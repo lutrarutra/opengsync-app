@@ -137,7 +137,7 @@ class MergePoolsForm(MultiStepForm):
         if (contact_id := self.contact.selected.data) is not None:
             if (contact := db.session.first(Q.user.select(id=contact_id))) is None:
                 logger.error(f"Contact {contact_id} not found")
-                raise exceptions.ModelNotFoundException(f"Contact {contact_id} not found")
+                raise exceptions.NotFoundException(f"Contact {contact_id} not found")
         else:
             contact = None
             

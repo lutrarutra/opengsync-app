@@ -217,8 +217,8 @@ def project_permissions(
     try:
         if (access_level := session.get_access_level(Q.project.permissions(project_id=project_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this project.")
-    except db_exc.ModelNotFoundException:
-        raise exc.ItemNotFoundException("Project not found.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Project not found.")
 
     r.set(cache_key, int(access_level), ex=300)
     return access_level
@@ -235,8 +235,8 @@ def seq_request_permissions(
     try:
         if (access_level := session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this sequencing request.")
-    except db_exc.ModelNotFoundException:
-        raise exc.ItemNotFoundException("Sequencing request not found.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Sequencing request not found.")
 
     r.set(cache_key, int(access_level), ex=300)
     return access_level
@@ -253,8 +253,8 @@ def sample_permissions(
     try:
         if (access_level := session.get_access_level(Q.sample.permissions(sample_id=sample_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this sample.")
-    except db_exc.ModelNotFoundException:
-        raise exc.ItemNotFoundException("Sample not found.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Sample not found.")
 
     r.set(cache_key, int(access_level), ex=300)
     return access_level
@@ -271,8 +271,8 @@ def library_permissions(
     try:
         if (access_level := session.get_access_level(Q.library.permissions(library_id=library_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this library.")
-    except db_exc.ModelNotFoundException:
-        raise exc.ItemNotFoundException("Library not found.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Library not found.")
 
     r.set(cache_key, int(access_level), ex=300)
     return access_level
@@ -289,8 +289,8 @@ def pool_permissions(
     try:
         if (access_level := session.get_access_level(Q.pool.permissions(pool_id=pool_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this pool.")
-    except db_exc.ModelNotFoundException:
-        raise exc.ItemNotFoundException("Pool not found.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Pool not found.")
 
     r.set(cache_key, int(access_level), ex=300)
     return access_level
@@ -307,8 +307,8 @@ def media_file_permissions(
     try:
         if (access_level := session.get_access_level(Q.media_file.permissions(media_file_id=media_file_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this media file.")
-    except db_exc.ModelNotFoundException:
-        raise exc.ItemNotFoundException("Media file not found.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Media file not found.")
 
     r.set(cache_key, int(access_level), ex=300)
     return access_level
@@ -325,8 +325,8 @@ def user_permissions(
     try:
         if (access_level := session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=current_user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this user.")
-    except db_exc.ModelNotFoundException:
-        raise exc.ItemNotFoundException("User not found.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("User not found.")
 
     r.set(cache_key, int(access_level), ex=300)
     return access_level
@@ -343,8 +343,8 @@ def group_permissions(
     try:
         if (access_level := session.get_access_level(Q.group.permissions(group_id=group_id, user_id=user.id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this group.")
-    except db_exc.ModelNotFoundException:
-        raise exc.ItemNotFoundException("Group not found.")
+    except db_exc.NotFoundException:
+        raise exc.NotFoundException("Group not found.")
 
     r.set(cache_key, int(access_level), ex=300)
     return access_level

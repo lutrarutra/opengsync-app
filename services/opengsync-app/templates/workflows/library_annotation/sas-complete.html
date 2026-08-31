@@ -117,11 +117,11 @@
                                             {% endif %}
                                         {% else %}
                                         <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == C.IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}">
-                                            {{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}
+                                            {{ barcode_row["sequence_i7"] }}{% if notna(barcode_row["sequence_i5"]) %}+{{ barcode_row["sequence_i5"] }}{% endif %}
                                         </span>
                                         {% endif %}
                                         <span class="badge index-badge {% if notna(barcode_row['kit_i7_id']) and (notna(barcode_row['kit_i5_id']) or (barcode_row['index_type_id'] == C.IndexType.SINGLE_INDEX_I7.id)) %}badge-success{% elif isna(barcode_row['orientation_id']) %}badge-danger{% else %}badge-warning{% endif %}" style="display: none;">
-                                            {{ barcode_row["sequence_i7"] }}{% if barcode_row["sequence_i5"] %}+{{ barcode_row["sequence_i5"] }}{% endif %}
+                                            {{ barcode_row["sequence_i7"] }}{% if notna(barcode_row["sequence_i5"]) %}+{{ barcode_row["sequence_i5"] }}{% endif %}
                                         </span>
                                         {% endfor %}
                                     </div>

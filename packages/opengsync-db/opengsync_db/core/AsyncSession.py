@@ -6,7 +6,7 @@ from sqlalchemy import sql
 from sqlalchemy.ext.asyncio import AsyncSession as SQLAlchemyAsyncSession
 
 from . import utils
-from .exceptions import ModelNotFoundException
+from .exceptions import NotFoundException
 
 if TYPE_CHECKING:
     from .blueprints.AsyncPandasBP import AsyncPandas
@@ -81,7 +81,7 @@ class AsyncSession(SQLAlchemyAsyncSession):
         if (obj := result.scalar()) is None:
             entity = statement.column_descriptions[0].get("entity")
             model_name = entity.__name__ if entity else "Item"
-            raise ModelNotFoundException(f"{model_name} not found")
+            raise NotFoundException(f"{model_name} not found")
         return obj
     
     async def get_one(self, statement: sa.Select[tuple[utils.SAModelType]], options: utils.QueryOptions = None) -> utils.SAModelType:
@@ -102,7 +102,7 @@ class AsyncSession(SQLAlchemyAsyncSession):
             if isinstance(e, sa_exc.MultipleResultsFound):
                 error_msg = f"Multiple {model_name} found, expected only one"
                 
-            raise ModelNotFoundException(error_msg)
+            raise NotFoundException(error_msg)
     
     async def get_access_level(self, statement: sa.Select[tuple[utils.ScalarType]]) -> utils.ScalarType:
         """Execute a select statement and return a single scalar value."""
@@ -110,7 +110,7 @@ class AsyncSession(SQLAlchemyAsyncSession):
         if (obj := result.scalar_one_or_none()) is None:
             entity = statement.column_descriptions[0].get("entity")
             model_name = entity.__name__ if entity else "Item"
-            raise ModelNotFoundException(f"{model_name} not found")
+            raise NotFoundException(f"{model_name} not found")
         return obj
 
     async def count(self, statement: sa.Select[tuple[utils.SAModelType]]) -> int:

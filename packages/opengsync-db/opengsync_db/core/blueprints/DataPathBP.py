@@ -172,5 +172,5 @@ class DataPathBP(DBBlueprint):
     @DBBlueprint.transaction
     def __getitem__(self, id: int) -> models.DataPath:
         if (data_path := self.get(id)) is None:
-            raise exceptions.ModelNotFoundException(f"DataPath with id {id} not found")
+            raise exceptions.NotFoundException(f"DataPath with id {id} not found")
         return data_path

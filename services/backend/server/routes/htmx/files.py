@@ -198,7 +198,7 @@ def serve_data_file(
 
     path = Path(config.settings.app_config.share_root) / data_path.path
     if not path.exists():
-        raise exc.ItemNotFoundException("Data file not found")
+        raise exc.NotFoundException("Data file not found")
     if not path.is_file():
         raise exc.BadRequestException("Data path is not a file")
 
@@ -222,7 +222,7 @@ def serve_media_file(
 
     filepath = os.path.join(config.settings.app_config.media_folder, file.path)
     if not os.path.isfile(filepath):
-        raise exc.ItemNotFoundException("File not found on disk.")
+        raise exc.NotFoundException("File not found on disk.")
 
     content_type, _ = mimetypes.guess_type(file.name + file.extension)
     if content_type is None:
@@ -242,7 +242,7 @@ def download_media_file(
     file = session.get_one(Q.media_file.select(id=media_file_id))
     filepath = os.path.join(config.settings.app_config.media_folder, file.path)
     if not os.path.isfile(filepath):
-        raise exc.ItemNotFoundException("File not found on disk.")
+        raise exc.NotFoundException("File not found on disk.")
     content_type, _ = mimetypes.guess_type(file.name + file.extension)
     if content_type is None:
         content_type = "application/octet-stream"
@@ -260,7 +260,7 @@ def render_xlsx_spreadsheet(
 
     filepath = os.path.join(config.settings.app_config.media_folder, file.path)
     if not os.path.isfile(filepath):
-        raise exc.ItemNotFoundException("File not found on disk.")
+        raise exc.NotFoundException("File not found on disk.")
 
     spreadsheet = UniverSpreadsheet(path=filepath)
     return spreadsheet.make_response()
@@ -275,7 +275,7 @@ def render_markdown_file(
     filepath = os.path.join("/media", file.path)
     if not os.path.exists(filepath):
         logger.error(f"File not found: {filepath}")
-        raise exc.ItemNotFoundException("File not found on disk.")
+        raise exc.NotFoundException("File not found on disk.")
     
     with open(filepath, "r") as f:
         content = f.read()

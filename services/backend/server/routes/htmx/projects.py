@@ -140,7 +140,8 @@ def render_project_table(
                 models.Project._num_samples, models.Project.num_samples.expression
             ),
             orm.with_expression(
-                models.Project._library_types, models.Project.library_types.expression
+                models.Project._library_types,
+                models.Project.library_types.expression  # pyright: ignore[reportAttributeAccessIssue]
             ),
         ],
     )

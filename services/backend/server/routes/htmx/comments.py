@@ -58,7 +58,7 @@ def render_todo_comment_form(
         )
         todo_comment = result.scalar_one_or_none()
         if todo_comment is None:
-            raise exc.ItemNotFoundException("TODO Comment not found")
+            raise exc.NotFoundException("TODO Comment not found")
 
     if flow_cell_design_id is not None:
         flow_cell_design = session.get_one(
@@ -99,7 +99,7 @@ def edit_todo_comment_status(
     )
     todo_comment = result.scalar_one_or_none()
     if todo_comment is None:
-        raise exc.ItemNotFoundException("TODO Comment not found")
+        raise exc.NotFoundException("TODO Comment not found")
 
     todo_comment.task_status_id = new_status_id
 
@@ -130,7 +130,7 @@ def delete_todo_comment(
     )
     todo_comment = result.scalar_one_or_none()
     if todo_comment is None:
-        raise exc.ItemNotFoundException("TODO Comment not found")
+        raise exc.NotFoundException("TODO Comment not found")
 
     session.delete(todo_comment)
     return responses.htmx_response(redirect=responses.url_for("design"))

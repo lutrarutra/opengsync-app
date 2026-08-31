@@ -40,7 +40,7 @@ class SelectPoolLibrariesAction(HTMXForm):
             _ = Depends(dependencies.require_insider),
         ) -> "SelectPoolLibrariesAction":
             if session.first(Q.pool.select(id=pool_id)) is None:
-                raise exc.ItemNotFoundException()
+                raise exc.NotFoundException()
             return cls(pool_id=pool_id)
         return dependency
 
@@ -60,7 +60,7 @@ class SelectPoolLibrariesAction(HTMXForm):
         ) -> Response:
             pool = session.get_one(Q.pool.select(id=form.pool_id))
             if pool is None:
-                raise exc.ItemNotFoundException()
+                raise exc.NotFoundException()
 
             for library in form.selected_library_ids.get_selected_libraries(session=session):
                 library.pool_id = pool.id

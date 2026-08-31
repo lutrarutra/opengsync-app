@@ -98,10 +98,10 @@ class LinkBP(DBBlueprint):
     @DBBlueprint.transaction
     def link_feature_library(self, feature_id: int, library_id: int):
         if (feature := self.db.session.get(models.Feature, feature_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Feature with id {feature_id} does not exist")
+            raise exceptions.NotFoundException(f"Feature with id {feature_id} does not exist")
         
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
+            raise exceptions.NotFoundException(f"Library with id {library_id} does not exist")
         
         if self.db.session.query(models.links.LibraryFeatureLink).where(
             models.links.LibraryFeatureLink.feature_id == feature_id,
@@ -120,7 +120,7 @@ class LinkBP(DBBlueprint):
         ids = set(feature_ids)
 
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
+            raise exceptions.NotFoundException(f"Library with id {library_id} does not exist")
         
         features = self.db.session.query(models.Feature).where(
             models.Feature.id.in_(ids)
@@ -147,10 +147,10 @@ class LinkBP(DBBlueprint):
     @DBBlueprint.transaction
     def unlink_feature_library(self, feature_id: int, library_id: int):
         if (feature := self.db.session.get(models.Feature, feature_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Feature with id {feature_id} does not exist")
+            raise exceptions.NotFoundException(f"Feature with id {feature_id} does not exist")
         
         if (library := self.db.session.get(models.Library, library_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Library with id {library_id} does not exist")
+            raise exceptions.NotFoundException(f"Library with id {library_id} does not exist")
         
         library.features.remove(feature)
         self.db.session.add(library)
@@ -163,7 +163,7 @@ class LinkBP(DBBlueprint):
             models.Lane.experiment_id == experiment.id,
             models.Lane.number == lane_num,
         ).first()) is None:
-            raise exceptions.ModelNotFoundException(f"Lane with number {lane_num} does not exist in experiment with id {experiment.id}")
+            raise exceptions.NotFoundException(f"Lane with number {lane_num} does not exist in experiment with id {experiment.id}")
         
         if self.db.session.query(models.links.LanePoolLink).where(
             models.links.LanePoolLink.pool_id == pool.id,
@@ -201,7 +201,7 @@ class LinkBP(DBBlueprint):
             models.Lane.experiment_id == experiment.id,
             models.Lane.number == lane_num,
         ).first()) is None:
-            raise exceptions.ModelNotFoundException(f"Lane with number {lane_num} does not exist in experiment with id {experiment.id}")
+            raise exceptions.NotFoundException(f"Lane with number {lane_num} does not exist in experiment with id {experiment.id}")
         
         if (link := self.db.session.query(models.links.LanePoolLink).where(
             models.links.LanePoolLink.pool_id == pool.id,
@@ -227,9 +227,9 @@ class LinkBP(DBBlueprint):
     @DBBlueprint.transaction
     def link_pool_experiment(self, experiment_id: int, pool_id: int, flush: bool = True):
         if (experiment := self.db.session.get(models.Experiment, experiment_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Experiment with id {experiment_id} does not exist")
+            raise exceptions.NotFoundException(f"Experiment with id {experiment_id} does not exist")
         if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Pool with id {pool_id} does not exist")
+            raise exceptions.NotFoundException(f"Pool with id {pool_id} does not exist")
         if pool.experiment_id is not None:
             raise exceptions.LinkAlreadyExists(f"Pool with id {pool_id} is already linked to an experiment")
 
@@ -251,10 +251,10 @@ class LinkBP(DBBlueprint):
     @DBBlueprint.transaction
     def unlink_pool_experiment(self, experiment_id: int, pool_id: int, flush: bool = True):
         if (experiment := self.db.session.get(models.Experiment, experiment_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Experiment with id {experiment_id} does not exist")
+            raise exceptions.NotFoundException(f"Experiment with id {experiment_id} does not exist")
 
         if (pool := self.db.session.get(models.Pool, pool_id)) is None:
-            raise exceptions.ModelNotFoundException(f"Pool with id {pool_id} does not exist")
+            raise exceptions.NotFoundException(f"Pool with id {pool_id} does not exist")
         if pool.experiment_id != experiment_id:
             raise exceptions.LinkDoesNotExist(f"Pool with id {pool_id} is not linked to experiment with id {experiment_id}")
         

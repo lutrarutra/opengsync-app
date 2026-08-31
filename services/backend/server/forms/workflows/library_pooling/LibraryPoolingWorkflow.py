@@ -59,7 +59,7 @@ class LibraryPoolingWorkflow(HTMXWorkflow):
             r: redis.RedisClient = Depends(dependencies.redis),
         ) -> "LibraryPoolingWorkflow":
             if session.first(Q.lab_prep.select(id=lab_prep_id)) is None:
-                raise exc.ItemNotFoundException("Lab prep not found.")
+                raise exc.NotFoundException("Lab prep not found.")
             if not current_user.is_insider:
                 raise exc.NoPermissionsException()
             return cls(step=step, lab_prep_id=lab_prep_id, r=r, uuid=uuid)
