@@ -826,9 +826,6 @@ class PandasBP(DBBlueprint):
             models.Library.seq_request_id.label("seq_request_id"),
             models.Library.properties.label("properties"),
 
-            models.Pool.id.label("pool_id"),
-            models.Pool.name.label("pool_name"),
-
             models.Sample.id.label("sample_id"),
             models.Sample.name.label("sample_name"),
 
@@ -881,6 +878,7 @@ class PandasBP(DBBlueprint):
             order = [
                 "sample_name", "library_name", "sample_pool",
                 "library_type", "genome_ref", "experiment_name", "lanes",
+                "pool_id", "pool_name",
                 "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id"
             ]
             lanes = lanes.sort_values("lane").groupby(
@@ -890,6 +888,7 @@ class PandasBP(DBBlueprint):
             order = [
                 "sample_name", "library_name", "sample_pool",
                 "library_type", "genome_ref", "experiment_name", "lane",
+                "pool_id", "pool_name",
                 "mux", "mux_type", "properties", "library_id", "sample_id", "seq_request_id"
             ]
 
