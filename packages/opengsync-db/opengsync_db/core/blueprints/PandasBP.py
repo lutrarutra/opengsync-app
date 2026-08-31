@@ -826,6 +826,9 @@ class PandasBP(DBBlueprint):
             models.Library.seq_request_id.label("seq_request_id"),
             models.Library.properties.label("properties"),
 
+            models.Pool.id.label("pool_id"),
+            models.Pool.name.label("pool_name"),
+
             models.Sample.id.label("sample_id"),
             models.Sample.name.label("sample_name"),
 
@@ -839,6 +842,10 @@ class PandasBP(DBBlueprint):
         ).join(
             models.Library,
             models.Library.id == models.links.SampleLibraryLink.library_id
+        ).join(
+            models.Pool,
+            models.Pool.id == models.Library.pool_id,
+            isouter=True
         )
 
         libraries = pd.read_sql(query, self.db._engine)
