@@ -68,6 +68,7 @@ def download(current_user: models.User) -> Response:
         "lane_share": [],
         "flowcell_share": [],
         "num_libraries": [],
+        "num_samples": [],
         "group": [],
         "contact_name": [],
         "contact_email": [],
@@ -197,6 +198,7 @@ def download(current_user: models.User) -> Response:
             pool_data["num_m_reads_loaded"].append(num_m_reads_loaded or "")
             pool_data["num_m_reads_requested"].append(pool.num_m_reads_requested or 0)
             pool_data["num_libraries"].append(pool.num_libraries)
+            pool_data["num_samples"].append(sum(library.num_samples for library in pool.libraries))
             pool_data["lab_contact_name"].append(pool.contact.name if pool.contact else "")
             pool_data["lab_contact_email"].append(pool.contact.email if pool.contact else "")
             pool_data["lab_prep"].append(pool.lab_prep.name if pool.lab_prep else "")
