@@ -74,7 +74,8 @@ def render_experiment_table(
             orm.selectinload(models.Experiment.pools),
             orm.selectinload(models.Experiment.sequencer),
             orm.with_expression(
-                models.Experiment._library_types, models.Experiment.library_types.expression
+                models.Experiment._library_types,
+                models.Experiment.library_types.expression  # type: ignore
             ),
         ]
     )

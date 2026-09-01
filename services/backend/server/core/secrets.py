@@ -100,19 +100,19 @@ def validate_login_token(token: str) -> dict | None:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         if (user_id := payload.get("id")) is None:
             logger.warning("Token missing user ID")
-            raise exc.HTTPException(status_code=401, detail="Invalid token")
+            raise exc.OpeNGSyncServerException(message="Invalid token")
         if (username := payload.get("username")) is None:
             logger.warning("Token missing username")
-            raise exc.HTTPException(status_code=401, detail="Invalid token")
+            raise exc.OpeNGSyncServerException(message="Invalid token")
         if (role := payload.get("role")) is None:
             logger.warning("Token missing user role")
-            raise exc.HTTPException(status_code=401, detail="Invalid token")
+            raise exc.OpeNGSyncServerException(message="Invalid token")
     except jwt.ExpiredSignatureError:
         logger.warning("Token has expired")
-        raise exc.HTTPException(status_code=401, detail="Token has expired")
+        raise exc.OpeNGSyncServerException(message="Token has expired")
     except jwt.InvalidTokenError:
         logger.warning("Invalid token")
-        raise exc.HTTPException(status_code=401, detail="Invalid token")
+        raise exc.OpeNGSyncServerException(message="Invalid token")
     
     return {"id": user_id, "username": username, "role": role}
 

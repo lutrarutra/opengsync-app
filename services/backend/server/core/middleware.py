@@ -1,11 +1,11 @@
 import time
-
 from typing import Callable, Awaitable
+
 from sqlalchemy import inspect
+from starlette.types import ASGIApp, Receive, Scope, Send, Message
 from starlette.datastructures import UploadFile
-from fastapi import Response
+from fastapi import Response, Request
 from starlette.background import BackgroundTask, BackgroundTasks
-from loguru import logger
 
 from opengsync_db import models, SyncSession
 
@@ -146,3 +146,47 @@ async def csrf_middleware(request: runtime.Request, call_next: Callable[[runtime
             samesite="lax",
         )
     return response
+
+
+class DBSessionCleanupMiddleware:
+    """Commit or roll back, then close dependency-created DB sessions."""
+
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        request = Request(scope, receive=receive)
+        status_code: int | None = None
+
+        async def send_wrapper(message: Message) -> None:
+            nonlocal status_code
+
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_wrapper)
+        finally:
+            session: SyncSession | None = getattr(request.state, "db_session", None,)
+
+            if session is not None:
+                try:
+                    rollback = getattr(request.state, "rollback", False)
+
+                    if not rollback and status_code is not None and 200 <= status_code < 300:
+                        session.commit()
+                    else:
+                        session.rollback()
+                finally:
+                    session.close()

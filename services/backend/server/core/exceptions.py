@@ -1,30 +1,60 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from fastapi import HTTPException, status, Request, Response, exceptions as fastapi_exc
 from loguru import logger
 
-from . import responses
+from . import context, responses
 
 if TYPE_CHECKING:
     from ..forms import HTMXForm
 
+def error_response(
+    request: Request,
+    status_code: int,
+    message: str,
+    category: Literal["info", "success", "warning", "error"] = "error",
+    redirect_endpoint: str | None = None,
+) -> Response:
+    """Build a request-safe HTML or HTMX error response."""
+    flash = responses.flash(message=message, category=category)
+
+    with context.bind(request):
+        if redirect_endpoint is not None:
+            redirect = responses.url_for(redirect_endpoint)
+            if request.headers.get("HX-Request") == "true":
+                return responses.htmx_response(redirect=redirect, flash=flash)
+            return responses.html_response(redirect=redirect, flash=flash)
+
+        if request.headers.get("HX-Request") == "true":
+            return responses.htmx_response(status=status_code, flash=flash)
+
+        return responses.html_response(
+            template="errors/page.html",
+            active_page="",
+            msg=message,
+            code=status_code,
+            status=status_code,
+            flash=flash,
+        )
+
 
 
 class OpeNGSyncServerException(Exception):
+    def __init__(self, message: str = "An unexpected error occurred. Please try again later."):
+        super().__init__(message)
+        self.message = message
+
     @staticmethod
-    def Handler(request: Request, _: Exception) -> Response:
-        flash = responses.flash(message="An unexpected error occurred. Please try again later.", category="error")
-        logger.debug("An unexpected error occurred.")
-        if request.headers.get("HX-Request") == "true":
-            response = responses.htmx_response(status=status.HTTP_500_INTERNAL_SERVER_ERROR, flash=flash)
+    def Handler(request: Request, e: Exception) -> Response:
+        # logger.error(f"Exception details: {e}", exc_info=e)
+        logger.opt(exception=e).error(f"Exception details: {e}")
+        if isinstance(e, OpeNGSyncServerException):
+            message = e.message
+        elif isinstance(e, HTTPException):
+            message = e.detail
         else:
-            response = responses.html_response(
-                template="errors/page.html",
-                active_page="", msg="An unexpected error occurred. Please try again later.",
-                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR, flash=flash
-            )
-        return response
+            message = "An unexpected error occurred. Please try again later."
+        return error_response(request, status.HTTP_500_INTERNAL_SERVER_ERROR, message)
     
 
 class FormValidationException(HTTPException):
@@ -40,35 +70,38 @@ class FormValidationException(HTTPException):
 
     @staticmethod
     def Handler(request: Request, exc: "FormValidationException") -> Response:
-        logger = request.app.state.logger
         logger.debug(f"Form validation failed: {exc.form.errors}")
         request.state.rollback = True
-        return exc.form.invalid_response_handler(request, exc)
+        # Exception handlers can run outside the middleware task that owns
+        # the request ContextVar.  Bind the explicit request while rendering
+        # the form response so templates and form helpers remain safe.
+        with context.bind(request) as temp_response:
+            response = exc.form.invalid_response_handler(request, exc)
+
+        for header, value in temp_response.raw_headers:
+            if header == b"set-cookie":
+                response.raw_headers.append((header, value))
+        return response
 
 class NotFoundException(HTTPException):
     def __init__(self, message: str = "Not found"):
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=message)
 
     @staticmethod
-    def Handler(request: Request, _: Exception) -> Response:
-        flash = responses.flash(message="Not found", category="warning")
-        if request.headers.get("HX-Request") == "true":
-            response = responses.htmx_response(status=status.HTTP_404_NOT_FOUND, flash=flash)
-        else:
-            response = responses.html_response(template="errors/page.html", active_page="", msg="Not found", code=status.HTTP_404_NOT_FOUND, status=status.HTTP_404_NOT_FOUND, flash=flash)
-        return response
+    def Handler(request: Request, e: "NotFoundException") -> Response:
+        detail = getattr(e, "detail", str(e))
+        return error_response(request, status.HTTP_404_NOT_FOUND, detail, category="warning")
 
 class UserNotAuthenticatedException(HTTPException):
     def __init__(self, message: str = "User not authenticated"):
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=message)
 
     @staticmethod
-    def Handler(request: Request, _: Exception) -> Response:
-        flash = responses.flash(message="User not authenticated", category="warning")
-        if request.headers.get("HX-Request") == "true":
-            response = responses.htmx_response(redirect=responses.url_for("login_page"), flash=flash)
-        else:
-            response = responses.html_response(redirect=responses.url_for("login_page"), flash=flash)
+    def Handler(request: Request, e: "UserNotAuthenticatedException") -> Response:
+        response = error_response(
+            request, status.HTTP_401_UNAUTHORIZED, e.detail,
+            category="warning", redirect_endpoint="login_page",
+        )
         response.delete_cookie(key="access_token", path="/", samesite="lax")
         response.delete_cookie(key="csrf_token", path="/", samesite="lax")
         return response
@@ -78,71 +111,38 @@ class UserAccountSuspendedException(HTTPException):
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=message)
 
     @staticmethod
-    def Handler(request: Request, _: Exception) -> Response:
-        flash = responses.flash(message="Your account is suspended, please contact us.", category="warning")
-        if request.headers.get("HX-Request") == "true":
-            response = responses.htmx_response(redirect=responses.url_for("login_page"), flash=flash)
-        else:
-            response = responses.html_response(redirect=responses.url_for("login_page"), flash=flash)
+    def Handler(request: Request, e: "UserAccountSuspendedException") -> Response:
+        response = error_response(
+            request, status.HTTP_401_UNAUTHORIZED, e.detail,
+            category="warning", redirect_endpoint="login_page",
+        )
         response.delete_cookie(key="access_token", path="/", samesite="lax")
         response.delete_cookie(key="csrf_token", path="/", samesite="lax")
         return response
 
 class NoPermissionsException(HTTPException):
     def __init__(self, detail: str = "Permission denied"):
-        super().__init__(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=detail
-        )
+        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
     @staticmethod
-    def Handler(request: Request, _: Exception) -> Response:
-        flash = responses.flash(message="Permission denied", category="error")
-        if request.headers.get("HX-Request") == "true":
-            response = responses.htmx_response(status=status.HTTP_403_FORBIDDEN, flash=flash)
-        else:
-            response = responses.html_response(
-                template="errors/page.html",
-                active_page="", msg="Permission denied", code=status.HTTP_403_FORBIDDEN,
-                status=status.HTTP_403_FORBIDDEN, flash=flash
-            )
-        return response
+    def Handler(request: Request, e: "NoPermissionsException") -> Response:
+        return error_response(request, status.HTTP_403_FORBIDDEN, e.detail)
 
 class BadRequestException(HTTPException):
     def __init__(self, detail: str = "Bad request"):
         super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 
     @staticmethod
-    def Handler(request: Request, _: Exception) -> Response:
-        flash = responses.flash(message="Bad request", category="error")
-        if request.headers.get("HX-Request") == "true":
-            response = responses.htmx_response(status=status.HTTP_400_BAD_REQUEST, flash=flash)
-        else:
-            response = responses.html_response(
-                template="errors/page.html",
-                active_page="", msg="Bad request", code=status.HTTP_400_BAD_REQUEST,
-                status=status.HTTP_400_BAD_REQUEST, flash=flash
-            )
-        return response
+    def Handler(request: Request, e: "BadRequestException") -> Response:
+        return error_response(request, status.HTTP_400_BAD_REQUEST, e.detail)
 
 class MethodNotAllowedException(HTTPException):
     def __init__(self, detail: str = "Method not allowed"):
-        super().__init__(
-            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
-            detail=detail
-        )
+        super().__init__(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail=detail)
+
     @staticmethod
-    def Handler(request: Request, _: Exception) -> Response:
-        flash = responses.flash(message="Method not allowed", category="error")
-        if request.headers.get("HX-Request") == "true":
-            response = responses.htmx_response(status=status.HTTP_405_METHOD_NOT_ALLOWED, flash=flash)
-        else:
-            response = responses.html_response(
-                template="errors/page.html",
-                active_page="", msg="Method not allowed", code=status.HTTP_405_METHOD_NOT_ALLOWED,
-                status=status.HTTP_405_METHOD_NOT_ALLOWED, flash=flash
-            )
-        return response
+    def Handler(request: Request, e: "MethodNotAllowedException") -> Response:
+        return error_response(request, status.HTTP_405_METHOD_NOT_ALLOWED, e.detail)
 
 
 def request_validation_exception_handler(
@@ -150,21 +150,5 @@ def request_validation_exception_handler(
     exc: fastapi_exc.RequestValidationError,
 ) -> Response:
     logger.debug(f"Request validation failed: {exc.errors()}")
-
     message = "Invalid request."
-
-    if request.headers.get("HX-Request") == "true":
-        return responses.htmx_response(
-            status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            flash=responses.flash(message=message, category="error"),
-        )
-
-    return responses.html_response(
-        template="errors/page.html",
-        active_page="",
-        msg=message,
-        code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        flash=responses.flash(message=message, category="error"),
-        request=request,
-    )
+    return error_response(request, status.HTTP_422_UNPROCESSABLE_ENTITY, message)

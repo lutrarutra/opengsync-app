@@ -147,7 +147,7 @@ def get_user(
         try:
             payload = secrets.validate_login_token(token)
             auth_response = auth.AuthResponse.model_validate(payload)
-        except exc.HTTPException:
+        except exc.OpeNGSyncServerException:
             request.state.current_user = None
             return None
         user = _resolve_user(auth_response, session, r)
@@ -173,8 +173,10 @@ def require_user(user: models.User | None = Depends(get_user)) -> models.User:
     return user
 
 def require_admin(user: models.User = Depends(require_user)) -> models.User:
+    from loguru import logger
+    logger.debug(f"Checking admin privileges for user {user.id} with role {user.role}")
     if user.role != C.UserRole.ADMIN:
-        raise exc.HTTPException(status_code=403, detail="Admin privileges required")
+        raise exc.NoPermissionsException(detail="Admin privileges required")
     return user
 
 def require_insider(user: models.User = Depends(require_user)) -> models.User:

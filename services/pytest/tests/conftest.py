@@ -96,11 +96,50 @@ def _inject_test_app_config() -> None:
         settings.SECRET_KEY = "test-secret-key-for-pytest"
 
 
-class _DummyMailer:
-    def __getattr__(self, name):
-        def _noop(*args, **kwargs):
-            return None
-        return _noop
+class FakeMailer:
+    """In-memory mail transport used by HTTP tests instead of SMTP."""
+
+    def __init__(self, fail: bool = False):
+        self.fail = fail
+        self.sent: list[dict[str, object]] = []
+        self.welcome_back: list[str] = []
+        self.registration: list[tuple[str, str]] = []
+        self.password_reset: list[tuple[str, str]] = []
+
+    def _record(self, method: str, *args, **kwargs) -> None:
+        if self.fail:
+            raise RuntimeError("smtp down")
+        self.sent.append({"method": method, "args": args, "kwargs": kwargs})
+
+    def send_welcome_back(self, recipient_email: str) -> None:
+        self._record("send_welcome_back", recipient_email)
+        self.welcome_back.append(recipient_email)
+
+    def send_registration(self, recipient_email: str, verification_link) -> None:
+        self._record("send_registration", recipient_email, verification_link)
+        self.registration.append((recipient_email, str(verification_link)))
+
+    def send_password_reset(self, recipient_email: str, reset_link) -> None:
+        self._record("send_password_reset", recipient_email, reset_link)
+        self.password_reset.append((recipient_email, str(reset_link)))
+
+    def __getattr__(self, name: str):
+        """Record other Mailer.send_* methods without making SMTP calls."""
+        if not name.startswith("send_"):
+            raise AttributeError(name)
+
+        def record(*args, **kwargs):
+            self._record(name, *args, **kwargs)
+
+        return record
+
+
+@pytest.fixture
+def fake_mailer(client):
+    """Recording in-memory mail transport for a single test."""
+    mailer = FakeMailer()
+    client.app.state.mailer = mailer
+    return mailer
 
 
 @pytest.fixture(scope="function")  # type: ignore[attr-defined]
@@ -119,7 +158,7 @@ def client(_db_handler: SyncDBHandler):
     @asynccontextmanager
     async def test_lifespan(app_):
         app_.state.db_handler = _db_handler
-        app_.state.mailer = _DummyMailer()
+        app_.state.mailer = FakeMailer()
         app_.state.redis_pool = ConnectionPool.from_url(config.settings.REDIS_URL)
         app_.state.bcrypt = secrets.BcryptCompat()
         templates.j2.env.globals["contact_email"] = config.settings.app_config.personalization.email
@@ -202,3 +241,15 @@ def insider_token(client, insider) -> str:
 @pytest.fixture  # type: ignore[attr-defined]
 def admin_token(client, admin) -> str:
     return _login_token(admin)
+
+
+@pytest.fixture  # type: ignore[attr-defined]
+def deactivated_user(session: SyncSession):
+    _ensure_backend_on_path()
+    return _create_test_user(session, email="deactivated@example.com", role=UserRole.DEACTIVATED)
+
+
+@pytest.fixture  # type: ignore[attr-defined]
+def temporary_user(session: SyncSession):
+    _ensure_backend_on_path()
+    return _create_test_user(session, email="temporary@example.com", role=UserRole.TEMPORARY)

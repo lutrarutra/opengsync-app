@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from opengsync_db import SyncSession, queries as Q, categories as C
 
 from ..db.create_units import create_seq_request, create_group
-from ._http import auth, post_form, get
+from ._http import auth, post_form, post_form_csrf_mismatch, get
 
 
 def _commit(session: SyncSession) -> None:
@@ -71,16 +71,11 @@ def test_add_user_to_group_csrf_mismatch_rerenders(
     group = create_group(session)
     _commit(session)
 
-    client.cookies.set("csrf_token", "cookie-token")
-    response = client.post(
+    response = post_form_csrf_mismatch(
+        client,
         f"/htmx/groups/{group.id}/add-user",
-        data={
-            "email": user_2.email,
-            "affiliation_type": str(C.AffiliationType.MEMBER.id),
-            "csrf_token": "body-token",
-        },
-        headers=auth(insider_token),
-        follow_redirects=False,
+        {"email": user_2.email, "affiliation_type": str(C.AffiliationType.MEMBER.id)},
+        token=insider_token,
     )
     assert response.status_code == 202
     assert session.first(Q.affiliation.select(user_id=user_2.id, group_id=group.id)) is None

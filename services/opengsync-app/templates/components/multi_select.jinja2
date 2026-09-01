@@ -43,7 +43,7 @@
                 <input type="checkbox" class="form-check-input select-all" id="{{ field_name }}-select-all">
                 <label class="btn" for="{{ field_name }}-select-all">Select All</label>
             </div>
-            <button class="btn btn-success apply-btn">Apply</button>
+            <button type="button" class="btn btn-success apply-btn">Apply</button>
         </li>
         {% for (id, label) in choices %}
         <li class="option" data-value="{{ id }}" data-label="{{ label }}">

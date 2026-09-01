@@ -50,5 +50,5 @@ router.include_router(seq_runs.router, dependencies=[Depends(dependencies.requir
 router.include_router(share_tokens.router, dependencies=[Depends(dependencies.require_insider)])
 
 # Admin-only routes
-router.include_router(admin.router, dependencies=[Depends(dependencies.require_admin)])
+router.include_router(admin.router)
 router.include_router(sequencers.router, dependencies=[Depends(dependencies.require_admin)])

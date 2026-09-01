@@ -1,100 +1,42 @@
-{% from 'components/form_group.jinja2' import form_group %}
-{% from 'components/spinner.jinja2' import spinner %}
-{% from 'components/spreadsheet.jinja2' import static_spreadsheet %}
-{% if selected_experiments is not defined %}
-    {% set selected_experiments = [] %}
-{% endif %}
-{% if selected_experiments_ids is not defined %}
-    {% set selected_experiments_ids = [] %}
-{% endif %}
-<div id="select-experiments-form-container" class="modal-content">
+<form class="modal-content" id="billing-form-container" method="post" action="{{ url_for('BillingAction.Submit') }}">
     <div class="modal-header">
-        <h1 class="modal-title fs-5" >Select Experiments for Billing</h1>
-        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick=confirm_close_modal("#xl-modal")></button>
+        <h1 class="modal-title fs-5">Select Experiments for Billing</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
-    <div class="modal-body tab-body" id="select-experiments-form">
+    <div class="modal-body tab-body" id="billing-form">
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#select-experiments-form-tab"
-                    type="button" role="tab" aria-controls="select-experiments-form-tab" aria-selected="true">
-                    Form
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#billing-browse-tab"
+                    type="button" role="tab" aria-controls="billing-browse-tab" aria-selected="true">
+                    Browse Experiments
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab" id="selected-experiments-tab-btn" data-bs-target="#selected-experiments-tab"
-                    type="button" role="tab" aria-controls="selected-experiments-tab" aria-selected="true">
-                    Selected Experiments ({{ selected_experiments | length }})
+                <button id="{{ form.experiment_ids.id }}-tab-btn" class="nav-link" data-bs-toggle="tab" data-bs-target="#billing-selected-tab"
+                    type="button" role="tab" aria-controls="billing-selected-tab" aria-selected="false">
+                    Selected Experiments ({{ form.experiment_ids.data | length }})
                 </button>
             </li>
         </ul>
-
-        <div class="invalid-feedback-container">
-            {% for error in form.selected_experiment_ids.errors %}
-                <p>{{ error }}</p>
-            {% endfor %}
-        </div>
-        <div class="tab-content ba">
-            <div class="tab-pane fade show active" id="select-experiments-form-tab" role="tabpanel" tabindex="0">
-                <div hx-trigger="intersect once" hx-get="{{ url_for('render_experiment_table', browse='billing') }}">
-                    {{ spinner() }}
-                </div>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="billing-browse-tab" role="tabpanel" tabindex="0">
+                {{ form.csrf_token.render() }}
+                {{ form.render_general_errors() }}
+                {{ form.experiment_ids.render() }}
             </div>
-            <div class="tab-pane fade" id="selected-experiments-tab" role="tabpanel" tabindex="1">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="col-1">ID</th>
-                            <th scope="col" class="col-3">Name</th>
-                            <th scope="col" class="col-3">Status</th>
-                            <th scope="col" class="col-3">Workflow</th>
-                        </tr>
-                    </thead>
-                    <tbody id="selected-experiments-table-container">
-                    {% for experiment in selected_experiments %}
-                        <tr onclick="remove_experiment({{ experiment.id }});" id="selected-experiment-row-{{ experiment.id }}"
-                        class="experiment-row selected">
-                            <th scope="row">{{ experiment.id }}</th>
-                            <td>{{ experiment.name }}</td>
-                            <td>{{ experiment.status.label }} {{ experiment.status.icon }}</td>
-                            <td>{{ experiment.workflow.display_name }}</td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+            <div class="tab-pane fade" id="billing-selected-tab" role="tabpanel" tabindex="1">
+                {{ form.experiment_ids.render_selected_table() }}
             </div>
         </div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" id="popup-footer">
         <div class="footer-id">
         </div>
         <div class="footer-info"></div>
         <div class="footer-controls">
-            <button type="button" class="btn btn-success" id="submit-select-experiments-form-btn">
+            <button type="submit" id="submit-billing-btn" class="btn btn-success">
                 Submit
             </button>
         </div>
     </div>
-    <script>
-        (function () {
-            window.selected_experiments = window.selected_experiments || {{ selected_experiments_ids | tojson if selected_experiments_ids else [] }};
-            window.num_selected_experiments = window.selected_experiments.length;
-
-            $("#submit-select-experiments-form-btn").off("click").on("click", function() {
-                if (selected_experiments.length === 0) {
-                    $(".invalid-feedback-container").html("<p>Select at least one experiment.</p>");
-                    return false;
-                }
-
-                htmx.ajax("POST", "{{ form.post_url | safe }}", {
-                    target: "#select-experiments-form-container",
-                    swap: "outerHTML",
-                    values: {
-                        csrf_token: "{{ form._csrf_token }}",
-                        selected_experiment_ids: JSON.stringify(selected_experiments),
-                        workflow: "{{ workflow }}",
-                    },
-                });
-            });
-        })();
-    </script>
-</div>
+</form>

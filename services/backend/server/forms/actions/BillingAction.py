@@ -2,6 +2,7 @@ from datetime import datetime
 
 import pandas as pd
 from fastapi import Depends
+from sqlalchemy import orm
 
 from opengsync_db import models, SyncSession, categories as C
 
@@ -12,9 +13,9 @@ from ..HTMXForm import HTMXForm, RouteFunc, htmx_route
 
 class BillingAction(HTMXForm):
     template_path = "workflows/billing/billing.html"
-    experiment_ids = inputs.tables.ExperimentSelectTableField("Experiments", browse_context="billing", status_in=[C.ExperimentStatus.SEQUENCED, C.ExperimentStatus.ARCHIVED])
+    experiment_ids = inputs.tables.ExperimentSelectTableField("Experiments", browse_context="billing", status_in=[C.ExperimentStatus.SEQUENCED, C.ExperimentStatus.DEMULTIPLEXED, C.ExperimentStatus.ARCHIVED])
 
-    @htmx_route("GET", "/")
+    @htmx_route("GET")
     def Begin(cls) -> RouteFunc:
         def route(
             form: BillingAction = Depends(BillingAction.Init()),
@@ -23,7 +24,7 @@ class BillingAction(HTMXForm):
             return form.make_response()
         return route
 
-    @htmx_route("POST", "/")
+    @htmx_route("POST")
     def Submit(cls) -> RouteFunc:
         def route(
             form: BillingAction = Depends(BillingAction.Validate()),
@@ -46,6 +47,7 @@ class BillingAction(HTMXForm):
                 "lane_share": [],
                 "flowcell_share": [],
                 "num_libraries": [],
+                "num_samples": [],
                 "group": [],
                 "contact_name": [],
                 "contact_email": [],
@@ -80,7 +82,19 @@ class BillingAction(HTMXForm):
                 "num_pools": [],
                 "pools": [],
             }
-            experiments = form.experiment_ids.get_selected_experiments(session=session)
+            experiments = form.experiment_ids.get_selected_experiments(
+                session=session, options=[
+                    orm.selectinload(models.Experiment.lanes).selectinload(models.Lane.pool_links).selectinload(models.links.LanePoolLink.pool),
+                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.lane_links),
+                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.libraries).selectinload(models.Library.seq_request),
+                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.libraries).selectinload(models.Library.protocol),
+                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.seq_request).selectinload(models.SeqRequest.contact_person),
+                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.seq_request).selectinload(models.SeqRequest.group),
+                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.seq_request).selectinload(models.SeqRequest.billing_contact),
+                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.lab_prep),
+                    orm.selectinload(models.Experiment.pools).selectinload(models.Pool.contact),
+                ]
+            )
             for experiment in experiments:
                 experiment_data["experiment_name"].append(experiment.name)
                 experiment_data["workflow"].append(experiment.workflow.label)
@@ -175,6 +189,7 @@ class BillingAction(HTMXForm):
                     pool_data["num_m_reads_loaded"].append(num_m_reads_loaded or "")
                     pool_data["num_m_reads_requested"].append(pool.num_m_reads_requested or 0)
                     pool_data["num_libraries"].append(pool.num_libraries)
+                    pool_data["num_samples"].append(sum(library.num_samples for library in pool.libraries))
                     pool_data["lab_contact_name"].append(pool.contact.name if pool.contact else "")
                     pool_data["lab_contact_email"].append(pool.contact.email if pool.contact else "")
                     pool_data["lab_prep"].append(pool.lab_prep.name if pool.lab_prep else "")

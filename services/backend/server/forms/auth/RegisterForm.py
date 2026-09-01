@@ -1,4 +1,4 @@
-from fastapi import Request, Depends
+from fastapi import Depends
 from fastapi.responses import Response
 from loguru import logger
 

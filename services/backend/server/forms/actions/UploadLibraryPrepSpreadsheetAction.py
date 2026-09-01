@@ -3,7 +3,7 @@ from uuid6 import uuid7
 from datetime import datetime, timezone
 
 import pandas as pd
-from fastapi import Depends, Query
+from fastapi import Depends
 from sqlalchemy import orm
 from loguru import logger
 
