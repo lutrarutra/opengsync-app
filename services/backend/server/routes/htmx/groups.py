@@ -91,10 +91,10 @@ def search_groups(
 def remove_user_from_group(
     group_id: int,
     user_id: int,
-    current_user: models.User = Depends(dependencies.require_user),
+    current_user_id: int = Depends(dependencies.require_user_id),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.WRITE:
+    if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user_id)) < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException("You do not have permission to remove users from this group.")
 
     affiliation = session.get_one(Q.affiliation.select(group_id=group_id, user_id=user_id))
@@ -112,10 +112,10 @@ def remove_user_from_group(
 def make_owner_of_group(
     group_id: int,
     user_id: int,
-    current_user: models.User = Depends(dependencies.require_user),
+    current_user_id: int = Depends(dependencies.require_user_id),
     session: SyncSession = Depends(dependencies.db_session),
 ):
-    if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user.id)) < C.AccessLevel.WRITE:
+    if session.get_access_level(Q.group.permissions(group_id=group_id, user_id=current_user_id)) < C.AccessLevel.WRITE:
         raise exc.NoPermissionsException("You do not have permission to make users owners of this group.")
 
     group = session.get_one(Q.group.select(id=group_id))

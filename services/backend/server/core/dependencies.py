@@ -223,15 +223,15 @@ def invalidate_cache(request: runtime.Request):
 
 def project_permissions(
     project_id: int,
-    user: models.User = Depends(require_user),
+    viewer_id: int = Depends(require_user_id),
     session: SyncSession = Depends(db_session),
     r: rds.RedisClient = Depends(redis),
 ):
-    cache_key = f"access:project:{project_id}:user:{user.id}"
+    cache_key = f"access:project:{project_id}:user:{viewer_id}"
     if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))  #type: ignore
     try:
-        if (access_level := session.get_access_level(Q.project.permissions(project_id=project_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.project.permissions(project_id=project_id, user_id=viewer_id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this project.")
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Project not found.")
@@ -241,15 +241,15 @@ def project_permissions(
 
 def seq_request_permissions(
     seq_request_id: int,
-    user: models.User = Depends(require_user),
+    viewer_id: int = Depends(require_user_id),
     session: SyncSession = Depends(db_session),
     r: rds.RedisClient = Depends(redis),
 ):
-    cache_key = f"access:seq_request:{seq_request_id}:user:{user.id}"
+    cache_key = f"access:seq_request:{seq_request_id}:user:{viewer_id}"
     if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))  #type: ignore
     try:
-        if (access_level := session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.seq_request.permissions(seq_request_id=seq_request_id, user_id=viewer_id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this sequencing request.")
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Sequencing request not found.")
@@ -259,15 +259,15 @@ def seq_request_permissions(
 
 def sample_permissions(
     sample_id: int,
-    user: models.User = Depends(require_user),
+    viewer_id: int = Depends(require_user_id),
     session: SyncSession = Depends(db_session),
     r: rds.RedisClient = Depends(redis),
 ):
-    cache_key = f"access:sample:{sample_id}:user:{user.id}"
+    cache_key = f"access:sample:{sample_id}:user:{viewer_id}"
     if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))  #type: ignore
     try:
-        if (access_level := session.get_access_level(Q.sample.permissions(sample_id=sample_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.sample.permissions(sample_id=sample_id, user_id=viewer_id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this sample.")
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Sample not found.")
@@ -277,15 +277,15 @@ def sample_permissions(
 
 def library_permissions(
     library_id: int,
-    user: models.User = Depends(require_user),
+    viewer_id: int = Depends(require_user_id),
     session: SyncSession = Depends(db_session),
     r: rds.RedisClient = Depends(redis),
 ):
-    cache_key = f"access:library:{library_id}:user:{user.id}"
+    cache_key = f"access:library:{library_id}:user:{viewer_id}"
     if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))  #type: ignore
     try:
-        if (access_level := session.get_access_level(Q.library.permissions(library_id=library_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.library.permissions(library_id=library_id, user_id=viewer_id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this library.")
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Library not found.")
@@ -295,15 +295,15 @@ def library_permissions(
 
 def pool_permissions(
     pool_id: int,
-    user: models.User = Depends(require_user),
+    viewer_id: int = Depends(require_user_id),
     session: SyncSession = Depends(db_session),
     r: rds.RedisClient = Depends(redis),
 ):
-    cache_key = f"access:pool:{pool_id}:user:{user.id}"
+    cache_key = f"access:pool:{pool_id}:user:{viewer_id}"
     if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))  #type: ignore
     try:
-        if (access_level := session.get_access_level(Q.pool.permissions(pool_id=pool_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.pool.permissions(pool_id=pool_id, user_id=viewer_id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this pool.")
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Pool not found.")
@@ -313,15 +313,15 @@ def pool_permissions(
 
 def media_file_permissions(
     media_file_id: int,
-    user: models.User = Depends(require_user),
+    viewer_id: int = Depends(require_user_id),
     session: SyncSession = Depends(db_session),
     r: rds.RedisClient = Depends(redis),
 ):
-    cache_key = f"access:media_file:{media_file_id}:user:{user.id}"
+    cache_key = f"access:media_file:{media_file_id}:user:{viewer_id}"
     if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))  #type: ignore
     try:
-        if (access_level := session.get_access_level(Q.media_file.permissions(media_file_id=media_file_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.media_file.permissions(media_file_id=media_file_id, user_id=viewer_id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this media file.")
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Media file not found.")
@@ -331,15 +331,15 @@ def media_file_permissions(
 
 def user_permissions(
     user_id: int,
-    current_user: models.User = Depends(require_user),
+    viewer_id: int = Depends(require_user_id),
     session: SyncSession = Depends(db_session),
     r: rds.RedisClient = Depends(redis),
 ):
-    cache_key = f"access:user:{user_id}:user:{current_user.id}"
+    cache_key = f"access:user:{user_id}:user:{viewer_id}"
     if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))  #type: ignore
     try:
-        if (access_level := session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=current_user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.user.permissions(user_id=user_id, viewer_id=viewer_id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this user.")
     except db_exc.NotFoundException:
         raise exc.NotFoundException("User not found.")
@@ -349,15 +349,15 @@ def user_permissions(
 
 def group_permissions(
     group_id: int,
-    user: models.User = Depends(require_user),
+    viewer_id: int = Depends(require_user_id),
     session: SyncSession = Depends(db_session),
     r: rds.RedisClient = Depends(redis),
 ):
-    cache_key = f"access:group:{group_id}:user:{user.id}"
+    cache_key = f"access:group:{group_id}:user:{viewer_id}"
     if (cached_access := r.get(cache_key)) is not None:
         return C.AccessLevel(int(cached_access))  #type: ignore
     try:
-        if (access_level := session.get_access_level(Q.group.permissions(group_id=group_id, user_id=user.id))) < C.AccessLevel.READ:
+        if (access_level := session.get_access_level(Q.group.permissions(group_id=group_id, user_id=viewer_id))) < C.AccessLevel.READ:
             raise exc.NoPermissionsException("You do not have permission to access this group.")
     except db_exc.NotFoundException:
         raise exc.NotFoundException("Group not found.")

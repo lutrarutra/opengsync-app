@@ -1,7 +1,7 @@
 from fastapi import Depends
 from fastapi.responses import Response
 
-from opengsync_db import queries as Q, SyncSession, models
+from opengsync_db import queries as Q, SyncSession
 from opengsync_db.categories import UserRole
 
 from ...core import responses, secrets, dependencies, exceptions as exc
@@ -20,9 +20,9 @@ class LoginForm(HTMXForm):
     def Render(cls) -> RouteFunc:
         def route(
             form: LoginForm = Depends(LoginForm.Init()),
-            current_user: models.User | None = Depends(dependencies.get_user),
+            current_user_id: int | None = Depends(dependencies.get_user_id),
         ) -> Response:
-            if current_user:
+            if current_user_id is not None:
                 return responses.htmx_response(redirect=responses.url_for("dashboard"))
 
             return form.make_response()

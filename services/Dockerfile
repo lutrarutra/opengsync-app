@@ -33,7 +33,11 @@ RUN uv sync --frozen --no-install-project --no-dev
 FROM builder AS opengsync-app
 
 COPY packages /app/packages
+COPY services/backend /app/services/backend
 COPY ./services/opengsync-app/scripts /app/scripts
+
+ENV PYTHONPATH=/app/services/backend
+
 RUN uv sync --frozen --no-editable --no-dev
 
 COPY services/opengsync-app/templates /templates

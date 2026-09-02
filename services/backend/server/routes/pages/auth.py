@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends
 
-from opengsync_db import models
-
 from ...core import dependencies, responses
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -13,9 +11,9 @@ def reset_password_page(token: str):
 
 @router.get("/login")
 def login_page(
-    current_user: models.User | None = Depends(dependencies.get_user)
+    current_user_id: int | None = Depends(dependencies.get_user_id)
 ):
-    if current_user:
+    if current_user_id is not None:
         return responses.html_response(redirect=responses.url_for("dashboard"))
     
     return responses.html_response("auth_page.html")
