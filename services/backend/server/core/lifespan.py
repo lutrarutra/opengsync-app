@@ -14,7 +14,10 @@ from . import config, mailer, secrets, templates
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.remove()
-    logger.add(sys.stdout, format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>")
+    logger.add(
+        sys.stdout, level="DEBUG" if config.settings.ENVIRONMENT != "prod" else "INFO",
+        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",
+    )
 
     if os.path.exists(config_path := "/app/opengsync.yaml"):
         with open(config_path, "r") as f:

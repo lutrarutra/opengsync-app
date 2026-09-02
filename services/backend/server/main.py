@@ -83,4 +83,5 @@ if config.settings.ENVIRONMENT != "production":
 
 
 
-app.mount("/static", StaticFiles(directory="/static"), name="static")
+if config.settings.ENVIRONMENT in ("dev", "test"):
+    app.mount("/static", StaticFiles(directory="/static"), name="static")
