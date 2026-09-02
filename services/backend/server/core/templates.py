@@ -185,7 +185,8 @@ def url_for(ctx: jinja2.runtime.Context, name: str, **path_params) -> str:
         except Exception:
             if name == "static":
                 filename = path_params.get("filename", "")
-                return f"/static/{filename.lstrip('/')}"
+                root_path = request.scope.get("root_path", "").rstrip("/")
+                return f"{root_path}/static/{filename.lstrip('/')}"
             raise
 
         if query_kwargs:

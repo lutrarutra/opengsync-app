@@ -95,6 +95,7 @@ class SampleSelectTableField(SelectTableField):
         select_all: bool = False,
         required: bool = True,
         default: list[int] | None = None,
+        project_id: int | None = None,
         hidden: bool = False,
         read_only: bool = False,
     ):
@@ -112,6 +113,8 @@ class SampleSelectTableField(SelectTableField):
         self._uid = uuid4().hex[:8]
         self.select_all = select_all
         self.query_params: dict[str, Any] = {"browse": browse_context}
+        if project_id is not None:
+            self.query_params["project_id"] = project_id
         self.browse_context = browse_context
         if status_in:
             self.query_params["status_in"] = json.dumps([s.id for s in status_in])

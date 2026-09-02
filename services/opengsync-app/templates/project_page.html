@@ -11,6 +11,13 @@
             <h1>{% if project.identifier %}{{ project.identifier }}{% else %}<span class="text-secondary">#{{ project.id }}</span>{% endif %}</h1>
         </div>
         <div class="page-controls">
+            {% if current_user.is_insider %}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullscreen-modal"
+                hx-get="{{ url_for('SplitProjectWorkflow.Begin', project_id=project.id) }}"
+                hx-target="#fullscreen-modal-content" hx-swap="innerHTML">
+                Split Project
+            </button>
+            {% endif %}
             {% if current_user.is_insider and project.status == C.ProjectStatus.PROCESSING %}
             {{
                 confirm_action_button(

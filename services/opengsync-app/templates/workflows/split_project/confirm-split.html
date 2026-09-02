@@ -1,0 +1,55 @@
+<div id="split-project-confirm-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Split Project: Confirm</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick="confirm_close_modal('#fullscreen-modal')"></button>
+    </div>
+    <div class="modal-body">
+        {{ form.render_general_errors() }}
+        {% if form.source_project %}
+        <p>
+            Move <strong>{{ form.selected_samples | length }}</strong> selected sample{{ '' if form.selected_samples | length == 1 else 's' }}
+            from <strong>{{ form.source_project.title }}</strong>
+            to <strong>{{ form.destination_title }}</strong>.
+        </p>
+        {% endif %}
+
+        <p>
+            {% if form.destination_project %}
+            Destination status:
+            <strong>{{ form.destination_status_original.display_name }}</strong>
+            &rarr;
+            {% else %}
+            New destination status:
+            {% endif %}
+            <strong>{{ form.selected_destination_status.display_name if form.selected_destination_status else 'Invalid status' }}</strong>
+        </p>
+        {% if not form.destination_project %}
+        <p>
+            The new project will inherit the source project's owner and group. It will not inherit project assignees.
+        </p>
+        {% endif %}
+        <p>The source project status will remain unchanged.</p>
+
+        <div class="mb-3">
+            {{ form.destination_status.render() }}
+        </div>
+        {{ form.csrf_token.render() }}
+    </div>
+    <div class="modal-footer">
+        <div class="footer-controls">
+            {% if form.previous_url %}
+            <button type="button" class="btn btn-warning"
+                hx-target="#split-project-confirm-container" hx-swap="outerHTML"
+                hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            {% endif %}
+            <button type="button" class="btn btn-success"
+                hx-target="#split-project-confirm-container" hx-swap="outerHTML"
+                hx-include="#split-project-confirm-container"
+                hx-post="{{ form.post_url }}">
+                Split Project
+            </button>
+        </div>
+    </div>
+</div>

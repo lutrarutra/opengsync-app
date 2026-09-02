@@ -529,6 +529,111 @@ def merge_projects(session: Session, project_dst: models.Project, project_src: m
     session.add(project_dst)
     return project_dst
 
+
+def split_project(
+    session: Session,
+    project_src: models.Project,
+    project_dst: models.Project,
+    sample_ids: Sequence[int],
+    destination_status: C.ProjectStatus,
+) -> models.Project:
+    """Move selected samples from ``project_src`` into ``project_dst``.
+
+    Samples with names that already exist in the destination are merged.  All
+    conflicts are checked before any objects are changed so callers can safely
+    turn a ``ValueError`` into a form validation response.
+    """
+    selected_ids = list(sample_ids)
+    if not selected_ids:
+        raise ValueError("At least one sample must be selected.")
+    if len(selected_ids) != len(set(selected_ids)):
+        raise ValueError("A sample may only be selected once.")
+    if project_src.id == project_dst.id:
+        raise ValueError("Source and destination projects cannot be the same.")
+
+    source_samples = {sample.id: sample for sample in project_src.samples}
+    missing_ids = set(selected_ids) - source_samples.keys()
+    if missing_ids:
+        missing = ", ".join(str(sample_id) for sample_id in sorted(missing_ids))
+        raise ValueError(f"Selected samples do not belong to the source project: {missing}.")
+
+    destination_by_name = {sample.name: sample for sample in project_dst.samples}
+
+    # Preflight sample attributes before changing a project or a link.  A
+    # duplicate link is intentionally kept on the destination sample; its
+    # source counterpart is discarded below.
+    for sample_id in selected_ids:
+        source_sample = source_samples[sample_id]
+        destination_sample = destination_by_name.get(source_sample.name)
+        if destination_sample is None:
+            continue
+
+        destination_attributes = {attribute.name: attribute for attribute in destination_sample.attributes}
+        for attribute in source_sample.attributes:
+            destination_attribute = destination_attributes.get(attribute.name)
+            if destination_attribute is None:
+                continue
+            if destination_attribute.type_id != attribute.type_id:
+                raise ValueError(
+                    f"Sample attribute conflict for sample '{source_sample.name}' on attribute "
+                    f"'{attribute.name}': incompatible attribute types."
+                )
+            if destination_attribute.value != attribute.value:
+                raise ValueError(
+                    f"Sample attribute conflict for sample '{source_sample.name}' on attribute "
+                    f"'{attribute.name}': incompatible attribute values."
+                )
+
+    for sample_id in selected_ids:
+        source_sample = source_samples[sample_id]
+        destination_sample = destination_by_name.get(source_sample.name)
+        if destination_sample is None:
+            source_sample.project_id = project_dst.id
+            session.add(source_sample)
+            continue
+
+        destination_library_ids = {link.library_id for link in destination_sample.library_links}
+        for link in list(source_sample.library_links):
+            if link.library_id in destination_library_ids:
+                session.delete(link)
+            else:
+                link.sample = destination_sample
+                destination_library_ids.add(link.library_id)
+                session.add(link)
+
+        destination_plate_links = {
+            (link.plate_id, link.well_idx): link
+            for link in destination_sample.plate_links
+        }
+        for link in list(source_sample.plate_links):
+            if (link.plate_id, link.well_idx) in destination_plate_links:
+                session.delete(link)
+            else:
+                link.sample = destination_sample
+                session.add(link)
+
+        for attribute in source_sample.attributes:
+            if destination_sample.get_attribute(attribute.name) is None:
+                destination_sample.set_attribute(attribute.name, attribute.value, type=attribute.type)
+
+        destination_sample.qubit_concentration = destination_sample.qubit_concentration or source_sample.qubit_concentration
+        destination_sample.avg_fragment_size = destination_sample.avg_fragment_size or source_sample.avg_fragment_size
+        destination_sample.timestamp_stored_utc = destination_sample.timestamp_stored_utc or source_sample.timestamp_stored_utc
+        # SampleStatus IDs represent the progression order used when merging
+        # duplicate samples, so retain the furthest progressed status.
+        if destination_sample.status is None or (
+            source_sample.status is not None and destination_sample.status < source_sample.status
+        ):
+            destination_sample.status = source_sample.status
+        destination_sample.ba_report_id = destination_sample.ba_report_id or source_sample.ba_report_id
+        session.add(destination_sample)
+        session.delete(source_sample)
+
+    project_dst.status = destination_status
+    session.add(project_dst)
+    session.flush()
+    return project_dst
+
 def submit_seq_request(session: Session, seq_request: models.SeqRequest) -> models.SeqRequest:
     seq_request.status = C.SeqRequestStatus.SUBMITTED
     seq_request.review_checklist = None

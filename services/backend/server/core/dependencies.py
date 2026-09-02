@@ -7,7 +7,7 @@ from fastapi import Depends, Request, Header, Cookie, Query
 from fastapi_cache import FastAPICache
 from taskiq import TaskiqDepends
 
-from sqlalchemy.orm import make_transient_to_detached, joinedload
+from sqlalchemy.orm import make_transient_to_detached
 
 from opengsync_db import queries as Q, SyncSession, exceptions as db_exc, models, categories as C, utils
 
@@ -78,81 +78,87 @@ def __cache_current_user(user_data: dict, r: rds.RedisClient) -> None:
     r.set(f"user:{user_data['id']}", json.dumps(user_data), ex=_USER_CACHE_TTL)
 
 
-def __cache_api_token_mapping(user_data: dict, cache_key: str, r: rds.RedisClient) -> None:
-    r.set(cache_key, str(user_data["id"]), ex=_USER_CACHE_TTL)
-    r.set(f"user:{user_data['id']}", json.dumps(user_data), ex=_USER_CACHE_TTL)
-
-
 def _resolve_user(
-    auth_response: auth.AuthResponse,
+    user_id: int,
     session: SyncSession,
     r: rds.RedisClient,
 ) -> models.User | None:
     """Shared helper to fetch user from cache or DB and schedule cache updates."""
-    if (user := __get_cached_user(f"user:{auth_response.id}", r)) is not None:
+    if (user := __get_cached_user(f"user:{user_id}", r)) is not None:
         return user
 
-    if (user := session.first(
-        Q.user.select(id=auth_response.id),
-    )) is None:
+    if (user := session.first(Q.user.select(id=user_id))) is None:
         return None
 
     __cache_current_user(_user_to_cache_dict(user), r)
     return user
 
-def _resolve_user_by_api_token(
+def _resolve_user_id_by_api_token(
     token: str,
     session: SyncSession,
     r: rds.RedisClient,
-) -> models.User | None:
+) -> int | None:
     token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
     cache_key = f"api_token:{token_hash}"
 
     if (cached_user_id := r.get(cache_key)) is not None:
         user_id = int(_decode_redis_value(cached_user_id))  # type: ignore
-        if (user := __get_cached_user(f"user:{user_id}", r)) is not None:
-            return user
-        if (user := session.first(Q.user.select(id=user_id))) is not None:
-            __cache_current_user(_user_to_cache_dict(user), r)
-            return user
+        if session.exists(Q.user.select(id=user_id, role=C.UserRole.DEACTIVATED)):
+            raise exc.UserAccountSuspendedException()
+        return user_id
 
-    db_token = session.first(
-        Q.api_token.select(uuid=token),
-        options=[joinedload(models.APIToken.owner)],
-    )
+    db_token = session.first(Q.api_token.select(uuid=token))
     if db_token is None or db_token.is_expired:
         return None
 
-    user = db_token.owner
-    __cache_api_token_mapping(_user_to_cache_dict(user), cache_key, r)
-    return user
+    if session.exists(Q.user.select(id=db_token.owner_id, role=C.UserRole.DEACTIVATED)):
+        raise exc.UserAccountSuspendedException()
+
+    r.set(cache_key, str(db_token.owner_id), ex=_USER_CACHE_TTL)
+    return db_token.owner_id
+
+def get_user_id(
+    access_token: str | None = Cookie(None),
+    api_token: str | None = Header(None, alias="X-API-Token"),
+    session: SyncSession = Depends(db_session),
+    r: rds.RedisClient = Depends(redis),
+) -> int | None:
+    """Return the authenticated user's ID without loading the user ORM object.
+
+    Browser requests authenticate with the login cookie; API clients authenticate
+    with the X-API-Token header.
+    """
+
+    if access_token:
+        try:
+            payload = secrets.validate_login_token(access_token)
+            auth_response = auth.AuthResponse.model_validate(payload)
+        except (exc.OpeNGSyncServerException, ValueError, TypeError):
+            pass
+        else:
+            if auth_response.role == C.UserRole.DEACTIVATED:
+                raise exc.UserAccountSuspendedException()
+            return auth_response.id
+
+    if api_token:
+        return _resolve_user_id_by_api_token(api_token, session, r)
+
+    return None
+
 
 def get_user(
     request: runtime.Request = TaskiqDepends(),
     session: SyncSession = Depends(db_session),
     r: rds.RedisClient = Depends(redis),
-    token: str | None = Depends(auth.optional_oauth2_scheme),
-    api_token: str | None = Header(None, alias="X-API-Token"),
-    access_token: str | None = Cookie(None)
+    user_id: int | None = Depends(get_user_id),
 ) -> models.User | None:
     """Returns the current user if authenticated, or None otherwise."""
 
     if getattr(request.state, "current_user", runtime.NOT_CHECKED) != runtime.NOT_CHECKED:
         return request.state.current_user  # type: ignore
     
-    if not token:
-        token = access_token
-        
-    if token:
-        try:
-            payload = secrets.validate_login_token(token)
-            auth_response = auth.AuthResponse.model_validate(payload)
-        except exc.OpeNGSyncServerException:
-            request.state.current_user = None
-            return None
-        user = _resolve_user(auth_response, session, r)
-    elif api_token:
-        user = _resolve_user_by_api_token(api_token, session, r)
+    if user_id is not None:
+        user = _resolve_user(user_id, session, r)
     else:
         user = None
 
@@ -165,6 +171,14 @@ def get_user(
     
     request.state.current_user = user
     return user
+
+
+def require_user_id(user_id: int | None = Depends(get_user_id)) -> int:
+    """Require authentication while avoiding user ORM instantiation."""
+
+    if user_id is None:
+        raise exc.UserNotAuthenticatedException()
+    return user_id
 
 
 def require_user(user: models.User | None = Depends(get_user)) -> models.User:

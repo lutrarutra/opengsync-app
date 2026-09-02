@@ -13,6 +13,7 @@ from . import share_project_data
 from . import add_kits_to_protocol
 from . import select_library_protocols
 from . import merge_projects
+from . import split_project
 
 __all__ = [
     "library_annotation",
@@ -29,4 +30,5 @@ __all__ = [
     "add_kits_to_protocol",
     "select_library_protocols",
     "merge_projects",
+    "split_project",
 ]

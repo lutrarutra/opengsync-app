@@ -23,13 +23,14 @@ app.exception_handler(exc.NoPermissionsException)(exc.NoPermissionsException.Han
 app.exception_handler(db_exc.NotFoundException)(exc.NotFoundException.Handler)
 app.exception_handler(exc.NotFoundException)(exc.NotFoundException.Handler)
 
+app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.timing_middleware)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.csrf_middleware)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.parse_form_data)  # type: ignore
-# app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.db_session_cleanup_middleware)  # type: ignore
 app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.state_initialization_middleware)  # type: ignore
-app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.audit_middleware)  # type: ignore
 app.add_middleware(middleware.DBSessionCleanupMiddleware)
 app.add_middleware(context.ContextMiddleware)
+app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.audit_middleware)  # type: ignore
+app.add_middleware(middleware.XForwardedPrefixMiddleware)
 
 class ErrorResponse(BaseModel):
     detail: str

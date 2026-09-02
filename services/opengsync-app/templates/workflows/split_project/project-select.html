@@ -1,0 +1,50 @@
+<div id="split-project-select-destination-container" class="modal-content">
+    <div class="modal-header">
+        <h1 class="modal-title fs-5">Split Project: Select Destination</h1>
+        <button type="button" class="btn-close modal-close-btn-confirm" aria-label="Close" onclick="confirm_close_modal('#fullscreen-modal')"></button>
+    </div>
+    <div class="modal-body">
+        {{ form.render_general_errors() }}
+        <p>
+            Move the selected samples from <strong>{{ form.source_project.title if form.source_project else 'the source project' }}</strong>
+            to an existing project or a new project.
+        </p>
+        <div id="split-project-destination-form">
+            <div class="row">
+                {{ form.existing_project.render("col-5") }}
+                <div class="col-2 mapping-or">or</div>
+                {{ form.new_project.render("col-5") }}
+            </div>
+            {{ form.project_description.render() }}
+            {{ form.csrf_token.render() }}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <div class="footer-controls">
+            {% if form.previous_url %}
+            <button type="button" class="btn btn-warning"
+                hx-target="#split-project-select-destination-container" hx-swap="outerHTML"
+                hx-get="{{ form.previous_url }}">
+                Back
+            </button>
+            {% endif %}
+            <button type="button" class="btn btn-primary"
+                hx-target="#split-project-select-destination-container" hx-swap="outerHTML"
+                hx-include="#split-project-destination-form"
+                hx-post="{{ form.post_url }}">
+                Next
+            </button>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            $("#{{ form.new_project.name }}").on("input", function() {
+                $("#{{ form.existing_project.name }}-search").val(null);
+                $("#{{ form.existing_project.name }}").val(null);
+            });
+            $("#{{ form.existing_project.name }}").on("change", function() {
+                $("#{{ form.new_project.name }}").val(null);
+            });
+        });
+    </script>
+</div>
